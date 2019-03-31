@@ -2520,6 +2520,12 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
       break;
     }
   }
+
+  if (!td_->is_online()) {
+    // reset online flag to false to immediately check all connections aliveness
+    send_closure(G()->state_manager(), &StateManager::on_online, false);
+  }
+
   if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
     auto status = process_push_notification_payload(payload);
     if (status.is_error()) {

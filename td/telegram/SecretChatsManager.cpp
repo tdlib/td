@@ -564,6 +564,10 @@ void SecretChatsManager::flush_pending_chat_updates() {
 }
 
 void SecretChatsManager::on_online(bool is_online) {
+  if (is_online_ == is_online) {
+    return;
+  }
+
   is_online_ = is_online;
   flush_pending_chat_updates();
 }

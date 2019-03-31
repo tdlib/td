@@ -776,8 +776,9 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
 
 void ConnectionCreator::on_online(bool online_flag) {
   VLOG(connections) << "Receive online flag " << online_flag;
+  bool need_drop_flood_control = online_flag || !online_flag_;
   online_flag_ = online_flag;
-  if (online_flag_) {
+  if (need_drop_flood_control) {
     for (auto &client : clients_) {
       client.second.backoff.clear();
       client.second.flood_control_online.clear_events();

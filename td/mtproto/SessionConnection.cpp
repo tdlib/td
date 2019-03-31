@@ -713,10 +713,11 @@ Status SessionConnection::init() {
 }
 
 void SessionConnection::set_online(bool online_flag, bool is_main) {
+  bool need_ping = online_flag || !online_flag_;
   online_flag_ = online_flag;
   is_main_ = is_main;
   auto now = Time::now();
-  if (online_flag_) {
+  if (need_ping) {
     last_pong_at_ = now - ping_disconnect_delay() + rtt();
     last_read_at_ = now - read_disconnect_delay() + rtt();
   } else {
