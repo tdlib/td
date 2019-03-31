@@ -2530,6 +2530,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
     auto status = process_push_notification_payload(payload);
     if (status.is_error()) {
       LOG(ERROR) << "Receive error " << status << ", while parsing push payload " << payload;
+      return promise.set_error(Status::Error(400, status.message()));
     }
     promise.set_value(Unit());
     return;
