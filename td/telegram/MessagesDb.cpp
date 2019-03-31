@@ -1027,7 +1027,7 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     MessagesDbSyncInterface *sync_db_ = nullptr;
 
     static constexpr size_t MAX_PENDING_QUERIES_COUNT{50};
-    static constexpr double MAX_PENDING_QUERIES_DELAY{1};
+    static constexpr double MAX_PENDING_QUERIES_DELAY{0.01};
     std::vector<Promise<>> pending_writes_;
     double wakeup_at_ = 0;
     template <class F>
