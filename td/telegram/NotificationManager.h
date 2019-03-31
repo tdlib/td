@@ -36,6 +36,8 @@ namespace td {
 
 extern int VERBOSITY_NAME(notifications);
 
+struct BinlogEvent;
+
 class Td;
 
 class NotificationManager : public Actor {
@@ -119,6 +121,8 @@ class NotificationManager : public Actor {
 
   void destroy_all_notifications();
 
+  void on_binlog_events(vector<BinlogEvent> &&events);
+
  private:
   static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 0;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
@@ -137,6 +141,8 @@ class NotificationManager : public Actor {
   static constexpr int32 MAX_UPDATE_DELAY_MS = 60000;
 
   static constexpr int32 ANNOUNCEMENT_ID_CACHE_TIME = 7 * 86400;
+
+  class AddMessagePushNotificationLogEvent;
 
   struct PendingNotification {
     int32 date = 0;
@@ -227,6 +233,8 @@ class NotificationManager : public Actor {
 
   NotificationGroupKey get_last_updated_group_key() const;
 
+  void try_send_update_active_notifications() const;
+
   td_api::object_ptr<td_api::updateActiveNotifications> get_update_active_notifications() const;
 
   td_api::object_ptr<td_api::updateNotificationGroup> get_remove_group_update(
@@ -272,7 +280,8 @@ class NotificationManager : public Actor {
 
   Status process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                            UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
-                                           bool is_silent, string loc_key, string arg);
+                                           bool is_silent, string loc_key, string arg, NotificationId notification_id,
+                                           int64 logevent_id);
 
   void after_get_difference_impl();
 
@@ -309,6 +318,9 @@ class NotificationManager : public Actor {
   bool disable_contact_registered_notifications_ = false;
 
   bool is_destroyed_ = false;
+
+  bool is_inited_ = false;
+  bool is_binlog_processed_ = false;
 
   bool running_get_difference_ = false;
   std::unordered_set<int32> running_get_chat_difference_;

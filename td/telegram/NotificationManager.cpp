@@ -27,6 +27,9 @@
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Transport.h"
 
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
+
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -193,6 +196,8 @@ void NotificationManager::init() {
     return;
   }
 
+  is_inited_ = true;
+
   disable_contact_registered_notifications_ =
       G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
   auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
@@ -226,11 +231,9 @@ void NotificationManager::init() {
     do {
       loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
     } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
-
-    auto update = get_update_active_notifications();
-    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
-    send_closure(G()->td(), &Td::send_update, std::move(update));
   }
+
+  try_send_update_active_notifications();
 
   auto call_notification_group_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_call_group_ids");
   if (!call_notification_group_ids_string.empty()) {
@@ -1942,7 +1945,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   bool is_total_count_changed = false;
   if (group.total_count == 0) {
     LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing "
-               << old_group_size - notification_pos << " temporary notificaitons";
+               << old_group_size - notification_pos << " temporary notificaitions";
   } else {
     group.total_count -= narrow_cast<int32>(old_group_size - notification_pos);
     is_total_count_changed = true;
@@ -2728,7 +2731,7 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     } else if (field_value.first == "google.sent_time") {
       TRY_RESULT(google_sent_time, get_json_object_long_field(json_value.get_object(), "google.sent_time"));
       google_sent_time /= 1000;
-      if (sent_date - 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
+      if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
         sent_date = narrow_cast<int32>(google_sent_time);
       }
     } else if (field_value.first == "google.notification.sound" && field_value.second.type() != JsonValue::Type::Null) {
@@ -2938,19 +2941,114 @@ Status NotificationManager::process_push_notification_payload(string payload) {
 
   return process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
                                            std::move(sender_name), sent_date, contains_mention, is_silent,
-                                           std::move(loc_key), std::move(arg));
+                                           std::move(loc_key), std::move(arg), NotificationId(), 0);
 }
+
+class NotificationManager::AddMessagePushNotificationLogEvent {
+ public:
+  DialogId dialog_id_;
+  MessageId message_id_;
+  int64 random_id_;
+  UserId sender_user_id_;
+  string sender_name_;
+  int32 date_;
+  bool contains_mention_;
+  bool is_silent_;
+  string loc_key_;
+  string arg_;
+  NotificationId notification_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_message_id = message_id_.is_valid();
+    bool has_random_id = random_id_ != 0;
+    bool has_sender = sender_user_id_.is_valid();
+    bool has_sender_name = !sender_name_.empty();
+    bool has_arg = !arg_.empty();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(contains_mention_);
+    STORE_FLAG(is_silent_);
+    STORE_FLAG(has_message_id);
+    STORE_FLAG(has_random_id);
+    STORE_FLAG(has_sender);
+    STORE_FLAG(has_sender_name);
+    STORE_FLAG(has_arg);
+    END_STORE_FLAGS();
+    td::store(dialog_id_, storer);
+    if (has_message_id) {
+      td::store(message_id_, storer);
+    }
+    if (has_random_id) {
+      td::store(random_id_, storer);
+    }
+    if (has_sender) {
+      td::store(sender_user_id_, storer);
+    }
+    if (has_sender_name) {
+      td::store(sender_name_, storer);
+    }
+    td::store(date_, storer);
+    td::store(loc_key_, storer);
+    if (has_arg) {
+      td::store(arg_, storer);
+    }
+    td::store(notification_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_message_id;
+    bool has_random_id;
+    bool has_sender;
+    bool has_sender_name;
+    bool has_arg;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(contains_mention_);
+    PARSE_FLAG(is_silent_);
+    PARSE_FLAG(has_message_id);
+    PARSE_FLAG(has_random_id);
+    PARSE_FLAG(has_sender);
+    PARSE_FLAG(has_sender_name);
+    PARSE_FLAG(has_arg);
+    END_PARSE_FLAGS();
+    td::parse(dialog_id_, parser);
+    if (has_message_id) {
+      td::parse(message_id_, parser);
+    }
+    if (has_random_id) {
+      td::parse(random_id_, parser);
+    } else {
+      random_id_ = 0;
+    }
+    if (has_sender) {
+      td::parse(sender_user_id_, parser);
+    }
+    if (has_sender_name) {
+      td::parse(sender_name_, parser);
+    }
+    td::parse(date_, parser);
+    td::parse(loc_key_, parser);
+    if (has_arg) {
+      td::parse(arg_, parser);
+    }
+    td::parse(notification_id_, parser);
+  }
+};
 
 Status NotificationManager::process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                                               UserId sender_user_id, string sender_name, int32 date,
                                                               bool contains_mention, bool is_silent, string loc_key,
-                                                              string arg) {
+                                                              string arg, NotificationId notification_id,
+                                                              int64 logevent_id) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
   if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id << ": " << r_info.error();
+    if (logevent_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    }
     return Status::OK();
   }
 
@@ -2958,20 +3056,25 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
   CHECK(info.group_id.is_valid());
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
-    VLOG(notifications) << "Skep notification in secret " << dialog_id;
+    VLOG(notifications) << "Skip notification in secret " << dialog_id;
     // TODO support secret chat notifications
     // main problem: there is no message_id yet
+    CHECK(logevent_id == 0);
     return Status::OK();
   }
   CHECK(random_id == 0);
 
   if (is_disabled() || max_notification_group_count_ == 0) {
+    CHECK(logevent_id == 0);
     return Status::OK();
   }
 
-  auto notification_id = get_next_notification_id();
   if (!notification_id.is_valid()) {
-    return Status::OK();
+    CHECK(logevent_id == 0);
+    notification_id = get_next_notification_id();
+    if (!notification_id.is_valid()) {
+      return Status::OK();
+    }
   }
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
@@ -2982,6 +3085,18 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, sender_name, string(), string(), string(),
         nullptr, nullptr, 0, string(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "process_message_push_notification");
+  }
+
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    AddMessagePushNotificationLogEvent logevent{dialog_id,   message_id, random_id,        sender_user_id,
+                                                sender_name, date,       contains_mention, is_silent,
+                                                loc_key,     arg,        notification_id};
+    auto storer = LogEventStorerImpl<AddMessagePushNotificationLogEvent>(logevent);
+    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification, storer);
+  }
+
+  if (logevent_id != 0) {
+    // TODO register logevent
   }
 
   auto group_id = info.group_id;
@@ -3224,6 +3339,54 @@ void NotificationManager::on_pending_notification_update_count_changed(int32 dif
     VLOG(notifications) << "Send " << oneline(to_string(update));
     send_closure(G()->td(), &Td::send_update, std::move(update));
   }
+}
+
+void NotificationManager::try_send_update_active_notifications() const {
+  if (max_notification_group_count_ == 0) {
+    return;
+  }
+  if (!is_binlog_processed_ || !is_inited_) {
+    return;
+  }
+
+  auto update = get_update_active_notifications();
+  VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
+  send_closure(G()->td(), &Td::send_update, std::move(update));
+}
+
+void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  VLOG(notifications) << "Begin to process " << events.size() << " binlog events";
+  for (auto &event : events) {
+    switch (event.type_) {
+      case LogEvent::HandlerType::AddMessagePushNotification: {
+        if (!G()->parameters().use_message_db || is_disabled() || max_notification_group_count_ == 0) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        CHECK(is_inited_);
+        AddMessagePushNotificationLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto status = process_message_push_notification(
+            log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
+            log_event.sender_name_, log_event.date_, log_event.contains_mention_, log_event.is_silent_,
+            log_event.loc_key_, log_event.arg_, log_event.notification_id_, event.id_);
+        if (status.is_error()) {
+          LOG(ERROR) << "Receive error " << status << ", while processing message push notification";
+        }
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported logevent type " << event.type_;
+    }
+  }
+  if (is_inited_) {
+    flush_all_pending_notifications();
+  }
+  is_binlog_processed_ = true;
+  try_send_update_active_notifications();
+  VLOG(notifications) << "Finish processing binlog events";
 }
 
 }  // namespace td

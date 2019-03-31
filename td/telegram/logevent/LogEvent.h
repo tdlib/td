@@ -94,6 +94,7 @@ class LogEvent {
     ReadHistoryInSecretChat = 0x114,
     ToggleDialogIsMarkedAsUnreadOnServer = 0x115,
     GetChannelDifference = 0x140,
+    AddMessagePushNotification = 0x200,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };

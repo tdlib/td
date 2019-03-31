@@ -4286,6 +4286,9 @@ Status Td::init(DbKey key) {
   send_closure_later(messages_manager_actor_, &MessagesManager::on_binlog_events,
                      std::move(events.to_messages_manager));
 
+  send_closure_later(notification_manager_actor_, &NotificationManager::on_binlog_events,
+                     std::move(events.to_notification_manager));
+
   // NB: be very careful. This notification may be received before all binlog events are.
   G()->on_binlog_replay_finish();
   send_closure(secret_chats_manager_, &SecretChatsManager::binlog_replay_finish);

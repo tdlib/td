@@ -104,6 +104,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::AddMessagePushNotification:
+        events.to_notification_manager.push_back(event.clone());
+        break;
       case LogEvent::HandlerType::BinlogPmcMagic:
         binlog_pmc.external_init_handle(event);
         break;
