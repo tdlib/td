@@ -324,13 +324,17 @@ td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_u
     needed_groups--;
 
     vector<td_api::object_ptr<td_api::notification>> notifications;
-    for (auto &notification : group.second.notifications) {
+    for (auto &notification : reversed(group.second.notifications)) {
       auto notification_object = get_notification_object(group.first.dialog_id, notification);
       if (notification_object->type_ != nullptr) {
         notifications.push_back(std::move(notification_object));
       }
+      if (notifications.size() == max_notification_group_size_) {
+        break;
+      }
     }
     if (!notifications.empty()) {
+      std::reverse(notifications.begin(), notifications.end());
       groups.push_back(td_api::make_object<td_api::notificationGroup>(
           group.first.group_id.get(), get_notification_group_type_object(group.second.type),
           group.first.dialog_id.get(), group.second.total_count, std::move(notifications)));
