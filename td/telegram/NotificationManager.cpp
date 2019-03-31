@@ -196,8 +196,6 @@ void NotificationManager::init() {
     return;
   }
 
-  is_inited_ = true;
-
   disable_contact_registered_notifications_ =
       G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
   auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
@@ -232,8 +230,6 @@ void NotificationManager::init() {
       loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
     } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
   }
-
-  try_send_update_active_notifications();
 
   auto call_notification_group_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_call_group_ids");
   if (!call_notification_group_ids_string.empty()) {
@@ -289,6 +285,9 @@ void NotificationManager::init() {
     ActorId<NotificationManager> parent_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+
+  is_inited_ = true;
+  try_send_update_active_notifications();
 }
 
 void NotificationManager::save_announcement_ids() {
@@ -910,6 +909,9 @@ NotificationUpdate as_notification_update(const td_api::Update *update) {
 }  // namespace
 
 void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::Update> update) {
+  if (!is_binlog_processed_ || !is_inited_) {
+    return;
+  }
   VLOG(notifications) << "Add " << as_notification_update(update.get());
   auto &updates = pending_updates_[group_id];
   if (updates.empty()) {
@@ -3386,7 +3388,7 @@ td_api::object_ptr<td_api::updateHavePendingNotifications> NotificationManager::
 }
 
 void NotificationManager::send_update_have_pending_notifications() const {
-  if (is_destroyed_) {
+  if (is_destroyed_ || !is_inited_ || !is_binlog_processed_) {
     return;
   }
 
