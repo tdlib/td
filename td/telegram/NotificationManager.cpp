@@ -2962,8 +2962,14 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   }
   if (dialog_id.get_type() == DialogType::User) {
     sender_name = std::move(loc_args[0]);
+  } else if (sender_user_id.is_valid() && begins_with(loc_key, "PINNED_")) {
+    if (loc_args.size() < 2) {
+      return Status::Error("Expected chat title as the last argument");
+    }
+    loc_args.pop_back();
   }
-  // chat title for CHAT_*, CHANNEL_*, ENCRYPTED_MESSAGE and PINNED_*, sender name for MESSAGE_* and CONTACT_JOINED
+  // chat title for CHAT_*, CHANNEL_* and ENCRYPTED_MESSAGE, sender name for MESSAGE_* and CONTACT_JOINED
+  // chat title or sender name for PINNED_*
   loc_args.erase(loc_args.begin());
 
   if (loc_args.size() > 1) {
