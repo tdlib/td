@@ -3072,7 +3072,7 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
                                                               uint64 logevent_id) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
-      dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
+      dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned, logevent_id != 0);
   if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id << ": " << r_info.error();

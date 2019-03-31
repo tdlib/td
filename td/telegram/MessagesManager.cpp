@@ -3802,6 +3802,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_new_secret_chat_notification_id = new_secret_chat_notification_id.is_valid();
   bool has_pinned_message_notification = pinned_message_notification_message_id.is_valid();
   bool has_pinned_message_id = pinned_message_id.is_valid();
+  bool has_flags2 = true;
+  bool has_max_notification_message_id =
+      max_notification_message_id.is_valid() && max_notification_message_id.get() > last_new_message_id.get();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3831,11 +3834,18 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_new_secret_chat_notification_id);
   STORE_FLAG(has_pinned_message_notification);
   STORE_FLAG(has_pinned_message_id);
-  STORE_FLAG(is_pinned_message_id_inited);  // 28
-  //STORE_FLAG(has_flags2);  // keep dialog_id at offset 4
+  STORE_FLAG(is_pinned_message_id_inited);
+  STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
+
+  if (has_flags2) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_max_notification_message_id);
+    END_STORE_FLAGS();
+  }
+
   store(last_new_message_id, storer);
   store(server_unread_count, storer);
   if (has_local_unread_count) {
@@ -3906,6 +3916,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_pinned_message_id) {
     store(pinned_message_id, storer);
   }
+  if (has_max_notification_message_id) {
+    store(max_notification_message_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3930,6 +3943,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_new_secret_chat_notification_id;
   bool has_pinned_message_notification;
   bool has_pinned_message_id;
+  bool has_flags2;
+  bool has_max_notification_message_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3960,9 +3975,17 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_pinned_message_notification);
   PARSE_FLAG(has_pinned_message_id);
   PARSE_FLAG(is_pinned_message_id_inited);
+  PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
+
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_max_notification_message_id);
+    END_PARSE_FLAGS();
+  }
+
   parse(last_new_message_id, parser);
   parse(server_unread_count, parser);
   if (has_local_unread_count) {
@@ -4056,6 +4079,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_pinned_message_id) {
     parse(pinned_message_id, parser);
+  }
+  if (has_max_notification_message_id) {
+    parse(max_notification_message_id, parser);
   }
 }
 
@@ -18212,7 +18238,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
 
 Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_message_push_notification_info(
     DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, int32 date, bool contains_mention,
-    bool is_pinned) {
+    bool is_pinned, bool is_from_binlog) {
   init();
 
   if (dialog_id == get_my_dialog_id()) {
@@ -18230,10 +18256,10 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     if (message_id.get() <= d->last_new_message_id.get()) {
       return Status::Error("Ignore notification about known message");
     }
-    if (message_id.get() == d->max_notification_message_id.get()) {
+    if (!is_from_binlog && message_id.get() == d->max_notification_message_id.get()) {
       return Status::Error("Ignore previously added message push notification");
     }
-    if (message_id.get() < d->max_notification_message_id.get()) {
+    if (!is_from_binlog && message_id.get() < d->max_notification_message_id.get()) {
       return Status::Error("Ignore out of order message push notification");
     }
     if (message_id.get() <= d->last_read_inbox_message_id.get()) {
@@ -18279,6 +18305,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
 
   if (message_id.is_valid() && message_id.get() > d->max_notification_message_id.get()) {
     d->max_notification_message_id = message_id;
+    on_dialog_updated(dialog_id, "set_max_notification_message_id");
   }
 
   MessagePushNotificationInfo result;
@@ -23595,6 +23622,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << d->mention_notification_group.last_notification_date << ", max removed "
                       << d->mention_notification_group.max_removed_notification_id << " and pinned message "
                       << d->pinned_message_notification_message_id;
+  VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
+                      << ", last_new_message_id = " << d->last_new_message_id
+                      << ", max_notification_message_id = " << d->max_notification_message_id;
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
