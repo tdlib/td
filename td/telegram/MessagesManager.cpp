@@ -15352,10 +15352,19 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
 
 MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_id) {
   CHECK(d != nullptr);
+  if (!message_id.is_valid()) {
+    return MessageId();
+  }
   message_id = get_persistent_message_id(d, message_id);
   const Message *reply_to_message = get_message_force(d, message_id, "get_reply_to_message_id");
   if (reply_to_message == nullptr || message_id.is_yet_unsent() ||
       (message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+    if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
+        message_id.get() > d->last_new_message_id.get() && message_id.get() <= d->max_notification_message_id.get()) {
+      // allow to reply yer unreceived server message
+      return message_id;
+    }
+
     // TODO local replies to local messages can be allowed
     // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
     return MessageId();
