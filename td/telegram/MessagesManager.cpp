@@ -19081,9 +19081,10 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   } else if (td_->is_online() && d->is_opened) {
     min_delay_ms = 1000;  // 1 second
   }
+  bool is_silent = m->disable_notification || m->message_id.get() <= d->max_notification_message_id.get();
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
-                     m->date, settings_dialog_id, m->disable_notification, min_delay_ms, m->notification_id,
+                     m->date, settings_dialog_id, is_silent, min_delay_ms, m->notification_id,
                      create_new_message_notification(m->message_id));
   return true;
 }
