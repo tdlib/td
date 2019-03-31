@@ -235,6 +235,10 @@ class NotificationManager : public Actor {
 
   void try_send_update_active_notifications() const;
 
+  void send_update_have_pending_notifications() const;
+
+  td_api::object_ptr<td_api::updateHavePendingNotifications> get_update_have_pending_notifications() const;
+
   td_api::object_ptr<td_api::updateActiveNotifications> get_update_active_notifications() const;
 
   td_api::object_ptr<td_api::updateNotificationGroup> get_remove_group_update(
@@ -289,7 +293,9 @@ class NotificationManager : public Actor {
 
   void after_get_chat_difference_impl(NotificationGroupId group_id);
 
-  void on_pending_notification_update_count_changed(int32 diff, int32 notification_group_id, const char *source);
+  void on_delayed_notification_update_count_changed(int32 diff, int32 notification_group_id, const char *source);
+
+  void on_unreceived_notification_update_count_changed(int32 diff, int32 notification_group_id, const char *source);
 
   static string get_is_contact_registered_notifications_synchronized_key();
 
@@ -312,7 +318,8 @@ class NotificationManager : public Actor {
   int32 notification_cloud_delay_ms_ = DEFAULT_ONLINE_CLOUD_DELAY_MS;
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
 
-  int32 pending_notification_update_count_ = 0;
+  int32 delayed_notification_update_count_ = 0;
+  int32 unreceived_notification_update_count_ = 0;
 
   NotificationGroupKey last_loaded_notification_group_key_;
 

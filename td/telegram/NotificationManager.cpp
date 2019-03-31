@@ -724,8 +724,9 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
   if (group_it != groups_.end()) {
     CHECK(group_it->first.last_notification_date == 0);
     LOG_CHECK(group_it->second.total_count == 0)
-        << running_get_difference_ << " " << pending_notification_update_count_ << " "
-        << pending_updates_[group_id.get()].size() << " " << group_it->first << " " << group_it->second;
+        << running_get_difference_ << " " << delayed_notification_update_count_ << " "
+        << unreceived_notification_update_count_ << " " << pending_updates_[group_id.get()].size() << " "
+        << group_it->first << " " << group_it->second;
     CHECK(group_it->second.notifications.empty());
     CHECK(group_it->second.pending_notifications.empty());
     CHECK(!group_it->second.is_being_loaded_from_database);
@@ -736,7 +737,7 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
     flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
     flush_pending_updates_timeout_.cancel_timeout(group_id.get());
     if (pending_updates_.erase(group_id.get()) == 1) {
-      on_pending_notification_update_count_changed(-1, group_id.get(), "try_reuse_notification_group_id");
+      on_delayed_notification_update_count_changed(-1, group_id.get(), "try_reuse_notification_group_id");
     }
   }
 
@@ -858,7 +859,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     flush_pending_notifications_timeout_.set_timeout_at(group_id.get(), group.pending_notifications_flush_time);
   }
   if (group.pending_notifications.empty()) {
-    on_pending_notification_update_count_changed(1, group_id.get(), "add_notification");
+    on_delayed_notification_update_count_changed(1, group_id.get(), "add_notification");
   }
   group.pending_notifications.push_back(std::move(notification));
 }
@@ -908,7 +909,7 @@ void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::
   VLOG(notifications) << "Add " << as_notification_update(update.get());
   auto &updates = pending_updates_[group_id];
   if (updates.empty()) {
-    on_pending_notification_update_count_changed(1, group_id, "add_update");
+    on_delayed_notification_update_count_changed(1, group_id, "add_update");
   }
   updates.push_back(std::move(update));
   if (!running_get_difference_ && running_get_chat_difference_.count(group_id) == 0) {
@@ -1282,7 +1283,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     VLOG(notifications) << "Send " << as_notification_update(update.get());
     send_closure(G()->td(), &Td::send_update, std::move(update));
   }
-  on_pending_notification_update_count_changed(-1, group_id, "flush_pending_updates");
+  on_delayed_notification_update_count_changed(-1, group_id, "flush_pending_updates");
 }
 
 void NotificationManager::force_flush_pending_updates(NotificationGroupId group_id, const char *source) {
@@ -1498,7 +1499,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
 
   group.pending_notifications_flush_time = 0;
   group.pending_notifications.clear();
-  on_pending_notification_update_count_changed(-1, group_id.get(), "flush_pending_notifications");
+  on_delayed_notification_update_count_changed(-1, group_id.get(), "flush_pending_notifications");
   // if we can delete a lot of notifications simultaneously
   if (group.notifications.size() > keep_notification_group_size_ + EXTRA_GROUP_SIZE &&
       group.type != NotificationGroupType::Calls) {
@@ -1742,7 +1743,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
       if (group_it->second.pending_notifications.empty()) {
         group_it->second.pending_notifications_flush_time = 0;
         flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
-        on_pending_notification_update_count_changed(-1, group_id.get(), "remove_notification");
+        on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_notification");
       }
       return promise.set_value(Unit());
     }
@@ -1854,7 +1855,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     if (group_it->second.pending_notifications.empty()) {
       group_it->second.pending_notifications_flush_time = 0;
       flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
-      on_pending_notification_update_count_changed(-1, group_id.get(), "remove_notification_group");
+      on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_notification_group");
     }
   }
   if (new_total_count != -1) {
@@ -1950,7 +1951,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     if (group.pending_notifications.empty()) {
       group.pending_notifications_flush_time = 0;
       flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
-      on_pending_notification_update_count_changed(-1, group_id.get(), "remove_temporary_notifications");
+      on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_temporary_notifications");
     }
   }
 
@@ -3251,7 +3252,7 @@ void NotificationManager::before_get_difference() {
   }
 
   running_get_difference_ = true;
-  on_pending_notification_update_count_changed(1, 0, "before_get_difference");
+  on_unreceived_notification_update_count_changed(1, 0, "before_get_difference");
 }
 
 void NotificationManager::after_get_difference() {
@@ -3261,7 +3262,7 @@ void NotificationManager::after_get_difference() {
 
   CHECK(running_get_difference_);
   running_get_difference_ = false;
-  on_pending_notification_update_count_changed(-1, 0, "after_get_difference");
+  on_unreceived_notification_update_count_changed(-1, 0, "after_get_difference");
   flush_pending_notifications_timeout_.set_timeout_in(0, MIN_NOTIFICATION_DELAY_MS * 1e-3);
 }
 
@@ -3297,7 +3298,7 @@ void NotificationManager::before_get_chat_difference(NotificationGroupId group_i
   VLOG(notifications) << "Before get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   running_get_chat_difference_.insert(group_id.get());
-  on_pending_notification_update_count_changed(1, group_id.get(), "before_get_chat_difference");
+  on_unreceived_notification_update_count_changed(1, group_id.get(), "before_get_chat_difference");
 }
 
 void NotificationManager::after_get_chat_difference(NotificationGroupId group_id) {
@@ -3310,7 +3311,7 @@ void NotificationManager::after_get_chat_difference(NotificationGroupId group_id
   auto erased_count = running_get_chat_difference_.erase(group_id.get());
   if (erased_count == 1) {
     flush_pending_notifications_timeout_.set_timeout_in(-group_id.get(), MIN_NOTIFICATION_DELAY_MS * 1e-3);
-    on_pending_notification_update_count_changed(-1, group_id.get(), "after_get_chat_difference");
+    on_unreceived_notification_update_count_changed(-1, group_id.get(), "after_get_chat_difference");
   }
 }
 
@@ -3333,9 +3334,7 @@ void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Up
   }
 
   updates.push_back(get_update_active_notifications());
-  if (pending_notification_update_count_ != 0) {
-    updates.push_back(td_api::make_object<td_api::updateHavePendingNotifications>(true));
-  }
+  updates.push_back(get_update_have_pending_notifications());
 }
 
 void NotificationManager::flush_all_notifications() {
@@ -3362,25 +3361,57 @@ void NotificationManager::destroy_all_notifications() {
   }
 
   flush_all_pending_updates(true, "destroy_all_notifications");
-  if (pending_notification_update_count_ != 0) {
-    on_pending_notification_update_count_changed(-pending_notification_update_count_, 0, "destroy_all_notifications");
+  if (delayed_notification_update_count_ != 0) {
+    on_delayed_notification_update_count_changed(-delayed_notification_update_count_, 0, "destroy_all_notifications");
+  }
+  if (unreceived_notification_update_count_ != 0) {
+    on_unreceived_notification_update_count_changed(-unreceived_notification_update_count_, 0,
+                                                    "destroy_all_notifications");
   }
   is_destroyed_ = true;
 }
 
-void NotificationManager::on_pending_notification_update_count_changed(int32 diff, int32 notification_group_id,
+td_api::object_ptr<td_api::updateHavePendingNotifications> NotificationManager::get_update_have_pending_notifications()
+    const {
+  return td_api::make_object<td_api::updateHavePendingNotifications>(delayed_notification_update_count_ != 0,
+                                                                     unreceived_notification_update_count_ != 0);
+}
+
+void NotificationManager::send_update_have_pending_notifications() const {
+  if (is_destroyed_) {
+    return;
+  }
+
+  auto update = get_update_have_pending_notifications();
+  VLOG(notifications) << "Send " << oneline(to_string(update));
+  send_closure(G()->td(), &Td::send_update, std::move(update));
+}
+
+void NotificationManager::on_delayed_notification_update_count_changed(int32 diff, int32 notification_group_id,
                                                                        const char *source) {
-  bool had_pending = pending_notification_update_count_ != 0;
-  pending_notification_update_count_ += diff;
-  CHECK(pending_notification_update_count_ >= 0);
-  VLOG(notifications) << "Update pending notification count with diff " << diff << " to "
-                      << pending_notification_update_count_ << " from group " << notification_group_id << " and "
+  bool had_delayed = delayed_notification_update_count_ != 0;
+  delayed_notification_update_count_ += diff;
+  CHECK(delayed_notification_update_count_ >= 0);
+  VLOG(notifications) << "Update delayed notification count with diff " << diff << " to "
+                      << delayed_notification_update_count_ << " from group " << notification_group_id << " and "
                       << source;
-  bool have_pending = pending_notification_update_count_ != 0;
-  if (had_pending != have_pending && !is_destroyed_) {
-    auto update = td_api::make_object<td_api::updateHavePendingNotifications>(have_pending);
-    VLOG(notifications) << "Send " << oneline(to_string(update));
-    send_closure(G()->td(), &Td::send_update, std::move(update));
+  bool have_delayed = delayed_notification_update_count_ != 0;
+  if (had_delayed != have_delayed) {
+    send_update_have_pending_notifications();
+  }
+}
+
+void NotificationManager::on_unreceived_notification_update_count_changed(int32 diff, int32 notification_group_id,
+                                                                          const char *source) {
+  bool had_unreceived = unreceived_notification_update_count_ != 0;
+  unreceived_notification_update_count_ += diff;
+  CHECK(unreceived_notification_update_count_ >= 0);
+  VLOG(notifications) << "Update unreceived notification count with diff " << diff << " to "
+                      << unreceived_notification_update_count_ << " from group " << notification_group_id << " and "
+                      << source;
+  bool have_unreceived = unreceived_notification_update_count_ != 0;
+  if (had_unreceived != have_unreceived) {
+    send_update_have_pending_notifications();
   }
 }
 
