@@ -1966,16 +1966,19 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
       notification_pos = pos;
     }
   }
-  if (notification_pos == old_group_size) {
+  auto removed_notification_count = narrow_cast<int32>(old_group_size - notification_pos);
+  if (removed_notification_count == 0) {
     return;
   }
 
   bool is_total_count_changed = false;
-  if (group.total_count == 0) {
+  if (group.total_count < removed_notification_count) {
     LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing "
-               << old_group_size - notification_pos << " temporary notificaitions";
+               << removed_notification_count << " temporary notificaitions";
+    is_total_count_changed = group.total_count != 0;
+    group.total_count = 0;
   } else {
-    group.total_count -= narrow_cast<int32>(old_group_size - notification_pos);
+    group.total_count -= removed_notification_count;
     is_total_count_changed = true;
   }
 
@@ -1994,7 +1997,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
 
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
   if (old_group_size >= max_notification_group_size_) {
-    for (size_t i = old_group_size - max_notification_group_size_;
+    for (size_t i = min(old_group_size - max_notification_group_size_, notification_pos);
          i-- > 0 && added_notifications.size() < removed_notification_ids.size();) {
       added_notifications.push_back(get_notification_object(group_it->first.dialog_id, group.notifications[i]));
       if (added_notifications.back()->type_ == nullptr) {
@@ -2004,6 +2007,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     if (added_notifications.size() < removed_notification_ids.size()) {
       load_message_notifications_from_database(group_it->first, group, keep_notification_group_size_);
     }
+    std::reverse(added_notifications.begin(), added_notifications.end());
   }
 
   on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids),
