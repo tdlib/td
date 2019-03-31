@@ -79,7 +79,7 @@ class BinlogActor : public Actor {
   bool flush_flag_ = false;
   double wakeup_at_ = 0;
 
-  static constexpr int32 FLUSH_TIMEOUT = 1;  // 1s
+  static constexpr double FLUSH_TIMEOUT = 0.001;  // 1ms
 
   void wakeup_after(double after) {
     auto now = Time::now_cached();
