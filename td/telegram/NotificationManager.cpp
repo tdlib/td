@@ -800,6 +800,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
                                            bool is_silent, int32 min_delay_ms, NotificationId notification_id,
                                            unique_ptr<NotificationType> type) {
   if (is_disabled() || max_notification_group_count_ == 0) {
+    on_notification_removed(notification_id);
     return;
   }
 
@@ -829,6 +830,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   if (notification_id.get() <= get_last_notification_id(group).get()) {
     LOG(ERROR) << "Failed to add " << notification_id << " to " << group_id << " of type " << group_type << " in "
                << dialog_id << ", because have already added " << get_last_notification_id(group);
+    on_notification_removed(notification_id);
     return;
   }
   auto message_id = type->get_message_id();
@@ -836,6 +838,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     LOG(ERROR) << "Failed to add " << notification_id << " of type " << *type << " to " << group_id << " of type "
                << group_type << " in " << dialog_id << ", because have already added notification about "
                << get_last_message_id(group);
+    on_notification_removed(notification_id);
     return;
   }
 
@@ -1500,6 +1503,9 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   if (group.notifications.size() > keep_notification_group_size_ + EXTRA_GROUP_SIZE &&
       group.type != NotificationGroupType::Calls) {
     // keep only keep_notification_group_size_ last notifications in memory
+    for (auto it = group.notifications.begin(); it != group.notifications.end() - keep_notification_group_size_; ++it) {
+      on_notification_removed(it->notification_id);
+    }
     group.notifications.erase(group.notifications.begin(), group.notifications.end() - keep_notification_group_size_);
     group.is_loaded_from_database = false;
   }
@@ -1566,6 +1572,17 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
       return;
     }
   }
+}
+
+void NotificationManager::on_notification_removed(NotificationId notification_id) {
+  VLOG(notifications) << "In on_notification_removed with " << notification_id;
+  auto it = temporary_notification_logevent_ids_.find(notification_id);
+  if (it == temporary_notification_logevent_ids_.end()) {
+    return;
+  }
+  VLOG(notifications) << "Remove from binlog " << notification_id << " with logevent " << it->second;
+  binlog_erase(G()->td_db()->get_binlog(), it->second);
+  temporary_notification_logevent_ids_.erase(it);
 }
 
 void NotificationManager::on_notifications_removed(
@@ -1720,6 +1737,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
        ++it) {
     if (it->notification_id == notification_id) {
       // notification is still pending, just delete it
+      on_notification_removed(notification_id);
       group_it->second.pending_notifications.erase(it);
       if (group_it->second.pending_notifications.empty()) {
         group_it->second.pending_notifications_flush_time = 0;
@@ -1735,6 +1753,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   size_t notification_pos = old_group_size;
   for (size_t pos = 0; pos < notification_pos; pos++) {
     if (group_it->second.notifications[pos].notification_id == notification_id) {
+      on_notification_removed(notification_id);
       notification_pos = pos;
       is_found = true;
     }
@@ -1827,6 +1846,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     if (it->notification_id.get() <= max_notification_id.get() ||
         (max_message_id.is_valid() && it->type->get_message_id().get() <= max_message_id.get())) {
       pending_delete_end = it + 1;
+      on_notification_removed(it->notification_id);
     }
   }
   if (pending_delete_end != group_it->second.pending_notifications.begin()) {
@@ -1853,6 +1873,8 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     if (notification.notification_id.get() > max_notification_id.get() &&
         (!max_message_id.is_valid() || notification.type->get_message_id().get() > max_message_id.get())) {
       notification_delete_end = pos;
+    } else {
+      on_notification_removed(notification.notification_id);
     }
   }
 
@@ -1923,6 +1945,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   while (!group.pending_notifications.empty() && group.pending_notifications.back().type->is_temporary()) {
     VLOG(notifications) << "Remove temporary " << group.pending_notifications.back() << " from " << group_id;
     // notification is still pending, just delete it
+    on_notification_removed(group.pending_notifications.back().notification_id);
     group.pending_notifications.pop_back();
     if (group.pending_notifications.empty()) {
       group.pending_notifications_flush_time = 0;
@@ -1955,8 +1978,10 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   for (auto i = notification_pos; i < old_group_size; i++) {
     CHECK(group.notifications[i].type->is_temporary());
     VLOG(notifications) << "Remove temporary " << group.notifications[i] << " from " << group_id;
+    auto notification_id = group.notifications[i].notification_id;
+    on_notification_removed(notification_id);
     if (i + max_notification_group_size_ >= old_group_size) {
-      removed_notification_ids.push_back(group.notifications[i].notification_id.get());
+      removed_notification_ids.push_back(notification_id.get());
     }
   }
   group.notifications.erase(group.notifications.begin() + notification_pos, group.notifications.end());
@@ -3039,7 +3064,7 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
                                                               UserId sender_user_id, string sender_name, int32 date,
                                                               bool contains_mention, bool is_silent, string loc_key,
                                                               string arg, NotificationId notification_id,
-                                                              int64 logevent_id) {
+                                                              uint64 logevent_id) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
@@ -3096,14 +3121,16 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
   }
 
   if (logevent_id != 0) {
-    // TODO register logevent
+    VLOG(notifications) << "Register temporary " << notification_id << " with logevent " << logevent_id;
+    temporary_notification_logevent_ids_[notification_id] = logevent_id;
   }
 
   auto group_id = info.group_id;
+  CHECK(group_id.is_valid());
   auto group_type = info.group_type;
   auto settings_dialog_id = info.settings_dialog_id;
-  VLOG(notifications) << "Add message push notification of type " << loc_key << " for " << message_id << "/"
-                      << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
+  VLOG(notifications) << "Add message push " << notification_id << " of type " << loc_key << " for " << message_id
+                      << "/" << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
                       << " with arg " << arg << " to " << group_id << " of type " << group_type
                       << " with settings from " << settings_dialog_id;
 

@@ -1345,7 +1345,7 @@ class MessagesManager : public Actor {
   void delete_dialog_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
-                           const vector<MessageId> &message_ids, int64 logevent_id);
+                           const vector<MessageId> &message_ids, uint64 logevent_id);
 
   Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
                                     bool disable_notification, bool from_background,

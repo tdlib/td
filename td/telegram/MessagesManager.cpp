@@ -17630,7 +17630,7 @@ uint64 MessagesManager::save_forward_messages_logevent(DialogId to_dialog_id, Di
 
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                           const vector<Message *> &messages, const vector<MessageId> &message_ids,
-                                          int64 logevent_id) {
+                                          uint64 logevent_id) {
   CHECK(messages.size() == message_ids.size());
   if (messages.empty()) {
     return;

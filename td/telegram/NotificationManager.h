@@ -256,6 +256,8 @@ class NotificationManager : public Actor {
 
   void flush_all_pending_notifications();
 
+  void on_notification_removed(NotificationId notification_id);
+
   void on_notifications_removed(NotificationGroups::iterator &&group_it,
                                 vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
                                 vector<int32> &&removed_notification_ids, bool force_update);
@@ -281,7 +283,7 @@ class NotificationManager : public Actor {
   Status process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                            UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
                                            bool is_silent, string loc_key, string arg, NotificationId notification_id,
-                                           int64 logevent_id);
+                                           uint64 logevent_id);
 
   void after_get_difference_impl();
 
@@ -336,6 +338,8 @@ class NotificationManager : public Actor {
   vector<NotificationGroupId> call_notification_group_ids_;
   std::unordered_set<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
   std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
+
+  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_logevent_ids_;
 
   struct ActiveCallNotification {
     CallId call_id;
