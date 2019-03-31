@@ -3448,8 +3448,8 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto status = process_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
-            log_event.sender_name_, log_event.date_, log_event.contains_mention_, log_event.is_silent_,
-            log_event.loc_key_, log_event.arg_, log_event.notification_id_, event.id_);
+            log_event.sender_name_, log_event.date_, log_event.contains_mention_, true, log_event.loc_key_,
+            log_event.arg_, log_event.notification_id_, event.id_);
         if (status.is_error()) {
           LOG(ERROR) << "Receive error " << status << ", while processing message push notification";
         }
