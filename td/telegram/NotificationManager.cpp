@@ -3271,6 +3271,21 @@ void NotificationManager::after_get_difference_impl() {
   }
 
   VLOG(notifications) << "After get difference";
+
+  vector<NotificationGroupId> to_remove_temporary_notifications_group_ids;
+  size_t cur_pos = 0;
+  for (auto it = groups_.begin(); it != groups_.end() && cur_pos < max_notification_group_count_; ++it, cur_pos++) {
+    const auto &group_key = it->first;
+    const auto &group = it->second;
+    if (running_get_chat_difference_.count(group_key.group_id.get()) == 0 &&
+        get_temporary_notification_total_count(group) > 0) {
+      to_remove_temporary_notifications_group_ids.push_back(group_key.group_id);
+    }
+  }
+  for (auto group_id : reversed(to_remove_temporary_notifications_group_ids)) {
+    remove_temporary_notifications(group_id);
+  }
+
   flush_all_pending_updates(false, "after_get_difference");
 }
 
@@ -3307,6 +3322,7 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
   VLOG(notifications) << "Flush updates after get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   if (!running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
+    remove_temporary_notifications(group_id);
     force_flush_pending_updates(group_id, "after_get_chat_difference");
   }
 }
