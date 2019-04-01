@@ -15310,7 +15310,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
         case DialogType::Channel: {
           auto channel_type = td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id());
           if (channel_type == ChannelType::Broadcast) {
-            return Status::Error(400, "Games can't be sent to channel chats");
+            // return Status::Error(400, "Games can't be sent to channel chats");
           }
           break;
         }
