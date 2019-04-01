@@ -157,6 +157,7 @@ class ContactsManager : public Actor {
   void on_update_user_links(UserId user_id, tl_object_ptr<telegram_api::ContactLink> &&outbound,
                             tl_object_ptr<telegram_api::ContactLink> &&inbound);
   void on_update_user_blocked(UserId user_id, bool is_blocked);
+  void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
@@ -547,6 +548,7 @@ class ContactsManager : public Actor {
     bool can_be_called = false;
     bool has_private_calls = false;
 
+    bool is_common_chat_count_changed = true;
     bool is_changed = true;
 
     double expires_at = 0.0;
@@ -873,6 +875,7 @@ class ContactsManager : public Actor {
   void add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids);
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
+  void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
   void invalidate_user_full(UserId user_id);

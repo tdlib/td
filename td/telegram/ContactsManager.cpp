@@ -6404,6 +6404,10 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
 
 void ContactsManager::update_user_full(UserFull *user_full, UserId user_id) {
   CHECK(user_full != nullptr);
+  if (user_full->is_common_chat_count_changed) {
+    td_->messages_manager_->drop_common_dialogs_cache(user_id);
+    user_full->is_common_chat_count_changed = false;
+  }
   if (user_full->is_changed) {
     user_full->is_changed = false;
     if (user_full->is_inited) {
@@ -6487,15 +6491,15 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   user->is_inited = true;
 
   on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
+  on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
 
   bool can_be_called = user_full->phone_calls_available_ && !user_full->phone_calls_private_;
   bool has_private_calls = user_full->phone_calls_private_;
   if (user->can_be_called != can_be_called || user->has_private_calls != has_private_calls ||
-      user->about != user_full->about_ || user->common_chat_count != user_full->common_chats_count_) {
+      user->about != user_full->about_) {
     user->can_be_called = can_be_called;
     user->has_private_calls = has_private_calls;
     user->about = std::move(user_full->about_);
-    user->common_chat_count = user_full->common_chats_count_;
 
     user->is_changed = true;
   }
@@ -7087,6 +7091,31 @@ void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId
   CHECK(user_full != nullptr);
   if (user_full->is_inited && user_full->is_blocked != is_blocked) {
     user_full->is_blocked = is_blocked;
+    user_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 common_chat_count) {
+  LOG(INFO) << "Receive " << common_chat_count << " common chat count with " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full(user_id);
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_common_chat_count(user_full, user_id, common_chat_count);
+  update_user_full(user_full, user_id);
+}
+
+void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id,
+                                                            int32 common_chat_count) {
+  CHECK(user_full != nullptr);
+  if (user_full->is_inited && user_full->common_chat_count != common_chat_count) {
+    user_full->common_chat_count = common_chat_count;
+    user_full->is_common_chat_count_changed = true;
     user_full->is_changed = true;
   }
 }

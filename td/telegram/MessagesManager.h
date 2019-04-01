@@ -266,7 +266,8 @@ class MessagesManager : public Actor {
   void on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>> &&dialogs, int32 total_count,
                       vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise);
 
-  void on_get_common_dialogs(UserId user_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats, int32 total_count);
+  void on_get_common_dialogs(UserId user_id, int32 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
+                             int32 total_count);
 
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const string &source);
 
@@ -464,6 +465,8 @@ class MessagesManager : public Actor {
   std::pair<size_t, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
 
   vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
+
+  void drop_common_dialogs_cache(UserId user_id);
 
   vector<DialogId> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
                                       Promise<Unit> &&promise);
@@ -2239,7 +2242,12 @@ class MessagesManager : public Actor {
   std::unordered_map<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
   std::unordered_map<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
 
-  std::unordered_map<UserId, vector<DialogId>, UserIdHash> found_common_dialogs_;  // TODO time bound cache
+  struct CommonDialogs {
+    vector<DialogId> dialog_ids;
+    double received_date = 0;
+    bool is_outdated = false;
+  };
+  std::unordered_map<UserId, CommonDialogs, UserIdHash> found_common_dialogs_;
 
   std::unordered_map<int64, FullMessageId> get_dialog_message_by_date_results_;
 

@@ -2756,7 +2756,7 @@ checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 getCreatedPublicChats = Chats;
 
 
-//@description Returns a list of common chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
+//@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
 getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 
 

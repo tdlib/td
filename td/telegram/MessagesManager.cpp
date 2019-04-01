@@ -484,6 +484,7 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
 class GetCommonDialogsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
+  int32 offset_chat_id_ = 0;
 
  public:
   explicit GetCommonDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -491,6 +492,7 @@ class GetCommonDialogsQuery : public Td::ResultHandler {
 
   void send(UserId user_id, int32 offset_chat_id, int32 limit) {
     user_id_ = user_id;
+    offset_chat_id_ = offset_chat_id;
     LOG(INFO) << "Get common dialogs with " << user_id << " from " << offset_chat_id << " with limit " << limit;
 
     auto input_user = td->contacts_manager_->get_input_user(user_id);
@@ -512,13 +514,14 @@ class GetCommonDialogsQuery : public Td::ResultHandler {
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
-        td->messages_manager_->on_get_common_dialogs(user_id_, std::move(chats->chats_),
+        td->messages_manager_->on_get_common_dialogs(user_id_, offset_chat_id_, std::move(chats->chats_),
                                                      narrow_cast<int32>(chats->chats_.size()));
         break;
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
-        td->messages_manager_->on_get_common_dialogs(user_id_, std::move(chats->chats_), chats->count_);
+        td->messages_manager_->on_get_common_dialogs(user_id_, offset_chat_id_, std::move(chats->chats_),
+                                                     chats->count_);
         break;
       }
       default:
@@ -11681,6 +11684,13 @@ vector<DialogId> MessagesManager::search_dialogs_on_server(const string &query, 
   return vector<DialogId>();
 }
 
+void MessagesManager::drop_common_dialogs_cache(UserId user_id) {
+  auto it = found_common_dialogs_.find(user_id);
+  if (it != found_common_dialogs_.end()) {
+    it->second.is_outdated = true;
+  }
+}
+
 vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
                                                      Promise<Unit> &&promise) {
   if (!td_->contacts_manager_->have_input_user(user_id)) {
@@ -11723,42 +11733,58 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
   }
 
   auto it = found_common_dialogs_.find(user_id);
-  if (it != found_common_dialogs_.end() && !it->second.empty()) {
-    vector<DialogId> &common_dialog_ids = it->second;
-    auto offset_it = common_dialog_ids.begin();
-    if (offset_dialog_id != DialogId()) {
-      offset_it = std::find(common_dialog_ids.begin(), common_dialog_ids.end(), offset_dialog_id);
-      if (offset_it == common_dialog_ids.end()) {
-        promise.set_error(Status::Error(6, "Wrong offset_chat_id"));
-        return vector<DialogId>();
+  if (it != found_common_dialogs_.end() && !it->second.dialog_ids.empty()) {
+    vector<DialogId> &common_dialog_ids = it->second.dialog_ids;
+    bool use_cache = (!it->second.is_outdated && it->second.received_date >= Time::now() - 3600) || force ||
+                     offset_chat_id != 0 || common_dialog_ids.size() >= static_cast<size_t>(MAX_GET_DIALOGS);
+    // use cache if it's up to date, or we required to use it or we can't update it
+    if (use_cache) {
+      auto offset_it = common_dialog_ids.begin();
+      if (offset_dialog_id != DialogId()) {
+        offset_it = std::find(common_dialog_ids.begin(), common_dialog_ids.end(), offset_dialog_id);
+        if (offset_it == common_dialog_ids.end()) {
+          promise.set_error(Status::Error(6, "Wrong offset_chat_id"));
+          return vector<DialogId>();
+        }
+        ++offset_it;
       }
-      ++offset_it;
-    }
-    vector<DialogId> result;
-    while (result.size() < static_cast<size_t>(limit)) {
-      if (offset_it == common_dialog_ids.end()) {
-        break;
+      vector<DialogId> result;
+      while (result.size() < static_cast<size_t>(limit)) {
+        if (offset_it == common_dialog_ids.end()) {
+          break;
+        }
+        auto dialog_id = *offset_it++;
+        if (dialog_id == DialogId()) {  // end of the list
+          promise.set_value(Unit());
+          return result;
+        }
+        result.push_back(dialog_id);
       }
-      auto dialog_id = *offset_it++;
-      if (dialog_id == DialogId()) {  // end of the list
+      if (result.size() == static_cast<size_t>(limit) || force) {
         promise.set_value(Unit());
         return result;
       }
-      result.push_back(dialog_id);
-    }
-    if (result.size() == static_cast<size_t>(limit) || force) {
-      promise.set_value(Unit());
-      return result;
     }
   }
 
-  td_->create_handler<GetCommonDialogsQuery>(std::move(promise))->send(user_id, offset_chat_id, limit);
+  td_->create_handler<GetCommonDialogsQuery>(std::move(promise))->send(user_id, offset_chat_id, MAX_GET_DIALOGS);
   return vector<DialogId>();
 }
 
-void MessagesManager::on_get_common_dialogs(UserId user_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
-                                            int32 total_count) {
-  auto &result = found_common_dialogs_[user_id];
+void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id,
+                                            vector<tl_object_ptr<telegram_api::Chat>> &&chats, int32 total_count) {
+  td_->contacts_manager_->on_update_user_common_chat_count(user_id, total_count);
+
+  auto &common_dialogs = found_common_dialogs_[user_id];
+  if (common_dialogs.is_outdated && offset_chat_id == 0 && common_dialogs.dialog_ids.size() < static_cast<size_t>(MAX_GET_DIALOGS)) {
+    // drop outdated cache if possible
+    common_dialogs = CommonDialogs();
+  }
+  if (common_dialogs.received_date == 0) {
+    common_dialogs.received_date = Time::now();
+  }
+  common_dialogs.is_outdated = false;
+  auto &result = common_dialogs.dialog_ids;
   if (!result.empty() && result.back() == DialogId()) {
     return;
   }
