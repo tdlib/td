@@ -744,8 +744,13 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     return 0;
   }
 
+  bool is_broadcast_channel =
+      dialog_id.get_type() == DialogType::Channel &&
+      td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
+
   uint64 query_hash = std::hash<std::string>()(trim(query));
   query_hash = query_hash * 2023654985u + bot_user_id.get();
+  query_hash = query_hash * 2023654985u + static_cast<uint64>(is_broadcast_channel);
   query_hash = query_hash * 2023654985u + std::hash<std::string>()(offset);
   if (r_bot_data.ok().need_location) {
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_latitude() * 1e4);
