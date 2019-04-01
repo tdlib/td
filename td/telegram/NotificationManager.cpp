@@ -1811,6 +1811,28 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   promise.set_value(Unit());
 }
 
+void NotificationManager::remove_notification_by_message_id(NotificationGroupId group_id, MessageId message_id) {
+  VLOG(notifications) << "Remove notification for " << message_id << " in " << group_id;
+  CHECK(group_id.is_valid());
+  CHECK(message_id.is_valid());
+
+  auto group_it = get_group(group_id);
+  if (group_it == groups_.end()) {
+    return;
+  }
+
+  for (auto &notification : group_it->second.pending_notifications) {
+    if (notification.type->get_message_id() == message_id) {
+      return remove_notification(group_id, notification.notification_id, true, false, Auto());
+    }
+  }
+  for (auto &notification : group_it->second.notifications) {
+    if (notification.type->get_message_id() == message_id) {
+      return remove_notification(group_id, notification.notification_id, true, false, Auto());
+    }
+  }
+}
+
 void NotificationManager::remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                                     MessageId max_message_id, int32 new_total_count, bool force_update,
                                                     Promise<Unit> &&promise) {
