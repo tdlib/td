@@ -2551,6 +2551,10 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
     auto status = process_push_notification_payload(payload);
     if (status.is_error()) {
+      if (status.code() == 406) {
+        return promise.set_error(std::move(status));
+      }
+
       LOG(ERROR) << "Receive error " << status << ", while parsing push payload " << payload;
       return promise.set_error(Status::Error(400, status.message()));
     }
@@ -3120,6 +3124,9 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
     if (logevent_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     }
+    if (r_info.error().code() == 406) {
+      return r_info.move_as_error();
+    }
     return Status::OK();
   }
 
@@ -3130,8 +3137,9 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
     VLOG(notifications) << "Skip notification in secret " << dialog_id;
     // TODO support secret chat notifications
     // main problem: there is no message_id yet
+    // also don't forget to delete newSecretChat notification
     CHECK(logevent_id == 0);
-    return Status::OK();
+    return Status::Error(406, "Secret chat push notifications are unsupported");
   }
   CHECK(random_id == 0);
 

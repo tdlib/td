@@ -11776,7 +11776,8 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
   td_->contacts_manager_->on_update_user_common_chat_count(user_id, total_count);
 
   auto &common_dialogs = found_common_dialogs_[user_id];
-  if (common_dialogs.is_outdated && offset_chat_id == 0 && common_dialogs.dialog_ids.size() < static_cast<size_t>(MAX_GET_DIALOGS)) {
+  if (common_dialogs.is_outdated && offset_chat_id == 0 &&
+      common_dialogs.dialog_ids.size() < static_cast<size_t>(MAX_GET_DIALOGS)) {
     // drop outdated cache if possible
     common_dialogs = CommonDialogs();
   }
@@ -18287,7 +18288,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    return Status::Error("Ignore notification in unknown chat");
+    return Status::Error(406, "Ignore notification in unknown chat");
   }
 
   bool is_new_pinned = is_pinned && message_id.is_valid() && message_id.get() > d->max_notification_message_id.get();
@@ -18308,7 +18309,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     if (get_message_id_by_random_id(d, random_id, "need_message_push_notification").is_valid()) {
-      return Status::Error("Ignore notification about known secret message");
+      return Status::Error(406, "Ignore notification about known secret message");
     }
   }
 
