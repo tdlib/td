@@ -502,6 +502,27 @@ MessageId NotificationManager::get_last_message_id(const NotificationGroup &grou
   return MessageId();
 }
 
+MessageId NotificationManager::get_last_message_id_by_notification_id(const NotificationGroup &group,
+                                                                      NotificationId max_notification_id) {
+  for (auto &notification : reversed(group.pending_notifications)) {
+    if (notification.notification_id.get() <= max_notification_id.get()) {
+      auto message_id = notification.type->get_message_id();
+      if (message_id.is_valid()) {
+        return message_id;
+      }
+    }
+  }
+  for (auto &notification : reversed(group.notifications)) {
+    if (notification.notification_id.get() <= max_notification_id.get()) {
+      auto message_id = notification.type->get_message_id();
+      if (message_id.is_valid()) {
+        return message_id;
+      }
+    }
+  }
+  return MessageId();
+}
+
 void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
                                                                    NotificationGroup &group, size_t desired_size) {
   if (!G()->parameters().use_message_db) {
@@ -1865,7 +1886,9 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
       max_notification_id = current_notification_id_;
     }
     if (group_it->second.type != NotificationGroupType::Calls) {
-      td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, group_id, max_notification_id);
+      td_->messages_manager_->remove_message_notifications(
+          group_it->first.dialog_id, group_id, max_notification_id,
+          get_last_message_id_by_notification_id(group_it->second, max_notification_id));
     }
   }
 

@@ -3766,6 +3766,7 @@ void MessagesManager::NotificationGroupInfo::store(StorerT &storer) const {
   store(last_notification_date, storer);
   store(last_notification_id, storer);
   store(max_removed_notification_id, storer);
+  store(max_removed_message_id, storer);
 }
 
 template <class ParserT>
@@ -3775,6 +3776,9 @@ void MessagesManager::NotificationGroupInfo::parse(ParserT &parser) {
   parse(last_notification_date, parser);
   parse(last_notification_id, parser);
   parse(max_removed_notification_id, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddNotificationGroupInfoMaxRemovedMessageId)) {
+    parse(max_removed_message_id, parser);
+  }
 }
 
 template <class StorerT>
@@ -4387,6 +4391,7 @@ void MessagesManager::try_reuse_notification_group(NotificationGroupInfo &group_
   notification_group_id_to_dialog_id_.erase(group_info.group_id);
   group_info.group_id = NotificationGroupId();
   group_info.max_removed_notification_id = NotificationId();
+  group_info.max_removed_message_id = MessageId();
 }
 
 void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const Message *m) {
@@ -7998,7 +8003,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id, "delete_all_dialog_messages");
   d->last_read_all_mentions_message_id = MessageId();                            // it is not needed anymore
   d->message_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
+  d->message_notification_group.max_removed_message_id = MessageId();            // it is not needed anymore
   d->mention_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
+  d->mention_notification_group.max_removed_message_id = MessageId();            // it is not needed anymore
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
   CHECK(d->notification_id_to_message_id.empty());
 
@@ -18506,9 +18513,11 @@ bool MessagesManager::is_from_mention_notification_group(const Dialog *d, const 
 bool MessagesManager::is_message_notification_active(const Dialog *d, const Message *m) {
   if (is_from_mention_notification_group(d, m)) {
     return m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
+           m->message_id.get() > d->mention_notification_group.max_removed_message_id.get() &&
            (m->contains_unread_mention || m->message_id == d->pinned_message_notification_message_id);
   } else {
     return m->notification_id.get() > d->message_notification_group.max_removed_notification_id.get() &&
+           m->message_id.get() > d->message_notification_group.max_removed_message_id.get() &&
            m->message_id.get() > d->last_read_inbox_message_id.get();
   }
 }
@@ -18522,7 +18531,8 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   }
 
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
-  if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get()) {
+  if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
+      m->message_id.get() > d->mention_notification_group.max_removed_message_id.get()) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
       auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
@@ -18584,9 +18594,11 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       }
 
       if (m->notification_id.get() <= group_info.max_removed_notification_id.get() ||
+          m->message_id.get() <= group_info.max_removed_message_id.get() ||
           (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
-        // if message still has notification_id, but it was removed via max_removed_notification_id
-        // or last_read_inbox_message_id, then there will be no more messages with active notifications
+        // if message still has notification_id, but it was removed via max_removed_notification_id,
+        // or max_removed_message_id, or last_read_inbox_message_id,
+        // then there will be no more messages with active notifications
         is_found = false;
         break;
       }
@@ -18602,9 +18614,10 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
           << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << d->dialog_id << " "
           << m->message_id << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
           << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-          << " " << group_info.max_removed_notification_id << " " << d->last_new_message_id << " " << d->last_message_id
-          << " " << d->first_database_message_id << " " << d->last_database_message_id << " " << d->max_added_message_id
-          << " " << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
+          << " " << group_info.max_removed_notification_id << " " << group_info.max_removed_message_id << " "
+          << d->last_new_message_id << " " << d->last_message_id << " " << d->first_database_message_id << " "
+          << d->last_database_message_id << " " << d->max_added_message_id << " "
+          << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
           << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
           << d->debug_last_database_message_id;
       from_notification_id = m->notification_id;
@@ -18728,6 +18741,7 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
 
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   if (from_notification_id.get() <= group_info.max_removed_notification_id.get() ||
+      from_message_id.get() <= group_info.max_removed_message_id.get() ||
       (!from_mentions && from_message_id.get() <= d->last_read_inbox_message_id.get())) {
     return promise.set_value(vector<Notification>());
   }
@@ -18791,9 +18805,11 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
     }
 
     if (m->notification_id.get() <= group_info.max_removed_notification_id.get() ||
+        m->message_id.get() <= group_info.max_removed_message_id.get() ||
         (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
-      // if message still has notification_id, but it was removed via max_removed_notification_id
-      // or last_read_inbox_message_id, then there will be no more messages with active notifications
+      // if message still has notification_id, but it was removed via max_removed_notification_id,
+      // or max_removed_message_id, or last_read_inbox_message_id,
+      // then there will be no more messages with active notifications
       from_notification_id = NotificationId();  // stop requesting database
       break;
     }
@@ -18810,9 +18826,10 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
         << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << dialog_id << " " << m->message_id
         << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
         << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-        << " " << group_info.max_removed_notification_id << " " << d->last_new_message_id << " " << d->last_message_id
-        << " " << d->first_database_message_id << " " << d->last_database_message_id << " " << d->max_added_message_id
-        << " " << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
+        << " " << group_info.max_removed_notification_id << " " << group_info.max_removed_message_id << " "
+        << d->last_new_message_id << " " << d->last_message_id << " " << d->first_database_message_id << " "
+        << d->last_database_message_id << " " << d->max_added_message_id << " "
+        << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
         << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
         << d->debug_last_database_message_id;
 
@@ -18901,7 +18918,7 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool fr
 }
 
 void MessagesManager::remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
-                                                   NotificationId max_notification_id) {
+                                                   NotificationId max_notification_id, MessageId max_message_id) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id;
@@ -18925,6 +18942,11 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   if (max_notification_id.get() <= group_info.max_removed_notification_id.get()) {
     return;
+  }
+  if (max_message_id.get() > group_info.max_removed_message_id.get()) {
+    VLOG(notifications) << "Set max_removed_message_id in " << group_info.group_id << '/' << dialog_id << " to "
+                        << max_message_id;
+    group_info.max_removed_message_id = max_message_id;
   }
 
   VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << dialog_id << " to "
@@ -19064,6 +19086,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
   bool is_active = from_mentions ? m->contains_unread_mention || is_pinned
                                  : m->message_id.get() > d->last_read_inbox_message_id.get();
+  if (is_active) {
+    auto &group = from_mentions ? d->mention_notification_group : d->message_notification_group;
+    if (group.max_removed_message_id.get() >= m->message_id.get()) {
+      is_active = false;
+    }
+  }
   if (!is_active) {
     VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
     if (is_pinned) {
@@ -19232,6 +19260,10 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, NotificationGro
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << d->dialog_id << " to "
                         << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
+    if (d->max_notification_message_id.get() > group_info.max_removed_message_id.get()) {
+      group_info.max_removed_message_id = d->max_notification_message_id;
+    }
+    // remove_message_notifications will be called by NotificationManager
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                        group_info.group_id, group_info.last_notification_id, MessageId(), 0, true, Promise<Unit>());
     if (d->new_secret_chat_notification_id.is_valid() && &group_info == &d->message_notification_group) {
@@ -23687,12 +23719,14 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   VLOG(notifications) << "Have " << dialog_id << " with message " << d->message_notification_group.group_id
                       << " with last " << d->message_notification_group.last_notification_id << " sent at "
                       << d->message_notification_group.last_notification_date << ", max removed "
-                      << d->message_notification_group.max_removed_notification_id << " and new secret chat "
+                      << d->message_notification_group.max_removed_notification_id << "/"
+                      << d->message_notification_group.max_removed_message_id << " and new secret chat "
                       << d->new_secret_chat_notification_id;
   VLOG(notifications) << "Have " << dialog_id << " with mention " << d->mention_notification_group.group_id
                       << " with last " << d->mention_notification_group.last_notification_id << " sent at "
                       << d->mention_notification_group.last_notification_date << ", max removed "
-                      << d->mention_notification_group.max_removed_notification_id << " and pinned message "
+                      << d->mention_notification_group.max_removed_notification_id << "/"
+                      << d->mention_notification_group.max_removed_message_id << " and pinned message "
                       << d->pinned_message_notification_message_id;
   VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
                       << ", last_new_message_id = " << d->last_new_message_id

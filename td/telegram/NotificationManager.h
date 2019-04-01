@@ -219,6 +219,9 @@ class NotificationManager : public Actor {
 
   static MessageId get_last_message_id(const NotificationGroup &group);
 
+  static MessageId get_last_message_id_by_notification_id(const NotificationGroup &group,
+                                                          NotificationId max_notification_id);
+
   static int32 get_temporary_notification_total_count(const NotificationGroup &group);
 
   void remove_temporary_notifications(NotificationGroupId group_id);

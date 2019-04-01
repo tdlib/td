@@ -28,6 +28,7 @@ enum class Version : int32 {
   AddContactVcard,
   AddMessageUnsupportedVersion,
   SupportInstantView2_0,
+  AddNotificationGroupInfoMaxRemovedMessageId,
   Next
 };
 

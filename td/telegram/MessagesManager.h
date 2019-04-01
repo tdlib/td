@@ -722,7 +722,7 @@ class MessagesManager : public Actor {
   void remove_message_notification(DialogId dialog_id, NotificationGroupId group_id, NotificationId notification_id);
 
   void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
-                                    NotificationId max_notification_id);
+                                    NotificationId max_notification_id, MessageId max_message_id);
 
   void upload_dialog_photo(DialogId dialog_id, FileId file_id, Promise<Unit> &&promise);
 
@@ -905,6 +905,7 @@ class MessagesManager : public Actor {
     int32 last_notification_date = 0;            // date of last notification in the group
     NotificationId last_notification_id;         // identifier of last notification in the group
     NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
+    MessageId max_removed_message_id;            // message identifier, up to which all notifications are removed
     bool is_changed = false;                     // true, if the group needs to be saved to database
     bool try_reuse = false;  // true, if the group needs to be deleted from database and tried to be reused
 
