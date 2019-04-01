@@ -2977,12 +2977,12 @@ Status NotificationManager::process_push_notification_payload(string payload) {
 
   if (begins_with(loc_key, "ENCRYPTION_")) {
     // TODO new secret chat notifications
-    return Status::OK();
+    return Status::Error(406, "New secret chat notification is not supported");
   }
 
   if (begins_with(loc_key, "PHONE_CALL_")) {
     // TODO phone call request/missed notification
-    return Status::OK();
+    return Status::Error(406, "Phone call notification is not supported");
   }
 
   loc_key = convert_loc_key(loc_key);
