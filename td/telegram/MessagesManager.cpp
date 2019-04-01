@@ -5141,7 +5141,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
                                                              const char *source) {
   LOG_CHECK(m != nullptr) << source;
   if (!contains_unread_mention && m->contains_unread_mention) {
-    remove_message_notification_id(d, m, true);  // should be called before contains_unread_mention is updated
+    remove_message_notification_id(d, m, true, true);  // should be called before contains_unread_mention is updated
 
     m->contains_unread_mention = false;
     if (d->unread_mention_count == 0) {
@@ -8068,7 +8068,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     CHECK(m != nullptr);
     CHECK(m->contains_unread_mention);
     CHECK(m->message_id == message_id);
-    remove_message_notification_id(d, m, true);  // should be called before contains_unread_mention is updated
+    remove_message_notification_id(d, m, true, false);  // should be called before contains_unread_mention is updated
     m->contains_unread_mention = false;
 
     send_closure(G()->td(), &Td::send_update,
@@ -8926,7 +8926,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
     }
     m->reply_markup = nullptr;
   }
-  remove_message_notification_id(d, m, true);
+  remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   m->contains_mention = false;
   m->reply_to_message_id = MessageId();
@@ -10267,7 +10267,7 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
       // can't be set before is_message_notification_active check
       d->pinned_message_notification_message_id = message_id;
 
-      remove_message_notification_id(d, m, true);
+      remove_message_notification_id(d, m, true, false);
       on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
     } else if (d->mention_notification_group.group_id.is_valid()) {
       // remove temporary notification
@@ -10848,7 +10848,7 @@ void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog
   }
 }
 
-void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool is_permanent) {
+void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   if (!m->notification_id.is_valid()) {
@@ -10880,7 +10880,7 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   if (is_permanent) {
     if (had_active_notification) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                         notification_id, true, true, Promise<Unit>());
+                         notification_id, is_permanent, force_update, Promise<Unit>());
     }
 
     // on_message_changed will be called by the caller
@@ -18818,7 +18818,7 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     CHECK(m != nullptr);
     CHECK(m->notification_id == notification_id);
     if (is_from_mention_notification_group(d, m) == from_mentions && is_message_notification_active(d, m)) {
-      remove_message_notification_id(d, m, false);
+      remove_message_notification_id(d, m, false, false);
     }
     return;
   }
@@ -18847,7 +18847,7 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool fr
   auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]), "do_remove_message_notification");
   if (m != nullptr && m->notification_id == notification_id &&
       is_from_mention_notification_group(d, m) == from_mentions && is_message_notification_active(d, m)) {
-    remove_message_notification_id(d, m, false);
+    remove_message_notification_id(d, m, false, false);
   }
 }
 
