@@ -2564,7 +2564,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 
 string NotificationManager::convert_loc_key(const string &loc_key) {
   if (loc_key == "MESSAGES") {
-    return loc_key;
+    return "MESSAGES";
   }
   switch (loc_key[8]) {
     case 'A':

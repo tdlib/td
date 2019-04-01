@@ -10253,6 +10253,7 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
 }
 
 void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageId message_id) {
+  CHECK(d != nullptr);
   auto old_message_id = d->pinned_message_notification_message_id;
   if (old_message_id == message_id) {
     return;
