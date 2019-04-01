@@ -10178,6 +10178,27 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
   d->is_empty = true;
 
+  if (d->server_unread_count + d->local_unread_count > 0) {
+    MessageId max_message_id =
+        d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
+    if (max_message_id.is_valid()) {
+      read_history_inbox(d->dialog_id, max_message_id, -1, "set_dialog_is_empty");
+    }
+    if (d->server_unread_count != 0 || d->local_unread_count != 0) {
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "set_dialog_is_empty");
+    }
+  }
+  if (d->unread_mention_count > 0) {
+    d->unread_mention_count = 0;
+    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = 0;
+    send_update_chat_unread_mention_count(d);
+  }
+  if (d->reply_markup_message_id != MessageId()) {
+    set_dialog_reply_markup(d, MessageId());
+  }
+  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
+  CHECK(d->notification_id_to_message_id.empty());
+
   if (d->delete_last_message_date != 0) {
     if (d->is_last_message_deleted_locally && d->last_clear_history_date == 0) {
       set_dialog_last_clear_history_date(d, d->delete_last_message_date, d->deleted_last_message_id,
