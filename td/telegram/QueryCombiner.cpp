@@ -6,6 +6,8 @@
 //
 #include "td/telegram/QueryCombiner.h"
 
+#include "td/telegram/Global.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"
 
@@ -72,6 +74,10 @@ void QueryCombiner::on_get_query_result(int64 query_id, Result<Unit> &&result) {
 }
 
 void QueryCombiner::loop() {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto now = Time::now();
   if (now < next_query_time_) {
     set_timeout_in(next_query_time_ - now + 0.001);
