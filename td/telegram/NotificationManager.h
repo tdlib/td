@@ -331,6 +331,7 @@ class NotificationManager : public Actor {
   SyncState contact_registered_notifications_sync_state_ = SyncState::NotSynced;
   bool disable_contact_registered_notifications_ = false;
 
+  bool is_being_destroyed_ = false;
   bool is_destroyed_ = false;
 
   bool is_inited_ = false;

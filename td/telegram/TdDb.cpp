@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/files/FileDb.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/TdParameters.h"
@@ -146,8 +147,8 @@ std::shared_ptr<SqliteConnectionSafe> &TdDb::get_sqlite_connection_safe() {
   return sql_connection_;
 }
 
-BinlogInterface *TdDb::get_binlog() {
-  CHECK(binlog_);
+BinlogInterface *TdDb::get_binlog(const char *source) {
+  LOG_CHECK(binlog_) << G()->close_flag() << " " << source;
   return binlog_.get();
 }
 
