@@ -65,7 +65,7 @@ class NotificationManager : public Actor {
 
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
                         DialogId notification_settings_dialog_id, bool is_silent, int32 min_delay_ms,
-                        NotificationId notification_id, unique_ptr<NotificationType> type);
+                        NotificationId notification_id, unique_ptr<NotificationType> type, const char *source);
 
   void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                          unique_ptr<NotificationType> type);

@@ -19213,7 +19213,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, is_silent, min_delay_ms, m->notification_id,
-                     create_new_message_notification(m->message_id));
+                     create_new_message_notification(m->message_id), "add_new_message_notification");
   return true;
 }
 
@@ -23359,7 +23359,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
               VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
+                                 false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification(),
+                                 "add_new_secret_chat_notification");
             }
           }
         }

@@ -823,7 +823,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
 void NotificationManager::add_notification(NotificationGroupId group_id, NotificationGroupType group_type,
                                            DialogId dialog_id, int32 date, DialogId notification_settings_dialog_id,
                                            bool is_silent, int32 min_delay_ms, NotificationId notification_id,
-                                           unique_ptr<NotificationType> type) {
+                                           unique_ptr<NotificationType> type, const char *source) {
   if (is_disabled() || max_notification_group_count_ == 0) {
     on_notification_removed(notification_id);
     return;
@@ -832,7 +832,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   CHECK(group_id.is_valid());
   CHECK(dialog_id.is_valid());
   CHECK(notification_settings_dialog_id.is_valid());
-  CHECK(notification_id.is_valid());
+  LOG_CHECK(notification_id.is_valid()) << notification_id << " " << source;
   CHECK(type != nullptr);
   VLOG(notifications) << "Add " << notification_id << " to " << group_id << " of type " << group_type << " in "
                       << dialog_id << " with settings from " << notification_settings_dialog_id
@@ -883,7 +883,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     flush_pending_notifications_timeout_.set_timeout_at(group_id.get(), group.pending_notifications_flush_time);
   }
   if (group.pending_notifications.empty()) {
-    on_delayed_notification_update_count_changed(1, group_id.get(), "add_notification");
+    on_delayed_notification_update_count_changed(1, group_id.get(), source);
   }
   group.pending_notifications.push_back(std::move(notification));
 }
@@ -2236,7 +2236,7 @@ void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_
   active_notifications.push_back(ActiveCallNotification{call_id, notification_id});
 
   add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false, 0,
-                   notification_id, create_new_call_notification(call_id));
+                   notification_id, create_new_call_notification(call_id), "add_call_notification");
 }
 
 void NotificationManager::remove_call_notification(DialogId dialog_id, CallId call_id) {
@@ -3204,6 +3204,8 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
     if (!notification_id.is_valid()) {
       return promise.set_value(Unit());
     }
+  } else {
+    CHECK(logevent_id != 0);
   }
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
@@ -3239,9 +3241,9 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
                       << " with arg " << arg << " to " << group_id << " of type " << group_type
                       << " with settings from " << settings_dialog_id;
 
-  add_notification(
-      group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
-      create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg)));
+  add_notification(group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
+                   create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg)),
+                   "add_push_notification");
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
