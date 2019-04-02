@@ -992,12 +992,6 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   // deletion, because number of notification should never exceed max_notification_group_size_,
   // and second addition, because we has kept the deletion
 
-  // TODO remove when the bug is fixed
-  string debug_updates;
-  for (auto &update : updates) {
-    debug_updates += PSTRING() << as_notification_update(update.get());
-  }
-
   // calculate last state of all notifications
   std::unordered_set<int32> added_notification_ids;
   std::unordered_set<int32> edited_notification_ids;
@@ -1009,7 +1003,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       for (auto &notification : update_ptr->added_notifications_) {
         auto notification_id = notification->id_;
         bool is_inserted = added_notification_ids.insert(notification_id).second;
-        LOG_CHECK(is_inserted) << debug_updates;                     // there must be no additions after addition
+        CHECK(is_inserted);                                          // there must be no additions after addition
         CHECK(edited_notification_ids.count(notification_id) == 0);  // there must be no additions after edit
         removed_notification_ids.erase(notification_id);
       }
