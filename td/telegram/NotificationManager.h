@@ -238,7 +238,7 @@ class NotificationManager : public Actor {
 
   NotificationGroupKey get_last_updated_group_key() const;
 
-  void try_send_update_active_notifications() const;
+  void try_send_update_active_notifications();
 
   void send_update_have_pending_notifications() const;
 
@@ -287,12 +287,12 @@ class NotificationManager : public Actor {
 
   static string convert_loc_key(const string &loc_key);
 
-  Status process_push_notification_payload(string payload);
+  Status process_push_notification_payload(string payload, Promise<Unit> &promise);
 
-  Status process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
-                                           UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
-                                           bool is_silent, string loc_key, string arg, NotificationId notification_id,
-                                           uint64 logevent_id);
+  void process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
+                                         UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
+                                         bool is_silent, string loc_key, string arg, NotificationId notification_id,
+                                         uint64 logevent_id, Promise<Unit> promise);
 
   void after_get_difference_impl();
 
@@ -352,6 +352,7 @@ class NotificationManager : public Actor {
   std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
 
   std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_logevent_ids_;
+  std::unordered_map<NotificationId, Promise<Unit>, NotificationIdHash> push_notification_promises_;
 
   struct ActiveCallNotification {
     CallId call_id;

@@ -1458,7 +1458,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryOutb
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, bool /*force_apply*/) {
   CHECK(update != nullptr);
-  td_->messages_manager_->on_update_service_notification(std::move(update), true);
+  td_->messages_manager_->on_update_service_notification(std::move(update), true, Promise<Unit>());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelInbox> update, bool /*force_apply*/) {

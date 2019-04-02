@@ -4899,7 +4899,7 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 }
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
-                                                     bool skip_new_entities) {
+                                                     bool skip_new_entities, Promise<Unit> &&promise) {
   int32 ttl = 0;
   bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
@@ -4944,6 +4944,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
       send_update_chat_last_message(d, "on_update_service_notification");
     }
   }
+  promise.set_value(Unit());
 }
 
 void MessagesManager::on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update) {
