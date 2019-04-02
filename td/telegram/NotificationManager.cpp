@@ -2067,14 +2067,15 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
 
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
   if (old_group_size >= max_notification_group_size_) {
+    size_t added_notification_count = 0;
     for (size_t i = min(old_group_size - max_notification_group_size_, notification_pos);
-         i-- > 0 && added_notifications.size() < removed_notification_ids.size();) {
+         i-- > 0 && added_notification_count++ < removed_notification_ids.size();) {
       added_notifications.push_back(get_notification_object(group_it->first.dialog_id, group.notifications[i]));
       if (added_notifications.back()->type_ == nullptr) {
         added_notifications.pop_back();
       }
     }
-    if (added_notifications.size() < removed_notification_ids.size()) {
+    if (added_notification_count < removed_notification_ids.size()) {
       load_message_notifications_from_database(group_it->first, group, keep_notification_group_size_);
     }
     std::reverse(added_notifications.begin(), added_notifications.end());
