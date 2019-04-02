@@ -1831,7 +1831,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
         added_notifications.pop_back();
       }
     }
-    if (added_notifications.empty()) {
+    if (added_notifications.empty() && max_notification_group_size_ > group_it->second.notifications.size()) {
       load_message_notifications_from_database(group_it->first, group_it->second, keep_notification_group_size_);
     }
   }
@@ -2069,7 +2069,8 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
         added_notifications.pop_back();
       }
     }
-    if (added_notification_count < removed_notification_ids.size()) {
+    if (added_notification_count < removed_notification_ids.size() &&
+        max_notification_group_size_ > group.notifications.size()) {
       load_message_notifications_from_database(group_it->first, group, keep_notification_group_size_);
     }
     std::reverse(added_notifications.begin(), added_notifications.end());
