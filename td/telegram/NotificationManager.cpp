@@ -2845,11 +2845,11 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
         sent_date = narrow_cast<int32>(google_sent_time);
       }
-    } else if (field_value.first == "google.notification.sound" && field_value.second.type() != JsonValue::Type::Null) {
+    } else if (field_value.first == "silent" && field_value.second.type() != JsonValue::Type::Null) {
       if (field_value.second.type() != JsonValue::Type::String) {
-        return Status::Error("Expected notification sound as a String");
+        return Status::Error("Expected silent flag as a String");
       }
-      is_silent = field_value.second.get_string().empty();
+      is_silent = !field_value.second.get_string().empty();
     }
   }
   if (!clean_input_string(loc_key)) {
