@@ -18402,7 +18402,11 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
       return NotificationId();
     }
   } while (d->notification_id_to_message_id.count(notification_id) != 0 ||
-           d->new_secret_chat_notification_id == notification_id);  // just in case
+           d->new_secret_chat_notification_id == notification_id ||
+           notification_id.get() <= d->message_notification_group.last_notification_id.get() ||
+           notification_id.get() <= d->message_notification_group.max_removed_notification_id.get() ||
+           notification_id.get() <= d->mention_notification_group.last_notification_id.get() ||
+           notification_id.get() <= d->mention_notification_group.max_removed_notification_id.get());  // just in case
   if (message_id.is_valid()) {
     add_notification_id_to_message_id_correspondence(d, notification_id, message_id);
   }
@@ -18611,23 +18615,30 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         continue;
       }
 
-      LOG_CHECK(m->notification_id.get() < from_notification_id.get())
-          << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << d->dialog_id << " "
-          << m->message_id << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
-          << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-          << " " << group_info.max_removed_notification_id << " " << group_info.max_removed_message_id << " "
-          << d->last_new_message_id << " " << d->last_message_id << " " << d->first_database_message_id << " "
-          << d->last_database_message_id << " " << d->max_added_message_id << " "
-          << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
-          << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
-          << d->debug_last_database_message_id;
-      from_notification_id = m->notification_id;
-      from_message_id = m->message_id;
-      is_found = true;
+      bool is_correct = true;
+      if (m->notification_id.get() >= from_notification_id.get()) {
+        // possible if two messages has the same notification_id
+        LOG(ERROR) << "Have nonmonotoic notification ids: " << d->dialog_id << " " << m->message_id << " "
+                   << m->notification_id << " " << from_message_id << " " << from_notification_id;
+        is_correct = false;
+      } else {
+        from_notification_id = m->notification_id;
+        is_found = true;
+      }
+      if (m->message_id.get() >= from_message_id.get()) {
+        LOG(ERROR) << "Have nonmonotoic message ids: " << d->dialog_id << " " << m->message_id << " "
+                   << m->notification_id << " " << from_message_id << " " << from_notification_id;
+        is_correct = false;
+      } else {
+        from_message_id = m->message_id;
+        is_found = true;
+      }
 
-      if (is_from_mention_notification_group(d, m) == from_mentions) {
+      if (is_correct && is_from_mention_notification_group(d, m) == from_mentions) {
         // skip mention messages returned among unread messages
         res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+      } else if (!is_correct) {
+        remove_message_notification_id(d, m, true, false);
       }
     }
     if (!res.empty() || !is_found) {
@@ -18822,24 +18833,27 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       continue;
     }
 
-    CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
-    LOG_CHECK(!from_message_id.is_valid() || m->message_id.get() < from_message_id.get())
-        << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << dialog_id << " " << m->message_id
-        << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
-        << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-        << " " << group_info.max_removed_notification_id << " " << group_info.max_removed_message_id << " "
-        << d->last_new_message_id << " " << d->last_message_id << " " << d->first_database_message_id << " "
-        << d->last_database_message_id << " " << d->max_added_message_id << " "
-        << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
-        << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
-        << d->debug_last_database_message_id;
+    bool is_correct = true;
+    if (from_notification_id.is_valid() && m->notification_id.get() >= from_notification_id.get()) {
+      LOG(ERROR) << "Receive " << m->message_id << "/" << m->notification_id << " after " << from_message_id << "/"
+                 << from_notification_id;
+      is_correct = false;
+    } else {
+      from_notification_id = m->notification_id;
+    }
+    if (from_message_id.is_valid() && m->message_id.get() >= from_message_id.get()) {
+      LOG(ERROR) << "Receive " << m->message_id << "/" << m->notification_id << " after " << from_message_id << "/"
+                 << from_notification_id;
+      is_correct = false;
+    } else {
+      from_message_id = m->message_id;
+    }
 
-    from_notification_id = m->notification_id;
-    from_message_id = m->message_id;
-
-    if (is_from_mention_notification_group(d, m) == from_mentions) {
+    if (is_correct && is_from_mention_notification_group(d, m) == from_mentions) {
       // skip mention messages returned among unread messages
       res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+    } else if (!is_correct) {
+      remove_message_notification_id(d, m, true, false);
     }
   }
   if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
