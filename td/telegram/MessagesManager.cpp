@@ -14806,7 +14806,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << " with offset " << offset << " and limit " << limit << ". First database message is "
             << d->first_database_message_id << ", have_full_history = " << d->have_full_history;
 
-  if (messages.empty() && from_the_end && d->have_full_history) {
+  if (messages.empty() && from_the_end && d->have_full_history && d->messages == nullptr) {
     set_dialog_is_empty(d, "on_get_history_from_database empty");
   }
 
