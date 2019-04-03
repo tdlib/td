@@ -1,4 +1,4 @@
-image: gcc:5.4
+image: gcc:latest
 
 pipelines:
   default:
