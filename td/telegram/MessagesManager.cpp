@@ -18421,7 +18421,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   } else if (G()->parameters().use_message_db) {
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_notification_group(group_id);
     if (r_value.is_ok()) {
-      VLOG(notifications) << "Loaded " << r_value.ok() << " from database";
+      VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
       d = get_dialog_force(r_value.ok().dialog_id);
     } else {
       VLOG(notifications) << "Failed to load " << group_id << " from database";
@@ -18690,6 +18690,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   r_notification_group_keys.ensure();
   auto group_keys = r_notification_group_keys.move_as_ok();
 
+  vector<NotificationGroupKey> result;
   for (auto &group_key : group_keys) {
     CHECK(group_key.dialog_id.is_valid());
     Dialog *d = get_dialog_force(group_key.dialog_id);
@@ -18701,8 +18702,9 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     CHECK(notification_group_id_to_dialog_id_[group_key.group_id] == d->dialog_id);
 
     VLOG(notifications) << "Loaded " << group_key << " from database";
+    result.push_back(group_key);
   }
-  return group_keys;
+  return result;
 }
 
 void MessagesManager::get_message_notifications_from_database(DialogId dialog_id, NotificationGroupId group_id,
