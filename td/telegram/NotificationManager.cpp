@@ -3274,17 +3274,27 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
     return Status::Error(400, "Expected JSON object");
   }
 
-  for (auto &field_value : json_value.get_object()) {
+  auto data = std::move(json_value.get_object());
+  if (has_json_object_field(data, "data")) {
+    auto r_data_data = get_json_object_field(data, "data", JsonValue::Type::Object, false);
+    if (r_data_data.is_error()) {
+      return Status::Error(400, r_data_data.error().message());
+    }
+    auto data_data = r_data_data.move_as_ok();
+    data = std::move(data_data.get_object());
+  }
+
+  for (auto &field_value : data) {
     if (field_value.first == "p") {
       auto encrypted_payload = std::move(field_value.second);
       if (encrypted_payload.type() != JsonValue::Type::String) {
         return Status::Error(400, "Expected encrypted payload as a String");
       }
-      Slice data = encrypted_payload.get_string();
-      if (data.size() < 12) {
+      Slice encrypted_data = encrypted_payload.get_string();
+      if (encrypted_data.size() < 12) {
         return Status::Error(400, "Encrypted payload is too small");
       }
-      auto r_decoded = base64url_decode(data.substr(0, 12));
+      auto r_decoded = base64url_decode(encrypted_data.substr(0, 12));
       if (r_decoded.is_error()) {
         return Status::Error(400, "Failed to base64url-decode payload");
       }
@@ -3328,11 +3338,11 @@ Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string
       if (encrypted_payload.type() != JsonValue::Type::String) {
         return Status::Error(400, "Expected encrypted payload as a String");
       }
-      Slice data = encrypted_payload.get_string();
-      if (data.size() < 12) {
+      Slice encrypted_data = encrypted_payload.get_string();
+      if (encrypted_data.size() < 12) {
         return Status::Error(400, "Encrypted payload is too small");
       }
-      auto r_decoded = base64url_decode(data);
+      auto r_decoded = base64url_decode(encrypted_data);
       if (r_decoded.is_error()) {
         return Status::Error(400, "Failed to base64url-decode payload");
       }
