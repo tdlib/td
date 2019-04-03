@@ -2807,14 +2807,24 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
     return Status::Error("Expected a JSON object as push payload");
   }
 
+  auto data = std::move(json_value.get_object());
+  int32 sent_date = G()->unix_time();
+  if (has_json_object_field(data, "data")) {
+    TRY_RESULT(date, get_json_object_int_field(data, "date", true, sent_date));
+    if (sent_date - 28 * 86400 <= date && date <= sent_date + 5) {
+      sent_date = date;
+    }
+    TRY_RESULT(data_data, get_json_object_field(data, "data", JsonValue::Type::Object, false));
+    data = std::move(data_data.get_object());
+  }
+
   string loc_key;
   JsonObject custom;
   string announcement_message_text;
   vector<string> loc_args;
   string sender_name;
-  int32 sent_date = G()->unix_time();
   bool is_silent = false;
-  for (auto &field_value : json_value.get_object()) {
+  for (auto &field_value : data) {
     if (field_value.first == "loc_key") {
       if (field_value.second.type() != JsonValue::Type::String) {
         return Status::Error("Expected loc_key as a String");
@@ -2854,6 +2864,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       is_silent = !field_value.second.get_string().empty();
     }
   }
+
   if (!clean_input_string(loc_key)) {
     return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
   }
@@ -3170,7 +3181,7 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned, logevent_id != 0);
   if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
-                        << dialog_id << ": " << r_info.error();
+                        << dialog_id << " sent by " << sender_user_id << " at " << date << ": " << r_info.error();
     if (logevent_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     }
