@@ -10290,7 +10290,6 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
   if (old_message_id == message_id) {
     return;
   }
-  CHECK(old_message_id != message_id);
   VLOG(notifications) << "Change pinned message notification in " << d->dialog_id << " from " << old_message_id
                       << " to " << message_id;
   if (old_message_id.is_valid()) {
@@ -19212,6 +19211,10 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   CHECK(is_changed);
   if (is_pinned) {
     set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId());
+  }
+  if (!m->notification_id.is_valid()) {
+    // protection from accidental notification_id removal in set_dialog_pinned_message_notification
+    return false;
   }
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << group_info.group_id
                       << '/' << d->dialog_id;
