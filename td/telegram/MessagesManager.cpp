@@ -16190,7 +16190,12 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     const FormattedText *caption = get_message_content_caption(m->content.get());
     auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
-    CHECK(input_media != nullptr);
+    if (input_media == nullptr) {
+      // TODO return CHECK
+      auto file_id = get_message_content_file_id(m->content.get());
+      LOG(FATAL) << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret)) << " "
+                 << to_string(td_->file_manager_->get_file_object(file_id)) << " " << m->ttl;
+    }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
     if (!entities.empty()) {
