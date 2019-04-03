@@ -2037,15 +2037,12 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     return;
   }
 
-  bool is_total_count_changed = false;
   if (group.total_count < removed_notification_count) {
     LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing "
                << removed_notification_count << " temporary notificaitions";
-    is_total_count_changed = group.total_count != 0;
     group.total_count = 0;
   } else {
     group.total_count -= removed_notification_count;
-    is_total_count_changed = true;
   }
 
   vector<int32> removed_notification_ids;
