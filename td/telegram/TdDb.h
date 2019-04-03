@@ -70,7 +70,8 @@ class TdDb {
 
   std::shared_ptr<FileDbInterface> get_file_db_shared();
   std::shared_ptr<SqliteConnectionSafe> &get_sqlite_connection_safe();
-  BinlogInterface *get_binlog(const char *source = "unknown");
+#define get_binlog() get_binlog_impl(__FILE__, __LINE__)
+  BinlogInterface *get_binlog_impl(const char *file, int line);
 
   std::shared_ptr<KeyValueSyncInterface> get_binlog_pmc_shared();
   std::shared_ptr<KeyValueSyncInterface> get_config_pmc_shared();

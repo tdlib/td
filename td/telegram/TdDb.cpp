@@ -147,8 +147,8 @@ std::shared_ptr<SqliteConnectionSafe> &TdDb::get_sqlite_connection_safe() {
   return sql_connection_;
 }
 
-BinlogInterface *TdDb::get_binlog(const char *source) {
-  LOG_CHECK(binlog_) << G()->close_flag() << " " << source;
+BinlogInterface *TdDb::get_binlog_impl(const char *file, int line) {
+  LOG_CHECK(binlog_) << G()->close_flag() << " " << file << " " << line;
   return binlog_.get();
 }
 

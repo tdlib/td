@@ -1627,7 +1627,7 @@ void NotificationManager::on_notification_removed(NotificationId notification_id
   }
   VLOG(notifications) << "Remove from binlog " << notification_id << " with logevent " << it->second;
   if (!is_being_destroyed_) {
-    binlog_erase(G()->td_db()->get_binlog("on_notification_removed"), it->second);
+    binlog_erase(G()->td_db()->get_binlog(), it->second);
   }
   temporary_notification_logevent_ids_.erase(it);
 }
@@ -3172,7 +3172,7 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id << ": " << r_info.error();
     if (logevent_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog("process_message_push_notification"), logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     }
     if (r_info.error().code() == 406) {
       promise.set_error(r_info.move_as_error());
@@ -3225,8 +3225,7 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
                                                 sender_name, date,       contains_mention, is_silent,
                                                 loc_key,     arg,        notification_id};
     auto storer = LogEventStorerImpl<AddMessagePushNotificationLogEvent>(logevent);
-    logevent_id = binlog_add(G()->td_db()->get_binlog("process_message_push_notification 2"),
-                             LogEvent::HandlerType::AddMessagePushNotification, storer);
+    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification, storer);
   }
 
   if (logevent_id != 0) {
@@ -3552,7 +3551,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
     switch (event.type_) {
       case LogEvent::HandlerType::AddMessagePushNotification: {
         if (!G()->parameters().use_message_db || is_disabled() || max_notification_group_count_ == 0) {
-          binlog_erase(G()->td_db()->get_binlog("AddMessagePushNotification"), event.id_);
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
