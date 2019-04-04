@@ -966,6 +966,8 @@ class MessagesManager : public Actor {
 
     MessageId max_added_message_id;
     MessageId being_added_message_id;
+    bool debug_being_added_need_update = false;   // TODO remove
+    MessageId debug_preloaded_pinned_message_id;  // TODO remove
 
     NotificationGroupInfo message_notification_group;
     NotificationGroupInfo mention_notification_group;

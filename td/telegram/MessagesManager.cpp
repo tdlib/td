@@ -19150,7 +19150,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     auto message_id = get_message_content_pinned_message_id(m->content.get());
     if (message_id.is_valid() &&
         !have_message({d->dialog_id, message_id},
-                      force ? "add_new_message_notification false" : "add_new_message_notification true")) {
+                      force ? "add_new_message_notification force" : "add_new_message_notification not force")) {
       missing_pinned_message_id = message_id;
     }
   }
@@ -22203,9 +22203,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
+  MessageId preloaded_pinned_message_id;
   if (*need_update) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id}, "preload pinned message")) {
+      preloaded_pinned_message_id = pinned_message_id;
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
 
@@ -22218,8 +22220,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   // there must be no two recursive calls to add_message_to_dialog
   LOG_CHECK(!d->being_added_message_id.is_valid())
       << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
-      << d->pinned_message_notification_message_id << " " << source;
+      << d->debug_being_added_need_update << " " << d->pinned_message_notification_message_id << " "
+      << preloaded_pinned_message_id << " " << d->debug_preloaded_pinned_message_id << " " << source;
   d->being_added_message_id = message_id;
+  d->debug_being_added_need_update = *need_update;
+  d->debug_preloaded_pinned_message_id = preloaded_pinned_message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
