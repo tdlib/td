@@ -2849,7 +2849,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       }
       announcement_message_text = field_value.second.get_string().str();
     } else if (field_value.first == "google.sent_time") {
-      TRY_RESULT(google_sent_time, get_json_object_long_field(json_value.get_object(), "google.sent_time"));
+      TRY_RESULT(google_sent_time, get_json_object_long_field(data, "google.sent_time"));
       google_sent_time /= 1000;
       if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
         sent_date = narrow_cast<int32>(google_sent_time);
@@ -3062,6 +3062,37 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   // chat title or sender name for PINNED_*
   loc_args.erase(loc_args.begin());
 
+  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
+    int64 sender_access_hash = -1;
+    telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
+    TRY_RESULT(mtpeer, get_json_object_field(custom, "mtpeer", JsonValue::Type::Object));
+    if (mtpeer.type() != JsonValue::Type::Null) {
+      TRY_RESULT(ah, get_json_object_string_field(mtpeer.get_object(), "ah"));
+      if (!ah.empty()) {
+        TRY_RESULT(sender_access_hash_safe, to_integer_safe<int64>(ah));
+        sender_access_hash = sender_access_hash_safe;
+      }
+      TRY_RESULT(ph, get_json_object_field(mtpeer.get_object(), "ph", JsonValue::Type::Object));
+      if (ph.type() != JsonValue::Type::Null) {
+        // TODO parse photo
+      }
+    }
+
+    int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
+    if (sender_access_hash != -1) {
+      flags |= telegram_api::user::ACCESS_HASH_MASK;
+    }
+    if (sender_photo != nullptr) {
+      flags |= telegram_api::user::PHOTO_MASK;
+    }
+    auto user = telegram_api::make_object<telegram_api::user>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name, string(), string(),
+        string(), std::move(sender_photo), nullptr, 0, string(), string(), string());
+    td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
+  }
+
   if (loc_args.size() > 1) {
     return Status::Error("Receive too much arguments");
   }
@@ -3218,7 +3249,7 @@ void NotificationManager::process_message_push_notification(DialogId dialog_id, 
     CHECK(logevent_id != 0);
   }
 
-  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
+  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
     int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,

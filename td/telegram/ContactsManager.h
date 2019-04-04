@@ -494,6 +494,7 @@ class ContactsManager : public Actor {
     bool need_location_bot = false;
 
     bool is_photo_inited = false;
+    bool is_repaired = false;
 
     bool is_name_changed = true;
     bool is_username_changed = true;

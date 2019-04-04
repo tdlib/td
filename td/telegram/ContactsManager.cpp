@@ -5080,10 +5080,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
 
   User *u = add_user(user_id, "on_get_user");
-  if ((have_access_hash || u->access_hash == -1) && u->access_hash != user->access_hash_) {
-    LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << " to "
-               << user->access_hash_;
-    u->access_hash = user->access_hash_;
+  auto access_hash = have_access_hash ? user->access_hash_ : -1;
+  if (have_access_hash && u->access_hash != access_hash) {
+    LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << " to " << access_hash;
+    u->access_hash = access_hash;
     u->is_changed = true;
   }
   if (is_received) {
@@ -5135,13 +5135,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   LOG_IF(ERROR, need_location_bot && !is_inline_bot)
       << "Receive not inline bot " << user_id << " which needs user location from " << source;
 
-  if (is_received && !u->is_received) {
-    u->is_received = true;
-
-    LOG(DEBUG) << "Receive " << user_id;
-    u->need_send_update = true;
-  }
-
   if (is_deleted) {
     // just in case
     is_verified = false;
@@ -5163,7 +5156,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reason != u->restriction_reason || is_inline_bot != u->is_inline_bot ||
       inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot) {
-    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted)
+    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
@@ -5184,6 +5177,13 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->bot_info_version = bot_info_version;
     LOG(DEBUG) << "Bot info version has changed for " << user_id;
     u->is_changed = true;
+  }
+
+  if (is_received && !u->is_received) {
+    u->is_received = true;
+
+    LOG(DEBUG) << "Receive " << user_id;
+    u->need_send_update = true;
   }
 
   if (is_deleted != u->is_deleted) {
@@ -6248,6 +6248,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
   if (!from_database) {
     save_user(u, user_id, from_binlog);
+  }
+
+  if (!u->is_received && u->access_hash != -1 && !u->is_repaired) {
+    u->is_repaired = true;
+    auto input_user = get_input_user(user_id);
+    CHECK(input_user != nullptr);
+    vector<tl_object_ptr<telegram_api::InputUser>> users;
+    users.push_back(std::move(input_user));
+    td_->create_handler<GetUsersQuery>(Promise<Unit>())->send(std::move(users));
   }
 }
 
