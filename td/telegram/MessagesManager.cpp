@@ -12076,9 +12076,12 @@ void MessagesManager::get_message_from_server(FullMessageId full_message_id, Pro
 
 void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
                                                tl_object_ptr<telegram_api::InputMessage> input_message) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   if (message_ids.empty()) {
     LOG(ERROR) << "Empty message_ids";
-    return;
+    return promise.set_error(Status::Error(500, "There are no messages specified to fetch"));
   }
 
   if (input_message != nullptr) {
