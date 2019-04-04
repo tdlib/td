@@ -31,7 +31,7 @@ if (NOT WIN32)
   target_compile_definitions(tdsqlite PRIVATE -DHAVE_USLEEP -DNDEBUG=1)
 endif()
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
   target_compile_definitions(tdsqlite PRIVATE -DSQLITE_OS_WINRT=1)
 endif()
 

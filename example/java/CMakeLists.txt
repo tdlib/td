@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TdJavaExample VERSION 1.0 LANGUAGES CXX)
 
+if (POLICY CMP0054)
+  # do not expand quoted arguments
+  cmake_policy(SET CMP0054 NEW)
+endif()
+
 find_package(Td REQUIRED)
 
 if (NOT JNI_FOUND)
@@ -58,11 +63,11 @@ target_include_directories(tdjni PRIVATE ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PAT
 target_link_libraries(tdjni PRIVATE Td::TdStatic ${JAVA_JVM_LIBRARY})
 target_compile_definitions(tdjni PRIVATE PACKAGE_NAME="${TD_API_JAVA_PACKAGE}")
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(GCC 1)
-elseif (${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CLANG 1)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Intel)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(INTEL 1)
 elseif (NOT MSVC)
   message(FATAL_ERROR "Compiler isn't supported")
