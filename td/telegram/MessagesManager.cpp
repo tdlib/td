@@ -14822,6 +14822,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   bool is_first = true;
   bool had_full_history = d->have_full_history;
   auto debug_first_message_id = d->first_database_message_id;
+  size_t pos = 0;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
@@ -14875,13 +14876,18 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (next_message != nullptr && !next_message->have_previous) {
         LOG_CHECK(m->message_id.get() < next_message->message_id.get())
-            << m->message_id << ' ' << next_message->message_id;
+            << m->message_id << ' ' << next_message->message_id << ' ' << dialog_id << ' ' << from_message_id << ' '
+            << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local << ' ' << messages.size() << ' '
+            << debug_first_message_id << ' ' << last_added_message_id << ' ' << added_new_message << ' ' << pos << ' '
+            << m << ' ' << next_message << ' ' << old_message << ' ' << to_string(get_message_object(dialog_id, m))
+            << to_string(get_message_object(dialog_id, next_message));
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
         attach_message_to_previous(
             d, next_message->message_id,
             (PSLICE() << "on_get_history_from_database 1 " << m->message_id << ' ' << from_message_id << ' ' << offset
-                      << ' ' << limit << ' ' << d->first_database_message_id << ' ' << d->have_full_history)
+                      << ' ' << limit << ' ' << d->first_database_message_id << ' ' << d->have_full_history << ' '
+                      << pos)
                 .c_str());
       }
 
@@ -14889,6 +14895,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       next_message = m;
     }
     is_first = false;
+    pos++;
   }
   resolve_dependencies_force(dependencies);
 
