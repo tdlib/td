@@ -2611,10 +2611,16 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
   if (loc_key == "MESSAGES") {
     return "MESSAGES";
   }
+  if (loc_key.size() <= 8) {
+    return string();
+  }
   switch (loc_key[8]) {
     case 'A':
       if (loc_key == "PINNED_GAME") {
         return "PINNED_MESSAGE_GAME";
+      }
+      if (loc_key == "PINNED_GAME_SCORE") {
+        return "PINNED_MESSAGE_GAME_SCORE";
       }
       if (loc_key == "CHAT_CREATED") {
         return "MESSAGE_BASIC_GROUP_CHAT_CREATE";
@@ -2658,6 +2664,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
     case 'G':
       if (loc_key == "MESSAGE_GAME") {
         return "MESSAGE_GAME";
+      }
+      if (loc_key == "MESSAGE_GAME_SCORE") {
+        return "MESSAGE_GAME_SCORE";
       }
       if (loc_key == "MESSAGE_GEO") {
         return "MESSAGE_LOCATION";
@@ -2775,6 +2784,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
     case 'V':
       if (loc_key == "MESSAGE_VIDEO") {
         return "MESSAGE_VIDEO";
+      }
+      if (loc_key == "MESSAGE_VIDEOS") {
+        return "MESSAGE_VIDEOS";
       }
       if (loc_key == "MESSAGE_VIDEO_SECRET") {
         return "MESSAGE_SECRET_VIDEO";
@@ -3062,6 +3074,23 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   // chat title or sender name for PINNED_*
   loc_args.erase(loc_args.begin());
 
+  string arg;
+  if (loc_key == "MESSAGE_GAME_SCORE" && loc_args.size() == 2) {
+    TRY_RESULT(score, to_integer_safe<int32>(loc_args[1]));
+    if (score < 0) {
+      return Status::Error("Expected score to be non-negative");
+    }
+    arg = PSTRING() << loc_args[1] << ' ' << loc_args[0];
+    loc_args.clear();
+  }
+  if (loc_args.size() > 1) {
+    return Status::Error("Receive too much arguments");
+  }
+
+  if (loc_args.size() == 1) {
+    arg = std::move(loc_args[0]);
+  }
+
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
     int64 sender_access_hash = -1;
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
@@ -3091,15 +3120,6 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name, string(), string(),
         string(), std::move(sender_photo), nullptr, 0, string(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
-  }
-
-  if (loc_args.size() > 1) {
-    return Status::Error("Receive too much arguments");
-  }
-
-  string arg;
-  if (loc_args.size() == 1) {
-    arg = std::move(loc_args[0]);
   }
 
   process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,

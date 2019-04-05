@@ -11,6 +11,9 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+
 namespace td {
 
 class NotificationTypeMessage : public NotificationType {
@@ -124,10 +127,158 @@ class NotificationTypePushMessage : public NotificationType {
     return message_id_;
   }
 
+  static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(Slice key, const string &arg) {
+    bool is_pinned = false;
+    if (begins_with(key, "PINNED_")) {
+      is_pinned = true;
+      key = key.substr(7);
+    }
+    if (key == "MESSAGE") {
+      return td_api::make_object<td_api::pushMessageContentHidden>(is_pinned);
+    }
+    if (key == "MESSAGES") {
+      return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, true);
+    }
+    CHECK(key.size() > 8);
+    switch (key[8]) {
+      case 'A':
+        if (key == "MESSAGE_ANIMATION") {
+          return td_api::make_object<td_api::pushMessageContentAnimation>(is_pinned);
+        }
+        break;
+      case 'B':
+        if (key == "MESSAGE_BASIC_GROUP_CHAT_CREATE") {
+          return td_api::make_object<td_api::pushMessageContentBasicGroupChatCreate>();
+        }
+        break;
+      case 'C':
+        if (key == "MESSAGE_CHAT_ADD_MEMBERS") {
+          return td_api::make_object<td_api::pushMessageContentChatAddMembers>(arg, false, false);
+        }
+        if (key == "MESSAGE_CHAT_ADD_MEMBERS_RETURNED") {
+          return td_api::make_object<td_api::pushMessageContentChatAddMembers>(arg, false, true);
+        }
+        if (key == "MESSAGE_CHAT_ADD_MEMBERS_YOU") {
+          return td_api::make_object<td_api::pushMessageContentChatAddMembers>(arg, true, false);
+        }
+        if (key == "MESSAGE_CHAT_CHANGE_PHOTO") {
+          return td_api::make_object<td_api::pushMessageContentChatChangePhoto>();
+        }
+        if (key == "MESSAGE_CHAT_CHANGE_TITLE") {
+          return td_api::make_object<td_api::pushMessageContentChatChangeTitle>();
+        }
+        if (key == "MESSAGE_CHAT_DELETE_MEMBER") {
+          return td_api::make_object<td_api::pushMessageContentChatDeleteMember>(arg, false, false);
+        }
+        if (key == "MESSAGE_CHAT_DELETE_MEMBER_LEFT") {
+          return td_api::make_object<td_api::pushMessageContentChatDeleteMember>(arg, false, true);
+        }
+        if (key == "MESSAGE_CHAT_DELETE_MEMBER_YOU") {
+          return td_api::make_object<td_api::pushMessageContentChatDeleteMember>(arg, true, false);
+        }
+        if (key == "MESSAGE_CHAT_JOIN_BY_LINK") {
+          return td_api::make_object<td_api::pushMessageContentChatJoinByLink>();
+        }
+        if (key == "MESSAGE_CONTACT") {
+          return td_api::make_object<td_api::pushMessageContentContact>(arg, is_pinned);
+        }
+        if (key == "MESSAGE_CONTACT_REGISTERED") {
+          return td_api::make_object<td_api::pushMessageContentContactRegistered>();
+        }
+        break;
+      case 'D':
+        if (key == "MESSAGE_DOCUMENT") {
+          return td_api::make_object<td_api::pushMessageContentDocument>(is_pinned);
+        }
+        break;
+      case 'F':
+        if (key == "MESSAGE_FORWARDS") {
+          return td_api::make_object<td_api::pushMessageContentMessageForwards>(to_integer<int32>(arg));
+        }
+        break;
+      case 'G':
+        if (key == "MESSAGE_GAME") {
+          return td_api::make_object<td_api::pushMessageContentGame>(arg, is_pinned);
+        }
+        if (key == "MESSAGE_GAME_SCORE") {
+          int32 score = 0;
+          string title;
+          if (!is_pinned) {
+            string score_str;
+            std::tie(score_str, title) = split(arg);
+            score = to_integer<int32>(score_str);
+          }
+          return td_api::make_object<td_api::pushMessageContentGameScore>(title, score, is_pinned);
+        }
+        break;
+      case 'I':
+        if (key == "MESSAGE_INVOICE") {
+          return td_api::make_object<td_api::pushMessageContentInvoice>(arg, is_pinned);
+        }
+        break;
+      case 'L':
+        if (key == "MESSAGE_LIVE_LOCATION") {
+          return td_api::make_object<td_api::pushMessageContentLocation>(false, is_pinned);
+        }
+        if (key == "MESSAGE_LOCATION") {
+          return td_api::make_object<td_api::pushMessageContentLocation>(true, is_pinned);
+        }
+        break;
+      case 'P':
+        if (key == "MESSAGE_PHOTO") {
+          return td_api::make_object<td_api::pushMessageContentPhoto>(false, is_pinned);
+        }
+        if (key == "MESSAGE_PHOTOS") {
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false);
+        }
+        if (key == "MESSAGE_POLL") {
+          return td_api::make_object<td_api::pushMessageContentPoll>(arg, is_pinned);
+        }
+        break;
+      case 'S':
+        if (key == "MESSAGE_SECRET_PHOTO") {
+          return td_api::make_object<td_api::pushMessageContentPhoto>(true, false);
+        }
+        if (key == "MESSAGE_SECRET_VIDEO") {
+          return td_api::make_object<td_api::pushMessageContentVideo>(true, false);
+        }
+        if (key == "MESSAGE_SCREENSHOT_TAKEN") {
+          return td_api::make_object<td_api::pushMessageContentScreenshotTaken>();
+        }
+        if (key == "MESSAGE_STICKER") {
+          return td_api::make_object<td_api::pushMessageContentSticker>(arg, is_pinned);
+        }
+        break;
+      case 'T':
+        if (key == "MESSAGE_TEXT") {
+          return td_api::make_object<td_api::pushMessageContentText>(arg, is_pinned);
+        }
+        break;
+      case 'V':
+        if (key == "MESSAGE_VIDEO") {
+          return td_api::make_object<td_api::pushMessageContentVideo>(false, is_pinned);
+        }
+        if (key == "MESSAGE_VIDEO_NOTE") {
+          return td_api::make_object<td_api::pushMessageContentVideoNote>(is_pinned);
+        }
+        if (key == "MESSAGE_VIDEOS") {
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, true);
+        }
+        if (key == "MESSAGE_VOICE_NOTE") {
+          return td_api::make_object<td_api::pushMessageContentVoiceNote>(is_pinned);
+        }
+        break;
+      default:
+        break;
+    }
+    UNREACHABLE();
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     auto sender_user_id = G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(
         sender_user_id_, "get_notification_type_object");
-    return td_api::make_object<td_api::notificationTypeNewPushMessage>(message_id_.get(), sender_user_id, key_, arg_);
+    return td_api::make_object<td_api::notificationTypeNewPushMessage>(message_id_.get(), sender_user_id,
+                                                                       get_push_message_content_object(key_, arg_));
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
