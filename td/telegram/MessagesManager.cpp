@@ -14946,6 +14946,9 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
   }
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   const int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database";
@@ -14976,6 +14979,9 @@ void MessagesManager::get_history(DialogId dialog_id, MessageId from_message_id,
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
+  }
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history in " << dialog_id << " from " << from_message_id << " with offset " << offset
