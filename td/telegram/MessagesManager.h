@@ -721,6 +721,8 @@ class MessagesManager : public Actor {
 
   void remove_message_notification(DialogId dialog_id, NotificationGroupId group_id, NotificationId notification_id);
 
+  void remove_message_notifications_by_message_ids(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
                                     NotificationId max_notification_id, MessageId max_message_id);
 
@@ -865,6 +867,7 @@ class MessagesManager : public Actor {
     bool from_database = false;
 
     NotificationId notification_id;
+    NotificationId removed_notification_id;
 
     int32 views = 0;
 

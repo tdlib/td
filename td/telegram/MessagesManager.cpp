@@ -10301,9 +10301,8 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
 
       remove_message_notification_id(d, m, true, false);
       on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
-    } else if (d->mention_notification_group.group_id.is_valid()) {
-      // remove temporary notification
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_by_message_id,
+    } else {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
                          d->mention_notification_group.group_id, old_message_id);
     }
   }
@@ -10900,6 +10899,7 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
                       << '/' << d->dialog_id << " from database, was_active = " << had_active_notification
                       << ", is_permanent = " << is_permanent;
   delete_notification_id_to_message_id_correspondence(d, notification_id, m->message_id);
+  m->removed_notification_id = m->notification_id;
   m->notification_id = NotificationId();
   if (d->pinned_message_notification_message_id == m->message_id && is_permanent) {
     remove_dialog_pinned_message_notification(d);  // must be called after notification_id is removed
@@ -10980,7 +10980,7 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, boo
   CHECK(d != nullptr);
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   VLOG(notifications) << "Receive " << result.ok().size() << " message notifications in " << group_info.group_id << '/'
-                      << dialog_id;
+                      << dialog_id << " from " << prev_last_notification_id;
   if (group_info.last_notification_id != prev_last_notification_id) {
     // last_notification_id was changed
     return;
@@ -18355,7 +18355,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
-    if (get_message_id_by_random_id(d, random_id, "need_message_push_notification").is_valid()) {
+    if (get_message_id_by_random_id(d, random_id, "get_message_push_notification_info").is_valid()) {
       return Status::Error(406, "Ignore notification about known secret message");
     }
   }
@@ -18611,12 +18611,38 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     for (auto &message : messages) {
       auto m = on_get_message_from_database(d->dialog_id, d, std::move(message),
                                             "get_message_notifications_from_database_force");
-      if (m == nullptr || !m->notification_id.is_valid() || is_from_mention_notification_group(d, m) != from_mentions) {
-        // notification_id can be empty if it is deleted in memory, but not in the database
+      if (m == nullptr) {
+        VLOG(notifications) << "Receive from database a broken message";
         continue;
       }
 
-      if (m->notification_id.get() <= group_info.max_removed_notification_id.get() ||
+      auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
+      if (!notification_id.is_valid()) {
+        VLOG(ERROR) << "Can't find notification ID for " << m->message_id << " in " << d->dialog_id;
+        continue;
+      }
+      CHECK(m->message_id.is_valid());
+
+      bool is_correct = true;
+      if (notification_id.get() >= from_notification_id.get()) {
+        // possible if two messages has the same notification_id
+        LOG(ERROR) << "Have nonmonotoic notification ids: " << d->dialog_id << " " << m->message_id << " "
+                   << notification_id << " " << from_message_id << " " << from_notification_id;
+        is_correct = false;
+      } else {
+        from_notification_id = notification_id;
+        is_found = true;
+      }
+      if (m->message_id.get() >= from_message_id.get()) {
+        LOG(ERROR) << "Have nonmonotoic message ids: " << d->dialog_id << " " << m->message_id << " " << notification_id
+                   << " " << from_message_id << " " << from_notification_id;
+        is_correct = false;
+      } else {
+        from_message_id = m->message_id;
+        is_found = true;
+      }
+
+      if (notification_id.get() <= group_info.max_removed_notification_id.get() ||
           m->message_id.get() <= group_info.max_removed_message_id.get() ||
           (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
         // if message still has notification_id, but it was removed via max_removed_notification_id,
@@ -18626,37 +18652,33 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         break;
       }
 
+      if (!m->notification_id.is_valid()) {
+        // notification_id can be empty if it is deleted in memory, but not in the database
+        VLOG(notifications) << "Receive from database " << m->message_id << " with removed "
+                            << m->removed_notification_id;
+        continue;
+      }
+
+      if (is_from_mention_notification_group(d, m) != from_mentions) {
+        VLOG(notifications) << "Receive from database " << m->message_id << " with " << m->notification_id
+                            << " from another group";
+        continue;
+      }
+
       if (!is_message_notification_active(d, m)) {
         CHECK(from_mentions);
         CHECK(!m->contains_unread_mention);
+        CHECK(m->message_id != d->pinned_message_notification_message_id);
         // skip read mentions
         continue;
       }
 
-      bool is_correct = true;
-      if (m->notification_id.get() >= from_notification_id.get()) {
-        // possible if two messages has the same notification_id
-        LOG(ERROR) << "Have nonmonotoic notification ids: " << d->dialog_id << " " << m->message_id << " "
-                   << m->notification_id << " " << from_message_id << " " << from_notification_id;
-        is_correct = false;
-      } else {
-        from_notification_id = m->notification_id;
-        is_found = true;
-      }
-      if (m->message_id.get() >= from_message_id.get()) {
-        LOG(ERROR) << "Have nonmonotoic message ids: " << d->dialog_id << " " << m->message_id << " "
-                   << m->notification_id << " " << from_message_id << " " << from_notification_id;
-        is_correct = false;
-      } else {
-        from_message_id = m->message_id;
-        is_found = true;
-      }
-
-      if (is_correct && is_from_mention_notification_group(d, m) == from_mentions) {
+      if (is_correct) {
         // skip mention messages returned among unread messages
         res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
-      } else if (!is_correct) {
+      } else {
         remove_message_notification_id(d, m, true, false);
+        on_message_changed(d, m, false, "get_message_notifications_from_database_force");
       }
     }
     if (!res.empty() || !is_found) {
@@ -18832,11 +18854,35 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   for (auto &message : messages) {
     auto m =
         on_get_message_from_database(dialog_id, d, std::move(message), "on_get_message_notifications_from_database");
-    if (m == nullptr || !m->notification_id.is_valid() || is_from_mention_notification_group(d, m) != from_mentions) {
+    if (m == nullptr) {
+      VLOG(notifications) << "Receive from database a broken message";
       continue;
     }
 
-    if (m->notification_id.get() <= group_info.max_removed_notification_id.get() ||
+    auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
+    if (!notification_id.is_valid()) {
+      VLOG(ERROR) << "Can't find notification ID for " << m->message_id << " in " << d->dialog_id;
+      continue;
+    }
+    CHECK(m->message_id.is_valid());
+
+    bool is_correct = true;
+    if (from_notification_id.is_valid() && notification_id.get() >= from_notification_id.get()) {
+      LOG(ERROR) << "Receive " << m->message_id << "/" << notification_id << " after " << from_message_id << "/"
+                 << from_notification_id;
+      is_correct = false;
+    } else {
+      from_notification_id = notification_id;
+    }
+    if (from_message_id.is_valid() && m->message_id.get() >= from_message_id.get()) {
+      LOG(ERROR) << "Receive " << m->message_id << "/" << notification_id << " after " << from_message_id << "/"
+                 << from_notification_id;
+      is_correct = false;
+    } else {
+      from_message_id = m->message_id;
+    }
+
+    if (notification_id.get() <= group_info.max_removed_notification_id.get() ||
         m->message_id.get() <= group_info.max_removed_message_id.get() ||
         (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
       // if message still has notification_id, but it was removed via max_removed_notification_id,
@@ -18846,34 +18892,33 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       break;
     }
 
+    if (!m->notification_id.is_valid()) {
+      // notification_id can be empty if it is deleted in memory, but not in the database
+      VLOG(notifications) << "Receive from database " << m->message_id << " with removed "
+                          << m->removed_notification_id;
+      continue;
+    }
+
+    if (is_from_mention_notification_group(d, m) != from_mentions) {
+      VLOG(notifications) << "Receive from database " << m->message_id << " with " << m->notification_id
+                          << " from another category";
+      continue;
+    }
+
     if (!is_message_notification_active(d, m)) {
       CHECK(from_mentions);
       CHECK(!m->contains_unread_mention);
+      CHECK(m->message_id != d->pinned_message_notification_message_id);
       // skip read mentions
       continue;
     }
 
-    bool is_correct = true;
-    if (from_notification_id.is_valid() && m->notification_id.get() >= from_notification_id.get()) {
-      LOG(ERROR) << "Receive " << m->message_id << "/" << m->notification_id << " after " << from_message_id << "/"
-                 << from_notification_id;
-      is_correct = false;
-    } else {
-      from_notification_id = m->notification_id;
-    }
-    if (from_message_id.is_valid() && m->message_id.get() >= from_message_id.get()) {
-      LOG(ERROR) << "Receive " << m->message_id << "/" << m->notification_id << " after " << from_message_id << "/"
-                 << from_notification_id;
-      is_correct = false;
-    } else {
-      from_message_id = m->message_id;
-    }
-
-    if (is_correct && is_from_mention_notification_group(d, m) == from_mentions) {
+    if (is_correct) {
       // skip mention messages returned among unread messages
       res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
-    } else if (!is_correct) {
+    } else {
       remove_message_notification_id(d, m, true, false);
+      on_message_changed(d, m, false, "on_get_message_notifications_from_database");
     }
   }
   if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
@@ -18933,6 +18978,39 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
                            notification_id, std::move(result));
             }));
   }
+}
+
+void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialog_id,
+                                                                  const vector<MessageId> &message_ids) {
+  VLOG(notifications) << "Trying to remove notification about " << message_ids << " in " << dialog_id;
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+
+  bool need_update_dialog_pos = false;
+  vector<int64> deleted_message_ids;
+  for (auto message_id : message_ids) {
+    // can't remove just notification_id, because total_count will stay wrong after restart
+    // auto m = get_message_force(d, message_id, "remove_message_notifications_by_message_ids");
+    // if (m != nullptr) {
+    //   remove_message_notification_id(d, m, true, false);
+    //   on_message_changed(d, m, false, "remove_message_notifications_by_message_ids");
+    // }
+
+    auto m =
+        delete_message(d, message_id, true, &need_update_dialog_pos, "remove_message_notifications_by_message_ids");
+    if (m == nullptr) {
+      LOG(INFO) << "Can't delete " << message_id << " because it is not found";
+      continue;
+    }
+    deleted_message_ids.push_back(m->message_id.get());
+  }
+
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "remove_message_notifications_by_message_ids");
+  }
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 }
 
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool from_mentions,

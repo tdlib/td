@@ -1851,9 +1851,13 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   promise.set_value(Unit());
 }
 
-void NotificationManager::remove_notification_by_message_id(NotificationGroupId group_id, MessageId message_id) {
+void NotificationManager::remove_temporary_notification_by_message_id(NotificationGroupId group_id,
+                                                                      MessageId message_id) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+
   VLOG(notifications) << "Remove notification for " << message_id << " in " << group_id;
-  CHECK(group_id.is_valid());
   CHECK(message_id.is_valid());
 
   auto group_it = get_group(group_id);
@@ -2989,6 +2993,26 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
     return Status::OK();
   }
 
+  if (loc_key == "MESSAGE_DELETED") {
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      return Status::Error("Receive MESSAGE_DELETED in a secret chat");
+    }
+    TRY_RESULT(server_message_ids_str, get_json_object_string_field(custom, "messages", false));
+    auto server_message_ids = full_split(server_message_ids_str, ',');
+    vector<MessageId> message_ids;
+    for (const auto &server_message_id_str : server_message_ids) {
+      TRY_RESULT(server_message_id_int, to_integer_safe<int32>(server_message_id_str));
+      ServerMessageId server_message_id(server_message_id_int);
+      if (!server_message_id.is_valid()) {
+        return Status::Error("Receive invalid message_id");
+      }
+      message_ids.push_back(MessageId(server_message_id));
+    }
+    td_->messages_manager_->remove_message_notifications_by_message_ids(dialog_id, message_ids);
+    promise.set_value(Unit());
+    return Status::OK();
+  }
+
   TRY_RESULT(msg_id, get_json_object_int_field(custom, "msg_id"));
   ServerMessageId server_message_id(msg_id);
   if (server_message_id != ServerMessageId() && !server_message_id.is_valid()) {
@@ -3450,10 +3474,9 @@ void NotificationManager::after_get_difference_impl() {
   VLOG(notifications) << "After get difference";
 
   vector<NotificationGroupId> to_remove_temporary_notifications_group_ids;
-  size_t cur_pos = 0;
-  for (auto it = groups_.begin(); it != groups_.end() && cur_pos < max_notification_group_count_; ++it, cur_pos++) {
-    const auto &group_key = it->first;
-    const auto &group = it->second;
+  for (auto &group_it : groups_) {
+    const auto &group_key = group_it.first;
+    const auto &group = group_it.second;
     if (running_get_chat_difference_.count(group_key.group_id.get()) == 0 &&
         get_temporary_notification_total_count(group) > 0) {
       to_remove_temporary_notifications_group_ids.push_back(group_key.group_id);
