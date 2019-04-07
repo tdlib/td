@@ -1025,7 +1025,6 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesViewsQuery")) {
       LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
     }
-    status.ignore();
   }
 };
 
@@ -3352,7 +3351,6 @@ class GetChannelDifferenceQuery : public Td::ResultHandler {
       LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << ": " << status;
     }
     td->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
-    status.ignore();
   }
 };
 
@@ -20652,6 +20650,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
 }
 
 void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&status) {
+  LOG(INFO) << "Finished getting " << dialog_id << " with result " << status;
   auto it = get_dialog_queries_.find(dialog_id);
   CHECK(it != get_dialog_queries_.end());
   CHECK(!it->second.empty());
@@ -20660,7 +20659,9 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
 
   auto logevent_it = get_dialog_query_logevent_id_.find(dialog_id);
   if (logevent_it != get_dialog_query_logevent_id_.end()) {
-    binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+    if (!G()->close_flag()) {
+      binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+    }
     get_dialog_query_logevent_id_.erase(logevent_it);
   }
 
@@ -24778,7 +24779,9 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
   if (logevent_it != get_channel_difference_to_logevent_id_.end()) {
-    binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+    if (!G()->close_flag()) {
+      binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+    }
     get_channel_difference_to_logevent_id_.erase(logevent_it);
   }
 
