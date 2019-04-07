@@ -2719,6 +2719,9 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
 void StickersManager::reload_sticker_set(int64 sticker_set_id,
                                          tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
                                          Promise<Unit> &&promise) const {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   td_->create_handler<GetStickerSetQuery>(std::move(promise))->send(sticker_set_id, std::move(input_sticker_set));
 }
 
@@ -3885,6 +3888,10 @@ void StickersManager::add_recent_sticker_inner(bool is_attached, FileId sticker_
 
 void StickersManager::send_save_recent_sticker_query(bool is_attached, FileId sticker_id, bool unsave,
                                                      Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   // TODO invokeAfter and log event
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   CHECK(file_view.has_remote_location());
