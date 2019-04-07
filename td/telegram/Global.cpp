@@ -61,16 +61,16 @@ void Global::set_mtproto_header(unique_ptr<MtprotoHeader> mtproto_header) {
   mtproto_header_ = std::move(mtproto_header);
 }
 
-Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db) {
+Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) {
   parameters_ = parameters;
 
   gc_scheduler_id_ = min(Scheduler::instance()->sched_id() + 2, Scheduler::instance()->sched_count() - 1);
   slow_net_scheduler_id_ = min(Scheduler::instance()->sched_id() + 3, Scheduler::instance()->sched_count() - 1);
 
   td_ = td;
-  td_db_ = std::move(td_db);
+  td_db_ = std::move(td_db_ptr);
 
-  string save_diff_str = this->td_db()->get_binlog_pmc()->get("server_time_difference");
+  string save_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
   if (save_diff_str.empty()) {
     server_time_difference_ = Clocks::system() - Time::now();
     server_time_difference_was_updated_ = false;

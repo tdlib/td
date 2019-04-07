@@ -19,6 +19,7 @@
 #include "td/net/NetStats.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
@@ -67,14 +68,15 @@ class Global : public ActorContext {
   Global(Global &&other) = delete;
   Global &operator=(Global &&other) = delete;
 
-  TdDb *td_db() {
-    CHECK(td_db_);
+#define td_db() get_td_db_impl(__FILE__, __LINE__)
+  TdDb *get_td_db_impl(const char *file, int line) {
+    LOG_CHECK(td_db_) << close_flag() << " " << file << " " << line;
     return td_db_.get();
   }
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 
-  Status init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db) TD_WARN_UNUSED_RESULT;
+  Status init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) TD_WARN_UNUSED_RESULT;
 
   Slice get_dir() const {
     return parameters_.database_directory;
