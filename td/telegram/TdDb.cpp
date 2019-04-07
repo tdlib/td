@@ -106,6 +106,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
+      case LogEvent::HandlerType::EditMessagePushNotification:
         events.to_notification_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::BinlogPmcMagic:

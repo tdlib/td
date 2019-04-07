@@ -145,6 +145,7 @@ class NotificationManager : public Actor {
   static constexpr int32 ANNOUNCEMENT_ID_CACHE_TIME = 7 * 86400;
 
   class AddMessagePushNotificationLogEvent;
+  class EditMessagePushNotificationLogEvent;
 
   struct PendingNotification {
     int32 date = 0;
@@ -265,6 +266,8 @@ class NotificationManager : public Actor {
 
   void flush_all_pending_notifications();
 
+  void on_notification_processed(NotificationId notification_id);
+
   void on_notification_removed(NotificationId notification_id);
 
   void on_notifications_removed(NotificationGroups::iterator &&group_it,
@@ -289,10 +292,13 @@ class NotificationManager : public Actor {
 
   Status process_push_notification_payload(string payload, Promise<Unit> &promise);
 
-  void process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
-                                         UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
-                                         bool is_silent, string loc_key, string arg, NotificationId notification_id,
-                                         uint64 logevent_id, Promise<Unit> promise);
+  void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
+                                     string sender_name, int32 date, bool contains_mention, bool is_silent,
+                                     string loc_key, string arg, NotificationId notification_id, uint64 logevent_id,
+                                     Promise<Unit> promise);
+
+  void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
+                                      string arg, uint64 logevent_id, Promise<Unit> promise);
 
   void after_get_difference_impl();
 
@@ -353,7 +359,15 @@ class NotificationManager : public Actor {
   std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
 
   std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_logevent_ids_;
-  std::unordered_map<NotificationId, Promise<Unit>, NotificationIdHash> push_notification_promises_;
+  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_edit_notification_logevent_ids_;
+  struct TemporaryNotification {
+    NotificationGroupId group_id;
+    NotificationId notification_id;
+    UserId sender_user_id;
+  };
+  std::unordered_map<FullMessageId, TemporaryNotification, FullMessageIdHash> temporary_notifications_;
+  std::unordered_map<NotificationId, FullMessageId, NotificationIdHash> temporary_notification_message_ids_;
+  std::unordered_map<NotificationId, vector<Promise<Unit>>, NotificationIdHash> push_notification_promises_;
 
   struct ActiveCallNotification {
     CallId call_id;
