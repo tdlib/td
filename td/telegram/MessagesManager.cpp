@@ -20644,6 +20644,10 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     auto result = get_dialog_query_logevent_id_.emplace(dialog_id, logevent_id);
     CHECK(result.second);
   }
+  if (G()->close_flag()) {
+    // request will be sent after restart
+    return;
+  }
 
   LOG(INFO) << "Send get " << dialog_id << " query";
   td_->create_handler<GetDialogQuery>()->send(dialog_id);
