@@ -2581,7 +2581,8 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 
   auto r_receiver_id = get_push_receiver_id(payload);
   if (r_receiver_id.is_error()) {
-    VLOG(notifications) << "Failed to get push notification receiver from \"" << format::escaped(payload) << '"';
+    VLOG(notifications) << "Failed to get push notification receiver from \"" << format::escaped(payload)
+                        << "\":" << r_receiver_id.is_error();
     promise.set_error(r_receiver_id.move_as_error());
     return;
   }

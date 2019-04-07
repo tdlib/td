@@ -1607,8 +1607,8 @@ animations animations:vector<animation> = Animations;
 importedContacts user_ids:vector<int32> importer_count:vector<int32> = ImportedContacts;
 
 
-//@description Contains a link to chat statistics @url The URL containing chat statistics
-chatStatisticsUrl url:string = ChatStatisticsUrl;
+//@description Contains an HTTP URL @url The URL
+httpUrl url:string = HttpUrl;
 
 
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
@@ -2910,6 +2910,11 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@for_album Pass true if a link for a whole media album should be returned
 getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool = PublicMessageLink;
 
+//@description Returns a private HTTPS link to a message. Available only for already sent messages in supergroups and channels. The link will work only for chat members
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+getPrivateMessageLink chat_id:int53 message_id:int53 = HttpUrl;
+
 
 //@description Sends a message. Returns the sent message @chat_id Target chat @reply_to_message_id Identifier of the message to reply to or 0
 //@disable_notification Pass true to disable notification for the message. Not supported in secret chats @from_background Pass true if the message is sent from the background
@@ -3594,7 +3599,7 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 
 //@description Returns URL with chat statistics. Currently this method can be used only for channels @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link
-getChatStatisticsUrl chat_id:int53 parameters:string = ChatStatisticsUrl;
+getChatStatisticsUrl chat_id:int53 parameters:string = HttpUrl;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0

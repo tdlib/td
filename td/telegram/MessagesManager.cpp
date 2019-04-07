@@ -353,16 +353,18 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   MessageId message_id_;
-  bool for_group_;
+  bool for_group_ = false;
+  bool ignore_result_ = false;
 
  public:
   explicit ExportChannelMessageLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId message_id, bool for_group) {
+  void send(ChannelId channel_id, MessageId message_id, bool for_group, bool ignore_result) {
     channel_id_ = channel_id;
     message_id_ = message_id;
     for_group_ = for_group;
+    ignore_result_ = ignore_result;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_exportMessageLink(
@@ -377,14 +379,18 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ExportChannelMessageLinkQuery: " << to_string(ptr);
-    td->messages_manager_->on_get_public_message_link({DialogId(channel_id_), message_id_}, for_group_,
-                                                      std::move(ptr->link_), std::move(ptr->html_));
+    if (!ignore_result_) {
+      td->messages_manager_->on_get_public_message_link({DialogId(channel_id_), message_id_}, for_group_,
+                                                        std::move(ptr->link_), std::move(ptr->html_));
+    }
 
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ExportChannelMessageLinkQuery");
+    if (!ignore_result_) {
+      td->contacts_manager_->on_get_channel_error(channel_id_, status, "ExportChannelMessageLinkQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -3282,12 +3288,11 @@ class ReportPeerQuery : public Td::ResultHandler {
 };
 
 class GetStatsUrlQuery : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> promise_;
+  Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetStatsUrlQuery(Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetStatsUrlQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, const string &parameters) {
@@ -3305,7 +3310,7 @@ class GetStatsUrlQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    promise_.set_value(td_api::make_object<td_api::chatStatisticsUrl>(result->url_));
+    promise_.set_value(td_api::make_object<td_api::httpUrl>(result->url_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -6268,7 +6273,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
 }
 
 void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters,
-                                                Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise) {
+                                                Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -12174,6 +12179,10 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     promise.set_error(Status::Error(6, "Message not found"));
     return {};
   }
+  if (message_id.is_yet_unsent()) {
+    promise.set_error(Status::Error(6, "Message is yet unsent"));
+    return {};
+  }
   if (!message_id.is_server()) {
     promise.set_error(Status::Error(6, "Message is local"));
     return {};
@@ -12182,7 +12191,7 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
   auto it = public_message_links_[for_group].find(full_message_id);
   if (it == public_message_links_[for_group].end()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
-        ->send(dialog_id.get_channel_id(), message_id, for_group);
+        ->send(dialog_id.get_channel_id(), message_id, for_group, false);
     return {};
   }
 
@@ -12194,6 +12203,42 @@ void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, 
                                                  string html) {
   LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
   public_message_links_[for_group][full_message_id] = {std::move(url), std::move(html)};
+}
+
+string MessagesManager::get_private_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return {};
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(6, "Can't access the chat"));
+    return {};
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    promise.set_error(
+        Status::Error(6, "Private message links are available only for messages in supergroups and channel chats"));
+    return {};
+  }
+
+  auto message_id = full_message_id.get_message_id();
+  auto message = get_message_force(d, message_id, "get_private_message_link");
+  if (message == nullptr) {
+    promise.set_error(Status::Error(6, "Message not found"));
+    return {};
+  }
+  if (!message_id.is_server()) {
+    promise.set_error(Status::Error(6, "Message is local"));
+    return {};
+  }
+
+  td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
+      ->send(dialog_id.get_channel_id(), message_id, false, true);
+
+  promise.set_value(Unit());
+  return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "c/"
+                   << dialog_id.get_channel_id().get() << "/" << message_id.get_server_message_id().get();
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {

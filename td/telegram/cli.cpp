@@ -2330,7 +2330,7 @@ class CliClient final : public Actor {
       string message_ids;
       std::tie(chat_id, message_ids) = split(args);
       send_request(td_api::make_object<td_api::getMessages>(as_chat_id(chat_id), as_message_ids(message_ids)));
-    } else if (op == "gpml") {
+    } else if (op == "gpuml") {
       string chat_id;
       string message_id;
       string for_album;
@@ -2338,6 +2338,11 @@ class CliClient final : public Actor {
       std::tie(message_id, for_album) = split(args);
       send_request(td_api::make_object<td_api::getPublicMessageLink>(as_chat_id(chat_id), as_message_id(message_id),
                                                                      as_bool(for_album)));
+    } else if (op == "gprml") {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args);
+      send_request(td_api::make_object<td_api::getPrivateMessageLink>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "gcmbd") {
       string chat_id;
       string date;

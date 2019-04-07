@@ -494,6 +494,8 @@ class MessagesManager : public Actor {
 
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
+  string get_private_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
+
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
   Status set_dialog_draft_message(DialogId dialog_id,
@@ -637,7 +639,7 @@ class MessagesManager : public Actor {
                      const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
   void get_dialog_statistics_url(DialogId dialog_id, const string &parameters,
-                                 Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise);
+                                 Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings);
 

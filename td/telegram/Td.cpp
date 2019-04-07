@@ -1047,6 +1047,25 @@ class GetPublicMessageLinkRequest : public RequestActor<> {
   }
 };
 
+class GetPrivateMessageLinkRequest : public RequestActor<> {
+  FullMessageId full_message_id_;
+
+  string link_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    link_ = td->messages_manager_->get_private_message_link(full_message_id_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td_api::make_object<td_api::httpUrl>(link_));
+  }
+
+ public:
+  GetPrivateMessageLinkRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
+      : RequestActor(std::move(td), request_id), full_message_id_(DialogId(dialog_id), MessageId(message_id)) {
+  }
+};
+
 class EditMessageTextRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
@@ -4910,7 +4929,13 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getPublicMessageLink &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST(GetPublicMessageLinkRequest, request.chat_id_, request.message_id_, request.for_album_);
+}
+
+void Td::on_request(uint64 id, const td_api::getPrivateMessageLink &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetPrivateMessageLinkRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {

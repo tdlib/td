@@ -469,6 +469,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getPublicMessageLink &request);
 
+  void on_request(uint64 id, const td_api::getPrivateMessageLink &request);
+
   void on_request(uint64 id, const td_api::getFile &request);
 
   void on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request);
