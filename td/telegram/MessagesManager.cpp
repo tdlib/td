@@ -15480,8 +15480,9 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   return message_id;
 }
 
-vector<FileId> MessagesManager::get_message_file_ids(const Message *message) const {
-  return get_message_content_file_ids(message->content.get(), td_);
+vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
+  CHECK(m != nullptr);
+  return get_message_content_file_ids(m->content.get(), td_);
 }
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
@@ -22919,13 +22920,13 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     }
   }
 
-  auto is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
-  if (m != nullptr && m->ttl > 0) {
+  auto need_delete_message_files = m != nullptr && (d->dialog_id.get_type() == DialogType::User ||
+                                                    d->dialog_id.get_type() == DialogType::SecretChat);
+  if (need_delete_message_files) {
     delete_message_files(m);
   }
 
   if (!G()->parameters().use_message_db) {
-    // TODO message files should be deleted anyway
     return;
   }
 
@@ -22933,7 +22934,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   logevent.full_message_id_ = {d->dialog_id, message_id};
 
-  if (is_secret && m != nullptr) {
+  if (need_delete_message_files) {
     logevent.file_ids_ = get_message_file_ids(m);
   }
 

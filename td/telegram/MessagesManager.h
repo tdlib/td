@@ -1855,7 +1855,7 @@ class MessagesManager : public Actor {
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope) const;
 
-  vector<FileId> get_message_file_ids(const Message *message) const;
+  vector<FileId> get_message_file_ids(const Message *m) const;
 
   void cancel_upload_message_content_files(const MessageContent *content);
 
