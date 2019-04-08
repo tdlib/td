@@ -2583,23 +2583,25 @@ void NotificationManager::get_disable_contact_registered_notifications(Promise<U
 void NotificationManager::process_push_notification(string payload, Promise<Unit> &&user_promise) {
   auto promise = PromiseCreator::lambda([user_promise = std::move(user_promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
-      user_promise.set_error(result.move_as_error());
+      if (result.error().code() == 200) {
+        user_promise.set_value(Unit());
+      } else {
+        user_promise.set_error(result.move_as_error());
+      }
     } else {
-      create_actor<SleepActor>("FinishProcessPushNotificationActor", 0.003, std::move(user_promise)).release();
+      create_actor<SleepActor>("FinishProcessPushNotificationActor", 0.01, std::move(user_promise)).release();
     }
   });
 
   if (is_disabled() || payload == "{}") {
-    promise.set_value(Unit());
-    return;
+    return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
   auto r_receiver_id = get_push_receiver_id(payload);
   if (r_receiver_id.is_error()) {
     VLOG(notifications) << "Failed to get push notification receiver from \"" << format::escaped(payload)
                         << "\":" << r_receiver_id.is_error();
-    promise.set_error(r_receiver_id.move_as_error());
-    return;
+    return promise.set_error(r_receiver_id.move_as_error());
   }
 
   auto receiver_id = r_receiver_id.move_as_ok();
@@ -2614,8 +2616,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
         auto r_payload = decrypt_push(key.first, key.second.str(), std::move(payload));
         if (r_payload.is_error()) {
           LOG(ERROR) << "Failed to decrypt push: " << r_payload.error();
-          promise.set_error(Status::Error(400, "Failed to decrypt push payload"));
-          return;
+          return promise.set_error(Status::Error(400, "Failed to decrypt push payload"));
         }
         payload = r_payload.move_as_ok();
       }
@@ -2632,7 +2633,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
     auto status = process_push_notification_payload(payload, promise);
     if (status.is_error()) {
-      if (status.code() == 406) {
+      if (status.code() == 406 || status.code() == 200) {
         return promise.set_error(std::move(status));
       }
 
@@ -2644,7 +2645,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   }
 
   VLOG(notifications) << "Failed to process push notification";
-  promise.set_value(Unit());
+  promise.set_error(Status::Error(200, "Immediate success"));
 }
 
 string NotificationManager::convert_loc_key(const string &loc_key) {
@@ -2932,8 +2933,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
     auto now = G()->unix_time();
     if (date >= now - ANNOUNCEMENT_ID_CACHE_TIME) {
       VLOG(notifications) << "Ignore duplicate announcement " << announcement_id;
-      promise.set_value(Unit());
-      return Status::OK();
+      return Status::Error(200, "Immediate success");
     }
     date = now;
 
@@ -2964,14 +2964,12 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   }
 
   if (loc_key == "LOCKED_MESSAGE") {
-    promise.set_value(Unit());
-    return Status::OK();
+    return Status::Error(200, "Immediate success");
   }
 
   if (loc_key == "AUTH_REGION" || loc_key == "AUTH_UNKNOWN") {
     // TODO
-    promise.set_value(Unit());
-    return Status::OK();
+    return Status::Error(200, "Immediate success");
   }
 
   DialogId dialog_id;
@@ -3381,7 +3379,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     if (r_info.error().code() == 406) {
       promise.set_error(r_info.move_as_error());
     } else {
-      promise.set_value(Unit());
+      promise.set_error(Status::Error(200, "Immediate success"));
     }
     return;
   }
@@ -3401,7 +3399,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
 
   if (is_disabled() || max_notification_group_count_ == 0) {
     CHECK(logevent_id == 0);
-    return promise.set_value(Unit());
+    return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
   if (!notification_id.is_valid()) {
@@ -3507,14 +3505,14 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
                                                          Promise<Unit> promise) {
   if (is_disabled() || max_notification_group_count_ == 0) {
     CHECK(logevent_id == 0);
-    return promise.set_value(Unit());
+    return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
   auto it = temporary_notifications_.find(FullMessageId(dialog_id, message_id));
   if (it == temporary_notifications_.end()) {
     VLOG(notifications) << "Ignore edit of message push notification for " << message_id << " in " << dialog_id
                         << " edited at " << edit_date;
-    return promise.set_value(Unit());
+    return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
   auto group_id = it->second.group_id;
