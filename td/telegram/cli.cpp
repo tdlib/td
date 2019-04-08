@@ -3004,7 +3004,7 @@ class CliClient final : public Actor {
       auto options = full_split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options)));
-    } else if (op == "sp") {
+    } else if (op == "sp" || op == "spcaption") {
       string chat_id;
       string photo_path;
       string sticker_file_ids_str;
@@ -3017,9 +3017,9 @@ class CliClient final : public Actor {
         sticker_file_ids = to_integers<int32>(sticker_file_ids_str, ',');
       }
 
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessagePhoto>(
-                       as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0, as_caption(""), 0));
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
+                                as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0,
+                                as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), 0));
     } else if (op == "spttl") {
       string chat_id;
       string photo_path;
