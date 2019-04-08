@@ -12,6 +12,8 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
+#include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -3123,7 +3125,10 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   loc_args.erase(loc_args.begin());
 
   string arg;
-  if (loc_key == "MESSAGE_GAME_SCORE" && loc_args.size() == 2) {
+  if (loc_key == "MESSAGE_GAME_SCORE") {
+    if (loc_args.size() != 2) {
+      return Status::Error("Expected 2 arguments for MESSAGE_GAME_SCORE");
+    }
     TRY_RESULT(score, to_integer_safe<int32>(loc_args[1]));
     if (score < 0) {
       return Status::Error("Expected score to be non-negative");
@@ -3170,6 +3175,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
   }
 
+  Photo attached_photo;
   if (has_json_object_field(custom, "attachb64")) {
     TRY_RESULT(attachb64, get_json_object_string_field(custom, "attachb64", false));
     TRY_RESULT(attach, base64url_decode(attachb64));
@@ -3203,7 +3209,38 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       LOG(ERROR) << "Can't parse attach: " << Slice(error) << " at " << parser.get_error_pos() << ": "
                  << format::as_hex_dump<4>(Slice(attach));
     } else {
-      VLOG(notifications) << "Have attach " << to_string(result);
+      VLOG(notifications) << "Have attached " << to_string(result);
+      switch (result->get_id()) {
+        case telegram_api::photo::ID:
+          if (ends_with(loc_key, "MESSAGE_PHOTO")) {
+            attached_photo = get_photo(td_->file_manager_.get(),
+                                       telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
+          } else {
+            LOG(ERROR) << "Receive attached photo for " << loc_key;
+          }
+          break;
+        case telegram_api::document::ID: {
+          std::pair<DocumentsManager::DocumentType, FileId> attached_document = td_->documents_manager_->on_get_document(
+              telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
+          switch (attached_document.first) {
+            case DocumentsManager::DocumentType::Animation:
+            case DocumentsManager::DocumentType::Audio:
+            case DocumentsManager::DocumentType::General:
+            case DocumentsManager::DocumentType::Sticker:
+            case DocumentsManager::DocumentType::Unknown:
+            case DocumentsManager::DocumentType::Video:
+            case DocumentsManager::DocumentType::VideoNote:
+            case DocumentsManager::DocumentType::VoiceNote:
+              break;
+            default:
+              UNREACHABLE();
+              return Status::Error("Unreachable");
+          }
+          break;
+        }
+        default:
+          LOG(ERROR) << "Receive unexpected attached " << to_string(result);
+      }
     }
   }
 
