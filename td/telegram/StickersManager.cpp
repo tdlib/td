@@ -4293,6 +4293,10 @@ void StickersManager::add_favorite_sticker_inner(FileId sticker_id, Promise<Unit
 }
 
 void StickersManager::send_fave_sticker_query(FileId sticker_id, bool unsave, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   // TODO invokeAfter and log event
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   CHECK(file_view.has_remote_location());
