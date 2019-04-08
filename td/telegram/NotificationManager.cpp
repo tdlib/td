@@ -33,6 +33,8 @@
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
 
+#include "td/actor/SleepActor.h"
+
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -2578,7 +2580,15 @@ void NotificationManager::get_disable_contact_registered_notifications(Promise<U
   td_->create_handler<GetContactSignUpNotificationQuery>(std::move(promise))->send();
 }
 
-void NotificationManager::process_push_notification(string payload, Promise<Unit> &&promise) {
+void NotificationManager::process_push_notification(string payload, Promise<Unit> &&user_promise) {
+  auto promise = PromiseCreator::lambda([user_promise = std::move(user_promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      user_promise.set_error(result.move_as_error());
+    } else {
+      create_actor<SleepActor>("FinishProcessPushNotificationActor", 0.003, std::move(user_promise)).release();
+    }
+  });
+
   if (is_disabled() || payload == "{}") {
     promise.set_value(Unit());
     return;
@@ -3220,8 +3230,9 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
           }
           break;
         case telegram_api::document::ID: {
-          std::pair<DocumentsManager::DocumentType, FileId> attached_document = td_->documents_manager_->on_get_document(
-              telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
+          std::pair<DocumentsManager::DocumentType, FileId> attached_document =
+              td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(result),
+                                                       dialog_id);
           switch (attached_document.first) {
             case DocumentsManager::DocumentType::Animation:
             case DocumentsManager::DocumentType::Audio:

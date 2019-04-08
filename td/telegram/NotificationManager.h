@@ -104,7 +104,7 @@ class NotificationManager : public Actor {
 
   void on_get_disable_contact_registered_notifications(bool is_disabled);
 
-  void process_push_notification(string payload, Promise<Unit> &&promise);
+  void process_push_notification(string payload, Promise<Unit> &&user_promise);
 
   static Result<int64> get_push_receiver_id(string push);
 
