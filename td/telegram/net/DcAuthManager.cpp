@@ -31,7 +31,12 @@ DcAuthManager::DcAuthManager(ActorShared<> parent) {
   parent_ = std::move(parent);
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");
   if (!s_main_dc_id.empty()) {
-    main_dc_id_ = DcId::internal(to_integer<int32>(s_main_dc_id));
+    auto main_dc_id = to_integer<int32>(s_main_dc_id);
+    if (DcId::is_valid(main_dc_id)) {
+      main_dc_id_ = DcId::internal(main_dc_id);
+    } else {
+      LOG(ERROR) << "Receive invalid main dc id " << main_dc_id;
+    }
   }
 }
 

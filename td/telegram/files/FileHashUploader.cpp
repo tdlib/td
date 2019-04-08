@@ -134,6 +134,9 @@ Status FileHashUploader::on_result_impl(NetQueryPtr net_query) {
       return Status::Error("Document is not found by hash");
     case telegram_api::document::ID: {
       auto document = move_tl_object_as<telegram_api::document>(res);
+      if (!DcId::is_valid(document->dc_id_)) {
+        return Status::Error("Found document has invalid DcId");
+      }
       callback_->on_ok(FullRemoteFileLocation(FileType::Document, document->id_, document->access_hash_,
                                               DcId::internal(document->dc_id_),
                                               document->file_reference_.as_slice().str()));

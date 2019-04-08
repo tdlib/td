@@ -449,9 +449,14 @@ StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_
 
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
                 tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id) {
-  CHECK(DcId::is_valid(file->dc_id_));
+  DcId dc_id;
+  if (!DcId::is_valid(file->dc_id_)) {
+    dc_id = DcId::invalid();
+  } else {
+    dc_id = DcId::internal(file->dc_id_);
+  }
   FileId file_id = file_manager->register_remote(
-      FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_), ""),
+      FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, dc_id, ""),
       FileLocationSource::FromServer, owner_dialog_id, photo->size_, 0,
       PSTRING() << static_cast<uint64>(file->id_) << ".jpg");
   file_manager->set_encryption_key(file_id, FileEncryptionKey{photo->key_.as_slice(), photo->iv_.as_slice()});

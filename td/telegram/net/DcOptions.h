@@ -148,10 +148,15 @@ class DcOption {
   void parse(ParserT &parser) {
     flags_ = parser.fetch_int();
     auto raw_dc_id = parser.fetch_int();
-    if ((flags_ & Flags::Cdn) != 0) {
-      dc_id_ = DcId::external(raw_dc_id);
+    if (!DcId::is_valid(raw_dc_id)) {
+      LOG(ERROR) << "Have invalid DC ID " << raw_dc_id;
+      dc_id_ = DcId::invalid();
     } else {
-      dc_id_ = DcId::internal(raw_dc_id);
+      if ((flags_ & Flags::Cdn) != 0) {
+        dc_id_ = DcId::external(raw_dc_id);
+      } else {
+        dc_id_ = DcId::internal(raw_dc_id);
+      }
     }
     auto ip = parser.template fetch_string<std::string>();
     auto port = parser.fetch_int();
