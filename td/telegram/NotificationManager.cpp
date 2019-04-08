@@ -2633,10 +2633,10 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 }
 
 string NotificationManager::convert_loc_key(const string &loc_key) {
-  if (loc_key == "MESSAGES") {
-    return "MESSAGES";
-  }
   if (loc_key.size() <= 8) {
+    if (loc_key == "MESSAGES" || loc_key == "ALBUM") {
+      return "MESSAGES";
+    }
     return string();
   }
   switch (loc_key[8]) {
@@ -3056,7 +3056,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
   bool contains_mention = contains_mention_int != 0;
 
-  if (begins_with(loc_key, "CHANNEL_MESSAGE")) {
+  if (begins_with(loc_key, "CHANNEL_MESSAGE") || loc_key == "CHANNEL_ALBUM") {
     if (dialog_id.get_type() != DialogType::Channel) {
       return Status::Error("Receive wrong chat type");
     }
@@ -3068,7 +3068,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       return Status::Error("Receive wrong chat type");
     }
 
-    if (begins_with(loc_key, "CHAT_MESSAGE")) {
+    if (begins_with(loc_key, "CHAT_MESSAGE") || loc_key == "CHAT_ALBUM") {
       loc_key = loc_key.substr(5);
     }
     if (loc_args.empty()) {
