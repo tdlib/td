@@ -15315,8 +15315,13 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
   bool can_send_games = true;
   bool can_send_polls = true;
 
+  auto content_type = content->get_type();
   switch (dialog_type) {
     case DialogType::User:
+      if (content_type == MessageContentType::Poll && !is_forward) {
+        return Status::Error(400, "Polls can't be sent to private chats");
+      }
+      break;
     case DialogType::Chat:
       // ok
       break;
@@ -15331,15 +15336,19 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       break;
     }
     case DialogType::SecretChat:
-      can_send_games = false;
-      can_send_polls = false;
+      if (content_type == MessageContentType::Game) {
+        return Status::Error(400, "Games can't be sent to secret chats");
+      }
+      if (content_type == MessageContentType::Poll) {
+        return Status::Error(400, "Polls can't be sent to secret chats");
+      }
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
   }
 
-  switch (content->get_type()) {
+  switch (content_type) {
     case MessageContentType::Animation:
       if (!can_send_animations) {
         return Status::Error(400, "Not enough rights to send animations to the chat");

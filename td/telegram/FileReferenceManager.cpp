@@ -22,7 +22,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(file_references) = VERBOSITY_NAME(WARNING);
+int VERBOSITY_NAME(file_references) = VERBOSITY_NAME(INFO);
 
 bool FileReferenceManager::is_file_reference_error(const Status &error) {
   return error.is_error() && error.code() == 400 && begins_with(error.message(), "FILE_REFERENCE_");

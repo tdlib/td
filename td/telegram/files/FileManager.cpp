@@ -86,7 +86,7 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
   return {};
 }
 
-int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(WARNING);
+int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
 
 FileNode *FileNodePtr::operator->() const {
   return get();
