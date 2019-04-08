@@ -12205,7 +12205,7 @@ void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, 
   public_message_links_[for_group][full_message_id] = {std::move(url), std::move(html)};
 }
 
-string MessagesManager::get_private_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
+string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -12218,12 +12218,12 @@ string MessagesManager::get_private_message_link(FullMessageId full_message_id, 
   }
   if (dialog_id.get_type() != DialogType::Channel) {
     promise.set_error(
-        Status::Error(6, "Private message links are available only for messages in supergroups and channel chats"));
+        Status::Error(6, "Message links are available only for messages in supergroups and channel chats"));
     return {};
   }
 
   auto message_id = full_message_id.get_message_id();
-  auto message = get_message_force(d, message_id, "get_private_message_link");
+  auto message = get_message_force(d, message_id, "get_message_link");
   if (message == nullptr) {
     promise.set_error(Status::Error(6, "Message not found"));
     return {};

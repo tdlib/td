@@ -494,7 +494,7 @@ class MessagesManager : public Actor {
 
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
-  string get_private_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
+  string get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
