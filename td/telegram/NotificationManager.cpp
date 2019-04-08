@@ -24,6 +24,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/mtproto_api.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Transport.h"
 
@@ -34,11 +35,13 @@
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
+#include "td/utils/Gzip.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_parsers.h"
 
 #include <algorithm>
 #include <iterator>
@@ -3165,6 +3168,43 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name, string(), string(),
         string(), std::move(sender_photo), nullptr, 0, string(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
+  }
+
+  if (has_json_object_field(custom, "attachb64")) {
+    TRY_RESULT(attachb64, get_json_object_string_field(custom, "attachb64", false));
+    TRY_RESULT(attach, base64url_decode(attachb64));
+
+    TlParser gzip_parser(attach);
+    int32 id = gzip_parser.fetch_int();
+    if (gzip_parser.get_error()) {
+      return Status::Error(PSLICE() << "Failed to parse attach: " << gzip_parser.get_error());
+    }
+    BufferSlice buffer;
+    if (id == mtproto_api::gzip_packed::ID) {
+      mtproto_api::gzip_packed gzip(gzip_parser);
+      gzip_parser.fetch_end();
+      if (gzip_parser.get_error()) {
+        return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed in attach: "
+                                      << gzip_parser.get_error());
+      }
+      buffer = gzdecode(gzip.packed_data_);
+      if (buffer.empty()) {
+        return Status::Error("Failed to uncompress attach");
+      }
+    } else {
+      buffer = BufferSlice(attach);
+    }
+
+    TlBufferParser parser(&buffer);
+    auto result = telegram_api::Object::fetch(parser);
+    parser.fetch_end();
+    const char *error = parser.get_error();
+    if (error != nullptr) {
+      LOG(ERROR) << "Can't parse attach: " << Slice(error) << " at " << parser.get_error_pos() << ": "
+                 << format::as_hex_dump<4>(Slice(attach));
+    } else {
+      VLOG(notifications) << "Have attach " << to_string(result);
+    }
   }
 
   if (has_json_object_field(custom, "edit_date")) {
