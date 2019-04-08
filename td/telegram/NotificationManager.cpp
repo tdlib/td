@@ -1872,7 +1872,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 }
 
 void NotificationManager::remove_temporary_notification_by_message_id(NotificationGroupId group_id,
-                                                                      MessageId message_id) {
+                                                                      MessageId message_id, bool force_update) {
   if (!group_id.is_valid()) {
     return;
   }
@@ -1887,12 +1887,12 @@ void NotificationManager::remove_temporary_notification_by_message_id(Notificati
 
   for (auto &notification : group_it->second.pending_notifications) {
     if (notification.type->get_message_id() == message_id) {
-      return remove_notification(group_id, notification.notification_id, true, false, Auto());
+      return remove_notification(group_id, notification.notification_id, true, force_update, Auto());
     }
   }
   for (auto &notification : group_it->second.notifications) {
     if (notification.type->get_message_id() == message_id) {
-      return remove_notification(group_id, notification.notification_id, true, false, Auto());
+      return remove_notification(group_id, notification.notification_id, true, force_update, Auto());
     }
   }
 }

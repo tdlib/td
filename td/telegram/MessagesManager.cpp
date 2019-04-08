@@ -10306,7 +10306,7 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
       on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
     } else {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->mention_notification_group.group_id, old_message_id);
+                         d->mention_notification_group.group_id, old_message_id, false);
     }
   }
   d->pinned_message_notification_message_id = message_id;
@@ -19046,6 +19046,11 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
         delete_message(d, message_id, true, &need_update_dialog_pos, "remove_message_notifications_by_message_ids");
     if (m == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
+      // call synchronously to remove them before ProcessPush returns
+      td_->notification_manager_->remove_temporary_notification_by_message_id(d->message_notification_group.group_id,
+                                                                              message_id, true);
+      td_->notification_manager_->remove_temporary_notification_by_message_id(d->mention_notification_group.group_id,
+                                                                              message_id, true);
       continue;
     }
     deleted_message_ids.push_back(m->message_id.get());
