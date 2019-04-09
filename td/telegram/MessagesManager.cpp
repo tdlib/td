@@ -25851,6 +25851,9 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, Promise<Unit> &&p
   if (m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(Status::Error(5, "Message is not a poll"));
   }
+  if (get_message_content_poll_is_closed(td_, m->content.get())) {
+    return promise.set_error(Status::Error(5, "Poll has already been closed"));
+  }
   if (!can_edit_message(full_message_id.get_dialog_id(), m, true)) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
