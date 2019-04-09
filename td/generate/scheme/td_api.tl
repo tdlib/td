@@ -1415,7 +1415,7 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 //@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider @start_parameter Unique invoice bot start_parameter for the generation of this invoice
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
-//@description A message with a poll. Polls can't be sent to private or secret chats @question Poll question, 1-255 characters @options List of poll answer options, 1-10 strings 1-100 characters each
+//@description A message with a poll. Polls can't be sent to private or secret chats @question Poll question, 1-255 characters @options List of poll answer options, 2-10 strings 1-100 characters each
 inputMessagePoll question:string options:vector<string> = InputMessageContent;
 
 //@description A forwarded message @from_chat_id Identifier for the chat this forwarded message came from @message_id Identifier of the message to forward @in_game_share True, if a game message should be shared within a launched game; applies only to game messages
