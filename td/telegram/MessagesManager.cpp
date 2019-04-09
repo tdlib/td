@@ -23411,6 +23411,10 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     if (is_message_in_dialog) {
       unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
     }
+    if (old_message->message_id.is_server() &&
+        (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
+      delete_message_files(old_message);
+    }
     old_content = std::move(new_content);
     if (is_message_in_dialog) {
       register_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
