@@ -36,6 +36,10 @@ class NotificationTypeMessage : public NotificationType {
     return message_id_;
   }
 
+  vector<FileId> get_file_ids(const Td *td) const override {
+    return {};
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
     if (message_object == nullptr) {
@@ -72,6 +76,10 @@ class NotificationTypeSecretChat : public NotificationType {
     return MessageId();
   }
 
+  vector<FileId> get_file_ids(const Td *td) const override {
+    return {};
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     return td_api::make_object<td_api::notificationTypeNewSecretChat>();
   }
@@ -100,6 +108,10 @@ class NotificationTypeCall : public NotificationType {
 
   MessageId get_message_id() const override {
     return MessageId::max();
+  }
+
+  vector<FileId> get_file_ids(const Td *td) const override {
+    return {};
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
@@ -132,6 +144,14 @@ class NotificationTypePushMessage : public NotificationType {
 
   MessageId get_message_id() const override {
     return message_id_;
+  }
+
+  vector<FileId> get_file_ids(const Td *td) const override {
+    if (!document_.empty()) {
+      return document_.get_file_ids(td);
+    }
+
+    return photo_get_file_ids(photo_);
   }
 
   static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(Slice key, const string &arg,

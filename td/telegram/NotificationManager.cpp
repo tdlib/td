@@ -1902,6 +1902,9 @@ void NotificationManager::remove_temporary_notification_by_message_id(Notificati
   auto remove_notification_by_message_id = [&](auto &notifications) {
     for (auto &notification : notifications) {
       if (notification.type->get_message_id() == message_id) {
+        for (auto file_id : notification.type->get_file_ids(td_)) {
+          this->td_->file_manager_->delete_file(file_id, Promise<>(), "remove_temporary_notification_by_message_id");
+        }
         return this->remove_notification(group_id, notification.notification_id, true, force_update, Auto());
       }
     }
