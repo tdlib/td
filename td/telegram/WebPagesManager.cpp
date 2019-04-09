@@ -3765,34 +3765,8 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
   }
 
   vector<FileId> result = photo_get_file_ids(web_page->photo);
-  if (web_page->document.file_id.is_valid()) {
-    result.push_back(web_page->document.file_id);
-    FileId thumbnail_file_id;
-    switch (web_page->document.type) {
-      case Document::Type::Animation:
-        thumbnail_file_id = td_->animations_manager_->get_animation_thumbnail_file_id(web_page->document.file_id);
-        break;
-      case Document::Type::Audio:
-        thumbnail_file_id = td_->audios_manager_->get_audio_thumbnail_file_id(web_page->document.file_id);
-        break;
-      case Document::Type::General:
-        thumbnail_file_id = td_->documents_manager_->get_document_thumbnail_file_id(web_page->document.file_id);
-        break;
-      case Document::Type::Sticker:
-        thumbnail_file_id = td_->stickers_manager_->get_sticker_thumbnail_file_id(web_page->document.file_id);
-        break;
-      case Document::Type::Video:
-        thumbnail_file_id = td_->videos_manager_->get_video_thumbnail_file_id(web_page->document.file_id);
-        break;
-      case Document::Type::VideoNote:
-        thumbnail_file_id = td_->video_notes_manager_->get_video_note_thumbnail_file_id(web_page->document.file_id);
-        break;
-      default:
-        break;
-    }
-    if (thumbnail_file_id.is_valid()) {
-      result.push_back(thumbnail_file_id);
-    }
+  if (!web_page->document.empty()) {
+    append(result, web_page->document.get_file_ids(td_));
   }
   if (!web_page->instant_view.is_empty) {
     for (auto &page_block : web_page->instant_view.page_blocks) {

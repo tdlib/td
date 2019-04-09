@@ -13,6 +13,8 @@
 
 namespace td {
 
+class Td;
+
 struct Document {
   // append only
   enum class Type : int32 { Unknown, Animation, Audio, General, Sticker, Video, VideoNote, VoiceNote };
@@ -27,6 +29,8 @@ struct Document {
   bool empty() const {
     return type == Type::Unknown;
   }
+
+  vector<FileId> get_file_ids(const Td *td) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Document &document);
