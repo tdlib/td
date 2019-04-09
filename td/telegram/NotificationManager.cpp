@@ -19,6 +19,8 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/Photo.h"
+#include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
@@ -3184,6 +3186,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   }
 
   Photo attached_photo;
+  attached_photo.id = -2;
   if (has_json_object_field(custom, "attachb64")) {
     TRY_RESULT(attachb64, get_json_object_string_field(custom, "attachb64", false));
     TRY_RESULT(attach, base64url_decode(attachb64));
@@ -3220,7 +3223,9 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       VLOG(notifications) << "Have attached " << to_string(result);
       switch (result->get_id()) {
         case telegram_api::photo::ID:
-          if (ends_with(loc_key, "MESSAGE_PHOTO")) {
+          if (ends_with(loc_key, "MESSAGE_PHOTO") || ends_with(loc_key, "MESSAGE_TEXT")) {
+            loc_key.resize(loc_key.rfind('_') + 1);
+            loc_key += "PHOTO";
             attached_photo = get_photo(td_->file_manager_.get(),
                                        telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
           } else {
@@ -3262,11 +3267,11 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       return Status::Error("Receive wrong edit date");
     }
     edit_message_push_notification(dialog_id, MessageId(server_message_id), edit_date, std::move(loc_key),
-                                   std::move(arg), 0, std::move(promise));
+                                   std::move(arg), std::move(attached_photo), 0, std::move(promise));
   } else {
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
                                   std::move(sender_name), sent_date, contains_mention, is_silent, std::move(loc_key),
-                                  std::move(arg), NotificationId(), 0, std::move(promise));
+                                  std::move(arg), std::move(attached_photo), NotificationId(), 0, std::move(promise));
   }
   return Status::OK();
 }
@@ -3283,6 +3288,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
   bool is_silent_;
   string loc_key_;
   string arg_;
+  Photo photo_;
   NotificationId notification_id_;
 
   template <class StorerT>
@@ -3292,6 +3298,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_sender = sender_user_id_.is_valid();
     bool has_sender_name = !sender_name_.empty();
     bool has_arg = !arg_.empty();
+    bool has_photo = photo_.id != -2;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(contains_mention_);
     STORE_FLAG(is_silent_);
@@ -3300,6 +3307,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     STORE_FLAG(has_sender);
     STORE_FLAG(has_sender_name);
     STORE_FLAG(has_arg);
+    STORE_FLAG(has_photo);
     END_STORE_FLAGS();
     td::store(dialog_id_, storer);
     if (has_message_id) {
@@ -3319,6 +3327,9 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     if (has_arg) {
       td::store(arg_, storer);
     }
+    if (has_photo) {
+      td::store(photo_, storer);
+    }
     td::store(notification_id_, storer);
   }
 
@@ -3329,6 +3340,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_sender;
     bool has_sender_name;
     bool has_arg;
+    bool has_photo;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(contains_mention_);
     PARSE_FLAG(is_silent_);
@@ -3337,6 +3349,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     PARSE_FLAG(has_sender);
     PARSE_FLAG(has_sender_name);
     PARSE_FLAG(has_arg);
+    PARSE_FLAG(has_photo);
     END_PARSE_FLAGS();
     td::parse(dialog_id_, parser);
     if (has_message_id) {
@@ -3358,6 +3371,11 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     if (has_arg) {
       td::parse(arg_, parser);
     }
+    if (has_photo) {
+      td::parse(photo_, parser);
+    } else {
+      photo_.id = -2;
+    }
     td::parse(notification_id_, parser);
   }
 };
@@ -3365,8 +3383,8 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
 void NotificationManager::add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                                         UserId sender_user_id, string sender_name, int32 date,
                                                         bool contains_mention, bool is_silent, string loc_key,
-                                                        string arg, NotificationId notification_id, uint64 logevent_id,
-                                                        Promise<Unit> promise) {
+                                                        string arg, Photo photo, NotificationId notification_id,
+                                                        uint64 logevent_id, Promise<Unit> promise) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned, logevent_id != 0);
@@ -3423,9 +3441,9 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   }
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
-    AddMessagePushNotificationLogEvent logevent{dialog_id,   message_id, random_id,        sender_user_id,
-                                                sender_name, date,       contains_mention, is_silent,
-                                                loc_key,     arg,        notification_id};
+    AddMessagePushNotificationLogEvent logevent{dialog_id, message_id,       random_id, sender_user_id, sender_name,
+                                                date,      contains_mention, is_silent, loc_key,        arg,
+                                                photo,     notification_id};
     auto storer = LogEventStorerImpl<AddMessagePushNotificationLogEvent>(logevent);
     logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification, storer);
   }
@@ -3445,11 +3463,12 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   auto settings_dialog_id = info.settings_dialog_id;
   VLOG(notifications) << "Add message push " << notification_id << " of type " << loc_key << " for " << message_id
                       << "/" << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
-                      << " with arg " << arg << " to " << group_id << " of type " << group_type
+                      << " with arg " << arg << ", photo " << photo << " to " << group_id << " of type " << group_type
                       << " with settings from " << settings_dialog_id;
 
   add_notification(group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
-                   create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg)),
+                   create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg),
+                                                        std::move(photo)),
                    "add_push_notification");
 }
 
@@ -3460,14 +3479,17 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
   int32 edit_date_;
   string loc_key_;
   string arg_;
+  Photo photo_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     bool has_message_id = message_id_.is_valid();
     bool has_arg = !arg_.empty();
+    bool has_photo = photo_.id != -2;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_message_id);
     STORE_FLAG(has_arg);
+    STORE_FLAG(has_photo);
     END_STORE_FLAGS();
     td::store(dialog_id_, storer);
     if (has_message_id) {
@@ -3478,15 +3500,20 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
     if (has_arg) {
       td::store(arg_, storer);
     }
+    if (has_photo) {
+      td::store(photo_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     bool has_message_id;
     bool has_arg;
+    bool has_photo;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_message_id);
     PARSE_FLAG(has_arg);
+    PARSE_FLAG(has_photo);
     END_PARSE_FLAGS();
     td::parse(dialog_id_, parser);
     if (has_message_id) {
@@ -3497,11 +3524,16 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
     if (has_arg) {
       td::parse(arg_, parser);
     }
+    if (has_photo) {
+      td::parse(photo_, parser);
+    } else {
+      photo_.id = -2;
+    }
   }
 };
 
 void NotificationManager::edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date,
-                                                         string loc_key, string arg, uint64 logevent_id,
+                                                         string loc_key, string arg, Photo photo, uint64 logevent_id,
                                                          Promise<Unit> promise) {
   if (is_disabled() || max_notification_group_count_ == 0) {
     CHECK(logevent_id == 0);
@@ -3522,7 +3554,7 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
   CHECK(notification_id.is_valid());
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
-    EditMessagePushNotificationLogEvent logevent{dialog_id, message_id, edit_date, loc_key, arg};
+    EditMessagePushNotificationLogEvent logevent{dialog_id, message_id, edit_date, loc_key, arg, photo};
     auto storer = LogEventStorerImpl<EditMessagePushNotificationLogEvent>(logevent);
     auto &cur_logevent_id = temporary_edit_notification_logevent_ids_[notification_id];
     if (cur_logevent_id == 0) {
@@ -3542,9 +3574,9 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
 
   push_notification_promises_[notification_id].push_back(std::move(promise));
 
-  edit_notification(
-      group_id, notification_id,
-      create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg)));
+  edit_notification(group_id, notification_id,
+                    create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg),
+                                                         std::move(photo)));
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
@@ -3870,7 +3902,8 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
             log_event.sender_name_, log_event.date_, log_event.contains_mention_, true, log_event.loc_key_,
-            log_event.arg_, log_event.notification_id_, event.id_, PromiseCreator::lambda([](Result<Unit> result) {
+            log_event.arg_, log_event.photo_, log_event.notification_id_, event.id_,
+            PromiseCreator::lambda([](Result<Unit> result) {
               if (result.is_error()) {
                 LOG(ERROR) << "Receive error " << result.error() << ", while processing message push notification";
               }
@@ -3884,7 +3917,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         edit_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.edit_date_, log_event.loc_key_, log_event.arg_,
-            event.id_, PromiseCreator::lambda([](Result<Unit> result) {
+            log_event.photo_, event.id_, PromiseCreator::lambda([](Result<Unit> result) {
               if (result.is_error()) {
                 LOG(ERROR) << "Receive error " << result.error() << ", while processing edit message push notification";
               }

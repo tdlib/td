@@ -9,6 +9,7 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -62,6 +63,6 @@ unique_ptr<NotificationType> create_new_secret_chat_notification();
 unique_ptr<NotificationType> create_new_call_notification(CallId call_id);
 
 unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, MessageId message_id,
-                                                                  string key, string arg);
+                                                                  string key, string arg, Photo photo);
 
 }  // namespace td

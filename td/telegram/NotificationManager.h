@@ -295,11 +295,11 @@ class NotificationManager : public Actor {
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
                                      string sender_name, int32 date, bool contains_mention, bool is_silent,
-                                     string loc_key, string arg, NotificationId notification_id, uint64 logevent_id,
-                                     Promise<Unit> promise);
+                                     string loc_key, string arg, Photo photo, NotificationId notification_id,
+                                     uint64 logevent_id, Promise<Unit> promise);
 
   void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
-                                      string arg, uint64 logevent_id, Promise<Unit> promise);
+                                      string arg, Photo photo, uint64 logevent_id, Promise<Unit> promise);
 
   void after_get_difference_impl();
 
