@@ -22186,7 +22186,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (!message->from_database) {
       LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
                  << ". Last new is " << d->last_new_message_id << ", channel difference "
-                 << debug_channel_difference_dialog_ << to_string(get_message_object(dialog_id, message.get()));
+                 << debug_channel_difference_dialog_ << " " << to_string(get_message_object(dialog_id, message.get()));
       dump_debug_message_op(d, 3);
       if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
         channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);

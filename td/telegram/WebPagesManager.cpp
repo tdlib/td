@@ -230,7 +230,7 @@ class WebPagesManager::WebPage {
     bool has_embed_dimensions = has_embed && embed_dimensions != Dimensions();
     bool has_duration = duration > 0;
     bool has_author = !author.empty();
-    bool has_document = document.type != Document::Type::Unknown;
+    bool has_document = !document.empty();
     bool has_instant_view = !instant_view.is_empty;
     bool is_instant_view_v2 = instant_view.is_v2;
     bool has_no_hash = true;

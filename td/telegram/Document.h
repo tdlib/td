@@ -23,6 +23,10 @@ struct Document {
   Document() = default;
   Document(Type type, FileId file_id) : type(type), file_id(file_id) {
   }
+
+  bool empty() const {
+    return type == Type::Unknown;
+  }
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Document &document);

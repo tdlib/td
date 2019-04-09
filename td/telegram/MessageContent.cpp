@@ -3495,7 +3495,7 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
 static unique_ptr<MessageContent> get_document_message_content(Document &&parsed_document, FormattedText &&caption,
                                                                bool is_opened) {
   auto file_id = parsed_document.file_id;
-  if (parsed_document.type != Document::Type::Unknown) {
+  if (!parsed_document.empty()) {
     CHECK(file_id.is_valid());
   }
   switch (parsed_document.type) {

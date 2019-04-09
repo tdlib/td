@@ -1938,8 +1938,11 @@ checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 //@description A general message with hidden content @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentHidden is_pinned:Bool = PushMessageContent;
 
-//@description An animation message (GIF-style) @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentAnimation is_pinned:Bool = PushMessageContent;
+//@description An animation message (GIF-style) @animation Message content; may be null @caption Animation caption @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentAnimation animation:animation caption:string is_pinned:Bool = PushMessageContent;
+
+//@description An audio message @audio Message content; may be null @caption Audio caption @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentAudio audio:audio caption:string is_pinned:Bool = PushMessageContent;
 
 //@description A message with a user contact @name Contact's name @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentContact name:string is_pinned:Bool = PushMessageContent;
@@ -1947,8 +1950,8 @@ pushMessageContentContact name:string is_pinned:Bool = PushMessageContent;
 //@description A contact has registered with Telegram
 pushMessageContentContactRegistered = PushMessageContent;
 
-//@description A document message (general file) @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentDocument is_pinned:Bool = PushMessageContent;
+//@description A document message (a general file) @document Message content; may be null @caption Document caption @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentDocument document:document caption:string is_pinned:Bool = PushMessageContent;
 
 //@description A message with a game @title Game title @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGame title:string is_pinned:Bool = PushMessageContent;
@@ -1971,20 +1974,20 @@ pushMessageContentPoll question:string is_pinned:Bool = PushMessageContent;
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
 
-//@description A message with a sticker @emoji Emoji corresponding to the sticker; may be empty @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentSticker emoji:string is_pinned:Bool = PushMessageContent;
+//@description A message with a sticker @sticker Message content; may be null @emoji Emoji corresponding to the sticker; may be empty @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentSticker sticker:sticker emoji:string is_pinned:Bool = PushMessageContent;
 
 //@description A text message @text Message text @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentText text:string is_pinned:Bool = PushMessageContent;
 
-//@description A video message @is_secret True, if the video is secret @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentVideo is_secret:Bool is_pinned:Bool = PushMessageContent;
+//@description A video message @video Message content; may be null @caption Video caption @is_secret True, if the video is secret @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentVideo video:video caption:string is_secret:Bool is_pinned:Bool = PushMessageContent;
 
-//@description A video note message @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentVideoNote is_pinned:Bool = PushMessageContent;
+//@description A video note message @video_note Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentVideoNote video_note:videoNote is_pinned:Bool = PushMessageContent;
 
-//@description A voice note message @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentVoiceNote is_pinned:Bool = PushMessageContent;
+//@description A voice note message @voice_note Message content; may be null @caption Voice note caption @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentVoiceNote voice_note:voiceNote caption:string is_pinned:Bool = PushMessageContent;
 
 //@description A newly created basic group
 pushMessageContentBasicGroupChatCreate = PushMessageContent;

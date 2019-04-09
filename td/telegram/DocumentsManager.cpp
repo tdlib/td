@@ -225,7 +225,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     file_type = FileType::Encrypted;
     encryption_key = FileEncryptionKey{document->key_.as_slice(), document->iv_.as_slice()};
     if (encryption_key.empty()) {
-      return {Document::Type::Unknown, FileId()};
+      return {};
     }
 
     if (document_type != Document::Type::VoiceNote) {
@@ -246,7 +246,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         auto r_http_url = parse_url(web_document->url_);
         if (r_http_url.is_error()) {
           LOG(ERROR) << "Can't parse URL " << web_document->url_;
-          return {Document::Type::Unknown, FileId()};
+          return {};
         }
         auto http_url = r_http_url.move_as_ok();
 
@@ -263,7 +263,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
         if (web_document->url_.find('.') == string::npos) {
           LOG(ERROR) << "Receive invalid URL " << web_document->url_;
-          return {Document::Type::Unknown, FileId()};
+          return {};
         }
 
         url = std::move(web_document->url_);
@@ -280,7 +280,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   LOG(DEBUG) << "Receive document with id = " << id << " of type " << static_cast<int32>(document_type);
   if (!is_web && !DcId::is_valid(dc_id)) {
     LOG(ERROR) << "Wrong dc_id = " << dc_id;
-    return {Document::Type::Unknown, FileId()};
+    return {};
   }
 
   auto suggested_file_name = file_name;
@@ -308,7 +308,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     auto r_file_id = td_->file_manager_->from_persistent_id(url, file_type);
     if (r_file_id.is_error()) {
       LOG(ERROR) << "Can't register URL: " << r_file_id.error();
-      return {Document::Type::Unknown, FileId()};
+      return {};
     }
     file_id = r_file_id.move_as_ok();
   }
