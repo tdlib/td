@@ -1899,16 +1899,16 @@ void NotificationManager::remove_temporary_notification_by_message_id(Notificati
     return;
   }
 
-  for (auto &notification : group_it->second.pending_notifications) {
-    if (notification.type->get_message_id() == message_id) {
-      return remove_notification(group_id, notification.notification_id, true, force_update, Auto());
+  auto remove_notification_by_message_id = [&](auto &notifications) {
+    for (auto &notification : notifications) {
+      if (notification.type->get_message_id() == message_id) {
+        return this->remove_notification(group_id, notification.notification_id, true, force_update, Auto());
+      }
     }
-  }
-  for (auto &notification : group_it->second.notifications) {
-    if (notification.type->get_message_id() == message_id) {
-      return remove_notification(group_id, notification.notification_id, true, force_update, Auto());
-    }
-  }
+  };
+
+  remove_notification_by_message_id(group_it->second.pending_notifications);
+  remove_notification_by_message_id(group_it->second.notifications);
 }
 
 void NotificationManager::remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
