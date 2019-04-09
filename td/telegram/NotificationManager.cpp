@@ -972,6 +972,9 @@ void NotificationManager::add_update_notification(NotificationGroupId notificati
 
   add_update(notification_group_id.get(), td_api::make_object<td_api::updateNotification>(
                                               notification_group_id.get(), std::move(notification_object)));
+  if (!notification.type->can_be_delayed()) {
+    force_flush_pending_updates(notification_group_id, "add_update_notification");
+  }
 }
 
 void NotificationManager::flush_pending_updates(int32 group_id, const char *source) {
