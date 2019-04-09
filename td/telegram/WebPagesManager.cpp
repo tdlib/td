@@ -16,6 +16,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"
+#include "td/telegram/Document.hpp"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/FileReferenceManager.h"
@@ -280,36 +281,7 @@ class WebPagesManager::WebPage {
       store(author, storer);
     }
     if (has_document) {
-      Td *td = storer.context()->td().get_actor_unsafe();
-      CHECK(td != nullptr);
-
-      store(document.type, storer);
-      switch (document.type) {
-        case Document::Type::Animation:
-          td->animations_manager_->store_animation(document.file_id, storer);
-          break;
-        case Document::Type::Audio:
-          td->audios_manager_->store_audio(document.file_id, storer);
-          break;
-        case Document::Type::General:
-          td->documents_manager_->store_document(document.file_id, storer);
-          break;
-        case Document::Type::Sticker:
-          td->stickers_manager_->store_sticker(document.file_id, false, storer);
-          break;
-        case Document::Type::Video:
-          td->videos_manager_->store_video(document.file_id, storer);
-          break;
-        case Document::Type::VideoNote:
-          td->video_notes_manager_->store_video_note(document.file_id, storer);
-          break;
-        case Document::Type::VoiceNote:
-          td->voice_notes_manager_->store_voice_note(document.file_id, storer);
-          break;
-        case Document::Type::Unknown:
-        default:
-          UNREACHABLE();
-      }
+      store(document, storer);
     }
   }
 
@@ -382,40 +354,7 @@ class WebPagesManager::WebPage {
       parse(author, parser);
     }
     if (has_document) {
-      Td *td = parser.context()->td().get_actor_unsafe();
-      CHECK(td != nullptr);
-
-      parse(document.type, parser);
-      switch (document.type) {
-        case Document::Type::Animation:
-          document.file_id = td->animations_manager_->parse_animation(parser);
-          break;
-        case Document::Type::Audio:
-          document.file_id = td->audios_manager_->parse_audio(parser);
-          break;
-        case Document::Type::General:
-          document.file_id = td->documents_manager_->parse_document(parser);
-          break;
-        case Document::Type::Sticker:
-          document.file_id = td->stickers_manager_->parse_sticker(false, parser);
-          break;
-        case Document::Type::Video:
-          document.file_id = td->videos_manager_->parse_video(parser);
-          break;
-        case Document::Type::VideoNote:
-          document.file_id = td->video_notes_manager_->parse_video_note(parser);
-          break;
-        case Document::Type::VoiceNote:
-          document.file_id = td->voice_notes_manager_->parse_voice_note(parser);
-          break;
-        case Document::Type::Unknown:
-        default:
-          UNREACHABLE();
-      }
-      if (!document.file_id.is_valid()) {
-        LOG(ERROR) << "Parse invalid document.file_id";
-        document = Document();
-      }
+      parse(document, parser);
     }
 
     if (has_instant_view) {

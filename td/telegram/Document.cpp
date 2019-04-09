@@ -31,9 +31,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Document &documen
         return "Unreachable";
     }
   }();
-  
+
   return string_builder << '[' << type << ' ' << document.file_id << ']';
 }
-
 
 }  // namespace td

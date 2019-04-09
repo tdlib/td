@@ -21,7 +21,7 @@ struct Document {
   FileId file_id;
 
   Document() = default;
-  Document(Type type, FileId file_id): type(type), file_id(file_id) {
+  Document(Type type, FileId file_id) : type(type), file_id(file_id) {
   }
 };
 
