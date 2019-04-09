@@ -362,6 +362,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogDb.cpp
   td/telegram/DialogId.cpp
   td/telegram/DialogParticipant.cpp
+  td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
   td/telegram/DraftMessage.cpp
   td/telegram/FileReferenceManager.cpp
@@ -494,6 +495,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogDb.h
   td/telegram/DialogId.h
   td/telegram/DialogParticipant.h
+  td/telegram/Document.h
   td/telegram/DocumentsManager.h
   td/telegram/DraftMessage.h
   td/telegram/FileReferenceManager.h

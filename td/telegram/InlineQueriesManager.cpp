@@ -17,6 +17,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -1150,17 +1151,17 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
 
           auto parsed_document = td_->documents_manager_->on_get_document(
               move_tl_object_as<telegram_api::document>(document_ptr), DialogId());
-          switch (parsed_document.first) {
-            case DocumentsManager::DocumentType::Animation: {
+          switch (parsed_document.type) {
+            case Document::Type::Animation: {
               LOG_IF(WARNING, result->type_ != "gif") << "Wrong result type " << result->type_;
 
               auto animation = make_tl_object<td_api::inlineQueryResultAnimation>();
               animation->id_ = std::move(result->id_);
               animation->animation_ =
-                  td_->animations_manager_->get_animation_object(parsed_document.second, "inlineQueryResultAnimation");
+                  td_->animations_manager_->get_animation_object(parsed_document.file_id, "inlineQueryResultAnimation");
               animation->title_ = std::move(result->title_);
 
-              if (!register_inline_message_content(results->query_id_, animation->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, animation->id_, parsed_document.file_id,
                                                    std::move(result->send_message_),
                                                    td_api::inputMessageAnimation::ID)) {
                 continue;
@@ -1168,30 +1169,30 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               output_result = std::move(animation);
               break;
             }
-            case DocumentsManager::DocumentType::Audio: {
+            case Document::Type::Audio: {
               LOG_IF(WARNING, result->type_ != "audio") << "Wrong result type " << result->type_;
 
               auto audio = make_tl_object<td_api::inlineQueryResultAudio>();
               audio->id_ = std::move(result->id_);
-              audio->audio_ = td_->audios_manager_->get_audio_object(parsed_document.second);
+              audio->audio_ = td_->audios_manager_->get_audio_object(parsed_document.file_id);
 
-              if (!register_inline_message_content(results->query_id_, audio->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, audio->id_, parsed_document.file_id,
                                                    std::move(result->send_message_), td_api::inputMessageAudio::ID)) {
                 continue;
               }
               output_result = std::move(audio);
               break;
             }
-            case DocumentsManager::DocumentType::General: {
+            case Document::Type::General: {
               LOG_IF(WARNING, result->type_ != "file") << "Wrong result type " << result->type_;
 
               auto document = make_tl_object<td_api::inlineQueryResultDocument>();
               document->id_ = std::move(result->id_);
-              document->document_ = td_->documents_manager_->get_document_object(parsed_document.second);
+              document->document_ = td_->documents_manager_->get_document_object(parsed_document.file_id);
               document->title_ = std::move(result->title_);
               document->description_ = std::move(result->description_);
 
-              if (!register_inline_message_content(results->query_id_, document->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, document->id_, parsed_document.file_id,
                                                    std::move(result->send_message_),
                                                    td_api::inputMessageDocument::ID)) {
                 continue;
@@ -1199,48 +1200,48 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               output_result = std::move(document);
               break;
             }
-            case DocumentsManager::DocumentType::Sticker: {
+            case Document::Type::Sticker: {
               LOG_IF(WARNING, result->type_ != "sticker") << "Wrong result type " << result->type_;
 
               auto sticker = make_tl_object<td_api::inlineQueryResultSticker>();
               sticker->id_ = std::move(result->id_);
-              sticker->sticker_ = td_->stickers_manager_->get_sticker_object(parsed_document.second);
+              sticker->sticker_ = td_->stickers_manager_->get_sticker_object(parsed_document.file_id);
 
-              if (!register_inline_message_content(results->query_id_, sticker->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, sticker->id_, parsed_document.file_id,
                                                    std::move(result->send_message_), td_api::inputMessageSticker::ID)) {
                 continue;
               }
               output_result = std::move(sticker);
               break;
             }
-            case DocumentsManager::DocumentType::Video: {
+            case Document::Type::Video: {
               LOG_IF(WARNING, result->type_ != "video") << "Wrong result type " << result->type_;
 
               auto video = make_tl_object<td_api::inlineQueryResultVideo>();
               video->id_ = std::move(result->id_);
-              video->video_ = td_->videos_manager_->get_video_object(parsed_document.second);
+              video->video_ = td_->videos_manager_->get_video_object(parsed_document.file_id);
               video->title_ = std::move(result->title_);
               video->description_ = std::move(result->description_);
 
-              if (!register_inline_message_content(results->query_id_, video->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, video->id_, parsed_document.file_id,
                                                    std::move(result->send_message_), td_api::inputMessageVideo::ID)) {
                 continue;
               }
               output_result = std::move(video);
               break;
             }
-            case DocumentsManager::DocumentType::VideoNote:
+            case Document::Type::VideoNote:
               // FIXME
               break;
-            case DocumentsManager::DocumentType::VoiceNote: {
+            case Document::Type::VoiceNote: {
               LOG_IF(WARNING, result->type_ != "voice") << "Wrong result type " << result->type_;
 
               auto voice_note = make_tl_object<td_api::inlineQueryResultVoiceNote>();
               voice_note->id_ = std::move(result->id_);
-              voice_note->voice_note_ = td_->voice_notes_manager_->get_voice_note_object(parsed_document.second);
+              voice_note->voice_note_ = td_->voice_notes_manager_->get_voice_note_object(parsed_document.file_id);
               voice_note->title_ = std::move(result->title_);
 
-              if (!register_inline_message_content(results->query_id_, voice_note->id_, parsed_document.second,
+              if (!register_inline_message_content(results->query_id_, voice_note->id_, parsed_document.file_id,
                                                    std::move(result->send_message_),
                                                    td_api::inputMessageVoiceNote::ID)) {
                 continue;
@@ -1248,7 +1249,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               output_result = std::move(voice_note);
               break;
             }
-            case DocumentsManager::DocumentType::Unknown:
+            case Document::Type::Unknown:
               // invalid document
               break;
             default:
@@ -1418,21 +1419,21 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           }
           auto default_document_type = [type = result->type_, is_animation] {
             if (type == "audio") {
-              return DocumentsManager::DocumentType::Audio;
+              return Document::Type::Audio;
             }
             if (is_animation) {
-              return DocumentsManager::DocumentType::Animation;
+              return Document::Type::Animation;
             }
             if (type == "sticker") {
-              return DocumentsManager::DocumentType::Sticker;
+              return Document::Type::Sticker;
             }
             if (type == "video") {
-              return DocumentsManager::DocumentType::Video;
+              return Document::Type::Video;
             }
             if (type == "voice") {
-              return DocumentsManager::DocumentType::VoiceNote;
+              return Document::Type::VoiceNote;
             }
-            return DocumentsManager::DocumentType::General;
+            return Document::Type::General;
           }();
 
           auto parsed_document = td_->documents_manager_->on_get_document(
@@ -1441,11 +1442,11 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
                                            std::move(result->thumb_)),
                std::move(attributes)},
               DialogId(), nullptr, default_document_type);
-          auto file_id = parsed_document.second;
+          auto file_id = parsed_document.file_id;
           if (!file_id.is_valid()) {
             continue;
           }
-          if (result->type_ == "audio" && parsed_document.first == DocumentsManager::DocumentType::Audio) {
+          if (result->type_ == "audio" && parsed_document.type == Document::Type::Audio) {
             auto audio = make_tl_object<td_api::inlineQueryResultAudio>();
             audio->id_ = std::move(result->id_);
             audio->audio_ = td_->audios_manager_->get_audio_object(file_id);
@@ -1454,7 +1455,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               continue;
             }
             output_result = std::move(audio);
-          } else if (result->type_ == "file" && parsed_document.first == DocumentsManager::DocumentType::General) {
+          } else if (result->type_ == "file" && parsed_document.type == Document::Type::General) {
             auto document = make_tl_object<td_api::inlineQueryResultDocument>();
             document->id_ = std::move(result->id_);
             document->document_ = td_->documents_manager_->get_document_object(file_id);
@@ -1465,7 +1466,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               continue;
             }
             output_result = std::move(document);
-          } else if (is_animation && parsed_document.first == DocumentsManager::DocumentType::Animation) {
+          } else if (is_animation && parsed_document.type == Document::Type::Animation) {
             auto animation = make_tl_object<td_api::inlineQueryResultAnimation>();
             animation->id_ = std::move(result->id_);
             animation->animation_ =
@@ -1476,7 +1477,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               continue;
             }
             output_result = std::move(animation);
-          } else if (result->type_ == "sticker" && parsed_document.first == DocumentsManager::DocumentType::Sticker) {
+          } else if (result->type_ == "sticker" && parsed_document.type == Document::Type::Sticker) {
             auto sticker = make_tl_object<td_api::inlineQueryResultSticker>();
             sticker->id_ = std::move(result->id_);
             sticker->sticker_ = td_->stickers_manager_->get_sticker_object(file_id);
@@ -1485,7 +1486,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               continue;
             }
             output_result = std::move(sticker);
-          } else if (result->type_ == "video" && parsed_document.first == DocumentsManager::DocumentType::Video) {
+          } else if (result->type_ == "video" && parsed_document.type == Document::Type::Video) {
             auto video = make_tl_object<td_api::inlineQueryResultVideo>();
             video->id_ = std::move(result->id_);
             video->video_ = td_->videos_manager_->get_video_object(file_id);
@@ -1496,7 +1497,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               continue;
             }
             output_result = std::move(video);
-          } else if (result->type_ == "voice" && parsed_document.first == DocumentsManager::DocumentType::VoiceNote) {
+          } else if (result->type_ == "voice" && parsed_document.type == Document::Type::VoiceNote) {
             auto voice_note = make_tl_object<td_api::inlineQueryResultVoiceNote>();
             voice_note->id_ = std::move(result->id_);
             voice_note->voice_note_ = td_->voice_notes_manager_->get_voice_note_object(file_id);

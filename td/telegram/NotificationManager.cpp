@@ -12,6 +12,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -3236,18 +3237,17 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
           }
           break;
         case telegram_api::document::ID: {
-          std::pair<DocumentsManager::DocumentType, FileId> attached_document =
-              td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(result),
-                                                       dialog_id);
-          switch (attached_document.first) {
-            case DocumentsManager::DocumentType::Animation:
-            case DocumentsManager::DocumentType::Audio:
-            case DocumentsManager::DocumentType::General:
-            case DocumentsManager::DocumentType::Sticker:
-            case DocumentsManager::DocumentType::Unknown:
-            case DocumentsManager::DocumentType::Video:
-            case DocumentsManager::DocumentType::VideoNote:
-            case DocumentsManager::DocumentType::VoiceNote:
+          auto parsed_document = td_->documents_manager_->on_get_document(
+              telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
+          switch (parsed_document.type) {
+            case Document::Type::Animation:
+            case Document::Type::Audio:
+            case Document::Type::General:
+            case Document::Type::Sticker:
+            case Document::Type::Unknown:
+            case Document::Type::Video:
+            case Document::Type::VideoNote:
+            case Document::Type::VoiceNote:
               break;
             default:
               UNREACHABLE();

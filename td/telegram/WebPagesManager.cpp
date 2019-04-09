@@ -15,6 +15,7 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/FileReferenceManager.h"
@@ -209,8 +210,7 @@ class WebPagesManager::WebPage {
   Dimensions embed_dimensions;
   int32 duration = 0;
   string author;
-  DocumentsManager::DocumentType document_type = DocumentsManager::DocumentType::Unknown;
-  FileId document_file_id;
+  Document document;
   WebPageInstantView instant_view;
 
   FileSourceId file_source_id;
@@ -229,7 +229,7 @@ class WebPagesManager::WebPage {
     bool has_embed_dimensions = has_embed && embed_dimensions != Dimensions();
     bool has_duration = duration > 0;
     bool has_author = !author.empty();
-    bool has_document = document_type != DocumentsManager::DocumentType::Unknown;
+    bool has_document = document.type != Document::Type::Unknown;
     bool has_instant_view = !instant_view.is_empty;
     bool is_instant_view_v2 = instant_view.is_v2;
     bool has_no_hash = true;
@@ -283,30 +283,30 @@ class WebPagesManager::WebPage {
       Td *td = storer.context()->td().get_actor_unsafe();
       CHECK(td != nullptr);
 
-      store(document_type, storer);
-      switch (document_type) {
-        case DocumentsManager::DocumentType::Animation:
-          td->animations_manager_->store_animation(document_file_id, storer);
+      store(document.type, storer);
+      switch (document.type) {
+        case Document::Type::Animation:
+          td->animations_manager_->store_animation(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::Audio:
-          td->audios_manager_->store_audio(document_file_id, storer);
+        case Document::Type::Audio:
+          td->audios_manager_->store_audio(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::General:
-          td->documents_manager_->store_document(document_file_id, storer);
+        case Document::Type::General:
+          td->documents_manager_->store_document(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::Sticker:
-          td->stickers_manager_->store_sticker(document_file_id, false, storer);
+        case Document::Type::Sticker:
+          td->stickers_manager_->store_sticker(document.file_id, false, storer);
           break;
-        case DocumentsManager::DocumentType::Video:
-          td->videos_manager_->store_video(document_file_id, storer);
+        case Document::Type::Video:
+          td->videos_manager_->store_video(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::VideoNote:
-          td->video_notes_manager_->store_video_note(document_file_id, storer);
+        case Document::Type::VideoNote:
+          td->video_notes_manager_->store_video_note(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::VoiceNote:
-          td->voice_notes_manager_->store_voice_note(document_file_id, storer);
+        case Document::Type::VoiceNote:
+          td->voice_notes_manager_->store_voice_note(document.file_id, storer);
           break;
-        case DocumentsManager::DocumentType::Unknown:
+        case Document::Type::Unknown:
         default:
           UNREACHABLE();
       }
@@ -385,36 +385,36 @@ class WebPagesManager::WebPage {
       Td *td = parser.context()->td().get_actor_unsafe();
       CHECK(td != nullptr);
 
-      parse(document_type, parser);
-      switch (document_type) {
-        case DocumentsManager::DocumentType::Animation:
-          document_file_id = td->animations_manager_->parse_animation(parser);
+      parse(document.type, parser);
+      switch (document.type) {
+        case Document::Type::Animation:
+          document.file_id = td->animations_manager_->parse_animation(parser);
           break;
-        case DocumentsManager::DocumentType::Audio:
-          document_file_id = td->audios_manager_->parse_audio(parser);
+        case Document::Type::Audio:
+          document.file_id = td->audios_manager_->parse_audio(parser);
           break;
-        case DocumentsManager::DocumentType::General:
-          document_file_id = td->documents_manager_->parse_document(parser);
+        case Document::Type::General:
+          document.file_id = td->documents_manager_->parse_document(parser);
           break;
-        case DocumentsManager::DocumentType::Sticker:
-          document_file_id = td->stickers_manager_->parse_sticker(false, parser);
+        case Document::Type::Sticker:
+          document.file_id = td->stickers_manager_->parse_sticker(false, parser);
           break;
-        case DocumentsManager::DocumentType::Video:
-          document_file_id = td->videos_manager_->parse_video(parser);
+        case Document::Type::Video:
+          document.file_id = td->videos_manager_->parse_video(parser);
           break;
-        case DocumentsManager::DocumentType::VideoNote:
-          document_file_id = td->video_notes_manager_->parse_video_note(parser);
+        case Document::Type::VideoNote:
+          document.file_id = td->video_notes_manager_->parse_video_note(parser);
           break;
-        case DocumentsManager::DocumentType::VoiceNote:
-          document_file_id = td->voice_notes_manager_->parse_voice_note(parser);
+        case Document::Type::VoiceNote:
+          document.file_id = td->voice_notes_manager_->parse_voice_note(parser);
           break;
-        case DocumentsManager::DocumentType::Unknown:
+        case Document::Type::Unknown:
         default:
           UNREACHABLE();
       }
-      if (!document_file_id.is_valid()) {
-        LOG(ERROR) << "Parse invalid document_file_id";
-        document_type = DocumentsManager::DocumentType::Unknown;
+      if (!document.file_id.is_valid()) {
+        LOG(ERROR) << "Parse invalid document.file_id";
+        document = Document();
       }
     }
 
@@ -2207,8 +2207,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         if (document_id == telegram_api::document::ID) {
           auto parsed_document = td_->documents_manager_->on_get_document(
               move_tl_object_as<telegram_api::document>(web_page->document_), owner_dialog_id);
-          page->document_type = parsed_document.first;
-          page->document_file_id = parsed_document.second;
+          page->document = parsed_document;
         }
       }
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_INSTANT_VIEW) {
@@ -2808,26 +2807,26 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title, web_page->description,
       get_photo_object(td_->file_manager_.get(), &web_page->photo), web_page->embed_url, web_page->embed_type,
       web_page->embed_dimensions.width, web_page->embed_dimensions.height, web_page->duration, web_page->author,
-      web_page->document_type == DocumentsManager::DocumentType::Animation
-          ? td_->animations_manager_->get_animation_object(web_page->document_file_id, "get_web_page_object")
+      web_page->document.type == Document::Type::Animation
+          ? td_->animations_manager_->get_animation_object(web_page->document.file_id, "get_web_page_object")
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::Audio
-          ? td_->audios_manager_->get_audio_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::Audio
+          ? td_->audios_manager_->get_audio_object(web_page->document.file_id)
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::General
-          ? td_->documents_manager_->get_document_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::General
+          ? td_->documents_manager_->get_document_object(web_page->document.file_id)
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::Sticker
-          ? td_->stickers_manager_->get_sticker_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::Sticker
+          ? td_->stickers_manager_->get_sticker_object(web_page->document.file_id)
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::Video
-          ? td_->videos_manager_->get_video_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::Video
+          ? td_->videos_manager_->get_video_object(web_page->document.file_id)
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::VideoNote
-          ? td_->video_notes_manager_->get_video_note_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::VideoNote
+          ? td_->video_notes_manager_->get_video_note_object(web_page->document.file_id)
           : nullptr,
-      web_page->document_type == DocumentsManager::DocumentType::VoiceNote
-          ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_file_id)
+      web_page->document.type == Document::Type::VoiceNote
+          ? td_->voice_notes_manager_->get_voice_note_object(web_page->document.file_id)
           : nullptr,
       instant_view_version);
 }
@@ -3534,47 +3533,47 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       auto document = move_tl_object_as<telegram_api::document>(document_ptr);
       auto document_id = document->id_;
       auto parsed_document = td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id);
-      if (parsed_document.first == DocumentsManager::DocumentType::Animation) {
-        animations.emplace(document_id, parsed_document.second);
-      } else if (parsed_document.first == DocumentsManager::DocumentType::Audio) {
-        audios.emplace(document_id, parsed_document.second);
-      } else if (parsed_document.first == DocumentsManager::DocumentType::General) {
-        documents.emplace(document_id, parsed_document.second);
-      } else if (parsed_document.first == DocumentsManager::DocumentType::Video) {
-        videos.emplace(document_id, parsed_document.second);
+      if (parsed_document.type == Document::Type::Animation) {
+        animations.emplace(document_id, parsed_document.file_id);
+      } else if (parsed_document.type == Document::Type::Audio) {
+        audios.emplace(document_id, parsed_document.file_id);
+      } else if (parsed_document.type == Document::Type::General) {
+        documents.emplace(document_id, parsed_document.file_id);
+      } else if (parsed_document.type == Document::Type::Video) {
+        videos.emplace(document_id, parsed_document.file_id);
       } else {
-        LOG(ERROR) << "Receive document of the wrong type " << static_cast<int32>(parsed_document.first);
+        LOG(ERROR) << "Receive document of the wrong type: " << parsed_document;
       }
     }
   }
-  if (web_page->document_type == DocumentsManager::DocumentType::Animation) {
-    auto file_view = td_->file_manager_->get_file_view(web_page->document_file_id);
+  if (web_page->document.type == Document::Type::Animation) {
+    auto file_view = td_->file_manager_->get_file_view(web_page->document.file_id);
     if (file_view.has_remote_location()) {
-      animations.emplace(file_view.remote_location().get_id(), web_page->document_file_id);
+      animations.emplace(file_view.remote_location().get_id(), web_page->document.file_id);
     } else {
       LOG(ERROR) << "Animation has no remote location";
     }
   }
-  if (web_page->document_type == DocumentsManager::DocumentType::Audio) {
-    auto file_view = td_->file_manager_->get_file_view(web_page->document_file_id);
+  if (web_page->document.type == Document::Type::Audio) {
+    auto file_view = td_->file_manager_->get_file_view(web_page->document.file_id);
     if (file_view.has_remote_location()) {
-      audios.emplace(file_view.remote_location().get_id(), web_page->document_file_id);
+      audios.emplace(file_view.remote_location().get_id(), web_page->document.file_id);
     } else {
       LOG(ERROR) << "Audio has no remote location";
     }
   }
-  if (web_page->document_type == DocumentsManager::DocumentType::General) {
-    auto file_view = td_->file_manager_->get_file_view(web_page->document_file_id);
+  if (web_page->document.type == Document::Type::General) {
+    auto file_view = td_->file_manager_->get_file_view(web_page->document.file_id);
     if (file_view.has_remote_location()) {
-      documents.emplace(file_view.remote_location().get_id(), web_page->document_file_id);
+      documents.emplace(file_view.remote_location().get_id(), web_page->document.file_id);
     } else {
       LOG(ERROR) << "Document has no remote location";
     }
   }
-  if (web_page->document_type == DocumentsManager::DocumentType::Video) {
-    auto file_view = td_->file_manager_->get_file_view(web_page->document_file_id);
+  if (web_page->document.type == Document::Type::Video) {
+    auto file_view = td_->file_manager_->get_file_view(web_page->document.file_id);
     if (file_view.has_remote_location()) {
-      videos.emplace(file_view.remote_location().get_id(), web_page->document_file_id);
+      videos.emplace(file_view.remote_location().get_id(), web_page->document.file_id);
     } else {
       LOG(ERROR) << "Video has no remote location";
     }
@@ -3827,27 +3826,27 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
   }
 
   vector<FileId> result = photo_get_file_ids(web_page->photo);
-  if (web_page->document_file_id.is_valid()) {
-    result.push_back(web_page->document_file_id);
+  if (web_page->document.file_id.is_valid()) {
+    result.push_back(web_page->document.file_id);
     FileId thumbnail_file_id;
-    switch (web_page->document_type) {
-      case DocumentsManager::DocumentType::Animation:
-        thumbnail_file_id = td_->animations_manager_->get_animation_thumbnail_file_id(web_page->document_file_id);
+    switch (web_page->document.type) {
+      case Document::Type::Animation:
+        thumbnail_file_id = td_->animations_manager_->get_animation_thumbnail_file_id(web_page->document.file_id);
         break;
-      case DocumentsManager::DocumentType::Audio:
-        thumbnail_file_id = td_->audios_manager_->get_audio_thumbnail_file_id(web_page->document_file_id);
+      case Document::Type::Audio:
+        thumbnail_file_id = td_->audios_manager_->get_audio_thumbnail_file_id(web_page->document.file_id);
         break;
-      case DocumentsManager::DocumentType::General:
-        thumbnail_file_id = td_->documents_manager_->get_document_thumbnail_file_id(web_page->document_file_id);
+      case Document::Type::General:
+        thumbnail_file_id = td_->documents_manager_->get_document_thumbnail_file_id(web_page->document.file_id);
         break;
-      case DocumentsManager::DocumentType::Sticker:
-        thumbnail_file_id = td_->stickers_manager_->get_sticker_thumbnail_file_id(web_page->document_file_id);
+      case Document::Type::Sticker:
+        thumbnail_file_id = td_->stickers_manager_->get_sticker_thumbnail_file_id(web_page->document.file_id);
         break;
-      case DocumentsManager::DocumentType::Video:
-        thumbnail_file_id = td_->videos_manager_->get_video_thumbnail_file_id(web_page->document_file_id);
+      case Document::Type::Video:
+        thumbnail_file_id = td_->videos_manager_->get_video_thumbnail_file_id(web_page->document.file_id);
         break;
-      case DocumentsManager::DocumentType::VideoNote:
-        thumbnail_file_id = td_->video_notes_manager_->get_video_note_thumbnail_file_id(web_page->document_file_id);
+      case Document::Type::VideoNote:
+        thumbnail_file_id = td_->video_notes_manager_->get_video_note_thumbnail_file_id(web_page->document.file_id);
         break;
       default:
         break;

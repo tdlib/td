@@ -16,6 +16,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/files/FileId.h"
@@ -3491,29 +3492,28 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
   return res;
 }
 
-static unique_ptr<MessageContent> get_document_message_content(
-    std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption, bool is_opened) {
-  auto document_type = parsed_document.first;
-  auto file_id = parsed_document.second;
-  if (document_type != DocumentsManager::DocumentType::Unknown) {
+static unique_ptr<MessageContent> get_document_message_content(Document &&parsed_document, FormattedText &&caption,
+                                                               bool is_opened) {
+  auto file_id = parsed_document.file_id;
+  if (parsed_document.type != Document::Type::Unknown) {
     CHECK(file_id.is_valid());
   }
-  switch (document_type) {
-    case DocumentsManager::DocumentType::Animation:
+  switch (parsed_document.type) {
+    case Document::Type::Animation:
       return make_unique<MessageAnimation>(file_id, std::move(caption));
-    case DocumentsManager::DocumentType::Audio:
+    case Document::Type::Audio:
       return make_unique<MessageAudio>(file_id, std::move(caption));
-    case DocumentsManager::DocumentType::General:
+    case Document::Type::General:
       return make_unique<MessageDocument>(file_id, std::move(caption));
-    case DocumentsManager::DocumentType::Sticker:
+    case Document::Type::Sticker:
       return make_unique<MessageSticker>(file_id);
-    case DocumentsManager::DocumentType::Unknown:
+    case Document::Type::Unknown:
       return make_unique<MessageUnsupported>();
-    case DocumentsManager::DocumentType::Video:
+    case Document::Type::Video:
       return make_unique<MessageVideo>(file_id, std::move(caption));
-    case DocumentsManager::DocumentType::VideoNote:
+    case Document::Type::VideoNote:
       return make_unique<MessageVideoNote>(file_id, is_opened);
-    case DocumentsManager::DocumentType::VoiceNote:
+    case Document::Type::VoiceNote:
       return make_unique<MessageVoiceNote>(file_id, std::move(caption), is_opened);
     default:
       UNREACHABLE();

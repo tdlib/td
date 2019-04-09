@@ -21,7 +21,7 @@ void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
   LOG(DEBUG) << "Store document " << file_id;
   auto it = documents_.find(file_id);
   CHECK(it != documents_.end());
-  const Document *document = it->second.get();
+  const GeneralDocument *document = it->second.get();
   store(document->file_name, storer);
   store(document->mime_type, storer);
   store(document->thumbnail, storer);
@@ -30,7 +30,7 @@ void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
 
 template <class ParserT>
 FileId DocumentsManager::parse_document(ParserT &parser) {
-  auto document = make_unique<Document>();
+  auto document = make_unique<GeneralDocument>();
   parse(document->file_name, parser);
   parse(document->mime_type, parser);
   parse(document->thumbnail, parser);

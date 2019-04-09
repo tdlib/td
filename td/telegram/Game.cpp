@@ -11,6 +11,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
@@ -42,21 +43,10 @@ Game::Game(Td *td, string title, string description, tl_object_ptr<telegram_api:
     if (document_id == telegram_api::document::ID) {
       auto parsed_document =
           td->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(document), owner_dialog_id);
-      switch (parsed_document.first) {
-        case DocumentsManager::DocumentType::Animation:
-          animation_file_id_ = parsed_document.second;
-          break;
-        case DocumentsManager::DocumentType::Audio:
-        case DocumentsManager::DocumentType::General:
-        case DocumentsManager::DocumentType::Sticker:
-        case DocumentsManager::DocumentType::Video:
-        case DocumentsManager::DocumentType::VideoNote:
-        case DocumentsManager::DocumentType::VoiceNote:
-        case DocumentsManager::DocumentType::Unknown:
-          LOG(ERROR) << "Receive non-animation document in the game";
-          break;
-        default:
-          UNREACHABLE();
+      if (parsed_document.type == Document::Type::Animation) {
+        animation_file_id_ = parsed_document.file_id;
+      } else {
+        LOG(ERROR) << "Receive non-animation document in the game";
       }
     }
   }

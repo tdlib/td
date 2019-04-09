@@ -11,6 +11,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -29,8 +30,6 @@ class Td;
 class DocumentsManager {
  public:
   explicit DocumentsManager(Td *td);
-
-  enum class DocumentType : int32 { Unknown, Animation, Audio, General, Sticker, Video, VideoNote, VoiceNote };
 
   class RemoteDocument {
    public:
@@ -77,9 +76,9 @@ class DocumentsManager {
 
   tl_object_ptr<td_api::document> get_document_object(FileId file_id);
 
-  std::pair<DocumentType, FileId> on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
-                                                  MultiPromiseActor *load_data_multipromise_ptr = nullptr,
-                                                  DocumentType default_document_type = DocumentType::General);
+  Document on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
+                           MultiPromiseActor *load_data_multipromise_ptr = nullptr,
+                           Document::Type default_document_type = Document::Type::General);
 
   void create_document(FileId file_id, PhotoSize thumbnail, string file_name, string mime_type, bool replace);
 
@@ -110,7 +109,7 @@ class DocumentsManager {
   string get_document_search_text(FileId file_id) const;
 
  private:
-  class Document {
+  class GeneralDocument {
    public:
     string file_name;
     string mime_type;
@@ -120,12 +119,12 @@ class DocumentsManager {
     bool is_changed = true;
   };
 
-  const Document *get_document(FileId file_id) const;
+  const GeneralDocument *get_document(FileId file_id) const;
 
-  FileId on_get_document(unique_ptr<Document> new_document, bool replace);
+  FileId on_get_document(unique_ptr<GeneralDocument> new_document, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<Document>, FileIdHash> documents_;  // file_id -> Document
+  std::unordered_map<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
 };
 
 }  // namespace td

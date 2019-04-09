@@ -15,6 +15,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileLocation.h"
@@ -3432,11 +3433,11 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
 
   auto parsed_document = td_->documents_manager_->on_get_document(
       move_tl_object_as<telegram_api::document>(document_ptr), DialogId(), nullptr);
-  if (parsed_document.first != DocumentsManager::DocumentType::General) {
+  if (parsed_document.type != Document::Type::General) {
     return promise.set_error(Status::Error(400, "Wrong file type"));
   }
 
-  td_->documents_manager_->merge_documents(parsed_document.second, file_id, true);
+  td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, true);
   promise.set_value(Unit());
 }
 
