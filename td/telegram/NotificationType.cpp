@@ -181,7 +181,7 @@ class NotificationTypePushMessage : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentChatChangePhoto>();
         }
         if (key == "MESSAGE_CHAT_CHANGE_TITLE") {
-          return td_api::make_object<td_api::pushMessageContentChatChangeTitle>();
+          return td_api::make_object<td_api::pushMessageContentChatChangeTitle>(arg);
         }
         if (key == "MESSAGE_CHAT_DELETE_MEMBER") {
           return td_api::make_object<td_api::pushMessageContentChatDeleteMember>(arg, false, false);
