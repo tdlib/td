@@ -732,6 +732,8 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, ui
     logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, storer);
   }
 
+  bool is_inserted = being_closed_polls_.insert(poll_id).second;
+  CHECK(is_inserted);
   auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
 
   send_closure(td_->create_net_actor<StopPollActor>(std::move(new_promise)), &StopPollActor::send, full_message_id);
@@ -890,7 +892,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
     }
     bool is_closed = (poll_server->flags_ & telegram_api::poll::CLOSED_MASK) != 0;
-    if (is_closed != poll->is_closed) {
+    if (is_closed && !poll->is_closed) {
       poll->is_closed = is_closed;
       is_changed = true;
     }
@@ -964,11 +966,9 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   if (is_changed) {
     notify_on_poll_update(poll_id);
     save_poll(poll, poll_id);
-
-    if (need_update_poll) {
-      send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
-    }
+  }
+  if (need_update_poll && (is_changed || (poll->is_closed && being_closed_polls_.erase(poll_id) != 0))) {
+    send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
   }
   return poll_id;
 }

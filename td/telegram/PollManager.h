@@ -170,6 +170,8 @@ class PollManager : public Actor {
   uint64 current_generation_ = 0;
 
   std::unordered_set<PollId, PollIdHash> loaded_from_database_polls_;
+
+  std::unordered_set<PollId, PollIdHash> being_closed_polls_;
 };
 
 }  // namespace td
