@@ -22359,13 +22359,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  MessageId preloaded_pinned_message_id;
+  MessageId added_pinned_message_id;      // TODO remove
+  MessageId preloaded_pinned_message_id;  // TODO remove
+  const char *add_error_reason = "";
   if (*need_update) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
+    added_pinned_message_id = pinned_message_id;
     if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id}, "preload pinned message")) {
       preloaded_pinned_message_id = pinned_message_id;
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
+    add_error_reason = debug_add_message_to_dialog_fail_reason_;
 
     if (d->pinned_message_notification_message_id.is_valid() &&
         have_message({dialog_id, d->pinned_message_notification_message_id}, "preload previously pinned message")) {
@@ -22377,10 +22381,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   LOG_CHECK(!d->being_added_message_id.is_valid())
       << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
       << d->debug_being_added_need_update << " " << d->pinned_message_notification_message_id << " "
-      << preloaded_pinned_message_id << " " << d->debug_preloaded_pinned_message_id << " " << source;
+      << preloaded_pinned_message_id << " " << d->debug_preloaded_pinned_message_id << " "
+      << d->debug_added_pinned_message_id << " " << d->debug_add_message_to_dialog_fail_reason_ << " " << source;
+
   d->being_added_message_id = message_id;
   d->debug_being_added_need_update = *need_update;
   d->debug_preloaded_pinned_message_id = preloaded_pinned_message_id;
+  d->debug_added_pinned_message_id = added_pinned_message_id;
+  d->debug_add_message_to_dialog_fail_reason_ = add_error_reason;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
