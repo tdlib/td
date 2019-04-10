@@ -850,7 +850,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
                       << (is_silent ? "   silently" : " with sound") << ": " << *type;
 
   if (!type->is_temporary()) {
-    remove_temporary_notifications(group_id);
+    remove_temporary_notifications(group_id, "add_notification");
   }
 
   auto group_it = get_group_force(group_id);
@@ -1929,7 +1929,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   }
 
   if (new_total_count == 0) {
-    remove_temporary_notifications(group_id);
+    remove_temporary_notifications(group_id, "remove_notification_group");
   }
 
   VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id
@@ -2020,8 +2020,11 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(),
                              std::move(removed_notification_ids), force_update);
   } else {
-    VLOG(notifications) << "Have new_total_count = " << new_total_count << " and " << removed_notification_ids.size()
-                        << " removed notifications";
+    VLOG(notifications) << "Have new_total_count = " << new_total_count << ", " << removed_notification_ids.size()
+                        << " removed notifications and force_update = " << force_update;
+    if (force_update) {
+      force_flush_pending_updates(group_id, "remove_notification_group");
+    }
   }
 
   if (max_notification_id.is_valid()) {
@@ -2041,7 +2044,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   promise.set_value(Unit());
 }
 
-void NotificationManager::remove_temporary_notifications(NotificationGroupId group_id) {
+void NotificationManager::remove_temporary_notifications(NotificationGroupId group_id, const char *source) {
   CHECK(group_id.is_valid());
 
   if (is_disabled() || max_notification_group_count_ == 0) {
@@ -2056,6 +2059,8 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   if (get_temporary_notification_total_count(group_it->second) == 0) {
     return;
   }
+
+  VLOG(notifications) << "Remove temporary notifications in " << group_id << " from " << source;
 
   auto &group = group_it->second;
   while (!group.pending_notifications.empty() && group.pending_notifications.back().type->is_temporary()) {
@@ -3792,7 +3797,7 @@ void NotificationManager::after_get_difference_impl() {
     }
   }
   for (auto group_id : reversed(to_remove_temporary_notifications_group_ids)) {
-    remove_temporary_notifications(group_id);
+    remove_temporary_notifications(group_id, "after_get_difference");
   }
 
   flush_all_pending_updates(false, "after_get_difference");
@@ -3831,7 +3836,7 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
   VLOG(notifications) << "Flush updates after get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   if (!running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
-    remove_temporary_notifications(group_id);
+    remove_temporary_notifications(group_id, "after_get_chat_difference");
     force_flush_pending_updates(group_id, "after_get_chat_difference");
   }
 }

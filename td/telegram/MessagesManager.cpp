@@ -19253,11 +19253,11 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (!force) {
     if (d->message_notification_group.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
-                         d->message_notification_group.group_id);
+                         d->message_notification_group.group_id, "add_new_message_notification 1");
     }
     if (d->mention_notification_group.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
-                         d->mention_notification_group.group_id);
+                         d->mention_notification_group.group_id, "add_new_message_notification 2");
     }
   }
 
