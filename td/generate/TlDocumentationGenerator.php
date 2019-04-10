@@ -241,11 +241,11 @@ abstract class TlDocumentationGenerator
                 }
                 $this->addClassDocumentation($class_name, $base_class_name, $class_description);
 
-                foreach ($known_fields as $field_name => $field_type) {
+                foreach ($known_fields as $name => $field_type) {
                     $may_be_null = stripos($info[$field_name], 'may be null') !== false;
-                    $field_name = $this->getFieldName($field_name, $class_name);
+                    $field_name = $this->getFieldName($name, $class_name);
                     $field_type_name = $this->getTypeName($field_type);
-                    $this->addFieldDocumentation($class_name, $field_name, $field_type_name, $info[$field_name], $may_be_null);
+                    $this->addFieldDocumentation($class_name, $field_name, $field_type_name, $info[$name], $may_be_null);
                 }
 
                 if ($is_function) {
