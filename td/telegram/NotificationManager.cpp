@@ -2048,8 +2048,12 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     return;
   }
 
-  auto group_it = get_group_force(group_id);
+  auto group_it = get_group(group_id);
   if (group_it == groups_.end()) {
+    return;
+  }
+
+  if (get_temporary_notification_total_count(group_it->second) == 0) {
     return;
   }
 

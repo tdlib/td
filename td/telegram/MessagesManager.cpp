@@ -19250,6 +19250,17 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
+  if (!force) {
+    if (d->message_notification_group.group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
+                         d->message_notification_group.group_id);
+    }
+    if (d->mention_notification_group.group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
+                         d->mention_notification_group.group_id);
+    }
+  }
+
   CHECK(!m->notification_id.is_valid());
   if (is_message_notification_disabled(d, m)) {
     return false;
@@ -22992,6 +23003,11 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
                            m->notification_id, true, false, Promise<Unit>());
       }
     }
+  } else if (message_id.get() > d->last_new_message_id.get()) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+                       d->message_notification_group.group_id, message_id, false);
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+                       d->mention_notification_group.group_id, message_id, false);
   }
 
   auto need_delete_message_files = m != nullptr && (d->dialog_id.get_type() == DialogType::User ||
@@ -24851,7 +24867,7 @@ void MessagesManager::on_get_channel_difference(
 }
 
 void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool success) {
-  LOG(INFO) << "After " << (success ? "un" : "") << "successful get channel difference in " << dialog_id;
+  LOG(INFO) << "After " << (success ? "" : "un") << "successful get channel difference in " << dialog_id;
   LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
   auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
