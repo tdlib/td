@@ -16262,8 +16262,14 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     if (input_media == nullptr) {
       // TODO return CHECK
       auto file_id = get_message_content_file_id(m->content.get());
-      LOG(FATAL) << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret)) << " "
-                 << to_string(td_->file_manager_->get_file_object(file_id)) << " " << m->ttl;
+      auto file_view = td_->file_manager_->get_file_view(file_id);
+      bool has_remote = file_view.has_remote_location();
+      bool is_web = has_remote ? file_view.remote_location().is_web() : false;
+      LOG(FATAL) << m->ttl << " " << has_remote << " " << file_view.has_alive_remote_location() << " "
+                 << file_view.has_active_upload_remote_location() << " "
+                 << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
+                 << " " << file_view.has_url() << " "
+                 << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
     }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
