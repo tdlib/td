@@ -18517,11 +18517,6 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       group_info.group_id = NotificationGroupId();
       group_info.is_changed = false;
       group_info.try_reuse = false;
-
-      if (Random::fast(0, 9) > 0) {
-        // allow crash with probability 10% if resaving doesn't help
-        return MessageNotificationGroup();
-      }
     }
   }
 
@@ -18789,8 +18784,9 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   vector<NotificationGroupKey> result;
   for (auto &group_key : group_keys) {
     CHECK(group_key.dialog_id.is_valid());
-    Dialog *d = get_dialog_force(group_key.dialog_id);
-    if (d == nullptr) {
+    const Dialog *d = get_dialog_force(group_key.dialog_id);
+    if (d == nullptr || (d->message_notification_group.group_id != group_key.group_id &&
+                         d->mention_notification_group.group_id != group_key.group_id)) {
       continue;
     }
 
