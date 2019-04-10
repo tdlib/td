@@ -23018,7 +23018,7 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
 
     MultiPromiseActorSafe mpas{"DeleteMessageMultiPromiseActor"};
     mpas.add_promise(PromiseCreator::lambda([logevent_id](Result<Unit> result) {
-      if (result.is_error()) {
+      if (result.is_error() || G()->close_flag()) {
         return;
       }
       binlog_erase(G()->td_db()->get_binlog(), logevent_id);
