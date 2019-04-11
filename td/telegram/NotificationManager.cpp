@@ -3970,7 +3970,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
             log_event.sender_name_, log_event.date_, log_event.contains_mention_, true, log_event.loc_key_,
             log_event.arg_, log_event.photo_, log_event.document_, log_event.notification_id_, event.id_,
             PromiseCreator::lambda([](Result<Unit> result) {
-              if (result.is_error()) {
+              if (result.is_error() && result.error().code() != 200 && result.error().code() != 406) {
                 LOG(ERROR) << "Receive error " << result.error() << ", while processing message push notification";
               }
             }));
@@ -3984,7 +3984,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
         edit_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.edit_date_, log_event.loc_key_, log_event.arg_,
             log_event.photo_, log_event.document_, event.id_, PromiseCreator::lambda([](Result<Unit> result) {
-              if (result.is_error()) {
+              if (result.is_error() && result.error().code() != 200 && result.error().code() != 406) {
                 LOG(ERROR) << "Receive error " << result.error() << ", while processing edit message push notification";
               }
             }));
