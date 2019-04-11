@@ -11,6 +11,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesDb.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/Version.h"
 
@@ -381,10 +382,14 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
   config_pmc->external_init_begin(static_cast<int32>(LogEvent::HandlerType::ConfigPmcMagic));
 
   bool encrypt_binlog = !key.is_empty();
+  VLOG(td_init) << "Start binlog loading";
   TRY_STATUS(init_binlog(*binlog, get_binlog_path(parameters), *binlog_pmc, *config_pmc, events, std::move(key)));
+  VLOG(td_init) << "Finish binlog loading";
 
   binlog_pmc->external_init_finish(binlog);
+  VLOG(td_init) << "Finish initialization of binlog PMC";
   config_pmc->external_init_finish(binlog);
+  VLOG(td_init) << "Finish initialization of config PMC";
 
   DbKey new_sqlite_key;
   DbKey old_sqlite_key;
@@ -405,7 +410,9 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
       drop_sqlite_key = true;
     }
   }
+  VLOG(td_init) << "Start to init database";
   auto init_sqlite_status = init_sqlite(scheduler_id, parameters, new_sqlite_key, old_sqlite_key, *binlog_pmc);
+  VLOG(td_init) << "Finish to init database";
   if (init_sqlite_status.is_error()) {
     LOG(ERROR) << "Destroy bad SQLite database because of " << init_sqlite_status;
     SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
@@ -416,10 +423,12 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
     binlog_pmc->force_sync(Auto());
   }
 
+  VLOG(td_init) << "Create concurrent_binlog_pmc";
   auto concurrent_binlog_pmc = std::make_shared<BinlogKeyValue<ConcurrentBinlog>>();
   concurrent_binlog_pmc->external_init_begin(binlog_pmc->get_magic());
   concurrent_binlog_pmc->external_init_handle(std::move(*binlog_pmc));
 
+  VLOG(td_init) << "Create concurrent_config_pmc";
   auto concurrent_config_pmc = std::make_shared<BinlogKeyValue<ConcurrentBinlog>>();
   concurrent_config_pmc->external_init_begin(config_pmc->get_magic());
   concurrent_config_pmc->external_init_handle(std::move(*config_pmc));
@@ -429,9 +438,12 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
   config_pmc.reset();
 
   CHECK(binlog_ptr != nullptr);
+  VLOG(td_init) << "Create concurrent_binlog";
   auto concurrent_binlog = std::make_shared<ConcurrentBinlog>(unique_ptr<Binlog>(binlog_ptr), scheduler_id);
 
+  VLOG(td_init) << "Init concurrent_binlog_pmc";
   concurrent_binlog_pmc->external_init_finish(concurrent_binlog);
+  VLOG(td_init) << "Init concurrent_config_pmc";
   concurrent_config_pmc->external_init_finish(concurrent_binlog);
 
   binlog_pmc_ = std::move(concurrent_binlog_pmc);
@@ -449,17 +461,21 @@ Result<unique_ptr<TdDb>> TdDb::open(int32 scheduler_id, const TdParameters &para
   TRY_STATUS(db->init(scheduler_id, parameters, std::move(key), events));
   return std::move(db);
 }
+
 Result<TdDb::EncryptionInfo> TdDb::check_encryption(const TdParameters &parameters) {
   return ::td::check_encryption(get_binlog_path(parameters));
 }
+
 void TdDb::change_key(DbKey key, Promise<> promise) {
   get_binlog()->change_key(std::move(key), std::move(promise));
 }
+
 Status TdDb::destroy(const TdParameters &parameters) {
   SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
   Binlog::destroy(get_binlog_path(parameters)).ignore();
   return Status::OK();
 }
+
 void TdDb::with_db_path(std::function<void(CSlice)> callback) {
   SqliteDb::with_db_path(sqlite_path(), callback);
   callback(binlog_path());

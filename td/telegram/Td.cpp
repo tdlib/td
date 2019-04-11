@@ -3990,6 +3990,7 @@ Status Td::init(DbKey key) {
   }
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
+  VLOG(td_init) << "Successfully inited database";
   G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
 
   // Init all managers and actors
@@ -4455,11 +4456,11 @@ Status Td::fix_parameters(TdParameters &parameters) {
     VLOG(td_init) << "Fix files_directory";
     parameters.files_directory = parameters.database_directory;
   }
-  if (parameters.use_message_db) {
+  if (parameters.use_message_db && !parameters.use_chat_info_db) {
     VLOG(td_init) << "Fix use_chat_info_db";
     parameters.use_chat_info_db = true;
   }
-  if (parameters.use_chat_info_db) {
+  if (parameters.use_chat_info_db && !parameters.use_file_db) {
     VLOG(td_init) << "Fix use_file_db";
     parameters.use_file_db = true;
   }
