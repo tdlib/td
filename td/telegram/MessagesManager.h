@@ -734,7 +734,8 @@ class MessagesManager : public Actor {
 
   void set_poll_answer(FullMessageId full_message_id, vector<int32> &&option_ids, Promise<Unit> &&promise);
 
-  void stop_poll(FullMessageId full_message_id, Promise<Unit> &&promise);
+  void stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                 Promise<Unit> &&promise);
 
   void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
 

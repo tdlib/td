@@ -2693,9 +2693,10 @@ void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessag
 }
 
 void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id,
-                               Promise<Unit> &&promise) {
+                               unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->stop_poll(static_cast<MessagePoll *>(content)->poll_id, full_message_id, std::move(promise));
+  td->poll_manager_->stop_poll(static_cast<MessagePoll *>(content)->poll_id, full_message_id, std::move(reply_markup),
+                               std::move(promise));
 }
 
 static void merge_location_access_hash(const Location &first, const Location &second) {

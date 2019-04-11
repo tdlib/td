@@ -3030,8 +3030,8 @@ getJsonString json_value:JsonValue = Text;
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 
 //@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set
-//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
-stopPoll chat_id:int53 message_id:int53 = Ok;
+//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll @reply_markup The new message reply markup; for bots only
+stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot

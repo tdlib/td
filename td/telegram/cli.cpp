@@ -3253,7 +3253,7 @@ class CliClient final : public Actor {
       string message_id;
 
       std::tie(chat_id, message_id) = split(args);
-      send_request(td_api::make_object<td_api::stopPoll>(as_chat_id(chat_id), as_message_id(message_id)));
+      send_request(td_api::make_object<td_api::stopPoll>(as_chat_id(chat_id), as_message_id(message_id), nullptr));
     } else {
       op_not_found_count++;
     }

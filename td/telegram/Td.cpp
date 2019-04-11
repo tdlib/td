@@ -6638,9 +6638,10 @@ void Td::on_request(uint64 id, td_api::setPollAnswer &request) {
                                      std::move(request.option_ids_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::stopPoll &request) {
+void Td::on_request(uint64 id, td_api::stopPoll &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+  messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                               std::move(request.reply_markup_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {

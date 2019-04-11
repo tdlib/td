@@ -25870,7 +25870,8 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   set_message_content_poll_answer(td_, m->content.get(), full_message_id, std::move(option_ids), std::move(promise));
 }
 
-void MessagesManager::stop_poll(FullMessageId full_message_id, Promise<Unit> &&promise) {
+void MessagesManager::stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                Promise<Unit> &&promise) {
   auto m = get_message_force(full_message_id, "stop_poll");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
@@ -25891,7 +25892,14 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, Promise<Unit> &&p
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
 
-  stop_message_content_poll(td_, m->content.get(), full_message_id, std::move(promise));
+  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                             !is_broadcast_channel(full_message_id.get_dialog_id()));
+  if (r_new_reply_markup.is_error()) {
+    return promise.set_error(r_new_reply_markup.move_as_error());
+  }
+
+  stop_message_content_poll(td_, m->content.get(), full_message_id, r_new_reply_markup.move_as_ok(),
+                            std::move(promise));
 }
 
 Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId full_message_id) {

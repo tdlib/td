@@ -186,7 +186,8 @@ void set_message_content_web_page_id(MessageContent *content, WebPageId web_page
 void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
-void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id, Promise<Unit> &&promise);
+void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id,
+                               unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
 
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
                             bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,

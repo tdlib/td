@@ -9,6 +9,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
+#include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -53,7 +54,8 @@ class PollManager : public Actor {
   void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
-  void stop_poll(PollId poll_id, FullMessageId full_message_id, Promise<Unit> &&promise);
+  void stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+                 Promise<Unit> &&promise);
 
   void stop_local_poll(PollId poll_id);
 
@@ -146,7 +148,8 @@ class PollManager : public Actor {
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
 
-  void do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id, Promise<Unit> &&promise);
+  void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+                    uint64 logevent_id, Promise<Unit> &&promise);
 
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
 

@@ -134,7 +134,7 @@ class StopPollActor : public NetActorOnce {
   explicit StopPollActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id) {
+  void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup) {
     dialog_id_ = full_message_id.get_dialog_id();
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
@@ -142,13 +142,19 @@ class StopPollActor : public NetActorOnce {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
+    int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
+    auto input_reply_markup = get_input_reply_markup(reply_markup);
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
+    }
+
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>();
     poll->flags_ |= telegram_api::poll::CLOSED_MASK;
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(std::move(poll));
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
-        telegram_api::messages_editMessage::MEDIA_MASK, false /*ignored*/, std::move(input_peer), message_id, string(),
-        std::move(input_media), nullptr, vector<tl_object_ptr<telegram_api::MessageEntity>>())));
+        flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
+        std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>())));
     auto sequence_id = -1;
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
@@ -682,7 +688,8 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   }
 }
 
-void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, Promise<Unit> &&promise) {
+void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+                            Promise<Unit> &&promise) {
   if (is_local_poll_id(poll_id)) {
     LOG(ERROR) << "Receive local " << poll_id << " from " << full_message_id << " in stop_poll";
     stop_local_poll(poll_id);
@@ -702,7 +709,7 @@ void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, Promi
   notify_on_poll_update(poll_id);
   save_poll(poll, poll_id);
 
-  do_stop_poll(poll_id, full_message_id, 0, std::move(promise));
+  do_stop_poll(poll_id, full_message_id, std::move(reply_markup), 0, std::move(promise));
 }
 
 class PollManager::StopPollLogEvent {
@@ -723,10 +730,10 @@ class PollManager::StopPollLogEvent {
   }
 };
 
-void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id,
-                               Promise<Unit> &&promise) {
+void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+                               uint64 logevent_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
+  if (logevent_id == 0 && G()->parameters().use_message_db && reply_markup == nullptr) {
     StopPollLogEvent logevent{poll_id, full_message_id};
     auto storer = LogEventStorerImpl<StopPollLogEvent>(logevent);
     logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, storer);
@@ -736,7 +743,8 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, ui
   CHECK(is_inserted);
   auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
 
-  send_closure(td_->create_net_actor<StopPollActor>(std::move(new_promise)), &StopPollActor::send, full_message_id);
+  send_closure(td_->create_net_actor<StopPollActor>(std::move(new_promise)), &StopPollActor::send, full_message_id,
+               std::move(reply_markup));
 }
 
 void PollManager::stop_local_poll(PollId poll_id) {
@@ -1010,7 +1018,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         td_->messages_manager_->add_dialog_dependencies(dependencies, dialog_id);
         td_->messages_manager_->resolve_dependencies_force(dependencies);
 
-        do_stop_poll(log_event.poll_id_, log_event.full_message_id_, event.id_, Auto());
+        do_stop_poll(log_event.poll_id_, log_event.full_message_id_, nullptr, event.id_, Auto());
         break;
       }
       default:
