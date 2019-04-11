@@ -10635,7 +10635,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
                  << dialog_id;
       dialog->unread_mentions_count_ = 0;
     }
-    if (!d->is_pinned_message_id_inited) {
+    if (!d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       // TODO add pinned_message_id to telegram_api::dialog
       get_dialog_pinned_message(dialog_id, Auto());
@@ -23736,7 +23736,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited &&
-      (d->dialog_id == get_my_dialog_id() || d->dialog_id.get_type() != DialogType::User)) {
+      (d->dialog_id == get_my_dialog_id() || d->dialog_id.get_type() != DialogType::User) &&
+      !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
   }
