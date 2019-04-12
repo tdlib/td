@@ -162,38 +162,59 @@ class OutboundFileSystem {
 }
 
 class InboundFileSystem {
-  static async create(dbName, root, FS) {
+  static async create(dbName, root, FS_promise) {
+    let start = performance.now();
     try {
       let ifs = new InboundFileSystem();
       ifs.root = root;
-      ifs.FS = FS;
-      FS.mkdir(root);
 
       ifs.store = localforage.createInstance({
         name: dbName,
         driver: localForageDrivers
       });
-      let keys = await ifs.store.keys();
 
-      ifs.pids = new Set(keys);
+      ifs.load_pids();
+
+      let FS = await FS_promise;
+      ifs.FS = FS;
+      ifs.FS.mkdir(root);
+      let create_time = (performance.now() - start) / 1000;
+      log.debug('InboundFileSystem::create ' + create_time);
       return ifs;
     } catch (e) {
       log.error('Failed to init Inbound FileSystem: ', e);
     }
   }
 
+  async load_pids() {
+    let keys_start = performance.now();
+    log.debug('InboundFileSystem::create::keys start');
+    let keys = await this.store.keys();
+    let keys_time = (performance.now() - keys_start) / 1000;
+    log.debug('InboundFileSystem::create::keys ' + keys_time + ' ' + keys.length);
+    this.pids = new Set(keys);
+  }
+
   has(pid) {
+    if (!this.pids) {
+      return true;
+    }
+
     return this.pids.has(pid);
   }
 
   forget(pid) {
-    this.pids.delete(pid);
+    if (this.pids) {
+      this.pids.delete(pid);
+    }
   }
 
   async persist(pid, path, arr) {
     try {
       await this.store.setItem(pid, new Blob([arr]));
-      this.pids.add(pid);
+      if (this.pids) {
+        this.pids.add(pid);
+      }
       this.FS.unlink(path);
     } catch (e) {
       log.error('Failed persist ' + path + ' ', e);
@@ -202,10 +223,12 @@ class InboundFileSystem {
 }
 
 class DbFileSystem {
-  static async create(root, FS, readOnly = false) {
+  static async create(root, FS_promise, readOnly = false) {
+    let start = performance.now();
     try {
       let dbfs = new DbFileSystem();
       dbfs.root = root;
+      let FS = await FS_promise;
       dbfs.FS = FS;
       dbfs.syncfs_total_time = 0;
       dbfs.readOnly = readOnly;
@@ -221,6 +244,8 @@ class DbFileSystem {
       dbfs.syncfsInterval = setInterval(() => {
         dbfs.sync();
       }, 5000);
+      let create_time = (performance.now() - start) / 1000;
+      log.debug('DbFileSystem::create ' + create_time);
       return dbfs;
     } catch (e) {
       log.error('Failed to init DbFileSystem: ', e);
@@ -270,28 +295,35 @@ class DbFileSystem {
 }
 
 class TdFileSystem {
-  static async create(prefix, FS, readOnly = false) {
+  static async init_fs(prefix, FS_promise) {
+    let FS = await FS_promise;
+    FS.mkdir(prefix);
+    return FS;
+  }
+  static async create(prefix, FS_promise, readOnly = false) {
     try {
       let tdfs = new TdFileSystem();
       tdfs.prefix = prefix;
-      tdfs.FS = FS;
-      FS.mkdir(prefix);
-
-      //WORKERFS. Temporary stores Blobs for outbound files
-      tdfs.outboundFileSystem = new OutboundFileSystem(
-        prefix + '/outboundfs',
-        FS
-      );
+      FS_promise = TdFileSystem.init_fs(prefix, FS_promise);
 
       //MEMFS. Store to IDB and delete files as soon as possible
       let inboundFileSystem = InboundFileSystem.create(
         prefix,
         prefix + '/inboundfs',
-        FS
+        FS_promise
       );
 
       //IDBFS. MEMFS which is flushed to IDB from time to time
-      let dbFileSystem = DbFileSystem.create(prefix + '/dbfs', FS, readOnly);
+      let dbFileSystem = DbFileSystem.create(prefix + '/dbfs', FS_promise, readOnly);
+
+      let FS = await FS_promise;
+      tdfs.FS = FS;
+
+      //WORKERFS. Temporary stores Blobs for outbound files
+      tdfs.outboundFileSystem = new OutboundFileSystem(
+        prefix + '/outboundfs',
+        tdfs.FS
+      );
 
       tdfs.inboundFileSystem = await inboundFileSystem;
       tdfs.dbFileSystem = await dbFileSystem;
@@ -344,7 +376,7 @@ class TdClient {
     if (this.wasInit) {
       return;
     }
-    await this.testLocalForage();
+    //await this.testLocalForage();
     log.setVerbosity(options.jsLogVerbosityLevel);
     this.wasInit = true;
 
@@ -355,6 +387,19 @@ class TdClient {
     }
     mode = options.mode || mode;
 
+    var self = this;
+    let FS_promise = new Promise(resolve => {
+      self.onFS = resolve;
+    });
+
+    let prefix = options.prefix || 'tdlib';
+    let tdfs_promise = TdFileSystem.create(
+      '/' + prefix,
+      FS_promise,
+      options.readOnly
+    );
+
+    log.info('load TdModule');
     this.TdModule = await loadTdLib(mode);
     log.info('got TdModule');
     this.td_functions = {
@@ -377,6 +422,7 @@ class TdClient {
       },
       td_get_timeout: this.TdModule.cwrap('td_get_timeout', 'number', [])
     };
+    this.onFS(this.TdModule.FS);
     this.FS = this.TdModule.FS;
     this.TdModule['websocket']['on']('error', error => {
       this.scheduleReceiveSoon();
@@ -399,7 +445,6 @@ class TdClient {
 
     // wait till it is allowed to start
     this.callback({ '@type': 'inited' });
-    var self = this;
     await new Promise(resolve => {
       self.onStart = resolve;
     });
@@ -409,13 +454,8 @@ class TdClient {
     if (this.isClosing) {
       return;
     }
-    let prefix = options.prefix || 'tdlib';
     log.info('FS start init');
-    this.tdfs = await TdFileSystem.create(
-      '/' + prefix,
-      this.FS,
-      options.readOnly
-    );
+    this.tdfs = await tdfs_promise;
     log.info('FS inited');
 
     // no async initialization after this point
