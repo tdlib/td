@@ -22663,7 +22663,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       auto next_message = *it;
       if (next_message != nullptr) {
         if (next_message->message_id.is_server() &&
-            !(td_->auth_manager_->is_bot() && Slice(source) == Slice("get channel messages"))) {
+            !(td_->auth_manager_->is_bot() && Slice(source) == Slice("GetChannelMessagesQuery"))) {
           LOG(ERROR) << "Can't attach " << message_id << " from " << source << " before " << next_message->message_id
                      << " and after " << previous_message->message_id << " in " << dialog_id;
           dump_debug_message_op(d);
