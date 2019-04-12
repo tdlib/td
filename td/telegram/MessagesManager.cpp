@@ -15552,7 +15552,7 @@ void MessagesManager::cancel_upload_message_content_files(const MessageContent *
 void MessagesManager::cancel_upload_file(FileId file_id) {
   // send the request later so they doesn't interfere with other actions
   // for example merge, supposed to happen soon, can auto-cancel the upload
-  LOG(WARNING) << "Cancel upload of file " << file_id;
+  LOG(INFO) << "Cancel upload of file " << file_id;
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
 }
 
