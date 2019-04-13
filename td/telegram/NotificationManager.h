@@ -8,6 +8,7 @@
 
 #include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"

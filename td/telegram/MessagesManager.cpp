@@ -22191,23 +22191,38 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!from_update && ((message_id.is_server() && d->last_new_message_id != MessageId() &&
-                        message_id.get() > d->last_new_message_id.get()) ||
-                       (message_id.is_local() && d->last_database_message_id != MessageId() &&
-                        message_id.get() > d->last_database_message_id.get() && !message->is_failed_to_send))) {
-    if (!message->from_database) {
-      LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                 << ". Last new is " << d->last_new_message_id << ", channel difference "
-                 << debug_channel_difference_dialog_ << " " << to_string(get_message_object(dialog_id, message.get()));
-      dump_debug_message_op(d, 3);
-      if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
-        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+  if (!from_update && !message->is_failed_to_send) {
+    MessageId max_message_id;
+    if (message_id.is_server()) {
+      if (d->being_added_message_id.is_valid()) {
+        // if a too new message not from update has failed to preload before being_added_message_id was set,
+        // then it should fail to load event after it is set and last_new_message_id has changed
+        max_message_id = d->being_updated_last_new_message_id;
+      } else {
+        max_message_id = d->last_new_message_id;
       }
-    } else {
-      LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
+    } else if (message_id.is_local()) {
+      if (d->being_added_message_id.is_valid()) {
+        max_message_id = d->being_updated_last_database_message_id;
+      } else {
+        max_message_id = d->last_database_message_id;
+      }
     }
-    debug_add_message_to_dialog_fail_reason_ = "too new message not from update";
-    return nullptr;
+    if (max_message_id != MessageId() && message_id.get() > max_message_id.get()) {
+      if (!message->from_database) {
+        LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
+                   << ". Last is " << max_message_id << ", channel difference "
+                   << debug_channel_difference_dialog_ << " " << to_string(get_message_object(dialog_id, message.get()));
+        dump_debug_message_op(d, 3);
+        if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
+          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        }
+      } else {
+        LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
+      }
+      debug_add_message_to_dialog_fail_reason_ = "too new message not from update";
+      return nullptr;
+    }
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
       message_id.get() <= d->max_unavailable_message_id.get()) {
@@ -22397,6 +22412,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       << d->debug_added_pinned_message_id << " " << d->debug_add_message_to_dialog_fail_reason_ << " " << source;
 
   d->being_added_message_id = message_id;
+  d->being_updated_last_new_message_id = d->last_new_message_id;
+  d->being_updated_last_database_message_id = d->last_database_message_id;
   d->debug_being_added_need_update = *need_update;
   d->debug_preloaded_pinned_message_id = preloaded_pinned_message_id;
   d->debug_added_pinned_message_id = added_pinned_message_id;
