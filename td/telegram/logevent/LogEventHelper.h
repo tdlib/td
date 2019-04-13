@@ -18,14 +18,17 @@
 
 namespace td {
 
-inline Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise = Promise<Unit>()) {
+#define get_erase_logevent_promise(...) get_erase_logevent_promise_impl(__FILE__, __LINE__, __VA_ARGS__)
+
+inline Promise<Unit> get_erase_logevent_promise_impl(const char *file, int32 line, uint64 logevent_id,
+                                                     Promise<Unit> promise = Promise<Unit>()) {
   if (logevent_id == 0) {
     return promise;
   }
 
-  return PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
+  return PromiseCreator::lambda([file, line, logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
     if (!G()->close_flag()) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+      binlog_erase(G()->td_db()->get_binlog_impl(file, line), logevent_id);
     }
 
     promise.set_result(std::move(result));
