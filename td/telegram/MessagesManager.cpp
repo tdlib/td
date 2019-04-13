@@ -16257,7 +16257,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     random_ids.push_back(begin_send_message(dialog_id, m));
 
     LOG(INFO) << "Have file " << file_ids.back() << " in " << m->message_id << " with result " << request.results[i]
-              << " and is_finished = " << request.is_finished[i];
+              << " and is_finished = " << static_cast<bool>(request.is_finished[i]);
 
     if (request.results[i].is_error() || !request.is_finished[i]) {
       success = false;
