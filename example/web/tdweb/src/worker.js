@@ -63,26 +63,29 @@ async function initLocalForage() {
   localforage.defineDriver(memoryDriver);
 }
 
-async function loadTdLibWasm() {
+async function loadTdLibWasm(onFS) {
   let Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
   let td_wasm = td_wasm_release;
+  let module = Module({
+    onRuntimeInitialized: () => {
+      log.info('runtime intialized');
+    },
+    instantiateWasm: (imports, successCallback) => {
+      log.info('start instantiateWasm');
+      let next = instance => {
+        log.info('finish instantiateWasm');
+        successCallback(instance);
+      };
+      instantiateAny(tdlibVersion, td_wasm, imports).then(next);
+      return {};
+    },
+    ENVIROMENT: 'WORKER'
+  });
+  log.info('Got module', module);
+  onFS(module.FS);
   let TdModule = new Promise((resolve, reject) =>
-    Module({
-      onRuntimeInitialized: () => {
-        log.info('runtime intialized');
-      },
-      instantiateWasm: (imports, successCallback) => {
-        log.info('start instantiateWasm');
-        let next = instance => {
-          log.info('finish instantiateWasm');
-          successCallback(instance);
-        };
-        instantiateAny(tdlibVersion, td_wasm, imports).then(next);
-        return {};
-      },
-      ENVIROMENT: 'WORKER'
-    }).then(m => {
+    module.then(m => {
       delete m.then;
       resolve(m);
     })
@@ -118,12 +121,12 @@ async function loadTdLibWasm() {
   //return TdModule;
 //}
 
-async function loadTdLib(mode) {
+async function loadTdLib(mode, onFS) {
 // Uncomment for asmjs support
   //if (mode === 'asmjs') {
     //return loadTdLibAsmjs();
   //}
-  return loadTdLibWasm();
+  return loadTdLibWasm(onFS);
 }
 
 class OutboundFileSystem {
@@ -241,6 +244,34 @@ class DbFileSystem {
         });
       });
 
+      let root_dir = FS.lookupPath(root);
+      let rmrf = (path) => {
+        log.debug("rmrf " , path);
+        let info = FS.lookupPath(path);
+        log.debug("rmrf " , path, info);
+        if (info.node.isFolder) {
+          for (var key in info.node.contents) {
+            rmrf(info.path + '/' + info.node.contents[key].name);
+          }
+          log.debug("rmdir " , path);
+          FS.rmdir(path);
+        } else {
+          log.debug("unlink " , path);
+          FS.unlink(path);
+        }
+      };
+      for (var key in root_dir.node.contents) {
+        let value = root_dir.node.contents[key];
+        log.debug("node " , key, value);
+        if (!value.isFolder) {
+          continue;
+        }
+        rmrf(root_dir.path + '/' + value.name);
+      }
+      log.error(root_dir);
+      let temp_path = root + '/temp';
+      FS.mkdir(temp_path);
+      FS.mount(FS.filesystems.MEMFS, {}, temp_path);
       dbfs.syncfsInterval = setInterval(() => {
         dbfs.sync();
       }, 5000);
@@ -400,7 +431,7 @@ class TdClient {
     );
 
     log.info('load TdModule');
-    this.TdModule = await loadTdLib(mode);
+    this.TdModule = await loadTdLib(mode, self.onFS);
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_create', 'number', []),
@@ -422,7 +453,7 @@ class TdClient {
       },
       td_get_timeout: this.TdModule.cwrap('td_get_timeout', 'number', [])
     };
-    this.onFS(this.TdModule.FS);
+    //this.onFS(this.TdModule.FS);
     this.FS = this.TdModule.FS;
     this.TdModule['websocket']['on']('error', error => {
       this.scheduleReceiveSoon();
