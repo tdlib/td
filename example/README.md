@@ -140,7 +140,7 @@ See [phptdlib](https://github.com/yaroslavche/phptdlib) or [PIF-TDPony](https://
 
 TDLib can be used from the Lua programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [tdlua](https://github.com/giuseppeM99/tdlua) or [tdlua](https://github.com/tgMember/tdlua) for examples of TDLib Lua bindings and basic usage examples.
+See [tdlua](https://github.com/giuseppeM99/tdlua) for examples of TDLib Lua bindings and basic usage examples.
 
 See also [tdbot](https://github.com/vysheng/tdbot), which makes all TDLib features available from Lua scripts.
 
