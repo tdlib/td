@@ -7414,33 +7414,37 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   }
   CHECK(m->message_id.is_server());
 
-  bool is_appointed_administrator = false;
-  bool can_revoke_incoming = false;
   const int32 DEFAULT_REVOKE_TIME_LIMIT = td_->auth_manager_->is_bot() ? 2 * 86400 : std::numeric_limits<int32>::max();
-  int32 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+  auto content_type = m->content->get_type();
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
-      revoke_time_limit = G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
-      break;
-    case DialogType::Chat:
-      is_appointed_administrator = td_->contacts_manager_->is_appointed_chat_administrator(dialog_id.get_chat_id());
-      break;
+    case DialogType::User: {
+      bool can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
+      int32 revoke_time_limit =
+          G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+
+      return ((m->is_outgoing && !is_service_message_content(content_type)) ||
+              (can_revoke_incoming && content_type != MessageContentType::ScreenshotTaken)) &&
+             G()->unix_time_cached() - m->date <= revoke_time_limit;
+    }
+    case DialogType::Chat: {
+      bool is_appointed_administrator =
+          td_->contacts_manager_->is_appointed_chat_administrator(dialog_id.get_chat_id());
+      int32 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+
+      return ((m->is_outgoing && !is_service_message_content(content_type)) || is_appointed_administrator) &&
+             G()->unix_time_cached() - m->date <= revoke_time_limit;
+    }
     case DialogType::Channel:
       return true;  // any server message that can be deleted will be deleted for all participants
     case DialogType::SecretChat:
       // all non-service messages will be deleted for everyone if secret chat is active
       return td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) == SecretChatState::Active &&
-             !is_service_message_content(m->content->get_type());
+             !is_service_message_content(content_type);
     case DialogType::None:
     default:
       UNREACHABLE();
       return false;
   }
-
-  return (((m->is_outgoing || can_revoke_incoming) && !is_service_message_content(m->content->get_type())) ||
-          is_appointed_administrator) &&
-         G()->unix_time_cached() - m->date <= revoke_time_limit;
 }
 
 void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId> &input_message_ids, bool revoke,
