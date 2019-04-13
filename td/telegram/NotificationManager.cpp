@@ -2892,7 +2892,6 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
   string announcement_message_text;
   vector<string> loc_args;
   string sender_name;
-  bool is_silent = false;
   for (auto &field_value : data) {
     if (field_value.first == "loc_key") {
       if (field_value.second.type() != JsonValue::Type::String) {
@@ -2926,11 +2925,6 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
         sent_date = narrow_cast<int32>(google_sent_time);
       }
-    } else if (field_value.first == "silent" && field_value.second.type() != JsonValue::Type::Null) {
-      if (field_value.second.type() != JsonValue::Type::String) {
-        return Status::Error("Expected silent flag as a String");
-      }
-      is_silent = !field_value.second.get_string().empty();
     }
   }
 
@@ -3311,6 +3305,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
                                    std::move(arg), std::move(attached_photo), std::move(attached_document), 0,
                                    std::move(promise));
   } else {
+    bool is_silent = has_json_object_field(custom, "silent");
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
                                   std::move(sender_name), sent_date, contains_mention, is_silent, std::move(loc_key),
                                   std::move(arg), std::move(attached_photo), std::move(attached_document),
