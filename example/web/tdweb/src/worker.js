@@ -244,9 +244,8 @@ class DbFileSystem {
         });
       });
 
-      let root_dir = FS.lookupPath(root);
       let rmrf = (path) => {
-        log.debug("rmrf " , path);
+        log.debug("rmrf ", path);
         let info = FS.lookupPath(path);
         log.debug("rmrf " , path, info);
         if (info.node.isFolder) {
@@ -260,18 +259,13 @@ class DbFileSystem {
           FS.unlink(path);
         }
       };
-      for (var key in root_dir.node.contents) {
-        let value = root_dir.node.contents[key];
-        log.debug("node " , key, value);
-        if (!value.isFolder) {
-          continue;
-        }
-        rmrf(root_dir.path + '/' + value.name);
+      var dirs = ['thumbnails', 'profile_photos', 'secret', 'stickers', 'temp', 'wallpapers', 'secret_thumbnails', 'passport'];
+      for (let i in dirs) {
+        let dir = root + '/' + dirs[i];
+        rmrf(dir)
+        //FS.mkdir(dir);
+        //FS.mount(FS.filesystems.MEMFS, {}, dir);
       }
-      log.error(root_dir);
-      let temp_path = root + '/temp';
-      FS.mkdir(temp_path);
-      FS.mount(FS.filesystems.MEMFS, {}, temp_path);
       dbfs.syncfsInterval = setInterval(() => {
         dbfs.sync();
       }, 5000);
