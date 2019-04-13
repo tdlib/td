@@ -245,8 +245,13 @@ class DbFileSystem {
       });
 
       let rmrf = (path) => {
-        log.debug("rmrf ", path);
-        let info = FS.lookupPath(path);
+        log.debug("rmrf " , path);
+        var info;
+        try {
+          info = FS.lookupPath(path);
+        } catch (e) {
+          return;
+        }
         log.debug("rmrf " , path, info);
         if (info.node.isFolder) {
           for (var key in info.node.contents) {
@@ -259,9 +264,19 @@ class DbFileSystem {
           FS.unlink(path);
         }
       };
-      var dirs = ['thumbnails', 'profile_photos', 'secret', 'stickers', 'temp', 'wallpapers', 'secret_thumbnails', 'passport'];
+      //var dirs = ['thumbnails', 'profile_photos', 'secret', 'stickers', 'temp', 'wallpapers', 'secret_thumbnails', 'passport'];
+      var dirs = [];
+      let root_dir = FS.lookupPath(root);
+      for (var key in root_dir.node.contents) {
+        let value = root_dir.node.contents[key];
+        log.debug("node " , key, value);
+        if (!value.isFolder) {
+          continue;
+        }
+        dirs.push(root_dir.path + '/' + value.name)
+      }
       for (let i in dirs) {
-        let dir = root + '/' + dirs[i];
+        let dir = dirs[i];
         rmrf(dir)
         //FS.mkdir(dir);
         //FS.mount(FS.filesystems.MEMFS, {}, dir);
