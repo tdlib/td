@@ -382,7 +382,9 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       if (!switch_inline_buttons_allowed) {
         const char *button_name =
             switch_inline_button->in_current_chat_ ? "switch_inline_query_current_chat" : "switch_inline_query";
-        return Status::Error(400, PSLICE() << "Can't use " << button_name << " in a channel chat");
+        return Status::Error(400, PSLICE() << "Can't use " << button_name
+                                           << " in a channel chat, because a user will not be able to use the button "
+                                              "without knowing bot's username");
       }
 
       current_button.type = switch_inline_button->in_current_chat_
