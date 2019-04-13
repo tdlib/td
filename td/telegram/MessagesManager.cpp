@@ -2195,12 +2195,12 @@ class UploadMediaQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for uploadMedia: " << to_string(ptr);
+    LOG(INFO) << "Receive result for uploadMedia for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
     td->messages_manager_->on_upload_message_media_success(dialog_id_, message_id_, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for uploadMedia: " << status;
+    LOG(INFO) << "Receive error for uploadMedia for " << message_id_ << " in " << dialog_id_ << ": " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -16190,9 +16190,13 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
   auto pos = static_cast<size_t>(message_it - request.message_ids.begin());
 
   if (request.is_finished[pos]) {
+    LOG(INFO) << "Upload media of " << message_id << " in " << dialog_id << " from group " << media_album_id
+              << " at pos " << pos << " was already finished";
     return;
   }
-  LOG(INFO) << "Finish to upload media of " << message_id << " in " << dialog_id << " from group " << media_album_id;
+  LOG(INFO) << "Finish to upload media of " << message_id << " in " << dialog_id << " from group " << media_album_id
+            << " at pos " << pos << " with result " << result
+            << " and previous finished_count = " << request.finished_count;
 
   request.results[pos] = std::move(result);
   request.is_finished[pos] = true;
@@ -16252,6 +16256,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     file_ids.push_back(get_message_content_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
 
+    LOG(INFO) << "Have file " << file_ids.back() << " in " << m->message_id << " with result " << request.results[i];
+
     if (request.results[i].is_error()) {
       success = false;
       continue;
@@ -16265,8 +16271,9 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
       auto file_view = td_->file_manager_->get_file_view(file_id);
       bool has_remote = file_view.has_remote_location();
       bool is_web = has_remote ? file_view.remote_location().is_web() : false;
-      LOG(FATAL) << m->ttl << " " << has_remote << " " << file_view.has_alive_remote_location() << " "
-                 << file_view.has_active_upload_remote_location() << " "
+      LOG(FATAL) << request.dialog_id << " " << request.finished_count << " " << i << " " << request.message_ids << " "
+                 << request.results << " " << m->ttl << " " << has_remote << " "
+                 << file_view.has_alive_remote_location() << " " << file_view.has_active_upload_remote_location() << " "
                  << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
                  << " " << file_view.has_url() << " "
                  << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
@@ -22211,8 +22218,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (max_message_id != MessageId() && message_id.get() > max_message_id.get()) {
       if (!message->from_database) {
         LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                   << ". Last is " << max_message_id << ", channel difference "
-                   << debug_channel_difference_dialog_ << " " << to_string(get_message_object(dialog_id, message.get()));
+                   << ". Last is " << max_message_id << ", channel difference " << debug_channel_difference_dialog_
+                   << " " << to_string(get_message_object(dialog_id, message.get()));
         dump_debug_message_op(d, 3);
         if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
