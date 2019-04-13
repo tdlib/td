@@ -3169,6 +3169,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getLogTags::ID:
     case td_api::setLogTagVerbosityLevel::ID:
     case td_api::getLogTagVerbosityLevel::ID:
+    case td_api::addLogMessage::ID:
       return true;
     default:
       return false;
@@ -7132,6 +7133,10 @@ void Td::on_request(uint64 id, const td_api::getLogTagVerbosityLevel &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::addLogMessage &request) {
+  UNREACHABLE();
+}
+
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEntities &request) {
   if (!check_utf8(request.text_)) {
     return make_error(400, "Text must be encoded in UTF-8");
@@ -7264,6 +7269,11 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLogTag
   } else {
     return make_error(400, result.error().message());
   }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::addLogMessage &request) {
+  Logging::add_message(request.verbosity_level_, request.text_);
+  return td_api::make_object<td_api::ok>();
 }
 
 // test

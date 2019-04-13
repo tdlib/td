@@ -29,6 +29,8 @@ class Logging {
   static Status set_tag_verbosity_level(Slice tag, int new_verbosity_level);
 
   static Result<int> get_tag_verbosity_level(Slice tag);
+
+  static void add_message(int verbosity_level, Slice message);
 };
 
 }  // namespace td

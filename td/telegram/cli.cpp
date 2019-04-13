@@ -3651,6 +3651,17 @@ class CliClient final : public Actor {
       } else {
         execute(std::move(request));
       }
+    } else if (op == "alog" || op == "aloge") {
+      string level;
+      string text;
+      std::tie(level, text) = split(args);
+
+      auto request = td_api::make_object<td_api::addLogMessage>(to_integer<int32>(level), text);
+      if (op == "alog") {
+        send_request(std::move(request));
+      } else {
+        execute(std::move(request));
+      }
     } else if (op == "q" || op == "Quit") {
       quit();
     } else if (op == "dnq" || op == "DumpNetQueries") {

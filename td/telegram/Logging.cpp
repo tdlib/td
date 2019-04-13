@@ -130,4 +130,9 @@ Result<int> Logging::get_tag_verbosity_level(Slice tag) {
   return *it->second;
 }
 
+void Logging::add_message(int verbosity_level, Slice message) {
+  int VERBOSITY_NAME(client) = clamp(verbosity_level, 0, VERBOSITY_NAME(NEVER));
+  VLOG(client) << message;
+}
+
 }  // namespace td

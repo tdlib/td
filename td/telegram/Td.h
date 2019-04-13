@@ -993,6 +993,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getLogTagVerbosityLevel &request);
 
+  void on_request(uint64 id, const td_api::addLogMessage &request);
+
   // test
   void on_request(uint64 id, td_api::testNetwork &request);
   void on_request(uint64 id, td_api::testGetDifference &request);
@@ -1027,6 +1029,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTags &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogTagVerbosityLevel &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTagVerbosityLevel &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::addLogMessage &request);
 
   static DbKey as_db_key(string key);
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;

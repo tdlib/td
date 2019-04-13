@@ -3805,6 +3805,10 @@ setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
 //@description Returns current verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously @tag Logging tag to change verbosity level
 getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 
+//@description Adds a message to TDLib internal log. This is an offline method. Can be called before authorization. Can be called synchronously
+//@verbosity_level Minimum verbosity level needed for the message to be logged, 0-1023 @text Text of a message to log
+addLogMessage verbosity_level:int32 text:string = Ok;
+
 
 //@description Does nothing; for testing only. This is an offline method. Can be called before authorization
 testCallEmpty = Ok;
