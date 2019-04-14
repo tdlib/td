@@ -10302,10 +10302,9 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
   if (old_message_id.is_valid()) {
     auto m = get_message_force(d, old_message_id, "set_dialog_pinned_message_notification");
     if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
-      // to not call set_dialog_pinned_message_notification recursively from remove_message_notification_id
-      // can't be set before is_message_notification_active check
-      d->pinned_message_notification_message_id = message_id;
-
+      // Because we removing pinned message notification it will call set_dialog_pinned_message_notification recursively
+      // after m->notification_id is removed, so everything will work. Can't remove pinned_message_notification_message_id
+      // before the call, because the notification needs to be still active inside remove_message_notification_id
       remove_message_notification_id(d, m, true, false);
       on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
     } else {
