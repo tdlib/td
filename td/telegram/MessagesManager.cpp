@@ -18619,7 +18619,9 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
 
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
   if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
-      m->message_id.get() > d->mention_notification_group.max_removed_message_id.get()) {
+      m->message_id.get() > d->mention_notification_group.max_removed_message_id.get() &&
+      m->message_id.get() > d->last_read_inbox_message_id.get() &&
+      !is_dialog_pinned_message_notifications_disabled(d)) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
       auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
@@ -23796,10 +23798,20 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else {
     update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
   }
-  if (is_dialog_pinned_message_notifications_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
-      d->pinned_message_notification_message_id.is_valid()) {
-    VLOG(notifications) << "Remove disabled pinned message notification in " << dialog_id;
-    remove_dialog_pinned_message_notification(d);
+  if (d->pinned_message_notification_message_id.is_valid()) {
+    auto &pinned_message_id = d->pinned_message_notification_message_id;
+    if (!d->mention_notification_group.group_id.is_valid()) {
+      LOG(ERROR) << "Have pinned message notification in " << pinned_message_id << " in " << dialog_id
+                 << ", but there is no mention notification group";
+      pinned_message_id = MessageId();
+      on_dialog_updated(d->dialog_id, "fix pinned message notification");
+    } else if (is_dialog_pinned_message_notifications_disabled(d) ||
+               pinned_message_id.get() <= d->last_read_inbox_message_id.get() ||
+               pinned_message_id.get() <= d->mention_notification_group.max_removed_message_id.get()) {
+      VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
+                          << dialog_id;
+      remove_dialog_pinned_message_notification(d);
+    }
   }
   if (d->new_secret_chat_notification_id.is_valid()) {
     auto &group_info = d->message_notification_group;
