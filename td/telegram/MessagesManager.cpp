@@ -22351,11 +22351,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
         auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if (m->ttl && m->message_id.is_server()) {
+          if (m->message_id.is_server() &&
+              (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
             for (auto file_id : old_file_ids) {
               if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end()) {
                 send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
-                             "add_message_to_dialog");
+                             "edit message in add_message_to_dialog");
               }
             }
           }
@@ -23467,10 +23468,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (is_content_changed || need_update) {
     if (is_message_in_dialog) {
       unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
-    }
-    if (old_message->message_id.is_server() &&
-        (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
-      delete_message_files(old_message);
     }
     old_content = std::move(new_content);
     if (is_message_in_dialog) {
