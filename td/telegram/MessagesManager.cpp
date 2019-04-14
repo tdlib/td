@@ -17723,8 +17723,9 @@ tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_i
 
   if (forward_info->dialog_id.is_valid()) {
     if (is_forward_info_sender_hidden(forward_info.get())) {
-      return td_api::make_object<td_api::messageForwardedFromHiddenUser>(forward_info->author_signature,
-                                                                         forward_info->date);
+      return td_api::make_object<td_api::messageForwardedFromHiddenUser>(
+          forward_info->author_signature, forward_info->date, forward_info->from_dialog_id.get(),
+          forward_info->from_message_id.get());
     }
     return td_api::make_object<td_api::messageForwardedPost>(
         forward_info->dialog_id.get(), forward_info->author_signature, forward_info->date,
