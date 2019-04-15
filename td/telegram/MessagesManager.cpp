@@ -15147,7 +15147,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool is_outgoing = message->is_outgoing || sending_state != nullptr;
   if (dialog_id == my_dialog_id) {
     // in Saved Messages all messages without forward_info->from_dialog_id should be outgoing
-    if (message->forward_info == nullptr || !message->forward_info->from_dialog_id.is_valid()) {
+    if (message->forward_info == nullptr || (!message->forward_info->from_dialog_id.is_valid() &&
+                                             !is_forward_info_sender_hidden(message->forward_info.get()))) {
       is_outgoing = true;
     }
   }
