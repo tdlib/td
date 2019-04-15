@@ -17716,25 +17716,26 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
                                              author_signature, from_dialog_id, from_message_id);
 }
 
-tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_info_object(
+td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forward_info_object(
     const unique_ptr<MessageForwardInfo> &forward_info) const {
   if (forward_info == nullptr) {
     return nullptr;
   }
 
-  if (forward_info->dialog_id.is_valid()) {
+  auto origin = [&]() -> td_api::object_ptr<td_api::MessageForwardOrigin> {
     if (is_forward_info_sender_hidden(forward_info.get())) {
-      return td_api::make_object<td_api::messageForwardedFromHiddenUser>(
-          forward_info->author_signature, forward_info->date, forward_info->from_dialog_id.get(),
-          forward_info->from_message_id.get());
+      return td_api::make_object<td_api::messageForwardOriginHiddenUser>(forward_info->author_signature);
     }
-    return td_api::make_object<td_api::messageForwardedPost>(
-        forward_info->dialog_id.get(), forward_info->author_signature, forward_info->date,
-        forward_info->message_id.get(), forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
-  }
-  return td_api::make_object<td_api::messageForwardedFromUser>(
-      td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardedFromUser"),
-      forward_info->date, forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
+    if (forward_info->dialog_id.is_valid()) {
+      return td_api::make_object<td_api::messageForwardOriginChannel>(
+          forward_info->dialog_id.get(), forward_info->message_id.get(), forward_info->author_signature);
+    }
+    return td_api::make_object<td_api::messageForwardOriginUser>(
+        td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardOriginUser"));
+  }();
+
+  return td_api::make_object<td_api::messageForwardInfo>(
+      std::move(origin), forward_info->date, forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(

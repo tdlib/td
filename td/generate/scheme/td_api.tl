@@ -466,29 +466,27 @@ secretChatStateClosed = SecretChatState;
 secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int32 key_hash:bytes layer:int32 = SecretChat;
 
 
-//@class MessageForwardInfo @description Contains information about the initial sender of a forwarded message
+//@class MessageForwardOrigin @description Contains information about the origin of a forwarded message
 
-//@description The message was originally written by a known user
-//@sender_user_id Identifier of the user that originally sent this message
-//@date Point in time (Unix timestamp) when the message was originally sent
-//@forwarded_from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded; 0 if unknown
-//@forwarded_from_message_id For messages forwarded to the chat with the current user (saved messages) the identifier of the original message from which the new message was forwarded; 0 if unknown
-messageForwardedFromUser sender_user_id:int32 date:int32 forwarded_from_chat_id:int53 forwarded_from_message_id:int53 = MessageForwardInfo;
+//@description The message was originally written by a known user @sender_user_id Identifier of the user that originally sent the message
+messageForwardOriginUser sender_user_id:int32 = MessageForwardOrigin;
 
-//@description The message was originally written by a user, which is hidden by his privacy settings
-//@sender_name Name of the sender
-//@date Point in time (Unix timestamp) when the message was originally sent
-//@forwarded_from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded; 0 if unknown
-//@forwarded_from_message_id For messages forwarded to the chat with the current user (saved messages) the identifier of the original message from which the new message was forwarded; 0 if unknown
-messageForwardedFromHiddenUser sender_name:string date:int32 forwarded_from_chat_id:int53 forwarded_from_message_id:int53 = MessageForwardInfo;
+//@description The message was originally written by a user, which is hidden by his privacy settings @sender_name Name of the sender
+messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 
 //@description The message was originally a post in a channel
-//@chat_id Identifier of the chat from which the message was forwarded
-//@author_signature Post author signature
-//@date Point in time (Unix timestamp) when the message was originally sent @message_id Message identifier of the original message from which the new message was forwarded; 0 if unknown
-//@forwarded_from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded; 0 if unknown
-//@forwarded_from_message_id For messages forwarded to the chat with the current user (saved messages), the identifier of the original message from which the new message was forwarded; 0 if unknown
-messageForwardedPost chat_id:int53 author_signature:string date:int32 message_id:int53 forwarded_from_chat_id:int53 forwarded_from_message_id:int53 = MessageForwardInfo;
+//@chat_id Identifier of the chat from which the message was originally forwarded
+//@message_id Message identifier of the original message; 0 if unknown
+//@author_signature Original post author signature
+messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageForwardOrigin;
+
+
+//@description Contains information about a forwarded message
+//@origin Origin of a forwarded message
+//@date Point in time (Unix timestamp) when the message was originally sent
+//@from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded last time; 0 if unknown
+//@from_message_id For messages forwarded to the chat with the current user (saved messages), the identifier of the original message from which the new message was forwarded last time; 0 if unknown
+messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
@@ -524,7 +522,7 @@ messageSendingStateFailed = MessageSendingState;
 //@media_album_id Unique identifier of an album this message belongs to. Only photos and videos can be grouped together in albums
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:MessageForwardInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string views:int32 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string views:int32 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;

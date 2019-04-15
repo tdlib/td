@@ -1877,7 +1877,7 @@ class MessagesManager : public Actor {
   unique_ptr<MessageForwardInfo> get_message_forward_info(
       tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
-  tl_object_ptr<td_api::MessageForwardInfo> get_message_forward_info_object(
+  td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(
       const unique_ptr<MessageForwardInfo> &forward_info) const;
 
   void ttl_read_history(Dialog *d, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
