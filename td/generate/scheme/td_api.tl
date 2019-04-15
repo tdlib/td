@@ -1943,8 +1943,8 @@ pushMessageContentHidden is_pinned:Bool = PushMessageContent;
 //@description An animation message (GIF-style) @animation Message content; may be null @caption Animation caption @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentAnimation animation:animation caption:string is_pinned:Bool = PushMessageContent;
 
-//@description An audio message @audio Message content; may be null @caption Audio caption @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentAudio audio:audio caption:string is_pinned:Bool = PushMessageContent;
+//@description An audio message @audio Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentAudio audio:audio is_pinned:Bool = PushMessageContent;
 
 //@description A message with a user contact @name Contact's name @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentContact name:string is_pinned:Bool = PushMessageContent;
@@ -1952,8 +1952,8 @@ pushMessageContentContact name:string is_pinned:Bool = PushMessageContent;
 //@description A contact has registered with Telegram
 pushMessageContentContactRegistered = PushMessageContent;
 
-//@description A document message (a general file) @document Message content; may be null @caption Document caption @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentDocument document:document caption:string is_pinned:Bool = PushMessageContent;
+//@description A document message (a general file) @document Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentDocument document:document is_pinned:Bool = PushMessageContent;
 
 //@description A message with a game @title Game title @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGame title:string is_pinned:Bool = PushMessageContent;
@@ -1961,8 +1961,8 @@ pushMessageContentGame title:string is_pinned:Bool = PushMessageContent;
 //@description A new high score was achieved in a game @title Game title, empty for pinned message @score New score, 0 for pinned message @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGameScore title:string score:int32 is_pinned:Bool = PushMessageContent;
 
-//@description A message with an invoice from a bot @title Product title @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentInvoice title:string is_pinned:Bool = PushMessageContent;
+//@description A message with an invoice from a bot @price Product price @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentInvoice price:string is_pinned:Bool = PushMessageContent;
 
 //@description A message with a location @is_live True, if the location is live @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentLocation is_live:Bool is_pinned:Bool = PushMessageContent;
@@ -1988,8 +1988,8 @@ pushMessageContentVideo video:video caption:string is_secret:Bool is_pinned:Bool
 //@description A video note message @video_note Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentVideoNote video_note:videoNote is_pinned:Bool = PushMessageContent;
 
-//@description A voice note message @voice_note Message content; may be null @caption Voice note caption @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentVoiceNote voice_note:voiceNote caption:string is_pinned:Bool = PushMessageContent;
+//@description A voice note message @voice_note Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentVoiceNote voice_note:voiceNote is_pinned:Bool = PushMessageContent;
 
 //@description A newly created basic group
 pushMessageContentBasicGroupChatCreate = PushMessageContent;

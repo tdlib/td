@@ -50,6 +50,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <iterator>
@@ -3289,6 +3290,31 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
         }
         default:
           LOG(ERROR) << "Receive unexpected attached " << to_string(result);
+      }
+    }
+  }
+  if (!arg.empty()) {
+    uint32 emoji = [&] {
+      if (ends_with(loc_key, "PHOTO")) {
+        return 0x1F5BC;
+      }
+      if (ends_with(loc_key, "ANIMATION")) {
+        return 0x1F3AC;
+      }
+      if (ends_with(loc_key, "DOCUMENT")) {
+        return 0x1F4CE;
+      }
+      if (ends_with(loc_key, "VIDEO")) {
+        return 0x1F4F9;
+      }
+      return 0;
+    }();
+    if (emoji != 0) {
+      string prefix;
+      append_utf8_character(prefix, emoji);
+      prefix += ' ';
+      if (begins_with(arg, prefix)) {
+        arg = arg.substr(prefix.size());
       }
     }
   }

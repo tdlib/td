@@ -179,7 +179,7 @@ class NotificationTypePushMessage : public NotificationType {
         if (key == "MESSAGE_AUDIO") {
           auto audios_manager = G()->td().get_actor_unsafe()->audios_manager_.get();
           return td_api::make_object<td_api::pushMessageContentAudio>(
-              audios_manager->get_audio_object(document.file_id), arg, is_pinned);
+              audios_manager->get_audio_object(document.file_id), is_pinned);
         }
         break;
       case 'B':
@@ -226,7 +226,7 @@ class NotificationTypePushMessage : public NotificationType {
         if (key == "MESSAGE_DOCUMENT") {
           auto documents_manager = G()->td().get_actor_unsafe()->documents_manager_.get();
           return td_api::make_object<td_api::pushMessageContentDocument>(
-              documents_manager->get_document_object(document.file_id), arg, is_pinned);
+              documents_manager->get_document_object(document.file_id), is_pinned);
         }
         break;
       case 'F':
@@ -288,7 +288,7 @@ class NotificationTypePushMessage : public NotificationType {
         if (key == "MESSAGE_STICKER") {
           auto stickers_manager = G()->td().get_actor_unsafe()->stickers_manager_.get();
           return td_api::make_object<td_api::pushMessageContentSticker>(
-              stickers_manager->get_sticker_object(document.file_id), arg, is_pinned);
+              stickers_manager->get_sticker_object(document.file_id), trim(arg), is_pinned);
         }
         break;
       case 'T':
@@ -313,7 +313,7 @@ class NotificationTypePushMessage : public NotificationType {
         if (key == "MESSAGE_VOICE_NOTE") {
           auto voice_notes_manager = G()->td().get_actor_unsafe()->voice_notes_manager_.get();
           return td_api::make_object<td_api::pushMessageContentVoiceNote>(
-              voice_notes_manager->get_voice_note_object(document.file_id), arg, is_pinned);
+              voice_notes_manager->get_voice_note_object(document.file_id), is_pinned);
         }
         break;
       default:
