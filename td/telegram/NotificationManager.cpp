@@ -3233,10 +3233,10 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
       LOG(ERROR) << "Can't parse attach: " << Slice(error) << " at " << parser.get_error_pos() << ": "
                  << format::as_hex_dump<4>(Slice(attach));
     } else {
-      VLOG(notifications) << "Have attached " << to_string(result);
       switch (result->get_id()) {
         case telegram_api::photo::ID:
           if (ends_with(loc_key, "MESSAGE_PHOTO") || ends_with(loc_key, "MESSAGE_TEXT")) {
+            VLOG(notifications) << "Have attached photo";
             loc_key.resize(loc_key.rfind('_') + 1);
             loc_key += "PHOTO";
             attached_photo = get_photo(td_->file_manager_.get(),
@@ -3250,6 +3250,7 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
               ends_with(loc_key, "MESSAGE_DOCUMENT") || ends_with(loc_key, "MESSAGE_STICKER") ||
               ends_with(loc_key, "MESSAGE_VIDEO") || ends_with(loc_key, "MESSAGE_VIDEO_NOTE") ||
               ends_with(loc_key, "MESSAGE_VOICE_NOTE") || ends_with(loc_key, "MESSAGE_TEXT")) {
+            VLOG(notifications) << "Have attached document";
             attached_document = td_->documents_manager_->on_get_document(
                 telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
             if (!attached_document.empty()) {
