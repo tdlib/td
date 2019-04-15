@@ -13304,14 +13304,51 @@ tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId d
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
+
+  bool can_delete_for_self = false;
+  bool can_delete_for_all_users = false;
+  if (!td_->auth_manager_->is_bot()) {
+    switch (d->dialog_id.get_type()) {
+      case DialogType::User:
+        can_delete_for_self = true;
+        can_delete_for_all_users = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
+        if (d->dialog_id == get_my_dialog_id() || td_->contacts_manager_->is_user_deleted(d->dialog_id.get_user_id()) ||
+            td_->contacts_manager_->is_user_bot(d->dialog_id.get_user_id())) {
+          can_delete_for_all_users = false;
+        }
+        break;
+      case DialogType::Chat:
+        // chats can't be deleted only for self with deleteChatHistory
+        can_delete_for_self = true;
+        break;
+      case DialogType::Channel:
+        if (is_broadcast_channel(d->dialog_id) ||
+            !td_->contacts_manager_->get_channel_username(d->dialog_id.get_channel_id()).empty()) {
+          // deleteChatHistory can't be used in channels and public supergroups
+        } else {
+          // private supergroups can be deleted for self
+          can_delete_for_self = true;
+        }
+        break;
+      case DialogType::SecretChat:
+        // secret chats can be deleted only for both users
+        can_delete_for_all_users = true;
+        break;
+      case DialogType::None:
+      default:
+        UNREACHABLE();
+    }
+  }
+
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
-      d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_report_dialog(d->dialog_id),
-      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
-      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_delete_for_self, can_delete_for_all_users,
+      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
+      d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), d->pinned_message_id.get(),
       d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message), d->client_data);
 }
