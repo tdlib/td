@@ -13331,8 +13331,14 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) co
         }
         break;
       case DialogType::SecretChat:
-        // secret chats can be deleted only for both users
-        can_delete_for_all_users = true;
+        if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) ==
+            SecretChatState::Closed) {
+          // in a closed secret chats there is no way to delete messages for both users
+          can_delete_for_self = true;
+        } else {
+          // active secret chats can be deleted only for both users
+          can_delete_for_all_users = true;
+        }
         break;
       case DialogType::None:
       default:
