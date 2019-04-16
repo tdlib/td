@@ -10532,7 +10532,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
         break;
       case DialogType::Channel:
         if (!has_pts) {
-          LOG(ERROR) << "Receive channel " << dialog_id << "without pts";
+          LOG(ERROR) << "Receive channel " << dialog_id << " without pts";
           return promise.set_error(
               Status::Error(500, "Wrong query result returned: receive supergroup chat without pts"));
         }
