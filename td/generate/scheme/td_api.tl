@@ -2043,7 +2043,7 @@ notificationGroupTypeMessages = NotificationGroupType;
 //@description A group containing notifications of type notificationTypeNewMessage and notificationTypeNewPushMessage with unread mentions of the current user, replies to their messages, or a pinned message
 notificationGroupTypeMentions = NotificationGroupType;
 
-//@description A group containing a notification of type notificationTypeSecretChat
+//@description A group containing a notification of type notificationTypeNewSecretChat
 notificationGroupTypeSecretChat = NotificationGroupType;
 
 //@description A group containing notifications of type notificationTypeNewCall
@@ -2496,10 +2496,14 @@ updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 //@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification
 updateNotification notification_group_id:int32 notification:notification = Update;
 
-//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @type New type of the notification group
+//@description A list of active notifications in a notification group has changed
+//@notification_group_id Unique notification group identifier
+//@type New type of the notification group
 //@chat_id Identifier of a chat to which all notifications in the group belong
-//@notification_settings_chat_id Chat identifier, which notification settings must be applied @is_silent True, if the notifications should be shown without sound
-//@total_count Total number of active notifications in the group @added_notifications List of added group notifications @removed_notification_ids Identifiers of removed group notifications
+//@notification_settings_chat_id Chat identifier, which notification settings must be applied to the added notifications
+//@is_silent True, if the notifications should be shown without sound
+//@total_count Total number of unread notifications in the group, can be bigger than number of active notifications
+//@added_notifications List of added group notifications, sorted by notification ID @removed_notification_ids Identifiers of removed group notifications, sorted by notification ID
 updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
