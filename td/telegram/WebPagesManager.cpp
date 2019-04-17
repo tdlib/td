@@ -2785,8 +2785,8 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     return nullptr;
   }
   return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks),
-                                                    web_page_instant_view->url, web_page_instant_view->is_rtl,
-                                                    web_page_instant_view->is_full);
+                                                    web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->url,
+                                                    web_page_instant_view->is_rtl, web_page_instant_view->is_full);
 }
 
 void WebPagesManager::update_messages_content(WebPageId web_page_id, bool have_web_page) {

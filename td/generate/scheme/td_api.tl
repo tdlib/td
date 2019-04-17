@@ -858,10 +858,11 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page
+//@version Version of the instant view, currently can be 1 or 2
 //@url Instant view URL; may be different from WebPage.url and must be used for the correct anchors handling
 //@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> url:string is_rtl:Bool is_full:Bool = WebPageInstantView;
+webPageInstantView page_blocks:vector<PageBlock> version:int32 url:string is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
 //@description Describes a web page preview @url Original URL of the link @display_url URL to display
