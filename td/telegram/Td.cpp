@@ -3212,6 +3212,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::setOption::ID:
     case td_api::getStorageStatistics::ID:
     case td_api::getStorageStatisticsFast::ID:
+    case td_api::getDatabaseStatistics::ID:
     case td_api::setNetworkType::ID:
     case td_api::getNetworkStatistics::ID:
     case td_api::addNetworkStatistics::ID:
@@ -4989,6 +4990,17 @@ void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
     }
   });
   send_closure(storage_manager_, &StorageManager::get_storage_stats_fast, std::move(query_promise));
+}
+void Td::on_request(uint64 id, td_api::getDatabaseStatistics &request) {
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<DatabaseStats> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(result.ok().as_td_api());
+    }
+  });
+  send_closure(storage_manager_, &StorageManager::get_database_stats, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::optimizeStorage &request) {

@@ -481,4 +481,42 @@ void TdDb::with_db_path(std::function<void(CSlice)> callback) {
   callback(binlog_path());
 }
 
+Result<string> TdDb::get_stats() {
+  auto sb = td::StringBuilder({}, true);
+  auto &sql = sql_connection_->get();
+  auto run_query = [&](CSlice query, Slice desc) -> Status {
+    TRY_RESULT(stmt, sql.get_statement(query));
+    TRY_STATUS(stmt.step());
+    CHECK(stmt.has_row());
+    auto key_size = stmt.view_int64(0);
+    auto value_size = stmt.view_int64(1);
+    auto count = stmt.view_int64(2);
+    sb << query << "\n";
+    sb << desc << ":\n";
+    sb << format::as_size(key_size + value_size) << "\t";
+    sb << format::as_size(key_size) << "\t";
+    sb << format::as_size(value_size) << "\t";
+    sb << format::as_size((key_size + value_size) / (count ? count : 1)) << "\t";
+    sb << "\n";
+    return Status::OK();
+  };
+  auto run_kv_query = [&](Slice mask, Slice table = "common") {
+    return run_query(PSLICE() << "SELECT SUM(length(k)), SUM(length(v)), COUNT(*) FROM " << table << " WHERE k like '"
+                              << mask << "'",
+                     PSLICE() << table << ":" << mask);
+  };
+  TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM messages WHERE 1", "messages"));
+  TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM dialogs WHERE 1", "dialogs"));
+  TRY_STATUS(run_kv_query("%", "common"));
+  TRY_STATUS(run_kv_query("%", "files"));
+  TRY_STATUS(run_kv_query("%wp"));
+  TRY_STATUS(run_kv_query("wpurl%"));
+  TRY_STATUS(run_kv_query("wpiv%"));
+  TRY_STATUS(run_kv_query("us%"));
+  TRY_STATUS(run_kv_query("ch%"));
+  TRY_STATUS(run_kv_query("ss%"));
+  TRY_STATUS(run_kv_query("gr%"));
+  return sb.as_cslice().str();
+}
+
 }  // namespace td

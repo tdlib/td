@@ -481,6 +481,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getStorageStatisticsFast &request);
 
+  void on_request(uint64 id, td_api::getDatabaseStatistics &request);
+
   void on_request(uint64 id, td_api::optimizeStorage &request);
 
   void on_request(uint64 id, td_api::getNetworkStatistics &request);

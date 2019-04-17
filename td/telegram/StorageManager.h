@@ -17,12 +17,24 @@
 #include "td/utils/Status.h"
 
 namespace td {
+namespace td_api {
+class databaseStatistics;
+}  // namespace td_api
+
+struct DatabaseStats {
+  string debug;
+  DatabaseStats() = default;
+  explicit DatabaseStats(string debug) : debug(debug) {
+  }
+  tl_object_ptr<td_api::databaseStatistics> as_td_api() const;
+};
 
 class StorageManager : public Actor {
  public:
   StorageManager(ActorShared<> parent, int32 scheduler_id);
   void get_storage_stats(int32 dialog_limit, Promise<FileStats> promise);
   void get_storage_stats_fast(Promise<FileStatsFast> promise);
+  void get_database_stats(Promise<DatabaseStats> promise);
   void run_gc(FileGcParameters parameters, Promise<FileStats> promise);
   void update_use_storage_optimizer();
 

@@ -2023,6 +2023,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStorageStatistics>(chat_limit));
     } else if (op == "storage_fast") {
       send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
+    } else if (op == "database") {
+      send_request(td_api::make_object<td_api::getDatabaseStatistics>());
     } else if (op == "optimize_storage") {
       string chat_ids;
       string exclude_chat_ids;

@@ -15,6 +15,8 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/telegram/td_api.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
@@ -24,6 +26,10 @@
 #include "td/utils/Time.h"
 
 namespace td {
+
+tl_object_ptr<td_api::databaseStatistics> DatabaseStats::as_td_api() const {
+  return make_tl_object<td_api::databaseStatistics>(debug);
+}
 
 StorageManager::StorageManager(ActorShared<> parent, int32 scheduler_id)
     : parent_(std::move(parent)), scheduler_id_(scheduler_id) {
@@ -65,6 +71,16 @@ void StorageManager::get_storage_stats(int32 dialog_limit, Promise<FileStats> pr
 
 void StorageManager::get_storage_stats_fast(Promise<FileStatsFast> promise) {
   promise.set_value(FileStatsFast(fast_stat_.size, fast_stat_.cnt, get_db_size()));
+}
+
+void StorageManager::get_database_stats(Promise<DatabaseStats> promise) {
+  //TODO: use another thread
+  auto r_stats = G()->td_db()->get_stats();
+  if (r_stats.is_error()) {
+    promise.set_error(r_stats.move_as_error());
+  } else {
+    promise.set_value(DatabaseStats(r_stats.move_as_ok()));
+  }
 }
 
 void StorageManager::update_use_storage_optimizer() {

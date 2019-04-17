@@ -99,6 +99,8 @@ class TdDb {
 
   void with_db_path(std::function<void(CSlice)> callback);
 
+  Result<string> get_stats();
+
  private:
   string sqlite_path_;
   std::shared_ptr<SqliteConnectionSafe> sql_connection_;
