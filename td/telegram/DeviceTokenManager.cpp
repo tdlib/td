@@ -131,10 +131,10 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       is_app_sandbox = device_token->is_app_sandbox_;
       break;
     }
-    case td_api::deviceTokenGoogleCloudMessaging::ID: {
-      auto device_token = static_cast<td_api::deviceTokenGoogleCloudMessaging *>(device_token_ptr.get());
+    case td_api::deviceTokenFirebaseCloudMessaging::ID: {
+      auto device_token = static_cast<td_api::deviceTokenFirebaseCloudMessaging *>(device_token_ptr.get());
       token = std::move(device_token->token_);
-      token_type = TokenType::GCM;
+      token_type = TokenType::FCM;
       encrypt = device_token->encrypt_;
       break;
     }

@@ -37,7 +37,7 @@ class DeviceTokenManager : public NetQueryCallback {
   ActorShared<> parent_;
   enum TokenType : int32 {
     APNS = 1,
-    GCM = 2,
+    FCM = 2,
     MPNS = 3,
     SIMPLE_PUSH = 4,
     UBUNTU_PHONE = 5,

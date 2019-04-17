@@ -1868,8 +1868,8 @@ localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTar
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
 
-//@description A token for Google Cloud Messaging @token Device registration token; may be empty to de-register a device @encrypt True, if push notifications should be additionally encrypted
-deviceTokenGoogleCloudMessaging token:string encrypt:Bool = DeviceToken;
+//@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to de-register a device @encrypt True, if push notifications should be additionally encrypted
+deviceTokenFirebaseCloudMessaging token:string encrypt:Bool = DeviceToken;
 
 //@description A token for Apple Push Notification service @device_token Device token; may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
 deviceTokenApplePush device_token:string is_app_sandbox:Bool = DeviceToken;

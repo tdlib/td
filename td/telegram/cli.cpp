@@ -1430,9 +1430,9 @@ class CliClient final : public Actor {
     } else if (op == "rdb") {
       send_request(td_api::make_object<td_api::registerDevice>(
           td_api::make_object<td_api::deviceTokenBlackBerryPush>(args), as_user_ids("")));
-    } else if (op == "rdg") {
+    } else if (op == "rdf") {
       send_request(td_api::make_object<td_api::registerDevice>(
-          td_api::make_object<td_api::deviceTokenGoogleCloudMessaging>(args, true), as_user_ids("")));
+          td_api::make_object<td_api::deviceTokenFirebaseCloudMessaging>(args, true), as_user_ids("")));
     } else if (op == "rdt") {
       string token;
       string other_user_ids_str;
