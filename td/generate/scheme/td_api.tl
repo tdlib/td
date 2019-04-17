@@ -2262,9 +2262,10 @@ storageStatistics size:int53 count:int32 by_chat:vector<storageStatisticsByChat>
 //@description Contains approximate storage usage statistics, excluding files of unknown file type @files_size Approximate total size of files @file_count Approximate number of files @database_size Size of the database
 storageStatisticsFast files_size:int53 file_count:int32 database_size:int53 = StorageStatisticsFast;
 
-//@description Experimental database statistics
-//@debug Database statistics in an unspecified format
-databaseStatistics debug:string = DatabaseStatistics;
+//@description Contains database statistics
+//@statistics Database statistics in an unspecified human-readable format
+databaseStatistics statistics:string = DatabaseStatistics;
+
 
 //@class NetworkType @description Represents the type of a network
 
@@ -3620,7 +3621,7 @@ getStorageStatistics chat_limit:int32 = StorageStatistics;
 //@description Quickly returns approximate storage usage statistics. Can be called before authorization
 getStorageStatisticsFast = StorageStatisticsFast;
 
-//@description Returns DatabaseStatistics
+//@description Returns database statistics
 getDatabaseStatistics = DatabaseStatistics;
 
 //@description Optimizes storage usage, i.e. deletes some files and returns new storage usage statistics. Secret thumbnails can't be deleted
