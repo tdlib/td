@@ -15187,13 +15187,14 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     }
   }
 
-  bool is_outgoing = message->is_outgoing || sending_state != nullptr;
+  bool is_outgoing = message->is_outgoing;
   if (dialog_id == my_dialog_id) {
-    // in Saved Messages all messages without forward_info->from_dialog_id should be outgoing
-    if (message->forward_info == nullptr || (!message->forward_info->from_dialog_id.is_valid() &&
-                                             !is_forward_info_sender_hidden(message->forward_info.get()))) {
-      is_outgoing = true;
-    }
+    // in Saved Messages all non-forwarded messages must be outgoing
+    // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
+    // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
+    auto forward_info = message->forward_info.get();
+    is_outgoing = forward_info == nullptr ||
+                  (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
   }
   return make_tl_object<td_api::message>(
       message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id, "sender_user_id"),
