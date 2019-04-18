@@ -7561,7 +7561,8 @@ void ContactsManager::on_get_channel_participants_success(
         ((filter.is_recent() || filter.is_search()) && !result.back().status.is_member()) ||
         (filter.is_restricted() && !result.back().status.is_restricted()) ||
         (filter.is_banned() && !result.back().status.is_banned())) {
-      LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter;
+      LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter << " in " << channel_id
+                 << " with offset " << offset << " and limit " << limit;
       result.pop_back();
       total_count--;
     }
