@@ -1791,7 +1791,8 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
 }
 
 void NotificationManager::remove_notification(NotificationGroupId group_id, NotificationId notification_id,
-                                              bool is_permanent, bool force_update, Promise<Unit> &&promise) {
+                                              bool is_permanent, bool force_update, Promise<Unit> &&promise,
+                                              const char *source) {
   if (!group_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Notification group identifier is invalid"));
   }
@@ -1803,8 +1804,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     return promise.set_value(Unit());
   }
 
-  VLOG(notifications) << "Remove " << notification_id << " from " << group_id
-                      << " with force_update = " << force_update;
+  VLOG(notifications) << "Remove " << notification_id << " from " << group_id << " with force_update = " << force_update
+                      << " from " << source;
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
@@ -1887,12 +1888,13 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 }
 
 void NotificationManager::remove_temporary_notification_by_message_id(NotificationGroupId group_id,
-                                                                      MessageId message_id, bool force_update) {
+                                                                      MessageId message_id, bool force_update,
+                                                                      const char *source) {
   if (!group_id.is_valid()) {
     return;
   }
 
-  VLOG(notifications) << "Remove notification for " << message_id << " in " << group_id;
+  VLOG(notifications) << "Remove notification for " << message_id << " in " << group_id << " from " << source;
   CHECK(message_id.is_valid());
 
   auto group_it = get_group(group_id);
@@ -1906,7 +1908,8 @@ void NotificationManager::remove_temporary_notification_by_message_id(Notificati
         for (auto file_id : notification.type->get_file_ids(td_)) {
           this->td_->file_manager_->delete_file(file_id, Promise<>(), "remove_temporary_notification_by_message_id");
         }
-        return this->remove_notification(group_id, notification.notification_id, true, force_update, Auto());
+        return this->remove_notification(group_id, notification.notification_id, true, force_update, Auto(),
+                                         "remove_temporary_notification_by_message_id");
       }
     }
   };
@@ -2307,7 +2310,7 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
   auto &active_notifications = active_call_notifications_[dialog_id];
   for (auto it = active_notifications.begin(); it != active_notifications.end(); ++it) {
     if (it->call_id == call_id) {
-      remove_notification(group_id, it->notification_id, true, true, Promise<Unit>());
+      remove_notification(group_id, it->notification_id, true, true, Promise<Unit>(), "remove_call_notification");
       active_notifications.erase(it);
       if (active_notifications.empty()) {
         VLOG(notifications) << "Reuse call " << group_id;

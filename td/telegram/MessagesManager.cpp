@@ -10323,7 +10323,8 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
       on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
     } else {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->mention_notification_group.group_id, old_message_id, false);
+                         d->mention_notification_group.group_id, old_message_id, false,
+                         "set_dialog_pinned_message_notification");
     }
   }
   d->pinned_message_notification_message_id = message_id;
@@ -10375,7 +10376,8 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
                                                   removed_notification_ids_set.end());
   for (size_t i = 0; i < removed_notification_ids.size(); i++) {
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, notification_group_id,
-                       removed_notification_ids[i], false, i + 1 == removed_notification_ids.size(), Promise<Unit>());
+                       removed_notification_ids[i], false, i + 1 == removed_notification_ids.size(), Promise<Unit>(),
+                       "remove_dialog_mention_notifications");
   }
 }
 
@@ -10932,7 +10934,8 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   if (is_permanent) {
     if (had_active_notification) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                         notification_id, is_permanent, force_update, Promise<Unit>());
+                         notification_id, is_permanent, force_update, Promise<Unit>(),
+                         "remove_message_notification_id");
     }
 
     // on_message_changed will be called by the caller
@@ -10955,7 +10958,8 @@ void MessagesManager::remove_new_secret_chat_notification(Dialog *d, bool is_per
   if (is_permanent) {
     CHECK(d->message_notification_group.group_id.is_valid());
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                       d->message_notification_group.group_id, notification_id, true, true, Promise<Unit>());
+                       d->message_notification_group.group_id, notification_id, true, true, Promise<Unit>(),
+                       "remove_new_secret_chat_notification");
   }
 }
 
@@ -19131,10 +19135,10 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
     if (m == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
       // call synchronously to remove them before ProcessPush returns
-      td_->notification_manager_->remove_temporary_notification_by_message_id(d->message_notification_group.group_id,
-                                                                              message_id, true);
-      td_->notification_manager_->remove_temporary_notification_by_message_id(d->mention_notification_group.group_id,
-                                                                              message_id, true);
+      td_->notification_manager_->remove_temporary_notification_by_message_id(
+          d->message_notification_group.group_id, message_id, true, "remove_message_notifications_by_message_ids");
+      td_->notification_manager_->remove_temporary_notification_by_message_id(
+          d->mention_notification_group.group_id, message_id, true, "remove_message_notifications_by_message_ids");
       continue;
     }
     deleted_message_ids.push_back(m->message_id.get());
@@ -22696,7 +22700,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
 
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                         d->mention_notification_group.group_id, notification_id, false, false, Promise<Unit>());
+                         d->mention_notification_group.group_id, notification_id, false, false, Promise<Unit>(),
+                         "remove disabled mention notification");
 
       on_message_changed(d, message.get(), false, "remove_mention_notification");
     }
@@ -23108,14 +23113,14 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
       }
       if (is_message_notification_active(d, m)) {
         send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                           m->notification_id, true, false, Promise<Unit>());
+                           m->notification_id, true, false, Promise<Unit>(), "delete_message_from_database");
       }
     }
   } else if (message_id.get() > d->last_new_message_id.get()) {
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                       d->message_notification_group.group_id, message_id, false);
+                       d->message_notification_group.group_id, message_id, false, "delete_message_from_database");
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                       d->mention_notification_group.group_id, message_id, false);
+                       d->mention_notification_group.group_id, message_id, false, "delete_message_from_database");
   }
 
   auto need_delete_message_files = m != nullptr && (d->dialog_id.get_type() == DialogType::User ||
@@ -23884,7 +23889,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->mention_notification_group.group_id, pinned_message_id, true);
+                         d->mention_notification_group.group_id, pinned_message_id, true,
+                         "fix pinned message notification");
       d->pinned_message_notification_message_id = MessageId();
       on_dialog_updated(d->dialog_id, "fix pinned message notification 2");
     }

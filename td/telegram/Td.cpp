@@ -5296,7 +5296,8 @@ void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   notification_manager_->remove_notification(NotificationGroupId(request.notification_group_id_),
-                                             NotificationId(request.notification_id_), false, true, std::move(promise));
+                                             NotificationId(request.notification_id_), false, true, std::move(promise),
+                                             "td_api::removeNotification");
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {

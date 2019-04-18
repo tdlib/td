@@ -72,12 +72,12 @@ class NotificationManager : public Actor {
                          unique_ptr<NotificationType> type);
 
   void remove_notification(NotificationGroupId group_id, NotificationId notification_id, bool is_permanent,
-                           bool force_update, Promise<Unit> &&promise);
+                           bool force_update, Promise<Unit> &&promise, const char *source);
 
   void remove_temporary_notifications(NotificationGroupId group_id, const char *source);
 
   void remove_temporary_notification_by_message_id(NotificationGroupId group_id, MessageId message_id,
-                                                   bool force_update);
+                                                   bool force_update, const char *source);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                  MessageId max_message_id, int32 new_total_count, bool force_update,
