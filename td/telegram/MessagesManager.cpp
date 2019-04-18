@@ -3353,7 +3353,8 @@ class GetChannelDifferenceQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery")) {
-      LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << ": " << status;
+      LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << " with pts " << pts_
+                 << " and limit " << limit_ << ": " << status;
     }
     td->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
   }
@@ -9956,9 +9957,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     if (!from_update) {
       LOG_IF(ERROR, message_id.get() <= d->last_new_message_id.get())
           << "New " << message_id << " has id less than last_new_message_id = " << d->last_new_message_id;
-      LOG(ERROR) << "Ignore " << it->second << " received not through update from " << source << ": "
-                 << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
-      dump_debug_message_op(d, 3);                                                         // TODO remove
+      LOG(ERROR) << "Ignore " << it->second << "/" << message_id << " received not through update from " << source
+                 << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
+      dump_debug_message_op(d, 3);                                                                 // TODO remove
       if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
         channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
       }
@@ -23341,7 +23342,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (old_message->contains_mention != new_message->contains_mention) {
     LOG_IF(ERROR, old_message->edit_date == 0)
         << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
-        << " to " << new_message->contains_mention;
+        << " to " << new_message->contains_mention << ", is_outgoing = " << old_message->is_outgoing;
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
     // old_message->contains_mention = new_message->contains_mention;
