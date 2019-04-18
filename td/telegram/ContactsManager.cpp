@@ -5035,7 +5035,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(INFO) << "Receive empty " << user_id << " from " << source;
 
     User *u = get_user_force(user_id);
-    if (u == nullptr) {
+    if (u == nullptr && Slice(source) != Slice("GetUsersQuery")) {
+      // userEmpty should be received only through getUsers for unexisting users
       LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty from " << source;
     }
     return;
