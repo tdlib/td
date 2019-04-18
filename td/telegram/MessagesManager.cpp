@@ -23884,7 +23884,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->mention_notification_group.group_id, pinned_message_id, false);
+                         d->mention_notification_group.group_id, pinned_message_id, true);
       d->pinned_message_notification_message_id = MessageId();
       on_dialog_updated(d->dialog_id, "fix pinned message notification 2");
     }
