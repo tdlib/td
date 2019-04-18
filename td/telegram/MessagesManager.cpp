@@ -5860,6 +5860,11 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
 
 void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_default, int32 old_mute_until,
                                                    bool new_use_default, int32 new_mute_until) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   if (old_use_default == new_use_default && old_mute_until == new_mute_until) {
     return;
   }
@@ -20455,6 +20460,11 @@ void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, b
 }
 
 void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   CHECK(d != nullptr);
   CHECK(d->is_marked_as_unread != is_marked_as_unread);
   d->is_marked_as_unread = is_marked_as_unread;
@@ -22277,6 +22287,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         dump_debug_message_op(d, 3);
         if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read) &&
             dialog_id != debug_channel_difference_dialog_) {
+          LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
         }
       } else {
@@ -24296,7 +24307,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   bool had_unread_counter = need_unread_counter(d->order);
   bool has_unread_counter = need_unread_counter(new_order);
 
-  if (!is_loaded_from_database && had_unread_counter != has_unread_counter) {
+  if (!is_loaded_from_database && had_unread_counter != has_unread_counter && !td_->auth_manager_->is_bot()) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     const char *change_source = had_unread_counter ? "on_dialog_leave" : "on_dialog_join";
     if (unread_count != 0 && is_message_unread_count_inited_) {
@@ -24336,6 +24347,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     auto dialog_type = dialog_id.get_type();
     if (dialog_type == DialogType::Channel && has_unread_counter && being_added_dialog_id_ != dialog_id) {
       repair_channel_server_unread_count(d);
+      LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
     if (dialog_type == DialogType::Channel && !has_unread_counter) {
