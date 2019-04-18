@@ -1710,6 +1710,11 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
                                                   bool is_changed) {
   LOG(INFO) << "Receive sticker set " << to_string(set);
 
+  if (sticker_set_id == GREAT_MINDS_SET_ID && set->set_->id_ == GREAT_MINDS_COLOR_SET_ID) {
+    set->set_->id_ = GREAT_MINDS_SET_ID;
+    set->set_->short_name_ = "TelegramGreatMinds";
+  }
+
   auto set_id = on_get_sticker_set(std::move(set->set_), is_changed);
   if (set_id == 0) {
     return;

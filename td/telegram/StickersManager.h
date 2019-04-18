@@ -244,6 +244,7 @@ class StickersManager : public Actor {
   static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
 
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
+  static constexpr int64 GREAT_MINDS_COLOR_SET_ID = 151353307481243663;
 
   class Sticker {
    public:
