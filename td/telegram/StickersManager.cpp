@@ -502,6 +502,7 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
 class GetStickerSetQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 sticker_set_id_;
+  string sticker_set_name_;
 
  public:
   explicit GetStickerSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -509,6 +510,10 @@ class GetStickerSetQuery : public Td::ResultHandler {
 
   void send(int64 sticker_set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
     sticker_set_id_ = sticker_set_id;
+    if (input_sticker_set->get_id() == telegram_api::inputStickerSetShortName::ID) {
+      sticker_set_name_ =
+          static_cast<const telegram_api::inputStickerSetShortName *>(input_sticker_set.get())->short_name_;
+    }
     LOG(INFO) << "Load sticker set " << sticker_set_id << " from server: " << to_string(input_sticker_set);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_getStickerSet(std::move(input_sticker_set)))));
@@ -520,9 +525,19 @@ class GetStickerSetQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    //    LOG(DEBUG) << "Receive result for get sticker set " << to_string(ptr);
-    td->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(ptr), true);
+    auto set = result_ptr.move_as_ok();
+
+    constexpr int64 GREAT_MINDS_COLOR_SET_ID = 151353307481243663;
+    if (set->set_->id_ == GREAT_MINDS_COLOR_SET_ID) {
+      string great_minds_name = "TelegramGreatMinds";
+      if (sticker_set_id_ == StickersManager::GREAT_MINDS_SET_ID ||
+          trim(to_lower(sticker_set_name_)) == to_lower(great_minds_name)) {
+        set->set_->id_ = StickersManager::GREAT_MINDS_SET_ID;
+        set->set_->short_name_ = std::move(great_minds_name);
+      }
+    }
+
+    td->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set), true);
 
     promise_.set_value(Unit());
   }
@@ -1710,11 +1725,6 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
                                                   bool is_changed) {
   LOG(INFO) << "Receive sticker set " << to_string(set);
 
-  if (sticker_set_id == GREAT_MINDS_SET_ID && set->set_->id_ == GREAT_MINDS_COLOR_SET_ID) {
-    set->set_->id_ = GREAT_MINDS_SET_ID;
-    set->set_->short_name_ = "TelegramGreatMinds";
-  }
-
   auto set_id = on_get_sticker_set(std::move(set->set_), is_changed);
   if (set_id == 0) {
     return;
@@ -2689,8 +2699,7 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
     CHECK(!sticker_set->load_without_stickers_requests.empty());
   }
   if (value.empty()) {
-    reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
-    return;
+    return reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
   LOG(INFO) << "Successfully loaded sticker set " << sticker_set_id << " with" << (with_stickers ? "" : "out")
