@@ -6669,7 +6669,8 @@ void MessagesManager::after_get_difference() {
   vector<FullMessageId> update_message_ids_to_delete;
   for (auto &it : update_message_ids_) {
     // this is impossible for ordinary chats because updates coming during getDifference have already been applied
-    auto dialog_id = it.first.get_dialog_id();
+    auto full_message_id = it.first;
+    auto dialog_id = full_message_id.get_dialog_id();
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
         // get channel difference may prevent updates from being applied
@@ -6678,7 +6679,7 @@ void MessagesManager::after_get_difference() {
         }
       // fallthrough
       case DialogType::User:
-      case DialogType::Chat:
+      case DialogType::Chat: {
         if (!have_message({dialog_id, it.second}, "after get difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
           // The sent message may never be received, but we will need updateMessageId in case the message is received
@@ -6692,21 +6693,29 @@ void MessagesManager::after_get_difference() {
           break;
         }
 
-        LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << it.first
-                   << " but not receive corresponding message";
+        const Dialog *d = get_dialog(dialog_id);
+        CHECK(d != nullptr);
+        LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << full_message_id
+                   << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
         if (dialog_id.get_type() != DialogType::Channel) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
-        get_message_from_server(
-            it.first, PromiseCreator::lambda([this, full_message_id = it.first](Result<Unit> result) {
-              if (result.is_error()) {
-                LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
-              } else {
-                LOG(WARNING) << "Successfully get missing " << full_message_id << ": "
-                             << to_string(get_message_object(full_message_id));
-              }
-            }));
+        if (full_message_id.get_message_id().get() <= d->last_new_message_id.get()) {
+          get_message_from_server(it.first, PromiseCreator::lambda([this, full_message_id](Result<Unit> result) {
+                                    if (result.is_error()) {
+                                      LOG(WARNING)
+                                          << "Failed to get missing " << full_message_id << ": " << result.error();
+                                    } else {
+                                      LOG(WARNING) << "Successfully get missing " << full_message_id << ": "
+                                                   << to_string(get_message_object(full_message_id));
+                                    }
+                                  }));
+        } else if (dialog_id.get_type() == DialogType::Channel) {
+          LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
+          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        }
         break;
+      }
       case DialogType::SecretChat:
         break;
       case DialogType::None:
