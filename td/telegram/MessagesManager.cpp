@@ -22420,6 +22420,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                group_info.group_id, m->notification_id, create_new_message_notification(m->message_id));
           }
         }
+        if (is_changed && m->message_id == d->pinned_message_id &&
+            d->pinned_message_notification_message_id.is_valid() && d->mention_notification_group.group_id.is_valid()) {
+          auto pinned_message = get_message_force(d, d->pinned_message_notification_message_id, "after update_message");
+          if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
+              is_message_notification_active(d, pinned_message)) {
+            send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
+                               d->mention_notification_group.group_id, pinned_message->notification_id,
+                               create_new_message_notification(pinned_message->message_id));
+          }
+        }
         update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
         update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
       }
