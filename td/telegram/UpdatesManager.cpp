@@ -187,50 +187,9 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
   CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
 
-  LOG(WARNING) << "Filling gap in " << source << " by running getDifference. " << updates_manager->get_state();
+  LOG(WARNING) << "Filling gap in " << source << " by running getDifference";
 
   updates_manager->get_difference("fill_gap");
-}
-
-string UpdatesManager::get_state() const {
-  char buff[1024];
-  StringBuilder sb(MutableSlice{buff, sizeof(buff)});
-  sb << "UpdatesManager is in state ";
-  switch (state_.type) {
-    case State::Type::General:
-      sb << "General";
-      break;
-    case State::Type::RunningGetUpdatesState:
-      sb << "RunningGetUpdatesState";
-      break;
-    case State::Type::RunningGetDifference:
-      sb << "RunningGetDifference";
-      break;
-    case State::Type::ApplyingDifference:
-      sb << "ApplyingDifference";
-      break;
-    case State::Type::ApplyingDifferenceSlice:
-      sb << "ApplyingDifferenceSlice";
-      break;
-    case State::Type::ApplyingUpdates:
-      sb << "ApplyingUpdates";
-      break;
-    case State::Type::ApplyingSeqUpdates:
-      sb << "ApplyingSeqUpdates";
-      break;
-    default:
-      UNREACHABLE();
-  }
-  sb << " with pts = " << state_.pts << ", qts = " << state_.qts << " and date = " << state_.date;
-  CHECK(!sb.is_error());
-  return sb.as_cslice().str();
-}
-
-void UpdatesManager::set_state(State::Type type) {
-  state_.type = type;
-  state_.pts = get_pts();
-  state_.qts = qts_;
-  state_.date = date_;
 }
 
 void UpdatesManager::get_difference(const char *source) {
@@ -255,8 +214,6 @@ void UpdatesManager::get_difference(const char *source) {
 
   td_->create_handler<GetDifferenceQuery>()->send();
   last_get_difference_pts_ = get_pts();
-
-  set_state(State::Type::RunningGetDifference);
 }
 
 void UpdatesManager::before_get_difference(bool is_initial) {
@@ -302,7 +259,7 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
   Promise<> result;
   if (pts > get_pts() || (0 < pts && pts < get_pts() - 399999)) {  // pts can only go up or drop cardinally
     if (pts < get_pts() - 399999) {
-      LOG(WARNING) << "Pts decreases from " << get_pts() << " to " << pts << " from " << source << ". " << get_state();
+      LOG(WARNING) << "Pts decreases from " << get_pts() << " to " << pts << " from " << source;
     } else {
       LOG(INFO) << "Update pts from " << get_pts() << " to " << pts << " from " << source;
     }
@@ -313,8 +270,7 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
       schedule_get_difference("set_pts");
     }
   } else if (pts < get_pts()) {
-    LOG(ERROR) << "Receive wrong pts = " << pts << " from " << source << ". Current pts = " << get_pts() << ". "
-               << get_state();
+    LOG(ERROR) << "Receive wrong pts = " << pts << " from " << source << ". Current pts = " << get_pts();
   }
   return result;
 }
@@ -326,7 +282,7 @@ void UpdatesManager::set_qts(int32 qts) {
     qts_ = qts;
     G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
   } else if (qts < qts_) {
-    LOG(ERROR) << "Receive wrong qts = " << qts << ". Current qts = " << qts_ << ". " << get_state();
+    LOG(ERROR) << "Receive wrong qts = " << qts << ". Current qts = " << qts_;
   }
 }
 
@@ -362,7 +318,7 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
       }
     }
     LOG(ERROR) << "Receive wrong by " << (date_ - date) << " date = " << date << " from " << date_source
-               << ". Current date = " << date_ << " from " << date_source_ << ". " << get_state();
+               << ". Current date = " << date_ << " from " << date_source_;
   }
 }
 
@@ -919,8 +875,6 @@ void UpdatesManager::init_state() {
       before_get_difference(true);
 
       td_->create_handler<GetUpdatesStateQuery>()->send();
-
-      set_state(State::Type::RunningGetUpdatesState);
     }
     return;
   }
@@ -1014,8 +968,6 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.difference");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.difference");
 
-      set_state(State::Type::ApplyingDifference);
-
       process_get_difference_updates(std::move(difference->new_messages_),
                                      std::move(difference->new_encrypted_messages_), difference->state_->qts_,
                                      std::move(difference->other_updates_));
@@ -1038,8 +990,6 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
                            << difference->chats_.size() << " chats";
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.differenceSlice");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.differenceSlice");
-
-      set_state(State::Type::ApplyingDifferenceSlice);
 
       process_get_difference_updates(std::move(difference->new_messages_),
                                      std::move(difference->new_encrypted_messages_),
@@ -1073,7 +1023,6 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
 void UpdatesManager::after_get_difference() {
   CHECK(!running_get_difference_);
   send_closure(td_->secret_chats_manager_, &SecretChatsManager::after_get_difference);
-  auto saved_state = state_;
 
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
@@ -1102,8 +1051,6 @@ void UpdatesManager::after_get_difference() {
     VLOG(get_difference) << "Finish to apply postponed updates";
   }
 
-  state_ = saved_state;
-
   td_->animations_manager_->after_get_difference();
   td_->contacts_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
@@ -1111,8 +1058,6 @@ void UpdatesManager::after_get_difference() {
   td_->stickers_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
-
-  set_state(State::Type::General);
 }
 
 void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin,
@@ -1186,8 +1131,6 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     }
   }
 
-  set_state(State::Type::ApplyingUpdates);
-
   if (date > 0 && updates.size() == 1 && updates[0] != nullptr &&
       updates[0]->get_id() == telegram_api::updateReadHistoryOutbox::ID) {
     auto update = static_cast<const telegram_api::updateReadHistoryOutbox *>(updates[0].get());
@@ -1242,8 +1185,6 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     postponed_updates_.emplace(seq_begin, PendingUpdates(seq_begin, seq_end, date, std::move(updates)));
     return;
   }
-
-  set_state(State::Type::General);
 
   if (processed_updates == updates.size()) {
     if (seq_begin || seq_end) {
@@ -1327,8 +1268,6 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
 
 void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
                                          vector<tl_object_ptr<telegram_api::Update>> &&updates) {
-  set_state(State::Type::ApplyingSeqUpdates);
-
   string serialized_updates = PSTRING() << "process_seq_updates [seq_ = " << seq_ << ", seq_end = " << seq_end << "]: ";
   // TODO remove after bugs will be fixed
   for (auto &update : updates) {
@@ -1342,10 +1281,6 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
   }
   if (date && seq_end) {
     set_date(date, true, std::move(serialized_updates));
-  }
-
-  if (!running_get_difference_) {
-    set_state(State::Type::General);
   }
 }
 

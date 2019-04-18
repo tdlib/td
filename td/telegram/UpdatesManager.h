@@ -67,8 +67,6 @@ class UpdatesManager : public Actor {
     return date_;
   }
 
-  string get_state() const;  // for debug purposes only
-
   Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
 
   void set_qts(int32 qts);
@@ -119,27 +117,6 @@ class UpdatesManager : public Actor {
 
   bool running_get_difference_ = false;
   int32 last_get_difference_pts_ = 0;
-
-  class State {
-   public:
-    enum class Type : int32 {
-      General,
-      RunningGetUpdatesState,
-      RunningGetDifference,
-      ApplyingDifference,
-      ApplyingDifferenceSlice,
-      ApplyingUpdates,
-      ApplyingSeqUpdates
-    };
-    Type type = Type::General;
-    int32 pts = -1;
-    int32 qts = -1;
-    int32 date = -1;
-  };
-
-  State state_;  // for debug purposes only
-
-  void set_state(State::Type type);  // for debug purposes only
 
   void tear_down() override;
 

@@ -6688,7 +6688,7 @@ void MessagesManager::after_get_difference() {
         }
 
         LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << it.first
-                   << " but not receive corresponding message. " << td_->updates_manager_->get_state();
+                   << " but not receive corresponding message";
         if (dialog_id.get_type() != DialogType::Channel) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
@@ -8347,7 +8347,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
                      dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
         << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
         << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
-        << ". Possible only for deleted incoming message. " << td_->updates_manager_->get_state();
+        << ". Possible only for deleted incoming message";
 
     if (dialog_id.get_type() == DialogType::SecretChat) {
       ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
@@ -8413,8 +8413,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
     LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id.get() > d->last_new_message_id.get() &&
                      dialog_id.get_type() != DialogType::Channel)
         << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id << " with last new "
-        << d->last_new_message_id << ". Possible only for deleted outgoing message. "
-        << td_->updates_manager_->get_state();
+        << d->last_new_message_id << ". Possible only for deleted outgoing message";
 
     if (dialog_id.get_type() == DialogType::SecretChat) {
       double server_time = Time::now();
@@ -19830,8 +19829,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
     LOG(ERROR) << "Result from sendMessage for " << new_message_id << " with random_id " << random_id << " sent at "
-               << date << " comes from " << source << " after updateNewMessageId, but was not discarded by pts. "
-               << td_->updates_manager_->get_state();
+               << date << " comes from " << source << " after updateNewMessageId, but was not discarded by pts";
     if (debug_being_sent_messages_.count(random_id) == 0) {
       LOG(ERROR) << "Message with random_id " << random_id << " was mot sent";
       return {};
@@ -19856,7 +19854,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
                << (m->forward_info == nullptr ? " not" : "") << " forwarded " << new_message_id
                << " with content of the type " << m->content->get_type() << " in " << dialog_id
                << " comes after updateNewMessageId, current last new is " << d->last_new_message_id << ", last is "
-               << d->last_message_id << ". " << td_->updates_manager_->get_state();
+               << d->last_message_id;
     return {};
   }
 
@@ -22373,8 +22371,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
                      << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
                      << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
-                     << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id << ". "
-                     << td_->updates_manager_->get_state();
+                     << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id;
           dump_debug_message_op(d, 1);
         }
       }
