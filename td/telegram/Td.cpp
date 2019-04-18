@@ -3031,7 +3031,7 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     return;
   }
   if (alarm_id == TERMS_OF_SERVICE_ALARM_ID) {
-    if (!close_flag_) {
+    if (!close_flag_ && !auth_manager_->is_bot()) {
       get_terms_of_service(
           this, PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
             send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
