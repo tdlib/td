@@ -509,7 +509,7 @@ Result<string> TdDb::get_stats() {
   TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM dialogs WHERE 1", "dialogs"));
   TRY_STATUS(run_kv_query("%", "common"));
   TRY_STATUS(run_kv_query("%", "files"));
-  TRY_STATUS(run_kv_query("%wp"));
+  TRY_STATUS(run_kv_query("wp%"));
   TRY_STATUS(run_kv_query("wpurl%"));
   TRY_STATUS(run_kv_query("wpiv%"));
   TRY_STATUS(run_kv_query("us%"));
