@@ -23872,18 +23872,21 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
   }
   if (d->pinned_message_notification_message_id.is_valid()) {
-    auto &pinned_message_id = d->pinned_message_notification_message_id;
+    auto pinned_message_id = d->pinned_message_notification_message_id;
     if (!d->mention_notification_group.group_id.is_valid()) {
       LOG(ERROR) << "Have pinned message notification in " << pinned_message_id << " in " << dialog_id
                  << ", but there is no mention notification group";
-      pinned_message_id = MessageId();
+      d->pinned_message_notification_message_id = MessageId();
       on_dialog_updated(d->dialog_id, "fix pinned message notification");
     } else if (is_dialog_pinned_message_notifications_disabled(d) ||
                pinned_message_id.get() <= d->last_read_inbox_message_id.get() ||
                pinned_message_id.get() <= d->mention_notification_group.max_removed_message_id.get()) {
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
-      remove_dialog_pinned_message_notification(d);
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+                         d->mention_notification_group.group_id, pinned_message_id, false);
+      d->pinned_message_notification_message_id = MessageId();
+      on_dialog_updated(d->dialog_id, "fix pinned message notification 2");
     }
   }
   if (d->new_secret_chat_notification_id.is_valid()) {

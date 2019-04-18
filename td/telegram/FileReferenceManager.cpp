@@ -177,7 +177,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
     VLOG(file_references) << "Have no more file sources to repair file reference for file " << node_id;
     for (auto &p : node.query->promises) {
       if (node.file_source_ids.empty()) {
-        p.set_error(Status::Error(400, "File not found"));
+        p.set_error(Status::Error(400, "File source is not found"));
       } else {
         p.set_error(Status::Error(429, "Too Many Requests: retry after 1"));
       }
