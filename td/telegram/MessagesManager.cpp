@@ -24893,7 +24893,7 @@ void MessagesManager::on_get_channel_difference(
       }
 
       auto new_pts = difference->pts_;
-      if (request_pts >= new_pts) {
+      if (request_pts >= new_pts && request_pts > 1) {
         LOG(ERROR) << "Receive channelDifference as result of getChannelDifference with pts = " << request_pts
                    << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
                    << " to " << new_pts << ". Difference: " << oneline(to_string(difference));
