@@ -22276,7 +22276,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                      << " " << to_string(get_message_object(dialog_id, message.get()));
         }
         dump_debug_message_op(d, 3);
-        if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
+        if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read) &&
+            dialog_id != debug_channel_difference_dialog_) {
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
         }
       } else {
