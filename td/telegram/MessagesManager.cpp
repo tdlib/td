@@ -9969,7 +9969,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     if (!from_update) {
       LOG_IF(ERROR, message_id.get() <= d->last_new_message_id.get())
-          << "New " << message_id << " has id less than last_new_message_id = " << d->last_new_message_id;
+          << "New " << message_id << " in " << dialog_id << " from " << source
+          << " has id less than last_new_message_id = " << d->last_new_message_id;
       LOG(ERROR) << "Ignore " << it->second << "/" << message_id << " received not through update from " << source
                  << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
       dump_debug_message_op(d, 3);                                                                 // TODO remove
@@ -10130,7 +10131,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
     }
     if (!to_delete_message_ids.empty()) {
       LOG(ERROR) << "Delete " << format::as_array(to_delete_message_ids) << " because of received last new "
-                 << last_new_message_id << " in " << d->dialog_id;
+                 << last_new_message_id << " in " << d->dialog_id << " from " << source;
 
       vector<int64> deleted_message_ids;
       bool need_update_dialog_pos = false;
@@ -23250,8 +23251,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         is_changed = true;
       }
     } else {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong edit date "
-                 << new_message->edit_date << ", old edit date = " << old_message->edit_date;
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " of type " << old_message->content->get_type()
+                 << "/" << new_message->content->get_type() << " with wrong edit date " << new_message->edit_date
+                 << ", old edit date = " << old_message->edit_date;
     }
   }
 
