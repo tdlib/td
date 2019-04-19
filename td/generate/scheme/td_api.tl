@@ -1364,7 +1364,7 @@ textEntityTypePhoneNumber = TextEntityType;
 
 
 //@description A thumbnail to be sent along with a file; should be in JPEG or WEBP format for stickers, and less than 200 kB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
-//@width Thumbnail width, usually shouldn't exceed 90. Use 0 if unknown @height Thumbnail height, usually shouldn't exceed 90. Use 0 if unknown
+//@width Thumbnail width, usually shouldn't exceed 320. Use 0 if unknown @height Thumbnail height, usually shouldn't exceed 320. Use 0 if unknown
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 
