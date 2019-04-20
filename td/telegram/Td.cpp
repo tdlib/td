@@ -6444,6 +6444,8 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   CLEAN_INPUT_STRING(request.name_);
   int32 value_constructor_id = request.value_ == nullptr ? td_api::optionValueEmpty::ID : request.value_->get_id();
 
+  LOG(INFO) << "Set option " << request.name_;
+
   auto set_integer_option = [&](Slice name, int32 min = 0, int32 max = std::numeric_limits<int32>::max()) {
     if (request.name_ != name) {
       return false;
@@ -6522,6 +6524,12 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (!is_bot && set_boolean_option("disable_top_chats")) {
+        return;
+      }
+      if (request.name_ == "drop_notification_ids") {
+        G()->td_db()->get_binlog_pmc()->erase("notification_id_current");
+        G()->td_db()->get_binlog_pmc()->erase("notification_group_id_current");
+        send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
         return;
       }
       break;

@@ -227,6 +227,8 @@ void NotificationManager::init() {
   current_notification_group_id_ =
       NotificationGroupId(to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("notification_group_id_current")));
 
+  VLOG(notifications) << "Loaded current " << current_notification_id_ << " and " << current_notification_group_id_;
+
   on_notification_group_count_max_changed(false);
   on_notification_group_size_max_changed();
 
