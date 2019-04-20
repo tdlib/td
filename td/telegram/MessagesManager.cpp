@@ -3295,7 +3295,8 @@ class GetStatsUrlQuery : public Td::ResultHandler {
   explicit GetStatsUrlQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &parameters) {
+  void send(DialogId dialog_id, const string &parameters, bool is_dark) {
+    // TODO use parameters and is_dark
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
@@ -6278,7 +6279,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   on_dialog_updated(dialog_id, "can_report_spam");
 }
 
-void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters,
+void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters, bool is_dark,
                                                 Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -6292,7 +6293,7 @@ void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string
     return promise.set_error(Status::Error(500, "There is no statistics for secret chats"));
   }
 
-  td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters);
+  td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
 }
 
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {

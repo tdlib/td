@@ -3548,9 +3548,11 @@ class CliClient final : public Actor {
     } else if (op == "gcsu") {
       string chat_id;
       string parameters;
-      std::tie(chat_id, parameters) = split(args);
+      string is_dark;
+      std::tie(chat_id, args) = split(args);
+      std::tie(parameters, is_dark) = split(args);
 
-      send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(args), parameters));
+      send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(args), parameters, as_bool(is_dark)));
     } else if (op == "rsgs" || op == "rchs") {
       string supergroup_id;
       string user_id;

@@ -6293,7 +6293,8 @@ void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.parameters_);
-  messages_manager_->get_dialog_statistics_url(DialogId(request.chat_id_), request.parameters_, std::move(promise));
+  messages_manager_->get_dialog_statistics_url(DialogId(request.chat_id_), request.parameters_, request.is_dark_,
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
