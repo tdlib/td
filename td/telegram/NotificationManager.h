@@ -292,7 +292,7 @@ class NotificationManager : public Actor {
 
   static string convert_loc_key(const string &loc_key);
 
-  Status process_push_notification_payload(string payload, Promise<Unit> &promise);
+  Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
                                      string sender_name, int32 date, bool contains_mention, bool is_silent,

@@ -2632,6 +2632,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
                       << "\" with receiver_id = " << receiver_id;
 
   auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
+  bool was_encrypted = false;
   for (auto &key : encryption_keys) {
     // VLOG(notifications) << "Have key " << key.first << ": \"" << format::escaped(key.second) << '"';
     if (key.first == receiver_id) {
@@ -2642,6 +2643,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
           return promise.set_error(Status::Error(400, "Failed to decrypt push payload"));
         }
         payload = r_payload.move_as_ok();
+        was_encrypted = true;
       }
       receiver_id = 0;
       break;
@@ -2654,7 +2656,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   }
 
   if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
-    auto status = process_push_notification_payload(payload, promise);
+    auto status = process_push_notification_payload(payload, was_encrypted, promise);
     if (status.is_error()) {
       if (status.code() == 406 || status.code() == 200) {
         return promise.set_error(std::move(status));
@@ -2868,7 +2870,8 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
   return string();
 }
 
-Status NotificationManager::process_push_notification_payload(string payload, Promise<Unit> &promise) {
+Status NotificationManager::process_push_notification_payload(string payload, bool was_encrypted,
+                                                              Promise<Unit> &promise) {
   VLOG(notifications) << "Process push notification payload " << payload;
   auto r_json_value = json_decode(payload);
   if (r_json_value.is_error()) {
@@ -2977,6 +2980,15 @@ Status NotificationManager::process_push_notification_payload(string payload, Pr
     }
     send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id), std::move(addr),
                  std::move(promise));
+    return Status::OK();
+  }
+
+  if (loc_key == "SESSION_REVOKE") {
+    if (was_encrypted) {
+      send_closure(td_->auth_manager_actor_, &AuthManager::on_authorization_lost);
+    } else {
+      LOG(ERROR) << "Receive unencrypted SESSION_REVOKE push notification";
+    }
     return Status::OK();
   }
 
