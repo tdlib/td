@@ -4035,7 +4035,7 @@ Status Td::init(DbKey key) {
     G()->shared_config().set_option_integer("message_text_length_max", 4096);
   }
   if (!G()->shared_config().have_option("message_caption_length_max")) {
-    G()->shared_config().set_option_integer("message_caption_length_max", 200);
+    G()->shared_config().set_option_integer("message_caption_length_max", 1024);
   }
 
   VLOG(td_init) << "Create ConnectionCreator";
