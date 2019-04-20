@@ -293,9 +293,9 @@ void AuthManager::logout(uint64 query_id) {
   }
   on_new_query(query_id);
   if (state_ != State::Ok) {
-    update_state(State::LoggingOut);
     // TODO: could skip full logout if still no authorization
     // TODO: send auth.cancelCode if state_ == State::WaitCode
+    destroy_auth_keys();
     on_query_ok();
   } else {
     LOG(INFO) << "Logging out";
