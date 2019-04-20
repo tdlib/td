@@ -22422,8 +22422,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
         auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if (m->message_id.is_server() &&
-              (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
+          if (need_delete_message_files(d, m)) {
             for (auto file_id : old_file_ids) {
               if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end()) {
                 send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
@@ -23089,8 +23088,19 @@ void MessagesManager::delete_message_files(const Message *m) const {
   }
 }
 
+bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) {
+  CHECK(d != nullptr);
+  if (m == nullptr || !m->message_id.is_server()) {
+    return false;
+  }
+
+  auto dialog_type = d->dialog_id.get_type();
+  return dialog_type == DialogType::User || dialog_type == DialogType::SecretChat;
+}
+
 void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
                                                    bool is_permanently_deleted) {
+  CHECK(d != nullptr);
   if (!message_id.is_valid()) {
     return;
   }
@@ -23124,9 +23134,8 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
                        d->mention_notification_group.group_id, message_id, false, "delete_message_from_database");
   }
 
-  auto need_delete_message_files = m != nullptr && (d->dialog_id.get_type() == DialogType::User ||
-                                                    d->dialog_id.get_type() == DialogType::SecretChat);
-  if (need_delete_message_files) {
+  auto need_delete_files = need_delete_message_files(d, m);
+  if (need_delete_files) {
     delete_message_files(m);
   }
 
@@ -23138,7 +23147,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   logevent.full_message_id_ = {d->dialog_id, message_id};
 
-  if (need_delete_message_files) {
+  if (need_delete_files) {
     logevent.file_ids_ = get_message_file_ids(m);
   }
 

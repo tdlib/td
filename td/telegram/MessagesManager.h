@@ -1556,6 +1556,8 @@ class MessagesManager : public Actor {
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 
+  bool need_delete_message_files(Dialog *d, const Message *m);
+
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
   void delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id, const char *source);
