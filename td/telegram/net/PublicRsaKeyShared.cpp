@@ -6,6 +6,7 @@
 //
 #include "td/telegram/net/PublicRsaKeyShared.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -118,7 +119,7 @@ Result<std::pair<RSA, int64>> PublicRsaKeyShared::get_rsa(const vector<int64> &f
       return std::make_pair(rsa->clone(), fingerprint);
     }
   }
-  return Status::Error("Unknown fingerprints");
+  return Status::Error(PSLICE() << "Unknown fingerprints " << format::as_array(fingerprints));
 }
 
 void PublicRsaKeyShared::drop_keys() {
