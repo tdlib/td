@@ -23094,6 +23094,15 @@ bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) {
     return false;
   }
 
+  if (m->forward_info != nullptr && m->forward_info->from_dialog_id.is_valid() &&
+      m->forward_info->from_message_id.is_valid()) {
+    const Message *old_m = get_message_force({m->forward_info->from_dialog_id, m->forward_info->from_message_id},
+                                             "need_delete_message_files");
+    if (old_m != nullptr && get_message_file_ids(old_m) == get_message_file_ids(m)) {
+      return false;
+    }
+  }
+
   auto dialog_type = d->dialog_id.get_type();
   return dialog_type == DialogType::User || dialog_type == DialogType::SecretChat;
 }
@@ -23601,6 +23610,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
       }
     }
 
+    LOG(INFO) << "Can't find the chat by " << message_id;
     return nullptr;
   }
 
