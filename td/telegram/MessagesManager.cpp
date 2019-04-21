@@ -24846,6 +24846,9 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
 
   // TODO properly support last_message_id.get() <= d->last_new_message_id.get()
   if (last_message_id.get() > d->last_new_message_id.get()) {  // if last message is really a new message
+    if (!d->last_new_message_id.is_valid() && last_message_id.get() <= max_added_message_id.get()) {
+      set_dialog_last_new_message_id(d, last_message_id, "on_get_channel_dialog 15");  // remove too new messages
+    }
     d->last_new_message_id = MessageId();
     set_dialog_last_message_id(d, MessageId(), "on_get_channel_dialog 20");
     send_update_chat_last_message(d, "on_get_channel_dialog 30");
