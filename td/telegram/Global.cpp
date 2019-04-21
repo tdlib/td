@@ -115,6 +115,11 @@ DcId Global::get_webfile_dc_id() const {
   return DcId::internal(dc_id);
 }
 
+bool Global::ignore_backgrond_updates() const {
+  return !parameters_.use_file_db && !parameters_.use_secret_chats &&
+         shared_config_->get_option_boolean("ignore_background_updates");
+}
+
 void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
   net_query_dispatcher_ = std::move(net_query_dispatcher);
 }

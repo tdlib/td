@@ -243,7 +243,7 @@ void UpdatesManager::on_pts_ack(PtsManager::PtsId ack_token) {
 void UpdatesManager::save_pts(int32 pts) {
   if (pts == std::numeric_limits<int32>::max()) {
     G()->td_db()->get_binlog_pmc()->erase("updates.pts");
-  } else {
+  } else if (!G()->ignore_backgrond_updates()) {
     G()->td_db()->get_binlog_pmc()->set("updates.pts", to_string(pts));
   }
 }
@@ -280,7 +280,9 @@ void UpdatesManager::set_qts(int32 qts) {
     LOG(INFO) << "Update qts to " << qts;
 
     qts_ = qts;
-    G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
+    if (!G()->ignore_backgrond_updates()) {
+      G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
+    }
   } else if (qts < qts_) {
     LOG(ERROR) << "Receive wrong qts = " << qts << ". Current qts = " << qts_;
   }
@@ -308,7 +310,9 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
 
     date_ = date;
     date_source_ = std::move(date_source);
-    G()->td_db()->get_binlog_pmc()->set("updates.date", to_string(date));
+    if (!G()->ignore_backgrond_updates()) {
+      G()->td_db()->get_binlog_pmc()->set("updates.date", to_string(date));
+    }
   } else if (date < date_) {
     if (from_update) {
       date++;
@@ -867,6 +871,12 @@ void UpdatesManager::init_state() {
   }
 
   auto pmc = G()->td_db()->get_binlog_pmc();
+  if (G()->ignore_backgrond_updates()) {
+    // just in case
+    pmc->erase("updates.pts");
+    pmc->erase("updates.qts");
+    pmc->erase("updates.date");
+  }
   string pts_str = pmc->get("updates.pts");
   if (pts_str.empty()) {
     if (!running_get_difference_) {

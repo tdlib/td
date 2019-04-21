@@ -6537,6 +6537,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (set_boolean_option("ignore_inline_thumbnails")) {
         return;
       }
+      if (set_boolean_option("ignore_background_updates")) {
+        return;
+      }
       if (set_boolean_option("is_emulator")) {
         return;
       }

@@ -24597,6 +24597,10 @@ string MessagesManager::get_channel_pts_key(DialogId dialog_id) {
 }
 
 int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {
+  if (G()->ignore_backgrond_updates()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));  // just in case
+    return 0;
+  }
   auto pts = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get(get_channel_pts_key(dialog_id)));
   LOG(INFO) << "Load " << dialog_id << " pts = " << pts;
   return pts;
@@ -24628,7 +24632,9 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
     }
 
     d->pts = new_pts;
-    G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
+    if (!G()->ignore_backgrond_updates()) {
+      G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
+    }
   } else if (new_pts < d->pts) {
     LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << " . Current pts is " << d->pts;
   }
