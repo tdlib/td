@@ -22396,11 +22396,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (*need_update) {
         *need_update = false;
         if (!G()->parameters().use_message_db) {
-          LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
-                     << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
-                     << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
-                     << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id;
-          dump_debug_message_op(d, 1);
+          // can happen for bots if the message is received first through getMessage in an unknown chat without
+          // last_new_message_id and only after that received through getDifference or getChannelDifference
+          if (last_new_message_id.is_valid()) {
+            LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
+                       << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
+                       << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
+                       << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id;
+            dump_debug_message_op(d, 1);
+          }
         }
       }
       if (auto_attach) {
@@ -24846,7 +24850,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
 
   // TODO properly support last_message_id.get() <= d->last_new_message_id.get()
   if (last_message_id.get() > d->last_new_message_id.get()) {  // if last message is really a new message
-    if (!d->last_new_message_id.is_valid() && last_message_id.get() <= max_added_message_id.get()) {
+    if (!d->last_new_message_id.is_valid() && last_message_id.get() <= d->max_added_message_id.get()) {
       set_dialog_last_new_message_id(d, last_message_id, "on_get_channel_dialog 15");  // remove too new messages
     }
     d->last_new_message_id = MessageId();
