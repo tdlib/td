@@ -2260,8 +2260,8 @@ storageStatisticsByChat chat_id:int53 size:int53 count:int32 by_file_type:vector
 //@description Contains the exact storage usage statistics split by chats and file type @size Total size of files @count Total number of files @by_chat Statistics split by chats
 storageStatistics size:int53 count:int32 by_chat:vector<storageStatisticsByChat> = StorageStatistics;
 
-//@description Contains approximate storage usage statistics, excluding files of unknown file type @files_size Approximate total size of files @file_count Approximate number of files @database_size Size of the database
-storageStatisticsFast files_size:int53 file_count:int32 database_size:int53 = StorageStatisticsFast;
+//@description Contains approximate storage usage statistics, excluding files of unknown file type @files_size Approximate total size of files @file_count Approximate number of files @database_size Size of the database @log_size Size of the TDLib interna log
+storageStatisticsFast files_size:int53 file_count:int32 database_size:int53 log_size:int53 = StorageStatisticsFast;
 
 //@description Contains database statistics
 //@statistics Database statistics in an unspecified human-readable format

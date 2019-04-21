@@ -70,7 +70,7 @@ void StorageManager::get_storage_stats(int32 dialog_limit, Promise<FileStats> pr
 }
 
 void StorageManager::get_storage_stats_fast(Promise<FileStatsFast> promise) {
-  promise.set_value(FileStatsFast(fast_stat_.size, fast_stat_.cnt, get_db_size()));
+  promise.set_value(FileStatsFast(fast_stat_.size, fast_stat_.cnt, get_database_size(), get_log_size()));
 }
 
 void StorageManager::get_database_stats(Promise<DatabaseStats> promise) {
@@ -145,21 +145,27 @@ void StorageManager::on_all_files(Result<FileStats> r_file_stats, bool dummy) {
                }));
 }
 
-int64 StorageManager::get_db_size() {
+int64 StorageManager::get_file_size(CSlice path) {
+  auto r_info = stat(path);
+  if (r_info.is_error()) {
+    return 0;
+  }
+
+  auto size = r_info.ok().size_;
+  LOG(DEBUG) << "Add file \"" << path << "\" of size " << size << " to fast storage statistics";
+  return size;
+}
+
+int64 StorageManager::get_database_size() {
   int64 size = 0;
-  auto add_path = [&](CSlice path) {
-    TRY_RESULT(info, stat(path));
+  G()->td_db()->with_db_path([&size](CSlice path) { size += get_file_size(path); });
+  return size;
+}
 
-    LOG(DEBUG) << "Add database file \"" << path << "\" of size " << info.size_
-               << " to database storage size statistics";
-    size += info.size_;
-
-    return Status::OK();
-  };
-
-  G()->td_db()->with_db_path([&](CSlice path) { add_path(path).ignore(); });
+int64 StorageManager::get_log_size() {
+  int64 size = 0;
   for (auto &log_path : log_interface->get_file_paths()) {
-    add_path(log_path).ignore();
+    size += get_file_size(log_path);
   }
   return size;
 }

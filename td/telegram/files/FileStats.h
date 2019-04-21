@@ -55,8 +55,10 @@ struct FullFileInfo {
 struct FileStatsFast {
   int64 size{0};
   int32 count{0};
-  int64 db_size{0};
-  FileStatsFast(int64 size, int32 count, int64 db_size) : size(size), count(count), db_size(db_size) {
+  int64 database_size{0};
+  int64 log_size{0};
+  FileStatsFast(int64 size, int32 count, int64 database_size, int64 log_size)
+      : size(size), count(count), database_size(database_size), log_size(log_size) {
   }
   tl_object_ptr<td_api::storageStatisticsFast> as_td_api() const;
 };
