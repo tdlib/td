@@ -23253,7 +23253,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (new_message->date > 0) {
       LOG_IF(ERROR, !new_message->is_outgoing && dialog_id != get_my_dialog_id())
           << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
-          << " to " << new_message->date;
+          << " to " << new_message->date << ", message content type is " << old_message->content->get_type() << '/'
+          << new_message->content->get_type();
       CHECK(old_message->date > 0);
       LOG(DEBUG) << "Message date has changed from " << old_message->date << " to " << new_message->date;
       old_message->date = new_message->date;
@@ -23262,7 +23263,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       }
       is_changed = true;
     } else {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong date " << new_message->date;
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong date " << new_message->date
+                 << ", message content type is " << old_message->content->get_type() << '/'
+                 << new_message->content->get_type();
     }
   }
   bool is_edited = false;
@@ -23293,7 +23296,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     // there can be race for sent signed posts
     LOG_IF(ERROR, old_message->sender_user_id != UserId() && new_message->sender_user_id != UserId())
         << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_user_id << " to "
-        << new_message->sender_user_id;
+        << new_message->sender_user_id << ", message content type is " << old_message->content->get_type() << '/'
+        << new_message->content->get_type();
 
     LOG_IF(WARNING, new_message->sender_user_id.is_valid() || old_message->author_signature.empty())
         << "Update message sender from " << old_message->sender_user_id << " to " << new_message->sender_user_id
@@ -23344,7 +23348,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (old_message->notification_id.is_valid()) {
       if (new_message->notification_id.is_valid()) {
         LOG(ERROR) << "Notification id for " << message_id << " in " << dialog_id << " has tried to change from "
-                   << old_message->notification_id << " to " << new_message->notification_id;
+                   << old_message->notification_id << " to " << new_message->notification_id
+                   << ", message content type is " << old_message->content->get_type() << '/'
+                   << new_message->content->get_type();
       }
     } else {
       CHECK(new_message->notification_id.is_valid());
@@ -23365,14 +23371,18 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       is_changed = true;
     } else {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
-                 << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id;
+                 << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                 << ", message content type is " << old_message->content->get_type() << '/'
+                 << new_message->content->get_type();
       dump_debug_message_op(d);
     }
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
     if (!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
-                 << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id;
+                 << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id
+                 << ", message content type is " << old_message->content->get_type() << '/'
+                 << new_message->content->get_type();
     }
     LOG(DEBUG) << "Change message via_bot from " << old_message->via_bot_user_id << " to "
                << new_message->via_bot_user_id;
@@ -23381,17 +23391,20 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
   if (old_message->is_outgoing != new_message->is_outgoing) {
     LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
-               << " to " << new_message->is_outgoing;
+               << " to " << new_message->is_outgoing << ", message content type is " << old_message->content->get_type()
+               << '/' << new_message->content->get_type();
     old_message->is_outgoing = new_message->is_outgoing;
     is_changed = true;
   }
   LOG_IF(ERROR, old_message->is_channel_post != new_message->is_channel_post)
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
-      << " to " << new_message->is_channel_post;
+      << " to " << new_message->is_channel_post << ", message content type is " << old_message->content->get_type()
+      << '/' << new_message->content->get_type();
   if (old_message->contains_mention != new_message->contains_mention) {
     LOG_IF(ERROR, old_message->edit_date == 0)
         << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
-        << " to " << new_message->contains_mention << ", is_outgoing = " << old_message->is_outgoing;
+        << " to " << new_message->contains_mention << ", is_outgoing = " << old_message->is_outgoing
+        << ", message content type is " << old_message->content->get_type() << '/' << new_message->content->get_type();
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
     // old_message->contains_mention = new_message->contains_mention;
@@ -23443,8 +23456,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         auto content_type = old_message->content->get_type();
         // MessageGame and MessageInvoice reply markup can be generated server side
         if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice) {
-          LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup "
-                     << *new_message->reply_markup;
+          LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup
+                     << ", message content type is " << old_message->content->get_type() << '/'
+                     << new_message->content->get_type();
         } else {
           LOG(DEBUG) << "Add message reply keyboard";
         }
