@@ -27,6 +27,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
 #include "td/db/binlog/BinlogInterface.h"
 
 #include "td/utils/common.h"
@@ -294,6 +295,10 @@ Promise<> SecretChatsManager::add_qts(int32 qts) {
 }
 
 void SecretChatsManager::replay_binlog_event(BinlogEvent &&binlog_event) {
+  if (dummy_mode_) {
+    binlog_erase(G()->td_db()->get_binlog(), binlog_event.id_);
+    return;
+  }
   auto r_message = logevent::SecretChatEvent::from_buffer_slice(binlog_event.data_as_buffer_slice());
   LOG_IF(FATAL, r_message.is_error()) << "Failed to deserialize event: " << r_message.error();
   auto message = r_message.move_as_ok();
