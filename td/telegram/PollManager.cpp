@@ -453,12 +453,19 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
 
   auto total_voter_count = poll->total_voter_count + voter_count_diff;
   auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
-  for (auto &voter_count : voter_counts) {
+  auto voter_count_sum = 0;
+  for (auto voter_count : voter_counts) {
     if (total_voter_count < voter_count) {
       LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
-                 << voter_count;
+                 << voter_count << " in " << poll_id;
       total_voter_count = voter_count;
     }
+    voter_count_sum += voter_count;
+  }
+  if (voter_count_sum < total_voter_count) {
+    LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
+               << voter_count_sum << " in " << poll_id;
+    total_voter_count = voter_count_sum;
   }
 
   auto vote_percentage = get_vote_percentage(voter_counts, total_voter_count);
@@ -937,17 +944,17 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           option.voter_count = 0;
         }
         if (option.is_chosen && option.voter_count == 0) {
-          LOG(ERROR) << "Receive 0 voters for the chosen option";
+          LOG(ERROR) << "Receive 0 voters for the chosen option in " << poll_id;
           option.voter_count = 1;
         }
         if (option.voter_count > poll->total_voter_count) {
           LOG(ERROR) << "Have only " << poll->total_voter_count << " poll voters, but there are " << option.voter_count
-                     << " voters for an option";
+                     << " voters for an option in " << poll_id;
           poll->total_voter_count = option.voter_count;
         }
         auto max_voter_count = std::numeric_limits<int32>::max() / narrow_cast<int32>(poll->options.size()) - 2;
         if (option.voter_count > max_voter_count) {
-          LOG(ERROR) << "Have too much " << option.voter_count << " poll voters for an option";
+          LOG(ERROR) << "Have too much " << option.voter_count << " poll voters for an option in " << poll_id;
           option.voter_count = max_voter_count;
         }
         is_changed = true;
@@ -961,7 +968,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (poll->total_voter_count > max_total_voter_count && max_total_voter_count != 0) {
       LOG(ERROR) << "Have only " << max_total_voter_count << " total poll voters, but there are "
-                 << poll->total_voter_count << " voters in the poll";
+                 << poll->total_voter_count << " voters in " << poll_id;
       poll->total_voter_count = max_total_voter_count;
     }
   }
