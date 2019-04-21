@@ -23459,10 +23459,13 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
             << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
             << " to " << *new_message->reply_markup;
       } else {
-        LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
-                   << " has lost reply markup " << *old_message->reply_markup
-                   << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
-                   << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+        // if the message is not accessible anymore, then we don't need a warning
+        if (new_message->content->get_type() != MessageContentType::ChatDeleteHistory) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
+                     << " has lost reply markup " << *old_message->reply_markup
+                     << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
+                     << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+        }
       }
     }
   }
