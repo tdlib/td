@@ -7391,9 +7391,9 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         }
 
         LOG_IF(ERROR, !have_user(dialog_participant.user_id))
-            << "Have no information about " << dialog_participant.user_id;
+            << "Have no information about " << dialog_participant.user_id << " as a member of " << chat_id;
         LOG_IF(ERROR, !have_user(dialog_participant.inviter_user_id))
-            << "Have no information about " << dialog_participant.inviter_user_id;
+            << "Have no information about " << dialog_participant.inviter_user_id << " as a member of " << chat_id;
         if (dialog_participant.joined_date < c->date) {
           LOG_IF(ERROR, dialog_participant.joined_date < c->date - 30 && c->date >= 1486000000)
               << "Wrong join date = " << dialog_participant.joined_date << " for " << dialog_participant.user_id << ", "
@@ -7405,10 +7405,10 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
 
       if (new_creator_user_id.is_valid()) {
         LOG_IF(ERROR, !have_user(new_creator_user_id))
-            << "Have no information about group creator " << new_creator_user_id;
+            << "Have no information about group creator " << new_creator_user_id << " in " << chat_id;
         if (chat_full->creator_user_id.is_valid() && chat_full->creator_user_id != new_creator_user_id) {
-          LOG(ERROR) << "Group creator has changed from " << chat_full->creator_user_id << " to "
-                     << new_creator_user_id;
+          LOG(ERROR) << "Group creator has changed from " << chat_full->creator_user_id << " to " << new_creator_user_id
+                     << " in " << chat_id;
         }
       }
       if (chat_full->creator_user_id != new_creator_user_id) {
