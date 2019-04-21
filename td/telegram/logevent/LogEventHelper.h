@@ -28,7 +28,7 @@ inline Promise<Unit> get_erase_logevent_promise_impl(const char *file, int32 lin
 
   return PromiseCreator::lambda([file, line, logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
     if (!G()->close_flag()) {
-      binlog_erase(G()->td_db()->get_binlog_impl(file, line), logevent_id);
+      binlog_erase(G()->get_td_db_impl(file, line)->get_binlog_impl(file, line), logevent_id);
     }
 
     promise.set_result(std::move(result));
