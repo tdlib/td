@@ -9842,7 +9842,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   MessageId reply_to_message_id = message_info.reply_to_message_id;
   if (reply_to_message_id != MessageId() &&
       (!reply_to_message_id.is_valid() || reply_to_message_id.get() >= message_id.get())) {
-    LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id;
+    if (!reply_to_message_id.is_valid() || reply_to_message_id.get() - message_id.get() <= 2000000000) {
+      LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id;
+    }
     reply_to_message_id = MessageId();
   }
 
