@@ -1006,7 +1006,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
 
     auto status = check_local_location(data.local_.full(), data.size_);
     if (status.is_error()) {
-      LOG(WARNING) << "Invalid local location: " << status << " from " << source;
+      LOG(WARNING) << "Invalid " << data.local_.full() << ": " << status << " from " << source;
       data.local_ = LocalFileLocation();
       if (data.remote_.type() == RemoteFileLocation::Type::Partial) {
         data.remote_ = {};

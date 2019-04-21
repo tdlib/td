@@ -22398,7 +22398,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         if (!G()->parameters().use_message_db) {
           // can happen for bots if the message is received first through getMessage in an unknown chat without
           // last_new_message_id and only after that received through getDifference or getChannelDifference
-          if (last_new_message_id.is_valid()) {
+          if (d->last_new_message_id.is_valid()) {
             LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
                        << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
                        << " with content of type " << message_content_type << " in " << dialog_id << " from " << source

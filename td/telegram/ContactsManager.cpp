@@ -8300,7 +8300,7 @@ void ContactsManager::on_update_chat_rights(Chat *c, ChatId chat_id, bool is_cre
 void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
                                                        const string &debug_str) {
   if (version <= -1) {
-    LOG(ERROR) << "Receive wrong version " << version << " from " << debug_str;
+    LOG(ERROR) << "Receive wrong version " << version << " in " << chat_id << " from " << debug_str;
     return;
   }
 
@@ -8366,7 +8366,7 @@ void ContactsManager::on_update_chat_active(Chat *c, ChatId chat_id, bool is_act
 void ContactsManager::on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id) {
   if (c->migrated_to_channel_id != migrated_to_channel_id && migrated_to_channel_id.is_valid()) {
     LOG_IF(ERROR, c->migrated_to_channel_id.is_valid())
-        << "Group upgraded to supergroup has changed from " << c->migrated_to_channel_id << " to "
+        << "Upgraded supergroup ID for " << chat_id << " has changed from " << c->migrated_to_channel_id << " to "
         << migrated_to_channel_id;
     c->migrated_to_channel_id = migrated_to_channel_id;
     c->need_send_update = true;
@@ -8397,7 +8397,7 @@ bool ContactsManager::on_update_chat_full_participants_short(ChatFull *chat_full
 void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id,
                                                        vector<DialogParticipant> participants, int32 version) {
   if (version <= -1) {
-    LOG(ERROR) << "Receive members with wrong version " << version;
+    LOG(ERROR) << "Receive members with wrong version " << version << " in " << chat_id;
     return;
   }
 
