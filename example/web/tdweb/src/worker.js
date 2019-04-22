@@ -439,6 +439,8 @@ class TdClient {
       options.readOnly
     );
 
+    this.noDb = options.noDb || false;
+
     log.info('load TdModule');
     this.TdModule = await loadTdLib(mode, self.onFS);
     log.info('got TdModule');
@@ -514,6 +516,14 @@ class TdClient {
         value: this.tdfs.dbFileSystem.root + '/language'
       }
     });
+    this.send({
+      '@type': 'setOption',
+      name: 'ignore_background_updates',
+      value: {
+        '@type': 'optionValueBoolean',
+        value: !this.noDb
+      }
+    });
 
     this.flushPendingQueries();
 
@@ -540,6 +550,12 @@ class TdClient {
     if (query['@type'] === 'setTdlibParameters') {
       query.parameters.database_directory = this.tdfs.dbFileSystem.root;
       query.parameters.files_directory = this.tdfs.inboundFileSystem.root;
+
+      let useDb = !this.noDb;
+      query.parameters.use_file_database = useDb;
+      query.parameters.use_chat_info_database = useDb;
+      query.parameters.use_message_database = useDb;
+      query.parameters.use_secret_chats = useDb;
     }
     if (query['@type'] === 'getLanguagePackString') {
       query.language_pack_database_path = this.tdfs.dbFileSystem.root + '/language';
