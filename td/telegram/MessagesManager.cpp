@@ -23261,6 +23261,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = old_message->message_id;
   bool is_changed = false;
+  bool is_new_available = new_message->content->get_type() != MessageContentType::ChatDeleteHistory;
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
       LOG_IF(ERROR, !new_message->is_outgoing && dialog_id != get_my_dialog_id())
@@ -23343,7 +23344,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         old_message->forward_info = std::move(new_message->forward_info);
         is_changed = true;
       }
-    } else {
+    } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
                  << " has lost forward info " << *old_message->forward_info << ", really forwarded from "
                  << old_message->debug_forward_from << ", message content type is " << old_message->content->get_type()
@@ -23381,7 +23382,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       LOG(DEBUG) << "Drop message reply_to_message_id";
       old_message->reply_to_message_id = MessageId();
       is_changed = true;
-    } else {
+    } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
                  << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
                  << ", message content type is " << old_message->content->get_type() << '/'
@@ -23390,7 +23391,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     }
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
-    if (!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) {
+    if ((!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) && is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
                  << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id
                  << ", message content type is " << old_message->content->get_type() << '/'
@@ -23401,7 +23402,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     old_message->via_bot_user_id = new_message->via_bot_user_id;
     is_changed = true;
   }
-  if (old_message->is_outgoing != new_message->is_outgoing) {
+  if (old_message->is_outgoing != new_message->is_outgoing && is_new_available) {
     LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
                << " to " << new_message->is_outgoing << ", message content type is " << old_message->content->get_type()
                << '/' << new_message->content->get_type();
@@ -23413,7 +23414,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       << " to " << new_message->is_channel_post << ", message content type is " << old_message->content->get_type()
       << '/' << new_message->content->get_type();
   if (old_message->contains_mention != new_message->contains_mention) {
-    LOG_IF(ERROR, old_message->edit_date == 0)
+    LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available)
         << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
         << " to " << new_message->contains_mention << ", is_outgoing = " << old_message->is_outgoing
         << ", message content type is " << old_message->content->get_type() << '/' << new_message->content->get_type();
@@ -23423,7 +23424,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     // is_changed = true;
   }
   if (old_message->disable_notification != new_message->disable_notification) {
-    LOG_IF(ERROR, old_message->edit_date == 0)
+    LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available)
         << "Disable_notification has changed from " << old_message->disable_notification << " to "
         << new_message->disable_notification
         << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
@@ -23484,14 +23485,11 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
             << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
             << " to " << *new_message->reply_markup;
-      } else {
-        // if the message is not accessible anymore, then we don't need a warning
-        if (new_message->content->get_type() != MessageContentType::ChatDeleteHistory) {
-          LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
-                     << " has lost reply markup " << *old_message->reply_markup
-                     << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
-                     << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
-        }
+      } else if (is_new_available) {  // if the message is not accessible anymore, then we don't need a warning
+        LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
+                   << " has lost reply markup " << *old_message->reply_markup
+                   << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
+                   << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
       }
     }
   }
