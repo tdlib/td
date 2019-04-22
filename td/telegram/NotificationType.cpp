@@ -21,6 +21,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 
+#include <tuple>
+
 namespace td {
 
 class NotificationTypeMessage : public NotificationType {

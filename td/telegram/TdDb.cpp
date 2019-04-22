@@ -26,9 +26,11 @@
 #include "td/db/SqliteKeyValueSafe.h"
 
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 

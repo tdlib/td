@@ -12,14 +12,13 @@
 #include "td/telegram/files/FileGcWorker.h"
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileStatsWorker.h"
+#include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 namespace td {
-namespace td_api {
-class databaseStatistics;
-}  // namespace td_api
 
 struct DatabaseStats {
   string debug;
