@@ -2,10 +2,12 @@
 
 This directory contains basic examples of TDLib usage from different programming languages and examples of library building for different platforms.
 If you are looking for documentation of all available TDLib methods, see the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme or the
-automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html) for a list of all available TDLib [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
-You can also see our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
+automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html) for a list of all available TDLib
+[methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
+Also take a look at our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
-TDLib can be easily used from almost any programming language on any platform. Choose your preferred programming language to see examples and a detailed description:
+TDLib can be easily used from almost any programming language on any platform. See [build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
+Choose your preferred programming language to see examples of usage and a detailed description:
 
 - [Python](#python)
 - [JavaScript](#javascript)
@@ -45,6 +47,9 @@ You can also check out [example/python/tdjson_example.py](https://github.com/tdl
 <a name="javascript"></a>
 ## Using TDLib in JavaScript projects
 
+TDLib can be compiled to WebAssembly or asm.js and used in a browser from JavaScript. See [tdweb](https://github.com/tdlib/td/tree/master/example/web) as a convenient wrapper for TDLib in a browser
+and [telegram-react](https://github.com/evgeny-nadymov/telegram-react) as an example of a TDLib based Telegram client.
+
 TDLib can be used from Node.js through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
 Convenient Node.js wrappers already exist for our JSON interface.
@@ -52,8 +57,6 @@ For example, take a look at [tdl](https://github.com/Bannerets/tdl), which provi
 
 You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tglib](https://github.com/nodegin/tglib),
 [Paper Plane](https://github.com/BlackSuited/paper-plane) and [example/javascript](https://github.com/tdlib/td/tree/master/example/javascript) for other examples of TDLib JSON interface integration with Node.js.
-
-TDLib also can be compiled to WebAssembly and used in a browser from JavaScript, but this functionality isn't production-ready yet. We will publish building and usage instructions later.
 
 <a name="go"></a>
 ## Using TDLib in Go projects
