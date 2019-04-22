@@ -9971,16 +9971,28 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     CHECK(d != nullptr);
 
     if (!from_update) {
-      LOG_IF(ERROR, message_id.get() <= d->last_new_message_id.get())
-          << "New " << message_id << " in " << dialog_id << " from " << source
-          << " has id less than last_new_message_id = " << d->last_new_message_id;
-      LOG(ERROR) << "Ignore " << it->second << "/" << message_id << " received not through update from " << source
-                 << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
-      dump_debug_message_op(d, 3);                                                                 // TODO remove
-      if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
-        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+      if (message_id.get() <= d->last_new_message_id.get()) {
+        if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
+          LOG(ERROR) << "New " << it->second << "/" << message_id << " in " << dialog_id << " from " << source
+                     << " has id less than last_new_message_id = " << d->last_new_message_id;
+          return FullMessageId();
+        }
+        // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
+        // get_message_from_server from after_get_difference
+        // TODO move to INFO
+        LOG(ERROR) << "Receive " << it->second << "/" << message_id << " in " << dialog_id << " from " << source
+                   << " with id less than last_new_message_id = " << d->last_new_message_id
+                   << " and trying to add it anyway";
+      } else {
+        LOG(ERROR) << "Ignore " << it->second << "/" << message_id << " received not through update from " << source
+                   << ": "
+                   << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
+        dump_debug_message_op(d, 3);                                                         // TODO remove
+        if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
+          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        }
+        return FullMessageId();
       }
-      return FullMessageId();
     }
 
     MessageId old_message_id = it->second;
