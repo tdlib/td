@@ -116,10 +116,18 @@ class MultiTd : public Actor {
     CHECK(td.empty());
 
     string name = "Td";
-    if (td_id != 0) {
-      name += PSTRING() << '#' << td_id;
-    }
-    td = create_actor<Td>(name, std::move(callback));
+    class TdActorContext : public ActorContext {
+     public:
+      TdActorContext(std::string tag) : tag_(std::move(tag)) {
+      }
+      std::string tag_;
+    };
+    auto context = std::make_shared<TdActorContext>(to_string(td_id));
+    auto old_context = set_context(context);
+    auto old_tag = set_tag(context->tag_);
+    td = create_actor<Td>("Td", std::move(callback));
+    set_context(old_context);
+    set_tag(old_tag);
   }
   void send(int32 td_id, Client::Request request) {
     auto &td = tds_[td_id];
@@ -176,6 +184,7 @@ class MultiImpl {
   MultiImpl &operator=(MultiImpl &&) = delete;
 
   int32 create_id() {
+    static std::atomic<int32> id_{0};
     return id_.fetch_add(1) + 1;
   }
 
@@ -207,7 +216,6 @@ class MultiImpl {
   std::shared_ptr<ConcurrentScheduler> concurrent_scheduler_;
   thread scheduler_thread_;
   ActorOwn<MultiTd> multi_td_;
-  std::atomic<int32> id_{0};
 };
 
 class Client::Impl final {

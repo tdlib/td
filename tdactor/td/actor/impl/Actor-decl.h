@@ -74,8 +74,8 @@ class Actor : public ObserverBase {
   void do_migrate(int32 sched_id);
 
   uint64 get_link_token();
-  void set_context(std::shared_ptr<ActorContext> context);
-  void set_tag(CSlice tag);
+  std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
+  CSlice set_tag(CSlice tag);
 
   void always_wait_for_mailbox();
 

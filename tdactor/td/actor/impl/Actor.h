@@ -85,12 +85,18 @@ std::enable_if_t<std::is_base_of<Actor, ActorType>::value> finish_migrate(ActorT
 inline uint64 Actor::get_link_token() {
   return Scheduler::instance()->get_link_token(this);
 }
-inline void Actor::set_context(std::shared_ptr<ActorContext> context) {
-  info_->set_context(std::move(context));
+inline std::shared_ptr<ActorContext> Actor::set_context(std::shared_ptr<ActorContext> context) {
+  return info_->set_context(std::move(context));
 }
-inline void Actor::set_tag(CSlice tag) {
-  info_->get_context()->tag_ = tag.c_str();
+inline CSlice Actor::set_tag(CSlice tag) {
+  auto &tag_ref = info_->get_context()->tag_;
+  CSlice old_tag;
+  if (tag_ref) {
+    old_tag = CSlice(tag_ref);
+  }
+  tag_ref = tag.c_str();
   Scheduler::on_context_updated();
+  return old_tag;
 }
 
 inline void Actor::init(ObjectPool<ActorInfo>::OwnerPtr &&info) {

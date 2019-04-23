@@ -74,7 +74,7 @@ class ActorInfo
   Actor *get_actor_unsafe();
   const Actor *get_actor_unsafe() const;
 
-  void set_context(std::shared_ptr<ActorContext> context);
+  std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
   ActorContext *get_context();
   const ActorContext *get_context() const;
   CSlice get_name() const;
