@@ -139,8 +139,13 @@ class MultiImpl {
  public:
   static std::shared_ptr<MultiImpl> get() {
     static std::mutex mutex;
-    static std::weak_ptr<MultiImpl> impl;
+    static std::vector<std::weak_ptr<MultiImpl> > impls;
     std::unique_lock<std::mutex> lock(mutex);
+    if (impls.size() == 0) {
+      impls.resize(clamp(thread::hardware_concurrency(), 8u, 1000u) * 5 / 4);
+    }
+    auto &impl = *std::min_element(impls.begin(), impls.end(),
+                                   [](auto &a, auto &b) { return a.lock().use_count() < b.lock().use_count(); });
     auto res = impl.lock();
     if (!res) {
       res = std::make_shared<MultiImpl>();
