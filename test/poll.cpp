@@ -45,6 +45,8 @@ TEST(Poll, get_vote_percentage) {
   check_vote_percentage({1, 1, 1, 1, 1, 1, 2}, 8, {12, 12, 12, 12, 12, 12, 25});
   check_vote_percentage({1, 1, 1, 2, 2, 2, 3}, 12, {8, 8, 8, 17, 17, 17, 25});
   check_vote_percentage({0, 1, 1, 1, 2, 2, 2, 3}, 12, {0, 8, 8, 8, 17, 17, 17, 25});
+  check_vote_percentage({1, 1, 1, 0}, 3, {33, 33, 33, 0});
+  check_vote_percentage({0, 1, 1, 1}, 3, {0, 33, 33, 33});
   check_vote_percentage({9949, 9950, 9999}, 10000, {99, 100, 100});
   check_vote_percentage({1234, 2345, 3456, 2841}, 9876,
                         {12 /* 12.49 */, 24 /* 23.74 */, 35 /* 34.99 */, 29 /* 28.76 */});
