@@ -29,7 +29,7 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
 class TdClient {
   /**
    * @callback TdClient~updateCallback
-   * @param {Object} The update.
+   * @param {Object} update The update.
    */
 
   /**

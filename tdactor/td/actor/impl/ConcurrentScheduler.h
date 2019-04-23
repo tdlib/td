@@ -95,6 +95,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   unique_ptr<detail::Iocp> iocp_;
   td::thread iocp_thread_;
 #endif
+  int extra_scheduler_;
 
   void on_finish() override {
     is_finished_.store(true, std::memory_order_relaxed);

@@ -35,13 +35,13 @@ void ConcurrentScheduler::init(int32 threads_n) {
   // +1 for extra scheduler for IOCP and send_closure from unrelated threads
   // It will know about other schedulers
   // Other schedulers will have no idea about its existence
-  int32 extra_scheduler = 1;
+  extra_scheduler_ = 1;
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
-  extra_scheduler = 0;
+  extra_scheduler_ = 0;
 #endif
 
-  schedulers_.resize(threads_n + extra_scheduler);
-  for (int32 i = 0; i < threads_n + extra_scheduler; i++) {
+  schedulers_.resize(threads_n + extra_scheduler_);
+  for (int32 i = 0; i < threads_n + extra_scheduler_; i++) {
     auto &sched = schedulers_[i];
     sched = make_unique<Scheduler>();
 
@@ -75,12 +75,10 @@ void ConcurrentScheduler::test_one_thread_run() {
 void ConcurrentScheduler::start() {
   CHECK(state_ == State::Start);
   is_finished_.store(false, std::memory_order_relaxed);
-  set_thread_id(0);
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  for (size_t i = 1; i < schedulers_.size(); i++) {
+  for (size_t i = 1; i + extra_scheduler_ < schedulers_.size(); i++) {
     auto &sched = schedulers_[i];
-    threads_.push_back(td::thread([&, tid = i]() {
-      set_thread_id(static_cast<int32>(tid));
+    threads_.push_back(td::thread([&]() {
 #if TD_PORT_WINDOWS
       td::detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
