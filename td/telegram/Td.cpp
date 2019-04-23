@@ -4773,6 +4773,7 @@ void Td::on_request(uint64 id, td_api::createTemporaryPassword &request) {
 }
 
 void Td::on_request(uint64 id, td_api::processPushNotification &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.payload_);
   CREATE_OK_REQUEST_PROMISE();
   send_closure(G()->notification_manager(), &NotificationManager::process_push_notification,
@@ -7021,11 +7022,13 @@ void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getApplicationConfig &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   create_handler<GetAppConfigQuery>(std::move(promise))->send();
 }
 
 void Td::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.type_);
   auto result = convert_json_value(std::move(request.data_));
   CREATE_OK_REQUEST_PROMISE();
