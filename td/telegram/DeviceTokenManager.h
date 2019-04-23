@@ -32,8 +32,6 @@ class DeviceTokenManager : public NetQueryCallback {
   vector<std::pair<int64, Slice>> get_encryption_keys() const;
 
  private:
-  static constexpr size_t MAX_OTHER_USER_IDS = 100;
-
   ActorShared<> parent_;
   enum TokenType : int32 {
     APNS = 1,

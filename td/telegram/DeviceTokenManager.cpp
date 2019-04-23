@@ -228,9 +228,6 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       return promise.set_error(Status::Error(400, "Invalid user_id among other user_ids"));
     }
   }
-  if (other_user_ids.size() > MAX_OTHER_USER_IDS) {
-    return promise.set_error(Status::Error(400, "Too much other user_ids"));
-  }
 
   auto &info = tokens_[token_type];
   info.net_query_id = 0;
