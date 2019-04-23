@@ -111,7 +111,7 @@ class TdClient {
    * @returns {Promise} Promise object represents the result of the query.
    */
   send(query) {
-    let unsupportedMethods = ['getStorageStatistics', 'getStorageStatisticsFast', 'optimizeStorage', 'addProxy'];
+    let unsupportedMethods = ['getStorageStatistics', 'getStorageStatisticsFast', 'optimizeStorage', 'addProxy', 'init', 'start'];
     if (unsupportedMethods.includes(query['@type'])) {
       return;  // TODO what we need to return?
     }
