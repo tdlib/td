@@ -13,9 +13,11 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/thread.h"
 
+#include <algorithm>
 #include <atomic>
 #include <deque>
 #include <memory>
