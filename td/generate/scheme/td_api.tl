@@ -820,7 +820,7 @@ pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bo
 //@description An audio file @audio Audio file; may be null @caption Audio file caption
 pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 
-//@description A photo @photo Photo file; may be null @caption Photo caption @url URL associated with the photo
+//@description A photo @photo Photo file; may be null @caption Photo caption @url URL that needs to be opened when the photo is clicked
 pageBlockPhoto photo:photo caption:pageBlockCaption url:string = PageBlock;
 
 //@description A video @video Video file; may be null @caption Video caption @need_autoplay True, if the video should be played automatically @is_looped True, if the video should be looped
@@ -3221,8 +3221,8 @@ setPinnedChats chat_ids:vector<int53> = Ok;
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
 //@file_id Identifier of the file to download
 //@priority Priority of the download (1-32). The higher the priority, the earlier the file will be downloaded. If the priorities of two files are equal, then the last one for which downloadFile was called will be downloaded first
-//@offset File will be downloaded starting from that offset in bytes first. Supposed to be used for streaming
-//@limit Download will be automatically cancelled when at least limit bytes are downloaded starting from the specified offset; use 0 to download without limit
+//@offset The starting position from which the file should be downloaded
+//@limit Number of bytes which should be downloaded starting from the "offset" position before the download will be automatically cancelled; use 0 to download without a limit
 //@synchronous If false, this request returns file state just after the download has been started. If true, this request returns file state only after
 //-the download has succeeded, has failed, has been cancelled or a new downloadFile request with different offset/limit parameters was sent
 downloadFile file_id:int32 priority:int32 offset:int32 limit:int32 synchronous:Bool = File;

@@ -35,7 +35,7 @@ Take a look at our [examples](https://github.com/tdlib/td/blob/master/example/RE
 
 See our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
-See [build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
+See a [TDLib build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
 
 See description of our [JSON](#using-json), [C++](#using-cxx), [Java](#using-java) and [.NET](#using-dotnet) interfaces.
 
@@ -57,7 +57,7 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 <a name="building"></a>
 ## Building
 
-The simplest way to build `TDLib` is to use our [build instructions generator](https://tdlib.github.io/td/build.html).
+The simplest way to build `TDLib` is to use our [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
 You need only to choose your programming language and target operating system to receive complete build instructions.
 
 In general, you need to install all `TDLib` [dependencies](#dependencies) as described in [Installing dependencies](#installing-dependencies).

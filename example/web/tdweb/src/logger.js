@@ -33,7 +33,7 @@ class Logger {
     }
     if (typeof level === 'string') {
       level =
-        { ERROR: 1, WARNINIG: 2, INFO: 3, LOG: 4, DEBUG: 4 }[
+        { ERROR: 1, WARNING: 2, INFO: 3, LOG: 4, DEBUG: 4 }[
           level.toUpperCase()
         ] || 2;
     }

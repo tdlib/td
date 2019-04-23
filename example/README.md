@@ -6,7 +6,7 @@ automatically generated [HTML documentation](https://core.telegram.org/tdlib/doc
 [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
 Also take a look at our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
-TDLib can be easily used from almost any programming language on any platform. See [build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
+TDLib can be easily used from almost any programming language on any platform. See a [TDLib build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
 Choose your preferred programming language to see examples of usage and a detailed description:
 
 - [Python](#python)

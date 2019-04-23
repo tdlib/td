@@ -6,39 +6,43 @@ import log from './logger.js';
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
 /**
- * TDLib in browser
+ * TDLib in a browser
  *
- * TDLib can be used from javascript through the [JSON](https://github.com/tdlib/td#using-json) interface.
- * This is a convenient wrapper around it.
- * Internally it uses TDLib built with emscripten as asm.js or WebAssembly. All work happens in a WebWorker.
- * TdClient itself just sends queries to WebWorker, receive updates and results from WebWorker.
- *
- * <br><br>
- * Differences from TDLib API<br>
- * 1. updateFatalError error:string = Update; <br>
- * 3. file <..as in td_api..> idb_key:string = File; <br>
- * 2. setJsLogVerbosityLevel new_verbosity_level:string = Ok;
- * 3. inputFileBlob blob:<javascript blob> = InputFile;<br>
- * 4. readFilePart path:string offset:int64 size:int64 = FilePart;<br>
- *    filePart data:blob = FilePart;<br>
+ * TDLib can be compiled to WebAssembly or asm.js using Emscripten compiler and used in a browser from JavaScript.
+ * This is a convenient wrapper for TDLib in a browser which controls TDLib instance creation, handles interaction
+ * with the TDLib and manages a filesystem for persistent TDLib data.
+ * TDLib instance is created in a Web Worker, because TDLib needs synchronous access to filesystem and the IndexedDB.
+ * TdClient just sends queries to the Web Worker and receive updates and results from it.
+ * <br>
+ * <br>
+ * Differences from TDLib API:<br>
+ * 1. Added the update <code>updateFatalError error:string = Update;</code> which is sent whenever a TDLib fatal error is encountered.<br>
+ * 2. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored.<br>
+ *    This field is non-empty only for fully downloaded files. IndexedDB database name is chosen during TdClient creation.<br>
+ * 3. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
+ * 4. Added the possibility to use blobs as input files via constructor <code>inputFileBlob blob:<JavaScript blob> = InputFile;</code>.<br>
+ * 5. Added the method <code>readFilePart path:string offset:int64 size:int64 = FilePart;</code> and class <code>filePart data:<JavaScript blob> = FilePart;</code><br>
+ *    which can be used on a partially downloaded file to support media streaming.<br>
+ * 6. Methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
  * <br>
  */
 class TdClient {
   /**
-   * @callback updateCallback
-   * @param {Object} update
+   * @callback TdClient~updateCallback
+   * @param {Object} The update.
    */
 
   /**
-   * Create TdClient
-   * @param {Object} options - Options
-   * @param {updateCallback} options.onUpdate - Callback for all updates. Could also be set explicitly right after TdClient construction.
-   * @param {number} [options.jsLogVerbosityLevel='info'] - Verbosity level for javascript part of the code (error, warning, info, log, debug)
-   * @param {number} [options.logVerbosityLevel=2] - Verbosity level for tdlib
-   * @param {string} [options.prefix=tdlib] Currently only one instance of TdClient per a prefix is allowed. All but one created instances will be automatically closed. Usually, the newest instance is kept alive.
-   * @param {boolean} [options.isBackground=false] - When choosing which instance to keep alive, we prefer instance with isBackground=false
-   * @param {string} [options.mode=wasm] - Type of tdlib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly.
-   * @param {boolean} [options.readOnly=false] - Open tdlib in read-only mode. Changes to tdlib database won't be persisted. For debug only.
+   * Create TdClient.
+   * @param {Object} options - The options for TDLib instance creation.
+   * @param {TdClient~updateCallback} options.onUpdate - The callback for all incoming updates.
+   * @param {string} [options.prefix=tdlib] - The name of the IndexedDB database which will be used for persistent data storage. Currently only one instance of TdClient per a database is allowed. All but one created instances will be automatically closed. Usually, the newest non-background instance is kept alive.
+   * @param {boolean} [options.isBackground=false] - Pass true, if the instance is opened from the background.
+   * @param {string} [options.mode=wasm] - The type of the TDLib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly.
+   * @param {string} [options.jsLogVerbosityLevel='info'] - The initial verbosity level of the JavaScript part of the code (one of 'error', 'warning', 'info', 'log', 'debug').
+   * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for TDLib internal logging (0-1023).
+   * @param {boolean} [options.noDb=false] - Pass true to use TDLib without database and secret chats. It will significantly improve load time, but some functionality will be unavailable.
+   * @param {boolean} [options.readOnly=false] - Pass true to open TDLib database in read-only mode. For debug only.
    */
   constructor(options) {
     log.setVerbosity(options.jsLogVerbosityLevel);
@@ -96,15 +100,22 @@ class TdClient {
   }
 
   /**
-   * Send query to tdlib.
+   * Send a query to TDLib.
    *
-   * If query contains an '@extra' field, the same field will be added into the result.
-   * '@extra' may contain any js object, it won't be sent to web worker.
+   * If the query contains an '@extra' field, the same field will be added into the result.
    *
-   * @param {Object} query - Query for tdlib.
-   * @returns {Promise} Promise represents the result of the query.
+   * @param {Object} query - The query for TDLib. See the [td_api.tl]{@link https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl} scheme or
+   *                         the automatically generated [HTML documentation]{@link https://core.telegram.org/tdlib/docs/td__api_8h.html}
+   *                         for a list of all available TDLib [methods]{@link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html} and
+   *                         [classes]{@link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html}.
+   * @returns {Promise} Promise object represents the result of the query.
    */
   send(query) {
+    let unsupportedMethods = ['getStorageStatistics', 'getStorageStatisticsFast', 'optimizeStorage', 'addProxy'];
+    if (unsupportedMethods.includes(query['@type'])) {
+      return;  // TODO what we need to return?
+    }
+
     this.query_id++;
     if (query['@extra']) {
       query['@extra'] = {
