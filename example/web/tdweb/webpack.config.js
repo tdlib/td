@@ -16,11 +16,12 @@ module.exports = {
     contentBase: './dist'
   },
   plugins: [
-    new HtmlWebpackPlugin(),
+    // new HtmlWebpackPlugin(),
     new CleanWebpackPlugin(['dist'], {})
     //, new UglifyJSPlugin()
   ],
   module: {
+    noParse: /td_asmjs\.js$/,
     rules: [
       {
         test: /\.(js|jsx)$/,

@@ -7,10 +7,8 @@ import {
 import td_wasm_release from './prebuilt/release/td_wasm.wasm';
 
 // Uncomment for asmjs support
-//import td_asmjs_mem_release from './prebuilt/release/td_asmjs.js.mem';
+import td_asmjs_mem_release from './prebuilt/release/td_asmjs.js.mem';
 
-import { detect } from 'detect-browser';
-const browser = detect();
 const tdlibVersion = 6;
 const localForageDrivers = [localforage.INDEXEDDB, localforage.LOCALSTORAGE, 'memoryDriver'];
 
@@ -64,6 +62,7 @@ async function initLocalForage() {
 }
 
 async function loadTdLibWasm(onFS) {
+  console.log('loadTdLibWasm');
   let Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
   let td_wasm = td_wasm_release;
@@ -95,37 +94,56 @@ async function loadTdLibWasm(onFS) {
 }
 
 // Uncomment for asmjs support
-//async function loadTdLibAsmjs() {
-  //let Module = await import('./prebuilt/release/td_asmjs.js');
-  //console.log('got td_wasm.js');
-  //let fromFile = 'td_asmjs.js.mem';
-  //let toFile = td_asmjs_mem_release;
-  //let TdModule = new Promise((resolve, reject) =>
-    //Module({
-      //onRuntimeInitialized: () => {
-        //console.log('runtime intialized');
-      //},
-      //locateFile: name => {
-        //if (name === fromFile) {
-          //return toFile;
-        //}
-        //return name;
-      //},
-      //ENVIROMENT: 'WORKER'
-    //}).then(m => {
-      //delete m.then;
-      //resolve(m);
-    //})
-  //);
+async function loadTdLibAsmjs(onFS) {
+  console.log('loadTdLibAsmjs');
+  let Module = await import('./prebuilt/release/td_asmjs.js');
+  console.log('got td_asm.js');
+  let fromFile = 'td_asmjs.js.mem';
+  let toFile = td_asmjs_mem_release;
+  let module = Module({
+    onRuntimeInitialized: () => {
+      console.log('runtime intialized');
+    },
+    locateFile: name => {
+      if (name === fromFile) {
+        return toFile;
+      }
+      return name;
+    },
+    ENVIROMENT: 'WORKER'
+  });
+  onFS(module.FS);
+  let TdModule = new Promise((resolve, reject) =>
+    module.then(m => {
+      delete m.then;
+      resolve(m);
+    })
+  );
 
-  //return TdModule;
-//}
+  return TdModule;
+}
 
 async function loadTdLib(mode, onFS) {
-// Uncomment for asmjs support
-  //if (mode === 'asmjs') {
-    //return loadTdLibAsmjs();
-  //}
+  const wasmSupported = (() => {
+    try {
+      if (typeof WebAssembly === "object"
+        && typeof WebAssembly.instantiate === "function") {
+        const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+        if (module instanceof WebAssembly.Module)
+        return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+      }
+    } catch (e) {
+    }
+    return false;
+  })();
+  if (!wasmSupported) {
+    log.warning("WebAssembly is not supported, trying to use asmjs");
+    mode = 'asmjs';
+  }
+
+  if (mode === 'asmjs') {
+    return loadTdLibAsmjs(onFS);
+  }
   return loadTdLibWasm(onFS);
 }
 
@@ -422,9 +440,6 @@ class TdClient {
 
     options = options || {};
     let mode = 'wasm';
-    if (browser && (browser.name === 'chrome' || browser.name === 'safari')) {
-      mode = 'asmjs';
-    }
     mode = options.mode || mode;
 
     var self = this;
@@ -521,7 +536,7 @@ class TdClient {
       name: 'ignore_background_updates',
       value: {
         '@type': 'optionValueBoolean',
-        value: !this.noDb
+        value: this.noDb
       }
     });
 

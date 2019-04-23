@@ -1,6 +1,6 @@
 {
   "name": "@arseny30/tdweb",
-  "version": "0.2.41",
+  "version": "0.2.42",
   "description": "Javascript interface for TDLib (telegram library)",
   "main": "dist/tdweb.js",
   "files": [
@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "precommit": "lint-staged",
-    "build": "node --max_old_space_size=8192 node_modules/.bin/webpack ",
+    "build": "webpack",
     "start": "webpack-dev-server --open"
   },
   "keywords": [
