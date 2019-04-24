@@ -3,8 +3,6 @@ import log from './logger.js';
 import { instantiateAny } from './wasm-utils.js';
 
 import td_wasm_release from './prebuilt/release/td_wasm.wasm';
-
-// Uncomment for asmjs support
 import td_asmjs_mem_release from './prebuilt/release/td_asmjs.js.mem';
 
 const tdlibVersion = 6;
@@ -63,8 +61,8 @@ async function initLocalForage() {
   localforage.defineDriver(memoryDriver);
 }
 
-async function loadTdLibWasm(onFS) {
-  console.log('loadTdLibWasm');
+async function loadTdlibWasm(onFS) {
+  console.log('loadTdlibWasm');
   let Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
   let td_wasm = td_wasm_release;
@@ -95,9 +93,8 @@ async function loadTdLibWasm(onFS) {
   return TdModule;
 }
 
-// Uncomment for asmjs support
-async function loadTdLibAsmjs(onFS) {
-  console.log('loadTdLibAsmjs');
+async function loadTdlibAsmjs(onFS) {
+  console.log('loadTdlibAsmjs');
   let Module = await import('./prebuilt/release/td_asmjs.js');
   console.log('got td_asm.js');
   let fromFile = 'td_asmjs.js.mem';
@@ -125,7 +122,7 @@ async function loadTdLibAsmjs(onFS) {
   return TdModule;
 }
 
-async function loadTdLib(mode, onFS) {
+async function loadTdlib(mode, onFS) {
   const wasmSupported = (() => {
     try {
       if (
@@ -147,15 +144,15 @@ async function loadTdLib(mode, onFS) {
     if (mode === 'wasm') {
       log.error('WebAssembly is not supported, trying to use it anyway');
     } else {
-      log.warning('WebAssembly is not supported, trying to use asmjs');
+      log.warning('WebAssembly is not supported, trying to use asm.js');
       mode = 'asmjs';
     }
   }
 
   if (mode === 'asmjs') {
-    return loadTdLibAsmjs(onFS);
+    return loadTdlibAsmjs(onFS);
   }
-  return loadTdLibWasm(onFS);
+  return loadTdlibWasm(onFS);
 }
 
 class OutboundFileSystem {
@@ -477,7 +474,7 @@ class TdClient {
     }
 
     log.info('load TdModule');
-    this.TdModule = await loadTdLib(mode, self.onFS);
+    this.TdModule = await loadTdlib(mode, self.onFS);
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_create', 'number', []),
