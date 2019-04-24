@@ -17,10 +17,10 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * <br>
  * Differences from TDLib API:<br>
  * 1. Added the update <code>updateFatalError error:string = Update;</code> which is sent whenever a TDLib fatal error is encountered.<br>
- * 2. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored.<br>
+ * 2. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored. IndexedDB table name is options.instanceName. <br>
  *    This field is non-empty only for fully downloaded files. IndexedDB database name is chosen during TdClient creation.<br>
  * 3. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
- * 4. Added the possibility to use blobs as input files via constructor <code>inputFileBlob blob:<JavaScript blob> = InputFile;</code>.<br>
+ * 4. Added the possibility to use blobs as input files via constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
  * 5. Added the method <code>readFilePart path:string offset:int64 size:int64 = FilePart;</code> and class <code>filePart data:<JavaScript blob> = FilePart;</code><br>
  *    which can be used on a partially downloaded file to support media streaming.<br>
  * 6. Methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
@@ -36,58 +36,20 @@ class TdClient {
    * Create TdClient.
    * @param {Object} options - The options for TDLib instance creation.
    * @param {TdClient~updateCallback} options.onUpdate - The callback for all incoming updates.
-   * @param {string} [options.prefix=tdlib] - The name of the IndexedDB database which will be used for persistent data storage. Currently only one instance of TdClient per a database is allowed. All but one created instances will be automatically closed. Usually, the newest non-background instance is kept alive.
+   * @param {string} [options.instanceName=tdlib] - The name of the TDLib instance. Currently only one instance of TdClient with a given name is allowed. All but one created instances with a given name will be automatically closed. Usually, the newest non-background instance is kept alive. Files will be stored in IndexedDb table with the same name.
    * @param {boolean} [options.isBackground=false] - Pass true, if the instance is opened from the background.
-   * @param {string} [options.mode=wasm] - The type of the TDLib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly.
    * @param {string} [options.jsLogVerbosityLevel='info'] - The initial verbosity level of the JavaScript part of the code (one of 'error', 'warning', 'info', 'log', 'debug').
    * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for TDLib internal logging (0-1023).
-   * @param {boolean} [options.noDb=false] - Pass true to use TDLib without database and secret chats. It will significantly improve load time, but some functionality will be unavailable.
-   * @param {boolean} [options.readOnly=false] - Pass true to open TDLib database in read-only mode. For debug only.
+   * @param {boolean} [options.useDatabase=true] - Pass false to use TDLib without database and secret chats. It will significantly improve load time, but some functionality will be unavailable.
+   * @param {string} [options.mode='auto'] - For debug only. The type of the TDLib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly. If mode == 'auto'  WebAbassembly will be used if supported by browser, asm.js otherwise.
+   * @param {boolean} [options.readOnly=false] - For debug only. Pass true to open TDLib database in read-only mode
    */
   constructor(options) {
     log.setVerbosity(options.jsLogVerbosityLevel);
     this.worker = new MyWorker();
     var self = this;
-    this.worker.onmessage = function(e) {
-      let response = e.data;
-      log.debug(
-        'receive from worker: ',
-        JSON.parse(
-          JSON.stringify(response, (key, value) => {
-            if (key === 'arr') {
-              return undefined;
-            }
-            return value;
-          })
-        )
-      );
-      if ('@extra' in response) {
-        var query_id = response['@extra'].query_id;
-        var [resolve, reject] = self.query_callbacks.get(query_id);
-        self.query_callbacks.delete(query_id);
-        if ('@old_extra' in response['@extra']) {
-          response['@extra'] = response['@extra']['@old_extra'];
-        }
-        if (resolve) {
-          if (response['@type'] === 'error') {
-            reject(response);
-          } else {
-            resolve(response);
-          }
-        }
-      } else {
-        if (response['@type'] === 'inited') {
-          self.onInited();
-          return;
-        }
-        if (
-          response['@type'] === 'updateAuthorizationState' &&
-          response.authorization_state['@type'] === 'authorizationStateClosed'
-        ) {
-          self.onClosed();
-        }
-        self.onUpdate(response);
-      }
+    this.worker.onmessage = e => {
+      self.onResponse(e.data);
     };
     this.query_id = 0;
     this.query_callbacks = new Map();
@@ -95,6 +57,7 @@ class TdClient {
       this.onUpdate = options.onUpdate;
       delete options.onUpdate;
     }
+    options.instanceName = options.instanceName || 'tdlib';
     this.worker.postMessage({ '@type': 'init', options: options });
     this.closeOtherClients(options);
   }
@@ -111,11 +74,6 @@ class TdClient {
    * @returns {Promise} Promise object represents the result of the query.
    */
   send(query) {
-    let unsupportedMethods = ['getStorageStatistics', 'getStorageStatisticsFast', 'optimizeStorage', 'addProxy', 'init', 'start'];
-    if (unsupportedMethods.includes(query['@type'])) {
-      return;  // TODO what we need to return?
-    }
-
     this.query_id++;
     if (query['@extra']) {
       query['@extra'] = {
@@ -132,10 +90,75 @@ class TdClient {
     }
 
     log.debug('send to worker: ', query);
-    this.worker.postMessage(query);
-    return new Promise((resolve, reject) => {
+    let res = new Promise((resolve, reject) => {
       this.query_callbacks.set(this.query_id, [resolve, reject]);
     });
+    this.externalPostMessage(query);
+    return res;
+  }
+
+  /** @private */
+  externalPostMessage(query) {
+    let unsupportedMethods = [
+      'getStorageStatistics',
+      'getStorageStatisticsFast',
+      'optimizeStorage',
+      'addProxy',
+      'init',
+      'start'
+    ];
+    if (unsupportedMethods.includes(query['@type'])) {
+      this.onResponse({
+        '@type': 'error',
+        '@extra': query['@extra'],
+        code: 400,
+        message: "method '" + query['@type'] + "' is not supported"
+      });
+      return;
+    }
+    this.worker.postMessage(query);
+  }
+
+  /** @private */
+  onResponse(response) {
+    log.debug(
+      'receive from worker: ',
+      JSON.parse(
+        JSON.stringify(response, (key, value) => {
+          if (key === 'arr') {
+            return undefined;
+          }
+          return value;
+        })
+      )
+    );
+    if ('@extra' in response) {
+      var query_id = response['@extra'].query_id;
+      var [resolve, reject] = this.query_callbacks.get(query_id);
+      this.query_callbacks.delete(query_id);
+      if ('@old_extra' in response['@extra']) {
+        response['@extra'] = response['@extra']['@old_extra'];
+      }
+      if (resolve) {
+        if (response['@type'] === 'error') {
+          reject(response);
+        } else {
+          resolve(response);
+        }
+      }
+    } else {
+      if (response['@type'] === 'inited') {
+        this.onInited();
+        return;
+      }
+      if (
+        response['@type'] === 'updateAuthorizationState' &&
+        response.authorization_state['@type'] === 'authorizationStateClosed'
+      ) {
+        this.onClosed();
+      }
+      this.onUpdate(response);
+    }
   }
 
   /** @private */
@@ -253,8 +276,7 @@ class TdClient {
     this.waitSet = new Set();
 
     log.info('close other clients');
-    let prefix = options.prefix || 'tdlib';
-    this.channel = new BroadcastChannel(prefix);
+    this.channel = new BroadcastChannel(options.instanceName);
 
     this.postState();
 

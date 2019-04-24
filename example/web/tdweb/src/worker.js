@@ -144,8 +144,12 @@ async function loadTdLib(mode, onFS) {
     return false;
   })();
   if (!wasmSupported) {
-    log.warning('WebAssembly is not supported, trying to use asmjs');
-    mode = 'asmjs';
+    if (mode === 'wasm') {
+      log.error('WebAssembly is not supported, trying to use it anyway');
+    } else {
+      log.warning('WebAssembly is not supported, trying to use asmjs');
+      mode = 'asmjs';
+    }
   }
 
   if (mode === 'asmjs') {
@@ -367,15 +371,16 @@ class TdFileSystem {
     FS.mkdir(prefix);
     return FS;
   }
-  static async create(prefix, FS_promise, readOnly = false) {
+  static async create(instanceName, FS_promise, readOnly = false) {
     try {
       let tdfs = new TdFileSystem();
+      let prefix = '/' + instanceName;
       tdfs.prefix = prefix;
       FS_promise = TdFileSystem.init_fs(prefix, FS_promise);
 
       //MEMFS. Store to IDB and delete files as soon as possible
       let inboundFileSystem = InboundFileSystem.create(
-        prefix,
+        instanceName,
         prefix + '/inboundfs',
         FS_promise
       );
@@ -460,14 +465,16 @@ class TdClient {
       self.onFS = resolve;
     });
 
-    let prefix = options.prefix || 'tdlib';
     let tdfs_promise = TdFileSystem.create(
-      '/' + prefix,
+      options.instanceName,
       FS_promise,
       options.readOnly
     );
 
-    this.noDb = options.noDb || false;
+    this.useDatabase = true;
+    if ('useDatabase' in options) {
+      this.useDatabase = options.useDatabase;
+    }
 
     log.info('load TdModule');
     this.TdModule = await loadTdLib(mode, self.onFS);
@@ -549,7 +556,7 @@ class TdClient {
       name: 'ignore_background_updates',
       value: {
         '@type': 'optionValueBoolean',
-        value: this.noDb
+        value: !this.useDatabase
       }
     });
 
@@ -562,7 +569,7 @@ class TdClient {
     if (query['@type'] === 'inputFileBlob') {
       return {
         '@type': 'inputFileLocal',
-        path: this.tdfs.outboundFileSystem.blobToPath(query.blob, query.name)
+        path: this.tdfs.outboundFileSystem.blobToPath(query.data, query.name)
       };
     }
     for (var key in query) {
@@ -579,7 +586,7 @@ class TdClient {
       query.parameters.database_directory = this.tdfs.dbFileSystem.root;
       query.parameters.files_directory = this.tdfs.inboundFileSystem.root;
 
-      let useDb = !this.noDb;
+      let useDb = this.useDatabase;
       query.parameters.use_file_database = useDb;
       query.parameters.use_chat_info_database = useDb;
       query.parameters.use_message_database = useDb;
