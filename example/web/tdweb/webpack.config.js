@@ -75,6 +75,9 @@ module.exports = {
     crypto: 'empty',
     child_process: 'empty'
   },
+  performance: {
+    maxAssetSize: 30000000
+  },
   resolve: {
     alias: {
       ws$: 'fs'
