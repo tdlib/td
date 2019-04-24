@@ -1,4 +1,5 @@
 import MyWorker from './worker.js';
+import localforage from 'localforage';
 import './third_party/broadcastchannel.js';
 import uuid4 from 'uuid/v4';
 import log from './logger.js';
@@ -58,6 +59,7 @@ class TdClient {
       delete options.onUpdate;
     }
     options.instanceName = options.instanceName || 'tdlib';
+    this.fileManager = new FileManager(options.instanceName);
     this.worker.postMessage({ '@type': 'init', options: options });
     this.closeOtherClients(options);
   }
@@ -116,7 +118,17 @@ class TdClient {
       });
       return;
     }
+    if (query['@type'] === 'readFile') {
+      this.readFile(query);
+      return;
+    }
     this.worker.postMessage(query);
+  }
+
+  /** @private */
+  async readFile(query) {
+    let response = await this.fileManager.readFile(query);
+    this.onResponse(response);
   }
 
   /** @private */
@@ -132,6 +144,10 @@ class TdClient {
         })
       )
     );
+
+    // for FileManager
+    response = this.prepareResponse(response);
+
     if ('@extra' in response) {
       var query_id = response['@extra'].query_id;
       var [resolve, reject] = this.query_callbacks.get(query_id);
@@ -159,6 +175,25 @@ class TdClient {
       }
       this.onUpdate(response);
     }
+  }
+
+  /** @private */
+  prepareFile(file) {
+    return this.fileManager.registerFile(file);
+  }
+
+  /** @private */
+  prepareResponse(response) {
+    if (response['@type'] === 'file') {
+      return this.prepareFile(response);
+    }
+    for (var key in response) {
+      let field = response[key];
+      if (field && typeof field === 'object') {
+        response[key] = this.prepareResponse(field);
+      }
+    }
+    return response;
   }
 
   /** @private */
@@ -300,4 +335,107 @@ class TdClient {
     //nop
   }
 }
+
+/** @private */
+class FileManager {
+  constructor(instanceName) {
+    this.cache = new Map();
+    this.idb = new Promise((resolve, reject) => {
+      const request = window.indexedDB.open(instanceName);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    //this.store = localforage.createInstance({
+    //name: instanceName
+    //});
+    this.pending = [];
+  }
+
+  registerFile(file) {
+    if (file.idb_key || file.arr) {
+      file.is_downloading_completed = true;
+      var info = {};
+      let cached_info = this.cache.get(file.id);
+      if (cached_info !== undefined) {
+        info = cached_info;
+      } else {
+        this.cache.set(file.id, info);
+      }
+      if (file.idb_key) {
+        info.idb_key = file.idb_key;
+      }
+      if (file.arr) {
+        info.arr = file.arr;
+      }
+    }
+    return file;
+  }
+
+  async flushLoad() {
+    let pending = this.pending;
+    this.pending = [];
+    let idb = await this.idb;
+    let read = idb
+      .transaction(['keyvaluepairs'], 'readonly')
+      .objectStore('keyvaluepairs');
+    log.debug('Load group of files from idb', pending.length);
+    for (const query of pending) {
+      const request = read.get(query.key);
+      request.onsuccess = event => {
+        const blob = event.target.result;
+        if (blob) {
+          query.resolve(blob);
+        } else {
+          query.reject();
+        }
+      };
+      request.onerror = query.reject;
+    }
+  }
+
+  load(key, resolve, reject) {
+    if (this.pending.length === 0) {
+      let self = this;
+      setTimeout(() => {
+        self.flushLoad();
+      }, 1);
+    }
+    this.pending.push({ key: key, resolve: resolve, reject: reject });
+  }
+
+  async doLoad(info) {
+    if (info.arr) {
+      return new Blob([info.arr]);
+    }
+    let idb_key = info.idb_key;
+    let self = this;
+    //return this.store.getItem(idb_key);
+    return await new Promise((resolve, reject) => {
+      self.load(idb_key, resolve, reject);
+    });
+  }
+
+  async readFile(query) {
+    try {
+      let info = this.cache.get(query.file_id);
+      if (!info) {
+        throw new Error('File is not loaded');
+      }
+      let data = await this.doLoad(info);
+      return {
+        '@type': 'Blob',
+        '@extra': query['@extra'],
+        data: data
+      };
+    } catch (e) {
+      return {
+        '@type': 'error',
+        '@extra': query['@extra'],
+        code: 400,
+        message: e
+      };
+    }
+  }
+}
+
 export default TdClient;
