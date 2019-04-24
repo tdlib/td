@@ -1,7 +1,5 @@
 const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: ['./src/index.js'],
@@ -10,16 +8,20 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     library: 'tdweb',
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
+    globalObject: 'this'
   },
   devServer: {
     contentBase: './dist'
   },
   plugins: [
     // new HtmlWebpackPlugin(),
-    new CleanWebpackPlugin(['dist'], {})
+    new CleanWebpackPlugin({})
     //, new UglifyJSPlugin()
   ],
+  optimization:{
+    minimize: false, // <---- disables uglify.
+  },
   module: {
     noParse: /td_asmjs\.js$/,
     rules: [
@@ -56,6 +58,7 @@ module.exports = {
       {
         test: /\.(wasm|mem)$/,
         include: [path.resolve(__dirname, 'src')],
+        type: "javascript/auto",
         use: [
           {
             loader: require.resolve('file-loader')

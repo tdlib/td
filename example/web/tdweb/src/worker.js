@@ -1,8 +1,6 @@
 import localforage from 'localforage';
 import log from './logger.js';
-import {
-  instantiateAny
-} from './wasm-utils.js';
+import { instantiateAny } from './wasm-utils.js';
 
 import td_wasm_release from './prebuilt/release/td_wasm.wasm';
 
@@ -10,7 +8,11 @@ import td_wasm_release from './prebuilt/release/td_wasm.wasm';
 import td_asmjs_mem_release from './prebuilt/release/td_asmjs.js.mem';
 
 const tdlibVersion = 6;
-const localForageDrivers = [localforage.INDEXEDDB, localforage.LOCALSTORAGE, 'memoryDriver'];
+const localForageDrivers = [
+  localforage.INDEXEDDB,
+  localforage.LOCALSTORAGE,
+  'memoryDriver'
+];
 
 async function initLocalForage() {
   // Implement the driver here.
@@ -31,14 +33,14 @@ async function initLocalForage() {
     },
     getItem: async function(key) {
       let value = this._map.get(key);
-      console.log("getItem", this._map, key, value);
+      console.log('getItem', this._map, key, value);
       return value;
     },
     iterate: async function(iteratorCallback) {
-      log.error("iterate is not supported");
+      log.error('iterate is not supported');
     },
     key: async function(n) {
-      log.error("key n is not supported");
+      log.error('key n is not supported');
     },
     keys: async function() {
       return this._map.keys();
@@ -47,15 +49,15 @@ async function initLocalForage() {
       return this._map.size();
     },
     removeItem: async function(key) {
-      this._map.delete(key)
+      this._map.delete(key);
     },
     setItem: async function(key, value) {
       let originalValue = this._map.get(key);
-      console.log("setItem", this._map, key, value);
+      console.log('setItem', this._map, key, value);
       this._map.set(key, value);
       return originalValue;
     }
-  }
+  };
 
   // Add the driver to localForage.
   localforage.defineDriver(memoryDriver);
@@ -66,7 +68,7 @@ async function loadTdLibWasm(onFS) {
   let Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
   let td_wasm = td_wasm_release;
-  let module = Module({
+  let module = Module.default({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
     },
@@ -126,18 +128,23 @@ async function loadTdLibAsmjs(onFS) {
 async function loadTdLib(mode, onFS) {
   const wasmSupported = (() => {
     try {
-      if (typeof WebAssembly === "object"
-        && typeof WebAssembly.instantiate === "function") {
-        const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+      if (
+        typeof WebAssembly === 'object' &&
+        typeof WebAssembly.instantiate === 'function'
+      ) {
+        const module = new WebAssembly.Module(
+          Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)
+        );
         if (module instanceof WebAssembly.Module)
-        return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+          return (
+            new WebAssembly.Instance(module) instanceof WebAssembly.Instance
+          );
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     return false;
   })();
   if (!wasmSupported) {
-    log.warning("WebAssembly is not supported, trying to use asmjs");
+    log.warning('WebAssembly is not supported, trying to use asmjs');
     mode = 'asmjs';
   }
 
@@ -212,7 +219,9 @@ class InboundFileSystem {
     log.debug('InboundFileSystem::create::keys start');
     let keys = await this.store.keys();
     let keys_time = (performance.now() - keys_start) / 1000;
-    log.debug('InboundFileSystem::create::keys ' + keys_time + ' ' + keys.length);
+    log.debug(
+      'InboundFileSystem::create::keys ' + keys_time + ' ' + keys.length
+    );
     this.pids = new Set(keys);
   }
 
@@ -262,23 +271,23 @@ class DbFileSystem {
         });
       });
 
-      let rmrf = (path) => {
-        log.debug("rmrf " , path);
+      let rmrf = path => {
+        log.debug('rmrf ', path);
         var info;
         try {
           info = FS.lookupPath(path);
         } catch (e) {
           return;
         }
-        log.debug("rmrf " , path, info);
+        log.debug('rmrf ', path, info);
         if (info.node.isFolder) {
           for (var key in info.node.contents) {
             rmrf(info.path + '/' + info.node.contents[key].name);
           }
-          log.debug("rmdir " , path);
+          log.debug('rmdir ', path);
           FS.rmdir(path);
         } else {
-          log.debug("unlink " , path);
+          log.debug('unlink ', path);
           FS.unlink(path);
         }
       };
@@ -287,15 +296,15 @@ class DbFileSystem {
       let root_dir = FS.lookupPath(root);
       for (var key in root_dir.node.contents) {
         let value = root_dir.node.contents[key];
-        log.debug("node " , key, value);
+        log.debug('node ', key, value);
         if (!value.isFolder) {
           continue;
         }
-        dirs.push(root_dir.path + '/' + value.name)
+        dirs.push(root_dir.path + '/' + value.name);
       }
       for (let i in dirs) {
         let dir = dirs[i];
-        rmrf(dir)
+        rmrf(dir);
         //FS.mkdir(dir);
         //FS.mount(FS.filesystems.MEMFS, {}, dir);
       }
@@ -336,18 +345,18 @@ class DbFileSystem {
     this.FS.unmount(this.root);
     var req = indexedDB.deleteDatabase(this.root);
     await new Promise((resolve, reject) => {
-      req.onsuccess = function (e) {
+      req.onsuccess = function(e) {
         log.info('SUCCESS');
         resolve(e.result);
       };
       req.onerror = function(e) {
         log.info('ONERROR');
         reject(e.error);
-      }
+      };
       req.onblocked = function(e) {
         log.info('ONBLOCKED');
         reject('blocked');
-      }
+      };
     });
   }
 }
@@ -372,7 +381,11 @@ class TdFileSystem {
       );
 
       //IDBFS. MEMFS which is flushed to IDB from time to time
-      let dbFileSystem = DbFileSystem.create(prefix + '/dbfs', FS_promise, readOnly);
+      let dbFileSystem = DbFileSystem.create(
+        prefix + '/dbfs',
+        FS_promise,
+        readOnly
+      );
 
       let FS = await FS_promise;
       tdfs.FS = FS;
@@ -414,20 +427,20 @@ class TdClient {
       localForageDrivers
     ];
     for (const driverName of DRIVERS) {
-      console.log("Test ", driverName);
+      console.log('Test ', driverName);
       try {
         await localforage.setDriver(driverName);
-        console.log("A");
+        console.log('A');
         await localforage.setItem('hello', 'world');
-        console.log("B");
+        console.log('B');
         let x = await localforage.getItem('hello');
-        console.log("got ", x);
+        console.log('got ', x);
         await localforage.clear();
-        console.log("C");
-      } catch (error)  {
-        console.log("Error", error);
+        console.log('C');
+      } catch (error) {
+        console.log('Error', error);
       }
-    };
+    }
   }
 
   async init(options) {
@@ -573,7 +586,8 @@ class TdClient {
       query.parameters.use_secret_chats = useDb;
     }
     if (query['@type'] === 'getLanguagePackString') {
-      query.language_pack_database_path = this.tdfs.dbFileSystem.root + '/language';
+      query.language_pack_database_path =
+        this.tdfs.dbFileSystem.root + '/language';
     }
     return this.prepareQueryRecursive(query);
   }
@@ -591,16 +605,24 @@ class TdClient {
       var buf = new Uint8Array(query.size);
       this.FS.read(stream, buf, 0, query.size, query.offset);
       this.FS.close(stream);
-      res = buf
+      res = buf;
     } catch (e) {
-      this.callback({'@type':'error', '@extra': query['@extra'], code: 400, message: e});
+      this.callback({
+        '@type': 'error',
+        '@extra': query['@extra'],
+        code: 400,
+        message: e
+      });
       return;
     }
-    this.callback({
-      '@type': 'FilePart',
-      '@extra': query['@extra'],
-      'data': res
-    }, [res.buffer]);
+    this.callback(
+      {
+        '@type': 'FilePart',
+        '@extra': query['@extra'],
+        data: res
+      },
+      [res.buffer]
+    );
   }
 
   send(query) {
@@ -609,7 +631,7 @@ class TdClient {
     }
     if (this.wasFatalError) {
       if (query['@type'] === 'destroy') {
-        this.destroy({'@type': 'Ok', '@extra': query['@extra']});
+        this.destroy({ '@type': 'Ok', '@extra': query['@extra'] });
       }
       return;
     }
@@ -630,11 +652,13 @@ class TdClient {
       this.pendingQueries.push(query);
       return;
     }
-    if (query['@type'] === 'setLogVerbosityLevel' ||
-        query['@type'] === 'getLogVerbosityLevel' ||
-        query['@type'] === 'setLogTagVerbosityLevel' ||
-        query['@type'] === 'getLogTagVerbosityLevel' ||
-        query['@type'] === 'getLogTags') {
+    if (
+      query['@type'] === 'setLogVerbosityLevel' ||
+      query['@type'] === 'getLogVerbosityLevel' ||
+      query['@type'] === 'setLogTagVerbosityLevel' ||
+      query['@type'] === 'getLogTagVerbosityLevel' ||
+      query['@type'] === 'getLogTags'
+    ) {
       this.execute(query);
       return;
     }
@@ -740,12 +764,11 @@ class TdClient {
     }
     this.callback(result);
     this.callback({
-        '@type': 'updateAuthorizationState',
-        authorization_state: {
-          '@type': 'authorizationStateClosed'
-        }
+      '@type': 'updateAuthorizationState',
+      authorization_state: {
+        '@type': 'authorizationStateClosed'
       }
-    );
+    });
   }
 
   async asyncOnFatalError(error) {
