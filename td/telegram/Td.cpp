@@ -4946,18 +4946,6 @@ void Td::on_request(uint64 id, const td_api::getFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
 
-void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
-  if (request.offset_ < 0) {
-    return send_error_raw(id, 5, "Prefix offset must be non-negative");
-  }
-  auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
-  if (file_view.empty()) {
-    return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file id"));
-  }
-  send_closure(actor_id(this), &Td::send_result, id,
-               td_api::make_object<td_api::count>(narrow_cast<int32>(file_view.downloaded_prefix(request.offset_))));
-}
-
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
   CLEAN_INPUT_STRING(request.remote_file_id_);
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_);
@@ -5847,6 +5835,18 @@ void Td::on_file_download_finished(FileId file_id) {
   pending_file_downloads_.erase(it);
 }
 
+void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
+  if (request.offset_ < 0) {
+    return send_error_raw(id, 5, "Parameter offset must be non-negative");
+  }
+  auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
+  if (file_view.empty()) {
+    return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file ID"));
+  }
+  send_closure(actor_id(this), &Td::send_result, id,
+               td_api::make_object<td_api::count>(narrow_cast<int32>(file_view.downloaded_prefix(request.offset_))));
+}
+
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1, -1);
 
@@ -5896,6 +5896,12 @@ void Td::on_request(uint64 id, td_api::finishFileGeneration &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(file_manager_actor_, &FileManager::external_file_generate_finish, request.generation_id_,
                std::move(status), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::readFilePart &request) {
+  CREATE_REQUEST_PROMISE();
+  send_closure(file_manager_actor_, &FileManager::read_file_part, FileId(request.file_id_, 0), request.offset_,
+               request.count_, 2, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteFile &request) {

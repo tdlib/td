@@ -2200,6 +2200,10 @@ chatReportReasonCustom text:string = ChatReportReason;
 publicMessageLink link:string html:string = PublicMessageLink;
 
 
+//@description Contains a part of a file @data File bytes
+filePart data:bytes = FilePart;
+
+
 //@class FileType @description Represents the type of a file
 
 //@description The data is not a file
@@ -3250,6 +3254,10 @@ setFileGenerationProgress generation_id:int64 expected_size:int32 local_prefix_s
 //@generation_id The identifier of the generation process
 //@error If set, means that file generation has failed and should be terminated
 finishFileGeneration generation_id:int64 error:error = Ok;
+
+//@description Reads a part of a file from the TDLib file cache and returns read bytes. This method is intended to be used only if the client has no direct access to the TDLib's file system, because it is usually slower than a direct read of a data from the file
+//@file_id Identifier of the file. The file must be located in the TDLib file cache @offset The offset from which to read the file @count Number of bytes to read. An error will be returned if there are not enough bytes available in the file from the specified position
+readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 
 //@description Deletes a file from the TDLib file cache @file_id Identifier of the file to delete
 deleteFile file_id:int32 = Ok;

@@ -20,6 +20,8 @@
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/actor/SleepActor.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
@@ -1811,6 +1813,80 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   }
 
   send_closure(file_load_manager_, &FileLoadManager::get_content, node->local_.full(), std::move(promise));
+}
+
+void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
+                                 Promise<td_api::object_ptr<td_api::filePart>> promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  if (!file_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "File ID is invalid"));
+  }
+  auto node = get_sync_file_node(file_id);
+  if (!node) {
+    return promise.set_error(Status::Error(400, "File not found"));
+  }
+  if (offset < 0) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+  }
+  if (count <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter count must be positive"));
+  }
+
+  auto file_view = FileView(node);
+
+  // TODO this check is safer to do in another thread
+  if (file_view.downloaded_prefix(offset) < static_cast<int64>(count)) {
+    return promise.set_error(Status::Error(400, "There is not enough downloaded bytes in the file to read"));
+  }
+
+  const string *path = nullptr;
+  bool is_partial = false;
+  if (file_view.has_local_location()) {
+    path = &file_view.local_location().path_;
+    if (!begins_with(*path, get_files_dir(file_view.get_type()))) {
+      return promise.set_error(Status::Error(400, "File is not inside the cache"));
+    }
+  } else {
+    CHECK(node->local_.type() == LocalFileLocation::Type::Partial);
+    path = &node->local_.partial().path_;
+    is_partial = true;
+  }
+
+  // TODO move file reading to another thread
+  auto r_bytes = [&]() -> Result<string> {
+    TRY_RESULT(fd, FileFd::open(*path, FileFd::Read));
+    string data;
+    data.resize(count);
+    TRY_RESULT(read_bytes, fd.pread(data, offset));
+    if (read_bytes != static_cast<size_t>(count)) {
+      return Status::Error("Read less bytes than expected");
+    }
+    return std::move(data);
+  }();
+  if (r_bytes.is_error()) {
+    LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
+    if (--left_tries == 0 || !is_partial) {
+      return promise.set_error(Status::Error(400, "Failed to read the file"));
+    }
+
+    // the temporary file could be moved from temp to persistent folder
+    // we need to wait for the corresponding update and repeat the reading
+    create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
+                             PromiseCreator::lambda([actor_id = actor_id(this), file_id, offset, count, left_tries,
+                                                     promise = std::move(promise)](Result<Unit> result) mutable {
+                               send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count, left_tries,
+                                            std::move(promise));
+                             }))
+        .release();
+    return;
+  }
+
+  auto result = td_api::make_object<td_api::filePart>();
+  result->data_ = r_bytes.move_as_ok();
+  promise.set_value(std::move(result));
 }
 
 void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char *source) {

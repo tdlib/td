@@ -410,6 +410,9 @@ class FileManager : public FileLoadManager::Callback {
   void delete_file_reference(FileId file_id, std::string file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 
+  void read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
+                      Promise<td_api::object_ptr<td_api::filePart>> promise);
+
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);
 
   void external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size, Promise<> promise);

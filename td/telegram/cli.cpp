@@ -2358,6 +2358,15 @@ class CliClient final : public Actor {
       std::tie(file_id, offset) = split(args);
       send_request(
           td_api::make_object<td_api::getFileDownloadedPrefixSize>(as_file_id(file_id), to_integer<int32>(offset)));
+    } else if (op == "rfp") {
+      string file_id;
+      string offset;
+      string count;
+      std::tie(file_id, args) = split(args);
+      std::tie(offset, count) = split(args);
+
+      send_request(td_api::make_object<td_api::readFilePart>(as_file_id(file_id), to_integer<int32>(offset),
+                                                             to_integer<int32>(count)));
     } else if (op == "grf") {
       send_request(td_api::make_object<td_api::getRemoteFile>(args, nullptr));
     } else if (op == "gmtf") {
