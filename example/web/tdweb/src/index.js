@@ -12,7 +12,7 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * TDLib can be compiled to WebAssembly or asm.js using Emscripten compiler and used in a browser from JavaScript.
  * This is a convenient wrapper for TDLib in a browser which controls TDLib instance creation, handles interaction
  * with the TDLib and manages a filesystem for persistent TDLib data.
- * TDLib instance is created in a Web Worker, because TDLib needs synchronous access to filesystem and the IndexedDB.
+ * TDLib instance is created in a Web Worker to run it in a separate thread.
  * TdClient just sends queries to the Web Worker and receive updates and results from it.
  * <br>
  * <br>
