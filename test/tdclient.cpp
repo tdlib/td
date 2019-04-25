@@ -9,8 +9,8 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
-#include "td/telegram/ClientActor.h"
 #include "td/telegram/Client.h"
+#include "td/telegram/ClientActor.h"
 
 #include "td/telegram/td_api.h"
 

@@ -11,8 +11,8 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/VideosManager.h"
 #include "td/telegram/VideoNotesManager.h"
+#include "td/telegram/VideosManager.h"
 
 namespace td {
 

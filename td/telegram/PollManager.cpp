@@ -19,8 +19,8 @@
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
-#include "td/telegram/TdDb.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
