@@ -161,7 +161,7 @@ function getSupportedOs(language) {
     case 'Choose a programming language:':
       return [];
     case 'JavaScript':
-      return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'Browser (Chrome, Firefox, Safari, Edge, Opera)'];
+      return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'Browser'];
     case 'Java':
       return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'Android'];
     case 'C#':
@@ -189,7 +189,7 @@ function getExampleAnchor(language) {
     case 'Ruby':
     case 'D':
     case 'Elixir':
-    case 'Ñ':
+    case 'C':
       return language.toLowerCase();
     case 'C#':
       return 'csharp';
@@ -301,11 +301,12 @@ function onOsChanged() {
   if (language === 'Other') {
     language = 'any other programming language';
   }
-  var text = 'TDLib can be used from ' + language + ' on ' + os + ' through the ' + getTargetName(target) + ' interface.<BR>' +
-             'See <a href="https://github.com/tdlib/td/blob/master/example/README.md#' + getExampleAnchor(language) + '">examples</a> of such usage and already available third-party frameworks.<BR>';
+  var text = 'TDLib can be used from ' + language + ' on ' + os + ' through the ' + getTargetName(target) + ' interface.<br>' +
+             'See <a href="https://github.com/tdlib/td/blob/master/example/README.md#' + getExampleAnchor(language) + '">examples</a> of such usage and already available third-party frameworks.<br>';
 
   if (target === 'WebAssembly') {
-    text = 'Complete instruction for TDLib building for browsers will be published soon.';
+    text = 'TDLib is available in a prebuilt form as an <a href="https://www.npmjs.com/">NPM</a> package <a href="https://www.npmjs.com/package/@arseny30/tdweb">tdweb</a>.<br>' +
+           'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/blob/master/example/web/">example</a>';
     target = '';
   }
   if (target === 'Android') {
