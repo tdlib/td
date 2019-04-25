@@ -14,6 +14,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/db/SqliteConnectionSafe.h"
+#include "td/db/SqliteDb.h"
 
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"

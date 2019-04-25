@@ -20,7 +20,8 @@
 namespace td {
 
 tl_object_ptr<td_api::storageStatisticsFast> FileStatsFast::as_td_api() const {
-  return make_tl_object<td_api::storageStatisticsFast>(size, count, database_size, log_size);
+  return make_tl_object<td_api::storageStatisticsFast>(size, count, database_size, language_pack_database_size,
+                                                       log_size);
 }
 
 void FileStats::add(StatByType &by_type, FileType file_type, int64 size) {

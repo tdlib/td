@@ -62,6 +62,7 @@ class StorageManager : public Actor {
   void save_fast_stat();
   void load_fast_stat();
   static int64 get_database_size();
+  static int64 get_language_pack_database_size();
   static int64 get_log_size();
   static int64 get_file_size(CSlice path);
 

@@ -15,6 +15,8 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/db/SqliteDb.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
@@ -68,7 +70,8 @@ void StorageManager::get_storage_stats(int32 dialog_limit, Promise<FileStats> pr
 }
 
 void StorageManager::get_storage_stats_fast(Promise<FileStatsFast> promise) {
-  promise.set_value(FileStatsFast(fast_stat_.size, fast_stat_.cnt, get_database_size(), get_log_size()));
+  promise.set_value(FileStatsFast(fast_stat_.size, fast_stat_.cnt, get_database_size(),
+                                  get_language_pack_database_size(), get_log_size()));
 }
 
 void StorageManager::get_database_stats(Promise<DatabaseStats> promise) {
@@ -157,6 +160,15 @@ int64 StorageManager::get_file_size(CSlice path) {
 int64 StorageManager::get_database_size() {
   int64 size = 0;
   G()->td_db()->with_db_path([&size](CSlice path) { size += get_file_size(path); });
+  return size;
+}
+
+int64 StorageManager::get_language_pack_database_size() {
+  int64 size = 0;
+  auto path = G()->shared_config().get_option_string("language_pack_database_path");
+  if (!path.empty()) {
+    SqliteDb::with_db_path(path, [&size](CSlice path) { size += get_file_size(path); });
+  }
   return size;
 }
 

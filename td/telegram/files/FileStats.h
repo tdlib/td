@@ -56,9 +56,14 @@ struct FileStatsFast {
   int64 size{0};
   int32 count{0};
   int64 database_size{0};
+  int64 language_pack_database_size{0};
   int64 log_size{0};
-  FileStatsFast(int64 size, int32 count, int64 database_size, int64 log_size)
-      : size(size), count(count), database_size(database_size), log_size(log_size) {
+  FileStatsFast(int64 size, int32 count, int64 database_size, int64 language_pack_database_size, int64 log_size)
+      : size(size)
+      , count(count)
+      , database_size(database_size)
+      , language_pack_database_size(language_pack_database_size)
+      , log_size(log_size) {
   }
   tl_object_ptr<td_api::storageStatisticsFast> as_td_api() const;
 };

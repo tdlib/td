@@ -83,4 +83,5 @@ class SqliteDb {
 
   bool is_encrypted();
 };
+
 }  // namespace td
