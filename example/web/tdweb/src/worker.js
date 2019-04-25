@@ -531,6 +531,7 @@ class TdClient {
     log.info('FS start init');
     this.tdfs = await tdfs_promise;
     log.info('FS inited');
+    this.callback({ '@type': 'fsInited' });
 
     // no async initialization after this point
     if (options.logVerbosityLevel === undefined) {

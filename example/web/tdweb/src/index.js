@@ -167,6 +167,10 @@ class TdClient {
         this.onInited();
         return;
       }
+      if (response['@type'] === 'fsInited') {
+        this.onFsInited();
+        return;
+      }
       if (
         response['@type'] === 'updateAuthorizationState' &&
         response.authorization_state['@type'] === 'authorizationStateClosed'
@@ -199,6 +203,10 @@ class TdClient {
   /** @private */
   onBroadcastMessage(e) {
     var message = e.data;
+    if (message.uid === this.uid) {
+      log.info('ignore self broadcast message: ', message);
+      return;
+    }
     log.info('got broadcast message: ', message);
     if (message.isBackground && !this.isBackground) {
       // continue
@@ -239,6 +247,11 @@ class TdClient {
   /** @private */
   onWaitSetEmpty() {
     // nop
+  }
+
+  /** @private */
+  onFsInited() {
+    this.fileManager.init();
   }
 
   /** @private */
@@ -339,16 +352,23 @@ class TdClient {
 /** @private */
 class FileManager {
   constructor(instanceName) {
+    this.instanceName = instanceName;
     this.cache = new Map();
+    this.pending = [];
+    this.transaction_id = 0;
+  }
+
+  init() {
+    let self = this;
     this.idb = new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(instanceName);
+      const request = window.indexedDB.open(self.instanceName);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
     //this.store = localforage.createInstance({
     //name: instanceName
     //});
-    this.pending = [];
+    this.isInited = true;
   }
 
   registerFile(file) {
@@ -375,6 +395,7 @@ class FileManager {
     let pending = this.pending;
     this.pending = [];
     let idb = await this.idb;
+    let transaction_id = this.transaction_id++;
     let read = idb
       .transaction(['keyvaluepairs'], 'readonly')
       .objectStore('keyvaluepairs');
@@ -384,7 +405,7 @@ class FileManager {
       request.onsuccess = event => {
         const blob = event.target.result;
         if (blob) {
-          query.resolve(blob);
+          query.resolve({ data: blob, transaction_id: transaction_id });
         } else {
           query.reject();
         }
@@ -405,7 +426,7 @@ class FileManager {
 
   async doLoad(info) {
     if (info.arr) {
-      return new Blob([info.arr]);
+      return { data: new Blob([info.arr]), transaction_id: -1 };
     }
     let idb_key = info.idb_key;
     let self = this;
@@ -417,15 +438,19 @@ class FileManager {
 
   async readFile(query) {
     try {
+      if (!this.isInited) {
+        throw new Error('FileManager is not inited');
+      }
       let info = this.cache.get(query.file_id);
       if (!info) {
         throw new Error('File is not loaded');
       }
-      let data = await this.doLoad(info);
+      let response = await this.doLoad(info);
       return {
-        '@type': 'Blob',
+        '@type': 'blob',
         '@extra': query['@extra'],
-        data: data
+        data: response.data,
+        transaction_id: response.transaction_id
       };
     } catch (e) {
       return {
