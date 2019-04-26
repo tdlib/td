@@ -84,13 +84,18 @@ function split_file($file, $chunks, $undo) {
         $add_depth = strpos($line, 'namespace ') === 0 ? 1 : (strpos($line, '}  // namespace') === 0 ? -1 : 0);
         if ($add_depth) {
             # namespace begin/end
-            $depth += $add_depth;
+            if ($add_depth > 0) {
+              $depth += $add_depth;
+            }
             if ($depth <= $target_depth) {
                 if ($add_depth > 0) {
                     $namespace_begin .= $line;
                 } else {
                     $namespace_end .= $line;
                 }
+            }
+            if ($add_depth < 0) {
+              $depth += $add_depth;
             }
             if ($is_static) {
                 $common .= $current;
@@ -210,10 +215,11 @@ if (in_array('--help', $argv) || in_array('-h', $argv)) {
 }
 
 $undo = in_array('--undo', $argv) || in_array('-u', $argv);
-$files = array('td/telegram/ContactsManager' => 10,
-               'td/telegram/MessagesManager' => 20,
-               'td/telegram/Td' => 20,
+$files = array('td/telegram/ContactsManager' => 20,
+               'td/telegram/MessagesManager' => 50,
+               'td/telegram/NotificationManager' => 10,
                'td/telegram/StickersManager' => 10,
+               'td/telegram/Td' => 40,
                'td/generate/auto/td/telegram/td_api' => 10,
                'td/generate/auto/td/telegram/td_api_json' => 10,
                'td/generate/auto/td/telegram/telegram_api' => 10);
