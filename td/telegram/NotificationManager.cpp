@@ -219,7 +219,7 @@ void NotificationManager::init() {
   VLOG(notifications) << "Loaded disable_contact_registered_notifications = "
                       << disable_contact_registered_notifications_ << " in state " << sync_state;
   if (contact_registered_notifications_sync_state_ != SyncState::Completed ||
-      static_cast<bool>(sync_state[1] - '0') != disable_contact_registered_notifications_) {
+      sync_state[1] != static_cast<int32>(disable_contact_registered_notifications_) + '0') {
     run_contact_registered_notifications_sync();
   }
 
@@ -443,8 +443,8 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
 }
 
 void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) {
-  bool is_erased = group_keys_.erase(group_it->first.group_id);
-  CHECK(is_erased);
+  auto erased_count = group_keys_.erase(group_it->first.group_id);
+  CHECK(erased_count > 0);
   groups_.erase(group_it);
 }
 
@@ -1662,10 +1662,10 @@ void NotificationManager::on_notification_removed(NotificationId notification_id
   }
   temporary_notification_logevent_ids_.erase(add_it);
 
-  bool is_erased_notification = temporary_notifications_.erase(temporary_notification_message_ids_[notification_id]);
-  bool is_erased_message_id = temporary_notification_message_ids_.erase(notification_id);
-  CHECK(is_erased_notification);
-  CHECK(is_erased_message_id);
+  auto erased_notification_count = temporary_notifications_.erase(temporary_notification_message_ids_[notification_id]);
+  auto erased_message_id_count = temporary_notification_message_ids_.erase(notification_id);
+  CHECK(erased_notification_count > 0);
+  CHECK(erased_message_id_count > 0);
 
   on_notification_processed(notification_id);
 }

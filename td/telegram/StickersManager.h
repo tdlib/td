@@ -152,7 +152,7 @@ class StickersManager : public Actor {
 
   void on_get_recent_stickers_failed(bool is_repair, bool is_attached, Status error);
 
-  FileSourceId get_recent_stickers_file_source_id(bool is_attached);
+  FileSourceId get_recent_stickers_file_source_id(int is_attached);
 
   void add_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                           Promise<Unit> &&promise);
