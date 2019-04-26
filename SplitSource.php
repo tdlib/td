@@ -195,13 +195,68 @@ function split_file($file, $chunks, $undo) {
     $files = array_fill(0, $chunks, '');
     $file_sizes = array_fill(0, $chunks, 0);
     foreach ($set_sizes as $parent => $size) {
-      $file_id = array_search(min($file_sizes), $file_sizes);
-      $files[$file_id] .= $sets[$parent];
-      $file_sizes[$file_id] += $size;
+        $file_id = array_search(min($file_sizes), $file_sizes);
+        $files[$file_id] .= $sets[$parent];
+        $file_sizes[$file_id] += $size;
     }
 
     foreach ($files as $n => $f) {
         $new_content = $common.$namespace_begin.$f.$namespace_end;
+
+        $std_methods = array();
+        preg_match_all('/std::[a-z_0-9]*/', $new_content, $std_methods);
+        $std_methods = array_unique($std_methods[0]);
+
+        $needed_std_headers = array();
+        $type_headers = array(
+            'std::move' => '',
+            'std::vector' => '',
+            'std::string' => '',
+            'std::uint32_t' => '',
+            'std::int32_t' => '',
+            'std::int64_t' => '',
+            'std::fill' => 'algorithm',
+            'std::find' => 'algorithm',
+            'std::max' => 'algorithm',
+            'std::min' => 'algorithm',
+            'std::remove' => 'algorithm',
+            'std::reverse' => 'algorithm',
+            'std::rotate' => 'algorithm',
+            'std::sort' => 'algorithm',
+            'std::numeric_limits' => 'limits',
+            'std::make_shared' => 'memory',
+            'std::shared_ptr' => 'memory',
+            'std::tie' => 'tuple',
+            'std::tuple' => 'tuple',
+            'std::decay_t' => 'type_traits',
+            'std::is_same' => 'type_traits',
+            'std::make_pair' => 'utility',
+            'std::pair' => 'utility',
+            'std::swap' => 'utility',
+            'std::unordered_map' => 'unordered_map',
+            'std::unordered_set' => 'unordered_set');
+        foreach ($type_headers as $type => $header) {
+            if (in_array($type, $std_methods)) {
+                $std_methods = array_diff($std_methods, array($type));
+                if ($header && !in_array($header, $needed_std_headers)) {
+                    $needed_std_headers[] = $header;
+                }
+            }
+        }
+
+        if (!$std_methods) { // know all needed std headers
+            $new_content = preg_replace_callback(
+                '/#include <([a-z_]*)>/',
+                function ($matches) use ($needed_std_headers) {
+                    if (in_array($matches[1], $needed_std_headers)) {
+                        return $matches[0];
+                    }
+                    return '';
+                },
+                $new_content
+            );
+        }
+
         if (!file_exists($new_files[$n]) || file_get_contents($new_files[$n]) !== $new_content) {
             echo "Writing file ".$new_files[$n].PHP_EOL;
             file_put_contents($new_files[$n], $new_content);
