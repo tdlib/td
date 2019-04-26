@@ -440,6 +440,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
 
+  auto total_voter_count = poll->total_voter_count + voter_count_diff;
   bool is_voted = false;
   for (auto &poll_option : poll_options) {
     is_voted |= poll_option->is_chosen_;
@@ -449,29 +450,29 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
     }
-  }
-
-  auto total_voter_count = poll->total_voter_count + voter_count_diff;
-  auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
-  auto voter_count_sum = 0;
-  for (auto voter_count : voter_counts) {
-    if (total_voter_count < voter_count) {
-      LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
-                 << voter_count << " in " << poll_id;
-      total_voter_count = voter_count;
+  } else {
+    // calculate vote percentage and fix total_voter_count
+    auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
+    auto voter_count_sum = 0;
+    for (auto voter_count : voter_counts) {
+      if (total_voter_count < voter_count) {
+        LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
+                   << voter_count << " in " << poll_id;
+        total_voter_count = voter_count;
+      }
+      voter_count_sum += voter_count;
     }
-    voter_count_sum += voter_count;
-  }
-  if (voter_count_sum < total_voter_count) {
-    LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
-               << voter_count_sum << " in " << poll_id;
-    total_voter_count = voter_count_sum;
-  }
+    if (voter_count_sum < total_voter_count) {
+      LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
+                 << voter_count_sum << " in " << poll_id;
+      total_voter_count = voter_count_sum;
+    }
 
-  auto vote_percentage = get_vote_percentage(voter_counts, total_voter_count);
-  CHECK(poll_options.size() == vote_percentage.size());
-  for (size_t i = 0; i < poll_options.size(); i++) {
-    poll_options[i]->vote_percentage_ = vote_percentage[i];
+    auto vote_percentage = get_vote_percentage(voter_counts, total_voter_count);
+    CHECK(poll_options.size() == vote_percentage.size());
+    for (size_t i = 0; i < poll_options.size(); i++) {
+      poll_options[i]->vote_percentage_ = vote_percentage[i];
+    }
   }
   return td_api::make_object<td_api::poll>(poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
                                            poll->is_closed);
