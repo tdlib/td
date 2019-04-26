@@ -260,7 +260,7 @@ function split_file($file, $chunks, $undo) {
         if (strpos($cpp_name, 'Td.cpp') === false) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
             $td_methods = array(
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
-                'ConfigShared|shared_config[(][)]' => 'ConfigShared',
+                'ConfigShared|shared_config[(]' => 'ConfigShared',
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
                 'file_manager[_(-][^.]|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
@@ -307,7 +307,7 @@ $files = array('td/telegram/ContactsManager' => 20,
                'td/telegram/MessagesManager' => 50,
                'td/telegram/NotificationManager' => 10,
                'td/telegram/StickersManager' => 10,
-               'td/telegram/Td' => 80,
+               'td/telegram/Td' => 50,
                'td/generate/auto/td/telegram/td_api' => 10,
                'td/generate/auto/td/telegram/td_api_json' => 10,
                'td/generate/auto/td/telegram/telegram_api' => 10);

@@ -3011,6 +3011,8 @@ class GetInviteTextRequest : public RequestActor<string> {
 Td::Td(unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
 
+Td::~Td() = default;
+
 void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
   auto td = static_cast<Td *>(td_ptr);
   auto td_id = td->actor_id(td);

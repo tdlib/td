@@ -90,6 +90,7 @@ class Td final : public NetQueryCallback {
   Td(Td &&) = delete;
   Td &operator=(const Td &) = delete;
   Td &operator=(Td &&) = delete;
+  ~Td() override;
 
   explicit Td(unique_ptr<TdCallback> callback);
 
