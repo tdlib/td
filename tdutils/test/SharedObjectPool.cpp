@@ -59,6 +59,7 @@ TEST(SharedPtr, simple) {
 #if TD_CLANG
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
   ptr2 = ptr2;
