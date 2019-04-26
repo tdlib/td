@@ -503,7 +503,7 @@ Result<string> TdDb::get_stats() {
     sb << "\n";
     return Status::OK();
   };
-  auto run_kv_query = [&](Slice mask, Slice table = "common") {
+  auto run_kv_query = [&](Slice mask, Slice table = Slice("common")) {
     return run_query(PSLICE() << "SELECT SUM(length(k)), SUM(length(v)), COUNT(*) FROM " << table << " WHERE k like '"
                               << mask << "'",
                      PSLICE() << table << ":" << mask);
