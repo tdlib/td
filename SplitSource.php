@@ -188,7 +188,7 @@ function split_file($file, $chunks, $undo) {
             $set_sizes[$parent] = 0;
         }
         $sets[$parent] .= $f;
-        $set_sizes[$parent] += strlen($f);
+        $set_sizes[$parent] += preg_match('/Td::~?Td/', $f) ? 1000000 : strlen($f);
     }
     arsort($set_sizes);
 
@@ -257,21 +257,26 @@ function split_file($file, $chunks, $undo) {
             );
         }
 
-        if (strpos($cpp_name, 'Td.cpp') === false) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
+        if (!preg_match('/Td::~?Td/', $new_content)) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
             $td_methods = array(
+                'animations_manager[_(-][^.]|AnimationsManager[^;>]' => "AnimationsManager",
+                'audios_manager[_(-][^.]|AudiosManager' => "AudiosManager",
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
                 'ConfigShared|shared_config[(]' => 'ConfigShared',
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
+                'documents_manager[_(-][^.]|DocumentsManager' => "DocumentsManager",
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
                 'file_manager[_(-][^.]|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
                 'G[(][)]|Global[^A-Za-z]' => 'Global',
                 'HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',
+                'language_pack_manager[_(-][^.]|LanguagePackManager' => 'LanguagePackManager',
                 'get_erase_logevent_promise' => 'logevent/LogEventHelper',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
                 'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-][^.]|SecretChatsManager' => 'SecretChatsManager',
+                'stickers_manager[_(-][^.]|StickersManager' => 'StickersManager',
                 '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',
                 'top_dialog_manager[_(-][^.]|TopDialogManager' => 'TopDialogManager',
                 'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]' => 'UpdatesManager',
