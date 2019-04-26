@@ -14,6 +14,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
 class HashtagHints : public Actor {
  public:
   HashtagHints(string mode, ActorShared<> parent);
@@ -40,4 +41,5 @@ class HashtagHints : public Actor {
   void from_db(Result<string> data, bool dummy);
   std::vector<string> keys_to_strings(const std::vector<int64> &keys);
 };
+
 }  // namespace td

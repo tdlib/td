@@ -257,6 +257,39 @@ function split_file($file, $chunks, $undo) {
             );
         }
 
+        if (strpos($new_content, "Td::Td") === false) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
+            $td_methods = array(
+                'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
+                'ConfigShared|shared_config[(][)]' => 'ConfigShared',
+                'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
+                'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
+                'file_manager[_(-][^.]|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
+                'G[(][)]|Global[^A-Za-z]' => 'Global',
+                'HashtagHints' => 'HashtagHints',
+                'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',
+                'get_erase_logevent_promise' => 'logevent/LogEventHelper',
+                'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
+                'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
+                'SecretChatActor' => 'SecretChatActor',
+                'secret_chats_manager[_(-][^.]|SecretChatsManager' => 'SecretChatsManager',
+                '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',
+                'top_dialog_manager[_(-][^.]|TopDialogManager' => 'TopDialogManager',
+                'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]' => 'UpdatesManager',
+                'WebPageId(Hash)?' => 'WebPageId',
+                'web_pages_manager[_(-][^.]|WebPagesManager' => 'WebPagesManager');
+
+            foreach ($td_methods as $pattern => $header) {
+                if (strpos($cpp_name, $header) !== false) {
+                    continue;
+                }
+
+                $include_name = '#include "td/telegram/'.$header.'.h"';
+                if (strpos($new_content, $include_name) !== false && preg_match('/'.$pattern.'/', str_replace($include_name, '', $new_content)) === 0) {
+                    $new_content = str_replace($include_name, '', $new_content);
+                }
+            }
+        }
+
         if (!file_exists($new_files[$n]) || file_get_contents($new_files[$n]) !== $new_content) {
             echo "Writing file ".$new_files[$n].PHP_EOL;
             file_put_contents($new_files[$n], $new_content);
