@@ -16,15 +16,14 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * TdClient just sends queries to the Web Worker and receive updates and results from it.
  * <br>
  * <br>
- * Differences from TDLib API:<br>
+ * Differences from TDLib JSON API:<br>
  * 1. Added the update <code>updateFatalError error:string = Update;</code> which is sent whenever a TDLib fatal error is encountered.<br>
- * 2. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored.<br>
+ * 2. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
+ * 3. Added the possibility to use blobs as input files via constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
+ * 4. The class <code>filePart</code> contains data as a JavaScript blob instead of a base64-encoded string.<br>
+ * 5. Methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
+ * 6. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored.<br>
  *    This field is non-empty only for fully downloaded files. IndexedDB database name is chosen during TdClient creation via options.instanceName parameter.<br>
- * 3. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
- * 4. Added the possibility to use blobs as input files via constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
- * 5. Added the method <code>readFilePart path:string offset:int64 size:int64 = FilePart;</code> and class <code>filePart data:<JavaScript blob> = FilePart;</code><br>
- *    which can be used on a partially downloaded file to support media streaming.<br>
- * 6. Methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
  * <br>
  */
 class TdClient {
