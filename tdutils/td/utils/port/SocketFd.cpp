@@ -469,7 +469,7 @@ Status get_socket_pending_error(const NativeFd &fd, WSAOVERLAPPED *overlapped, S
   // https://stackoverflow.com/questions/28925003/calling-wsagetlasterror-from-an-iocp-thread-return-incorrect-result
   DWORD num_bytes = 0;
   DWORD flags = 0;
-  bool success = WSAGetOverlappedResult(fd.socket(), overlapped, &num_bytes, false, &flags);
+  BOOL success = WSAGetOverlappedResult(fd.socket(), overlapped, &num_bytes, false, &flags);
   if (success) {
     LOG(ERROR) << "WSAGetOverlappedResult succeded after " << iocp_error;
     return iocp_error;
