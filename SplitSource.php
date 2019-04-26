@@ -307,7 +307,7 @@ $files = array('td/telegram/ContactsManager' => 20,
                'td/telegram/MessagesManager' => 50,
                'td/telegram/NotificationManager' => 10,
                'td/telegram/StickersManager' => 10,
-               'td/telegram/Td' => 40,
+               'td/telegram/Td' => 80,
                'td/generate/auto/td/telegram/td_api' => 10,
                'td/generate/auto/td/telegram/td_api_json' => 10,
                'td/generate/auto/td/telegram/telegram_api' => 10);
