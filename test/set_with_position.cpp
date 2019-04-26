@@ -153,6 +153,7 @@ static void test_hands() {
   }
 }
 
+#if !TD_CLANG
 template <template <class> class RawSet>
 static void test_stress() {
   Random::Xorshift128plus rnd(123);
@@ -222,6 +223,7 @@ static void test_stress() {
     }
   }
 }
+#endif
 
 template <template <class> class RawSet>
 static void test_speed() {
@@ -249,11 +251,13 @@ TEST(SetWithPosition, hands) {
   test_hands<SetWithPosition>();
 }
 
+#if !TD_CLANG
 TEST(SetWithPosition, stress) {
   test_stress<FastSetWithPosition>();
   test_stress<OldSetWithPosition>();
   test_stress<SetWithPosition>();
 }
+#endif
 
 TEST(SetWithPosition, speed) {
   test_speed<FastSetWithPosition>();
