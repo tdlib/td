@@ -462,7 +462,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       }
       voter_count_sum += voter_count;
     }
-    if (voter_count_sum < total_voter_count) {
+    if (voter_count_sum < total_voter_count && voter_count_sum != 0) {
       LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
                  << voter_count_sum << " in " << poll_id;
       total_voter_count = voter_count_sum;
