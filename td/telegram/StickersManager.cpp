@@ -3872,7 +3872,7 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
 FileSourceId StickersManager::get_recent_stickers_file_source_id(int is_attached) {
   if (!recent_stickers_file_source_id_[is_attached].is_valid()) {
     recent_stickers_file_source_id_[is_attached] =
-        td_->file_reference_manager_->create_recent_stickers_file_source(is_attached);
+        td_->file_reference_manager_->create_recent_stickers_file_source(is_attached != 0);
   }
   return recent_stickers_file_source_id_[is_attached];
 }
