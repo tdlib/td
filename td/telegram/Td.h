@@ -689,6 +689,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::cancelUploadFile &request);
 
+  void on_request(uint64 id, td_api::writeGeneratedFilePart &request);
+
   void on_request(uint64 id, const td_api::setFileGenerationProgress &request);
 
   void on_request(uint64 id, td_api::finishFileGeneration &request);

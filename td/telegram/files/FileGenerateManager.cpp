@@ -41,6 +41,9 @@ class FileGenerateActor : public Actor {
   FileGenerateActor(FileGenerateActor &&) = delete;
   FileGenerateActor &operator=(FileGenerateActor &&) = delete;
   ~FileGenerateActor() override = default;
+  virtual void file_generate_write_part(int32 offset, string data, Promise<> promise) {
+    LOG(ERROR) << "Receive unexpected file_generate_write_part";
+  }
   virtual void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) = 0;
   virtual void file_generate_finish(Status status, Promise<> promise) = 0;
 };
@@ -249,9 +252,14 @@ class FileExternalGenerateActor : public FileGenerateActor {
       , parent_(std::move(parent)) {
   }
 
+  void file_generate_write_part(int32 offset, string data, Promise<> promise) override {
+    check_status(do_file_generate_write_part(offset, data), std::move(promise));
+  }
+
   void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) override {
     check_status(do_file_generate_progress(expected_size, local_prefix_size), std::move(promise));
   }
+
   void file_generate_finish(Status status, Promise<> promise) override {
     if (status.is_error()) {
       check_status(std::move(status));
@@ -298,6 +306,20 @@ class FileExternalGenerateActor : public FileGenerateActor {
   }
   void hangup() override {
     check_status(Status::Error(1, "Cancelled"));
+  }
+
+  Status do_file_generate_write_part(int32 offset, const string &data) {
+    if (offset < 0) {
+      return Status::Error("Wrong offset specified");
+    }
+
+    auto size = data.size();
+    TRY_RESULT(fd, FileFd::open(path_, FileFd::Create | FileFd::Write));
+    TRY_RESULT(written, fd.pwrite(data, offset));
+    if (written != size) {
+      return Status::Error(PSLICE() << "Failed to write file: written " << written << " bytes instead of " << size);
+    }
+    return Status::OK();
   }
 
   Status do_file_generate_progress(int32 expected_size, int32 local_prefix_size) {
@@ -416,6 +438,16 @@ void FileGenerateManager::cancel(uint64 query_id) {
     return;
   }
   it->second.worker_.reset();
+}
+
+void FileGenerateManager::external_file_generate_write_part(uint64 query_id, int32 offset, string data,
+                                                            Promise<> promise) {
+  auto it = query_id_to_query_.find(query_id);
+  if (it == query_id_to_query_.end()) {
+    return promise.set_error(Status::Error(400, "Unknown generation_id"));
+  }
+  send_closure(it->second.worker_, &FileGenerateActor::file_generate_write_part, offset, std::move(data),
+               std::move(promise));
 }
 
 void FileGenerateManager::external_file_generate_progress(uint64 query_id, int32 expected_size, int32 local_prefix_size,

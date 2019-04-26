@@ -2318,6 +2318,11 @@ void FileManager::delete_file_reference(FileId file_id, string file_reference) {
   try_flush_node_pmc(node, "delete_file_reference");
 }
 
+void FileManager::external_file_generate_write_part(int64 id, int32 offset, string data, Promise<> promise) {
+  send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_write_part, id, offset,
+               std::move(data), std::move(promise));
+}
+
 void FileManager::external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size,
                                                   Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_progress, id, expected_size,

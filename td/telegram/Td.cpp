@@ -5881,6 +5881,12 @@ void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
+void Td::on_request(uint64 id, td_api::writeGeneratedFilePart &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(file_manager_actor_, &FileManager::external_file_generate_write_part, request.generation_id_,
+               request.offset_, std::move(request.data_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setFileGenerationProgress &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(file_manager_actor_, &FileManager::external_file_generate_progress, request.generation_id_,

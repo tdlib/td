@@ -415,6 +415,7 @@ class FileManager : public FileLoadManager::Callback {
 
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);
 
+  void external_file_generate_write_part(int64 id, int32 offset, string data, Promise<> promise);
   void external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size, Promise<> promise);
   void external_file_generate_finish(int64 id, Status status, Promise<> promise);
 

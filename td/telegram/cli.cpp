@@ -32,6 +32,7 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -3742,8 +3743,13 @@ class CliClient final : public Actor {
       }
       BufferSlice block(it->part_size);
       FileFd::open(it->source, FileFd::Flags::Read).move_as_ok().pread(block.as_slice(), it->local_size).ensure();
-      auto open_flags = FileFd::Flags::Write | (it->local_size ? 1 : FileFd::Flags::Truncate | FileFd::Flags::Create);
-      FileFd::open(it->destination, open_flags).move_as_ok().pwrite(block.as_slice(), it->local_size).ensure();
+      if (Random::fast(0, 1) == 0) {
+        auto open_flags = FileFd::Flags::Write | (it->local_size ? 0 : FileFd::Flags::Truncate | FileFd::Flags::Create);
+        FileFd::open(it->destination, open_flags).move_as_ok().pwrite(block.as_slice(), it->local_size).ensure();
+      } else {
+        send_request(
+            td_api::make_object<td_api::writeGeneratedFilePart>(it->id, it->local_size, block.as_slice().str()));
+      }
       it->local_size += it->part_size;
       if (it->local_size == it->size) {
         send_request(td_api::make_object<td_api::setFileGenerationProgress>(it->id, it->size, it->size));
