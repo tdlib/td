@@ -1039,6 +1039,10 @@ class Td final : public NetQueryCallback {
 
   static DbKey as_db_key(string key);
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;
+  void init_options_and_network();
+  void init_connection_creator();
+  void init_file_manager();
+  void init_managers();
   void clear();
   void close_impl(bool destroy_flag);
   static Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;

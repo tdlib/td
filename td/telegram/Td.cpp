@@ -3995,110 +3995,7 @@ Status Td::init(DbKey key) {
   VLOG(td_init) << "Successfully inited database";
   G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
 
-  // Init all managers and actors
-  VLOG(td_init) << "Create StateManager";
-  class StateManagerCallback : public StateManager::Callback {
-   public:
-    explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
-    }
-    bool on_state(StateManager::State state) override {
-      send_closure(td_, &Td::on_connection_state_changed, state);
-      return td_.is_alive();
-    }
-
-   private:
-    ActorShared<Td> td_;
-  };
-  state_manager_ = create_actor<StateManager>("State manager");
-  send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
-  G()->set_state_manager(state_manager_.get());
-  connection_state_ = StateManager::State::Empty;
-
-  VLOG(td_init) << "Create ConfigShared";
-  G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
-
-  if (G()->shared_config().have_option("language_database_path")) {
-    G()->shared_config().set_option_string("language_pack_database_path",
-                                           G()->shared_config().get_option_string("language_database_path"));
-    G()->shared_config().set_option_empty("language_database_path");
-  }
-  if (G()->shared_config().have_option("language_pack")) {
-    G()->shared_config().set_option_string("localization_target",
-                                           G()->shared_config().get_option_string("language_pack"));
-    G()->shared_config().set_option_empty("language_pack");
-  }
-  if (G()->shared_config().have_option("language_code")) {
-    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
-    G()->shared_config().set_option_empty("language_code");
-  }
-  if (!G()->shared_config().have_option("message_text_length_max")) {
-    G()->shared_config().set_option_integer("message_text_length_max", 4096);
-  }
-  if (!G()->shared_config().have_option("message_caption_length_max")) {
-    G()->shared_config().set_option_integer("message_caption_length_max", 1024);
-  }
-
-  VLOG(td_init) << "Create ConnectionCreator";
-  {
-    auto connection_creator = create_actor<ConnectionCreator>("ConnectionCreator", create_reference());
-    auto net_stats_manager = create_actor<NetStatsManager>("NetStatsManager", create_reference());
-
-    // How else could I let two actor know about each other, without quite complex async logic?
-    auto net_stats_manager_ptr = net_stats_manager->get_actor_unsafe();
-    net_stats_manager_ptr->init();
-    connection_creator->get_actor_unsafe()->set_net_stats_callback(net_stats_manager_ptr->get_common_stats_callback(),
-                                                                   net_stats_manager_ptr->get_media_stats_callback());
-    G()->set_net_stats_file_callbacks(net_stats_manager_ptr->get_file_stats_callbacks());
-
-    G()->set_connection_creator(std::move(connection_creator));
-    net_stats_manager_ = std::move(net_stats_manager);
-
-    complete_pending_preauthentication_requests([](int32 id) {
-      switch (id) {
-        case td_api::setNetworkType::ID:
-        case td_api::getNetworkStatistics::ID:
-        case td_api::addNetworkStatistics::ID:
-        case td_api::resetNetworkStatistics::ID:
-        case td_api::addProxy::ID:
-        case td_api::editProxy::ID:
-        case td_api::enableProxy::ID:
-        case td_api::disableProxy::ID:
-        case td_api::removeProxy::ID:
-        case td_api::getProxies::ID:
-        case td_api::getProxyLink::ID:
-          return true;
-        default:
-          return false;
-      }
-    });
-  }
-
-  VLOG(td_init) << "Create TempAuthKeyWatchdog";
-  auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog");
-  G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
-
-  VLOG(td_init) << "Create ConfigManager";
-  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
-  G()->set_config_manager(config_manager_.get());
-
-  VLOG(td_init) << "Set ConfigShared callback";
-  class ConfigSharedCallback : public ConfigShared::Callback {
-   public:
-    void on_option_updated(const string &name, const string &value) const override {
-      send_closure(G()->td(), &Td::on_config_option_updated, name);
-    }
-    ~ConfigSharedCallback() override {
-      LOG(INFO) << "Destroy ConfigSharedCallback";
-    }
-  };
-  // we need to set ConfigShared callback before td_api::getOption requests are processed for consistency
-  // TODO currently they will be inconsistent anyway, because td_api::getOption returns current value,
-  // but in td_api::updateOption there will be a newer value, obtained at the time of update creation
-  // so, there can be even two succesive updateOption with the same value
-  // we need to process td_api::getOption along with td_api::setOption for consistency
-  // we need to process td_api::setOption before managers and MTProto header are created,
-  // because their initialiation may be affected by the options
-  G()->shared_config().set_callback(make_unique<ConfigSharedCallback>());
+  init_options_and_network();
 
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
@@ -4129,126 +4026,13 @@ Status Td::init(DbKey key) {
   auth_manager_ = td::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
 
-  VLOG(td_init) << "Create FileManager";
-  download_file_callback_ = std::make_shared<DownloadFileCallback>();
-  upload_file_callback_ = std::make_shared<UploadFileCallback>();
+  init_file_manager();
 
-  class FileManagerContext : public FileManager::Context {
-   public:
-    explicit FileManagerContext(Td *td) : td_(td) {
-    }
+  init_managers();
 
-    void on_new_file(int64 size, int32 cnt) final {
-      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, cnt);
-    }
-
-    void on_file_updated(FileId file_id) final {
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateFile>(td_->file_manager_->get_file_object(file_id)));
-    }
-
-    bool add_file_source(FileId file_id, FileSourceId file_source_id) final {
-      return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
-    }
-
-    FileSourceId get_wallpapers_file_source_id() final {
-      return td_->wallpaper_manager_->get_wallpapers_file_source_id();
-    }
-
-    bool remove_file_source(FileId file_id, FileSourceId file_source_id) final {
-      return td_->file_reference_manager_->remove_file_source(file_id, file_source_id);
-    }
-
-    void on_merge_files(FileId to_file_id, FileId from_file_id) final {
-      td_->file_reference_manager_->merge(to_file_id, from_file_id);
-    }
-
-    vector<FileSourceId> get_some_file_sources(FileId file_id) final {
-      return td_->file_reference_manager_->get_some_file_sources(file_id);
-    }
-
-    void repair_file_reference(FileId file_id, Promise<Unit> promise) final {
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
-                   std::move(promise));
-    }
-
-    ActorShared<> create_reference() final {
-      return td_->create_reference();
-    }
-
-   private:
-    Td *td_;
-  };
-
-  file_manager_ = make_unique<FileManager>(make_unique<FileManagerContext>(this));
-  file_manager_actor_ = register_actor("FileManager", file_manager_.get());
-  file_manager_->init_actor();
-  G()->set_file_manager(file_manager_actor_.get());
-
-  file_reference_manager_ = make_unique<FileReferenceManager>();
-  file_reference_manager_actor_ = register_actor("FileReferenceManager", file_reference_manager_.get());
-  G()->set_file_reference_manager(file_reference_manager_actor_.get());
-
-  VLOG(td_init) << "Create Managers";
-  audios_manager_ = make_unique<AudiosManager>(this);
-  callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
-  documents_manager_ = make_unique<DocumentsManager>(this);
-  video_notes_manager_ = make_unique<VideoNotesManager>(this);
-  videos_manager_ = make_unique<VideosManager>(this);
-  voice_notes_manager_ = make_unique<VoiceNotesManager>(this);
-
-  animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
-  animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
-  G()->set_animations_manager(animations_manager_actor_.get());
-  contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
-  contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
-  G()->set_contacts_manager(contacts_manager_actor_.get());
-  inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
-  inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
-  messages_manager_ = make_unique<MessagesManager>(this, create_reference());
-  messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
-  G()->set_messages_manager(messages_manager_actor_.get());
-  notification_manager_ = make_unique<NotificationManager>(this, create_reference());
-  notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
-  poll_manager_ = make_unique<PollManager>(this, create_reference());
-  poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
-  G()->set_notification_manager(notification_manager_actor_.get());
-  stickers_manager_ = make_unique<StickersManager>(this, create_reference());
-  stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
-  G()->set_stickers_manager(stickers_manager_actor_.get());
-  updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
-  updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
-  G()->set_updates_manager(updates_manager_actor_.get());
-  wallpaper_manager_ = make_unique<WallpaperManager>(this, create_reference());
-  wallpaper_manager_actor_ = register_actor("WallpaperManager", wallpaper_manager_.get());
-  G()->set_wallpaper_manager(wallpaper_manager_actor_.get());
-  web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
-  web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
-  G()->set_web_pages_manager(web_pages_manager_actor_.get());
-
-  call_manager_ = create_actor<CallManager>("CallManager", create_reference());
-  G()->set_call_manager(call_manager_.get());
-  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
-  confirm_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "ConfirmPhoneNumberManager", PhoneNumberManager::Type::ConfirmPhone, create_reference());
-  device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
-  hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
-  language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
-  G()->set_language_pack_manager(language_pack_manager_.get());
-  password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
-  G()->set_password_manager(password_manager_.get());
-  privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
-  secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
-  G()->set_secret_chats_manager(secret_chats_manager_.get());
-  secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
                                                   min(current_scheduler_id + 2, scheduler_count - 1));
   G()->set_storage_manager(storage_manager_.get());
-  top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
-  G()->set_top_dialog_manager(top_dialog_manager_.get());
-  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
 
   VLOG(td_init) << "Send binlog events";
   for (auto &event : events.user_events) {
@@ -4329,6 +4113,236 @@ Status Td::init(DbKey key) {
 
   state_ = State::Run;
   return Status::OK();
+}
+
+void Td::init_options_and_network() {
+  VLOG(td_init) << "Create StateManager";
+  class StateManagerCallback : public StateManager::Callback {
+   public:
+    explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
+    }
+    bool on_state(StateManager::State state) override {
+      send_closure(td_, &Td::on_connection_state_changed, state);
+      return td_.is_alive();
+    }
+
+   private:
+    ActorShared<Td> td_;
+  };
+  state_manager_ = create_actor<StateManager>("State manager");
+  send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
+  G()->set_state_manager(state_manager_.get());
+  connection_state_ = StateManager::State::Empty;
+
+  VLOG(td_init) << "Create ConfigShared";
+  G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
+
+  if (G()->shared_config().have_option("language_database_path")) {
+    G()->shared_config().set_option_string("language_pack_database_path",
+                                           G()->shared_config().get_option_string("language_database_path"));
+    G()->shared_config().set_option_empty("language_database_path");
+  }
+  if (G()->shared_config().have_option("language_pack")) {
+    G()->shared_config().set_option_string("localization_target",
+                                           G()->shared_config().get_option_string("language_pack"));
+    G()->shared_config().set_option_empty("language_pack");
+  }
+  if (G()->shared_config().have_option("language_code")) {
+    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
+    G()->shared_config().set_option_empty("language_code");
+  }
+  if (!G()->shared_config().have_option("message_text_length_max")) {
+    G()->shared_config().set_option_integer("message_text_length_max", 4096);
+  }
+  if (!G()->shared_config().have_option("message_caption_length_max")) {
+    G()->shared_config().set_option_integer("message_caption_length_max", 1024);
+  }
+
+  init_connection_creator();
+
+  VLOG(td_init) << "Create TempAuthKeyWatchdog";
+  auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog");
+  G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
+
+  VLOG(td_init) << "Create ConfigManager";
+  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
+  G()->set_config_manager(config_manager_.get());
+
+  VLOG(td_init) << "Set ConfigShared callback";
+  class ConfigSharedCallback : public ConfigShared::Callback {
+   public:
+    void on_option_updated(const string &name, const string &value) const override {
+      send_closure(G()->td(), &Td::on_config_option_updated, name);
+    }
+    ~ConfigSharedCallback() override {
+      LOG(INFO) << "Destroy ConfigSharedCallback";
+    }
+  };
+  // we need to set ConfigShared callback before td_api::getOption requests are processed for consistency
+  // TODO currently they will be inconsistent anyway, because td_api::getOption returns current value,
+  // but in td_api::updateOption there will be a newer value, obtained at the time of update creation
+  // so, there can be even two succesive updateOption with the same value
+  // we need to process td_api::getOption along with td_api::setOption for consistency
+  // we need to process td_api::setOption before managers and MTProto header are created,
+  // because their initialiation may be affected by the options
+  G()->shared_config().set_callback(make_unique<ConfigSharedCallback>());
+}
+
+void Td::init_connection_creator() {
+  VLOG(td_init) << "Create ConnectionCreator";
+  auto connection_creator = create_actor<ConnectionCreator>("ConnectionCreator", create_reference());
+  auto net_stats_manager = create_actor<NetStatsManager>("NetStatsManager", create_reference());
+
+  // How else could I let two actor know about each other, without quite complex async logic?
+  auto net_stats_manager_ptr = net_stats_manager->get_actor_unsafe();
+  net_stats_manager_ptr->init();
+  connection_creator->get_actor_unsafe()->set_net_stats_callback(net_stats_manager_ptr->get_common_stats_callback(),
+                                                                 net_stats_manager_ptr->get_media_stats_callback());
+  G()->set_net_stats_file_callbacks(net_stats_manager_ptr->get_file_stats_callbacks());
+
+  G()->set_connection_creator(std::move(connection_creator));
+  net_stats_manager_ = std::move(net_stats_manager);
+
+  complete_pending_preauthentication_requests([](int32 id) {
+    switch (id) {
+      case td_api::setNetworkType::ID:
+      case td_api::getNetworkStatistics::ID:
+      case td_api::addNetworkStatistics::ID:
+      case td_api::resetNetworkStatistics::ID:
+      case td_api::addProxy::ID:
+      case td_api::editProxy::ID:
+      case td_api::enableProxy::ID:
+      case td_api::disableProxy::ID:
+      case td_api::removeProxy::ID:
+      case td_api::getProxies::ID:
+      case td_api::getProxyLink::ID:
+        return true;
+      default:
+        return false;
+    }
+  });
+}
+
+void Td::init_file_manager() {
+  VLOG(td_init) << "Create FileManager";
+  download_file_callback_ = std::make_shared<DownloadFileCallback>();
+  upload_file_callback_ = std::make_shared<UploadFileCallback>();
+
+  class FileManagerContext : public FileManager::Context {
+   public:
+    explicit FileManagerContext(Td *td) : td_(td) {
+    }
+
+    void on_new_file(int64 size, int32 cnt) final {
+      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, cnt);
+    }
+
+    void on_file_updated(FileId file_id) final {
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateFile>(td_->file_manager_->get_file_object(file_id)));
+    }
+
+    bool add_file_source(FileId file_id, FileSourceId file_source_id) final {
+      return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
+    }
+
+    FileSourceId get_wallpapers_file_source_id() final {
+      return td_->wallpaper_manager_->get_wallpapers_file_source_id();
+    }
+
+    bool remove_file_source(FileId file_id, FileSourceId file_source_id) final {
+      return td_->file_reference_manager_->remove_file_source(file_id, file_source_id);
+    }
+
+    void on_merge_files(FileId to_file_id, FileId from_file_id) final {
+      td_->file_reference_manager_->merge(to_file_id, from_file_id);
+    }
+
+    vector<FileSourceId> get_some_file_sources(FileId file_id) final {
+      return td_->file_reference_manager_->get_some_file_sources(file_id);
+    }
+
+    void repair_file_reference(FileId file_id, Promise<Unit> promise) final {
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
+                   std::move(promise));
+    }
+
+    ActorShared<> create_reference() final {
+      return td_->create_reference();
+    }
+
+   private:
+    Td *td_;
+  };
+
+  file_manager_ = make_unique<FileManager>(make_unique<FileManagerContext>(this));
+  file_manager_actor_ = register_actor("FileManager", file_manager_.get());
+  file_manager_->init_actor();
+  G()->set_file_manager(file_manager_actor_.get());
+
+  file_reference_manager_ = make_unique<FileReferenceManager>();
+  file_reference_manager_actor_ = register_actor("FileReferenceManager", file_reference_manager_.get());
+  G()->set_file_reference_manager(file_reference_manager_actor_.get());
+}
+
+void Td::init_managers() {
+  VLOG(td_init) << "Create Managers";
+  audios_manager_ = make_unique<AudiosManager>(this);
+  callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
+  documents_manager_ = make_unique<DocumentsManager>(this);
+  video_notes_manager_ = make_unique<VideoNotesManager>(this);
+  videos_manager_ = make_unique<VideosManager>(this);
+  voice_notes_manager_ = make_unique<VoiceNotesManager>(this);
+
+  animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
+  animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
+  G()->set_animations_manager(animations_manager_actor_.get());
+  contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
+  contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
+  G()->set_contacts_manager(contacts_manager_actor_.get());
+  inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
+  inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
+  messages_manager_ = make_unique<MessagesManager>(this, create_reference());
+  messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
+  G()->set_messages_manager(messages_manager_actor_.get());
+  notification_manager_ = make_unique<NotificationManager>(this, create_reference());
+  notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
+  poll_manager_ = make_unique<PollManager>(this, create_reference());
+  poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
+  G()->set_notification_manager(notification_manager_actor_.get());
+  stickers_manager_ = make_unique<StickersManager>(this, create_reference());
+  stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
+  G()->set_stickers_manager(stickers_manager_actor_.get());
+  updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
+  updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
+  G()->set_updates_manager(updates_manager_actor_.get());
+  wallpaper_manager_ = make_unique<WallpaperManager>(this, create_reference());
+  wallpaper_manager_actor_ = register_actor("WallpaperManager", wallpaper_manager_.get());
+  G()->set_wallpaper_manager(wallpaper_manager_actor_.get());
+  web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
+  web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
+  G()->set_web_pages_manager(web_pages_manager_actor_.get());
+
+  call_manager_ = create_actor<CallManager>("CallManager", create_reference());
+  G()->set_call_manager(call_manager_.get());
+  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
+  confirm_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "ConfirmPhoneNumberManager", PhoneNumberManager::Type::ConfirmPhone, create_reference());
+  device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
+  hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
+  language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
+  G()->set_language_pack_manager(language_pack_manager_.get());
+  password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
+  G()->set_password_manager(password_manager_.get());
+  privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
+  secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
+  G()->set_secret_chats_manager(secret_chats_manager_.get());
+  secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
+  top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
+  G()->set_top_dialog_manager(top_dialog_manager_.get());
+  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
 }
 
 void Td::send_get_nearest_dc_query(Promise<string> promise) {
