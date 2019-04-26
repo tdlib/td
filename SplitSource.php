@@ -257,7 +257,7 @@ function split_file($file, $chunks, $undo) {
             );
         }
 
-        if (strpos($new_content, "Td::Td") === false) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
+        if (strpos($new_content, 'Td::') === false) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
             $td_methods = array(
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
                 'ConfigShared|shared_config[(][)]' => 'ConfigShared',
