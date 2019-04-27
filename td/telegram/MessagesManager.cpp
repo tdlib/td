@@ -7297,7 +7297,7 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
     if (d != nullptr) {
       auto m = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
       CHECK(m != nullptr);
-      CHECK(m->message_id == message_id);
+      LOG_CHECK(m->message_id == message_id) << message_id << " " << m->message_id << " " << d->dialog_id;
       deleted_message_ids[d->dialog_id].push_back(message_id.get());
     }
     if (last_clear_history_message_id_to_dialog_id_.count(message_id)) {
@@ -22912,7 +22912,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!is_attached) {
     if (m->have_next) {
-      CHECK(!m->have_previous);
+      LOG_CHECK(!m->have_previous) << auto_attach << " " << dialog_id << " " << message_id << " " << from_update << " "
+                                   << *need_update << " " << d->being_updated_last_new_message_id << " "
+                                   << d->last_new_message_id << " " << d->being_updated_last_database_message_id << " "
+                                   << d->last_database_message_id << " " << source;
       attach_message_to_next(d, message_id, source);
     } else if (m->have_previous) {
       attach_message_to_previous(d, message_id, source);
