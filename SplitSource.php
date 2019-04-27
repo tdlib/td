@@ -293,6 +293,17 @@ function split_file($file, $chunks, $undo) {
                     $new_content = str_replace($include_name, '', $new_content);
                 }
             }
+        } else {
+            $new_content = preg_replace_callback(
+                '|#include "[a-z_A-Z/0-9.]*"|',
+                function ($matches) {
+                    if (strpos($matches[0], "Manager") !== false || strpos($matches[0], "HashtagHints") !== false || strpos($matches[0], "Td.h") !== false) {
+                        return $matches[0];
+                    }
+                    return '';
+                },
+                $new_content
+            );
         }
 
         if (!file_exists($new_files[$n]) || file_get_contents($new_files[$n]) !== $new_content) {
