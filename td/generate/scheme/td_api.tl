@@ -3261,7 +3261,9 @@ setFileGenerationProgress generation_id:int64 expected_size:int32 local_prefix_s
 finishFileGeneration generation_id:int64 error:error = Ok;
 
 //@description Reads a part of a file from the TDLib file cache and returns read bytes. This method is intended to be used only if the client has no direct access to TDLib's file system, because it is usually slower than a direct read from the file
-//@file_id Identifier of the file. The file must be located in the TDLib file cache @offset The offset from which to read the file @count Number of bytes to read. An error will be returned if there are not enough bytes available in the file from the specified position
+//@file_id Identifier of the file. The file must be located in the TDLib file cache
+//@offset The offset from which to read the file
+//@count Number of bytes to read. An error will be returned if there are not enough bytes available in the file from the specified position. Pass 0 to read all available data from the specified position
 readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 
 //@description Deletes a file from the TDLib file cache @file_id Identifier of the file to delete

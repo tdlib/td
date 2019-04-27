@@ -1831,14 +1831,19 @@ void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int 
   if (offset < 0) {
     return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
   }
-  if (count <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter count must be positive"));
+  if (count < 0) {
+    return promise.set_error(Status::Error(400, "Parameter count must be non-negative"));
   }
 
   auto file_view = FileView(node);
 
-  // TODO this check is safer to do in another thread
-  if (file_view.downloaded_prefix(offset) < static_cast<int64>(count)) {
+  if (count == 0) {
+    count = narrow_cast<int32>(file_view.downloaded_prefix(offset));
+    if (count == 0) {
+      return promise.set_value(td_api::make_object<td_api::filePart>());
+    }
+  } else if (file_view.downloaded_prefix(offset) < static_cast<int64>(count)) {
+    // TODO this check is safer to do in another thread
     return promise.set_error(Status::Error(400, "There is not enough downloaded bytes in the file to read"));
   }
 
