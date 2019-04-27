@@ -6251,7 +6251,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     save_user(u, user_id, from_binlog);
   }
 
-  if (!u->is_received && u->access_hash != -1 && !u->is_repaired) {
+  if (!u->is_received && u->access_hash != -1 && !u->is_repaired && !G()->close_flag()) {
     u->is_repaired = true;
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
@@ -7139,6 +7139,10 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
     user_full->photos.clear();
     user_full->photo_count = -1;
     user_full->photos_offset = -1;
+  }
+
+  if (G()->close_flag()) {
+    return promise.set_value(Unit());
   }
 
   auto input_user = get_input_user(my_id);
