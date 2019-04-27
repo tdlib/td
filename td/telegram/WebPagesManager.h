@@ -33,8 +33,6 @@ struct BinlogEvent;
 
 class Td;
 
-class WebPageBlock;
-
 class WebPagesManager : public Actor {
  public:
   WebPagesManager(Td *td, ActorShared<> parent);

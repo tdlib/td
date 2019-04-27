@@ -10,7 +10,6 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/Document.hpp"
 #include "td/telegram/DocumentsManager.h"
@@ -46,8 +45,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
-
-#include <type_traits>
 
 namespace td {
 
