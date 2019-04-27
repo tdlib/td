@@ -33,6 +33,8 @@ struct BinlogEvent;
 
 class Td;
 
+class WebPageBlock;
+
 class WebPagesManager : public Actor {
  public:
   WebPagesManager(Td *td, ActorShared<> parent);
@@ -98,51 +100,9 @@ class WebPagesManager : public Actor {
 
   class WebPage;
 
-  class RichText;
-
-  class PageBlockCaption;
-  class PageBlockTableCell;
-  class RelatedArticle;
-
-  class PageBlock;
-  class PageBlockTitle;
-  class PageBlockSubtitle;
-  class PageBlockAuthorDate;
-  class PageBlockHeader;
-  class PageBlockSubheader;
-  class PageBlockKicker;
-  class PageBlockParagraph;
-  class PageBlockPreformatted;
-  class PageBlockFooter;
-  class PageBlockDivider;
-  class PageBlockAnchor;
-  class PageBlockList;
-  class PageBlockBlockQuote;
-  class PageBlockPullQuote;
-  class PageBlockAnimation;
-  class PageBlockPhoto;
-  class PageBlockVideo;
-  class PageBlockCover;
-  class PageBlockEmbedded;
-  class PageBlockEmbeddedPost;
-  class PageBlockCollage;
-  class PageBlockSlideshow;
-  class PageBlockChatLink;
-  class PageBlockAudio;
-  class PageBlockTable;
-  class PageBlockDetails;
-  class PageBlockRelatedArticles;
-  class PageBlockMap;
-
   class WebPageInstantView;
 
   class WebPageLogEvent;
-
-  template <class StorerT>
-  friend void store(const unique_ptr<PageBlock> &block, StorerT &storer);
-
-  template <class ParserT>
-  friend void parse(unique_ptr<PageBlock> &block, ParserT &parser);
 
   void update_web_page(unique_ptr<WebPage> web_page, WebPageId web_page_id, bool from_binlog, bool from_database);
 
@@ -168,41 +128,6 @@ class WebPagesManager : public Actor {
 
   void on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,
                                        Promise<Unit> &&promise);
-
-  static RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
-                                const std::unordered_map<int64, FileId> &documents);
-
-  static vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
-                                         const std::unordered_map<int64, FileId> &documents);
-
-  static tl_object_ptr<td_api::RichText> get_rich_text_object(const RichText &rich_text);
-
-  static vector<tl_object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts);
-
-  static PageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCaption> &&page_caption,
-                                                 const std::unordered_map<int64, FileId> &documents);
-
-  static td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(const PageBlockCaption &caption);
-
-  static td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
-      const PageBlockTableCell &cell);
-
-  static vector<tl_object_ptr<td_api::PageBlock>> get_page_block_objects(
-      const vector<unique_ptr<PageBlock>> &page_blocks);
-
-  unique_ptr<PageBlock> get_page_block(tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
-                                       const std::unordered_map<int64, FileId> &animations,
-                                       const std::unordered_map<int64, FileId> &audios,
-                                       const std::unordered_map<int64, FileId> &documents,
-                                       const std::unordered_map<int64, Photo> &photos,
-                                       const std::unordered_map<int64, FileId> &videos) const;
-
-  vector<unique_ptr<PageBlock>> get_page_blocks(vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
-                                                const std::unordered_map<int64, FileId> &animations,
-                                                const std::unordered_map<int64, FileId> &audios,
-                                                const std::unordered_map<int64, FileId> &documents,
-                                                const std::unordered_map<int64, Photo> &photos,
-                                                const std::unordered_map<int64, FileId> &videos) const;
 
   void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
                                     DialogId owner_dialog_id);
@@ -241,10 +166,6 @@ class WebPagesManager : public Actor {
   void tear_down() override;
 
   FileSourceId get_web_page_file_source_id(WebPage *web_page);
-
-  static void append_rich_text_file_ids(const RichText &rich_text, vector<FileId> &file_ids);
-
-  static void append_page_block_caption_file_ids(const PageBlockCaption &caption, vector<FileId> &file_ids);
 
   vector<FileId> get_web_page_file_ids(const WebPage *web_page) const;
 
