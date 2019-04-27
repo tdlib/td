@@ -22,3 +22,8 @@ cd <path to TDLib sources>/example/web
 ./copy-tdlib.sh
 ./build-tdweb.sh
 ```
+* The built package is now located in `tdweb` directory.
+
+## Using tdweb NPM package
+
+See [tdweb](https://www.npmjs.com/package/@arseny30/tdweb) or [README.md](https://github.com/tdlib/td/tree/master/example/web/tdweb/README.md) for the package documentation.
