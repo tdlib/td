@@ -24868,8 +24868,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
 
   if (last_message_id.get() > d->last_new_message_id.get()) {
     // TODO properly support last_message_id.get() <= d->last_new_message_id.get()
-    set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog");
-    set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog");
+    set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
+    set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
     d->have_full_history = false;
     for (auto &first_message_id : d->first_database_message_id_by_index) {
       first_message_id = MessageId();
@@ -24883,6 +24883,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   if (last_message_id.get() > d->last_new_message_id.get()) {  // if last message is really a new message
     if (!d->last_new_message_id.is_valid() && last_message_id.get() <= d->max_added_message_id.get()) {
       set_dialog_last_new_message_id(d, last_message_id, "on_get_channel_dialog 15");  // remove too new messages
+      set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 16");
+      set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 17");
     }
     d->last_new_message_id = MessageId();
     set_dialog_last_message_id(d, MessageId(), "on_get_channel_dialog 20");
