@@ -11557,7 +11557,7 @@ void MessagesManager::on_get_dialogs_from_database(int32 limit, vector<BufferSli
   }
 
   if (!(last_loaded_database_dialog_date_ < last_database_server_dialog_date_)) {
-    have_more_dialogs_in_database = false;
+    // have_more_dialogs_in_database = false;
     new_get_dialogs_limit = 0;
   }
 
@@ -20622,8 +20622,8 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
   }
   const Message *m = get_message_force(d, d->reply_markup_message_id, "on_dialog_bots_updated");
   if (m == nullptr || std::find(bot_user_ids.begin(), bot_user_ids.end(), m->sender_user_id) == bot_user_ids.end()) {
-    LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << m->sender_user_id
-              << " isn't a member of the chat";
+    LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot "
+              << (m == nullptr ? UserId() : m->sender_user_id) << " isn't a member of the chat";
     set_dialog_reply_markup(d, MessageId());
   }
 }
