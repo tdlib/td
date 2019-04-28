@@ -10031,8 +10031,13 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     try_add_active_live_location(dialog_id, new_message.get());
 
-    new_message->have_previous = true;
-    new_message->have_next = true;
+    if (!from_update) {
+      new_message->have_previous = have_previous;
+      new_message->have_next = have_next;
+    } else {
+      new_message->have_previous = true;
+      new_message->have_next = true;
+    }
   }
 
   const Message *m = add_message_to_dialog(dialog_id, std::move(new_message), from_update, &need_update,
@@ -22188,8 +22193,8 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   add_message_dependencies(dependencies, d->dialog_id, m.get());
   resolve_dependencies_force(dependencies);
 
-  m->have_next = false;
   m->have_previous = false;
+  m->have_next = false;
   m->from_database = true;
   bool need_update = false;
   bool need_update_dialog_pos = false;
@@ -22240,6 +22245,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   CHECK(need_update_dialog_pos != nullptr);
   CHECK(source != nullptr);
   debug_add_message_to_dialog_fail_reason_ = "success";
+
+  auto debug_have_previous = message->have_previous;
+  auto debug_have_next = message->have_next;
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
@@ -22929,7 +22937,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       LOG_CHECK(!m->have_previous) << auto_attach << " " << dialog_id << " " << message_id << " " << from_update << " "
                                    << *need_update << " " << d->being_updated_last_new_message_id << " "
                                    << d->last_new_message_id << " " << d->being_updated_last_database_message_id << " "
-                                   << d->last_database_message_id << " " << source;
+                                   << d->last_database_message_id << " " << debug_have_previous << " "
+                                   << debug_have_next << " " << source;
       attach_message_to_next(d, message_id, source);
     } else if (m->have_previous) {
       attach_message_to_previous(d, message_id, source);
