@@ -11097,9 +11097,16 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   }
 
   const Message *m = v->get();
+  CHECK(m->message_id == message_id);
+
   if (only_from_memory && !can_unload_message(d, m)) {
     return nullptr;
   }
+
+  LOG_CHECK(!d->being_deleted_message_id.is_valid()) << d->being_deleted_message_id << " " << message_id << " "
+                                                     << d->debug_being_deleted_message_id_source << " " << source;
+  d->being_deleted_message_id = message_id;
+  d->debug_being_deleted_message_id_source = source;
 
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
@@ -11227,6 +11234,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   unique_ptr<Message> left = std::move(result->left);
   unique_ptr<Message> right = std::move(result->right);
 
+  LOG_CHECK(result->message_id == message_id) << result->message_id << " " << message_id << " " << source;
+
   while (left != nullptr || right != nullptr) {
     if (left == nullptr || (right != nullptr && right->random_y > left->random_y)) {
       *v = std::move(right);
@@ -11239,6 +11248,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
   CHECK(*v == nullptr);
+
+  d->being_deleted_message_id = MessageId();
+  d->debug_being_deleted_message_id_source = "";
 
   if (!only_from_memory) {
     if (message_id.is_yet_unsent()) {
@@ -22525,7 +22537,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
       << d->debug_being_added_need_update << " " << d->pinned_message_notification_message_id << " "
       << preloaded_pinned_message_id << " " << d->debug_preloaded_pinned_message_id << " "
-      << d->debug_added_pinned_message_id << " " << d->debug_add_message_to_dialog_fail_reason_ << " " << source;
+      << d->debug_added_pinned_message_id << " " << d->debug_add_message_to_dialog_fail_reason << " " << source;
+  LOG_CHECK(!d->being_deleted_message_id.is_valid()) << d->being_deleted_message_id << " " << message_id << " "
+                                                     << d->debug_being_deleted_message_id_source << " " << source;
 
   d->being_added_message_id = message_id;
   d->being_updated_last_new_message_id = d->last_new_message_id;
@@ -22533,7 +22547,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   d->debug_being_added_need_update = *need_update;
   d->debug_preloaded_pinned_message_id = preloaded_pinned_message_id;
   d->debug_added_pinned_message_id = added_pinned_message_id;
-  d->debug_add_message_to_dialog_fail_reason_ = add_error_reason;
+  d->debug_add_message_to_dialog_fail_reason = add_error_reason;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
