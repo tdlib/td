@@ -1956,7 +1956,7 @@ pushMessageContentContactRegistered = PushMessageContent;
 //@description A document message (a general file) @document Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentDocument document:document is_pinned:Bool = PushMessageContent;
 
-//@description A message with a game @title Game title @is_pinned True, if the message is a pinned message with the specified content
+//@description A message with a game @title Game title, empty for pinned game message @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGame title:string is_pinned:Bool = PushMessageContent;
 
 //@description A new high score was achieved in a game @title Game title, empty for pinned message @score New score, 0 for pinned message @is_pinned True, if the message is a pinned message with the specified content
