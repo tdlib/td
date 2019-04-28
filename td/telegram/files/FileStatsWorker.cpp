@@ -48,7 +48,7 @@ struct DbFileInfo {
 
 // long and blocking
 template <class CallbackT>
-Status scan_db(CallbackT &&callback) {
+void scan_db(CallbackT &&callback) {
   G()->td_db()->get_file_db_shared()->pmc().get_by_range("file0", "file:", [&](Slice key, Slice value) {
     // skip reference to other data
     if (value.substr(0, 2) == "@@") {
@@ -84,7 +84,6 @@ Status scan_db(CallbackT &&callback) {
     }
     callback(info);
   });
-  return Status::OK();
 }
 
 struct FsFileInfo {
@@ -97,7 +96,7 @@ struct FsFileInfo {
 
 // long and blocking
 template <class CallbackT>
-Status scan_fs(CallbackT &&callback) {
+void scan_fs(CallbackT &&callback) {
   for (int32 i = 0; i < file_type_size; i++) {
     auto file_type = static_cast<FileType>(i);
     if (file_type == FileType::SecureRaw) {
@@ -131,7 +130,6 @@ Status scan_fs(CallbackT &&callback) {
                   })
         .ignore();
   }
-  return Status::OK();
 }
 }  // namespace
 

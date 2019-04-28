@@ -95,7 +95,7 @@ class SqliteKVBench : public td::Benchmark {
     td::string path = "testdb.sqlite";
     td::SqliteDb::destroy(path).ignore();
     if (is_encrypted) {
-      td::SqliteDb::change_key(path, td::DbKey::password("cucumber"), td::DbKey::empty());
+      td::SqliteDb::change_key(path, td::DbKey::password("cucumber"), td::DbKey::empty()).ensure();
       db = td::SqliteDb::open_with_key(path, td::DbKey::password("cucumber")).move_as_ok();
     } else {
       db = td::SqliteDb::open_with_key(path, td::DbKey::empty()).move_as_ok();

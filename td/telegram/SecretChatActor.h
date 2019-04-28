@@ -550,7 +550,7 @@ class SecretChatActor : public NetQueryCallback {
   Status do_inbound_message_encrypted(unique_ptr<logevent::InboundSecretMessage> message);
   Status do_inbound_message_decrypted_unchecked(unique_ptr<logevent::InboundSecretMessage> message);
   Status do_inbound_message_decrypted(unique_ptr<logevent::InboundSecretMessage> message);
-  Status do_inbound_message_decrypted_pending(unique_ptr<logevent::InboundSecretMessage> message);
+  void do_inbound_message_decrypted_pending(unique_ptr<logevent::InboundSecretMessage> message);
 
   void on_inbound_save_message_finish(uint64 state_id);
   void on_inbound_save_changes_finish(uint64 state_id);

@@ -130,7 +130,7 @@ void Bitmask::set(int64 offset_part) {
 }
 
 int64 Bitmask::size() const {
-  return static_cast<int64>(data_.size() * 8);
+  return static_cast<int64>(data_.size()) * 8;
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {

@@ -1196,7 +1196,7 @@ void SecretChatActor::update_seq_no_state(const T &new_seq_no_state) {
   return on_seq_no_state_changed();
 }
 
-Status SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<logevent::InboundSecretMessage> message) {
+void SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<logevent::InboundSecretMessage> message) {
   // Just save logevent if necessary
   auto logevent_id = message->logevent_id();
 
@@ -1217,8 +1217,6 @@ Status SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<logevent
 
   auto seq_no = message->decrypted_message_layer->out_seq_no_ / 2;
   pending_inbound_messages_[seq_no] = std::move(message);
-
-  return Status::OK();
 }
 
 Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::InboundSecretMessage> message) {

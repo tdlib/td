@@ -3914,7 +3914,7 @@ void Td::close_impl(bool destroy_flag) {
   if (state_ == State::Decrypt) {
     clear_requests();
     if (destroy_flag) {
-      TdDb::destroy(parameters_);
+      TdDb::destroy(parameters_).ignore();
     }
     state_ = State::Close;
     close_flag_ = 4;

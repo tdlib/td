@@ -85,7 +85,7 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
     }
 
     if (quick_ack != 0) {
-      on_quick_ack(quick_ack, callback);
+      TRY_STATUS(on_quick_ack(quick_ack, callback));
       continue;
     }
 
@@ -146,7 +146,7 @@ Status RawConnection::on_quick_ack(uint32 quick_ack, Callback &callback) {
   }
   auto token = it->second;
   quick_ack_to_token_.erase(it);
-  callback.on_quick_ack(token);
+  callback.on_quick_ack(token).ignore();
   return Status::OK();
 }
 

@@ -252,7 +252,7 @@ void NetQueryDispatcher::update_mtproto_header() {
 }
 
 void NetQueryDispatcher::update_valid_dc(DcId dc_id) {
-  wait_dc_init(dc_id, true);
+  wait_dc_init(dc_id, true).ignore();
 }
 
 bool NetQueryDispatcher::is_dc_inited(int32 raw_dc_id) {

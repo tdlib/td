@@ -64,10 +64,10 @@ static Status data_view_for_each(const DataView &data, F &&f) {
 Result<ValueHash> calc_value_hash(const DataView &data_view) {
   Sha256State state;
   sha256_init(&state);
-  data_view_for_each(data_view, [&state](BufferSlice bytes) {
+  TRY_STATUS(data_view_for_each(data_view, [&state](BufferSlice bytes) {
     sha256_update(bytes.as_slice(), &state);
     return Status::OK();
-  });
+  }));
   UInt256 res;
   sha256_final(&state, as_slice(res));
   return ValueHash{res};
