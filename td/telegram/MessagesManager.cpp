@@ -8945,7 +8945,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   CHECK(m != nullptr);
   CHECK(m->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
-  delete_message_files(m);
+  delete_message_files(d->dialog_id, m);
   update_expired_message_content(m->content);
   m->ttl = 0;
   m->ttl_expires_at = 0;
@@ -22463,8 +22463,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
           if (need_delete_message_files(d, m)) {
+            FullMessageId full_message_id{dialog_id, message_id};
             for (auto file_id : old_file_ids) {
-              if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end()) {
+              if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end() &&
+                  need_delete_file(full_message_id, file_id)) {
                 send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
                              "edit message in add_message_to_dialog");
               }
@@ -23128,10 +23130,23 @@ class MessagesManager::DeleteMessageLogEvent {
   }
 };
 
-void MessagesManager::delete_message_files(const Message *m) const {
+void MessagesManager::delete_message_files(DialogId dialog_id, const Message *m) const {
   for (auto file_id : get_message_file_ids(m)) {
-    send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "delete_message_files");
+    if (need_delete_file({dialog_id, m->message_id}, file_id)) {
+      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "delete_message_files");
+    }
   }
+}
+
+bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId file_id) const {
+  auto full_message_ids = td_->file_reference_manager_->get_some_message_file_sources(file_id);
+  for (auto other_full_messsage_id : full_message_ids) {
+    if (other_full_messsage_id != full_message_id) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) {
@@ -23191,7 +23206,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   auto need_delete_files = need_delete_message_files(d, m);
   if (need_delete_files) {
-    delete_message_files(m);
+    delete_message_files(d->dialog_id, m);
   }
 
   if (!G()->parameters().use_message_db) {
@@ -23230,8 +23245,10 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
 
     auto lock = mpas.get_promise();
     for (auto file_id : logevent.file_ids_) {
-      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, mpas.get_promise(),
-                   "do_delete_message_logevent");
+      if (need_delete_file(logevent.full_message_id_, file_id)) {
+        send_closure(G()->file_manager(), &FileManager::delete_file, file_id, mpas.get_promise(),
+                     "do_delete_message_logevent");
+      }
     }
     db_promise = mpas.get_promise();
     lock.set_value(Unit());

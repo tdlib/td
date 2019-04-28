@@ -50,7 +50,9 @@ class FileReferenceManager : public Actor {
 
   bool add_file_source(NodeId node_id, FileSourceId file_source_id);
 
-  std::vector<FileSourceId> get_some_file_sources(NodeId node_id);
+  vector<FileSourceId> get_some_file_sources(NodeId node_id);
+
+  vector<FullMessageId> get_some_message_file_sources(NodeId node_id);
 
   bool remove_file_source(NodeId node_id, FileSourceId file_source_id);
 

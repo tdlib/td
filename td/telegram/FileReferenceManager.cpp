@@ -124,12 +124,27 @@ bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_
   return is_removed;
 }
 
-std::vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id) {
+vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id) {
   auto it = nodes_.find(node_id);
   if (it == nodes_.end()) {
     return {};
   }
   return it->second.file_source_ids.get_some_elements();
+}
+
+vector<FullMessageId> FileReferenceManager::get_some_message_file_sources(NodeId node_id) {
+  auto file_source_ids = get_some_file_sources(node_id);
+
+  vector<FullMessageId> result;
+  for (auto file_source_id : file_source_ids) {
+    auto index = static_cast<size_t>(file_source_id.get()) - 1;
+    CHECK(index < file_sources_.size());
+    const auto &file_source = file_sources_[index];
+    if (file_source.get_offset() == 0) {
+      result.push_back(file_source.get<FileSourceMessage>().full_message_id);
+    }
+  }
+  return result;
 }
 
 void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {

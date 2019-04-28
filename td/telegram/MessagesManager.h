@@ -1558,6 +1558,8 @@ class MessagesManager : public Actor {
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 
+  bool need_delete_file(FullMessageId full_message_id, FileId file_id) const;
+
   bool need_delete_message_files(Dialog *d, const Message *m);
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
@@ -1566,7 +1568,7 @@ class MessagesManager : public Actor {
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
-  void delete_message_files(const Message *m) const;
+  void delete_message_files(DialogId dialog_id, const Message *m) const;
 
   static void add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
 
