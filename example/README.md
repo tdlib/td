@@ -48,7 +48,7 @@ You can also check out [example/python/tdjson_example.py](https://github.com/tdl
 ## Using TDLib in JavaScript projects
 
 TDLib can be compiled to WebAssembly or asm.js and used in a browser from JavaScript. See [tdweb](https://github.com/tdlib/td/tree/master/example/web) as a convenient wrapper for TDLib in a browser
-and [telegram-react](https://github.com/evgeny-nadymov/telegram-react) as an example of a TDLib based Telegram client.
+and [telegram-react](https://github.com/evgeny-nadymov/telegram-react) as an example of a TDLib-based Telegram client.
 
 TDLib can be used from Node.js through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
