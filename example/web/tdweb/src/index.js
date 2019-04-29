@@ -1,6 +1,7 @@
 import MyWorker from './worker.js';
 import localforage from 'localforage';
-import './third_party/broadcastchannel.js';
+//import './third_party/broadcastchannel.js';
+import BroadcastChannel from 'broadcast-channel';
 import uuid4 from 'uuid/v4';
 import log from './logger.js';
 
@@ -22,8 +23,6 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * 3. Added the possibility to use blobs as input files via the constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
  * 4. The class <code>filePart</code> contains data as a JavaScript blob instead of a base64-encoded string.<br>
  * 5. The methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
- * 6. Added the field <code>idb_key</code> to <code>file</code> object, which contains the IndexedDB key in which the file content is stored.<br>
- *    This field is non-empty only for fully downloaded files. IndexedDB database name is chosen during TdClient creation via options.instanceName parameter.<br>
  * <br>
  */
 class TdClient {
@@ -47,9 +46,8 @@ class TdClient {
   constructor(options) {
     log.setVerbosity(options.jsLogVerbosityLevel);
     this.worker = new MyWorker();
-    var self = this;
     this.worker.onmessage = e => {
-      self.onResponse(e.data);
+      this.onResponse(e.data);
     };
     this.query_id = 0;
     this.query_callbacks = new Map();
@@ -75,10 +73,19 @@ class TdClient {
    * @returns {Promise} Promise object represents the result of the query.
    */
   send(query) {
+    return this.doSend(query, true);
+  }
+
+  /** @private */
+  sendInternal(query) {
+    return this.doSend(query, false);
+  }
+  /** @private */
+  doSend(query, isExternal) {
     this.query_id++;
     if (query['@extra']) {
       query['@extra'] = {
-        '@old_extra': JSON.parse(JSON.stringify(query.extra)),
+        '@old_extra': JSON.parse(JSON.stringify(query['@extra'])),
         query_id: this.query_id
       };
     } else {
@@ -91,16 +98,20 @@ class TdClient {
     }
 
     log.debug('send to worker: ', query);
-    let res = new Promise((resolve, reject) => {
+    const res = new Promise((resolve, reject) => {
       this.query_callbacks.set(this.query_id, [resolve, reject]);
     });
-    this.externalPostMessage(query);
+    if (isExternal) {
+      this.externalPostMessage(query);
+    } else {
+      this.worker.postMessage(query);
+    }
     return res;
   }
 
   /** @private */
   externalPostMessage(query) {
-    let unsupportedMethods = [
+    const unsupportedMethods = [
       'getStorageStatistics',
       'getStorageStatisticsFast',
       'optimizeStorage',
@@ -117,8 +128,12 @@ class TdClient {
       });
       return;
     }
-    if (query['@type'] === 'readFile') {
+    if (query['@type'] === 'readFile' || query['@type'] == 'readFilePart') {
       this.readFile(query);
+      return;
+    }
+    if (query['@type'] === 'deleteFile') {
+      this.deleteFile(query);
       return;
     }
     this.worker.postMessage(query);
@@ -126,7 +141,26 @@ class TdClient {
 
   /** @private */
   async readFile(query) {
-    let response = await this.fileManager.readFile(query);
+    const response = await this.fileManager.readFile(query);
+    this.onResponse(response);
+  }
+
+  /** @private */
+  async deleteFile(query) {
+    const response = this.fileManager.deleteFile(query);
+    try {
+      if (response.idb_key) {
+        await this.sendInternal({
+          '@type': 'deleteIdbKey',
+          idb_key: response.idb_key
+        });
+        delete response.idb_key;
+      }
+      await this.sendInternal({
+        '@type': 'deleteFile',
+        file_id: query.file_id
+      });
+    } catch (e) {}
     this.onResponse(response);
   }
 
@@ -148,8 +182,8 @@ class TdClient {
     response = this.prepareResponse(response);
 
     if ('@extra' in response) {
-      var query_id = response['@extra'].query_id;
-      var [resolve, reject] = this.query_callbacks.get(query_id);
+      const query_id = response['@extra'].query_id;
+      const [resolve, reject] = this.query_callbacks.get(query_id);
       this.query_callbacks.delete(query_id);
       if ('@old_extra' in response['@extra']) {
         response['@extra'] = response['@extra']['@old_extra'];
@@ -188,10 +222,18 @@ class TdClient {
   /** @private */
   prepareResponse(response) {
     if (response['@type'] === 'file') {
+      if (false && Math.random() < 0.1) {
+        (async () => {
+          log.warn('DELETE FILE', response.id);
+          try {
+            await this.send({ '@type': 'deleteFile', file_id: response.id });
+          } catch (e) {}
+        })();
+      }
       return this.prepareFile(response);
     }
-    for (var key in response) {
-      let field = response[key];
+    for (const key in response) {
+      const field = response[key];
       if (field && typeof field === 'object') {
         response[key] = this.prepareResponse(field);
       }
@@ -201,7 +243,8 @@ class TdClient {
 
   /** @private */
   onBroadcastMessage(e) {
-    var message = e.data;
+    //const message = e.data;
+    const message = e;
     if (message.uid === this.uid) {
       log.info('ignore self broadcast message: ', message);
       return;
@@ -233,8 +276,8 @@ class TdClient {
 
   /** @private */
   postState() {
-    let state = {
-      id: this.uid,
+    const state = {
+      uid: this.uid,
       state: this.state,
       timestamp: this.timestamp,
       isBackground: this.isBackground
@@ -272,7 +315,7 @@ class TdClient {
     }
     this.wantSendStart = false;
     this.state = 'active';
-    let query = { '@type': 'start' };
+    const query = { '@type': 'start' };
     log.info('send to worker: ', query);
     this.worker.postMessage(query);
   }
@@ -306,7 +349,7 @@ class TdClient {
       return;
     }
 
-    let query = { '@type': 'close' };
+    const query = { '@type': 'close' };
     log.info('send to worker: ', query);
     this.worker.postMessage(query);
 
@@ -323,19 +366,20 @@ class TdClient {
     this.waitSet = new Set();
 
     log.info('close other clients');
-    this.channel = new BroadcastChannel(options.instanceName);
+    this.channel = new BroadcastChannel(options.instanceName, {
+      webWorkerSupport: false
+    });
 
     this.postState();
 
-    var self = this;
     this.channel.onmessage = message => {
-      self.onBroadcastMessage(message);
+      this.onBroadcastMessage(message);
     };
 
     await sleep(300);
     if (this.waitSet.size !== 0) {
       await new Promise(resolve => {
-        self.onWaitSetEmpty = resolve;
+        this.onWaitSetEmpty = resolve;
       });
     }
     this.sendStart();
@@ -349,18 +393,56 @@ class TdClient {
 }
 
 /** @private */
+class ListNode {
+  constructor(value) {
+    this.value = value;
+    this.clear();
+  }
+
+  erase() {
+    this.prev.connect(this.next);
+    this.clear();
+  }
+  clear() {
+    this.prev = this;
+    this.next = this;
+  }
+
+  connect(other) {
+    this.next = other;
+    other.prev = this;
+  }
+
+  onUsed(other) {
+    other.usedAt = Date.now();
+    other.clear();
+    other.connect(this.next);
+    log.debug('LRU: used file_id: ', other.value);
+    this.connect(other);
+  }
+
+  getLru() {
+    if (this === this.next) {
+      throw new Error('popLru from empty list');
+    }
+    return this.prev;
+  }
+}
+
+/** @private */
 class FileManager {
   constructor(instanceName) {
     this.instanceName = instanceName;
     this.cache = new Map();
     this.pending = [];
     this.transaction_id = 0;
+    this.totalSize = 0;
+    this.lru = new ListNode(-1);
   }
 
   init() {
-    let self = this;
     this.idb = new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(self.instanceName);
+      const request = window.indexedDB.open(this.instanceName);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -370,32 +452,80 @@ class FileManager {
     this.isInited = true;
   }
 
+  unload(info) {
+    if (info.arr) {
+      log.debug(
+        'LRU: delete file_id: ',
+        info.node.value,
+        ' with arr.length: ',
+        info.arr.length
+      );
+      this.totalSize -= info.arr.length;
+      delete info.arr;
+    }
+    if (info.node) {
+      info.node.erase();
+      delete info.node;
+    }
+  }
+
   registerFile(file) {
+    const cached_info = this.cache.get(file.id);
+    if (cached_info && !file.idb_key) {
+      delete cached_info.idb_key;
+    }
     if (file.idb_key || file.arr) {
       file.is_downloading_completed = true;
-      var info = {};
-      let cached_info = this.cache.get(file.id);
-      if (cached_info !== undefined) {
+      let info = {};
+      if (cached_info) {
         info = cached_info;
       } else {
         this.cache.set(file.id, info);
       }
       if (file.idb_key) {
         info.idb_key = file.idb_key;
+        delete file.idb_key;
       }
       if (file.arr) {
+        const now = Date.now();
+        while (this.totalSize > 10000000) {
+          const node = this.lru.getLru();
+          // immunity for 5 seconds
+          if (node.usedAt + 5 * 1000 > now) {
+            break;
+          }
+          const lru_info = this.cache.get(node.value);
+          this.unload(lru_info);
+        }
+
+        if (info.arr) {
+          log.warn('Got file.arr at least twice for the same file');
+          this.totalSize -= info.arr.length;
+        }
         info.arr = file.arr;
+        this.totalSize += info.arr.length;
+        if (!info.node) {
+          log.debug(
+            'LRU: create file_id: ',
+            file.id,
+            ' with arr.length: ',
+            info.arr.length
+          );
+          info.node = new ListNode(file.id);
+        }
+        this.lru.onUsed(info.node);
+        log.info('Total file.arr size: ', this.totalSize);
       }
     }
     return file;
   }
 
   async flushLoad() {
-    let pending = this.pending;
+    const pending = this.pending;
     this.pending = [];
-    let idb = await this.idb;
-    let transaction_id = this.transaction_id++;
-    let read = idb
+    const idb = await this.idb;
+    const transaction_id = this.transaction_id++;
+    const read = idb
       .transaction(['keyvaluepairs'], 'readonly')
       .objectStore('keyvaluepairs');
     log.debug('Load group of files from idb', pending.length);
@@ -415,9 +545,8 @@ class FileManager {
 
   load(key, resolve, reject) {
     if (this.pending.length === 0) {
-      let self = this;
       setTimeout(() => {
-        self.flushLoad();
+        this.flushLoad();
       }, 1);
     }
     this.pending.push({ key: key, resolve: resolve, reject: reject });
@@ -427,26 +556,36 @@ class FileManager {
     if (info.arr) {
       return { data: new Blob([info.arr]), transaction_id: -1 };
     }
-    let idb_key = info.idb_key;
-    let self = this;
+    const idb_key = info.idb_key;
     //return this.store.getItem(idb_key);
     return await new Promise((resolve, reject) => {
-      self.load(idb_key, resolve, reject);
+      this.load(idb_key, resolve, reject);
     });
+  }
+
+  doDelete(info) {
+    this.unload(info);
+    return info.idb_key;
   }
 
   async readFile(query) {
     try {
+      if (query.offset || query.size) {
+        throw new Error('readFilePart: offset and size are not supported yet');
+      }
       if (!this.isInited) {
         throw new Error('FileManager is not inited');
       }
-      let info = this.cache.get(query.file_id);
+      const info = this.cache.get(query.file_id);
       if (!info) {
         throw new Error('File is not loaded');
       }
-      let response = await this.doLoad(info);
+      if (info.node) {
+        this.lru.onUsed(info.node);
+      }
+      const response = await this.doLoad(info);
       return {
-        '@type': 'blob',
+        '@type': 'filePart',
         '@extra': query['@extra'],
         data: response.data,
         transaction_id: response.transaction_id
@@ -459,6 +598,27 @@ class FileManager {
         message: e
       };
     }
+  }
+
+  deleteFile(query) {
+    const res = {
+      '@type': 'ok',
+      '@extra': query['@extra']
+    };
+    try {
+      if (!this.isInited) {
+        throw new Error('FileManager is not inited');
+      }
+      const info = this.cache.get(query.file_id);
+      if (!info) {
+        throw new Error('File is not loaded');
+      }
+      const idb_key = this.doDelete(info);
+      if (idb_key) {
+        res.idb_key = idb_key;
+      }
+    } catch (e) {}
+    return res;
   }
 }
 

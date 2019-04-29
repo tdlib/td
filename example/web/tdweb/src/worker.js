@@ -14,12 +14,12 @@ const localForageDrivers = [
 
 async function initLocalForage() {
   // Implement the driver here.
-  var memoryDriver = {
+  const memoryDriver = {
     _driver: 'memoryDriver',
     _initStorage: function(options) {
-      var dbInfo = {};
+      const dbInfo = {};
       if (options) {
-        for (var i in options) {
+        for (const i in options) {
           dbInfo[i] = options[i];
         }
       }
@@ -30,7 +30,7 @@ async function initLocalForage() {
       this._map.clear();
     },
     getItem: async function(key) {
-      let value = this._map.get(key);
+      const value = this._map.get(key);
       console.log('getItem', this._map, key, value);
       return value;
     },
@@ -50,7 +50,7 @@ async function initLocalForage() {
       this._map.delete(key);
     },
     setItem: async function(key, value) {
-      let originalValue = this._map.get(key);
+      const originalValue = this._map.get(key);
       console.log('setItem', this._map, key, value);
       this._map.set(key, value);
       return originalValue;
@@ -63,16 +63,16 @@ async function initLocalForage() {
 
 async function loadTdlibWasm(onFS) {
   console.log('loadTdlibWasm');
-  let Module = await import('./prebuilt/release/td_wasm.js');
+  const Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
-  let td_wasm = td_wasm_release;
-  let module = Module.default({
+  const td_wasm = td_wasm_release;
+  const module = Module.default({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
     },
     instantiateWasm: (imports, successCallback) => {
       log.info('start instantiateWasm');
-      let next = instance => {
+      const next = instance => {
         log.info('finish instantiateWasm');
         successCallback(instance);
       };
@@ -83,7 +83,7 @@ async function loadTdlibWasm(onFS) {
   });
   log.info('Got module', module);
   onFS(module.FS);
-  let TdModule = new Promise((resolve, reject) =>
+  const TdModule = new Promise((resolve, reject) =>
     module.then(m => {
       delete m.then;
       resolve(m);
@@ -95,11 +95,11 @@ async function loadTdlibWasm(onFS) {
 
 async function loadTdlibAsmjs(onFS) {
   console.log('loadTdlibAsmjs');
-  let Module = await import('./prebuilt/release/td_asmjs.js');
+  const Module = await import('./prebuilt/release/td_asmjs.js');
   console.log('got td_asm.js');
-  let fromFile = 'td_asmjs.js.mem';
-  let toFile = td_asmjs_mem_release;
-  let module = Module({
+  const fromFile = 'td_asmjs.js.mem';
+  const toFile = td_asmjs_mem_release;
+  const module = Module({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
     },
@@ -112,7 +112,7 @@ async function loadTdlibAsmjs(onFS) {
     ENVIROMENT: 'WORKER'
   });
   onFS(module.FS);
-  let TdModule = new Promise((resolve, reject) =>
+  const TdModule = new Promise((resolve, reject) =>
     module.then(m => {
       delete m.then;
       resolve(m);
@@ -164,7 +164,7 @@ class OutboundFileSystem {
     FS.mkdir(root);
   }
   blobToPath(blob, name) {
-    var dir = this.root + '/' + this.nextFileId;
+    const dir = this.root + '/' + this.nextFileId;
     if (!name) {
       name = 'blob';
     }
@@ -177,7 +177,7 @@ class OutboundFileSystem {
       },
       dir
     );
-    let path = dir + '/' + name;
+    const path = dir + '/' + name;
     this.files.add(path);
     return path;
   }
@@ -192,9 +192,9 @@ class OutboundFileSystem {
 
 class InboundFileSystem {
   static async create(dbName, root, FS_promise) {
-    let start = performance.now();
+    const start = performance.now();
     try {
-      let ifs = new InboundFileSystem();
+      const ifs = new InboundFileSystem();
       ifs.root = root;
 
       ifs.store = localforage.createInstance({
@@ -204,10 +204,10 @@ class InboundFileSystem {
 
       ifs.load_pids();
 
-      let FS = await FS_promise;
+      const FS = await FS_promise;
       ifs.FS = FS;
       ifs.FS.mkdir(root);
-      let create_time = (performance.now() - start) / 1000;
+      const create_time = (performance.now() - start) / 1000;
       log.debug('InboundFileSystem::create ' + create_time);
       return ifs;
     } catch (e) {
@@ -216,10 +216,10 @@ class InboundFileSystem {
   }
 
   async load_pids() {
-    let keys_start = performance.now();
+    const keys_start = performance.now();
     log.debug('InboundFileSystem::create::keys start');
-    let keys = await this.store.keys();
-    let keys_time = (performance.now() - keys_start) / 1000;
+    const keys = await this.store.keys();
+    const keys_time = (performance.now() - keys_start) / 1000;
     log.debug(
       'InboundFileSystem::create::keys ' + keys_time + ' ' + keys.length
     );
@@ -251,15 +251,24 @@ class InboundFileSystem {
       log.error('Failed persist ' + path + ' ', e);
     }
   }
+  async unlink(pid) {
+    log.debug('Unlink ' + pid);
+    try {
+      this.forget(pid);
+      await this.store.removeItem(pid);
+    } catch (e) {
+      log.error('Failed unlink ' + pid + ' ', e);
+    }
+  }
 }
 
 class DbFileSystem {
   static async create(root, FS_promise, readOnly = false) {
-    let start = performance.now();
+    const start = performance.now();
     try {
-      let dbfs = new DbFileSystem();
+      const dbfs = new DbFileSystem();
       dbfs.root = root;
-      let FS = await FS_promise;
+      const FS = await FS_promise;
       dbfs.FS = FS;
       dbfs.syncfs_total_time = 0;
       dbfs.readOnly = readOnly;
@@ -272,9 +281,9 @@ class DbFileSystem {
         });
       });
 
-      let rmrf = path => {
+      const rmrf = path => {
         log.debug('rmrf ', path);
-        var info;
+        let info;
         try {
           info = FS.lookupPath(path);
         } catch (e) {
@@ -282,7 +291,7 @@ class DbFileSystem {
         }
         log.debug('rmrf ', path, info);
         if (info.node.isFolder) {
-          for (var key in info.node.contents) {
+          for (const key in info.node.contents) {
             rmrf(info.path + '/' + info.node.contents[key].name);
           }
           log.debug('rmdir ', path);
@@ -292,19 +301,19 @@ class DbFileSystem {
           FS.unlink(path);
         }
       };
-      //var dirs = ['thumbnails', 'profile_photos', 'secret', 'stickers', 'temp', 'wallpapers', 'secret_thumbnails', 'passport'];
-      var dirs = [];
-      let root_dir = FS.lookupPath(root);
-      for (var key in root_dir.node.contents) {
-        let value = root_dir.node.contents[key];
+      //const dirs = ['thumbnails', 'profile_photos', 'secret', 'stickers', 'temp', 'wallpapers', 'secret_thumbnails', 'passport'];
+      const dirs = [];
+      const root_dir = FS.lookupPath(root);
+      for (const key in root_dir.node.contents) {
+        const value = root_dir.node.contents[key];
         log.debug('node ', key, value);
         if (!value.isFolder) {
           continue;
         }
         dirs.push(root_dir.path + '/' + value.name);
       }
-      for (let i in dirs) {
-        let dir = dirs[i];
+      for (const i in dirs) {
+        const dir = dirs[i];
         rmrf(dir);
         //FS.mkdir(dir);
         //FS.mount(FS.filesystems.MEMFS, {}, dir);
@@ -312,7 +321,7 @@ class DbFileSystem {
       dbfs.syncfsInterval = setInterval(() => {
         dbfs.sync();
       }, 5000);
-      let create_time = (performance.now() - start) / 1000;
+      const create_time = (performance.now() - start) / 1000;
       log.debug('DbFileSystem::create ' + create_time);
       return dbfs;
     } catch (e) {
@@ -323,10 +332,10 @@ class DbFileSystem {
     if (this.readOnly) {
       return;
     }
-    let start = performance.now();
+    const start = performance.now();
     await new Promise((resolve, reject) => {
       this.FS.syncfs(false, () => {
-        let syncfs_time = (performance.now() - start) / 1000;
+        const syncfs_time = (performance.now() - start) / 1000;
         this.syncfs_total_time += syncfs_time;
         log.debug('SYNC: ' + syncfs_time);
         log.debug('SYNC total: ' + this.syncfs_total_time);
@@ -344,7 +353,7 @@ class DbFileSystem {
       return;
     }
     this.FS.unmount(this.root);
-    var req = indexedDB.deleteDatabase(this.root);
+    const req = indexedDB.deleteDatabase(this.root);
     await new Promise((resolve, reject) => {
       req.onsuccess = function(e) {
         log.info('SUCCESS');
@@ -364,32 +373,32 @@ class DbFileSystem {
 
 class TdFileSystem {
   static async init_fs(prefix, FS_promise) {
-    let FS = await FS_promise;
+    const FS = await FS_promise;
     FS.mkdir(prefix);
     return FS;
   }
   static async create(instanceName, FS_promise, readOnly = false) {
     try {
-      let tdfs = new TdFileSystem();
-      let prefix = '/' + instanceName;
+      const tdfs = new TdFileSystem();
+      const prefix = '/' + instanceName;
       tdfs.prefix = prefix;
       FS_promise = TdFileSystem.init_fs(prefix, FS_promise);
 
       //MEMFS. Store to IDB and delete files as soon as possible
-      let inboundFileSystem = InboundFileSystem.create(
+      const inboundFileSystem = InboundFileSystem.create(
         instanceName,
         prefix + '/inboundfs',
         FS_promise
       );
 
       //IDBFS. MEMFS which is flushed to IDB from time to time
-      let dbFileSystem = DbFileSystem.create(
+      const dbFileSystem = DbFileSystem.create(
         prefix + '/dbfs',
         FS_promise,
         readOnly
       );
 
-      let FS = await FS_promise;
+      const FS = await FS_promise;
       tdfs.FS = FS;
 
       //WORKERFS. Temporary stores Blobs for outbound files
@@ -421,7 +430,7 @@ class TdClient {
 
   async testLocalForage() {
     await initLocalForage();
-    var DRIVERS = [
+    const DRIVERS = [
       localforage.INDEXEDDB,
       'memoryDriver',
       localforage.LOCALSTORAGE,
@@ -435,7 +444,7 @@ class TdClient {
         console.log('A');
         await localforage.setItem('hello', 'world');
         console.log('B');
-        let x = await localforage.getItem('hello');
+        const x = await localforage.getItem('hello');
         console.log('got ', x);
         await localforage.clear();
         console.log('C');
@@ -454,15 +463,13 @@ class TdClient {
     this.wasInit = true;
 
     options = options || {};
-    let mode = 'wasm';
-    mode = options.mode || mode;
+    const mode = options.mode || 'wasm';
 
-    var self = this;
-    let FS_promise = new Promise(resolve => {
-      self.onFS = resolve;
+    const FS_promise = new Promise(resolve => {
+      this.onFS = resolve;
     });
 
-    let tdfs_promise = TdFileSystem.create(
+    const tdfs_promise = TdFileSystem.create(
       options.instanceName,
       FS_promise,
       options.readOnly
@@ -474,7 +481,7 @@ class TdClient {
     }
 
     log.info('load TdModule');
-    this.TdModule = await loadTdlib(mode, self.onFS);
+    this.TdModule = await loadTdlib(mode, this.onFS);
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_create', 'number', []),
@@ -520,7 +527,7 @@ class TdClient {
     // wait till it is allowed to start
     this.callback({ '@type': 'inited' });
     await new Promise(resolve => {
-      self.onStart = resolve;
+      this.onStart = resolve;
     });
     this.isStarted = true;
 
@@ -570,8 +577,8 @@ class TdClient {
         path: this.tdfs.outboundFileSystem.blobToPath(query.data, query.name)
       };
     }
-    for (var key in query) {
-      let field = query[key];
+    for (const key in query) {
+      const field = query[key];
       if (field && typeof field === 'object') {
         query[key] = this.prepareQueryRecursive(field);
       }
@@ -584,7 +591,7 @@ class TdClient {
       query.parameters.database_directory = this.tdfs.dbFileSystem.root;
       query.parameters.files_directory = this.tdfs.inboundFileSystem.root;
 
-      let useDb = this.useDatabase;
+      const useDb = this.useDatabase;
       query.parameters.use_file_database = useDb;
       query.parameters.use_chat_info_database = useDb;
       query.parameters.use_message_database = useDb;
@@ -602,12 +609,29 @@ class TdClient {
     log.info('ignore on_start');
   }
 
-  readFilePart(query) {
-    var res;
+  deleteIdbKey(query) {
     try {
-      //let file_size = this.FS.stat(query.path).size;
-      var stream = this.FS.open(query.path, 'r');
-      var buf = new Uint8Array(query.size);
+    } catch (e) {
+      this.callback({
+        '@type': 'error',
+        '@extra': query['@extra'],
+        code: 400,
+        message: e
+      });
+      return;
+    }
+    this.callback({
+      '@type': 'ok',
+      '@extra': query['@extra']
+    });
+  }
+
+  readFilePart(query) {
+    let res;
+    try {
+      //const file_size = this.FS.stat(query.path).size;
+      const stream = this.FS.open(query.path, 'r');
+      const buf = new Uint8Array(query.size);
       this.FS.read(stream, buf, 0, query.size, query.offset);
       this.FS.close(stream);
       res = buf;
@@ -636,7 +660,7 @@ class TdClient {
     }
     if (this.wasFatalError) {
       if (query['@type'] === 'destroy') {
-        this.destroy({ '@type': 'Ok', '@extra': query['@extra'] });
+        this.destroy({ '@type': 'ok', '@extra': query['@extra'] });
       }
       return;
     }
@@ -671,6 +695,10 @@ class TdClient {
       this.readFilePart(query);
       return;
     }
+    if (query['@type'] === 'deleteIdbKey') {
+      this.deleteIdbKey(query);
+      return;
+    }
     query = this.prepareQuery(query);
     this.td_functions.td_send(this.client, JSON.stringify(query));
     this.scheduleReceiveSoon();
@@ -678,8 +706,8 @@ class TdClient {
 
   execute(query) {
     try {
-      let res = this.td_functions.td_execute(0, JSON.stringify(query));
-      let response = JSON.parse(res);
+      const res = this.td_functions.td_execute(0, JSON.stringify(query));
+      const response = JSON.parse(res);
       this.callback(response);
     } catch (error) {
       this.onFatalError(error);
@@ -692,11 +720,11 @@ class TdClient {
     }
     try {
       while (true) {
-        let msg = this.td_functions.td_receive(this.client);
+        const msg = this.td_functions.td_receive(this.client);
         if (!msg) {
           break;
         }
-        let response = this.prepareResponse(JSON.parse(msg));
+        const response = this.prepareResponse(JSON.parse(msg));
         if (
           response['@type'] === 'updateAuthorizationState' &&
           response.authorization_state['@type'] === 'authorizationStateClosed'
@@ -733,7 +761,7 @@ class TdClient {
       return;
     }
     this.cancelReceive();
-    let timeout = this.td_functions.td_get_timeout();
+    const timeout = this.td_functions.td_get_timeout();
     this.scheduleReceiveIn(timeout);
   }
   scheduleReceiveIn(timeout) {
@@ -782,13 +810,13 @@ class TdClient {
   }
 
   saveFile(pid, file) {
-    let isSaving = this.savingFiles.has(pid);
+    const isSaving = this.savingFiles.has(pid);
     this.savingFiles.set(pid, file);
     if (isSaving) {
       return file;
     }
     try {
-      var arr = this.FS.readFile(file.local.path);
+      const arr = this.FS.readFile(file.local.path);
       if (arr) {
         file = Object.assign({}, file);
         file.arr = arr;
@@ -810,7 +838,7 @@ class TdClient {
   }
 
   prepareFile(file) {
-    let pid = file.remote.id;
+    const pid = file.remote.id;
     if (!pid) {
       return file;
     }
@@ -832,8 +860,8 @@ class TdClient {
     if (response['@type'] === 'file') {
       return this.prepareFile(response);
     }
-    for (var key in response) {
-      let field = response[key];
+    for (const key in response) {
+      const field = response[key];
       if (field && typeof field === 'object') {
         response[key] = this.prepareResponse(field);
       }
@@ -843,13 +871,13 @@ class TdClient {
 
   flushPendingQueries() {
     this.isPending = false;
-    for (let query of this.pendingQueries) {
+    for (const query of this.pendingQueries) {
       this.send(query);
     }
   }
 }
 
-var client = new TdClient((e, t = []) => postMessage(e, t));
+const client = new TdClient((e, t = []) => postMessage(e, t));
 
 onmessage = function(e) {
   try {
