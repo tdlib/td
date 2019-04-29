@@ -11,7 +11,6 @@ mkdir -p build/asmjs
 mkdir -p build/wasm
 
 TD_ROOT=$(realpath ../../)
-#OPENSSL_OPTIONS="-DOPENSSL_ROOT=$TD_ROOT/third_party/crypto/emscripten"
 OPENSSL_ROOT=$(realpath ./build/crypto/)
 OPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT/lib/libcrypto.a
 OPENSSL_SSL_LIBRARY=$OPENSSL_ROOT/lib/libssl.a
