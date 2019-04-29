@@ -1560,7 +1560,7 @@ class MessagesManager : public Actor {
 
   bool need_delete_file(FullMessageId full_message_id, FileId file_id) const;
 
-  bool need_delete_message_files(Dialog *d, const Message *m);
+  bool need_delete_message_files(Dialog *d, const Message *m) const;
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 

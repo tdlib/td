@@ -23149,7 +23149,7 @@ bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId fil
   return true;
 }
 
-bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) {
+bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   if (m == nullptr || !m->message_id.is_server()) {
     return false;
@@ -23157,8 +23157,9 @@ bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) {
 
   if (m->forward_info != nullptr && m->forward_info->from_dialog_id.is_valid() &&
       m->forward_info->from_message_id.is_valid()) {
-    const Message *old_m = get_message_force({m->forward_info->from_dialog_id, m->forward_info->from_message_id},
-                                             "need_delete_message_files");
+    // this function must not try to load the message, because it can be called from
+    // do_delete_message or add_message_to_dialog
+    const Message *old_m = get_message({m->forward_info->from_dialog_id, m->forward_info->from_message_id});
     if (old_m != nullptr && get_message_file_ids(old_m) == get_message_file_ids(m)) {
       return false;
     }
