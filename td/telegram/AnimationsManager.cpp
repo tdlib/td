@@ -436,6 +436,10 @@ class AnimationsManager::AnimationListLogEvent {
 };
 
 void AnimationsManager::reload_saved_animations(bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!td_->auth_manager_->is_bot() && next_saved_animations_load_time_ >= 0 &&
       (next_saved_animations_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload saved animations";

@@ -494,8 +494,8 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
       LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
+      td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
     }
-    td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
   }
 };
 
@@ -1357,6 +1357,10 @@ tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_
 }
 
 void StickersManager::reload_installed_sticker_sets(bool is_masks, bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto &next_load_time = next_installed_sticker_sets_load_time_[is_masks];
   if (!td_->auth_manager_->is_bot() && next_load_time >= 0 && (next_load_time < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload sticker sets";
@@ -1366,6 +1370,10 @@ void StickersManager::reload_installed_sticker_sets(bool is_masks, bool force) {
 }
 
 void StickersManager::reload_featured_sticker_sets(bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!td_->auth_manager_->is_bot() && next_featured_sticker_sets_load_time_ >= 0 &&
       (next_featured_sticker_sets_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload featured sticker sets";
@@ -3711,6 +3719,10 @@ void StickersManager::send_update_featured_sticker_sets() {
 }
 
 void StickersManager::reload_recent_stickers(bool is_attached, bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto &next_load_time = next_recent_stickers_load_time_[is_attached];
   if (!td_->auth_manager_->is_bot() && next_load_time >= 0 && (next_load_time < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload recent " << (is_attached ? "attached " : "") << "stickers";
@@ -4131,6 +4143,10 @@ void StickersManager::on_update_favorite_stickers_limit(int32 favorite_stickers_
 }
 
 void StickersManager::reload_favorite_stickers(bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!td_->auth_manager_->is_bot() && next_favorite_stickers_load_time_ >= 0 &&
       (next_favorite_stickers_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload favorite stickers";
