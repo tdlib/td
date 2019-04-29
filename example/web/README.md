@@ -1,15 +1,15 @@
 # TDLib Web example
 
 This is an example of building `TDLib` for browsers using [Emscripten](https://github.com/kripken/emscripten).
-These scripts build `TDLib` and creates an [NPM](https://www.npmjs.com/) package [tdweb](https://www.npmjs.com/package/@arseny30/tdweb).
-You need Unix shell with `sed`, `tar` and `wget` utilities to run provided scripts.
+These scripts build `TDLib` and create an [NPM](https://www.npmjs.com/) package [tdweb](https://www.npmjs.com/package/@arseny30/tdweb).
+You need a Unix shell with `sed`, `tar` and `wget` utilities to run the provided scripts.
 
 ## Building tdweb NPM package
 
-* Install latest [emsdk](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). Do not use system-provided `emscripten` package, because it contains too old version.
+* Install the latest [emsdk](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). Do not use the system-provided `emscripten` package, because it contains a version that is too old.
 * Install all `TDLib` build dependencies as described in [Building](https://github.com/tdlib/td#building).
-* Run `source ./emsdk_env.sh` from `emsdk` directory to set up correct build environment.
-* On `macOS` install `coreutils` [Homebrew](https://brew.sh) package and replace `realpath` usages in scripts with `grealpath`:
+* Run `source ./emsdk_env.sh` from `emsdk` directory to set up the correct build environment.
+* On `macOS`, install the `coreutils` [Homebrew](https://brew.sh) package and replace `realpath` in scripts with `grealpath`:
 ```
 brew install coreutils
 sed -i.bak 's/[(]realpath/(grealpath/g' build-tdlib.sh
@@ -22,8 +22,8 @@ cd <path to TDLib sources>/example/web
 ./copy-tdlib.sh
 ./build-tdweb.sh
 ```
-* The built package is now located in `tdweb` directory.
+* The built package is now located in the `tdweb` directory.
 
 ## Using tdweb NPM package
 
-See [tdweb](https://www.npmjs.com/package/@arseny30/tdweb) or [README.md](https://github.com/tdlib/td/tree/master/example/web/tdweb/README.md) for the package documentation.
+See [tdweb](https://www.npmjs.com/package/@arseny30/tdweb) or [README.md](https://github.com/tdlib/td/tree/master/example/web/tdweb/README.md) for package documentation.

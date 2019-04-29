@@ -11,18 +11,18 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  *
  * TDLib can be compiled to WebAssembly or asm.js using Emscripten compiler and used in a browser from JavaScript.
  * This is a convenient wrapper for TDLib in a browser which controls TDLib instance creation, handles interaction
- * with the TDLib and manages a filesystem for persistent TDLib data.
+ * with TDLib and manages a filesystem for persistent TDLib data.
  * TDLib instance is created in a Web Worker to run it in a separate thread.
- * TdClient just sends queries to the Web Worker and receive updates and results from it.
+ * TdClient just sends queries to the Web Worker and receives updates and results from it.
  * <br>
  * <br>
- * Differences from TDLib JSON API:<br>
- * 1. Added the update <code>updateFatalError error:string = Update;</code> which is sent whenever a TDLib fatal error is encountered.<br>
+ * Differences from the TDLib JSON API:<br>
+ * 1. Added the update <code>updateFatalError error:string = Update;</code> which is sent whenever TDLib encounters a fatal error.<br>
  * 2. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
- * 3. Added the possibility to use blobs as input files via constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
+ * 3. Added the possibility to use blobs as input files via the constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
  * 4. The class <code>filePart</code> contains data as a JavaScript blob instead of a base64-encoded string.<br>
- * 5. Methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
- * 6. Added the field <code>idb_key</code> to <code>file</code> object, which contains IndexedDB key in which the file content is stored.<br>
+ * 5. The methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> are not supported.<br>
+ * 6. Added the field <code>idb_key</code> to <code>file</code> object, which contains the IndexedDB key in which the file content is stored.<br>
  *    This field is non-empty only for fully downloaded files. IndexedDB database name is chosen during TdClient creation via options.instanceName parameter.<br>
  * <br>
  */
@@ -34,13 +34,13 @@ class TdClient {
 
   /**
    * Create TdClient.
-   * @param {Object} options - The options for TDLib instance creation.
-   * @param {TdClient~updateCallback} options.onUpdate - The callback for all incoming updates.
-   * @param {string} [options.instanceName=tdlib] - The name of the TDLib instance. Currently only one instance of TdClient with a given name is allowed. All but one created instances with a given name will be automatically closed. Usually, the newest non-background instance is kept alive. Files will be stored in IndexedDb table with the same name.
+   * @param {Object} options - Options for TDLib instance creation.
+   * @param {TdClient~updateCallback} options.onUpdate - Callback for all incoming updates.
+   * @param {string} [options.instanceName=tdlib] - Name of the TDLib instance. Currently only one instance of TdClient with a given name is allowed. All but one instances with the same name will be automatically closed. Usually, the newest non-background instance is kept alive. Files will be stored in an IndexedDb table with the same name.
    * @param {boolean} [options.isBackground=false] - Pass true, if the instance is opened from the background.
    * @param {string} [options.jsLogVerbosityLevel=info] - The initial verbosity level of the JavaScript part of the code (one of 'error', 'warning', 'info', 'log', 'debug').
-   * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for TDLib internal logging (0-1023).
-   * @param {boolean} [options.useDatabase=true] - Pass false to use TDLib without database and secret chats. It will significantly improve load time, but some functionality will be unavailable.
+   * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for the TDLib internal logging (0-1023).
+   * @param {boolean} [options.useDatabase=true] - Pass false to use TDLib without database and secret chats. It will significantly improve loading time, but some functionality will be unavailable.
    * @param {boolean} [options.readOnly=false] - For debug only. Pass true to open TDLib database in read-only mode
    * @param {string} [options.mode=auto] - For debug only. The type of the TDLib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly. If mode == 'auto' WebAbassembly will be used if supported by browser, asm.js otherwise.
    */
@@ -66,7 +66,7 @@ class TdClient {
   /**
    * Send a query to TDLib.
    *
-   * If the query contains an '@extra' field, the same field will be added into the result.
+   * If the query contains the field '@extra', the same field will be added into the result.
    *
    * @param {Object} query - The query for TDLib. See the [td_api.tl]{@link https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl} scheme or
    *                         the automatically generated [HTML documentation]{@link https://core.telegram.org/tdlib/docs/td__api_8h.html}
