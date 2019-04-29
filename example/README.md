@@ -22,6 +22,7 @@ Choose your preferred programming language to see examples of usage and a detail
 - [PHP](#php)
 - [Lua](#lua)
 - [Ruby](#ruby)
+- [Emacs Lisp](#emacslisp)
 - [D](#d)
 - [Elixir](#elixir)
 - [1С](#1s)
@@ -163,6 +164,13 @@ TDLib can be used from the Ruby programming language through the [JSON](https://
 
 See [tdlib-ruby](https://github.com/centosadmin/tdlib-ruby) for examples of Ruby bindings and a client for TDLib.
 See [example/ruby](https://github.com/tdlib/td/tree/master/example/ruby) for an example of logging in to Telegram using TDLib and `tdlib-ruby` gem.
+
+<a name="emacslisp"></a>
+## Using TDLib in Emacs Lisp projects
+
+TDLib can be used from the Emacs Lisp programming language.
+
+See [telega.el](https://github.com/zevlg/telega.el) for an example of a GNU Emacs Telegram client.
 
 <a name="elixir"></a>
 ## Using TDLib in Elixir projects
