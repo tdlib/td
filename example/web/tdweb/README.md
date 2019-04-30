@@ -17,3 +17,13 @@ which shouldn't be used in the JSON interface. The object type name is stored in
 Fields of Bool type are stored as Boolean, fields of int32, int53 and double types are stored as Number, fields of int64 and string types are stored as String,
 fields of bytes type are base64 encoded and then stored as String, fields of vector type are stored as Array.
 You can also add the field '@extra' to any query to TDLib and the response will contain the field '@extra' with exactly the same value.
+
+## Installation
+As usual, add npm '@arseny30/tdweb' package into you project:
+```
+npm install @arseny30/tdweb
+```
+
+All files will be installed into `node_modules/@arseny30/tdweb/dist/` folder. For now it is your responsibility to make
+those files loadable from your server. For example, [telegram-react](https://github.com/evgeny-nadymov/telegram-react)
+manually copies this files into the `public` folder. If you know how to avoid this problem, please tell us.
