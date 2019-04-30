@@ -1,7 +1,7 @@
 # TDLib Web example
 
 This is an example of building `TDLib` for browsers using [Emscripten](https://github.com/kripken/emscripten).
-These scripts build `TDLib` and create an [NPM](https://www.npmjs.com/) package [tdweb](https://www.npmjs.com/package/@arseny30/tdweb).
+These scripts build `TDLib` and create an [NPM](https://www.npmjs.com/) package [tdweb](https://www.npmjs.com/package/tdweb).
 You need a Unix shell with `sed`, `tar` and `wget` utilities to run the provided scripts.
 
 ## Building tdweb NPM package
@@ -26,4 +26,4 @@ cd <path to TDLib sources>/example/web
 
 ## Using tdweb NPM package
 
-See [tdweb](https://www.npmjs.com/package/@arseny30/tdweb) or [README.md](https://github.com/tdlib/td/tree/master/example/web/tdweb/README.md) for package documentation.
+See [tdweb](https://www.npmjs.com/package/tdweb) or [README.md](https://github.com/tdlib/td/tree/master/example/web/tdweb/README.md) for package documentation.

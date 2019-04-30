@@ -19,11 +19,11 @@ fields of bytes type are base64 encoded and then stored as String, fields of vec
 You can also add the field '@extra' to any query to TDLib and the response will contain the field '@extra' with exactly the same value.
 
 ## Installation
-As usual, add npm '@arseny30/tdweb' package into you project:
+As usual, add npm tdweb package into you project:
 ```
-npm install @arseny30/tdweb
+npm install tdweb
 ```
 
-All files will be installed into `node_modules/@arseny30/tdweb/dist/` folder. For now it is your responsibility to make
+All files will be installed into `node_modules/tdweb/dist/` folder. For now it is your responsibility to make
 those files loadable from your server. For example, [telegram-react](https://github.com/evgeny-nadymov/telegram-react)
 manually copies this files into the `public` folder. If you know how to avoid this problem, please tell us.
