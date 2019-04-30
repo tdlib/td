@@ -95,7 +95,7 @@ inline int32 count_bits32(uint32 x) {
 
 inline int32 count_bits64(uint64 x) {
 #if defined(_M_X64)
-  return __popcnt64(x);
+  return static_cast<int32>(__popcnt64(x));
 #else
   return count_bits32(static_cast<uint32>(x >> 32)) + count_bits32(static_cast<uint32>(x));
 #endif
