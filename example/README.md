@@ -39,8 +39,8 @@ Convenient Python wrappers already exist for our JSON interface.
 If you use modern Python >= 3.6, take a look at [python-telegram](https://github.com/alexander-akhmetov/python-telegram).
 The wrapper uses the full power of asyncio, has a good documentation and has several examples. It can be installed through pip or used in a Docker container.
 
-For older Python versions you can use [demo-pytdlib](https://github.com/i-Naji/demo-pytdlib).
-This wrapper contains generator for TDLib API classes and basic class for interaction with TDLib.
+For older Python versions you can use [demo-pytdlib](https://github.com/i-Naji/demo-pytdlib) or [python-tdlib](https://github.com/andrew-ld/python-tdlib).
+These wrappers contain generators for TDLib API classes and basic classes for interaction with TDLib.
 
 You can also check out [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) and
 [tdlib-python](https://github.com/JunaidBabu/tdlib-python) for some very basic examples of TDLib JSON interface integration with Python.
