@@ -57,7 +57,7 @@ Convenient Node.js wrappers already exist for our JSON interface.
 For example, take a look at [tdl](https://github.com/Bannerets/tdl), which provides a convenient, fully-asynchronous interface for interaction with TDLib and contains a bunch of examples, or
 at [Airgram](https://github.com/airgram/airgram) - modern TDLib framework for TypeScript/JavaScript.
 
-You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tglib](https://github.com/nodegin/tglib),
+You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tdlnode](https://github.com/fonbah/tdlnode), [tglib](https://github.com/nodegin/tglib),
 [Paper Plane](https://github.com/BlackSuited/paper-plane) and [example/javascript](https://github.com/tdlib/td/tree/master/example/javascript) for other examples
 of TDLib JSON interface integration with Node.js.
 
