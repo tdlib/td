@@ -1,3 +1,257 @@
+Changes in 1.4.0:
+
+* Added a [TDLib build instructions generator](https://tdlib.github.io/td/build.html), covering in details
+  TDLib building on the most popular operating systems.
+* Added an example of TDLib building and usage from a browser.
+  See https://github.com/tdlib/td/blob/master/example/web/ for more details.
+* Allowed to pass NULL pointer to `td_json_client_execute` instead of a previously created JSON client.
+  Now you can use synchronous TDLib methods through a JSON interface before creating a TDLib JSON client.
+* Added support for media streaming by allowing to download any part of a file:
+  - Added the `offset` parameter to `downloadFile` which specifies the starting position
+    from which the file should be downloaded.
+  - Added the `limit` parameter to `downloadFile` which specifies how many bytes should be downloaded starting from
+    the `offset` position.
+  - Added the field `download_offset` to the class `localFile` which contains the current download offset.
+  - The field `downloaded_prefix_size` of the `localFile` class now contains the number of available bytes
+    from the position `download_offset` instead of from the beginning of the file.
+  - Added the method `getFileDownloadedPrefixSize` which can be used to get the number of locally available file bytes
+    from a given offset without actually changing the download offset.
+* Added the parameter `synchronous` to `downloadFile` which causes the request to return the result only after
+  the download is completed.
+* Added support for native polls in messages:
+  - Added `messagePoll` to the types of message content; contains a poll.
+  - Added the classes `poll` and `pollOption` describing a poll and a poll answer option respectively.
+  - Added `inputMessagePoll` to the types of new input message content; can be used to send a poll.
+  - Added the method `setPollAnswer` which can be used for voting in polls.
+  - Added the method `stopPoll` which can be used to stop polls. Use the `Message.can_be_edited` field to check whether
+    this method can be called on a message.
+  - Added the update `updatePoll` for bots only. Ordinary users receive poll updates through `updateMessageContent`.
+* Added a Notification API. See article https://core.telegram.org/tdlib/notification-api for a detailed description.
+  - Added the class `pushReceiverId` which contains a globally unique identifier of the push notification subscription.
+  - Changed the return type of the method `registerDevice` to `pushReceiverId` to allow matching of push notifications
+    with TDLib instances.
+  - Removed the fields `disable_notification` and `contains_mention` from `updateNewMessage`.
+  - Renamed the class `deviceTokenGoogleCloudMessaging` to `deviceTokenFirebaseCloudMessaging`.
+  - Added the field `encrypt` to classes `deviceTokenApplePushVoIP` and `deviceTokenFirebaseCloudMessaging`
+    which allows to subscribe for end-to-end encrypted push notifications.
+  - Added the option `notification_group_count_max` which can be used to enable the Notification API and set
+    the maximum number of notification groups to be shown simultaneously.
+  - Added the option `notification_group_size_max` which can be used to set the maximum number of simultaneously shown
+    notifications in a group.
+  - Added the synchronous method `getPushReceiverId` for matching a push notification with a TDLib instance.
+  - Added the method `processPushNotification` for handling of push notifications.
+  - Removed the method `processDcUpdate` in favor of the general `processPushNotification` method.
+  - Added the update `updateNotificationGroup`, sent whenever a notification group changes.
+  - Added the update `updateNotification`, sent whenever a notification changes.
+  - Added the update `updateActiveNotifications` for syncing the list of active notifications on startup.
+  - Added the update `updateHavePendingNotifications` which can be used to improve lifetime handling of
+    the TDLib instance.
+  - Added the possibility to disable special handling of notifications about pinned messages via the new settings
+    `use_default_disable_pinned_message_notifications`, `disable_pinned_message_notifications` in
+    the class `chatNotificationSettings` and the new setting `disable_pinned_message_notifications` in
+    the class `scopeNotificationSettings`.
+  - Added the possibility to disable special handling of notifications about mentions and replies via the new settings
+    `use_default_disable_mention_notifications`, `disable_mention_notifications` in
+    the class `chatNotificationSettings` and the new setting `disable_mention_notifications` in
+    the class `scopeNotificationSettings`.
+  - Added the class `PushMessageContent` describing the content of a notification, received through
+    a push notification.
+  - Added the class `NotificationType` describing a type of a notification.
+  - Added the class `notification` containing information about a notification.
+  - Added the class `NotificationGroupType` describing a type of a notification group.
+  - Added the class `notificationGroup` describing a state of a notification group.
+  - Added the methods `removeNotification` and `removeNotificationGroup` for handling notifications removal
+    by the user.
+  - Added the separate notification scope `notificationSettingsScopeChannelChats` for channel chats.
+* Added support for pinned notifications in basic groups and Saved Messages:
+  - Added the field `pinned_message_id` to the class `chat`.
+  - Removed the field `pinned_message_id` from the class `supergroupFullInfo` in favor of `Chat.pinned_message_id`.
+  - Added the update `updateChatPinnedMessage`.
+  - The right `can_pin_messages` is now applicable to both basic groups and supergroups.
+  - Replaced the method `pinSupergroupMessage` with `pinChatMessage` which can be used for any chat type.
+  - Replaced the method `unpinSupergroupMessage` with `unpinChatMessage` which can be used for any chat type.
+* Added new synchronous methods for managing TDLib internal logging. The old functions are deprecated and
+  will be removed in TDLib 2.0.0.
+  - Added the synchronous method `setLogStream` for changing the stream to which the TDLib internal log is written.
+  - Added the synchronous method `getLogStream` for getting information about the currently used log stream.
+  - Added the classes `logStreamDefault`, `logStreamFile` and `logStreamEmpty` describing different supported kinds of
+    log streams.
+  - Added the class `logVerbosityLevel` containing the verbosity level of the TDLib internal log.
+  - Added the class `logTags` containing a list of available TDLib internal log tags.
+  - Added the synchronous method `setLogVerbosityLevel` for changing verbosity level of logging.
+  - Added the synchronous method `getLogVerbosityLevel` for getting the current verbosity level of logging.
+  - Added the synchronous method `getLogTags` returning all currently supported log tags.
+  - Added the synchronous method `setLogTagVerbosityLevel` for changing the verbosity level of logging for
+    some specific part of the code.
+  - Added the synchronous method `getLogTagVerbosityLevel` for getting the current verbosity level for a specific part
+    of the code.
+  - Added the synchronous method `addLogMessage` for using the TDLib internal log by the application.
+* Added support for Instant View 2.0:
+  - Replaced the field `has_instant_view` in class `webPage` with the `instant_view_version` field.
+  - Added the field `version` to the class `webPageInstantView`.
+  - Added the class `pageBlockCaption`.
+  - Changed the type of `caption` fields in `pageBlockAnimation`, `pageBlockAudio`, `pageBlockPhoto`, `pageBlockVideo`,
+    `pageBlockEmbedded`, `pageBlockEmbeddedPost`, `pageBlockCollage` and `pageBlockSlideshow` from
+    `RichText` to `pageBlockCaption`.
+  - Added the class `pageBlockListItem` and replaced the content of the `pageBlockList` class with a list of
+    `pageBlockListItem`.
+  - Added 6 new kinds of `RichText`: `richTextSubscript`, `richTextSuperscript`, `richTextMarked`,
+    `richTextPhoneNumber`, `richTextIcon` and `richTextAnchor`.
+  - Added new classes `pageBlockRelatedArticle`, `PageBlockHorizontalAlignment`, `PageBlockVerticalAlignment` and
+    `pageBlockTableCell`.
+  - Added new block types `pageBlockKicker`, `pageBlockRelatedArticles`, `pageBlockTable`, `pageBlockDetails` and
+    `pageBlockMap`.
+  - Added the flag `is_rtl` to `webPageInstantView` object.
+  - Renamed the field `caption` in classes `pageBlockBlockQuote` and `pageBlockPullQuote` to `credit`.
+  - Dimensions in `pageBlockEmbedded` can now be unknown.
+  - Added the field `url` to `pageBlockPhoto` which contains a URL that needs to be opened when the photo is clicked.
+  - Added the field `url` to `webPageInstantView` which must be used for the correct handling of anchors.
+* Added methods for confirmation of the 2-step verification recovery email address:
+  - Added the method `checkRecoveryEmailAddressCode` for checking the verification code.
+  - Added the method `resendRecoveryEmailAddressCode` for resending the verification code.
+  - Replaced the field `unconfirmed_recovery_email_address_pattern` in the class `passwordState` with
+    the `recovery_email_address_code_info` field containing full information about the code.
+  - The necessity of recovery email address confirmation in `setPassword` and `setRecoveryEmailAddress` methods
+    is now returned by the corresponding `passwordState` and not by the error `EMAIL_UNCONFIRMED`.
+* Improved the `MessageForwardInfo` class and added support for hidden original senders:
+  - Removed the old `messageForwardedPost` and `messageForwardedFromUser` classes.
+  - Added the class `messageForwardInfo` which contains information about the origin of the message, original sending
+    date and identifies the place from which the message was forwarded the last time for messages forwarded to
+    Saved Messages.
+  - Added the classes `messageForwardOriginUser`, `messageForwardOriginHiddenUser` and `messageForwardOriginChannel`
+    which describe the exact origins of a message.
+* Improved getting the list of user profile photos:
+  - Added the class `userProfilePhoto`, containing `id`, `added_date` and `sizes` of a profile photo.
+  - Changed the type of the field `photos` in `userProfilePhotos` to a list of `userProfilePhoto` instead of
+    a list of `photo`. `getUserProfilePhotos` now returns a date for each profile photo.
+  - Removed the field `id` from the class `photo` (this field was only needed in the result of `getUserProfilePhotos`).
+* Added the possibility to get a Telegram Passport authorization form before asking the user for a password:
+  - Removed the parameter `password` from the method `getPassportAuthorizationForm`.
+  - Moved the fields `elements` and `errors` from the class `passportAuthorizationForm` to
+    the new class `passportElementsWithErrors`.
+  - Added the method `getPassportAuthorizationFormAvailableElements` that takes the user's password and
+    returns previously uploaded Telegram Passport elements and errors in them.
+* Added the field `file_index` to the classes `passportElementErrorSourceFile` and
+  `passportElementErrorSourceTranslationFile`.
+* Added the method `getCurrentState` returning all updates describing the current `TDLib` state. It can be used to
+  restore the correct state after connecting to a running TDLib instance.
+* Added the class `updates` which contains a list of updates and is returned by the `getCurrentState` method.
+* Added the update `updateChatOnlineMemberCount` which is automatically sent for open group chats if the number of
+  online members in a group changes.
+* Added support for custom language packs downloaded from the server:
+  - Added the fields `base_language_pack_id`` to the `languagePackInfo` object. Strings from the base language pack
+    must be used for untranslated keys from the chosen language pack.
+  - Added the fields `plural_code`, `is_official`, `is_rtl`, `is_beta`, `is_installed`, `total_string_count`,
+    `translated_string_count`, `translation_url` to the `languagePackInfo` object.
+  - Added the method `addCustomServerLanguagePack` which adds a custom server language pack to the list of
+    installed language packs.
+  - Added the method `getLanguagePackInfo` which can be used for handling `https://t.me/setlanguage/...` links.
+  - Added the method `synchronizeLanguagePack` which can be used to fetch the latest versions of all strings from
+    a language pack.
+    The method doesn't need to be called explicitly for the current used/base language packs.
+  - The method `deleteLanguagePack` now also removes the language pack from the list of installed language packs.
+* Added the method `getChatNotificationSettingsExceptions` which can be used to get chats with
+  non-default notification settings.
+* Added the parameter `hide_via_bot` to `sendInlineQueryResultMessage` which can be used for
+  `getOption("animation_search_bot_username")`, `getOption("photo_search_bot_username")` and
+  `getOption("venue_search_bot_username")` bots to hide that the message was sent via the bot.
+* Added the class `chatReportReasonChildAbuse` which can be used to report a chat for child abuse.
+* Added the method `getMessageLocally` which returns a message only if it is available locally without
+  a network request.
+* Added the method `writeGeneratedFilePart` which can be used to write a generated file if there is no direct access to
+  TDLib's file system.
+* Added the method `readFilePart` which can be used to read a file from the TDLib file cache.
+* Added the class `filePart` to represent the result of the new `readFilePart` method.
+* Added the field `log_size` to the `storageStatisticsFast` class which contains the size of the TDLib internal log.
+  Previously the size was included into the value of the `database_size` field.
+* Added the field `language_pack_database_size` to the `storageStatisticsFast` class which contains the size of the
+  language pack database.
+* Added the field `is_support` to the class `user` which can be used to identify Telegram Support accounts.
+* Added the class `HttpUrl` encapsulating an HTTP URL.
+* Added the method `getMessageLink` which can be used to create a private link (which works only for members) to
+  a message in a supergroup or channel.
+* Added support for channel statistics (coming soon):
+  - Added the field `can_view_statistics` to the `supergroupFullInfo` class.
+  - Added the method `getChatStatisticsUrl` which returns a URL with the chat statistics.
+* Added support for server-side peer-to-peer calls privacy:
+  - Added the class `userPrivacySettingAllowPeerToPeerCalls` for managing privacy.
+  - Added the field `allow_p2p` to `callStateReady` class which must be used to determine whether
+    a peer-to-peer connection can be used.
+* Added the option `ignore_background_updates` which allows to skip all updates received while the TDLib instance was
+  not running. The option does nothing if the database or secret chats are used.
+* Added the read-only option `expect_blocking`, suggesting whether Telegram is blocked for the user.
+* Added the read-only option `enabled_proxy_id`, containing the ID of the enabled proxy.
+* Added the ability to identify password pending sessions (where the code was entered but not
+  the two-step verification password) via the flag `is_password_pending` in the `session` class.
+  TDLib guarantees that the sessions will be returned by the `getActiveSessions` method in the correct order.
+* Added the classes `JsonValue` and `jsonObjectMember` which represent a JSON value and
+  a member of a JSON object respectively as TDLib API objects.
+* Added the synchronous methods `getJsonValue` and `getJsonString` for simple conversion between
+  a JSON-encoded string and `JsonValue` TDLib API class.
+* Added the methods `getApplicationConfig` and `saveApplicationLogEvent` to be used for testing purposes.
+* Added the temporarily class `databaseStatistics` and the method `getDatabaseStatistics` for rough estimations of
+  database tables size in a human-readable format.
+* Made the method `Client.Execute` static in .NET interface.
+* Removed the `on_closed` callback virtual method from low-level C++ ClientActor interface.
+  Callback destructor can be used instead.
+* Updated dependencies in the prebuilt TDLib for Android:
+  - Updated SDK to SDK 28 in which helper classes was moved from `android.support.` to `androidx.` package.
+  - Updated NDK to r19c, which dropped support for Android versions up to 4.0.4, so the minimum supported version is
+    Android 4.1.
+  - Updated OpenSSL to version 1.1.1.
+  - Added x86_64 libraries.
+* Added out of the box `FreeBSD` support.
+* Significantly improved TDLib compilation time and decreased compiler RAM usage:
+  - In native C++ interface `td_api::object_ptr` is now a simple homebrew const-propagating class instead of
+    `std::unique_ptr`.
+  - Added the script `SplitSource.php`, which can be used to split some source code files before building
+    the library to reduce maximum RAM usage per file at the expense of increased build time.
+* The update `updateOption` with the `version` option is now guaranteed to come before all other updates.
+  It can now be used to dynamically discover available methods.
+* Added the ability to delete incoming messages in private chats and revoke messages without a time limit:
+  - Added the parameter `revoke` to the method `deleteChatHistory`; use it to delete chat history for all chat members.
+  - Added the fields `can_be_deleted_only_for_self` and `can_be_deleted_for_all_users` to `Chat` object
+    which can be used to determine for whom the chat can be deleted through the `deleteChatHistory` method.
+  - The fields `Message.can_be_deleted_only_for_self` and `Message.can_be_deleted_for_all_users` can still be used
+    to determine for whom the message can be deleted through the `deleteMessages` method.
+* Added support for server-generated notifications about newly registered contacts:
+  - Setting the option `disable_contact_registered_notifications` now affects all user sessions.
+    When the option is enabled, the client will still receive `messageContactRegistered` message in the private chat,
+    but there will be no notification about the message.
+  - `getOption("disable_contact_registered_notifications")` can be used to fetch the actual value of the option,
+    the option will not be updated automatically after a change from another device.
+* Decreased the maximum allowed first name and last name length to 64, chat title length to 128,
+  matching the new server-side limits.
+* Decreased the maximum allowed value of the `forward_limit` parameter of the `addChatMember` method from 300 to 100,
+  matching the new server-side limit.
+* Added protection from opening two TDLib instances with the same database directory from one process.
+* Added copying of notification settings of new secret chats from notification settings of
+  the corresponding private chat.
+* Excluded the sponsored chat (when using sponsored proxies) from unread counters.
+* Allowed to pass decreased local_size in `setFileGenerationProgress` to restart the generation from the beginning.
+* Added a check for modification time of original file in `inputFileGenerated` whenever possible.
+  If the original file was changed, then TDLib will restart the generation.
+* Added the destruction of MTProto keys on the server during log out.
+* Added support for hexadecimal-encoded and decimal-encoded IPv4 proxy server addresses.
+* Improved the behavior of `changeImportedContacts` which now also deletes contacts of users without Telegram accounts
+  from the server.
+* Added the ability to call `getStorageStatistics` before authorization.
+* Allowed to pass `limit` = -`offset` for negative offset in the `getChatHistory` method.
+* Changed the recommended `inputThumbnail` size to be at most 320x320 instead of the previous 90x90.
+* Disabled building by default of the native C interface. Use `cmake --build . --target tdc` to build it.
+* Numerous optimizations and bug fixes:
+  - Network implementation for Windows was completely rewritten to allow a literally unlimited number of
+    simultaneously used TDLib instances.
+  - TDLib instances can now share working threads with each other. Only a limited number of threads will be created
+    even if there are thousands of TDLib instances in a single process.
+  - Removed the restriction on the size of update or response result in JSON interface.
+  - Fixed pinning of the 5th chat when there is a sponsored chat.
+  - Fixed IPv6 on Windows.
+  - Improved network connections balancing, aliveness checks and overall stability.
+  - Various autogenerated documentation fixes and improvements.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.3.0:
 
 * Added a review of existing TDLib based [frameworks](https://github.com/tdlib/td/blob/master/example/README.md)
