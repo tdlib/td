@@ -129,7 +129,7 @@ See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an ex
 
 TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [rust-tdlib](https://github.com/lattenwald/rust-tdlib) for an example of TDLib Rust bindings.
+See [rust-tdlib](https://github.com/lattenwald/rust-tdlib) or [tdjson-rs](https://github.com/mersinvald/tdjson-rs) for an example of TDLib Rust bindings.
 
 <a name="erlang"></a>
 ## Using TDLib in Erlang projects
