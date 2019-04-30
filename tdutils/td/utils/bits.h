@@ -12,6 +12,14 @@
 #include <intrin.h>
 #endif
 
+#ifdef bswap32
+#undef bswap32
+#endif
+
+#ifdef bswap64
+#undef bswap64
+#endif
+
 namespace td {
 
 inline int32 count_leading_zeroes32(uint32 x);
