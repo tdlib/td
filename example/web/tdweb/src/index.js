@@ -1,5 +1,5 @@
 import MyWorker from './worker.js';
-import localforage from 'localforage';
+//import localforage from 'localforage';
 //import './third_party/broadcastchannel.js';
 import BroadcastChannel from 'broadcast-channel';
 import uuid4 from 'uuid/v4';
@@ -129,7 +129,7 @@ class TdClient {
       });
       return;
     }
-    if (query['@type'] === 'readFile' || query['@type'] == 'readFilePart') {
+    if (query['@type'] === 'readFile' || query['@type'] === 'readFilePart') {
       this.readFile(query);
       return;
     }
