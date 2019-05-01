@@ -228,6 +228,11 @@ endif()
 if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
   add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
 endif()
+if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
+  # warns about a lot of "return std::move", which are not redundant for compilers without fix for DR 1579, i.e. GCC 4.9 or clang 3.8
+  # see http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579
+  add_cxx_compiler_flag("-Wno-redundant-move")
+endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")

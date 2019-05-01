@@ -237,7 +237,7 @@ void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda) {
                               [&]() {
                                 auto event = Event::lambda(std::forward<EventT>(lambda));
                                 event.set_link_token(actor_ref.token());
-                                return std::move(event);
+                                return event;
                               });
 }
 
@@ -251,7 +251,7 @@ void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure) {
                               [&]() {
                                 auto event = Event::immediate_closure(std::forward<EventT>(closure));
                                 event.set_link_token(actor_ref.token());
-                                return std::move(event);
+                                return event;
                               });
 }
 
