@@ -71,7 +71,7 @@ class GenAuthKeyActor : public Actor {
   Promise<unique_ptr<mtproto::RawConnection>> connection_promise_;
   Promise<unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise_;
   std::shared_ptr<Session::Callback> callback_;
-  CancellationToken cancellation_token_{true};
+  CancellationTokenSource cancellation_token_source_;
 
   ActorOwn<mtproto::HandshakeActor> child_;
 
@@ -80,7 +80,8 @@ class GenAuthKeyActor : public Actor {
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
     callback_->request_raw_connection(PromiseCreator::cancellable_lambda(
-        cancellation_token_, [actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+        cancellation_token_source_.get_cancellation_token(),
+        [actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
           send_closure(actor_id, &GenAuthKeyActor::on_connection, std::move(r_raw_connection), false);
         }));
   }
@@ -878,10 +879,10 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
   info->ask_info = ask_info;
 
   info->state = ConnectionInfo::State::Connecting;
-  info->cancellation_token_ = CancellationToken{true};
+  info->cancellation_token_source_ = CancellationTokenSource{};
   // NB: rely on constant location of info
   auto promise = PromiseCreator::cancellable_lambda(
-      info->cancellation_token_,
+      info->cancellation_token_source_.get_cancellation_token(),
       [actor_id = actor_id(this), info = info](Result<unique_ptr<mtproto::RawConnection>> res) {
         send_closure(actor_id, &Session::connection_open_finish, info, std::move(res));
       });

@@ -8,6 +8,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
+#include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/invoke.h"
@@ -661,4 +662,24 @@ TEST(Misc, Bits) {
   ASSERT_EQ(0, count_bits64(0));
   ASSERT_EQ(4, count_bits32((1u << 31) | 7));
   ASSERT_EQ(4, count_bits64((1ull << 63) | 7));
+}
+
+TEST(Misc, CancellationToken) {
+  CancellationTokenSource source;
+  source.cancel();
+  auto token1 = source.get_cancellation_token();
+  auto token2 = source.get_cancellation_token();
+  CHECK(!token1);
+  source.cancel();
+  CHECK(token1);
+  CHECK(token2);
+  auto token3 = source.get_cancellation_token();
+  CHECK(!token3);
+  source.cancel();
+  CHECK(token3);
+
+  auto token4 = source.get_cancellation_token();
+  CHECK(!token4);
+  source = CancellationTokenSource{};
+  CHECK(token4);
 }
