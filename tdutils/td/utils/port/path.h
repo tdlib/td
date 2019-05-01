@@ -46,11 +46,11 @@ class WalkPath {
   enum class Type { EnterDir, ExitDir, NotDir };
 
   template <class F, class R = decltype(std::declval<F>()("", Type::ExitDir))>
-  static std::enable_if_t<std::is_same<R, Action>::value, Status> run(CSlice path, F &&func) TD_WARN_UNUSED_RESULT {
+  static TD_WARN_UNUSED_RESULT std::enable_if_t<std::is_same<R, Action>::value, Status> run(CSlice path, F &&func) {
     return do_run(path, func);
   }
   template <class F, class R = decltype(std::declval<F>()("", Type::ExitDir))>
-  static std::enable_if_t<!std::is_same<R, Action>::value, Status> run(CSlice path, F &&func) TD_WARN_UNUSED_RESULT {
+  static TD_WARN_UNUSED_RESULT  std::enable_if_t<!std::is_same<R, Action>::value, Status> run(CSlice path, F &&func) {
     return do_run(path, [&](CSlice name, Type type) {
       func(name, type);
       return Action::Continue;
