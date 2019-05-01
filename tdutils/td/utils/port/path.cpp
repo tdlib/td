@@ -79,11 +79,16 @@ Status mkpath(CSlice path, int32 mode) {
 }
 
 Status rmrf(CSlice path) {
-  return walk_path(path, [](CSlice path, bool is_dir) {
-    if (is_dir) {
-      rmdir(path).ignore();
-    } else {
-      unlink(path).ignore();
+  return walk_path(path, [](CSlice path, WalkPath::Type type) {
+    switch (type) {
+      case WalkPath::Type::EnterDir:
+        break;
+      case WalkPath::Type::ExitDir:
+        rmdir(path).ignore();
+        break;
+      case WalkPath::Type::NotDir:
+        unlink(path).ignore();
+        break;
     }
   });
 }
@@ -246,18 +251,16 @@ Result<string> mkdtemp(CSlice dir, Slice prefix) {
 }
 
 namespace detail {
-Status walk_path_dir(string &path, FileFd fd,
-                     const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+using WalkFunction = std::function<WalkPath::Action(CSlice name, WalkPath::Type type)>;
+Result<bool> walk_path_dir(string &path, FileFd fd, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
-Status walk_path_dir(string &path,
-                     const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+Result<bool> walk_path_dir(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
-Status walk_path_file(string &path,
-                      const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+Result<bool> walk_path_file(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
-Status walk_path(string &path, const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+Result<bool> walk_path(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
-Status walk_path_subdir(string &path, DIR *dir, const std::function<void(CSlice name, bool is_directory)> &func) {
+Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) {
   while (true) {
     errno = 0;
     auto *entry = readdir(dir);
@@ -266,7 +269,7 @@ Status walk_path_subdir(string &path, DIR *dir, const std::function<void(CSlice 
       return Status::PosixError(readdir_errno, "readdir");
     }
     if (entry == nullptr) {
-      return Status::OK();
+      return true;
     }
     Slice name = Slice(static_cast<const char *>(entry->d_name));
     if (name == "." || name == "..") {
@@ -280,7 +283,7 @@ Status walk_path_subdir(string &path, DIR *dir, const std::function<void(CSlice 
     SCOPE_EXIT {
       path.resize(size);
     };
-    Status status;
+    Result<bool> status;
 #ifdef DT_DIR
     if (entry->d_type == DT_UNKNOWN) {
       status = walk_path(path, func);
@@ -293,22 +296,40 @@ Status walk_path_subdir(string &path, DIR *dir, const std::function<void(CSlice 
 #warning "Slow walk_path"
     status = walk_path(path, func);
 #endif
-    if (status.is_error()) {
-      return status;
+    TRY_RESULT(is_ok, std::move(status));
+    if (!is_ok) {
+      return false;
     }
   }
 }
 
-Status walk_path_dir(string &path, DIR *subdir, const std::function<void(CSlice name, bool is_directory)> &func) {
+Result<bool> walk_path_dir(string &path, DIR *subdir, const WalkFunction &func) {
   SCOPE_EXIT {
     closedir(subdir);
   };
-  TRY_STATUS(walk_path_subdir(path, subdir, func));
-  func(path, true);
-  return Status::OK();
+  switch (func(path, WalkPath::Type::EnterDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+      return true;
+    case WalkPath::Action::Continue:
+      break;
+  }
+  TRY_RESULT(is_ok, walk_path_subdir(path, subdir, func));
+  if (!is_ok) {
+    return false;
+  }
+  switch (func(path, WalkPath::Type::ExitDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+    case WalkPath::Action::Continue:
+      break;
+  }
+  return true;
 }
 
-Status walk_path_dir(string &path, FileFd fd, const std::function<void(CSlice name, bool is_directory)> &func) {
+Result<bool> walk_path_dir(string &path, FileFd fd, const WalkFunction &func) {
   auto native_fd = fd.move_as_native_fd();
   auto *subdir = fdopendir(native_fd.fd());
   if (subdir == nullptr) {
@@ -318,7 +339,7 @@ Status walk_path_dir(string &path, FileFd fd, const std::function<void(CSlice na
   return walk_path_dir(path, subdir, func);
 }
 
-Status walk_path_dir(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
+Result<bool> walk_path_dir(string &path, const WalkFunction &func) {
   auto *subdir = opendir(path.c_str());
   if (subdir == nullptr) {
     return OS_ERROR(PSLICE() << tag("opendir", path));
@@ -326,12 +347,18 @@ Status walk_path_dir(string &path, const std::function<void(CSlice name, bool is
   return walk_path_dir(path, subdir, func);
 }
 
-Status walk_path_file(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
-  func(path, false);
-  return Status::OK();
+Result<bool> walk_path_file(string &path, const WalkFunction &func) {
+  switch (func(path, WalkPath::Type::NotDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+    case WalkPath::Action::Continue:
+      break;
+  }
+  return true;
 }
 
-Status walk_path(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
+Result<bool> walk_path(string &path, const WalkFunction &func) {
   TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
   auto stat = fd.stat();
   bool is_dir = stat.is_dir_;
@@ -345,15 +372,16 @@ Status walk_path(string &path, const std::function<void(CSlice name, bool is_dir
     return walk_path_file(path, func);
   }
 
-  return Status::OK();
+  return true;
 }
 }  // namespace detail
 
-Status walk_path(CSlice path, const std::function<void(CSlice name, bool is_directory)> &func) {
+Status WalkPath::do_run(CSlice path, const detail::WalkFunction &func) {
   string curr_path;
   curr_path.reserve(PATH_MAX + 10);
   curr_path = path.c_str();
-  return detail::walk_path(curr_path, func);
+  TRY_STATUS(detail::walk_path(curr_path, func));
+  return Status::OK();
 }
 
 #endif
@@ -518,9 +546,17 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) {
   return Status::Error(PSLICE() << "Can't create temporary file \"" << file_pattern << '"');
 }
 
-static Status walk_path_dir(const std::wstring &dir_name,
-                            const std::function<void(CSlice name, bool is_directory)> &func) {
+static Result<bool> walk_path_dir(const std::wstring &dir_name,
+                                  const std::function<WalkPath::Action(CSlice name, WalkPath::Type type)> &func) {
   std::wstring name = dir_name + L"\\*";
+  switch (func(entry_name, WalkPath::Type::EnterDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+      return true;
+    case WalkPath::Action::Continue:
+      break;
+  }
 
   WIN32_FIND_DATA file_data;
   auto handle = FindFirstFileExW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
@@ -536,9 +572,18 @@ static Status walk_path_dir(const std::wstring &dir_name,
     TRY_RESULT(entry_name, from_wstring(full_name));
     if (file_data.cFileName[0] != '.') {
       if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-        TRY_STATUS(walk_path_dir(full_name, func));
+        TRY_RESULT(is_ok, walk_path_dir(full_name, func));
+        if (!is_ok) {
+          return false;
+        }
       } else {
-        func(entry_name, false);
+        switch (func(entry_name, WalkPath::Type::NotDir)) {
+          case WalkPath::Action::Abort:
+            return false;
+          case WalkPath::Action::SkipDir:
+          case WalkPath::Action::Continue:
+            break;
+        }
       }
     }
     auto status = FindNextFileW(handle, &file_data);
@@ -551,18 +596,25 @@ static Status walk_path_dir(const std::wstring &dir_name,
     }
   }
   TRY_RESULT(entry_name, from_wstring(dir_name));
-  func(entry_name, true);
-  return Status::OK();
+  switch (func(entry_name, WalkPath::Type::ExitDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+    case WalkPath::Action::Continue:
+      break;
+  }
+  return true;
 }
 
-Status walk_path(CSlice path, const std::function<void(CSlice name, bool is_directory)> &func) {
+Status WalkPath::do_run(CSlice path, const std::function<Action(CSlice name, Type)> &func) {
   TRY_RESULT(wpath, to_wstring(path));
   Slice path_slice = path;
   while (!path_slice.empty() && (path_slice.back() == '/' || path_slice.back() == '\\')) {
     path_slice.remove_suffix(1);
     wpath.pop_back();
   }
-  return walk_path_dir(wpath, func);
+  TRY_STATUS(walk_path_dir(wpath, func));
+  return Status::OK();
 }
 
 #endif
