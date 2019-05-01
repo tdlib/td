@@ -2022,6 +2022,7 @@ class CliClient final : public Actor {
     } else if (op == "storage") {
       auto chat_limit = to_integer<int32>(args);
       send_request(td_api::make_object<td_api::getStorageStatistics>(chat_limit));
+      //quit();
     } else if (op == "storage_fast") {
       send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
     } else if (op == "database") {

@@ -47,18 +47,21 @@ struct DbFileInfo {
 
 // long and blocking
 template <class CallbackT>
-void scan_db(CallbackT &&callback) {
+void scan_db(CancellationToken &token, CallbackT &&callback) {
   G()->td_db()->get_file_db_shared()->pmc().get_by_range("file0", "file:", [&](Slice key, Slice value) {
+    if (token) {
+      return false;
+    }
     // skip reference to other data
     if (value.substr(0, 2) == "@@") {
-      return;
+      return true;
     }
     TlParser parser(value);
     FileData data;
     data.parse(parser, false);
     if (parser.get_status().is_error()) {
       LOG(ERROR) << "Invalid FileData in the database " << tag("value", format::escaped(value));
-      return;
+      return true;
     }
     DbFileInfo info;
     if (data.local_.type() == LocalFileLocation::Type::Full) {
@@ -68,7 +71,7 @@ void scan_db(CallbackT &&callback) {
       info.file_type = data.local_.partial().file_type_;
       info.path = data.local_.partial().path_;
     } else {
-      return;
+      return true;
     }
     PathView path_view(info.path);
     if (path_view.is_relative()) {
@@ -79,9 +82,10 @@ void scan_db(CallbackT &&callback) {
     info.size = data.size_;
     if (info.size == 0 && data.local_.type() == LocalFileLocation::Type::Full) {
       LOG(ERROR) << "Unknown size in the database";
-      return;
+      return true;
     }
     callback(info);
+    return true;
   });
 }
 
@@ -95,39 +99,40 @@ struct FsFileInfo {
 
 // long and blocking
 template <class CallbackT>
-void scan_fs(CallbackT &&callback) {
+void scan_fs(CancellationToken &token, CallbackT &&callback) {
   for (int32 i = 0; i < file_type_size; i++) {
     auto file_type = static_cast<FileType>(i);
     if (file_type == FileType::SecureRaw) {
       continue;
     }
     auto files_dir = get_files_dir(file_type);
-    td::walk_path(files_dir,
-                  [&](CSlice path, bool is_dir) {
-                    if (is_dir) {
-                      // TODO: skip subdirs
-                      return;
-                    }
-                    auto r_stat = stat(path);
-                    if (r_stat.is_error()) {
-                      LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
-                      return;
-                    }
-                    auto stat = r_stat.move_as_ok();
-                    if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
-                      // skip .nomedia file
-                      return;
-                    }
+    td::walk_path(files_dir, [&](CSlice path, WalkPath::Type type) {
+      if (token) {
+        return WalkPath::Action::Abort;
+      }
+      if (type != WalkPath::Type::NotDir) {
+        return WalkPath::Action::Continue;
+      }
+      auto r_stat = stat(path);
+      if (r_stat.is_error()) {
+        LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
+        return WalkPath::Action::Continue;
+      }
+      auto stat = r_stat.move_as_ok();
+      if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
+        // skip .nomedia file
+        return WalkPath::Action::Continue;
+      }
 
-                    FsFileInfo info;
-                    info.path = path.str();
-                    info.size = stat.size_;
-                    info.file_type = file_type;
-                    info.atime_nsec = stat.atime_nsec_;
-                    info.mtime_nsec = stat.mtime_nsec_;
-                    callback(info);
-                  })
-        .ignore();
+      FsFileInfo info;
+      info.path = path.str();
+      info.size = stat.size_;
+      info.file_type = file_type;
+      info.atime_nsec = stat.atime_nsec_;
+      info.mtime_nsec = stat.mtime_nsec_;
+      callback(info);
+      return WalkPath::Action::Continue;
+    }).ignore();
   }
 }
 }  // namespace
@@ -140,7 +145,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
     FileStats file_stats;
     file_stats.need_all_files = need_all_files;
     auto start = Time::now();
-    scan_fs([&](FsFileInfo &fs_info) {
+    scan_fs(token_, [&](FsFileInfo &fs_info) {
       FullFileInfo info;
       info.file_type = fs_info.file_type;
       info.path = std::move(fs_info.path);
@@ -156,7 +161,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
     auto start = Time::now();
 
     std::vector<FullFileInfo> full_infos;
-    scan_fs([&](FsFileInfo &fs_info) {
+    scan_fs(token_, [&](FsFileInfo &fs_info) {
       FullFileInfo info;
       info.file_type = fs_info.file_type;
       info.path = std::move(fs_info.path);
@@ -175,7 +180,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       hash_to_pos[std::hash<std::string>()(full_info.path)] = pos;
       pos++;
     }
-    scan_db([&](DbFileInfo &db_info) {
+    scan_db(token_, [&](DbFileInfo &db_info) {
       auto it = hash_to_pos.find(std::hash<std::string>()(db_info.path));
       if (it == hash_to_pos.end()) {
         return;

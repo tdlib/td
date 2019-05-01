@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileStats.h"
 
+#include "td/utils/CancellationToken.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -20,12 +21,13 @@ extern int VERBOSITY_NAME(file_gc);
 
 class FileGcWorker : public Actor {
  public:
-  explicit FileGcWorker(ActorShared<> parent) : parent_(std::move(parent)) {
+  FileGcWorker(ActorShared<> parent, CancellationToken token) : parent_(std::move(parent)), token_(std::move(token)) {
   }
   void run_gc(const FileGcParameters &parameters, std::vector<FullFileInfo> files, Promise<FileStats> promise);
 
  private:
   ActorShared<> parent_;
+  CancellationToken token_;
   void do_remove_file(const FullFileInfo &info);
 };
 

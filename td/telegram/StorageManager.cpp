@@ -55,6 +55,10 @@ void StorageManager::on_new_file(int64 size, int32 cnt) {
 }
 
 void StorageManager::get_storage_stats(int32 dialog_limit, Promise<FileStats> promise) {
+  if (is_closed_) {
+    promise.set_error(Status::Error(500, "Request aborted"));
+    return;
+  }
   if (pending_storage_stats_.size() != 0) {
     promise.set_error(Status::Error(400, "Another storage stats is active"));
     return;
@@ -89,6 +93,10 @@ void StorageManager::update_use_storage_optimizer() {
 }
 
 void StorageManager::run_gc(FileGcParameters parameters, Promise<FileStats> promise) {
+  if (is_closed_) {
+    promise.set_error(Status::Error(500, "Request aborted"));
+    return;
+  }
   if (pending_run_gc_.size() != 0) {
     promise.set_error(Status::Error(400, "Another gc is active"));
     return;
@@ -123,8 +131,10 @@ void StorageManager::on_file_stats(Result<FileStats> r_file_stats, bool dummy) {
 }
 
 void StorageManager::create_stats_worker() {
+  CHECK(!is_closed_);
   if (stats_worker_.empty()) {
-    stats_worker_ = create_actor_on_scheduler<FileStatsWorker>("FileStatsWorker", scheduler_id_, create_reference());
+    stats_worker_ = create_actor_on_scheduler<FileStatsWorker>("FileStatsWorker", scheduler_id_, create_reference(),
+                                                               cancellation_token_source_.get_cancellation_token());
   }
 }
 
@@ -181,8 +191,10 @@ int64 StorageManager::get_log_size() {
 }
 
 void StorageManager::create_gc_worker() {
+  CHECK(!is_closed_);
   if (gc_worker_.empty()) {
-    gc_worker_ = create_actor_on_scheduler<FileGcWorker>("FileGcWorker", scheduler_id_, create_reference());
+    gc_worker_ = create_actor_on_scheduler<FileGcWorker>("FileGcWorker", scheduler_id_, create_reference(),
+                                                         cancellation_token_source_.get_cancellation_token());
   }
 }
 
@@ -231,6 +243,7 @@ void StorageManager::send_stats(FileStats &&stats, int32 dialog_limit, std::vect
 }
 
 ActorShared<> StorageManager::create_reference() {
+  ref_cnt_++;
   return actor_shared(this, 1);
 }
 
@@ -242,6 +255,10 @@ void StorageManager::hangup_shared() {
 }
 
 void StorageManager::hangup() {
+  is_closed_ = true;
+  gc_worker_.reset();
+  stats_worker_.reset();
+  cancellation_token_source_.cancel();
   hangup_shared();
 }
 

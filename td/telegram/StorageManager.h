@@ -15,6 +15,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/CancellationToken.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -55,6 +56,8 @@ class StorageManager : public Actor {
 
   FileTypeStat fast_stat_;
 
+  CancellationTokenSource cancellation_token_source_;
+
   void on_file_stats(Result<FileStats> r_file_stats, bool dummy);
   void create_stats_worker();
   void send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> promises);
@@ -68,6 +71,7 @@ class StorageManager : public Actor {
 
   // RefCnt
   int32 ref_cnt_{1};
+  bool is_closed_{false};
   ActorShared<> create_reference();
   void start_up() override;
   void hangup_shared() override;

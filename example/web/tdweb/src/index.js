@@ -535,6 +535,9 @@ class FileManager {
       request.onsuccess = event => {
         const blob = event.target.result;
         if (blob) {
+          if (blob.size == 0) {
+            log.error('Got empty blob from db ', query.key);
+          }
           query.resolve({ data: blob, transaction_id: transaction_id });
         } else {
           query.reject();

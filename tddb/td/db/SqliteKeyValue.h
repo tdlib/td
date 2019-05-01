@@ -64,7 +64,10 @@ class SqliteKeyValue {
 
   std::unordered_map<string, string> get_all() {
     std::unordered_map<string, string> res;
-    get_by_prefix("", [&](Slice key, Slice value) { res.emplace(key.str(), value.str()); });
+    get_by_prefix("", [&](Slice key, Slice value) {
+      res.emplace(key.str(), value.str());
+      return true;
+    });
     return res;
   }
 
@@ -95,7 +98,9 @@ class SqliteKeyValue {
     auto guard = stmt->guard();
     stmt->step().ensure();
     while (stmt->has_row()) {
-      callback(stmt->view_blob(0), stmt->view_blob(1));
+      if (!callback(stmt->view_blob(0), stmt->view_blob(1))) {
+        return;
+      }
       stmt->step().ensure();
     }
   }

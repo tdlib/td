@@ -318,6 +318,7 @@ Status fix_file_remote_location_key_bug(SqliteDb &db) {
     }
     LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(key));
     kv.erase(key);
+    return true;
   });
   return Status::OK();
 }

@@ -91,6 +91,9 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
       std::remove_if(
           files.begin(), files.end(),
           [&](const FullFileInfo &info) {
+            if (token_) {
+              return false;
+            }
             if (immune_types[narrow_cast<size_t>(info.file_type)]) {
               type_immunity_ignored_cnt++;
               new_stats.add(FullFileInfo(info));
@@ -142,6 +145,10 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
 
   size_t pos = 0;
   while (pos < files.size() && (remove_count > 0 || remove_size > 0)) {
+    if (token_) {
+      promise.set_error(Status::Error(500, "Request aborted"));
+      return;
+    }
     if (remove_count > 0) {
       remove_by_count_cnt++;
     } else {
