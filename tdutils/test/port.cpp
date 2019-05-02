@@ -46,7 +46,7 @@ TEST(Port, files) {
   bool was_abort = false;
   walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
     CHECK(!was_abort);
-    if (type == WalkPath::Type::EnterDir && ends_with(name, PSLICE() << "/B")) {
+    if (type == WalkPath::Type::EnterDir && ends_with(name, PSLICE() << TD_DIR_SLASH << "B")) {
       was_abort = true;
       return WalkPath::Action::Abort;
     }

@@ -549,15 +549,6 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) {
 static Result<bool> walk_path_dir(const std::wstring &dir_name,
                                   const std::function<WalkPath::Action(CSlice name, WalkPath::Type type)> &func) {
   std::wstring name = dir_name + L"\\*";
-  switch (func(entry_name, WalkPath::Type::EnterDir)) {
-    case WalkPath::Action::Abort:
-      return false;
-    case WalkPath::Action::SkipDir:
-      return true;
-    case WalkPath::Action::Continue:
-      break;
-  }
-
   WIN32_FIND_DATA file_data;
   auto handle = FindFirstFileExW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
   if (handle == INVALID_HANDLE_VALUE) {
@@ -567,6 +558,17 @@ static Result<bool> walk_path_dir(const std::wstring &dir_name,
   SCOPE_EXIT {
     FindClose(handle);
   };
+
+  TRY_RESULT(dir_entry_name, from_wstring(dir_name));
+  switch (func(dir_entry_name, WalkPath::Type::EnterDir)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+      return true;
+    case WalkPath::Action::Continue:
+      break;
+  }
+
   while (true) {
     auto full_name = dir_name + L"\\" + file_data.cFileName;
     TRY_RESULT(entry_name, from_wstring(full_name));
@@ -595,8 +597,7 @@ static Result<bool> walk_path_dir(const std::wstring &dir_name,
       return OS_ERROR("FindNextFileW");
     }
   }
-  TRY_RESULT(entry_name, from_wstring(dir_name));
-  switch (func(entry_name, WalkPath::Type::ExitDir)) {
+  switch (func(dir_entry_name, WalkPath::Type::ExitDir)) {
     case WalkPath::Action::Abort:
       return false;
     case WalkPath::Action::SkipDir:
