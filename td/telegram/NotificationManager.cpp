@@ -1857,9 +1857,10 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     }
   }
 
+  bool have_all_notifications = group_it->second.type == NotificationGroupType::Calls ||
+                                group_it->second.type == NotificationGroupType::SecretChat;
   bool is_total_count_changed = false;
-  if ((group_it->second.type != NotificationGroupType::Calls && is_permanent) ||
-      (group_it->second.type == NotificationGroupType::Calls && is_found)) {
+  if ((!have_all_notifications && is_permanent) || (have_all_notifications && is_found)) {
     if (group_it->second.total_count == 0) {
       LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing " << notification_id;
     } else {
@@ -2025,7 +2026,8 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     group_it->second.notifications.erase(group_it->second.notifications.begin(),
                                          group_it->second.notifications.begin() + notification_delete_end);
   }
-  if (group_it->second.type == NotificationGroupType::Calls) {
+  if (group_it->second.type == NotificationGroupType::Calls ||
+      group_it->second.type == NotificationGroupType::SecretChat) {
     new_total_count = static_cast<int32>(group_it->second.notifications.size());
   }
   if (group_it->second.total_count == new_total_count) {
