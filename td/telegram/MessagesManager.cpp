@@ -9672,7 +9672,7 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
 
   multipromise.add_promise(PromiseCreator::lambda([token, actor_id = actor_id(this),
                                                    this](Result<Unit> result) mutable {
-    if (result.is_ok()) {  // if we aren't closing
+    if (result.is_ok() && !G()->close_flag()) {  // if we aren't closing
       this->pending_secret_messages_.finish(token, [actor_id](unique_ptr<PendingSecretMessage> pending_secret_message) {
         send_closure_later(actor_id, &MessagesManager::finish_add_secret_message, std::move(pending_secret_message));
       });
@@ -9686,6 +9686,10 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
 }
 
 void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto d = get_dialog(pending_secret_message->message_info.dialog_id);
   CHECK(d != nullptr);
   auto random_id = pending_secret_message->message_info.random_id;
