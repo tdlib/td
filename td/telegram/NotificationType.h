@@ -27,9 +27,7 @@ class NotificationType {
   NotificationType &operator=(const NotificationType &) = delete;
   NotificationType(NotificationType &&) = delete;
   NotificationType &operator=(NotificationType &&) = delete;
-
-  virtual ~NotificationType() {
-  }
+  virtual ~NotificationType() = default;
 
   virtual bool can_be_delayed() const = 0;
 
@@ -42,11 +40,6 @@ class NotificationType {
   virtual td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const = 0;
 
   virtual StringBuilder &to_string_builder(StringBuilder &string_builder) const = 0;
-
- protected:
-  // enum class Type : int32 { Message, SecretChat, Call, PushMessage };
-
-  // virtual Type get_type() const = 0;
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const NotificationType &notification_type) {

@@ -53,11 +53,7 @@ class NotificationTypeMessage : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewMessageNotification[" << message_id_ << ']';
   }
-  /*
-  Type get_type() const override {
-    return Type::Message;
-  }
-  */
+
   MessageId message_id_;
 
  public:
@@ -89,11 +85,7 @@ class NotificationTypeSecretChat : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewSecretChatNotification[]";
   }
-  /*
-  Type get_type() const override {
-    return Type::SecretChat;
-  }
-  */
+
  public:
   NotificationTypeSecretChat() {
   }
@@ -123,11 +115,7 @@ class NotificationTypeCall : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewCallNotification[" << call_id_ << ']';
   }
-  /*
-  Type get_type() const override {
-    return Type::Call;
-  }
-  */
+
   CallId call_id_;
 
  public:
@@ -335,11 +323,7 @@ class NotificationTypePushMessage : public NotificationType {
     return string_builder << "NewPushMessageNotification[" << sender_user_id_ << ", " << message_id_ << ", " << key_
                           << ", " << arg_ << ", " << photo_ << ", " << document_ << ']';
   }
-  /*
-  Type get_type() const override {
-    return Type::PushMessage;
-  }
-  */
+
   UserId sender_user_id_;
   MessageId message_id_;
   string key_;
