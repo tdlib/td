@@ -1540,7 +1540,7 @@ class MessagesManager : public Actor {
 
   void save_dialog_to_database(DialogId dialog_id);
 
-  void on_save_dialog_to_database(DialogId dialog_id, bool success);
+  void on_save_dialog_to_database(DialogId dialog_id, bool can_reuse_notification_group, bool success);
 
   void try_reuse_notification_group(NotificationGroupInfo &group_info);
 

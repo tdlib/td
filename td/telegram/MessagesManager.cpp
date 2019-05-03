@@ -4390,8 +4390,10 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   CHECK(d != nullptr);
   LOG(INFO) << "Save " << dialog_id << " to database";
   vector<NotificationGroupKey> changed_group_keys;
+  bool can_reuse_notification_group = false;
   auto add_group_key = [&](auto &group_info) {
     if (group_info.is_changed) {
+      can_reuse_notification_group |= group_info.try_reuse;
       changed_group_keys.emplace_back(group_info.group_id, group_info.try_reuse ? DialogId() : dialog_id,
                                       group_info.last_notification_date);
       group_info.is_changed = false;
@@ -4401,15 +4403,16 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   add_group_key(d->mention_notification_group);
   G()->td_db()->get_dialog_db_async()->add_dialog(
       dialog_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
-      PromiseCreator::lambda([dialog_id](Result<> result) {
-        send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id, result.is_ok());
+      PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
+        send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id,
+                     can_reuse_notification_group, result.is_ok());
       }));
 }
 
-void MessagesManager::on_save_dialog_to_database(DialogId dialog_id, bool success) {
+void MessagesManager::on_save_dialog_to_database(DialogId dialog_id, bool can_reuse_notification_group, bool success) {
   LOG(INFO) << "Successfully saved " << dialog_id << " to database";
 
-  if (success) {
+  if (success && can_reuse_notification_group) {
     auto d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     try_reuse_notification_group(d->message_notification_group);
@@ -4423,11 +4426,11 @@ void MessagesManager::try_reuse_notification_group(NotificationGroupInfo &group_
   if (!group_info.try_reuse) {
     return;
   }
-  group_info.try_reuse = false;
   if (group_info.is_changed) {
     LOG(ERROR) << "Failed to reuse changed " << group_info.group_id;
     return;
   }
+  group_info.try_reuse = false;
   if (!group_info.group_id.is_valid()) {
     LOG(ERROR) << "Failed to reuse invalid " << group_info.group_id;
     return;
