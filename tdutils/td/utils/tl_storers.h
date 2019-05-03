@@ -22,7 +22,7 @@ class TlStorerUnsafe {
 
  public:
   explicit TlStorerUnsafe(unsigned char *buf) : buf_(buf) {
-    CHECK(is_aligned_pointer<4>(buf_));
+    LOG_CHECK(is_aligned_pointer<4>(buf_)) << buf_;
   }
 
   TlStorerUnsafe(const TlStorerUnsafe &other) = delete;
