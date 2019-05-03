@@ -7753,12 +7753,16 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
                                                         uint64 logevent_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete history in " << dialog_id << " up to " << max_message_id << " from server";
 
+  int line = 1000000 + static_cast<int>(G()->close_flag()) * 100 + static_cast<int>(logevent_id != 0) * 10 +
+             static_cast<int>(G()->parameters().use_message_db);
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     logevent_id =
         save_delete_dialog_history_from_server_logevent(dialog_id, max_message_id, remove_from_dialog_list, revoke);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  G()->td_db()->get_binlog();  // to ensure that there is binlog, to be deleted in the future
+  auto new_promise =
+      get_erase_logevent_promise_impl("delete_dialog_history_from_server", line, logevent_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
