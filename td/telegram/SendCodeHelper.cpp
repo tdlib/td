@@ -6,6 +6,8 @@
 //
 #include "td/telegram/SendCodeHelper.h"
 
+#include "td/utils/utf8.h"
+
 namespace td {
 
 void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code) {
@@ -39,52 +41,56 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
   return telegram_api::auth_resendCode(phone_number_, phone_code_hash_);
 }
 
-telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(
-    bool allow_flash_call, bool is_current_phone_number) {
+telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
   int32 flags = 0;
-  if (allow_flash_call) {
-    flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
-  }
-  if (is_current_phone_number) {
-    flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
+  string app_hash;
+  if (settings != nullptr) {
+    if (settings->allow_flash_call_) {
+      flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
+    }
+    if (settings->is_current_phone_number_) {
+      flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
+    }
+    if (check_utf8(settings->app_specific_sms_token_) && !settings->app_specific_sms_token_.empty()) {
+      app_hash = settings->app_specific_sms_token_;
+    } else if (check_utf8(settings->app_hash_string_) && !settings->app_hash_string_.empty()) {
+      flags |= telegram_api::codeSettings::APP_HASH_PERSISTENT_MASK;
+      app_hash = settings->app_hash_string_;
+    }
+    if (!app_hash.empty()) {
+      flags |= telegram_api::codeSettings::APP_HASH_MASK;
+    }
   }
   return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                               false /*ignored*/, string());
+                                                               false /*ignored*/, app_hash);
 }
 
-Result<telegram_api::auth_sendCode> SendCodeHelper::send_code(Slice phone_number, bool allow_flash_call,
-                                                              bool is_current_phone_number, int32 api_id,
-                                                              const string &api_hash) {
+Result<telegram_api::auth_sendCode> SendCodeHelper::send_code(Slice phone_number, const Settings &settings,
+                                                              int32 api_id, const string &api_hash) {
   if (!phone_number_.empty()) {
     return Status::Error(8, "Can't change phone");
   }
   phone_number_ = phone_number.str();
-  return telegram_api::auth_sendCode(phone_number_, api_id, api_hash,
-                                     get_input_code_settings(allow_flash_call, is_current_phone_number));
+  return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
 
 Result<telegram_api::account_sendChangePhoneCode> SendCodeHelper::send_change_phone_code(Slice phone_number,
-                                                                                         bool allow_flash_call,
-                                                                                         bool is_current_phone_number) {
+                                                                                         const Settings &settings) {
   phone_number_ = phone_number.str();
-  return telegram_api::account_sendChangePhoneCode(phone_number_,
-                                                   get_input_code_settings(allow_flash_call, is_current_phone_number));
+  return telegram_api::account_sendChangePhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
 Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(const string &hash,
                                                                                          Slice phone_number,
-                                                                                         bool allow_flash_call,
-                                                                                         bool is_current_phone_number) {
+                                                                                         const Settings &settings) {
   phone_number_ = phone_number.str();
-  return telegram_api::account_sendVerifyPhoneCode(hash,
-                                                   get_input_code_settings(allow_flash_call, is_current_phone_number));
+  return telegram_api::account_sendVerifyPhoneCode(hash, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(
-    Slice phone_number, bool allow_flash_call, bool is_current_phone_number) {
+Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(Slice phone_number,
+                                                                                           const Settings &settings) {
   phone_number_ = phone_number.str();
-  return telegram_api::account_sendConfirmPhoneCode(phone_number_,
-                                                    get_input_code_settings(allow_flash_call, is_current_phone_number));
+  return telegram_api::account_sendConfirmPhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
 SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_info(

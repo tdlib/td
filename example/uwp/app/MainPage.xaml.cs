@@ -94,7 +94,7 @@ namespace TdApp
             {
                 var args = command.Split(" ".ToCharArray(), 2);
                 AcceptCommand(command);
-                _client.Send(new TdApi.SetAuthenticationPhoneNumber(args[1], false, false), _handler);
+                _client.Send(new TdApi.SetAuthenticationPhoneNumber(args[1], null), _handler);
             }
             else if (command.StartsWith("cac"))
             {

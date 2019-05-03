@@ -47,19 +47,16 @@ void PhoneNumberManager::process_send_code_result(uint64 query_id, T r_send_code
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(r_send_code.move_as_ok())));
 }
 
-void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call,
-                                          bool is_current_phone_number) {
+void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, Settings settings) {
   if (phone_number.empty()) {
     return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
   }
 
   switch (type_) {
     case Type::ChangePhone:
-      return process_send_code_result(
-          query_id, send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+      return process_send_code_result(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
     case Type::VerifyPhone:
-      return process_send_code_result(
-          query_id, send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+      return process_send_code_result(query_id, send_code_helper_.send_confirm_phone_code(phone_number, settings));
     case Type::ConfirmPhone:
     default:
       UNREACHABLE();
@@ -67,7 +64,7 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
 }
 
 void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash, string phone_number,
-                                                   bool allow_flash_call, bool is_current_phone_number) {
+                                                   Settings settings) {
   if (phone_number.empty()) {
     return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
   }
@@ -77,8 +74,7 @@ void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash,
 
   switch (type_) {
     case Type::ConfirmPhone:
-      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(
-                                                    hash, phone_number, allow_flash_call, is_current_phone_number));
+      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(hash, phone_number, settings));
     case Type::ChangePhone:
     case Type::VerifyPhone:
     default:

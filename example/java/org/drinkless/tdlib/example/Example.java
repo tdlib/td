@@ -108,7 +108,7 @@ public final class Example {
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
                 String phoneNumber = promptString("Please enter phone number: ");
-                client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, false, false), new AuthorizationRequestHandler());
+                client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {

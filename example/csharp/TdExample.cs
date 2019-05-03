@@ -93,7 +93,7 @@ namespace TdExample
             else if (_authorizationState is TdApi.AuthorizationStateWaitPhoneNumber)
             {
                 string phoneNumber = ReadLine("Please enter phone number: ");
-                _client.Send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, false, false), new AuthorizationRequestHandler());
+                _client.Send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), new AuthorizationRequestHandler());
             }
             else if (_authorizationState is TdApi.AuthorizationStateWaitCode)
             {

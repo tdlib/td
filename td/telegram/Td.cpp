@@ -4614,7 +4614,7 @@ void Td::on_request(uint64 id, const td_api::getAuthorizationState &request) {
 void Td::on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request) {
   CLEAN_INPUT_STRING(request.phone_number_);
   send_closure(auth_manager_actor_, &AuthManager::set_phone_number, id, std::move(request.phone_number_),
-               request.allow_flash_call_, request.is_current_phone_number_);
+               std::move(request.settings_));
 }
 
 void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) {
@@ -4842,7 +4842,7 @@ void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   send_closure(change_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
-               std::move(request.phone_number_), request.allow_flash_call_, request.is_current_phone_number_);
+               std::move(request.phone_number_), std::move(request.settings_));
 }
 
 void Td::on_request(uint64 id, td_api::checkChangePhoneNumberCode &request) {
@@ -6845,7 +6845,7 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request)
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   send_closure(verify_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
-               std::move(request.phone_number_), request.allow_flash_call_, request.is_current_phone_number_);
+               std::move(request.phone_number_), std::move(request.settings_));
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
@@ -6924,8 +6924,7 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request)
   CLEAN_INPUT_STRING(request.phone_number_);
   CLEAN_INPUT_STRING(request.hash_);
   send_closure(confirm_phone_number_manager_, &PhoneNumberManager::set_phone_number_and_hash, id,
-               std::move(request.hash_), std::move(request.phone_number_), request.allow_flash_call_,
-               request.is_current_phone_number_);
+               std::move(request.hash_), std::move(request.phone_number_), std::move(request.settings_));
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request) {

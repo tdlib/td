@@ -1619,6 +1619,14 @@ callStateError error:error = CallState;
 call id:int32 user_id:int32 is_outgoing:Bool state:CallState = Call;
 
 
+//@description Contains settings for the authentication of the user's phone number
+//@allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number
+//@is_current_phone_number Pass true if the authenticated phone number is used on the current device
+//@app_specific_sms_token If you want to automatically receive the authentication code from SMS in Android >= 26, pass a single use app specific 11-character token received from SmsManager.createAppSpecificSmsToken. If specified, this token is preferred over app_hash_string
+//@app_hash_string If you want to use Android SMS Retriever API (requires Google Play Services >= 11.0), pass an 11-character hash string that identifies your app. See https://developers.google.com/identity/sms-retriever/ for more details
+phoneNumberAuthenticationSettings allow_flash_call:Bool is_current_phone_number:Bool app_specific_sms_token:string app_hash_string:string = PhoneNumberAuthenticationSettings;
+
+
 //@description Represents a list of animations @animations List of animations
 animations animations:vector<animation> = Animations;
 
@@ -2720,9 +2728,10 @@ setTdlibParameters parameters:tdlibParameters = Ok;
 //@description Checks the database encryption key for correctness. Works only when the current authorization state is authorizationStateWaitEncryptionKey @encryption_key Encryption key to check or set up
 checkDatabaseEncryptionKey encryption_key:bytes = Ok;
 
-//@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber
-//@phone_number The phone number of the user, in international format @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
-setAuthenticationPhoneNumber phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = Ok;
+//@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
+//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitCode or authorizationStateWaitPassword
+//@phone_number The phone number of the user, in international format @settings Settings for the authentication of the user's phone number
+setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = Ok;
 
 //@description Re-sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode and the next_code_type of the result is not null
 resendAuthenticationCode = Ok;
@@ -2772,7 +2781,7 @@ setPassword old_password:string new_password:string new_hint:string set_recovery
 //@description Returns a 2-step verification recovery email address that was previously set up. This method can be used to verify a password provided by the user @password The password for the current user
 getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 
-//@description Changes the 2-step verification recovery email address of the user. If a new recovery email address is specified, then the change will not be applied until the new recovery email address is confirmed
+//@description Changes the 2-step verification recovery email address of the user. If a new recovery email address is specified, then the change will not be applied until the new recovery email address is confirmed.
 //-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation @password Password of the current user @new_recovery_email_address New recovery email address
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
@@ -3480,8 +3489,8 @@ setBio bio:string = Ok;
 setUsername username:string = Ok;
 
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number. On success, returns information about the sent code
-//@phone_number The new phone number of the user in international format @allow_flash_call Pass true if the code can be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
-changePhoneNumber phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
+//@phone_number The new phone number of the user in international format @settings Settings for the authentication of the user's phone number
+changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
 //@description Re-sends the authentication code sent to confirm a new phone number for the user. Works only if the previously received authenticationCodeInfo next_code_type was not null
 resendChangePhoneNumberCode = AuthenticationCodeInfo;
@@ -3712,8 +3721,8 @@ getPreferredCountryLanguage country_code:string = Text;
 
 
 //@description Sends a code to verify a phone number to be added to a user's Telegram Passport
-//@phone_number The phone number of the user, in international format @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
-sendPhoneNumberVerificationCode phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
+//@phone_number The phone number of the user, in international format @settings Settings for the authentication of the user's phone number
+sendPhoneNumberVerificationCode phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
 //@description Re-sends the code to verify a phone number to be added to a user's Telegram Passport
 resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
@@ -3744,8 +3753,8 @@ sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportEl
 
 
 //@description Sends phone number confirmation code. Should be called when user presses "https://t.me/confirmphone?phone=*******&hash=**********" or "tg://confirmphone?phone=*******&hash=**********" link @hash Value of the "hash" parameter from the link
-//@phone_number Value of the "phone" parameter from the link @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
-sendPhoneNumberConfirmationCode hash:string phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
+//@phone_number Value of the "phone" parameter from the link @settings Settings for the authentication of the user's phone number
+sendPhoneNumberConfirmationCode hash:string phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
 //@description Resends phone number confirmation code
 resendPhoneNumberConfirmationCode = AuthenticationCodeInfo;

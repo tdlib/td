@@ -166,8 +166,8 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
                       DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
-void AuthManager::set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call,
-                                   bool is_current_phone_number) {
+void AuthManager::set_phone_number(uint64 query_id, string phone_number,
+                                   td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings) {
   if (state_ != State::WaitPhoneNumber) {
     if ((state_ == State::WaitCode || state_ == State::WaitPassword) && net_query_id_ == 0) {
       // ok
@@ -183,13 +183,11 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number, bool al
     return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
   }
 
-  auto r_send_code =
-      send_code_helper_.send_code(phone_number, allow_flash_call, is_current_phone_number, api_id_, api_hash_);
+  auto r_send_code = send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_);
   if (r_send_code.is_error()) {
     send_code_helper_ = SendCodeHelper();
     terms_of_service_ = TermsOfService();
-    r_send_code =
-        send_code_helper_.send_code(phone_number, allow_flash_call, is_current_phone_number, api_id_, api_hash_);
+    r_send_code = send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_);
     if (r_send_code.is_error()) {
       return on_query_error(query_id, r_send_code.move_as_error());
     }

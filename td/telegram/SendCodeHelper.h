@@ -25,18 +25,19 @@ class SendCodeHelper {
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
   Result<telegram_api::auth_resendCode> resend_code();
 
-  Result<telegram_api::auth_sendCode> send_code(Slice phone_number, bool allow_flash_call, bool is_current_phone_number,
-                                                int32 api_id, const string &api_hash);
+  using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 
-  Result<telegram_api::account_sendChangePhoneCode> send_change_phone_code(Slice phone_number, bool allow_flash_call,
-                                                                           bool is_current_phone_number);
+  Result<telegram_api::auth_sendCode> send_code(Slice phone_number, const Settings &settings, int32 api_id,
+                                                const string &api_hash);
+
+  Result<telegram_api::account_sendChangePhoneCode> send_change_phone_code(Slice phone_number,
+                                                                           const Settings &settings);
 
   Result<telegram_api::account_sendVerifyPhoneCode> send_verify_phone_code(const string &hash, Slice phone_number,
-                                                                           bool allow_flash_call,
-                                                                           bool is_current_phone_number);
+                                                                           const Settings &settings);
 
-  Result<telegram_api::account_sendConfirmPhoneCode> send_confirm_phone_code(Slice phone_number, bool allow_flash_call,
-                                                                             bool is_current_phone_number);
+  Result<telegram_api::account_sendConfirmPhoneCode> send_confirm_phone_code(Slice phone_number,
+                                                                             const Settings &settings);
 
   Slice phone_number() const {
     return phone_number_;
@@ -91,8 +92,7 @@ class SendCodeHelper {
   static td_api::object_ptr<td_api::AuthenticationCodeType> get_authentication_code_type_object(
       const AuthenticationCodeInfo &authentication_code_info);
 
-  static telegram_api::object_ptr<telegram_api::codeSettings> get_input_code_settings(bool allow_flash_call,
-                                                                                      bool is_current_phone_number);
+  static telegram_api::object_ptr<telegram_api::codeSettings> get_input_code_settings(const Settings &settings);
 };
 
 }  // namespace td

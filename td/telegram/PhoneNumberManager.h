@@ -23,9 +23,10 @@ class PhoneNumberManager : public NetActor {
   PhoneNumberManager(Type type, ActorShared<> parent);
   void get_state(uint64 query_id);
 
-  void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
-  void set_phone_number_and_hash(uint64 query_id, string hash, string phone_number, bool allow_flash_call,
-                                 bool is_current_phone_number);
+  using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
+
+  void set_phone_number(uint64 query_id, string phone_number, Settings settings);
+  void set_phone_number_and_hash(uint64 query_id, string hash, string phone_number, Settings settings);
 
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code);

@@ -212,7 +212,7 @@ class DoAuthentication : public Task {
         function = make_tl_object<td_api::checkDatabaseEncryptionKey>();
         break;
       case td_api::authorizationStateWaitPhoneNumber::ID:
-        function = make_tl_object<td_api::setAuthenticationPhoneNumber>(phone_, false, true);
+        function = make_tl_object<td_api::setAuthenticationPhoneNumber>(phone_, nullptr);
         break;
       case td_api::authorizationStateWaitCode::ID:
         function = make_tl_object<td_api::checkAuthenticationCode>(code_, name_, "");

@@ -263,8 +263,7 @@ class TdExample {
               std::cerr << "Enter phone number: ";
               std::string phone_number;
               std::cin >> phone_number;
-              send_query(td_api::make_object<td_api::setAuthenticationPhoneNumber>(
-                             phone_number, false /*allow_flash_calls*/, false /*is_current_phone_number*/),
+              send_query(td_api::make_object<td_api::setAuthenticationPhoneNumber>(phone_number, nullptr),
                          create_authentication_query_handler());
             },
             [this](td_api::authorizationStateWaitEncryptionKey &) {

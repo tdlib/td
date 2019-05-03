@@ -1243,7 +1243,7 @@ class CliClient final : public Actor {
     if (op == "gas") {
       send_request(td_api::make_object<td_api::getAuthorizationState>());
     } else if (op == "sap") {
-      send_request(td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, false, false));
+      send_request(td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, nullptr));
     } else if (op == "rac") {
       send_request(td_api::make_object<td_api::resendAuthenticationCode>());
     } else if (op == "cdek" || op == "CheckDatabaseEncryptionKey") {
@@ -1365,7 +1365,7 @@ class CliClient final : public Actor {
     } else if (op == "gpcl") {
       send_request(td_api::make_object<td_api::getPreferredCountryLanguage>(args));
     } else if (op == "spnvc" || op == "SendPhoneNumberVerificationCode") {
-      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
+      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, nullptr));
     } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {
       send_request(td_api::make_object<td_api::checkPhoneNumberVerificationCode>(args));
     } else if (op == "rpnvc" || op == "ResendPhoneNumberVerificationCode") {
@@ -1388,7 +1388,7 @@ class CliClient final : public Actor {
     } else if (op == "rreac") {
       send_request(td_api::make_object<td_api::resendRecoveryEmailAddressCode>());
     } else if (op == "spncc") {
-      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
+      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, nullptr));
     } else if (op == "cpncc") {
       send_request(td_api::make_object<td_api::checkPhoneNumberVerificationCode>(args));
     } else if (op == "rpncc") {
@@ -1530,7 +1530,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(
           get_user_privacy_setting(setting), td_api::make_object<td_api::userPrivacySettingRules>(std::move(rules))));
     } else if (op == "cp" || op == "ChangePhone") {
-      send_request(td_api::make_object<td_api::changePhoneNumber>(args, false, false));
+      send_request(td_api::make_object<td_api::changePhoneNumber>(args, nullptr));
     } else if (op == "ccpc" || op == "CheckChangePhoneCode") {
       send_request(td_api::make_object<td_api::checkChangePhoneNumberCode>(args));
     } else if (op == "rcpc" || op == "ResendChangePhoneCode") {

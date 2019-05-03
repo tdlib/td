@@ -32,7 +32,8 @@ class AuthManager : public NetActor {
   bool is_authorized() const;
   void get_state(uint64 query_id);
 
-  void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
+  void set_phone_number(uint64 query_id, string phone_number,
+                        td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code, string first_name, string last_name);
   void check_bot_token(uint64 query_id, string bot_token);
