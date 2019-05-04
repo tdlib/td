@@ -14,9 +14,11 @@ int main(int argc, char *argv[]) {
   }
   td::CSlice dir(argv[1]);
   int cnt = 0;
-  auto status = td::walk_path(dir, [&](td::CSlice path, bool is_dir) {
-    cnt++;
-    LOG(INFO) << path << " " << is_dir;
+  auto status = td::walk_path(dir, [&](td::CSlice path, auto type) {
+    if (type != td::WalkPath::Type::EnterDir) {
+      cnt++;
+      LOG(INFO) << path << " " << (type == td::WalkPath::Type::ExitDir);
+    }
     //if (is_dir) {
     // td::rmdir(path);
     //} else {
