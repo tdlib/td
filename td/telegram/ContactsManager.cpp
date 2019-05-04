@@ -7586,6 +7586,14 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
   return false;
 }
 
+bool ContactsManager::is_user_contact(UserId user_id) const {
+  return is_user_contact(get_user(user_id), user_id);
+}
+
+bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
+  return u != nullptr && u->outbound == LinkState::Contact && user_id != get_my_id();
+}
+
 void ContactsManager::on_get_channel_participants_success(
     ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit, int64 random_id,
     int32 total_count, vector<tl_object_ptr<telegram_api::ChannelParticipant>> &&participants) {
@@ -7599,6 +7607,7 @@ void ContactsManager::on_get_channel_participants_success(
     if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
         (filter.is_administrators() && !result.back().status.is_administrator()) ||
         ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !result.back().status.is_member()) ||
+        (filter.is_contacts() && !is_user_contact(result.back().user_id)) ||
         (filter.is_restricted() && !result.back().status.is_restricted()) ||
         (filter.is_banned() && !result.back().status.is_banned())) {
       bool skip_error = filter.is_administrators() && is_user_deleted(result.back().user_id);
@@ -8647,7 +8656,7 @@ void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id
 }
 
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
-  bool is_contact = u->outbound == LinkState::Contact && user_id != get_my_id();
+  bool is_contact = is_user_contact(u, user_id);
   if (td_->auth_manager_->is_bot()) {
     LOG_IF(ERROR, is_contact) << "Bot has " << user_id << " in the contacts list";
     return;

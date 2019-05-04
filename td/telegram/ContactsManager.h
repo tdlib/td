@@ -987,6 +987,10 @@ class ContactsManager : public Actor {
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const;
 
+  bool is_user_contact(UserId user_id) const;
+
+  bool is_user_contact(const User *u, UserId user_id) const;
+
   int32 get_user_was_online(const User *u, UserId user_id) const;
 
   int32 get_contacts_hash();
