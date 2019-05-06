@@ -79,11 +79,12 @@ class GenAuthKeyActor : public Actor {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
-    callback_->request_raw_connection(PromiseCreator::cancellable_lambda(
-        cancellation_token_source_.get_cancellation_token(),
-        [actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
-          send_closure(actor_id, &GenAuthKeyActor::on_connection, std::move(r_raw_connection), false);
-        }));
+    callback_->request_raw_connection(
+        nullptr, PromiseCreator::cancellable_lambda(
+                     cancellation_token_source_.get_cancellation_token(),
+                     [actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+                       send_closure(actor_id, &GenAuthKeyActor::on_connection, std::move(r_raw_connection), false);
+                     }));
   }
 
   void hangup() override {
@@ -892,7 +893,11 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
     promise.set_value(std::move(cached_connection_));
   } else {
     VLOG(dc) << "Request new connection";
-    callback_->request_raw_connection(std::move(promise));
+    unique_ptr<mtproto::AuthData> auth_data;
+    if (auth_data_.use_pfs() && auth_data_.has_auth_key(Time::now())) {
+      auth_data = make_unique<mtproto::AuthData>(auth_data_);
+    }
+    callback_->request_raw_connection(std::move(auth_data), std::move(promise));
   }
 
   info->wakeup_at = Time::now_cached() + 1000;

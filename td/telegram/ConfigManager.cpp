@@ -207,7 +207,8 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     }
     void on_closed() final {
     }
-    void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>> promise) final {
+    void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
+                                Promise<unique_ptr<mtproto::RawConnection>> promise) final {
       request_raw_connection_cnt_++;
       VLOG(config_recoverer) << "Request full config from " << address_ << ", try = " << request_raw_connection_cnt_;
       if (request_raw_connection_cnt_ <= 2) {

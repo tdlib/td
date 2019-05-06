@@ -74,6 +74,8 @@ class PingConnectionPingPong
  public:
   PingConnectionPingPong(unique_ptr<mtproto::RawConnection> raw_connection, unique_ptr<mtproto::AuthData> auth_data)
       : auth_data_(std::move(auth_data)) {
+    auth_data_->set_header("");
+    auth_data_->set_session_id(static_cast<uint64>(Random::secure_int64()));
     connection_ =
         make_unique<SessionConnection>(SessionConnection::Mode::Tcp, std::move(raw_connection), auth_data_.get());
   }

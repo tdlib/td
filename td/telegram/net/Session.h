@@ -55,7 +55,8 @@ class Session final
     virtual ~Callback() = default;
     virtual void on_failed() = 0;
     virtual void on_closed() = 0;
-    virtual void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>>) = 0;
+    virtual void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
+                                        Promise<unique_ptr<mtproto::RawConnection>>) = 0;
     virtual void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) = 0;
     virtual void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
     }

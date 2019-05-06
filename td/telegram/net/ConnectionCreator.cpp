@@ -739,13 +739,13 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
     client.dc_id = dc_id;
     client.allow_media_only = allow_media_only;
     client.is_media = is_media;
-    client.auth_data = std::move(auth_data);
   } else {
     CHECK(client.hash == hash);
     CHECK(client.dc_id == dc_id);
     CHECK(client.allow_media_only == allow_media_only);
     CHECK(client.is_media == is_media);
   }
+  client.auth_data = std::move(auth_data);
   VLOG(connections) << "Request connection for " << tag("client", format::as_hex(client.hash)) << " to " << dc_id << " "
                     << tag("allow_media_only", allow_media_only);
   client.queries.push_back(std::move(promise));
@@ -1014,6 +1014,8 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
                                          debug_str](Result<unique_ptr<mtproto::RawConnection>> result) mutable {
     if (result.is_ok()) {
+      //FIXME
+      LOG(ERROR) << "RTT: " << result.ok()->rtt_;
       VLOG(connections) << "Ready connection (" << (check_mode ? "" : "un") << "checked) " << result.ok().get() << ' '
                         << debug_str;
     } else {
@@ -1038,8 +1040,26 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   if (check_mode) {
     VLOG(connections) << "Start check: " << debug_str;
     auto token = next_token();
-    children_[token] = {true, create_ping_actor(debug_str, std::move(raw_connection), nullptr, std::move(promise),
-                                                create_reference(token))};
+    auto it = clients_.find(hash);
+    CHECK(it != clients_.end());
+    const auto &auth_data_ptr = it->second.auth_data;
+    unique_ptr<mtproto::AuthData> auth_data;
+    if (auth_data_ptr && auth_data_ptr->use_pfs() && auth_data_ptr->has_auth_key(Time::now_cached())) {
+      auth_data = make_unique<mtproto::AuthData>(*auth_data_ptr);
+      // FIXME
+      LOG(ERROR) << "use auth_data";
+    } else {
+      if (auth_data_ptr) {
+        // FIXME
+        LOG(ERROR) << "do not use auth data " << !!auth_data_ptr << " " << auth_data_ptr->use_pfs() << " "
+                   << auth_data_ptr->has_auth_key(Time::now_cached());
+      } else {
+        // FIXME
+        LOG(ERROR) << "do not use auth data";
+      }
+    }
+    children_[token] = {true, create_ping_actor(debug_str, std::move(raw_connection), std::move(auth_data),
+                                                std::move(promise), create_reference(token))};
   } else {
     promise.set_value(std::move(raw_connection));
   }

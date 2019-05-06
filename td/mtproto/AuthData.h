@@ -49,7 +49,7 @@ class MessageIdDuplicateChecker {
 class AuthData {
  public:
   AuthData();
-  AuthData(const AuthData &) = delete;
+  AuthData(const AuthData &) = default;
   AuthData &operator=(const AuthData &) = delete;
   AuthData(AuthData &&) = delete;
   AuthData &operator=(AuthData &&) = delete;
