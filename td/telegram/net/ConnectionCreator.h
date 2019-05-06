@@ -15,6 +15,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
 
+#include "td/mtproto/AuthData.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/actor/actor.h"
@@ -156,7 +157,8 @@ class ConnectionCreator : public NetQueryCallback {
   void on_pong(size_t hash);
   void on_mtproto_error(size_t hash);
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                              Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0);
+                              Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0,
+                              unique_ptr<mtproto::AuthData> auth_data = {});
   void request_raw_connection_by_ip(IPAddress ip_address, Promise<unique_ptr<mtproto::RawConnection>> promise);
 
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
@@ -237,6 +239,7 @@ class ConnectionCreator : public NetQueryCallback {
     DcId dc_id;
     bool allow_media_only;
     bool is_media;
+    unique_ptr<mtproto::AuthData> auth_data;
   };
   std::map<size_t, ClientInfo> clients_;
 

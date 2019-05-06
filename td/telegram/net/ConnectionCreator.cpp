@@ -19,7 +19,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/mtproto/PingConnection.h"
+#include "td/mtproto/Ping.h"
 #include "td/mtproto/RawConnection.h"
 
 #include "td/net/GetHostByNameActor.h"
@@ -84,81 +84,6 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
   ActorId<ConnectionCreator> connection_creator_;
   size_t hash_;
   DcOptionsSet::Stat *option_stat_;
-};
-
-class PingActor : public Actor {
- public:
-  PingActor(unique_ptr<mtproto::RawConnection> raw_connection, Promise<unique_ptr<mtproto::RawConnection>> promise,
-            ActorShared<> parent)
-      : promise_(std::move(promise)), parent_(std::move(parent)) {
-    ping_connection_ = make_unique<mtproto::PingConnection>(std::move(raw_connection), 2);
-  }
-
- private:
-  unique_ptr<mtproto::PingConnection> ping_connection_;
-  Promise<unique_ptr<mtproto::RawConnection>> promise_;
-  ActorShared<> parent_;
-
-  void start_up() override {
-    Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
-    set_timeout_in(10);
-    yield();
-  }
-
-  void hangup() override {
-    finish(Status::Error("Cancelled"));
-    stop();
-  }
-
-  void tear_down() override {
-    finish(Status::OK());
-  }
-
-  void loop() override {
-    auto status = ping_connection_->flush();
-    if (status.is_error()) {
-      finish(std::move(status));
-      return stop();
-    }
-    if (ping_connection_->was_pong()) {
-      finish(Status::OK());
-      return stop();
-    }
-  }
-
-  void timeout_expired() override {
-    finish(Status::Error("Pong timeout expired"));
-    stop();
-  }
-
-  void finish(Status status) {
-    auto raw_connection = ping_connection_->move_as_raw_connection();
-    if (!raw_connection) {
-      CHECK(!promise_);
-      return;
-    }
-    Scheduler::unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
-    if (promise_) {
-      if (status.is_error()) {
-        if (raw_connection->stats_callback()) {
-          raw_connection->stats_callback()->on_error();
-        }
-        raw_connection->close();
-        promise_.set_error(std::move(status));
-      } else {
-        raw_connection->rtt_ = ping_connection_->rtt();
-        if (raw_connection->stats_callback()) {
-          raw_connection->stats_callback()->on_pong();
-        }
-        promise_.set_value(std::move(raw_connection));
-      }
-    } else {
-      if (raw_connection->stats_callback()) {
-        raw_connection->stats_callback()->on_error();
-      }
-      raw_connection->close();
-    }
-  }
 };
 
 }  // namespace detail
@@ -602,17 +527,17 @@ void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::Transp
                                              Promise<double> promise) {
   auto token = next_token();
   auto raw_connection = make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
-  children_[token] = {false, create_actor<detail::PingActor>(
-                                 "PingActor", std::move(raw_connection),
-                                 PromiseCreator::lambda([promise = std::move(promise)](
-                                                            Result<unique_ptr<mtproto::RawConnection>> result) mutable {
-                                   if (result.is_error()) {
-                                     return promise.set_error(Status::Error(400, result.error().message()));
-                                   }
-                                   auto ping_time = result.ok()->rtt_;
-                                   promise.set_value(std::move(ping_time));
-                                 }),
-                                 create_reference(token))};
+  children_[token] = {
+      false, create_ping_actor("", std::move(raw_connection), nullptr,
+                               PromiseCreator::lambda([promise = std::move(promise)](
+                                                          Result<unique_ptr<mtproto::RawConnection>> result) mutable {
+                                 if (result.is_error()) {
+                                   return promise.set_error(Status::Error(400, result.error().message()));
+                                 }
+                                 auto ping_time = result.ok()->rtt_;
+                                 promise.set_value(std::move(ping_time));
+                               }),
+                               create_reference(token))};
 }
 
 void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
@@ -805,7 +730,8 @@ void ConnectionCreator::on_mtproto_error(size_t hash) {
 }
 
 void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                                               Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash) {
+                                               Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash,
+                                               unique_ptr<mtproto::AuthData> auth_data) {
   auto &client = clients_[hash];
   if (!client.inited) {
     client.inited = true;
@@ -813,6 +739,7 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
     client.dc_id = dc_id;
     client.allow_media_only = allow_media_only;
     client.is_media = is_media;
+    client.auth_data = std::move(auth_data);
   } else {
     CHECK(client.hash == hash);
     CHECK(client.dc_id == dc_id);
@@ -1111,9 +1038,8 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   if (check_mode) {
     VLOG(connections) << "Start check: " << debug_str;
     auto token = next_token();
-    children_[token] = {
-        true, create_actor<detail::PingActor>(PSLICE() << "PingActor<" << debug_str << ">", std::move(raw_connection),
-                                              std::move(promise), create_reference(token))};
+    children_[token] = {true, create_ping_actor(debug_str, std::move(raw_connection), nullptr, std::move(promise),
+                                                create_reference(token))};
   } else {
     promise.set_value(std::move(raw_connection));
   }

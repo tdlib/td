@@ -343,6 +343,8 @@ set(TDLIB_SOURCE
   td/mtproto/HandshakeActor.cpp
   td/mtproto/HttpTransport.cpp
   td/mtproto/IStreamTransport.cpp
+  td/mtproto/Ping.cpp
+  td/mtproto/PingConnection.cpp
   td/mtproto/RawConnection.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
@@ -467,6 +469,7 @@ set(TDLIB_SOURCE
   td/mtproto/NoCryptoStorer.h
   td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h
+  td/mtproto/Ping.h
   td/mtproto/PingConnection.h
   td/mtproto/Query.h
   td/mtproto/RawConnection.h

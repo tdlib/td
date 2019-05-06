@@ -68,6 +68,7 @@ class SessionConnection
   SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data);
 
   PollableFdInfo &get_poll_info();
+  unique_ptr<RawConnection> move_as_raw_connection();
 
   // Interface
   Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, int64 message_id = 0,

@@ -45,7 +45,7 @@ class SessionCallback : public Session::Callback {
   }
   void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>> promise) override {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
-                 is_media_, std::move(promise), hash_);
+                 is_media_, std::move(promise), hash_, nullptr);
   }
 
   void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) override {

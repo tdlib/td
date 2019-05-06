@@ -182,6 +182,10 @@ class OnPacket {
   }
 };
 
+unique_ptr<RawConnection> SessionConnection::move_as_raw_connection() {
+  return std::move(raw_connection_);
+}
+
 /*** SessionConnection ***/
 BufferSlice SessionConnection::as_buffer_slice(Slice packet) {
   return current_buffer_slice_->from_slice(packet);
@@ -978,6 +982,7 @@ void SessionConnection::send_before(double tm) {
 }
 
 Status SessionConnection::do_flush() {
+  CHECK(raw_connection_);
   CHECK(state_ != Closed);
   if (state_ == Init) {
     TRY_STATUS(init());

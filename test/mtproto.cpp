@@ -14,6 +14,7 @@
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/PingConnection.h"
+#include "td/mtproto/Ping.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
@@ -22,6 +23,7 @@
 #include "td/net/TransparentProxy.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/net/Session.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/NotificationManager.h"
@@ -170,7 +172,7 @@ class TestPingActor : public Actor {
   Status *result_;
 
   void start_up() override {
-    ping_connection_ = make_unique<mtproto::PingConnection>(
+    ping_connection_ = mtproto::PingConnection::create_req_pq(
         make_unique<mtproto::RawConnection>(SocketFd::open(ip_address_).move_as_ok(),
                                             mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
         3);
@@ -181,7 +183,6 @@ class TestPingActor : public Actor {
   }
   void tear_down() override {
     Scheduler::unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
-    ping_connection_->close();
     Scheduler::instance()->finish();
   }
 
@@ -463,3 +464,122 @@ TEST(Mtproto, notifications) {
     ASSERT_EQ(decrypted_payload, NotificationManager::decrypt_push(key_id, key, push).ok());
   }
 }
+
+class FastPingTestActor : public Actor {
+ public:
+  explicit FastPingTestActor(Status *result) : result_(result) {
+  }
+
+ private:
+  Status *result_;
+  unique_ptr<mtproto::RawConnection> connection_;
+  unique_ptr<mtproto::AuthKeyHandshake> handshake_;
+  ActorOwn<> fast_ping_;
+  int iteration_{0};
+
+  void start_up() override {
+    // Run handshake to create key and salt
+    auto raw_connection =
+        make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
+                                            mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
+    auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
+    create_actor<mtproto::HandshakeActor>(
+        "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
+        PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {
+          send_closure(self, &FastPingTestActor::got_connection, std::move(raw_connection), 1);
+        }),
+        PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) {
+          send_closure(self, &FastPingTestActor::got_handshake, std::move(handshake), 1);
+        }))
+        .release();
+  }
+  void got_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, int32 dummy) {
+    if (r_raw_connection.is_error()) {
+      *result_ = r_raw_connection.move_as_error();
+      return stop();
+    }
+    connection_ = r_raw_connection.move_as_ok();
+    loop();
+  }
+
+  void got_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake, int32 dummy) {
+    if (r_handshake.is_error()) {
+      *result_ = r_handshake.move_as_error();
+      return stop();
+    }
+    handshake_ = r_handshake.move_as_ok();
+    loop();
+  }
+
+  void got_raw_connection(Result<unique_ptr<mtproto::RawConnection>> r_connection) {
+    if (r_connection.is_error()) {
+      Scheduler::instance()->finish();
+      *result_ = r_connection.move_as_error();
+      return stop();
+    }
+    connection_ = r_connection.move_as_ok();
+    LOG(ERROR) << "RTT: " << connection_->rtt_;
+    connection_->rtt_ = 0;
+    loop();
+  }
+
+  void loop() override {
+    if (handshake_ && connection_) {
+      LOG(ERROR) << iteration_;
+      if (iteration_ == 6) {
+        Scheduler::instance()->finish();
+        return stop();
+      }
+      unique_ptr<mtproto::AuthData> auth_data;
+      if (iteration_ % 2 == 0) {
+        auth_data = make_unique<mtproto::AuthData>();
+        auth_data->set_tmp_auth_key(handshake_->auth_key);
+        auth_data->set_server_time_difference(handshake_->server_time_diff);
+        auth_data->set_server_salt(handshake_->server_salt, Time::now());
+        auth_data->set_future_salts({mtproto::ServerSalt{0u, 1e20, 1e30}}, Time::now());
+        auth_data->set_use_pfs(true);
+        uint64 session_id = 0;
+        do {
+          Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
+        } while (session_id == 0);
+        auth_data->set_session_id(session_id);
+      }
+      iteration_++;
+      fast_ping_ = create_ping_actor(
+          "", std::move(connection_), std::move(auth_data),
+          PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+            send_closure(self, &FastPingTestActor::got_raw_connection, std::move(r_raw_connection));
+          }),
+          ActorShared<>());
+    }
+  }
+};
+
+class Mtproto_FastPing : public Test {
+ public:
+  using Test::Test;
+  bool step() final {
+    if (!is_inited_) {
+      sched_.init(0);
+      sched_.create_actor_unsafe<FastPingTestActor>(0, "FastPingTestActor", &result_).release();
+      sched_.start();
+      is_inited_ = true;
+    }
+
+    bool ret = sched_.run_main(10);
+    if (ret) {
+      return true;
+    }
+    sched_.finish();
+    if (result_.is_error()) {
+      LOG(ERROR) << result_;
+    }
+    return false;
+  }
+
+ private:
+  bool is_inited_ = false;
+  ConcurrentScheduler sched_;
+  Status result_;
+};
+RegisterTest<Mtproto_FastPing> mtproto_fastping("Mtproto_FastPing");
