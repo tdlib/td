@@ -59,7 +59,7 @@ void NetStatsManager::init() {
   };
 
   for_each_stat([&](NetStatsInfo &stat, size_t id, CSlice name, FileType file_type) {
-    if (file_type == FileType::SecureRaw) {
+    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper) {
       id++;
     }
     stat.key = "net_stats_" + name.str();
@@ -112,7 +112,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
         entry.is_call = true;
         result.entries.push_back(std::move(entry));
       } else if (file_type != FileType::None) {
-        if (file_type == FileType::SecureRaw) {
+        if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper) {
           return;
         }
 
@@ -192,7 +192,7 @@ void NetStatsManager::add_network_stats_impl(NetStatsInfo &info, const NetworkSt
 
 void NetStatsManager::start_up() {
   for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
-    if (file_type == FileType::SecureRaw) {
+    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper) {
       return;
     }
 
@@ -252,6 +252,7 @@ std::shared_ptr<NetStatsCallback> NetStatsManager::get_media_stats_callback() co
 std::vector<std::shared_ptr<NetStatsCallback>> NetStatsManager::get_file_stats_callbacks() const {
   auto result = transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
   result[static_cast<int32>(FileType::SecureRaw)] = result[static_cast<int32>(FileType::Secure)];
+  result[static_cast<int32>(FileType::Wallpaper)] = result[static_cast<int32>(FileType::Background)];
   return result;
 }
 

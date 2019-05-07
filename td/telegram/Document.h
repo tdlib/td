@@ -33,6 +33,8 @@ struct Document {
   vector<FileId> get_file_ids(const Td *td) const;
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const Document::Type &document_type);
+
 StringBuilder &operator<<(StringBuilder &string_builder, const Document &document);
 
 }  // namespace td

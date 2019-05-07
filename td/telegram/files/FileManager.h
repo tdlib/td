@@ -346,8 +346,6 @@ class FileManager : public FileLoadManager::Callback {
 
     virtual bool add_file_source(FileId file_id, FileSourceId file_source_id) = 0;
 
-    virtual FileSourceId get_wallpapers_file_source_id() = 0;
-
     virtual bool remove_file_source(FileId file_id, FileSourceId file_source_id) = 0;
 
     virtual void on_merge_files(FileId to_file_id, FileId from_file_id) = 0;

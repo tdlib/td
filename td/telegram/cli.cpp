@@ -1959,8 +1959,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::disconnectWebsite>(to_integer<int64>(args)));
     } else if (op == "daw") {
       send_request(td_api::make_object<td_api::disconnectAllWebsites>());
-    } else if (op == "gw") {
-      send_request(td_api::make_object<td_api::getWallpapers>());
+    } else if (op == "gb") {
+      send_request(td_api::make_object<td_api::getBackgrounds>());
     } else if (op == "gccode") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "git") {

@@ -294,6 +294,7 @@ class FullRemoteFileLocation {
       case FileType::VideoNote:
       case FileType::SecureRaw:
       case FileType::Secure:
+      case FileType::Background:
         return LocationType::Common;
       case FileType::None:
       case FileType::Size:

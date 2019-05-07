@@ -31,6 +31,7 @@ enum class FileType : int8 {
   VideoNote,
   SecureRaw,
   Secure,
+  Background,
   Size,
   None
 };
@@ -62,7 +63,7 @@ inline FileType from_td_api(const td_api::FileType &file_type) {
     case td_api::fileTypeSecretThumbnail::ID:
       return FileType::EncryptedThumbnail;
     case td_api::fileTypeWallpaper::ID:
-      return FileType::Wallpaper;
+      return FileType::Background;
     case td_api::fileTypeVideoNote::ID:
       return FileType::VideoNote;
     case td_api::fileTypeSecure::ID:
@@ -110,6 +111,8 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
     case FileType::SecureRaw:
       UNREACHABLE();
       return make_tl_object<td_api::fileTypeSecure>();
+    case FileType::Background:
+      return make_tl_object<td_api::fileTypeWallpaper>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -154,6 +157,8 @@ inline CSlice get_file_type_name(FileType file_type) {
       return CSlice("passport");
     case FileType::Secure:
       return CSlice("passport");
+    case FileType::Background:
+      return CSlice("wallpapers");
     case FileType::Size:
     case FileType::None:
     default:
@@ -179,6 +184,7 @@ inline FileDirType get_file_dir_type(FileType file_type) {
     case FileType::EncryptedThumbnail:
     case FileType::Secure:
     case FileType::SecureRaw:
+    case FileType::Background:
       return FileDirType::Secure;
     default:
       return FileDirType::Common;

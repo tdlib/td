@@ -53,11 +53,17 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     immune_types[narrow_cast<size_t>(FileType::ProfilePhoto)] = true;
     immune_types[narrow_cast<size_t>(FileType::Thumbnail)] = true;
     immune_types[narrow_cast<size_t>(FileType::Wallpaper)] = true;
+    immune_types[narrow_cast<size_t>(FileType::Background)] = true;
   }
 
   if (!parameters.file_types.empty()) {
     std::fill(immune_types.begin(), immune_types.end(), true);
     for (auto file_type : parameters.file_types) {
+      if (file_type == FileType::Secure) {
+        immune_types[narrow_cast<size_t>(FileType::SecureRaw)] = false;
+      } else if (file_type == FileType::Background) {
+        immune_types[narrow_cast<size_t>(FileType::Wallpaper)] = false;
+      }
       immune_types[narrow_cast<size_t>(file_type)] = false;
     }
   }

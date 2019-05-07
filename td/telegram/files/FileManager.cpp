@@ -708,7 +708,11 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
 #endif
   };
   for (int32 i = 0; i < file_type_size; i++) {
-    auto path = get_files_dir(FileType(i));
+    FileType file_type = static_cast<FileType>(i);
+    if (file_type == FileType::SecureRaw || file_type == FileType::Background) {
+      continue;
+    }
+    auto path = get_files_dir(file_type);
     create_dir(path);
   }
 
@@ -768,13 +772,18 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
         return fix_file_extension(file_name, "audio", "mp3");
       }
       break;
+    case FileType::Wallpaper:
+    case FileType::Background:
+      if (extension != "jpg" && extension != "jpeg" && extension != "png") {
+        return fix_file_extension(file_name, "wallpaper", "jpg");
+      }
+      break;
     case FileType::Document:
     case FileType::Sticker:
     case FileType::Animation:
     case FileType::Encrypted:
     case FileType::Temp:
     case FileType::EncryptedThumbnail:
-    case FileType::Wallpaper:
     case FileType::Secure:
     case FileType::SecureRaw:
       break;
@@ -2531,7 +2540,11 @@ void FileManager::cancel_upload(FileId file_id) {
 
 static bool is_document_type(FileType type) {
   return type == FileType::Document || type == FileType::Sticker || type == FileType::Audio ||
-         type == FileType::Animation;
+         type == FileType::Animation || type == FileType::Background;
+}
+
+static bool is_background_type(FileType type) {
+  return type == FileType::Wallpaper || type == FileType::Background;
 }
 
 string FileManager::get_persistent_id(const FullGenerateFileLocation &location) {
@@ -2611,6 +2624,8 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   auto &real_file_type = remote_location.file_type_;
   if (is_document_type(real_file_type) && is_document_type(file_type)) {
     real_file_type = file_type;
+  } else if (is_background_type(real_file_type) && is_background_type(file_type)) {
+    real_file_type = file_type;
   } else if (real_file_type != file_type && file_type != FileType::Temp) {
     return Status::Error(10, "Type of file mismatch");
   }
@@ -2618,9 +2633,6 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   data.remote_ = RemoteFileLocation(std::move(remote_location));
   auto file_id =
       register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
-  if (real_file_type == FileType::Wallpaper && file_id.is_valid()) {
-    add_file_source(file_id, context_->get_wallpapers_file_source_id());
-  }
   return file_id;
 }
 
@@ -2720,7 +2732,8 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   FileType real_type = file_view.get_type();
   if (!is_encrypted && !is_secure) {
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
-        !(is_document_type(real_type) && is_document_type(type))) {
+        !(is_document_type(real_type) && is_document_type(type)) &&
+        !(is_background_type(real_type) && is_background_type(type))) {
       // TODO: send encrypted file to unencrypted chat
       return Status::Error(6, "Type of file mismatch");
     }

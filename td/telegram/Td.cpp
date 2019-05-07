@@ -10,6 +10,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BackgroundManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
@@ -71,7 +72,6 @@
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
-#include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -2885,17 +2885,17 @@ class GetSupportUserRequest : public RequestActor<> {
   }
 };
 
-class GetWallpapersRequest : public RequestOnceActor {
+class GetBackgroundsRequest : public RequestOnceActor {
   void do_run(Promise<Unit> &&promise) override {
-    td->wallpaper_manager_->get_wallpapers(std::move(promise));
+    td->background_manager_->get_backgrounds(std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->wallpaper_manager_->get_wallpapers_object());
+    send_result(td->background_manager_->get_backgrounds_object());
   }
 
  public:
-  GetWallpapersRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  GetBackgroundsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
   }
 };
 
@@ -3689,6 +3689,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "AudiosManager was cleared " << timer;
       auth_manager_.reset();
       LOG(DEBUG) << "AuthManager was cleared " << timer;
+      background_manager_.reset();
+      LOG(DEBUG) << "BackgroundManager was cleared " << timer;
       contacts_manager_.reset();
       LOG(DEBUG) << "ContactsManager was cleared " << timer;
       documents_manager_.reset();
@@ -3715,8 +3717,6 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "VideosManager was cleared " << timer;
       voice_notes_manager_.reset();
       LOG(DEBUG) << "VoiceNotesManager was cleared " << timer;
-      wallpaper_manager_.reset();
-      LOG(DEBUG) << "WallpaperManager was cleared " << timer;
       web_pages_manager_.reset();
       LOG(DEBUG) << "WebPagesManager was cleared " << timer;
       Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
@@ -3868,6 +3868,8 @@ void Td::clear() {
   LOG(DEBUG) << "AnimationsManager actor was cleared " << timer;
   auth_manager_actor_.reset();
   LOG(DEBUG) << "AuthManager actor was cleared " << timer;
+  background_manager_actor_.reset();
+  LOG(DEBUG) << "BackgroundManager actor was cleared " << timer;
   contacts_manager_actor_.reset();
   LOG(DEBUG) << "ContactsManager actor was cleared " << timer;
   file_manager_actor_.reset();
@@ -3886,8 +3888,6 @@ void Td::clear() {
   LOG(DEBUG) << "StickersManager actor was cleared " << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared " << timer;
-  wallpaper_manager_actor_.reset();
-  LOG(DEBUG) << "WallpaperManager actor was cleared " << timer;
   web_pages_manager_actor_.reset();
   LOG(DEBUG) << "WebPagesManager actor was cleared " << timer;
 }
@@ -4247,10 +4247,6 @@ void Td::init_file_manager() {
       return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
     }
 
-    FileSourceId get_wallpapers_file_source_id() final {
-      return td_->wallpaper_manager_->get_wallpapers_file_source_id();
-    }
-
     bool remove_file_source(FileId file_id, FileSourceId file_source_id) final {
       return td_->file_reference_manager_->remove_file_source(file_id, file_source_id);
     }
@@ -4298,6 +4294,9 @@ void Td::init_managers() {
   animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
   animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
   G()->set_animations_manager(animations_manager_actor_.get());
+  background_manager_ = make_unique<BackgroundManager>(this, create_reference());
+  background_manager_actor_ = register_actor("BackgroundManager", background_manager_.get());
+  G()->set_background_manager(background_manager_actor_.get());
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
   contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
   G()->set_contacts_manager(contacts_manager_actor_.get());
@@ -4317,9 +4316,6 @@ void Td::init_managers() {
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
-  wallpaper_manager_ = make_unique<WallpaperManager>(this, create_reference());
-  wallpaper_manager_actor_ = register_actor("WallpaperManager", wallpaper_manager_.get());
-  G()->set_wallpaper_manager(wallpaper_manager_actor_.get());
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
@@ -6943,9 +6939,9 @@ void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
   CREATE_NO_ARGS_REQUEST(GetSupportUserRequest);
 }
 
-void Td::on_request(uint64 id, const td_api::getWallpapers &request) {
+void Td::on_request(uint64 id, const td_api::getBackgrounds &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetWallpapersRequest);
+  CREATE_NO_ARGS_REQUEST(GetBackgroundsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

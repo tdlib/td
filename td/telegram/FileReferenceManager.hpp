@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/BackgroundManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
@@ -17,7 +18,6 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
-#include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/common.h"
@@ -73,7 +73,7 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       return td->contacts_manager_->get_channel_photo_file_source_id(channel_id);
     }
     case 4:
-      return td->wallpaper_manager_->get_wallpapers_file_source_id();
+      return FileSourceId();  // there is no way to repair old wallpapers
     case 5: {
       string url;
       td::parse(url, parser);

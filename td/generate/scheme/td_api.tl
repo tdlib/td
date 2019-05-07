@@ -91,7 +91,7 @@ authorizationStateWaitPhoneNumber = AuthorizationState;
 //@description TDLib needs the user's authentication code to finalize authorization @is_registered True, if the user is already registered @terms_of_service Telegram terms of service, which should be accepted before user can continue registration; may be null @code_info Information about the authorization code that was sent
 authorizationStateWaitCode is_registered:Bool terms_of_service:termsOfService code_info:authenticationCodeInfo = AuthorizationState;
 
-//@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; may be empty @has_recovery_email_address True if a recovery email address has been set up
+//@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; may be empty @has_recovery_email_address True, if a recovery email address has been set up
 //@recovery_email_address_pattern Pattern of the email address to which the recovery email was sent; empty until a recovery email has been sent
 authorizationStateWaitPassword password_hint:string has_recovery_email_address:Bool recovery_email_address_pattern:string = AuthorizationState;
 
@@ -210,7 +210,7 @@ animation duration:int32 width:int32 height:int32 file_name:string mime_type:str
 audio duration:int32 title:string performer:string file_name:string mime_type:string album_cover_minithumbnail:minithumbnail album_cover_thumbnail:photoSize audio:file = Audio;
 
 //@description Describes a document of any type @file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
-//@minithumbnail Document minithumbnail; may be null @thumbnail Document thumbnail; as defined by the sender; may be null @document File containing the document
+//@minithumbnail Document minithumbnail; may be null @thumbnail Document thumbnail in JPEG or PNG format (PNG will be used only for background patterns); as defined by the sender; may be null @document File containing the document
 document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:photoSize document:file = Document;
 
 //@description Describes a photo @has_stickers True, if stickers were added to the photo @minithumbnail Photo minithumbnail; may be null @sizes Available variants of the photo, in different sizes
@@ -1939,11 +1939,34 @@ deviceTokenTizenPush reg_id:string = DeviceToken;
 pushReceiverId id:int64 = PushReceiverId;
 
 
-//@description Contains information about a wallpaper @id Unique persistent wallpaper identifier @sizes Available variants of the wallpaper in different sizes. These photos can only be downloaded; they can't be sent in a message @color Main color of the wallpaper in RGB24 format; should be treated as background color if no photos are specified
-wallpaper id:int32 sizes:vector<photoSize> color:int32 = Wallpaper;
+//@class BackgroundType @description Describes a type of a background
 
-//@description Contains a list of wallpapers @wallpapers A list of wallpapers
-wallpapers wallpapers:vector<wallpaper> = Wallpapers;
+//@description A wallpaper in JPEG format
+//@is_blurred True, if the wallpaper must be downscaled to fit in 450x450 square and then box-blurred with radius 12
+//@is_moving True, if the background needs to be slightly moved when device is rotated
+backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
+
+//@description A PNG pattern to be combined with the chosen by the user color
+//@is_moving True, if the background needs to be slightly moved when device is rotated
+//@color Main color of the background in RGB24 format
+//@intensity Intensity of the pattern when it is shown above the main background color, 0-100
+backgroundTypePattern is_moving:Bool color:int32 intensity:int32 = BackgroundType;
+
+//@description A solid background @color A color of the background in RGB24 format
+backgroundTypeSolid color:int32 = BackgroundType;
+
+
+//@description Describes a chat background
+//@id Unique background identifier
+//@is_default True, if this is one of default backgrounds
+//@is_dark True, if this background is dark and is recommended to be used with dark theme
+//@name Unique background name
+//@document Document with the background; may be null. Null only for solid backgrounds
+//@type Type of the background
+background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
+
+//@description Contains a list of backgrounds @backgrounds A list of backgrounds
+backgrounds backgrounds:vector<background> = Backgrounds;
 
 
 //@description Contains a list of hashtags @hashtags A list of hashtags
@@ -2283,7 +2306,7 @@ fileTypeVideoNote = FileType;
 //@description The file is a voice note
 fileTypeVoiceNote = FileType;
 
-//@description The file is a wallpaper
+//@description The file is a wallpaper or a background pattern
 fileTypeWallpaper = FileType;
 
 
@@ -3578,8 +3601,8 @@ deleteSavedCredentials = Ok;
 //@description Returns a user that can be contacted to get support
 getSupportUser = User;
 
-//@description Returns background wallpapers
-getWallpapers = Wallpapers;
+//@description Returns backgrounds installed by the user
+getBackgrounds = Backgrounds;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests

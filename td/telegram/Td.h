@@ -39,6 +39,7 @@ namespace td {
 class AnimationsManager;
 class AudiosManager;
 class AuthManager;
+class BackgroundManager;
 class CallManager;
 class CallbackQueriesManager;
 class ConfigManager;
@@ -66,7 +67,6 @@ class UpdatesManager;
 class VideoNotesManager;
 class VideosManager;
 class VoiceNotesManager;
-class WallpaperManager;
 class WebPagesManager;
 
 }  // namespace td
@@ -140,6 +140,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<AnimationsManager> animations_manager_actor_;
   unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
+  unique_ptr<BackgroundManager> background_manager_;
+  ActorOwn<BackgroundManager> background_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
   unique_ptr<FileManager> file_manager_;
@@ -158,8 +160,6 @@ class Td final : public NetQueryCallback {
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
-  unique_ptr<WallpaperManager> wallpaper_manager_;
-  ActorOwn<WallpaperManager> wallpaper_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
@@ -922,7 +922,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getSupportUser &request);
 
-  void on_request(uint64 id, const td_api::getWallpapers &request);
+  void on_request(uint64 id, const td_api::getBackgrounds &request);
 
   void on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request);
 

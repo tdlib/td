@@ -88,7 +88,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
                                           int32 width, int32 height);
 Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
                                           std::string upload_file_reference, DialogId owner_dialog_id,
-                                          tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp);
+                                          tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp, bool is_png);
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size);

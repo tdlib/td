@@ -354,6 +354,7 @@ set(TDLIB_SOURCE
   td/telegram/AnimationsManager.cpp
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
+  td/telegram/BackgroundManager.cpp
   td/telegram/CallActor.cpp
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
@@ -452,7 +453,6 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.cpp
   td/telegram/VideosManager.cpp
   td/telegram/VoiceNotesManager.cpp
-  td/telegram/WallpaperManager.cpp
   td/telegram/WebPageBlock.cpp
   td/telegram/WebPagesManager.cpp
 
@@ -483,6 +483,8 @@ set(TDLIB_SOURCE
   td/telegram/AnimationsManager.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h
+  td/telegram/BackgroundId.h
+  td/telegram/BackgroundManager.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
@@ -619,7 +621,6 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.h
   td/telegram/VideosManager.h
   td/telegram/VoiceNotesManager.h
-  td/telegram/WallpaperManager.h
   td/telegram/WebPageBlock.h
   td/telegram/WebPageId.h
   td/telegram/WebPagesManager.h

@@ -48,31 +48,31 @@ vector<FileId> Document::get_file_ids(const Td *td) const {
   return result;
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const Document &document) {
-  auto type = [&] {
-    switch (document.type) {
-      case Document::Type::Unknown:
-        return "Unknown";
-      case Document::Type::Animation:
-        return "Animation";
-      case Document::Type::Audio:
-        return "Audio";
-      case Document::Type::General:
-        return "Document";
-      case Document::Type::Sticker:
-        return "Sticker";
-      case Document::Type::Video:
-        return "Video";
-      case Document::Type::VideoNote:
-        return "VideoNote";
-      case Document::Type::VoiceNote:
-        return "VoiceNote";
-      default:
-        return "Unreachable";
-    }
-  }();
+StringBuilder &operator<<(StringBuilder &string_builder, const Document::Type &document_type) {
+  switch (document_type) {
+    case Document::Type::Unknown:
+      return string_builder << "Unknown";
+    case Document::Type::Animation:
+      return string_builder << "Animation";
+    case Document::Type::Audio:
+      return string_builder << "Audio";
+    case Document::Type::General:
+      return string_builder << "Document";
+    case Document::Type::Sticker:
+      return string_builder << "Sticker";
+    case Document::Type::Video:
+      return string_builder << "Video";
+    case Document::Type::VideoNote:
+      return string_builder << "VideoNote";
+    case Document::Type::VoiceNote:
+      return string_builder << "VoiceNote";
+    default:
+      return string_builder << "Unreachable";
+  }
+}
 
-  return string_builder << '[' << type << ' ' << document.file_id << ']';
+StringBuilder &operator<<(StringBuilder &string_builder, const Document &document) {
+  return string_builder << '[' << document.type << ' ' << document.file_id << ']';
 }
 
 }  // namespace td

@@ -63,7 +63,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                                            MultiPromiseActor *load_data_multipromise_ptr,
-                                           Document::Type default_document_type) {
+                                           Document::Type default_document_type, bool is_background, bool is_pattern) {
   tl_object_ptr<telegram_api::documentAttributeAnimated> animated;
   tl_object_ptr<telegram_api::documentAttributeVideo> video;
   tl_object_ptr<telegram_api::documentAttributeAudio> audio;
@@ -188,6 +188,21 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
                  << ", has_stickers = " << has_stickers;
   }
 
+  bool has_png_thumbnail = false;
+  if (is_background) {
+    if (document_type != Document::Type::General) {
+      LOG(ERROR) << "Receive background of type " << document_type;
+      document_type = Document::Type::General;
+    }
+    file_type = FileType::Background;
+    if (is_pattern) {
+      default_extension = Slice("png");
+      has_png_thumbnail = true;
+    } else {
+      default_extension = Slice("jpg");
+    }
+  }
+
   int64 id;
   int64 access_hash;
   int32 dc_id;
@@ -213,7 +228,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     if (document_type != Document::Type::VoiceNote) {
       for (auto &thumb : document->thumbs_) {
         auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", owner_dialog_id,
-                                         std::move(thumb), has_webp_thumbnail);
+                                         std::move(thumb), has_webp_thumbnail, has_png_thumbnail);
         if (photo_size.get_offset() == 0) {
           thumbnail = std::move(photo_size.get<0>());
         } else {

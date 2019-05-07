@@ -31,6 +31,7 @@
 
 namespace td {
 class AnimationsManager;
+class BackgroundManager;
 class CallManager;
 class ConfigManager;
 class ConfigShared;
@@ -53,7 +54,6 @@ class TdDb;
 class TempAuthKeyWatchdog;
 class TopDialogManager;
 class UpdatesManager;
-class WallpaperManager;
 class WebPagesManager;
 }  // namespace td
 
@@ -155,6 +155,13 @@ class Global : public ActorContext {
     animations_manager_ = animations_manager;
   }
 
+  ActorId<BackgroundManager> background_manager() const {
+    return background_manager_;
+  }
+  void set_background_manager(ActorId<BackgroundManager> background_manager) {
+    background_manager_ = background_manager;
+  }
+
   ActorId<CallManager> call_manager() const {
     return call_manager_;
   }
@@ -253,13 +260,6 @@ class Global : public ActorContext {
     updates_manager_ = updates_manager;
   }
 
-  ActorId<WallpaperManager> wallpaper_manager() const {
-    return wallpaper_manager_;
-  }
-  void set_wallpaper_manager(ActorId<WallpaperManager> wallpaper_manager) {
-    wallpaper_manager_ = wallpaper_manager;
-  }
-
   ActorId<WebPagesManager> web_pages_manager() const {
     return web_pages_manager_;
   }
@@ -356,6 +356,7 @@ class Global : public ActorContext {
 
   ActorId<Td> td_;
   ActorId<AnimationsManager> animations_manager_;
+  ActorId<BackgroundManager> background_manager_;
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;
   ActorId<ContactsManager> contacts_manager_;
@@ -370,7 +371,6 @@ class Global : public ActorContext {
   ActorId<StorageManager> storage_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<UpdatesManager> updates_manager_;
-  ActorId<WallpaperManager> wallpaper_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;

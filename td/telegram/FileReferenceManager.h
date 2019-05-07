@@ -39,7 +39,7 @@ class FileReferenceManager : public Actor {
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
   FileSourceId create_chat_photo_file_source(ChatId chat_id);
   FileSourceId create_channel_photo_file_source(ChannelId channel_id);
-  FileSourceId create_wallpapers_file_source();
+  // FileSourceId create_wallpapers_file_source();  old wallpapers can't be repaired
   FileSourceId create_web_page_file_source(string url);
   FileSourceId create_saved_animations_file_source();
   FileSourceId create_recent_stickers_file_source(bool is_attached);

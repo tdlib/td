@@ -7,12 +7,12 @@
 #include "td/telegram/FileReferenceManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/BackgroundManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StickersManager.h"
-#include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/common.h"
@@ -45,7 +45,7 @@ fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;  // repair
 fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;           // repaired with messages.getChats
 fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;            // repaired with channels.getChannels
 fileSourceWebPage url:string = FileSource;                             // repaired with messages.getWebPage
-fileSourceWallpapers = FileSource;                                     // repaired with account.getWallPapers
+fileSourceWallpapers = FileSource;                                     // can't be repaired
 fileSourceSavedAnimations = FileSource;                                // repaired with messages.getSavedGifs
 fileSourceRecentStickers is_attached:Bool = FileSource;                // repaired with messages.getRecentStickers, not reliable
 fileSourceFavoriteStickers = FileSource;                               // repaired with messages.getFavedStickers, not reliable
@@ -80,11 +80,6 @@ FileSourceId FileReferenceManager::create_chat_photo_file_source(ChatId chat_id)
 FileSourceId FileReferenceManager::create_channel_photo_file_source(ChannelId channel_id) {
   FileSourceChannelPhoto source{channel_id};
   return add_file_source_id(source, PSLICE() << "photo of " << channel_id);
-}
-
-FileSourceId FileReferenceManager::create_wallpapers_file_source() {
-  FileSourceWallpapers source;
-  return add_file_source_id(source, "wallpapers");
 }
 
 FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
@@ -264,9 +259,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel, source.channel_id,
                            std::move(promise));
       },
-      [&](const FileSourceWallpapers &source) {
-        send_closure_later(G()->wallpaper_manager(), &WallpaperManager::reload_wallpapers, std::move(promise));
-      },
+      [&](const FileSourceWallpapers &source) { promise.set_error(Status::Error("Can't repair old wallpapers")); },
       [&](const FileSourceWebPage &source) {
         send_closure_later(G()->web_pages_manager(), &WebPagesManager::reload_web_page_by_url, source.url,
                            std::move(promise));

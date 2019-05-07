@@ -78,7 +78,8 @@ class DocumentsManager {
 
   Document on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                            MultiPromiseActor *load_data_multipromise_ptr = nullptr,
-                           Document::Type default_document_type = Document::Type::General);
+                           Document::Type default_document_type = Document::Type::General, bool is_background = false,
+                           bool is_pattern = false);
 
   void create_document(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                        bool replace);
