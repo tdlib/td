@@ -1220,12 +1220,16 @@ class CliClient final : public Actor {
     }
   }
 
-  void send_message(const string &chat_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
+  void send_message(const string &chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     bool disable_notification = false, bool from_background = false, int64 reply_to_message_id = 0) {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat, reply_to_message_id, disable_notification, from_background, nullptr, std::move(input_message_content)));
     query_id_to_send_message_info_[id].start_time = Time::now();
+  }
+
+  void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
+    send_request(td_api::make_object<td_api::getBackgroundUrl>("asd", std::move(background_type)));
   }
 
   void on_cmd(string cmd) {
@@ -1959,8 +1963,23 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::disconnectWebsite>(to_integer<int64>(args)));
     } else if (op == "daw") {
       send_request(td_api::make_object<td_api::disconnectAllWebsites>());
-    } else if (op == "gb") {
+    } else if (op == "gbgs") {
       send_request(td_api::make_object<td_api::getBackgrounds>());
+    } else if (op == "gbgu") {
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(false, false));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(false, true));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, false));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, true));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(false, -1, 0));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(true, 0x1000000, 0));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(false, 0, -1));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(false, 0, 101));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(false, 0, 0));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(true, 0xFFFFFF, 100));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(true, 0xABCDEF, 49));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(-1));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0xABCDEF));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
     } else if (op == "gccode") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "git") {

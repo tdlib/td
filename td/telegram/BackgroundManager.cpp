@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -67,6 +68,91 @@ void BackgroundManager::get_backgrounds(Promise<Unit> &&promise) {
         });
 
     td_->create_handler<GetBackgroundsQuery>(std::move(request_promise))->send();
+  }
+}
+
+Result<BackgroundManager::BackgroundType> BackgroundManager::get_background_type(
+    td_api::object_ptr<td_api::BackgroundType> type) {
+  if (type == nullptr) {
+    return Status::Error(400, "Type must not be empty");
+  }
+
+  BackgroundType result;
+  switch (type->get_id()) {
+    case td_api::backgroundTypeWallpaper::ID: {
+      auto wallpaper = td_api::move_object_as<td_api::backgroundTypeWallpaper>(type);
+      result = BackgroundType(wallpaper->is_blurred_, wallpaper->is_moving_);
+      break;
+    }
+    case td_api::backgroundTypePattern::ID: {
+      auto pattern = td_api::move_object_as<td_api::backgroundTypePattern>(type);
+      result = BackgroundType(pattern->is_moving_, pattern->color_, pattern->intensity_);
+      break;
+    }
+    case td_api::backgroundTypeSolid::ID: {
+      auto solid = td_api::move_object_as<td_api::backgroundTypeSolid>(type);
+      result = BackgroundType(solid->color_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (result.intensity < 0 || result.intensity > 100) {
+    return Status::Error(400, "Wrong intensity value");
+  }
+  if (result.color < 0 || result.color > 0xFFFFFF) {
+    return Status::Error(400, "Wrong color value");
+  }
+  return result;
+}
+
+Result<string> BackgroundManager::get_background_url(const string &name,
+                                                     td_api::object_ptr<td_api::BackgroundType> background_type) const {
+  TRY_RESULT(type, get_background_type(std::move(background_type)));
+
+  vector<string> modes;
+  if (type.is_blurred) {
+    modes.emplace_back("blur");
+  }
+  if (type.is_moving) {
+    modes.emplace_back("motion");
+  }
+  string mode = implode(modes, '+');
+
+  auto get_color_string = [](int32 color) {
+    string result;
+    for (int i = 20; i >= 0; i -= 4) {
+      result += "0123456789abcdef"[(color >> i) & 0xf];
+    }
+    return result;
+  };
+
+  string url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
+  switch (type.type) {
+    case BackgroundType::Type::Wallpaper:
+      url += name;
+      if (!mode.empty()) {
+        url += "?mode=";
+        url += mode;
+      }
+      return url;
+    case BackgroundType::Type::Pattern:
+      url += name;
+      url += "?intensity=";
+      url += to_string(type.intensity);
+      url += "&bg_color=";
+      url += get_color_string(type.color);
+      if (!mode.empty()) {
+        url += "&mode=";
+        url += mode;
+      }
+      return url;
+    case BackgroundType::Type::Solid:
+      url += get_color_string(type.color);
+      return url;
+    default:
+      UNREACHABLE();
+      return url;
   }
 }
 

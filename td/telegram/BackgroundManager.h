@@ -31,6 +31,9 @@ class BackgroundManager : public Actor {
 
   void get_backgrounds(Promise<Unit> &&promise);
 
+  Result<string> get_background_url(const string &name,
+                                    td_api::object_ptr<td_api::BackgroundType> background_type) const;
+
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object() const;
@@ -71,6 +74,8 @@ class BackgroundManager : public Actor {
   Background *add_background(BackgroundId background_id);
 
   const Background *get_background(BackgroundId background_id) const;
+
+  static Result<BackgroundType> get_background_type(td_api::object_ptr<td_api::BackgroundType> type);
 
   static BackgroundType get_background_type(bool is_pattern,
                                             telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);

@@ -6944,6 +6944,17 @@ void Td::on_request(uint64 id, const td_api::getBackgrounds &request) {
   CREATE_NO_ARGS_REQUEST(GetBackgroundsRequest);
 }
 
+void Td::on_request(uint64 id, td_api::getBackgroundUrl &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  Result<string> r_url = background_manager_->get_background_url(request.name_, std::move(request.type_));
+  if (r_url.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_url.move_as_error());
+  }
+
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::httpUrl>(r_url.ok()));
+}
+
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);

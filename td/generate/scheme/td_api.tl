@@ -3601,8 +3601,12 @@ deleteSavedCredentials = Ok;
 //@description Returns a user that can be contacted to get support
 getSupportUser = User;
 
+
 //@description Returns backgrounds installed by the user
 getBackgrounds = Backgrounds;
+
+//@description Constructs persistent URL for a background @name Background name @type Background type
+getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests
