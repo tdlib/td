@@ -2899,6 +2899,25 @@ class GetBackgroundsRequest : public RequestOnceActor {
   }
 };
 
+class SearchBackgroundRequest : public RequestActor<> {
+  string name_;
+
+  BackgroundId background_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    background_id_ = td->background_manager_->search_background(name_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->background_manager_->get_background_object(background_id_));
+  }
+
+ public:
+  SearchBackgroundRequest(ActorShared<Td> td, uint64 request_id, string &&name)
+      : RequestActor(std::move(td), request_id), name_(std::move(name)) {
+  }
+};
+
 class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
   string referrer_;
 
@@ -6953,6 +6972,12 @@ void Td::on_request(uint64 id, td_api::getBackgroundUrl &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::httpUrl>(r_url.ok()));
+}
+
+void Td::on_request(uint64 id, td_api::searchBackground &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST(SearchBackgroundRequest, std::move(request.name_));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

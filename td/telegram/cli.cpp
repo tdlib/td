@@ -1980,6 +1980,8 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(-1));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0xABCDEF));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
+    } else if (op == "sbg") {
+      send_request(td_api::make_object<td_api::searchBackground>(args));
     } else if (op == "gccode") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "git") {

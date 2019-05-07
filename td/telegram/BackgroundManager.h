@@ -34,9 +34,14 @@ class BackgroundManager : public Actor {
   Result<string> get_background_url(const string &name,
                                     td_api::object_ptr<td_api::BackgroundType> background_type) const;
 
+  BackgroundId search_background(const string &name, Promise<Unit> &&promise);
+
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object() const;
+
+  BackgroundId on_get_background(BackgroundId expected_background_id,
+                                 telegram_api::object_ptr<telegram_api::wallPaper> wallpaper);
 
  private:
   struct BackgroundType {
@@ -71,6 +76,10 @@ class BackgroundManager : public Actor {
 
   void tear_down() override;
 
+  void reload_background(BackgroundId background_id,
+                         telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
+                         Promise<Unit> &&promise) const;
+
   Background *add_background(BackgroundId background_id);
 
   const Background *get_background(BackgroundId background_id) const;
@@ -80,13 +89,13 @@ class BackgroundManager : public Actor {
   static BackgroundType get_background_type(bool is_pattern,
                                             telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
 
-  BackgroundId on_get_background(telegram_api::object_ptr<telegram_api::wallPaper> wallpaper);
-
   void on_get_backgrounds(Result<telegram_api::object_ptr<telegram_api::account_WallPapers>> result);
 
   static td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type);
 
   std::unordered_map<BackgroundId, Background, BackgroundIdHash> backgrounds_;  // id -> Background
+
+  std::unordered_map<string, BackgroundId> name_to_background_id_;
 
   vector<BackgroundId> installed_backgrounds_;
 

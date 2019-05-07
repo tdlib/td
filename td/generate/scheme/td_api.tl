@@ -3608,6 +3608,9 @@ getBackgrounds = Backgrounds;
 //@description Constructs persistent URL for a background @name Background name @type Background type
 getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
+//@description Searches for a background by its name @name The name of the background
+searchBackground name:string = Background;
+
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests
 getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;
