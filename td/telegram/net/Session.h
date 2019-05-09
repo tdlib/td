@@ -174,7 +174,6 @@ class Session final
 
   // mtproto::Connection::Callback
   void on_connected() override;
-  void on_before_close() override;
   void on_closed(Status status) override;
 
   Status on_pong() override;

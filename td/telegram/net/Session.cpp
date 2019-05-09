@@ -401,14 +401,13 @@ void Session::on_server_time_difference_updated() {
   shared_auth_data_->update_server_time_difference(auth_data_.get_server_time_difference());
 }
 
-void Session::on_before_close() {
-  Scheduler::unsubscribe_before_close(current_info_->connection->get_poll_info().get_pollable_fd_ref());
-}
-
 void Session::on_closed(Status status) {
   if (!close_flag_ && is_main_) {
     connection_token_.reset();
   }
+  auto raw_connection = current_info_->connection->move_as_raw_connection();
+  Scheduler::unsubscribe_before_close(raw_connection->get_poll_info().get_pollable_fd_ref());
+  raw_connection->close();
 
   if (status.is_error()) {
     LOG(WARNING) << "Session closed: " << status << " " << current_info_->connection->get_name();

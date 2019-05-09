@@ -91,7 +91,6 @@ class SessionConnection
     virtual ~Callback() = default;
 
     virtual void on_connected() = 0;
-    virtual void on_before_close() = 0;
     virtual void on_closed(Status status) = 0;
 
     virtual void on_auth_key_updated() = 0;

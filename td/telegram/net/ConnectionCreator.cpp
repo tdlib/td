@@ -746,6 +746,7 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
     CHECK(client.is_media == is_media);
   }
   client.auth_data = std::move(auth_data);
+  client.auth_data_generation++;
   VLOG(connections) << "Request connection for " << tag("client", format::as_hex(client.hash)) << " to " << dc_id << " "
                     << tag("allow_media_only", allow_media_only);
   client.queries.push_back(std::move(promise));
@@ -1011,18 +1012,28 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
                                                      mtproto::TransportType transport_type, size_t hash,
                                                      string debug_str, uint32 network_generation) {
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
+  unique_ptr<mtproto::AuthData> auth_data;
+  uint64 auth_data_generation{0};
+  if (check_mode) {
+    auto it = clients_.find(hash);
+    CHECK(it != clients_.end());
+    const auto &auth_data_ptr = it->second.auth_data;
+    if (auth_data_ptr && auth_data_ptr->use_pfs() && auth_data_ptr->has_auth_key(Time::now_cached())) {
+      auth_data = make_unique<mtproto::AuthData>(*auth_data_ptr);
+      auth_data_generation = it->second.auth_data_generation;
+    }
+  }
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode, auth_data_generation,
                                          debug_str](Result<unique_ptr<mtproto::RawConnection>> result) mutable {
     if (result.is_ok()) {
-      //FIXME
-      LOG(ERROR) << "RTT: " << result.ok()->rtt_;
       VLOG(connections) << "Ready connection (" << (check_mode ? "" : "un") << "checked) " << result.ok().get() << ' '
-                        << debug_str;
+                        << tag("rtt", format::as_time(result.ok()->rtt_)) << ' ' << debug_str;
     } else {
       VLOG(connections) << "Failed connection (" << (check_mode ? "" : "un") << "checked) " << result.error() << ' '
                         << debug_str;
     }
-    send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode);
+    send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode,
+                 auth_data_generation);
   });
 
   if (r_connection_data.is_error()) {
@@ -1038,26 +1049,8 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   raw_connection->debug_str_ = debug_str;
 
   if (check_mode) {
-    VLOG(connections) << "Start check: " << debug_str;
+    VLOG(connections) << "Start check: " << debug_str << " " << (auth_data ? "with" : "without") << " auth data";
     auto token = next_token();
-    auto it = clients_.find(hash);
-    CHECK(it != clients_.end());
-    const auto &auth_data_ptr = it->second.auth_data;
-    unique_ptr<mtproto::AuthData> auth_data;
-    if (auth_data_ptr && auth_data_ptr->use_pfs() && auth_data_ptr->has_auth_key(Time::now_cached())) {
-      auth_data = make_unique<mtproto::AuthData>(*auth_data_ptr);
-      // FIXME
-      LOG(ERROR) << "use auth_data";
-    } else {
-      if (auth_data_ptr) {
-        // FIXME
-        LOG(ERROR) << "do not use auth data " << !!auth_data_ptr << " " << auth_data_ptr->use_pfs() << " "
-                   << auth_data_ptr->has_auth_key(Time::now_cached());
-      } else {
-        // FIXME
-        LOG(ERROR) << "do not use auth data";
-      }
-    }
     children_[token] = {true, create_ping_actor(debug_str, std::move(raw_connection), std::move(auth_data),
                                                 std::move(promise), create_reference(token))};
   } else {
@@ -1075,7 +1068,7 @@ void ConnectionCreator::client_set_timeout_at(ClientInfo &client, double wakeup_
 }
 
 void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
-                                              bool check_flag) {
+                                              bool check_flag, uint64 auth_data_generation) {
   auto &client = clients_[hash];
   CHECK(client.pending_connections > 0);
   client.pending_connections--;
@@ -1088,6 +1081,13 @@ void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtp
                       << tag("client", format::as_hex(hash));
     client.backoff.clear();
     client.ready_connections.push_back(std::make_pair(r_raw_connection.move_as_ok(), Time::now_cached()));
+  } else {
+    if (r_raw_connection.error().code() == -404 && client.auth_data &&
+        client.auth_data_generation == auth_data_generation) {
+      VLOG(connections) << "Drop auth data from " << tag("client", format::as_hex(hash));
+      client.auth_data = nullptr;
+      client.auth_data_generation++;
+    }
   }
   client_loop(client);
 }

@@ -735,8 +735,6 @@ void SessionConnection::set_online(bool online_flag, bool is_main) {
 
 void SessionConnection::do_close(Status status) {
   state_ = Closed;
-  callback_->on_before_close();
-  raw_connection_->close();
   // NB: this could be destroyed after on_closed
   callback_->on_closed(std::move(status));
 }

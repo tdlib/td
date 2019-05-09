@@ -89,11 +89,9 @@ class PingConnectionPingPong
   Status status_;
   void on_connected() override {
   }
-  void on_before_close() override {
-    Scheduler::unsubscribe_before_close(connection_->get_poll_info().get_pollable_fd_ref());
-  }
   void on_closed(Status status) override {
     is_closed_ = true;
+    CHECK(status.is_error());
     status_ = std::move(status);
   }
 
@@ -151,8 +149,10 @@ class PingConnectionPingPong
     if (was_pong()) {
       return Status::OK();
     }
+    CHECK(!is_closed_);
     connection_->flush(this);
     if (is_closed_) {
+      CHECK(status_.is_error());
       return std::move(status_);
     }
     return Status::OK();
