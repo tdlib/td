@@ -40,15 +40,16 @@ size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
 }
 
 /*
-fileSourceMessage chat_id:int53 message_id:int53 = FileSource;         // repaired with get_message_from_server
-fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;  // repaired with photos.getUserPhotos
-fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;           // repaired with messages.getChats
-fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;            // repaired with channels.getChannels
-fileSourceWebPage url:string = FileSource;                             // repaired with messages.getWebPage
-fileSourceWallpapers = FileSource;                                     // can't be repaired
-fileSourceSavedAnimations = FileSource;                                // repaired with messages.getSavedGifs
-fileSourceRecentStickers is_attached:Bool = FileSource;                // repaired with messages.getRecentStickers, not reliable
-fileSourceFavoriteStickers = FileSource;                               // repaired with messages.getFavedStickers, not reliable
+fileSourceMessage chat_id:int53 message_id:int53 = FileSource;           // repaired with get_message_from_server
+fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;    // repaired with photos.getUserPhotos
+fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;             // repaired with messages.getChats
+fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;              // repaired with channels.getChannels
+fileSourceWebPage url:string = FileSource;                               // repaired with messages.getWebPage
+fileSourceWallpapers = FileSource;                                       // can't be repaired
+fileSourceSavedAnimations = FileSource;                                  // repaired with messages.getSavedGifs
+fileSourceRecentStickers is_attached:Bool = FileSource;                  // repaired with messages.getRecentStickers, not reliable
+fileSourceFavoriteStickers = FileSource;                                 // repaired with messages.getFavedStickers, not reliable
+fileSourceBackground background_id:int64 access_hash:int64 = FileSource; // repaired with account.getWallPaper
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -101,6 +102,11 @@ FileSourceId FileReferenceManager::create_recent_stickers_file_source(bool is_at
 FileSourceId FileReferenceManager::create_favorite_stickers_file_source() {
   FileSourceFavoriteStickers source;
   return add_file_source_id(source, PSLICE() << "favorite stickers");
+}
+
+FileSourceId FileReferenceManager::create_background_file_source(BackgroundId background_id, int64 access_hash) {
+  FileSourceBackground source{background_id, access_hash};
+  return add_file_source_id(source, PSLICE() << background_id);
 }
 
 bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -273,6 +279,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceFavoriteStickers &source) {
         send_closure_later(G()->stickers_manager(), &StickersManager::repair_favorite_stickers, std::move(promise));
+      },
+      [&](const FileSourceBackground &source) {
+        send_closure_later(G()->background_manager(), &BackgroundManager::reload_background, source.background_id,
+                           source.access_hash, std::move(promise));
       }));
 }
 

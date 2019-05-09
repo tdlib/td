@@ -188,13 +188,19 @@ Result<string> BackgroundManager::get_background_url(const string &name,
   }
 }
 
-void BackgroundManager::reload_background(BackgroundId background_id,
-                                          telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
-                                          Promise<Unit> &&promise) const {
+void BackgroundManager::reload_background_from_server(
+    BackgroundId background_id, telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
+    Promise<Unit> &&promise) const {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   td_->create_handler<GetBackgroundQuery>(std::move(promise))->send(background_id, std::move(input_wallpaper));
+}
+
+void BackgroundManager::reload_background(BackgroundId background_id, int64 access_hash, Promise<Unit> &&promise) {
+  reload_background_from_server(
+      background_id, telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash),
+      std::move(promise));
 }
 
 BackgroundId BackgroundManager::search_background(const string &name, Promise<Unit> &&promise) {
@@ -204,14 +210,31 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     return it->second;
   }
 
-  reload_background(BackgroundId(), telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
-                    std::move(promise));
+  reload_background_from_server(BackgroundId(), telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
+                                std::move(promise));
   return BackgroundId();
 }
 
 BackgroundManager::Background *BackgroundManager::add_background(BackgroundId background_id) {
   CHECK(background_id.is_valid());
-  return &backgrounds_[background_id];
+  auto *result = &backgrounds_[background_id];
+  if (!result->id.is_valid()) {
+    auto it = background_id_to_file_source_id_.find(background_id);
+    if (it != background_id_to_file_source_id_.end()) {
+      result->file_source_id = it->second.second;
+      background_id_to_file_source_id_.erase(it);
+    }
+  }
+  return result;
+}
+
+BackgroundManager::Background *BackgroundManager::get_background_ref(BackgroundId background_id) {
+  auto p = backgrounds_.find(background_id);
+  if (p == backgrounds_.end()) {
+    return nullptr;
+  } else {
+    return &p->second;
+  }
 }
 
 const BackgroundManager::Background *BackgroundManager::get_background(BackgroundId background_id) const {
@@ -290,7 +313,6 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   auto *background = add_background(id);
   background->id = id;
   background->access_hash = wallpaper->access_hash_;
-  background->file_id = document.file_id;
   background->is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
   background->is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
   background->is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
@@ -304,7 +326,18 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     background->name = std::move(wallpaper->slug_);
     name_to_background_id_.emplace(background->name, id);
   }
-
+  if (background->file_id != document.file_id) {
+    LOG_IF(ERROR, background->file_id.is_valid())
+        << "Background file has changed from " << background->file_id << " to " << document.file_id;
+    if (!background->file_source_id.is_valid()) {
+      background->file_source_id =
+          td_->file_reference_manager_->create_background_file_source(id, background->access_hash);
+    }
+    for (auto file_id : document.get_file_ids(td_)) {
+      td_->file_manager_->add_file_source(file_id, background->file_source_id);
+    }
+    background->file_id = document.file_id;
+  }
   return id;
 }
 
@@ -373,6 +406,26 @@ td_api::object_ptr<td_api::background> BackgroundManager::get_background_object(
 td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_object() const {
   return td_api::make_object<td_api::backgrounds>(transform(
       installed_backgrounds_, [this](BackgroundId background_id) { return get_background_object(background_id); }));
+}
+
+FileSourceId BackgroundManager::get_background_file_source_id(BackgroundId background_id, int64 access_hash) {
+  Background *background = get_background_ref(background_id);
+  if (background != nullptr) {
+    if (!background->file_source_id.is_valid()) {
+      background->file_source_id =
+          td_->file_reference_manager_->create_background_file_source(background_id, background->access_hash);
+    }
+    return background->file_source_id;
+  }
+
+  auto &result = background_id_to_file_source_id_[background_id];
+  if (result.first == 0) {
+    result.first = access_hash;
+  }
+  if (!result.second.is_valid()) {
+    result.second = td_->file_reference_manager_->create_background_file_source(background_id, result.first);
+  }
+  return result.second;
 }
 
 }  // namespace td

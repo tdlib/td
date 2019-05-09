@@ -9,6 +9,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/telegram/BackgroundId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/files/FileId.h"
@@ -44,6 +45,7 @@ class FileReferenceManager : public Actor {
   FileSourceId create_saved_animations_file_source();
   FileSourceId create_recent_stickers_file_source(bool is_attached);
   FileSourceId create_favorite_stickers_file_source();
+  FileSourceId create_background_file_source(BackgroundId background_id, int64 access_hash);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -109,12 +111,18 @@ class FileReferenceManager : public Actor {
   struct FileSourceRecentStickers {
     bool is_attached;
   };
-  struct FileSourceFavoriteStickers {};
+  struct FileSourceFavoriteStickers {
+    // empty
+  };
+  struct FileSourceBackground {
+    BackgroundId background_id;
+    int64 access_hash = 0;
+  };
 
   // append only
-  using FileSource =
-      Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
-              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers>;
+  using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
+                             FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations,
+                             FileSourceRecentStickers, FileSourceFavoriteStickers, FileSourceBackground>;
   vector<FileSource> file_sources_;
 
   int64 query_generation_{0};
