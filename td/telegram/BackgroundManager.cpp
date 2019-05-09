@@ -103,44 +103,9 @@ void BackgroundManager::get_backgrounds(Promise<Unit> &&promise) {
   }
 }
 
-Result<BackgroundManager::BackgroundType> BackgroundManager::get_background_type(
-    td_api::object_ptr<td_api::BackgroundType> type) {
-  if (type == nullptr) {
-    return Status::Error(400, "Type must not be empty");
-  }
-
-  BackgroundType result;
-  switch (type->get_id()) {
-    case td_api::backgroundTypeWallpaper::ID: {
-      auto wallpaper = td_api::move_object_as<td_api::backgroundTypeWallpaper>(type);
-      result = BackgroundType(wallpaper->is_blurred_, wallpaper->is_moving_);
-      break;
-    }
-    case td_api::backgroundTypePattern::ID: {
-      auto pattern = td_api::move_object_as<td_api::backgroundTypePattern>(type);
-      result = BackgroundType(pattern->is_moving_, pattern->color_, pattern->intensity_);
-      break;
-    }
-    case td_api::backgroundTypeSolid::ID: {
-      auto solid = td_api::move_object_as<td_api::backgroundTypeSolid>(type);
-      result = BackgroundType(solid->color_);
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  if (result.intensity < 0 || result.intensity > 100) {
-    return Status::Error(400, "Wrong intensity value");
-  }
-  if (result.color < 0 || result.color > 0xFFFFFF) {
-    return Status::Error(400, "Wrong color value");
-  }
-  return result;
-}
-
 Result<string> BackgroundManager::get_background_url(const string &name,
                                                      td_api::object_ptr<td_api::BackgroundType> background_type) const {
-  TRY_RESULT(type, get_background_type(std::move(background_type)));
+  TRY_RESULT(type, get_background_type(background_type.get()));
 
   vector<string> modes;
   if (type.is_blurred) {
@@ -246,38 +211,6 @@ const BackgroundManager::Background *BackgroundManager::get_background(Backgroun
   }
 }
 
-BackgroundManager::BackgroundType BackgroundManager::get_background_type(
-    bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
-  bool is_blurred = false;
-  bool is_moving = false;
-  int32 color = 0;
-  int32 intensity = 0;
-  if (settings) {
-    auto flags = settings->flags_;
-    is_blurred = (flags & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
-    is_moving = (flags & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
-    if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
-      color = settings->background_color_;
-      if (color < 0 || color > 0xFFFFFF) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        color = 0;
-      }
-    }
-    if ((flags & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
-      intensity = settings->intensity_;
-      if (intensity < 0 || intensity > 100) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        intensity = 0;
-      }
-    }
-  }
-  if (is_pattern) {
-    return BackgroundType(is_moving, color, intensity);
-  } else {
-    return BackgroundType(is_blurred, is_moving);
-  }
-}
-
 BackgroundId BackgroundManager::on_get_background(BackgroundId expected_background_id,
                                                   telegram_api::object_ptr<telegram_api::wallPaper> wallpaper) {
   CHECK(wallpaper != nullptr);
@@ -376,20 +309,6 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
 
   for (auto &promise : promises) {
     promise.set_value(Unit());
-  }
-}
-
-td_api::object_ptr<td_api::BackgroundType> BackgroundManager::get_background_type_object(const BackgroundType &type) {
-  switch (type.type) {
-    case BackgroundType::Type::Wallpaper:
-      return td_api::make_object<td_api::backgroundTypeWallpaper>(type.is_blurred, type.is_moving);
-    case BackgroundType::Type::Pattern:
-      return td_api::make_object<td_api::backgroundTypePattern>(type.is_moving, type.color, type.intensity);
-    case BackgroundType::Type::Solid:
-      return td_api::make_object<td_api::backgroundTypeSolid>(type.color);
-    default:
-      UNREACHABLE();
-      return nullptr;
   }
 }
 

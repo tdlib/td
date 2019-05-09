@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/BackgroundId.h"
+#include "td/telegram/BackgroundType.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Photo.h"
@@ -48,25 +49,6 @@ class BackgroundManager : public Actor {
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
  private:
-  struct BackgroundType {
-    enum class Type : int32 { Wallpaper, Pattern, Solid };
-    Type type = Type::Solid;
-    bool is_blurred = false;
-    bool is_moving = false;
-    int32 color = 0;
-    int32 intensity = 0;
-
-    BackgroundType() = default;
-    BackgroundType(bool is_blurred, bool is_moving)
-        : type(Type::Wallpaper), is_blurred(is_blurred), is_moving(is_moving) {
-    }
-    BackgroundType(bool is_moving, int32 color, int32 intensity)
-        : type(Type::Pattern), is_moving(is_moving), color(color), intensity(intensity) {
-    }
-    explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
-    }
-  };
-
   struct Background {
     BackgroundId id;
     int64 access_hash = 0;
@@ -91,14 +73,7 @@ class BackgroundManager : public Actor {
 
   const Background *get_background(BackgroundId background_id) const;
 
-  static Result<BackgroundType> get_background_type(td_api::object_ptr<td_api::BackgroundType> type);
-
-  static BackgroundType get_background_type(bool is_pattern,
-                                            telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
-
   void on_get_backgrounds(Result<telegram_api::object_ptr<telegram_api::account_WallPapers>> result);
-
-  static td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type);
 
   std::unordered_map<BackgroundId, Background, BackgroundIdHash> backgrounds_;
 

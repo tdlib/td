@@ -355,6 +355,7 @@ set(TDLIB_SOURCE
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
   td/telegram/BackgroundManager.cpp
+  td/telegram/BackgroundType.cpp
   td/telegram/CallActor.cpp
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
@@ -485,6 +486,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.h
   td/telegram/BackgroundId.h
   td/telegram/BackgroundManager.h
+  td/telegram/BackgroundType.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
