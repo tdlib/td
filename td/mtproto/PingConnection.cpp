@@ -83,7 +83,8 @@ class PingConnectionPingPong
  private:
   unique_ptr<mtproto::AuthData> auth_data_;
   unique_ptr<mtproto::SessionConnection> connection_;
-  bool was_pong_{false};
+  int pong_cnt_{0};
+  double rtt_;
   bool is_closed_{false};
   Status status_;
   void on_connected() override {
@@ -113,7 +114,13 @@ class PingConnectionPingPong
   void on_container_sent(uint64 container_id, vector<uint64> msgs_id) override {
   }
   Status on_pong() override {
-    was_pong_ = true;
+    pong_cnt_++;
+    if (pong_cnt_ == 1) {
+      rtt_ = Time::now();
+      connection_->set_online(false, false);
+    } else if (pong_cnt_ == 2) {
+      rtt_ = Time::now() - rtt_;
+    }
     return Status::OK();
   }
 
@@ -141,7 +148,7 @@ class PingConnectionPingPong
     return connection_->move_as_raw_connection();
   }
   Status flush() override {
-    if (was_pong_) {
+    if (was_pong()) {
       return Status::OK();
     }
     connection_->flush(this);
@@ -151,10 +158,10 @@ class PingConnectionPingPong
     return Status::OK();
   }
   bool was_pong() const override {
-    return was_pong_;
+    return pong_cnt_ >= 2;
   }
   double rtt() const override {
-    return 1;
+    return rtt_;
   }
 };
 
