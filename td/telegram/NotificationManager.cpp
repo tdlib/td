@@ -3011,6 +3011,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     } else {
       LOG(ERROR) << "Receive unencrypted SESSION_REVOKE push notification";
     }
+    promise.set_value(Unit());
     return Status::OK();
   }
 
