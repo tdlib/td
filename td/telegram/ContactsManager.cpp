@@ -1227,7 +1227,7 @@ class ReportChannelSpamQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelSpamQuery");
-    status.ignore();
+    promise_.set_error(std::move(status));
   }
 };
 
