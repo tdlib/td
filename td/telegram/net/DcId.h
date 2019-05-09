@@ -88,8 +88,12 @@ class DcId {
 
 inline StringBuilder &operator<<(StringBuilder &sb, const DcId &dc_id) {
   sb << "DcId{";
-  if (dc_id.is_empty()) {
+  if (dc_id == DcId::invalid()) {
+    sb << "invalid";
+  } else if (dc_id == DcId()) {
     sb << "empty";
+  } else if (dc_id.is_empty()) {
+    sb << "is_empty";
   } else if (dc_id.is_main()) {
     sb << "main";
   } else {

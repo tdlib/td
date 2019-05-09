@@ -269,7 +269,7 @@ class FullRemoteFileLocation {
   static constexpr int32 FILE_REFERENCE_FLAG = 1 << 25;
   bool web_location_flag_{false};
   DcId dc_id_;
-  std::string file_reference_;
+  string file_reference_;
   enum class LocationType : int32 { Web, Photo, Common, None };
   Variant<WebRemoteFileLocation, PhotoRemoteFileLocation, CommonRemoteFileLocation> variant_;
 
@@ -395,7 +395,7 @@ class FullRemoteFileLocation {
     }
   }
   void clear_file_reference() {
-    file_reference_ = "";
+    file_reference_.clear();
   }
 
   bool delete_file_reference(Slice bad_file_reference) {
