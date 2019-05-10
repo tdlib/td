@@ -45,6 +45,8 @@ class BackgroundManager : public Actor {
 
   void set_background_id(BackgroundId background_id, const BackgroundType &type);
 
+  void remove_background(BackgroundId background_id, Promise<Unit> &&promise);
+
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object() const;
@@ -106,6 +108,8 @@ class BackgroundManager : public Actor {
   Result<FileId> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
 
   BackgroundId set_background(BackgroundId background_id, const BackgroundType &type, Promise<Unit> &&promise);
+
+  void on_removed_background(BackgroundId background_id, Result<Unit> &&result, Promise<Unit> &&promise);
 
   void upload_background_file(FileId file_id, const BackgroundType &type, Promise<Unit> &&promise);
 

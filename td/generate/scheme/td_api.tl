@@ -3624,8 +3624,12 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 //@description Searches for a background by its name @name The name of the background
 searchBackground name:string = Background;
 
-//@description Sets background as a chosen by the user background @background The input background to use, null for solid backgrounds @type Background type
+//@description Sets background as a selected by the user background; adds background to the list of installed backgrounds
+//@background The input background to use, null for solid backgrounds @type Background type
 setBackground background:InputBackground type:BackgroundType = Background;
+
+//@description Removes background from the list of installed backgrounds @background_id The background indentifier
+removeBackground background_id:int64 = Ok;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests

@@ -167,6 +167,38 @@ class UploadBackgroundQuery : public Td::ResultHandler {
   }
 };
 
+class SaveBackgroundQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SaveBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type, bool unsave) {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_saveWallPaper(
+        telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), unsave,
+        get_input_wallpaper_settings(type)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::account_saveWallPaper>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for fave background: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for save background: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BackgroundManager::UploadBackgroundFileCallback : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
@@ -604,6 +636,41 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
   CHECK(background != nullptr);
   LOG_STATUS(td_->file_manager_->merge(background->file_id, file_id));
   set_background_id(background_id, type);
+  promise.set_value(Unit());
+}
+
+void BackgroundManager::remove_background(BackgroundId background_id, Promise<Unit> &&promise) {
+  auto background = get_background(background_id);
+  if (background == nullptr) {
+    return promise.set_error(Status::Error(400, "Background not found"));
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), background_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &BackgroundManager::on_removed_background, background_id, std::move(result),
+                     std::move(promise));
+      });
+
+  if (background->type.type == BackgroundType::Type::Solid) {
+    return query_promise.set_value(Unit());
+  }
+
+  td_->create_handler<SaveBackgroundQuery>(std::move(query_promise))
+      ->send(background_id, background->access_hash, background->type, true);
+}
+
+void BackgroundManager::on_removed_background(BackgroundId background_id, Result<Unit> &&result,
+                                              Promise<Unit> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+  auto it = std::find(installed_background_ids_.begin(), installed_background_ids_.end(), background_id);
+  if (it != installed_background_ids_.end()) {
+    installed_background_ids_.erase(it);
+  }
+  if (background_id == set_background_id_) {
+    set_background_id(BackgroundId(), BackgroundType());
+  }
   promise.set_value(Unit());
 }
 
