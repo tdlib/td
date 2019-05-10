@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
@@ -383,12 +384,12 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
   return BackgroundId();
 }
 
-td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background() const {
+td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background_object() const {
   return td_api::make_object<td_api::updateSelectedBackground>(get_background_object(set_background_id_));
 }
 
 void BackgroundManager::send_update_selected_background() const {
-  send_closure(G()->td(), &Td::send_update, get_update_selected_background());
+  send_closure(G()->td(), &Td::send_update, get_update_selected_background_object());
 }
 
 Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file) {
@@ -792,6 +793,14 @@ FileSourceId BackgroundManager::get_background_file_source_id(BackgroundId backg
     result.second = td_->file_reference_manager_->create_background_file_source(background_id, result.first);
   }
   return result.second;
+}
+
+void BackgroundManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  updates.push_back(get_update_selected_background_object());
 }
 
 }  // namespace td

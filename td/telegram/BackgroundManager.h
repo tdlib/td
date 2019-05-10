@@ -58,6 +58,8 @@ class BackgroundManager : public Actor {
                                    telegram_api::object_ptr<telegram_api::wallPaper> wallpaper,
                                    Promise<Unit> &&promise);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   struct Background {
     BackgroundId id;
@@ -87,7 +89,7 @@ class BackgroundManager : public Actor {
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
                                      Promise<Unit> &&promise) const;
 
-  td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background() const;
+  td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background_object() const;
 
   void send_update_selected_background() const;
 

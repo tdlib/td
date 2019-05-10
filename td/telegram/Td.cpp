@@ -4729,6 +4729,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
   if (auth_manager_->is_authorized()) {
     contacts_manager_->get_current_state(updates);
 
+    background_manager_->get_current_state(updates);
+
     animations_manager_->get_current_state(updates);
 
     stickers_manager_->get_current_state(updates);
