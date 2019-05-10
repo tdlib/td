@@ -1982,6 +1982,25 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
     } else if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
+    } else if (op == "sbgw") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
+          td_api::make_object<td_api::backgroundTypeWallpaper>(true, true)));
+    } else if (op == "sbgp") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
+          td_api::make_object<td_api::backgroundTypePattern>(true, 0xabcdef, 49)));
+    } else if (op == "sbgs") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          nullptr, td_api::make_object<td_api::backgroundTypeSolid>(to_integer<int32>(args))));
+    } else if (op == "sbgwid") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),
+          td_api::make_object<td_api::backgroundTypeWallpaper>(true, true)));
+    } else if (op == "sbgpid") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),
+          td_api::make_object<td_api::backgroundTypePattern>(true, 0xabcdef, 49)));
     } else if (op == "gccode") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "git") {

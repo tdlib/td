@@ -1969,6 +1969,16 @@ background id:int64 is_default:Bool is_dark:Bool name:string document:document t
 backgrounds backgrounds:vector<background> = Backgrounds;
 
 
+//@class InputBackground @description Contains information about background to set
+
+//@description A background from a local file
+//@background Background file to use. Only inputFileLocal and inputFileGenerated are supported. The file nust be in JPEG format for wallpapers and in PNG format for patterns
+inputBackgroundLocal background:InputFile = InputBackground;
+
+//@description A background from the server @background_id The background identifier
+inputBackgroundRemote background_id:int64 = InputBackground;
+
+
 //@description Contains a list of hashtags @hashtags A list of hashtags
 hashtags hashtags:vector<string> = Hashtags;
 
@@ -3610,6 +3620,9 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
 //@description Searches for a background by its name @name The name of the background
 searchBackground name:string = Background;
+
+//@description Sets background as a chosen by the user background @background The input background to use, null for solid backgrounds @type Background type
+setBackground background:InputBackground type:BackgroundType = Background;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests

@@ -8,6 +8,35 @@
 
 namespace td {
 
+string BackgroundType::get_color_hex_string() const {
+  string result;
+  for (int i = 20; i >= 0; i -= 4) {
+    result += "0123456789abcdef"[(color >> i) & 0xf];
+  }
+  return result;
+}
+
+bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
+  return lhs.type == rhs.type && lhs.is_blurred == rhs.is_blurred && lhs.is_moving == rhs.is_moving &&
+         lhs.color == rhs.color && lhs.intensity == rhs.intensity;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
+  switch (type.type) {
+    case BackgroundType::Type::Wallpaper:
+      return string_builder << "type Wallpaper[" << (type.is_blurred ? "blurred" : "") << ' '
+                            << (type.is_moving ? "moving" : "") << ']';
+    case BackgroundType::Type::Pattern:
+      return string_builder << "type Pattern[" << (type.is_moving ? "moving" : "") << ' ' << type.get_color_hex_string()
+                            << ' ' << type.intensity << ']';
+    case BackgroundType::Type::Solid:
+      return string_builder << "type Solid[" << type.get_color_hex_string() << ']';
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
   if (type == nullptr) {
     return Status::Error(400, "Type must not be empty");
@@ -82,6 +111,32 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
       return td_api::make_object<td_api::backgroundTypePattern>(type.is_moving, type.color, type.intensity);
     case BackgroundType::Type::Solid:
       return td_api::make_object<td_api::backgroundTypeSolid>(type.color);
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type) {
+  int32 flags = 0;
+  if (type.is_blurred) {
+    flags |= telegram_api::wallPaperSettings::BLUR_MASK;
+  }
+  if (type.is_moving) {
+    flags |= telegram_api::wallPaperSettings::MOTION_MASK;
+  }
+  if (type.color != 0) {
+    flags |= telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK;
+  }
+  if (type.intensity) {
+    flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
+  }
+  switch (type.type) {
+    case BackgroundType::Type::Wallpaper:
+    case BackgroundType::Type::Pattern:
+      return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                        type.color, type.intensity);
+    case BackgroundType::Type::Solid:
     default:
       UNREACHABLE();
       return nullptr;

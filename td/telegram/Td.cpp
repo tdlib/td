@@ -2918,6 +2918,31 @@ class SearchBackgroundRequest : public RequestActor<> {
   }
 };
 
+class SetBackgroundRequest : public RequestActor<> {
+  td_api::object_ptr<td_api::InputBackground> input_background_;
+  td_api::object_ptr<td_api::BackgroundType> background_type_;
+
+  BackgroundId background_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    background_id_ =
+        td->background_manager_->set_background(input_background_.get(), background_type_.get(), std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->background_manager_->get_background_object(background_id_));
+  }
+
+ public:
+  SetBackgroundRequest(ActorShared<Td> td, uint64 request_id,
+                       td_api::object_ptr<td_api::InputBackground> &&input_background,
+                       td_api::object_ptr<td_api::BackgroundType> background_type)
+      : RequestActor(std::move(td), request_id)
+      , input_background_(std::move(input_background))
+      , background_type_(std::move(background_type)) {
+  }
+};
+
 class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
   string referrer_;
 
@@ -6978,6 +7003,11 @@ void Td::on_request(uint64 id, td_api::searchBackground &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST(SearchBackgroundRequest, std::move(request.name_));
+}
+
+void Td::on_request(uint64 id, td_api::setBackground &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(SetBackgroundRequest, std::move(request.background_), std::move(request.type_));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

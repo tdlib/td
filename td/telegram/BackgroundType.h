@@ -11,6 +11,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -31,12 +32,20 @@ struct BackgroundType {
   }
   explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
   }
+
+  string get_color_hex_string() const;
 };
+
+bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type);
 
 Result<BackgroundType> get_background_type(const td_api::BackgroundType *type);
 
 BackgroundType get_background_type(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
 
 td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type);
+
+telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type);
 
 }  // namespace td

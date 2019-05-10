@@ -719,6 +719,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
     }
+    td->file_manager_->cancel_upload(file_id_);
     promise_.set_error(std::move(status));
   }
 };
