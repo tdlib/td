@@ -221,6 +221,8 @@ class ConnectionCreator : public NetQueryCallback {
       int32 next_delay_ = 1;
     };
     ClientInfo();
+    int64 extract_session_id();
+    void add_session_id(int64 session_id);
 
     Backoff backoff;
     FloodControlStrict flood_control;
@@ -239,6 +241,7 @@ class ConnectionCreator : public NetQueryCallback {
     DcId dc_id;
     bool allow_media_only;
     bool is_media;
+    std::set<int64> session_ids_;
     unique_ptr<mtproto::AuthData> auth_data;
     uint64 auth_data_generation{0};
   };
@@ -303,7 +306,7 @@ class ConnectionCreator : public NetQueryCallback {
                                     mtproto::TransportType transport_type, size_t hash, string debug_str,
                                     uint32 network_generation);
   void client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag,
-                             uint64 auth_data_generation);
+                             uint64 auth_data_generation, int64 session_id);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
 
   void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr);

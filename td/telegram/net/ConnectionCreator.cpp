@@ -32,6 +32,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
+#include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
@@ -188,6 +189,25 @@ ConnectionCreator::ClientInfo::ClientInfo() {
   mtproto_error_flood_control.add_limit(1, 1);
   mtproto_error_flood_control.add_limit(4, 2);
   mtproto_error_flood_control.add_limit(8, 3);
+}
+
+int64 ConnectionCreator::ClientInfo::extract_session_id() {
+  if (!session_ids_.empty()) {
+    auto res = *session_ids_.begin();
+    session_ids_.erase(session_ids_.begin());
+    return res;
+  }
+  int64 res = 0;
+  while (res == 0) {
+    res = Random::secure_int64();
+  }
+  return res;
+}
+
+void ConnectionCreator::ClientInfo::add_session_id(int64 session_id) {
+  if (session_id != 0) {
+    session_ids_.insert(session_id);
+  }
 }
 
 ConnectionCreator::ConnectionCreator(ActorShared<> parent) : parent_(std::move(parent)) {
@@ -1014,6 +1034,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                                                      string debug_str, uint32 network_generation) {
   unique_ptr<mtproto::AuthData> auth_data;
   uint64 auth_data_generation{0};
+  int64 session_id{0};
   if (check_mode) {
     auto it = clients_.find(hash);
     CHECK(it != clients_.end());
@@ -1021,9 +1042,11 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
     if (auth_data_ptr && auth_data_ptr->use_pfs() && auth_data_ptr->has_auth_key(Time::now_cached())) {
       auth_data = make_unique<mtproto::AuthData>(*auth_data_ptr);
       auth_data_generation = it->second.auth_data_generation;
+      session_id = it->second.extract_session_id();
+      auth_data->set_session_id(session_id);
     }
   }
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode, auth_data_generation,
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode, auth_data_generation, session_id,
                                          debug_str](Result<unique_ptr<mtproto::RawConnection>> result) mutable {
     if (result.is_ok()) {
       VLOG(connections) << "Ready connection (" << (check_mode ? "" : "un") << "checked) " << result.ok().get() << ' '
@@ -1033,7 +1056,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                         << debug_str;
     }
     send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode,
-                 auth_data_generation);
+                 auth_data_generation, session_id);
   });
 
   if (r_connection_data.is_error()) {
@@ -1068,8 +1091,9 @@ void ConnectionCreator::client_set_timeout_at(ClientInfo &client, double wakeup_
 }
 
 void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
-                                              bool check_flag, uint64 auth_data_generation) {
+                                              bool check_flag, uint64 auth_data_generation, int64 session_id) {
   auto &client = clients_[hash];
+  client.add_session_id(session_id);
   CHECK(client.pending_connections > 0);
   client.pending_connections--;
   if (check_flag) {
