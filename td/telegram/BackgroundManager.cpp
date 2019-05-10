@@ -267,6 +267,24 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     return it->second;
   }
 
+  if (name.empty()) {
+    promise.set_error(Status::Error(400, "Background name must be non-empty"));
+    return BackgroundId();
+  }
+
+  if (name.size() <= 6) {
+    for (auto c : name) {
+      if (!is_hex_digit(c)) {
+        promise.set_error(Status::Error(400, "WALLPAPER_INVALID"));
+        return BackgroundId();
+      }
+    }
+    int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
+    auto background_id = add_solid_background(color);
+    promise.set_value(Unit());
+    return background_id;
+  }
+
   reload_background_from_server(BackgroundId(), telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
                                 std::move(promise));
   return BackgroundId();
@@ -289,6 +307,24 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
   return std::move(file_id);
 }
 
+BackgroundId BackgroundManager::add_solid_background(int32 color) {
+  CHECK(0 <= color && color < 0x1000000);
+  BackgroundId background_id(static_cast<int64>(color) + 1);
+  auto *background = add_background(background_id);
+  if (background->id != background_id) {
+    background->id = background_id;
+    background->access_hash = 0;
+    background->is_creator = true;
+    background->is_default = false;
+    background->is_dark = (color & 0x808080) == 0;
+    background->type = BackgroundType(color);
+    background->name = background->type.get_color_hex_string();
+    background->file_id = FileId();
+    background->file_source_id = FileSourceId();
+  }
+  return background_id;
+}
+
 BackgroundId BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                                const td_api::BackgroundType *background_type, Promise<Unit> &&promise) {
   auto r_type = get_background_type(background_type);
@@ -299,26 +335,12 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
 
   auto type = r_type.move_as_ok();
   if (type.type == BackgroundType::Type::Solid) {
-    auto color = type.color;
-    CHECK(0 <= color && color < 0x1000000);
-    BackgroundId id(static_cast<int64>(color));
-    if (set_background_id_ != id) {
-      auto *background = add_background(id);
-      background->id = id;
-      background->access_hash = 0;
-      background->is_creator = true;
-      background->is_default = false;
-      background->is_dark = (color & 0x808080) == 0;
-      background->type = type;
-      background->name = type.get_color_hex_string();
-      background->file_id = FileId();
-      background->file_source_id = FileSourceId();
-
-      set_background_id(id, type);
+    auto background_id = add_solid_background(type.color);
+    if (set_background_id_ != background_id) {
+      set_background_id(background_id, type);
     }
-
     promise.set_value(Unit());
-    return id;
+    return background_id;
   }
 
   if (input_background == nullptr) {
@@ -505,7 +527,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   if (expected_background_id.is_valid() && id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
   }
-  if (wallpaper->slug_.size() <= 6) {
+  if (wallpaper->slug_.size() <= 6 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000000)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }
