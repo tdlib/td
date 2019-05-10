@@ -630,6 +630,7 @@ set(TDLIB_SOURCE
   td/telegram/AnimationsManager.hpp
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
+  td/telegram/BackgroundType.hpp
   td/telegram/Document.hpp
   td/telegram/DocumentsManager.hpp
   td/telegram/DraftMessage.hpp

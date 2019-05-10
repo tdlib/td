@@ -71,9 +71,17 @@ class BackgroundManager : public Actor {
     FileSourceId file_source_id;
   };
 
+  class BackgroundLogEvent;
+
   class UploadBackgroundFileCallback;
 
+  void start_up() override;
+
   void tear_down() override;
+
+  static string get_background_database_key();
+
+  void save_background_id() const;
 
   void reload_background_from_server(BackgroundId background_id,
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,

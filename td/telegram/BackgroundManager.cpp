@@ -9,16 +9,20 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -185,6 +189,83 @@ class BackgroundManager::UploadBackgroundFileCallback : public FileManager::Uplo
 
 BackgroundManager::BackgroundManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_background_file_callback_ = std::make_shared<UploadBackgroundFileCallback>();
+}
+
+class BackgroundManager::BackgroundLogEvent {
+ public:
+  BackgroundId background_id_;
+  int64 access_hash_;
+  string name_;
+  FileId file_id_;
+  bool is_creator_;
+  bool is_default_;
+  bool is_dark_;
+  BackgroundType type_;
+  BackgroundType set_type_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_creator_);
+    STORE_FLAG(is_default_);
+    STORE_FLAG(is_dark_);
+    END_STORE_FLAGS();
+    td::store(background_id_, storer);
+    td::store(access_hash_, storer);
+    td::store(name_, storer);
+    storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(file_id_, storer);
+    td::store(type_, storer);
+    td::store(set_type_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_creator_);
+    PARSE_FLAG(is_default_);
+    PARSE_FLAG(is_dark_);
+    END_PARSE_FLAGS();
+    td::parse(background_id_, parser);
+    td::parse(access_hash_, parser);
+    td::parse(name_, parser);
+    file_id_ = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
+    td::parse(type_, parser);
+    td::parse(set_type_, parser);
+  }
+};
+
+void BackgroundManager::start_up() {
+  // G()->td_db()->get_binlog_pmc()->erase(get_background_database_key());
+  auto logevent_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key());
+  if (!logevent_string.empty()) {
+    BackgroundLogEvent logevent;
+    log_event_parse(logevent, logevent_string).ensure();
+
+    CHECK(logevent.background_id_.is_valid());
+    set_background_id_ = logevent.background_id_;
+    set_background_type_ = logevent.set_type_;
+
+    auto *background = add_background(set_background_id_);
+    CHECK(!background->id.is_valid());
+    background->id = set_background_id_;
+    background->access_hash = logevent.access_hash_;
+    background->is_creator = logevent.is_creator_;
+    background->is_default = logevent.is_default_;
+    background->is_dark = logevent.is_dark_;
+    background->type = logevent.type_;
+    background->name = std::move(logevent.name_);
+    background->file_id = logevent.file_id_;
+
+    name_to_background_id_.emplace(background->name, background->id);
+    if (background->file_id.is_valid()) {
+      background->file_source_id =
+          td_->file_reference_manager_->create_background_file_source(background->id, background->access_hash);
+      for (auto file_id : Document(Document::Type::General, background->file_id).get_file_ids(td_)) {
+        td_->file_manager_->add_file_source(file_id, background->file_source_id);
+      }
+      file_id_to_background_id_.emplace(background->file_id, background->id);
+    }
+  }
 }
 
 void BackgroundManager::tear_down() {
@@ -398,6 +479,24 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, const
   return BackgroundId();
 }
 
+string BackgroundManager::get_background_database_key() {
+  return "bg";
+}
+
+void BackgroundManager::save_background_id() const {
+  string key = get_background_database_key();
+  if (set_background_id_.is_valid()) {
+    const Background *background = get_background(set_background_id_);
+    CHECK(background != nullptr);
+    BackgroundLogEvent logevent{set_background_id_,  background->access_hash, background->name,
+                                background->file_id, background->is_creator,  background->is_default,
+                                background->is_dark, background->type,        set_background_type_};
+    G()->td_db()->get_binlog_pmc()->set(key, log_event_store(logevent).as_slice().str());
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase(key);
+  }
+}
+
 void BackgroundManager::set_background_id(BackgroundId background_id, const BackgroundType &type) {
   if (background_id == set_background_id_ && set_background_type_ == type) {
     return;
@@ -405,6 +504,8 @@ void BackgroundManager::set_background_id(BackgroundId background_id, const Back
 
   set_background_id_ = background_id;
   set_background_type_ = type;
+
+  save_background_id();
 }
 
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, Promise<Unit> &&promise) {
