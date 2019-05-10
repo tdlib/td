@@ -640,13 +640,13 @@ class TdClient {
         '@type': 'error',
         '@extra': query['@extra'],
         code: 400,
-        message: e
+        message: e.toString()
       });
       return;
     }
     this.callback(
       {
-        '@type': 'FilePart',
+        '@type': 'filePart',
         '@extra': query['@extra'],
         data: res
       },
