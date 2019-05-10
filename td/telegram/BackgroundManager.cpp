@@ -205,30 +205,40 @@ class BackgroundManager::BackgroundLogEvent {
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    bool has_file_id = file_id_.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_creator_);
     STORE_FLAG(is_default_);
     STORE_FLAG(is_dark_);
+    STORE_FLAG(has_file_id);
     END_STORE_FLAGS();
     td::store(background_id_, storer);
     td::store(access_hash_, storer);
     td::store(name_, storer);
-    storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(file_id_, storer);
+    if (has_file_id) {
+      storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(file_id_, storer);
+    }
     td::store(type_, storer);
     td::store(set_type_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    bool has_file_id;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_creator_);
     PARSE_FLAG(is_default_);
     PARSE_FLAG(is_dark_);
+    PARSE_FLAG(has_file_id);
     END_PARSE_FLAGS();
     td::parse(background_id_, parser);
     td::parse(access_hash_, parser);
     td::parse(name_, parser);
-    file_id_ = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
+    if (has_file_id) {
+      file_id_ = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
+    } else {
+      file_id_ = FileId();
+    }
     td::parse(type_, parser);
     td::parse(set_type_, parser);
   }
@@ -266,6 +276,8 @@ void BackgroundManager::start_up() {
       file_id_to_background_id_.emplace(background->file_id, background->id);
     }
   }
+
+  send_update_selected_background();
 }
 
 void BackgroundManager::tear_down() {
@@ -369,6 +381,14 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
   reload_background_from_server(BackgroundId(), telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
                                 std::move(promise));
   return BackgroundId();
+}
+
+td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background() const {
+  return td_api::make_object<td_api::updateSelectedBackground>(get_background_object(set_background_id_));
+}
+
+void BackgroundManager::send_update_selected_background() const {
+  send_closure(G()->td(), &Td::send_update, get_update_selected_background());
 }
 
 Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file) {
@@ -506,6 +526,7 @@ void BackgroundManager::set_background_id(BackgroundId background_id, const Back
   set_background_type_ = type;
 
   save_background_id();
+  send_update_selected_background();
 }
 
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, Promise<Unit> &&promise) {

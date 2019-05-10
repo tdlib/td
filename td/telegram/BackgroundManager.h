@@ -87,6 +87,10 @@ class BackgroundManager : public Actor {
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
                                      Promise<Unit> &&promise) const;
 
+  td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background() const;
+
+  void send_update_selected_background() const;
+
   BackgroundId add_solid_background(int32 color);
 
   Background *add_background(BackgroundId background_id);
