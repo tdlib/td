@@ -93,16 +93,12 @@ class GetBackgroundsQuery : public Td::ResultHandler {
 
 class InstallBackgroundQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
-  BackgroundId background_id_;
-  BackgroundType type_;
 
  public:
   explicit InstallBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type) {
-    background_id_ = background_id;
-    type_ = type;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::account_installWallPaper(
         telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash),
         get_input_wallpaper_settings(type)))));
@@ -114,7 +110,6 @@ class InstallBackgroundQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->background_manager_->set_background_id(background_id_, type_);
     LOG_IF(INFO, !result_ptr.ok()) << "Receive false from account.installWallPaper";
     promise_.set_value(Unit());
   }
@@ -528,8 +523,28 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, const
   }
 
   LOG(INFO) << "Install " << background_id << " with " << type;
-  td_->create_handler<InstallBackgroundQuery>(std::move(promise))->send(background_id, background->access_hash, type);
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), background_id, type, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &BackgroundManager::on_installed_background, background_id, type, std::move(result),
+                     std::move(promise));
+      });
+  td_->create_handler<InstallBackgroundQuery>(std::move(query_promise))
+      ->send(background_id, background->access_hash, type);
   return BackgroundId();
+}
+
+void BackgroundManager::on_installed_background(BackgroundId background_id, BackgroundType type, Result<Unit> &&result,
+                                                Promise<Unit> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  auto it = std::find(installed_background_ids_.begin(), installed_background_ids_.end(), background_id);
+  if (it == installed_background_ids_.end()) {
+    installed_background_ids_.insert(installed_background_ids_.begin(), background_id);
+  }
+  set_background_id(background_id, type);
+  promise.set_value(Unit());
 }
 
 string BackgroundManager::get_background_database_key() {
