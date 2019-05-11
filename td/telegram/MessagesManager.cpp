@@ -13512,9 +13512,13 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
                                                                               bool force, Promise<Unit> &&promise) {
   if (last_dialog_date_ == MAX_DIALOG_DATE || force) {
     vector<DialogId> result;
+    auto my_dialog_id = get_my_dialog_id();
     for (const auto &it : ordered_server_dialogs_) {
       auto dialog_id = it.get_dialog_id();
       if (filter_scope && get_dialog_notification_setting_scope(dialog_id) != scope) {
+        continue;
+      }
+      if (dialog_id == my_dialog_id) {
         continue;
       }
 
@@ -13524,6 +13528,9 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
         break;
       }
       if (are_default_dialog_notification_settings(d->notification_settings, compare_sound)) {
+        continue;
+      }
+      if (is_dialog_message_notification_disabled(dialog_id, std::numeric_limits<int32>::max())) {
         continue;
       }
       result.push_back(dialog_id);
