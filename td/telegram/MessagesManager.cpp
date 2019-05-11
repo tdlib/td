@@ -20414,7 +20414,10 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
 
   int64 base = (last + MessageId::TYPE_MASK + 1) & ~MessageId::TYPE_MASK;
   d->last_assigned_message_id = MessageId(base + type);
-  LOG_CHECK(d->last_assigned_message_id.is_valid()) << d->last_assigned_message_id;
+  if (d->last_assigned_message_id.get() > MessageId::max().get()) {
+    LOG(FATAL) << "Force restart because of message_id overflow: " << d->last_assigned_message_id;
+  }
+  CHECK(d->last_assigned_message_id.is_valid());
   return d->last_assigned_message_id;
 }
 
