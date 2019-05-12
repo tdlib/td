@@ -2526,6 +2526,8 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   using td::store;
   bool has_photo = photo.small_file_id.is_valid();
   bool use_new_rights = true;
+  bool has_default_permissions_version = default_permissions_version != -1;
+  bool has_pinned_message_version = pinned_message_version != -1;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2536,6 +2538,8 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   STORE_FLAG(is_active);
   STORE_FLAG(has_photo);
   STORE_FLAG(use_new_rights);
+  STORE_FLAG(has_default_permissions_version);
+  STORE_FLAG(has_pinned_message_version);
   END_STORE_FLAGS();
 
   store(title, storer);
@@ -2548,6 +2552,12 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   store(version, storer);
   store(status, storer);
   store(default_permissions, storer);
+  if (has_default_permissions_version) {
+    store(default_permissions_version, storer);
+  }
+  if (has_pinned_message_version) {
+    store(pinned_message_version, storer);
+  }
 }
 
 template <class ParserT>
@@ -2561,6 +2571,8 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   bool everyone_is_administrator;
   bool can_edit;
   bool use_new_rights;
+  bool has_default_permissions_version;
+  bool has_pinned_message_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2571,6 +2583,8 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   PARSE_FLAG(is_active);
   PARSE_FLAG(has_photo);
   PARSE_FLAG(use_new_rights);
+  PARSE_FLAG(has_default_permissions_version);
+  PARSE_FLAG(has_pinned_message_version);
   END_PARSE_FLAGS();
 
   parse(title, parser);
@@ -2599,6 +2613,12 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, everyone_is_administrator,
                                            everyone_is_administrator, everyone_is_administrator);
   }
+  if (has_default_permissions_version) {
+    parse(default_permissions_version, parser);
+  }
+  if (has_pinned_message_version) {
+    parse(pinned_message_version, parser);
+  }
 }
 
 template <class StorerT>
@@ -2608,8 +2628,8 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_username = !username.empty();
   bool is_restricted = !restriction_reason.empty();
   bool use_new_rights = true;
+  bool has_participant_count = participant_count != 0;
   bool have_default_permissions = true;
-  bool have_participant_count = participant_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2624,7 +2644,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(has_username);
   STORE_FLAG(is_restricted);
   STORE_FLAG(use_new_rights);
-  STORE_FLAG(have_participant_count);
+  STORE_FLAG(has_participant_count);
   STORE_FLAG(have_default_permissions);
   END_STORE_FLAGS();
 
@@ -2641,7 +2661,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (is_restricted) {
     store(restriction_reason, storer);
   }
-  if (have_participant_count) {
+  if (has_participant_count) {
     store(participant_count, storer);
   }
   if (is_megagroup) {
@@ -2662,7 +2682,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool can_moderate;
   bool anyone_can_invite;
   bool use_new_rights;
-  bool have_participant_count;
+  bool has_participant_count;
   bool have_default_permissions;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
@@ -2678,7 +2698,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(has_username);
   PARSE_FLAG(is_restricted);
   PARSE_FLAG(use_new_rights);
-  PARSE_FLAG(have_participant_count);
+  PARSE_FLAG(has_participant_count);
   PARSE_FLAG(have_default_permissions);
   END_PARSE_FLAGS();
 
@@ -2709,7 +2729,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (is_restricted) {
     parse(restriction_reason, parser);
   }
-  if (have_participant_count) {
+  if (has_participant_count) {
     parse(participant_count, parser);
   }
   if (is_megagroup) {
@@ -6697,11 +6717,25 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return;
     }
 
-    MessageId pinned_message_id;
-    if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-      pinned_message_id = MessageId(ServerMessageId(chat_full->pinned_msg_id_));
+    {
+      MessageId pinned_message_id;
+      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+        pinned_message_id = MessageId(ServerMessageId(chat_full->pinned_msg_id_));
+      }
+      Chat *c = get_chat(chat_id);
+      if (c == nullptr) {
+        LOG(ERROR) << "Can't find " << chat_id;
+      } else if (c->version >= c->pinned_message_version) {
+        LOG(INFO) << "Receive pinned " << pinned_message_id << " in " << chat_id << " with version " << c->version
+                  << ". Current version is " << c->pinned_message_version;
+        td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
+        if (c->version > c->pinned_message_version) {
+          c->pinned_message_version = c->version;
+          c->is_changed = true;
+          update_chat(c, chat_id);
+        }
+      }
     }
-    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
 
     ChatFull *chat = &chats_full_[chat_id];
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
@@ -8192,6 +8226,8 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     c->version = version;
     c->is_changed = true;
     if (user_id == get_my_id() && !c->status.is_creator()) {
+      // if chat with version was already received, then the update is already processed
+      // so we need to call on_update_chat_status only if version > c->version
       on_update_chat_status(c, chat_id, status);
     }
     update_chat(c, chat_id);
@@ -8280,6 +8316,8 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
     if (c->status.is_left()) {
       c->participant_count = 0;
       c->version = -1;
+      c->default_permissions_version = -1;
+      c->pinned_message_version = -1;
 
       invalidate_chat_full(chat_id);
     }
@@ -8300,14 +8338,14 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  LOG(INFO) << "Receive updateChatDefaultBannedRights in " << chat_id << " with " << default_permissions
-            << " and version " << version << ". Current version is " << version;
-
   auto c = get_chat_force(chat_id);
   if (c == nullptr) {
     LOG(INFO) << "Ignoring update about unknown " << chat_id;
     return;
   }
+
+  LOG(INFO) << "Receive updateChatDefaultBannedRights in " << chat_id << " with " << default_permissions
+            << " and version " << version << ". Current version is " << c->version;
 
   if (c->status.is_left()) {
     // possible if updates come out of order
@@ -8323,6 +8361,8 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
   CHECK(c->version >= 0);
 
   if (version > c->version) {
+    // this should be unreachable, because version and default permissions must be already updated from
+    // the chat object in on_chat_update
     if (version != c->version + 1) {
       LOG(WARNING) << "Default permissions of " << chat_id << " with version " << c->version
                    << " has changed but new version is " << version;
@@ -8336,19 +8376,65 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
         << ", but default_permissions are not changed. Current version is " << c->version;
     c->version = version;
     c->is_changed = true;
-    on_update_chat_default_permissions(c, chat_id, default_permissions);
+    on_update_chat_default_permissions(c, chat_id, default_permissions, version);
     update_chat(c, chat_id);
   }
 }
 
-void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id,
-                                                         RestrictedRights default_permissions) {
-  if (c->default_permissions != default_permissions) {
+void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions,
+                                                         int32 version) {
+  if (c->default_permissions != default_permissions && version >= c->default_permissions_version) {
     LOG(INFO) << "Update " << chat_id << " default permissions from " << c->default_permissions << " to "
-              << default_permissions;
+              << default_permissions << " and version from " << c->default_permissions_version << " to " << version;
     c->default_permissions = default_permissions;
+    c->default_permissions_version = version;
     c->is_default_permissions_changed = true;
     c->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version) {
+  if (!chat_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << chat_id;
+    return;
+  }
+  auto c = get_chat_force(chat_id);
+  if (c == nullptr) {
+    LOG(INFO) << "Ignoring update about unknown " << chat_id;
+    return;
+  }
+
+  LOG(INFO) << "Receive updateChatPinnedMessage in " << chat_id << " with " << pinned_message_id << " and version "
+            << version << ". Current version is " << c->version << "/" << c->pinned_message_version;
+
+  if (c->status.is_left()) {
+    // possible if updates come out of order
+    repair_chat_participants(chat_id);  // just in case
+    return;
+  }
+  if (version <= -1) {
+    LOG(ERROR) << "Receive wrong version " << version << " for " << chat_id;
+    return;
+  }
+  CHECK(c->version >= 0);
+
+  if (version >= c->pinned_message_version) {
+    if (version != c->version + 1 && version != c->version) {
+      LOG(WARNING) << "Pinned message of " << chat_id << " with version " << c->version
+                   << " has changed but new version is " << version;
+      repair_chat_participants(chat_id);
+    } else if (version == c->version + 1) {
+      c->version = version;
+      c->is_changed = true;
+    }
+    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
+    if (version > c->pinned_message_version) {
+      LOG(INFO) << "Change pinned message version of " << chat_id << " from " << c->pinned_message_version << " to "
+                << version;
+      c->pinned_message_version = version;
+      c->is_changed = true;
+    }
+    update_chat(c, chat_id);
   }
 }
 
@@ -9953,7 +10039,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     }
   }
 
-  Chat *c = add_chat(chat_id);
+  Chat *c = get_chat_force(chat_id);  // to load versions
+  if (c == nullptr) {
+    c = add_chat(chat_id);
+  }
   on_update_chat_title(c, chat_id, std::move(chat.title_));
   if (!status.is_left()) {
     on_update_chat_participant_count(c, chat_id, chat.participants_count_, chat.version_, debug_str);
@@ -9965,7 +10054,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     c->is_changed = true;
   }
   on_update_chat_status(c, chat_id, std::move(status));
-  on_update_chat_default_permissions(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)));
+  on_update_chat_default_permissions(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)),
+                                     chat.version_);
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);

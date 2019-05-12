@@ -20643,6 +20643,10 @@ void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, Mes
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
     return;
   }
+  if (!pinned_message_id.is_valid() && pinned_message_id != MessageId()) {
+    LOG(ERROR) << "Receive as pinned message " << pinned_message_id;
+    return;
+  }
 
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -20651,6 +20655,7 @@ void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, Mes
   }
 
   if (d->pinned_message_id == pinned_message_id) {
+    LOG(INFO) << "Pinned message in " << d->dialog_id << " is still " << pinned_message_id;
     if (!d->is_pinned_message_id_inited) {
       d->is_pinned_message_id_inited = true;
       on_dialog_updated(d->dialog_id, "set_dialog_is_pinned_message_id_inited");

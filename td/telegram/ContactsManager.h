@@ -172,6 +172,7 @@ class ContactsManager : public Actor {
   void on_update_chat_edit_administrator(ChatId chat_id, UserId user_id, bool is_administrator, int32 version);
   void on_update_chat_delete_user(ChatId chat_id, UserId user_id, int32 version);
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
+  void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
 
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
@@ -572,6 +573,8 @@ class ContactsManager : public Actor {
     int32 participant_count = 0;
     int32 date = 0;
     int32 version = -1;
+    int32 default_permissions_version = -1;
+    int32 pinned_message_version = -1;
     ChannelId migrated_to_channel_id;
 
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
@@ -890,7 +893,7 @@ class ContactsManager : public Actor {
   void invalidate_user_full(UserId user_id);
 
   void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
-  void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions);
+  void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
                                         const string &debug_str);
   void on_update_chat_photo(Chat *c, ChatId chat_id, tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
