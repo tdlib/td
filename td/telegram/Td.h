@@ -930,7 +930,9 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setBackground &request);
 
-  void on_request(uint64 id, td_api::removeBackground &request);
+  void on_request(uint64 id, const td_api::removeBackground &request);
+
+  void on_request(uint64 id, const td_api::resetBackgrounds &request);
 
   void on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request);
 

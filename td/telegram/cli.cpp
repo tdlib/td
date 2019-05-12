@@ -2003,6 +2003,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::backgroundTypePattern>(true, 0xabcdef, 49)));
     } else if (op == "rbg") {
       send_request(td_api::make_object<td_api::removeBackground>(to_integer<int64>(args)));
+    } else if (op == "rbgs") {
+      send_request(td_api::make_object<td_api::resetBackgrounds>());
     } else if (op == "gccode") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "git") {

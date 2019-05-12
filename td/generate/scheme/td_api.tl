@@ -3631,6 +3631,9 @@ setBackground background:InputBackground type:BackgroundType = Background;
 //@description Removes background from the list of installed backgrounds @background_id The background indentifier
 removeBackground background_id:int64 = Ok;
 
+//@description Resets list of installed backgrounds to its default value
+resetBackgrounds = Ok;
+
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests
 getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;

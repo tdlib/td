@@ -182,13 +182,43 @@ class SaveBackgroundQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for fave background: " << result;
+    LOG(INFO) << "Receive result for save background: " << result;
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
       LOG(ERROR) << "Receive error for save background: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ResetBackgroundsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ResetBackgroundsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_resetWallPapers())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::account_resetWallPapers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for reset backgrounds: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for reset backgrounds: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -686,6 +716,24 @@ void BackgroundManager::on_removed_background(BackgroundId background_id, Result
   if (background_id == set_background_id_) {
     set_background_id(BackgroundId(), BackgroundType());
   }
+  promise.set_value(Unit());
+}
+
+void BackgroundManager::reset_backgrounds(Promise<Unit> &&promise) {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &BackgroundManager::on_reset_background, std::move(result), std::move(promise));
+      });
+
+  td_->create_handler<ResetBackgroundsQuery>(std::move(query_promise))->send();
+}
+
+void BackgroundManager::on_reset_background(Result<Unit> &&result, Promise<Unit> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+  installed_background_ids_.clear();
+  set_background_id(BackgroundId(), BackgroundType());
   promise.set_value(Unit());
 }
 

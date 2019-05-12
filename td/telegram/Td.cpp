@@ -2956,6 +2956,16 @@ class RemoveBackgroundRequest : public RequestOnceActor {
   }
 };
 
+class ResetBackgroundsRequest : public RequestOnceActor {
+  void do_run(Promise<Unit> &&promise) override {
+    td->background_manager_->reset_backgrounds(std::move(promise));
+  }
+
+ public:
+  ResetBackgroundsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  }
+};
+
 class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
   string referrer_;
 
@@ -7025,9 +7035,14 @@ void Td::on_request(uint64 id, td_api::setBackground &request) {
   CREATE_REQUEST(SetBackgroundRequest, std::move(request.background_), std::move(request.type_));
 }
 
-void Td::on_request(uint64 id, td_api::removeBackground &request) {
+void Td::on_request(uint64 id, const td_api::removeBackground &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveBackgroundRequest, request.background_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(ResetBackgroundsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
