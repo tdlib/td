@@ -188,7 +188,8 @@ void CallActor::rate_call(int32 rating, string comment, Promise<> promise) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallRating"));
   }
   promise.set_value(Unit());
-  auto tl_query = telegram_api::phone_setCallRating(get_input_phone_call("rate_call"), rating, std::move(comment));
+  auto tl_query = telegram_api::phone_setCallRating(0, false /*ignored*/, get_input_phone_call("rate_call"), rating,
+                                                    std::move(comment));
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
                       send_closure(actor_id, &CallActor::on_set_rating_query_result, std::move(net_query));

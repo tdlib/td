@@ -3343,8 +3343,12 @@ class GetStatsUrlQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::messages_getStatsURL(std::move(input_peer)))));
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::messages_getStatsURL::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(create_storer(
+        telegram_api::messages_getStatsURL(flags, false /*ignored*/, std::move(input_peer), parameters))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -21,7 +21,7 @@ class HeaderStorer {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
-    constexpr int32 LAYER = 95;
+    constexpr int32 LAYER = 96;
 
     using td::store;
     // invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
