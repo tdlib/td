@@ -986,6 +986,9 @@ class CliClient final : public Actor {
     if (filter == "bot" || filter == "bots") {
       return td_api::make_object<td_api::chatMembersFilterBots>();
     }
+    if (filter == "c" || filter == "contacts") {
+      return td_api::make_object<td_api::chatMembersFilterContacts>();
+    }
     if (filter == "m" || filter == "members") {
       return td_api::make_object<td_api::chatMembersFilterMembers>();
     }

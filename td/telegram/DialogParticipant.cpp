@@ -684,6 +684,8 @@ DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_a
     return DialogParticipantsFilter::Members;
   }
   switch (filter->get_id()) {
+    case td_api::chatMembersFilterContacts::ID:
+      return DialogParticipantsFilter::Contacts;
     case td_api::chatMembersFilterAdministrators::ID:
       return DialogParticipantsFilter::Administrators;
     case td_api::chatMembersFilterMembers::ID:

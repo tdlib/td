@@ -400,7 +400,7 @@ class ChannelParticipantsFilter {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
-enum class DialogParticipantsFilter : int32 { Administrators, Members, Restricted, Banned, Bots };
+enum class DialogParticipantsFilter : int32 { Contacts, Administrators, Members, Restricted, Banned, Bots };
 
 DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
 

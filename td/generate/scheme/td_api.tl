@@ -373,6 +373,9 @@ chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;
 
 //@class ChatMembersFilter @description Specifies the kind of chat members to return in searchChatMembers
 
+//@description Returns contacts of the user
+chatMembersFilterContacts = ChatMembersFilter;
+
 //@description Returns the creator and administrators
 chatMembersFilterAdministrators = ChatMembersFilter;
 
@@ -394,7 +397,7 @@ chatMembersFilterBots = ChatMembersFilter;
 //@description Returns recently active users in reverse chronological order
 supergroupMembersFilterRecent = SupergroupMembersFilter;
 
-//@description Returns contacts, which are members of the supergroup or channel @query Query to search for
+//@description Returns contacts of the user, which are members of the supergroup or channel @query Query to search for
 supergroupMembersFilterContacts query:string = SupergroupMembersFilter;
 
 //@description Returns the creator and administrators

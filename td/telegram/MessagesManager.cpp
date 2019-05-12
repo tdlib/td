@@ -21824,6 +21824,11 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
     UserId my_user_id, UserId peer_user_id, const string &query, int32 limit, DialogParticipantsFilter filter) const {
   vector<UserId> user_ids;
   switch (filter) {
+    case DialogParticipantsFilter::Contacts:
+      if (td_->contacts_manager_->is_user_contact(peer_user_id)) {
+        user_ids.push_back(peer_user_id);
+      }
+      break;
     case DialogParticipantsFilter::Administrators:
       break;
     case DialogParticipantsFilter::Members:
@@ -21879,11 +21884,11 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
       string additional_query;
       int32 additional_limit = 0;
       switch (filter) {
+        case DialogParticipantsFilter::Contacts:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterContacts>();
+          break;
         case DialogParticipantsFilter::Administrators:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
-          additional_query = query;
-          additional_limit = limit;
-          limit = 100;
           break;
         case DialogParticipantsFilter::Members:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
@@ -21896,9 +21901,22 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
           break;
         case DialogParticipantsFilter::Bots:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
+          break;
+        default:
+          UNREACHABLE();
+      }
+      switch (filter) {
+        case DialogParticipantsFilter::Contacts:
+        case DialogParticipantsFilter::Administrators:
+        case DialogParticipantsFilter::Bots:
           additional_query = query;
           additional_limit = limit;
           limit = 100;
+          break;
+        case DialogParticipantsFilter::Members:
+        case DialogParticipantsFilter::Restricted:
+        case DialogParticipantsFilter::Banned:
+          // query is passed to the server request
           break;
         default:
           UNREACHABLE();

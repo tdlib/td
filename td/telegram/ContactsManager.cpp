@@ -7644,7 +7644,8 @@ void ContactsManager::on_get_channel_participants_success(
         (filter.is_contacts() && !is_user_contact(result.back().user_id)) ||
         (filter.is_restricted() && !result.back().status.is_restricted()) ||
         (filter.is_banned() && !result.back().status.is_banned())) {
-      bool skip_error = filter.is_administrators() && is_user_deleted(result.back().user_id);
+      bool skip_error = (filter.is_administrators() && is_user_deleted(result.back().user_id)) ||
+                        (filter.is_contacts() && result.back().user_id == get_my_id());
       if (!skip_error) {
         LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter << " in " << channel_id
                    << " with offset " << offset << " and limit " << limit;
@@ -9663,6 +9664,8 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
   auto is_dialog_participant_suitable = [this](const DialogParticipant &participant, DialogParticipantsFilter filter) {
     switch (filter) {
+      case DialogParticipantsFilter::Contacts:
+        return is_user_contact(participant.user_id);
       case DialogParticipantsFilter::Administrators:
         return participant.status.is_administrator();
       case DialogParticipantsFilter::Members:

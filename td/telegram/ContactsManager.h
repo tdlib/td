@@ -338,6 +338,8 @@ class ContactsManager : public Actor {
 
   vector<DialogId> get_created_public_dialogs(Promise<Unit> &&promise);
 
+  bool is_user_contact(UserId user_id) const;
+
   bool is_user_deleted(UserId user_id) const;
 
   bool is_user_bot(UserId user_id) const;
@@ -989,8 +991,6 @@ class ContactsManager : public Actor {
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const;
-
-  bool is_user_contact(UserId user_id) const;
 
   bool is_user_contact(const User *u, UserId user_id) const;
 
