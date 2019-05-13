@@ -496,8 +496,8 @@ void SecretChatActor::send_action(tl_object_ptr<secret_api::DecryptedMessageActi
 
 void SecretChatActor::binlog_replay_finish() {
   on_his_in_seq_no_updated();
-  LOG(INFO) << "Binlog replay is finished with SeqNoState=" << seq_no_state_;
-  LOG(INFO) << "Binlog replay is finished with PfsState=" << pfs_state_;
+  LOG(INFO) << "Binlog replay is finished with SeqNoState " << seq_no_state_;
+  LOG(INFO) << "Binlog replay is finished with PfsState " << pfs_state_;
   binlog_replay_finish_flag_ = true;
   if (auth_state_.state == State::Ready) {
     if (config_state_.my_layer < MY_LAYER) {
@@ -1947,8 +1947,8 @@ void SecretChatActor::start_up() {
 
   // auto end = Time::now();
   // CHECK(end - start < 0.2);
-  LOG(INFO) << "In start_up with SeqNoState=" << seq_no_state_;
-  LOG(INFO) << "In start_up with PfsState=" << pfs_state_;
+  LOG(INFO) << "In start_up with SeqNoState " << seq_no_state_;
+  LOG(INFO) << "In start_up with PfsState " << pfs_state_;
 }
 
 void SecretChatActor::get_dh_config() {

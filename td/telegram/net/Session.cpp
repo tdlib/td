@@ -864,7 +864,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
       message_id, Query{message_id, std::move(net_query), main_connection_.connection_id, Time::now_cached()});
   sent_queries_list_.put(status.first->second.get_list_node());
   if (!status.second) {
-    LOG(FATAL) << "Duplicate message_id oO [message_id=" << message_id << "]";
+    LOG(FATAL) << "Duplicate message_id [message_id = " << message_id << "]";
   }
 }
 

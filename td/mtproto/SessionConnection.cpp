@@ -433,7 +433,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::futu
 
 Status SessionConnection::on_msgs_state_info(const std::vector<int64> &ids, Slice info) {
   if (ids.size() != info.size()) {
-    return Status::Error(PSLICE() << tag("ids.size()", ids.size()) << "!=" << tag("info.size()", info.size()));
+    return Status::Error(PSLICE() << tag("ids.size()", ids.size()) << " != " << tag("info.size()", info.size()));
   }
   size_t i = 0;
   for (auto id : ids) {

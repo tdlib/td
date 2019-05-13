@@ -180,7 +180,7 @@ size_t Transport::calc_no_crypto_size(size_t data_size) {
 
 Status Transport::read_no_crypto(MutableSlice message, PacketInfo *info, MutableSlice *data) {
   if (message.size() < sizeof(NoCryptoHeader)) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size()=" << message.size()
+    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(NoCryptoHeader) = " << sizeof(NoCryptoHeader) << "]");
   }
   size_t data_size = message.size() - sizeof(NoCryptoHeader);
@@ -193,7 +193,7 @@ template <class HeaderT, class PrefixT>
 Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &auth_key, HeaderT **header_ptr,
                                    PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *info) {
   if (message.size() < sizeof(HeaderT)) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size()=" << message.size()
+    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(HeaderT) = " << sizeof(HeaderT) << "]");
   }
   //FIXME: rewrite without reinterpret cast
@@ -202,14 +202,14 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   auto to_decrypt = MutableSlice(header->encrypt_begin(), message.uend());
   to_decrypt = to_decrypt.truncate(to_decrypt.size() & ~15);
   if (to_decrypt.size() % 16 != 0) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: size of encrypted part is not multiple of 16 [size="
+    return Status::Error(PSLICE() << "Invalid mtproto message: size of encrypted part is not multiple of 16 [size = "
                                   << to_decrypt.size() << "]");
   }
 
   if (header->auth_key_id != auth_key.id()) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: auth_key_id mismatch [found="
+    return Status::Error(PSLICE() << "Invalid mtproto message: auth_key_id mismatch [found = "
                                   << format::as_hex(header->auth_key_id)
-                                  << "] [expected=" << format::as_hex(auth_key.id()) << "]");
+                                  << "] [expected = " << format::as_hex(auth_key.id()) << "]");
   }
 
   UInt256 aes_key;
@@ -249,9 +249,9 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   }
 
   if (!is_key_ok) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: message_key mismatch [found="
+    return Status::Error(PSLICE() << "Invalid mtproto message: message_key mismatch [found = "
                                   << format::as_hex_dump(header->message_key)
-                                  << "] [expected=" << format::as_hex_dump(real_message_key) << "]");
+                                  << "] [expected = " << format::as_hex_dump(real_message_key) << "]");
   }
 
   if (info->version == 2) {
@@ -405,7 +405,7 @@ size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key
 
 Result<uint64> Transport::read_auth_key_id(Slice message) {
   if (message.size() < 8) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 8 bytes [size=" << message.size() << "]");
+    return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 8 bytes [size = " << message.size() << "]");
   }
   return as<uint64>(message.begin());
 }
@@ -413,7 +413,8 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
 Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) {
   if (message.size() < 12) {
     if (message.size() < 4) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size=" << message.size() << "]");
+      return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size = " << message.size()
+                                    << "]");
     }
 
     int32 code = as<int32>(message.begin());
