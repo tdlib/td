@@ -490,7 +490,11 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::addNetworkStatistics &request);
 
-  void on_request(uint64 id, td_api::setNetworkType &request);
+  void on_request(uint64 id, const td_api::setNetworkType &request);
+
+  void on_request(uint64 id, const td_api::getAutoDownloadSettingsPresets &request);
+
+  void on_request(uint64 id, const td_api::setAutoDownloadSettings &request);
 
   void on_request(uint64 id, td_api::getTopChats &request);
 

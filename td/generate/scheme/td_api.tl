@@ -2373,9 +2373,26 @@ networkStatisticsEntryCall network_type:NetworkType sent_bytes:int53 received_by
 networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = NetworkStatistics;
 
 
+//@description Contains auto-download settings
+//@is_auto_download_enabled True, if the auto-download is enabled
+//@max_photo_file_size Maximum size of a photo file to be auto-downloaded
+//@max_video_file_size Maximum size of a video file to be auto-downloaded
+//@max_other_file_size Maximum size of other file types to be auto-downloaded
+//@preload_large_videos True, if the beginning of videos needs to be preloaded for instant playback
+//@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
+//@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
+autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int32 max_other_file_size:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
+
+//@description Contains preset auto-download settings for the user
+//@low Preset with lowest settings; supposed to be used by default when roaming
+//@medium Preset with medium settings; supposed to be used by default when using mobile data
+//@high Preset with highest settings; supposed to be used by default when connected on Wi-Fi
+autoDownloadSettingsPresets low:autoDownloadSettings medium:autoDownloadSettings high:autoDownloadSettings = AutoDownloadSettingsPresets;
+
+
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers
 
-//@description Currently waiting for the network to become available. Use SetNetworkType to change the available network type
+//@description Currently waiting for the network to become available. Use setNetworkType to change the available network type
 connectionStateWaitingForNetwork = ConnectionState;
 
 //@description Currently establishing a connection with a proxy server
@@ -3754,6 +3771,12 @@ addNetworkStatistics entry:NetworkStatisticsEntry = Ok;
 
 //@description Resets all network data usage statistics to zero. Can be called before authorization
 resetNetworkStatistics = Ok;
+
+//@description Returns auto-download settings presets for the currently logged in user
+getAutoDownloadSettingsPresets = AutoDownloadSettingsPresets;
+
+//@description Sets auto-download settings @settings New user auto-download settings @type Type of the network for which the new settings are applied
+setAutoDownloadSettings settings:autoDownloadSettings type:NetworkType = Ok;
 
 
 //@description Returns one of the available Telegram Passport elements @type Telegram Passport element type @password Password of the current user

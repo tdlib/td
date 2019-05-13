@@ -2114,6 +2114,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::resetNetworkStatistics>());
     } else if (op == "snt") {
       send_request(td_api::make_object<td_api::setNetworkType>(get_network_type(args)));
+    } else if (op == "gadsp") {
+      send_request(td_api::make_object<td_api::getAutoDownloadSettingsPresets>());
+    } else if (op == "sads") {
+      send_request(td_api::make_object<td_api::setAutoDownloadSettings>(
+          td_api::make_object<td_api::autoDownloadSettings>(), get_network_type(args)));
     } else if (op == "ansc") {
       string sent_bytes;
       string received_bytes;

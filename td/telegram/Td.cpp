@@ -10,6 +10,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/AutoDownloadSettings.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
@@ -5182,10 +5183,26 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
-void Td::on_request(uint64 id, td_api::setNetworkType &request) {
+void Td::on_request(uint64 id, const td_api::setNetworkType &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(state_manager_, &StateManager::on_network, from_td_api(request.type_));
   promise.set_value(Unit());
+}
+
+void Td::on_request(uint64 id, const td_api::getAutoDownloadSettingsPresets &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_auto_download_settings_presets(this, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::setAutoDownloadSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  if (request.settings_ == nullptr) {
+    return send_error_raw(id, 400, "New settings must be non-empty");
+  }
+  set_auto_download_settings(this, from_td_api(request.type_), get_auto_download_settings(request.settings_),
+                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getTopChats &request) {

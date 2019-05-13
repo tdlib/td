@@ -88,7 +88,7 @@ class NetStatsManager : public Actor {
     switch (type) {
       case NetType::Other:
         return CSlice("other");
-      case NetType::Wifi:
+      case NetType::WiFi:
         return CSlice("wifi");
       case NetType::Mobile:
         return CSlice("mobile");
