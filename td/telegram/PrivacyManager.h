@@ -38,7 +38,15 @@ class PrivacyManager : public NetQueryCallback {
  private:
   class UserPrivacySetting {
    public:
-    enum class Type : int32 { UserState, ChatInvite, Call, PeerToPeerCall, Size };
+    enum class Type : int32 {
+      UserStatus,
+      ChatInvite,
+      Call,
+      PeerToPeerCall,
+      LinkInForwardedMessages,
+      UserProfilePhoto,
+      Size
+    };
 
     static Result<UserPrivacySetting> from_td_api(tl_object_ptr<td_api::UserPrivacySetting> key);
     explicit UserPrivacySetting(const telegram_api::PrivacyKey &key);

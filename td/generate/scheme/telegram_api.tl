@@ -420,11 +420,15 @@ inputPrivacyKeyStatusTimestamp#4f96cb18 = InputPrivacyKey;
 inputPrivacyKeyChatInvite#bdfb0426 = InputPrivacyKey;
 inputPrivacyKeyPhoneCall#fabadc5f = InputPrivacyKey;
 inputPrivacyKeyPhoneP2P#db9e70d2 = InputPrivacyKey;
+inputPrivacyKeyForwards#a4dd4c08 = InputPrivacyKey;
+inputPrivacyKeyProfilePhoto#5719bacc = InputPrivacyKey;
 
 privacyKeyStatusTimestamp#bc2eab30 = PrivacyKey;
 privacyKeyChatInvite#500e6dfa = PrivacyKey;
 privacyKeyPhoneCall#3d662b7b = PrivacyKey;
 privacyKeyPhoneP2P#39491cc8 = PrivacyKey;
+privacyKeyForwards#69ec56a3 = PrivacyKey;
+privacyKeyProfilePhoto#96151fed = PrivacyKey;
 
 inputPrivacyValueAllowContacts#d09e07b = InputPrivacyRule;
 inputPrivacyValueAllowAll#184b35ce = InputPrivacyRule;
@@ -496,7 +500,7 @@ inputStickerSetEmpty#ffb62b95 = InputStickerSet;
 inputStickerSetID#9de7a269 id:long access_hash:long = InputStickerSet;
 inputStickerSetShortName#861cc8a0 short_name:string = InputStickerSet;
 
-stickerSet#5585a139 flags:# archived:flags.1?true official:flags.2?true masks:flags.3?true installed_date:flags.0?int id:long access_hash:long title:string short_name:string count:int hash:int = StickerSet;
+stickerSet#6a90bcb7 flags:# archived:flags.1?true official:flags.2?true masks:flags.3?true installed_date:flags.0?int id:long access_hash:long title:string short_name:string thumb:flags.4?PhotoSize count:int hash:int = StickerSet;
 
 messages.stickerSet#b60a24a6 set:StickerSet packs:Vector<StickerPack> documents:Vector<Document> = messages.StickerSet;
 
@@ -606,7 +610,7 @@ messages.botResults#947ca848 flags:# gallery:flags.0?true query_id:long next_off
 
 exportedMessageLink#5dab1af4 link:string html:string = ExportedMessageLink;
 
-messageFwdHeader#559ebe6d flags:# from_id:flags.0?int date:int channel_id:flags.1?int channel_post:flags.2?int post_author:flags.3?string saved_from_peer:flags.4?Peer saved_from_msg_id:flags.4?int = MessageFwdHeader;
+messageFwdHeader#ec338270 flags:# from_id:flags.0?int from_name:flags.5?string date:int channel_id:flags.1?int channel_post:flags.2?int post_author:flags.3?string saved_from_peer:flags.4?Peer saved_from_msg_id:flags.4?int = MessageFwdHeader;
 
 auth.codeTypeSms#72a3158c = auth.CodeType;
 auth.codeTypeCall#741cd3e3 = auth.CodeType;
@@ -1000,6 +1004,15 @@ autoDownloadSettings#d246fd47 flags:# disabled:flags.0?true video_preload_large:
 
 account.autoDownloadSettings#63cacf26 low:AutoDownloadSettings medium:AutoDownloadSettings high:AutoDownloadSettings = account.AutoDownloadSettings;
 
+emojiKeyword#d5b3b9f9 keyword:string emoticons:Vector<string> = EmojiKeyword;
+emojiKeywordDeleted#236df622 keyword:string emoticons:Vector<string> = EmojiKeyword;
+
+emojiKeywordsDifference#5cc761bd lang_code:string from_version:int version:int keywords:Vector<EmojiKeyword> = EmojiKeywordsDifference;
+
+emojiURL#a575739d url:string = EmojiURL;
+
+emojiLanguage#b3fb5361 lang_code:string = EmojiLanguage;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -1210,6 +1223,10 @@ messages.getOnlines#6e2be050 peer:InputPeer = ChatOnlines;
 messages.getStatsURL#812c2ae6 flags:# dark:flags.0?true peer:InputPeer params:string = StatsURL;
 messages.editChatAbout#def60797 peer:InputPeer about:string = Bool;
 messages.editChatDefaultBannedRights#a5866b41 peer:InputPeer banned_rights:ChatBannedRights = Updates;
+messages.getEmojiKeywords#35a0e062 lang_code:string = EmojiKeywordsDifference;
+messages.getEmojiKeywordsDifference#1508b6af lang_code:string from_version:int = EmojiKeywordsDifference;
+messages.getEmojiKeywordsLanguages#4e9963b2 lang_codes:Vector<string> = Vector<EmojiLanguage>;
+messages.getEmojiURL#d5b10c26 lang_code:string = EmojiURL;
 
 updates.getState#edd4882a = updates.State;
 updates.getDifference#25939651 flags:# pts:int pts_total_limit:flags.0?int date:int qts:int = updates.Difference;

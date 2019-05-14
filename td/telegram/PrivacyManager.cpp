@@ -27,10 +27,11 @@ Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::f
   }
   return UserPrivacySetting(*key);
 }
+
 PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
   switch (key.get_id()) {
     case telegram_api::privacyKeyStatusTimestamp::ID:
-      type_ = Type::UserState;
+      type_ = Type::UserStatus;
       break;
     case telegram_api::privacyKeyChatInvite::ID:
       type_ = Type::ChatInvite;
@@ -41,14 +42,21 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyPhoneP2P::ID:
       type_ = Type::PeerToPeerCall;
       break;
+    case telegram_api::privacyKeyForwards::ID:
+      type_ = Type::LinkInForwardedMessages;
+      break;
+    case telegram_api::privacyKeyProfilePhoto::ID:
+      type_ = Type::UserProfilePhoto;
+      break;
     default:
       UNREACHABLE();
-      type_ = Type::UserState;
+      type_ = Type::UserStatus;
   }
 }
+
 tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as_td_api() const {
   switch (type_) {
-    case Type::UserState:
+    case Type::UserStatus:
       return make_tl_object<td_api::userPrivacySettingShowStatus>();
     case Type::ChatInvite:
       return make_tl_object<td_api::userPrivacySettingAllowChatInvites>();
@@ -56,6 +64,10 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
       return make_tl_object<td_api::userPrivacySettingAllowCalls>();
     case Type::PeerToPeerCall:
       return make_tl_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
+    case Type::LinkInForwardedMessages:
+      return make_tl_object<td_api::userPrivacySettingShowLinkInForwardedMessages>();
+    case Type::UserProfilePhoto:
+      return make_tl_object<td_api::userPrivacySettingShowProfilePhoto>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -63,7 +75,7 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
 }
 tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting::as_telegram_api() const {
   switch (type_) {
-    case Type::UserState:
+    case Type::UserStatus:
       return make_tl_object<telegram_api::inputPrivacyKeyStatusTimestamp>();
     case Type::ChatInvite:
       return make_tl_object<telegram_api::inputPrivacyKeyChatInvite>();
@@ -71,6 +83,10 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
       return make_tl_object<telegram_api::inputPrivacyKeyPhoneCall>();
     case Type::PeerToPeerCall:
       return make_tl_object<telegram_api::inputPrivacyKeyPhoneP2P>();
+    case Type::LinkInForwardedMessages:
+      return make_tl_object<telegram_api::inputPrivacyKeyForwards>();
+    case Type::UserProfilePhoto:
+      return make_tl_object<telegram_api::inputPrivacyKeyProfilePhoto>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -80,7 +96,7 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
 PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacySetting &key) {
   switch (key.get_id()) {
     case td_api::userPrivacySettingShowStatus::ID:
-      type_ = Type::UserState;
+      type_ = Type::UserStatus;
       break;
     case td_api::userPrivacySettingAllowChatInvites::ID:
       type_ = Type::ChatInvite;
@@ -91,9 +107,15 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacy
     case td_api::userPrivacySettingAllowPeerToPeerCalls::ID:
       type_ = Type::PeerToPeerCall;
       break;
+    case td_api::userPrivacySettingShowLinkInForwardedMessages::ID:
+      type_ = Type::LinkInForwardedMessages;
+      break;
+    case td_api::userPrivacySettingShowProfilePhoto::ID:
+      type_ = Type::UserProfilePhoto;
+      break;
     default:
       UNREACHABLE();
-      type_ = Type::UserState;
+      type_ = Type::UserStatus;
   }
 }
 
@@ -368,7 +390,7 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
                  make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.as_td_api(),
                                                                        info.rules.as_td_api()));
 
-    if ((from_update || was_synchronized) && user_privacy_setting.type() == UserPrivacySetting::Type::UserState) {
+    if ((from_update || was_synchronized) && user_privacy_setting.type() == UserPrivacySetting::Type::UserStatus) {
       send_closure(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
     }
   }

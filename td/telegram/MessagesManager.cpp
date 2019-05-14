@@ -3569,6 +3569,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_send_date = message_id.is_yet_unsent() && send_date != 0;
   bool has_flags2 = true;
   bool has_notification_id = notification_id.is_valid();
+  bool has_forward_sender_name = is_forwarded && !forward_info->sender_name.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3606,6 +3607,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_notification_id);
     STORE_FLAG(is_mention_notification_disabled);
     STORE_FLAG(had_forward_info);
+    STORE_FLAG(has_forward_sender_name);
     END_STORE_FLAGS();
   }
 
@@ -3630,6 +3632,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
     store(forward_info->message_id, storer);
     if (has_forward_author_signature) {
       store(forward_info->author_signature, storer);
+    }
+    if (has_forward_sender_name) {
+      store(forward_info->sender_name, storer);
     }
     if (has_forward_from) {
       store(forward_info->from_dialog_id, storer);
@@ -3695,6 +3700,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_send_date;
   bool has_flags2;
   bool has_notification_id = false;
+  bool has_forward_sender_name = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3732,6 +3738,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_notification_id);
     PARSE_FLAG(is_mention_notification_disabled);
     PARSE_FLAG(had_forward_info);
+    PARSE_FLAG(has_forward_sender_name);
     END_PARSE_FLAGS();
   }
 
@@ -3761,6 +3768,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(forward_info->message_id, parser);
     if (has_forward_author_signature) {
       parse(forward_info->author_signature, parser);
+    }
+    if (has_forward_sender_name) {
+      parse(forward_info->sender_name, parser);
     }
     if (has_forward_from) {
       parse(forward_info->from_dialog_id, parser);
@@ -17788,8 +17798,12 @@ tl_object_ptr<td_api::gameHighScores> MessagesManager::get_game_high_scores_obje
 }
 
 bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *forward_info) {
-  return forward_info->dialog_id == DialogId(static_cast<int64>(-1001228946795ll)) &&
-         !forward_info->author_signature.empty() && !forward_info->message_id.is_valid();
+  if (!forward_info->sender_name.empty()) {
+    return true;
+  }
+  DialogId hidden_sender_dialog_id(static_cast<int64>(G()->is_test_dc() ? -1000010460537ll : -1001228946795ll));
+  return forward_info->dialog_id == hidden_sender_dialog_id && !forward_info->author_signature.empty() &&
+         !forward_info->message_id.is_valid();
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_forward_info(
@@ -17810,6 +17824,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   string author_signature;
   DialogId from_dialog_id;
   MessageId from_message_id;
+  string sender_name;
   if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_ID) != 0) {
     sender_user_id = UserId(forward_header->from_id_);
     if (!sender_user_id.is_valid()) {
@@ -17843,6 +17858,9 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       from_message_id = MessageId();
     }
   }
+  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_SENDER_NAME) != 0) {
+    sender_name = std::move(forward_header->from_name_);
+  }
 
   DialogId dialog_id;
   if (!channel_id.is_valid()) {
@@ -17851,7 +17869,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
         LOG(ERROR) << "Receive non-empty message id in message forward header: " << oneline(to_string(forward_header));
         message_id = MessageId();
       }
-    } else {
+    } else if (sender_name.empty()) {
       LOG(ERROR) << "Receive wrong message forward header: " << oneline(to_string(forward_header));
       return nullptr;
     }
@@ -17869,7 +17887,8 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   }
 
   return td::make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, dialog_id, message_id,
-                                             author_signature, from_dialog_id, from_message_id);
+                                             std::move(author_signature), std::move(sender_name), from_dialog_id,
+                                             from_message_id);
 }
 
 td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forward_info_object(
@@ -17880,7 +17899,8 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
 
   auto origin = [&]() -> td_api::object_ptr<td_api::MessageForwardOrigin> {
     if (is_forward_info_sender_hidden(forward_info.get())) {
-      return td_api::make_object<td_api::messageForwardOriginHiddenUser>(forward_info->author_signature);
+      return td_api::make_object<td_api::messageForwardOriginHiddenUser>(
+          forward_info->sender_name.empty() ? forward_info->author_signature : forward_info->sender_name);
     }
     if (forward_info->dialog_id.is_valid()) {
       return td_api::make_object<td_api::messageForwardOriginChannel>(
@@ -18136,14 +18156,14 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                           : forwarded_message->author_signature;
               forward_info = td::make_unique<MessageForwardInfo>(
                   UserId(), forwarded_message->date, from_dialog_id, forwarded_message->message_id,
-                  std::move(author_signature), saved_from_dialog_id, saved_from_message_id);
+                  std::move(author_signature), "", saved_from_dialog_id, saved_from_message_id);
             } else {
               LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
             }
           } else if (forwarded_message->sender_user_id.is_valid()) {
             forward_info =
                 make_unique<MessageForwardInfo>(forwarded_message->sender_user_id, forwarded_message->date, DialogId(),
-                                                MessageId(), "", saved_from_dialog_id, saved_from_message_id);
+                                                MessageId(), "", "", saved_from_dialog_id, saved_from_message_id);
           } else {
             LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
           }

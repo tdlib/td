@@ -2195,6 +2195,12 @@ userPrivacySettingRules rules:vector<UserPrivacySettingRule> = UserPrivacySettin
 //@description A privacy setting for managing whether the user's online status is visible
 userPrivacySettingShowStatus = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user's profile photo is visible
+userPrivacySettingShowProfilePhoto = UserPrivacySetting;
+
+//@description A privacy setting for managing whether the user account can be linked in forwarded messages
+userPrivacySettingShowLinkInForwardedMessages = UserPrivacySetting;
+
 //@description A privacy setting for managing whether the user can be invited to chats
 userPrivacySettingAllowChatInvites = UserPrivacySetting;
 

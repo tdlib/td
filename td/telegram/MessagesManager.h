@@ -146,6 +146,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID = 1 << 2;
   static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 3;
   static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_SAVED_FROM = 1 << 4;
+  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_SENDER_NAME = 1 << 5;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -800,18 +801,20 @@ class MessagesManager : public Actor {
     DialogId dialog_id;
     MessageId message_id;
     string author_signature;
+    string sender_name;
     DialogId from_dialog_id;
     MessageId from_message_id;
 
     MessageForwardInfo() = default;
 
     MessageForwardInfo(UserId sender_user_id, int32 date, DialogId dialog_id, MessageId message_id,
-                       string author_signature, DialogId from_dialog_id, MessageId from_message_id)
+                       string author_signature, string sender_name, DialogId from_dialog_id, MessageId from_message_id)
         : sender_user_id(sender_user_id)
         , date(date)
         , dialog_id(dialog_id)
         , message_id(message_id)
         , author_signature(std::move(author_signature))
+        , sender_name(std::move(sender_name))
         , from_dialog_id(from_dialog_id)
         , from_message_id(from_message_id) {
     }
@@ -819,7 +822,8 @@ class MessagesManager : public Actor {
     bool operator==(const MessageForwardInfo &rhs) const {
       return sender_user_id == rhs.sender_user_id && date == rhs.date && dialog_id == rhs.dialog_id &&
              message_id == rhs.message_id && author_signature == rhs.author_signature &&
-             from_dialog_id == rhs.from_dialog_id && from_message_id == rhs.from_message_id;
+             sender_name == rhs.sender_name && from_dialog_id == rhs.from_dialog_id &&
+             from_message_id == rhs.from_message_id;
     }
 
     bool operator!=(const MessageForwardInfo &rhs) const {
@@ -828,9 +832,10 @@ class MessagesManager : public Actor {
 
     friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
       return string_builder << "MessageForwardInfo[sender " << forward_info.sender_user_id << "("
-                            << forward_info.author_signature << "), source " << forward_info.dialog_id << ", source "
-                            << forward_info.message_id << ", from " << forward_info.from_dialog_id << ", from "
-                            << forward_info.from_message_id << " at " << forward_info.date << "]";
+                            << forward_info.author_signature << "/" << forward_info.sender_name << "), source "
+                            << forward_info.dialog_id << ", source " << forward_info.message_id << ", from "
+                            << forward_info.from_dialog_id << ", from " << forward_info.from_message_id << " at "
+                            << forward_info.date << "]";
     }
   };
 

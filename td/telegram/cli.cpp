@@ -917,6 +917,12 @@ class CliClient final : public Actor {
     if (setting == "p2p") {
       return td_api::make_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
     }
+    if (setting == "forward") {
+      return td_api::make_object<td_api::userPrivacySettingShowLinkInForwardedMessages>();
+    }
+    if (setting == "photo") {
+      return td_api::make_object<td_api::userPrivacySettingShowProfilePhoto>();
+    }
     return nullptr;
   }
 
@@ -1529,7 +1535,9 @@ class CliClient final : public Actor {
       std::tie(setting, allow) = split(args);
 
       std::vector<tl_object_ptr<td_api::UserPrivacySettingRule>> rules;
-      if (as_bool(allow)) {
+      if (allow == "c" || allow == "contacts") {
+        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
+      } else if (as_bool(allow)) {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
       } else {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
