@@ -6,6 +6,8 @@
 //
 #include "td/telegram/BackgroundType.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 string BackgroundType::get_color_hex_string() const {

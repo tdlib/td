@@ -94,7 +94,7 @@ while True:
             if auth_state['@type'] == 'authorizationStateClosed':
                 break
 
-            # set tdlib parameters
+            # set TDLib parameters
             # you MUST obtain your own api_id and api_hash at https://my.telegram.org
             # and use them in the setTdlibParameters call
             if auth_state['@type'] == 'authorizationStateWaitTdlibParameters':
@@ -110,7 +110,7 @@ while True:
                                                        'application_version': '1.0',
                                                        'enable_storage_optimizer': True}})
 
-            # set an encryption key for database to let know tdlib how to open the database
+            # set an encryption key for database to let know TDLib how to open the database
             if auth_state['@type'] == 'authorizationStateWaitEncryptionKey':
                 td_send({'@type': 'checkDatabaseEncryptionKey', 'key': 'my_key'})
 

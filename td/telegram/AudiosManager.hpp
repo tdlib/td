@@ -10,6 +10,7 @@
 
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
