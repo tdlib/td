@@ -156,6 +156,9 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
     });
     auto passed = Time::now() - start;
     LOG_IF(INFO, passed > 0.5) << "Get file stats took: " << format::as_time(passed);
+    if (token_) {
+      return promise.set_error(Status::Error(500, "Request aborted"));
+    }
     promise.set_value(std::move(file_stats));
   } else {
     auto start = Time::now();
@@ -174,11 +177,18 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       full_infos.push_back(std::move(info));
     });
 
+    if (token_) {
+      return promise.set_error(Status::Error(500, "Request aborted"));
+    }
+
     std::unordered_map<size_t, size_t> hash_to_pos;
     size_t pos = 0;
     for (auto &full_info : full_infos) {
       hash_to_pos[std::hash<std::string>()(full_info.path)] = pos;
       pos++;
+      if (token_) {
+        return promise.set_error(Status::Error(500, "Request aborted"));
+      }
     }
     scan_db(token_, [&](DbFileInfo &db_info) {
       auto it = hash_to_pos.find(std::hash<std::string>()(db_info.path));
@@ -188,12 +198,18 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       // LOG(INFO) << "Match! " << db_info.path << " from " << db_info.owner_dialog_id;
       full_infos[it->second].owner_dialog_id = db_info.owner_dialog_id;
     });
+    if (token_) {
+      return promise.set_error(Status::Error(500, "Request aborted"));
+    }
 
     FileStats file_stats;
     file_stats.need_all_files = need_all_files;
     file_stats.split_by_owner_dialog_id = split_by_owner_dialog_id;
     for (auto &full_info : full_infos) {
       file_stats.add(std::move(full_info));
+      if (token_) {
+        return promise.set_error(Status::Error(500, "Request aborted"));
+      }
     }
     auto passed = Time::now() - start;
     LOG_IF(INFO, passed > 0.5) << "Get file stats took: " << format::as_time(passed);
