@@ -290,12 +290,12 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, FileType fi
                                           std::string upload_file_reference, DialogId owner_dialog_id,
                                           tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp,
                                           bool is_png) {
+  CHECK(size_ptr != nullptr);
+
   tl_object_ptr<telegram_api::FileLocation> location_ptr;
   string type;
-
   PhotoSize res;
   BufferSlice content;
-
   switch (size_ptr->get_id()) {
     case telegram_api::photoSizeEmpty::ID:
       return std::move(res);

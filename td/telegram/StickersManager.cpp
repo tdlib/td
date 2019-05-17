@@ -1622,19 +1622,22 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
   bool is_official = (set->flags_ & telegram_api::stickerSet::OFFICIAL_MASK) != 0;
   bool is_masks = (set->flags_ & telegram_api::stickerSet::MASKS_MASK) != 0;
 
-  auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
-                                   std::move(set->thumb_), true, false);
   PhotoSize thumbnail;
-  if (photo_size.get_offset() == 0) {
-    thumbnail = std::move(photo_size.get<0>());
-  } else {
-    LOG(ERROR) << "Receive minithumbnail for a sticker set " << set_id;
+  if (set->thumb_ != nullptr) {
+    auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
+                                     std::move(set->thumb_), true, false);
+    if (photo_size.get_offset() == 0) {
+      thumbnail = std::move(photo_size.get<0>());
+    } else {
+      LOG(ERROR) << "Receive minithumbnail for a sticker set " << set_id;
+    }
   }
   if (!s->is_inited) {
     s->is_inited = true;
     s->title = std::move(set->title_);
     s->short_name = std::move(set->short_name_);
     s->thumbnail = std::move(thumbnail);
+    s->is_thumbnail_reloaded = true;
     s->sticker_count = set->count_;
     s->hash = set->hash_;
     s->is_official = is_official;
@@ -1670,6 +1673,10 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
     if (s->thumbnail != thumbnail) {
       LOG(INFO) << "Sticker set " << set_id << " thumbnail has changed from " << s->thumbnail << " to " << thumbnail;
       s->thumbnail = std::move(thumbnail);
+      s->is_changed = true;
+    }
+    if (!s->is_thumbnail_reloaded) {
+      s->is_thumbnail_reloaded = true;
       s->is_changed = true;
     }
 
@@ -2769,6 +2776,9 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
                  << format::as_hex_dump<4>(Slice(value));
     }
     status.ensure();
+  }
+  if (!sticker_set->is_thumbnail_reloaded) {
+    reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
   if (with_stickers && old_sticker_count < 5 && old_sticker_count < sticker_set->sticker_ids.size()) {

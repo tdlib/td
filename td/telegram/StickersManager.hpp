@@ -122,6 +122,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(sticker_set->is_viewed);
   STORE_FLAG(has_expires_at);
   STORE_FLAG(has_thumbnail);
+  STORE_FLAG(sticker_set->is_thumbnail_reloaded);
   END_STORE_FLAGS();
   store(sticker_set->id, storer);
   store(sticker_set->access_hash, storer);
@@ -177,6 +178,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(sticker_set->is_viewed);
   PARSE_FLAG(has_expires_at);
   PARSE_FLAG(has_thumbnail);
+  PARSE_FLAG(sticker_set->is_thumbnail_reloaded);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;

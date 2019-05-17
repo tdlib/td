@@ -287,6 +287,7 @@ class StickersManager : public Actor {
     bool is_official = false;
     bool is_masks = false;
     bool is_viewed = true;
+    bool is_thumbnail_reloaded = false;
     bool is_changed = true;
 
     vector<uint32> load_requests;
