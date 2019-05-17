@@ -1953,7 +1953,7 @@ pushReceiverId id:int64 = PushReceiverId;
 //@is_moving True, if the background needs to be slightly moved when device is rotated
 backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 
-//@description A PNG pattern to be combined with the chosen by the user color
+//@description A PNG pattern to be combined with the color chosen by the user
 //@is_moving True, if the background needs to be slightly moved when device is rotated
 //@color Main color of the background in RGB24 format
 //@intensity Intensity of the pattern when it is shown above the main background color, 0-100
@@ -3654,7 +3654,7 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 //@description Searches for a background by its name @name The name of the background
 searchBackground name:string = Background;
 
-//@description Sets background as a selected by the user background; adds background to the list of installed backgrounds
+//@description Changes selected by the user background; adds background to the list of installed backgrounds
 //@background The input background to use, null for solid backgrounds @type Background type
 setBackground background:InputBackground type:BackgroundType = Background;
 
