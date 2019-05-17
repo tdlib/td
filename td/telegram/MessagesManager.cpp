@@ -11779,10 +11779,15 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 }
 
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
-  auto dialog_dates = transform(dialog_ids, [this](auto dialog_id) {
-    const Dialog *d = this->get_dialog(dialog_id);
+  int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
+  auto dialog_dates = transform(dialog_ids, [this, &fake_order](DialogId dialog_id) {
+    const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    return DialogDate(d->order, dialog_id);
+    if (is_dialog_inited(d) || d->order != DEFAULT_ORDER) {
+      return DialogDate(d->order, dialog_id);
+    }
+    // if the dialog is not inited yet, we need to assume that server knows better and the dialog needs to be returned
+    return DialogDate(fake_order--, dialog_id);
   });
   if (static_cast<size_t>(limit) >= dialog_dates.size()) {
     std::sort(dialog_dates.begin(), dialog_dates.end());
