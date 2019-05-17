@@ -276,6 +276,8 @@ class StickersManager : public Actor {
     int32 hash = 0;
     int32 expires_at = 0;
 
+    PhotoSize thumbnail;
+
     vector<FileId> sticker_ids;
     std::unordered_map<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
     std::unordered_map<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis

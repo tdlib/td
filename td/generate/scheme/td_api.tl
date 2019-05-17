@@ -1554,15 +1554,19 @@ stickers stickers:vector<sticker> = Stickers;
 //@description Represents a list of all emoji corresponding to a sticker in a sticker set. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object @emojis List of emojis
 stickerEmojis emojis:vector<string> = StickerEmojis;
 
-//@description Represents a sticker set @id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @is_installed True, if the sticker set has been installed by the current user
-//@is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously @is_official True, if the sticker set is official @is_masks True, if the stickers in the set are masks
-//@is_viewed True for already viewed trending sticker sets @stickers List of stickers in this set @emojis A list of emoji corresponding to the stickers in the same order
-stickerSet id:int64 title:string name:string is_installed:Bool is_archived:Bool is_official:Bool is_masks:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<stickerEmojis> = StickerSet;
+//@description Represents a sticker set
+//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format; may be null
+//@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
+//@is_official True, if the sticker set is official @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
+//@stickers List of stickers in this set @emojis A list of emoji corresponding to the stickers in the same order
+stickerSet id:int64 title:string name:string thumbnail:photoSize is_installed:Bool is_archived:Bool is_official:Bool is_masks:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<stickerEmojis> = StickerSet;
 
-//@description Represents short information about a sticker set @id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @is_installed True, if the sticker set has been installed by current user
-//@is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously @is_official True, if the sticker set is official @is_masks True, if the stickers in the set are masks
-//@is_viewed True for already viewed trending sticker sets @size Total number of stickers in the set @covers Contains up to the first 5 stickers from the set, depending on the context. If the client needs more stickers the full set should be requested
-stickerSetInfo id:int64 title:string name:string is_installed:Bool is_archived:Bool is_official:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
+//@description Represents short information about a sticker set
+//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format; may be null
+//@is_installed True, if the sticker set has been installed by current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
+//@is_official True, if the sticker set is official @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
+//@size Total number of stickers in the set @covers Contains up to the first 5 stickers from the set, depending on the context. If the client needs more stickers the full set should be requested
+stickerSetInfo id:int64 title:string name:string thumbnail:photoSize is_installed:Bool is_archived:Bool is_official:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
 
 //@description Represents a list of sticker sets @total_count Approximate total number of sticker sets found @sets List of sticker sets
 stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;

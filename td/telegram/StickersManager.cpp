@@ -1005,6 +1005,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(int64 
     }
   }
   return make_tl_object<td_api::stickerSet>(sticker_set->id, sticker_set->title, sticker_set->short_name,
+                                            get_photo_size_object(td_->file_manager_.get(), &sticker_set->thumbnail),
                                             sticker_set->is_installed && !sticker_set->is_archived,
                                             sticker_set->is_archived, sticker_set->is_official, sticker_set->is_masks,
                                             sticker_set->is_viewed, std::move(stickers), std::move(emojis));
@@ -1048,6 +1049,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
 
   return make_tl_object<td_api::stickerSetInfo>(
       sticker_set->id, sticker_set->title, sticker_set->short_name,
+      get_photo_size_object(td_->file_manager_.get(), &sticker_set->thumbnail),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
       sticker_set->is_masks, sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,
@@ -1620,10 +1622,19 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
   bool is_official = (set->flags_ & telegram_api::stickerSet::OFFICIAL_MASK) != 0;
   bool is_masks = (set->flags_ & telegram_api::stickerSet::MASKS_MASK) != 0;
 
+  auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
+                                   std::move(set->thumb_), true, false);
+  PhotoSize thumbnail;
+  if (photo_size.get_offset() == 0) {
+    thumbnail = std::move(photo_size.get<0>());
+  } else {
+    LOG(ERROR) << "Receive minithumbnail for a sticker set " << set_id;
+  }
   if (!s->is_inited) {
     s->is_inited = true;
     s->title = std::move(set->title_);
     s->short_name = std::move(set->short_name_);
+    s->thumbnail = std::move(thumbnail);
     s->sticker_count = set->count_;
     s->hash = set->hash_;
     s->is_official = is_official;
@@ -1655,6 +1666,11 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
       if (installed_sticker_sets_hints_[s->is_masks].has_key(set_id)) {
         installed_sticker_sets_hints_[s->is_masks].add(set_id, PSLICE() << s->title << ' ' << s->short_name);
       }
+    }
+    if (s->thumbnail != thumbnail) {
+      LOG(INFO) << "Sticker set " << set_id << " thumbnail has changed from " << s->thumbnail << " to " << thumbnail;
+      s->thumbnail = std::move(thumbnail);
+      s->is_changed = true;
     }
 
     if (s->sticker_count != set->count_ || s->hash != set->hash_) {

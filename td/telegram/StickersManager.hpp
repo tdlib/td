@@ -110,6 +110,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool was_loaded = sticker_set->was_loaded && is_full;
   bool is_loaded = sticker_set->is_loaded && is_full;
   bool has_expires_at = !sticker_set->is_installed && sticker_set->expires_at != 0;
+  bool has_thumbnail = sticker_set->thumbnail.file_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited);
   STORE_FLAG(was_loaded);
@@ -120,6 +121,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(sticker_set->is_masks);
   STORE_FLAG(sticker_set->is_viewed);
   STORE_FLAG(has_expires_at);
+  STORE_FLAG(has_thumbnail);
   END_STORE_FLAGS();
   store(sticker_set->id, storer);
   store(sticker_set->access_hash, storer);
@@ -130,6 +132,9 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
     store(sticker_set->hash, storer);
     if (has_expires_at) {
       store(sticker_set->expires_at, storer);
+    }
+    if (has_thumbnail) {
+      store(sticker_set->thumbnail, storer);
     }
 
     uint32 stored_sticker_count = narrow_cast<uint32>(is_full ? sticker_set->sticker_ids.size() : stickers_limit);
@@ -160,6 +165,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool is_official;
   bool is_masks;
   bool has_expires_at;
+  bool has_thumbnail;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited);
   PARSE_FLAG(sticker_set->was_loaded);
@@ -170,6 +176,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(is_masks);
   PARSE_FLAG(sticker_set->is_viewed);
   PARSE_FLAG(has_expires_at);
+  PARSE_FLAG(has_thumbnail);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -193,6 +200,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     parse(hash, parser);
     if (has_expires_at) {
       parse(expires_at, parser);
+    }
+    if (has_thumbnail) {
+      parse(sticker_set->thumbnail, parser);
     }
     if (!was_inited) {
       sticker_set->title = std::move(title);
