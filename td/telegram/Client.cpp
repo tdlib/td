@@ -177,7 +177,6 @@ class MultiImpl {
     scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
       while (concurrent_scheduler->run_main(10)) {
       }
-      concurrent_scheduler->finish();
     });
   }
   MultiImpl(const MultiImpl &) = delete;
@@ -212,6 +211,7 @@ class MultiImpl {
       Scheduler::instance()->finish();
     }
     scheduler_thread_.join();
+    concurrent_scheduler_->finish();
   }
 
  private:
