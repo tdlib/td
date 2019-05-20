@@ -869,4 +869,26 @@ TEST(Client, SimpleMulti) {
   }
 }
 
+TEST(Client, Multi) {
+  std::vector<td::thread> threads;
+  for (int i = 0; i < 4; i++) {
+    threads.emplace_back([] {
+      for (int i = 0; i < 1000; i++) {
+        td::Client client;
+        client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
+        while (true) {
+          auto result = client.receive(10);
+          if (result.id == 3) {
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+}
+
 }  // namespace td
