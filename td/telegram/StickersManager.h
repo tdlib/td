@@ -247,6 +247,8 @@ class StickersManager : public Actor {
   static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
   static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
 
+  static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
+
   class Sticker {
    public:
     int64 set_id = 0;
@@ -471,11 +473,15 @@ class StickersManager : public Actor {
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 
+  static string get_emoji_language_code_last_difference_time_database_key(const string &language_code);
+
   static string get_language_emojis_database_key(const string &language_code, const string &text);
 
   static string get_emoji_language_codes_database_key(const vector<string> &language_codes);
 
   int32 get_emoji_language_code_version(const string &language_code);
+
+  double get_emoji_language_code_last_difference_time(const string &language_code);
 
   vector<string> get_emoji_language_codes(Promise<Unit> &promise);
 
@@ -489,6 +495,12 @@ class StickersManager : public Actor {
 
   void on_get_emoji_keywords(const string &language_code,
                              Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result);
+
+  void load_emoji_keywords_difference(const string &language_code);
+
+  void on_get_emoji_keywords_difference(
+      const string &language_code, int32 from_version,
+      Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result);
 
   static string remove_emoji_modifiers(string emoji);
 
@@ -571,6 +583,7 @@ class StickersManager : public Actor {
 
   std::unordered_map<string, vector<string>> emoji_language_codes_;
   std::unordered_map<string, int32> emoji_language_code_versions_;
+  std::unordered_map<string, double> emoji_language_code_last_difference_times_;
   std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
 };

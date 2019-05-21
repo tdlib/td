@@ -166,6 +166,34 @@ class GetEmojiKeywordsQuery : public Td::ResultHandler {
   }
 };
 
+class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> promise_;
+
+ public:
+  explicit GetEmojiKeywordsDifferenceQuery(
+      Promise<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &language_code, int32 version) {
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::messages_getEmojiKeywordsDifference(language_code, version))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getEmojiKeywordsDifference>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 offset_sticker_set_id_;
@@ -4669,6 +4697,23 @@ int32 StickersManager::get_emoji_language_code_version(const string &language_co
   return result;
 }
 
+string StickersManager::get_emoji_language_code_last_difference_time_database_key(const string &language_code) {
+  return PSTRING() << "emojid$" << language_code;
+}
+
+double StickersManager::get_emoji_language_code_last_difference_time(const string &language_code) {
+  auto it = emoji_language_code_last_difference_times_.find(language_code);
+  if (it != emoji_language_code_last_difference_times_.end()) {
+    return it->second;
+  }
+  auto &result = emoji_language_code_last_difference_times_[language_code];
+  int32 old_unix_time = to_integer<int32>(G()->td_db()->get_sqlite_sync_pmc()->get(
+      get_emoji_language_code_last_difference_time_database_key(language_code)));
+  int32 passed_time = max(static_cast<int32>(0), G()->unix_time() - old_unix_time);
+  result = Time::now_cached() - passed_time;
+  return result;
+}
+
 string StickersManager::get_language_emojis_database_key(const string &language_code, const string &text) {
   return PSTRING() << "emoji$" << language_code << '$' << text;
 }
@@ -4743,6 +4788,8 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
     LOG(ERROR) << "Language codes list is empty";
     language_codes.emplace_back("en");
   }
+  std::sort(language_codes.begin(), language_codes.end());
+  language_codes.erase(std::unique(language_codes.begin(), language_codes.end()), language_codes.end());
 
   G()->td_db()->get_sqlite_pmc()->set(key, implode(language_codes, '$'), Auto());
   auto it = emoji_language_codes_.find(key);
@@ -4775,6 +4822,14 @@ vector<string> StickersManager::get_emoji_language_codes(Promise<Unit> &promise)
   }
   if (it->second.empty()) {
     load_language_codes(std::move(language_codes), std::move(key), std::move(promise));
+  } else {
+    double now = Time::now_cached();
+    for (auto &language_code : it->second) {
+      double last_difference_time = get_emoji_language_code_last_difference_time(language_code);
+      if (last_difference_time < now - EMOJI_KEYWORDS_UPDATE_DELAY) {
+        load_emoji_keywords_difference(language_code);
+      }
+    }
   }
   return it->second;
 }
@@ -4830,7 +4885,7 @@ void StickersManager::on_get_emoji_keywords(
   LOG_IF(ERROR, keywords->from_version_ != 0) << "Receive keywords from version " << keywords->from_version_;
   version = keywords->version_;
   if (version <= 0) {
-    LOG(ERROR) << "Receive keywords to version " << version;
+    LOG(ERROR) << "Receive keywords of version " << version;
     version = 1;
   }
   for (auto &keyword_ptr : keywords->keywords_) {
@@ -4860,9 +4915,114 @@ void StickersManager::on_get_emoji_keywords(
   }
   G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_version_database_key(language_code), to_string(version),
                                       mpas.get_promise());
+  G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_last_difference_time_database_key(language_code),
+                                      to_string(G()->unix_time()), mpas.get_promise());
   emoji_language_code_versions_[language_code] = version;
+  emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());
 
   lock.set_value(Unit());
+}
+
+void StickersManager::load_emoji_keywords_difference(const string &language_code) {
+  LOG(INFO) << "Load emoji keywords difference for language " << language_code;
+  emoji_language_code_last_difference_times_[language_code] =
+      Time::now_cached() + 1e9;  // prevent simultaneous requests
+  int32 from_version = get_emoji_language_code_version(language_code);
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), language_code,
+       from_version](Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) mutable {
+        send_closure(actor_id, &StickersManager::on_get_emoji_keywords_difference, language_code, from_version,
+                     std::move(result));
+      });
+  td_->create_handler<GetEmojiKeywordsDifferenceQuery>(std::move(query_promise))->send(language_code, from_version);
+}
+
+void StickersManager::on_get_emoji_keywords_difference(
+    const string &language_code, int32 from_version,
+    Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
+  if (result.is_error()) {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Reseive " << result.error() << " from GetEmojiKeywordsDifferenceQuery";
+    }
+    emoji_language_code_last_difference_times_[language_code] = Time::now_cached() - EMOJI_KEYWORDS_UPDATE_DELAY - 2;
+    return;
+  }
+
+  auto version = get_emoji_language_code_version(language_code);
+  CHECK(version == from_version);
+
+  auto keywords = result.move_as_ok();
+  LOG(INFO) << "Receive " << keywords->keywords_.size() << " emoji keywords difference for language " << language_code;
+  LOG_IF(ERROR, language_code != keywords->lang_code_)
+      << "Receive keywords for " << keywords->lang_code_ << " instead of " << language_code;
+  LOG_IF(ERROR, keywords->from_version_ != from_version)
+      << "Receive keywords from version " << keywords->from_version_ << " instead of " << from_version;
+  if (keywords->version_ < version) {
+    LOG(ERROR) << "Receive keywords of version " << keywords->version_ << ", but have of version " << version;
+    keywords->version_ = version;
+  }
+  version = keywords->version_;
+  auto *pmc = G()->td_db()->get_sqlite_sync_pmc();
+  pmc->begin_transaction();
+  for (auto &keyword_ptr : keywords->keywords_) {
+    switch (keyword_ptr->get_id()) {
+      case telegram_api::emojiKeyword::ID: {
+        auto keyword = telegram_api::move_object_as<telegram_api::emojiKeyword>(keyword_ptr);
+        auto text = utf8_to_lower(keyword->keyword_);
+        bool is_good = true;
+        for (auto &emoji : keyword->emoticons_) {
+          if (emoji.find('$') != string::npos) {
+            LOG(ERROR) << "Receive emoji \"" << emoji << "\" from server for " << text;
+            is_good = false;
+          }
+        }
+        if (is_good) {
+          vector<string> emojis = search_language_emojis(language_code, text, true);
+          bool is_changed = false;
+          for (auto &emoji : keyword->emoticons_) {
+            if (std::find(emojis.begin(), emojis.end(), emoji) == emojis.end()) {
+              emojis.push_back(emoji);
+              is_changed = true;
+            }
+          }
+          if (is_changed) {
+            pmc->set(get_language_emojis_database_key(language_code, text), implode(emojis, '$'));
+          } else {
+            LOG(ERROR) << "Emoji keywords not changed for \"" << text << "\" from version " << from_version
+                       << " to version " << version;
+          }
+        }
+        break;
+      }
+      case telegram_api::emojiKeywordDeleted::ID: {
+        auto keyword = telegram_api::move_object_as<telegram_api::emojiKeywordDeleted>(keyword_ptr);
+        auto text = utf8_to_lower(keyword->keyword_);
+        vector<string> emojis = search_language_emojis(language_code, text, true);
+        bool is_changed = false;
+        for (auto &emoji : keyword->emoticons_) {
+          auto it = std::find(emojis.begin(), emojis.end(), emoji);
+          if (it != emojis.end()) {
+            emojis.erase(it);
+            is_changed = true;
+          }
+        }
+        if (is_changed) {
+          pmc->set(get_language_emojis_database_key(language_code, text), implode(emojis, '$'));
+        } else {
+          LOG(ERROR) << "Emoji keywords not changed for \"" << text << "\" from version " << from_version
+                     << " to version " << version;
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  pmc->set(get_emoji_language_code_version_database_key(language_code), to_string(version));
+  pmc->set(get_emoji_language_code_last_difference_time_database_key(language_code), to_string(G()->unix_time()));
+  pmc->commit_transaction();
+  emoji_language_code_versions_[language_code] = version;
+  emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());
 }
 
 vector<string> StickersManager::search_emojis(const string &text, bool exact_match, bool force,
@@ -4883,6 +5043,8 @@ vector<string> StickersManager::search_emojis(const string &text, bool exact_mat
     auto version = get_emoji_language_code_version(language_code);
     if (version == 0) {
       languages_to_load.push_back(language_code);
+    } else {
+      LOG(DEBUG) << "Found language " << language_code << " with version " << version;
     }
   }
 
