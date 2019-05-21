@@ -3512,6 +3512,9 @@ getStickerEmojis sticker:InputFile = Emojis;
 //@description Searches for emojis by a short text. Supported only if the file database is enabled @text Text to search for @exact_match True, if only emojis, which exactly match text needs to be returned
 searchEmojis text:string exact_match:Bool = Emojis;
 
+//@description Returns an HTTP URL which can be used to automatically log in into translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation @language_code Language code for which the emoji replacements will be suggested
+getEmojiSuggestionsUrl language_code:string = HttpUrl;
+
 
 //@description Returns saved animations
 getSavedAnimations = Animations;
@@ -3651,7 +3654,7 @@ getSupportUser = User;
 //@description Returns backgrounds installed by the user
 getBackgrounds = Backgrounds;
 
-//@description Constructs persistent URL for a background @name Background name @type Background type
+//@description Constructs a persistent HTTP URL for a background @name Background name @type Background type
 getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
 //@description Searches for a background by its name @name The name of the background
@@ -3747,7 +3750,7 @@ changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 
-//@description Returns URL with the chat statistics. Currently this method can be used only for channels @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
+//@description Returns an HTTP URL with the chat statistics. Currently this method can be used only for channels @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
 

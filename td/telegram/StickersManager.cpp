@@ -194,6 +194,32 @@ class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
   }
 };
 
+class GetEmojiUrlQuery : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::emojiURL>> promise_;
+
+ public:
+  explicit GetEmojiUrlQuery(Promise<telegram_api::object_ptr<telegram_api::emojiURL>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &language_code) {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getEmojiURL(language_code))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getEmojiURL>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 offset_sticker_set_id_;
@@ -5074,6 +5100,48 @@ vector<string> StickersManager::search_emojis(const string &text, bool exact_mat
   result.erase(std::unique(result.begin(), result.end()), result.end());
 
   promise.set_value(Unit());
+  return result;
+}
+
+int64 StickersManager::get_emoji_suggestions_url(const string &language_code, Promise<Unit> &&promise) {
+  int64 random_id = 0;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || emoji_suggestions_urls_.find(random_id) != emoji_suggestions_urls_.end());
+  emoji_suggestions_urls_[random_id];  // reserve place for result
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), random_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&result) mutable {
+        send_closure(actor_id, &StickersManager::on_get_emoji_suggestions_url, random_id, std::move(promise),
+                     std::move(result));
+      });
+  td_->create_handler<GetEmojiUrlQuery>(std::move(query_promise))->send(language_code);
+  return random_id;
+}
+
+void StickersManager::on_get_emoji_suggestions_url(
+    int64 random_id, Promise<Unit> &&promise, Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url) {
+  auto it = emoji_suggestions_urls_.find(random_id);
+  CHECK(it != emoji_suggestions_urls_.end());
+  auto &result = it->second;
+  CHECK(result.empty());
+
+  if (r_emoji_url.is_error()) {
+    emoji_suggestions_urls_.erase(it);
+    return promise.set_error(r_emoji_url.move_as_error());
+  }
+
+  auto emoji_url = r_emoji_url.move_as_ok();
+  result = std::move(emoji_url->url_);
+  promise.set_value(Unit());
+}
+
+td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_result(int64 random_id) {
+  auto it = emoji_suggestions_urls_.find(random_id);
+  CHECK(it != emoji_suggestions_urls_.end());
+  auto result = td_api::make_object<td_api::httpUrl>(it->second);
+  emoji_suggestions_urls_.erase(it);
   return result;
 }
 

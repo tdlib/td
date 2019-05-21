@@ -197,6 +197,10 @@ class StickersManager : public Actor {
 
   vector<string> search_emojis(const string &text, bool exact_match, bool force, Promise<Unit> &&promise);
 
+  int64 get_emoji_suggestions_url(const string &language_code, Promise<Unit> &&promise);
+
+  td_api::object_ptr<td_api::httpUrl> get_emoji_suggestions_url_result(int64 random_id);
+
   void reload_installed_sticker_sets(bool is_masks, bool force);
 
   void reload_featured_sticker_sets(bool force);
@@ -502,6 +506,9 @@ class StickersManager : public Actor {
       const string &language_code, int32 from_version,
       Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result);
 
+  void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
+                                    Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
+
   static string remove_emoji_modifiers(string emoji);
 
   Td *td_;
@@ -586,6 +593,7 @@ class StickersManager : public Actor {
   std::unordered_map<string, double> emoji_language_code_last_difference_times_;
   std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
+  std::unordered_map<int64, string> emoji_suggestions_urls_;
 };
 
 }  // namespace td

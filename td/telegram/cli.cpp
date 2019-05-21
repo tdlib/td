@@ -2214,6 +2214,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchEmojis>(args, false));
     } else if (op == "see") {
       send_request(td_api::make_object<td_api::searchEmojis>(args, true));
+    } else if (op == "gesu") {
+      send_request(td_api::make_object<td_api::getEmojiSuggestionsUrl>(args));
     } else {
       op_not_found_count++;
     }

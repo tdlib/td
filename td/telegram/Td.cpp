@@ -2628,6 +2628,25 @@ class SearchEmojisRequest : public RequestActor<> {
   }
 };
 
+class GetEmojiSuggestionsUrlRequest : public RequestOnceActor {
+  string language_code_;
+
+  int64 random_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    random_id_ = td->stickers_manager_->get_emoji_suggestions_url(language_code_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->stickers_manager_->get_emoji_suggestions_url_result(random_id_));
+  }
+
+ public:
+  GetEmojiSuggestionsUrlRequest(ActorShared<Td> td, uint64 request_id, string &&language_code)
+      : RequestOnceActor(std::move(td), request_id), language_code_(std::move(language_code)) {
+  }
+};
+
 class GetSavedAnimationsRequest : public RequestActor<> {
   vector<FileId> animation_ids_;
 
@@ -6363,6 +6382,12 @@ void Td::on_request(uint64 id, td_api::searchEmojis &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.text_);
   CREATE_REQUEST(SearchEmojisRequest, std::move(request.text_), request.exact_match_);
+}
+
+void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_code_);
+  CREATE_REQUEST(GetEmojiSuggestionsUrlRequest, std::move(request.language_code_));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
