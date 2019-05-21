@@ -25576,6 +25576,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
 
 void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
   for (auto &event : events) {
+    CHECK(event.id_ != 0);
     switch (event.type_) {
       case LogEvent::HandlerType::SendMessage: {
         if (!G()->parameters().use_message_db) {

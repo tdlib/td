@@ -2597,12 +2597,33 @@ class GetStickerEmojisRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(make_tl_object<td_api::stickerEmojis>(std::move(emojis_)));
+    send_result(td_api::make_object<td_api::emojis>(std::move(emojis_)));
   }
 
  public:
   GetStickerEmojisRequest(ActorShared<Td> td, uint64 request_id, tl_object_ptr<td_api::InputFile> &&input_file)
       : RequestActor(std::move(td), request_id), input_file_(std::move(input_file)) {
+    set_tries(3);
+  }
+};
+
+class SearchEmojisRequest : public RequestActor<> {
+  string text_;
+  bool exact_match_;
+
+  vector<string> emojis_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    emojis_ = td->stickers_manager_->search_emojis(text_, exact_match_, get_tries() < 2, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td_api::make_object<td_api::emojis>(std::move(emojis_)));
+  }
+
+ public:
+  SearchEmojisRequest(ActorShared<Td> td, uint64 request_id, string &&text, bool exact_match)
+      : RequestActor(std::move(td), request_id), text_(std::move(text)), exact_match_(exact_match) {
     set_tries(3);
   }
 };
@@ -6336,6 +6357,12 @@ void Td::on_request(uint64 id, td_api::removeFavoriteSticker &request) {
 void Td::on_request(uint64 id, td_api::getStickerEmojis &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetStickerEmojisRequest, std::move(request.sticker_));
+}
+
+void Td::on_request(uint64 id, td_api::searchEmojis &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.text_);
+  CREATE_REQUEST(SearchEmojisRequest, std::move(request.text_), request.exact_match_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {

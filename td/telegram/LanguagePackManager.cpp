@@ -237,6 +237,45 @@ void LanguagePackManager::tear_down() {
   }
 }
 
+vector<string> LanguagePackManager::get_used_language_codes() const {
+  if (language_pack_.empty() || language_code_.empty()) {
+    return {};
+  }
+
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+
+  LanguageInfo *info = nullptr;
+  LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> languages_lock(pack->mutex_);
+  if (is_custom_language_code(language_code_)) {
+    auto custom_it = pack->custom_language_pack_infos_.find(language_code_);
+    if (custom_it != pack->custom_language_pack_infos_.end()) {
+      info = &custom_it->second;
+    }
+  } else {
+    for (auto &server_info : pack->server_language_pack_infos_) {
+      if (server_info.first == language_code_) {
+        info = &server_info.second;
+      }
+    }
+  }
+  CHECK(info != nullptr);
+
+  vector<string> result;
+  if (language_code_.size() <= 2) {
+    result.push_back(language_code_);
+  }
+  if (!info->base_language_code_.empty()) {
+    result.push_back(info->base_language_code_);
+  }
+  if (!info->plural_code_.empty()) {
+    result.push_back(info->plural_code_);
+  }
+  return result;
+}
+
 void LanguagePackManager::on_language_pack_changed() {
   auto new_language_pack = G()->shared_config().get_option_string("localization_target");
   if (new_language_pack == language_pack_) {

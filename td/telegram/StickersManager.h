@@ -195,6 +195,8 @@ class StickersManager : public Actor {
 
   vector<string> get_sticker_emojis(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
+  vector<string> search_emojis(const string &text, bool exact_match, bool force, Promise<Unit> &&promise);
+
   void reload_installed_sticker_sets(bool is_masks, bool force);
 
   void reload_featured_sticker_sets(bool force);
@@ -467,6 +469,27 @@ class StickersManager : public Actor {
 
   void tear_down() override;
 
+  static string get_emoji_language_code_version_database_key(const string &language_code);
+
+  static string get_language_emojis_database_key(const string &language_code, const string &text);
+
+  static string get_emoji_language_codes_database_key(const vector<string> &language_codes);
+
+  int32 get_emoji_language_code_version(const string &language_code);
+
+  vector<string> get_emoji_language_codes(Promise<Unit> &promise);
+
+  void load_language_codes(vector<string> language_codes, string key, Promise<Unit> &&promise);
+
+  void on_get_language_codes(const string &key, Result<vector<string>> &&result);
+
+  vector<string> search_language_emojis(const string &language_code, const string &text, bool exact_match) const;
+
+  void load_emoji_keywords(const string &language_code, Promise<Unit> &&promise);
+
+  void on_get_emoji_keywords(const string &language_code,
+                             Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result);
+
   static string remove_emoji_modifiers(string emoji);
 
   Td *td_;
@@ -545,6 +568,11 @@ class StickersManager : public Actor {
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
   std::unordered_map<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
+
+  std::unordered_map<string, vector<string>> emoji_language_codes_;
+  std::unordered_map<string, int32> emoji_language_code_versions_;
+  std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
+  std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
 };
 
 }  // namespace td

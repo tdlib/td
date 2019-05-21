@@ -73,6 +73,10 @@ class MtprotoHeader {
     return anonymous_header_;
   }
 
+  string get_system_language_code() const {
+    return options_.system_language_code;
+  }
+
  private:
   Options options_;
   string default_header_;

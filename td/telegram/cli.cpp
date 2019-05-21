@@ -2210,6 +2210,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::clearRecentStickers>(as_bool(args)));
     } else if (op == "gse") {
       send_request(td_api::make_object<td_api::getStickerEmojis>(as_input_file_id(args)));
+    } else if (op == "se") {
+      send_request(td_api::make_object<td_api::searchEmojis>(args, false));
+    } else if (op == "see") {
+      send_request(td_api::make_object<td_api::searchEmojis>(args, true));
     } else {
       op_not_found_count++;
     }
