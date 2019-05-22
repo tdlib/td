@@ -8,29 +8,35 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/PingConnection.h"
+#include "td/mtproto/RawConnection.h"
 
-#include "td/utils/crypto.h"
-#include "td/utils/Random.h"
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
+
+#include "td/utils/logging.h"
+#include "td/utils/Status.h"
+
 namespace td {
 namespace mtproto {
-ActorOwn<> create_ping_actor(std::string debug, unique_ptr<mtproto::RawConnection> raw_connection,
-                             unique_ptr<mtproto::AuthData> auth_data,
-                             Promise<unique_ptr<mtproto::RawConnection>> promise, ActorShared<> parent) {
+
+ActorOwn<> create_ping_actor(std::string debug, unique_ptr<RawConnection> raw_connection,
+                             unique_ptr<AuthData> auth_data, Promise<unique_ptr<RawConnection>> promise,
+                             ActorShared<> parent) {
   class PingActor : public Actor {
    public:
-    PingActor(unique_ptr<mtproto::RawConnection> raw_connection, unique_ptr<mtproto::AuthData> auth_data,
-              Promise<unique_ptr<mtproto::RawConnection>> promise, ActorShared<> parent)
+    PingActor(unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
+              Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent)
         : promise_(std::move(promise)), parent_(std::move(parent)) {
       if (auth_data) {
-        ping_connection_ = mtproto::PingConnection::create_ping_pong(std::move(raw_connection), std::move(auth_data));
+        ping_connection_ = PingConnection::create_ping_pong(std::move(raw_connection), std::move(auth_data));
       } else {
-        ping_connection_ = mtproto::PingConnection::create_req_pq(std::move(raw_connection), 2);
+        ping_connection_ = PingConnection::create_req_pq(std::move(raw_connection), 2);
       }
     }
 
    private:
-    unique_ptr<mtproto::PingConnection> ping_connection_;
-    Promise<unique_ptr<mtproto::RawConnection>> promise_;
+    unique_ptr<PingConnection> ping_connection_;
+    Promise<unique_ptr<RawConnection>> promise_;
     ActorShared<> parent_;
 
     void start_up() override {
@@ -97,5 +103,6 @@ ActorOwn<> create_ping_actor(std::string debug, unique_ptr<mtproto::RawConnectio
   return ActorOwn<>(create_actor<PingActor>(PSLICE() << "PingActor<" << debug << ">", std::move(raw_connection),
                                             std::move(auth_data), std::move(promise), std::move(parent)));
 }
+
 }  // namespace mtproto
 }  // namespace td

@@ -5,16 +5,20 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
+#include "td/mtproto/AuthData.h"
 #include "td/mtproto/RawConnection.h"
-#include "td/mtproto/SessionConnection.h"
-#include "td/mtproto/Handshake.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+
+#include "td/utils/common.h"
+
 namespace td {
 namespace mtproto {
-ActorOwn<> create_ping_actor(std::string debug, unique_ptr<mtproto::RawConnection> raw_connection,
-                             unique_ptr<mtproto::AuthData> auth_data,
-                             Promise<unique_ptr<mtproto::RawConnection>> promise, ActorShared<> parent);
+
+ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
+                             Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent);
+
 }
 }  // namespace td

@@ -5,10 +5,28 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/mtproto/PingConnection.h"
+
+#include "td/mtproto/AuthKey.h"
+#include "td/mtproto/AuthData.h"
+#include "td/mtproto/mtproto_api.h"
+#include "td/mtproto/NoCryptoStorer.h"
+#include "td/mtproto/PacketInfo.h"
+#include "td/mtproto/PacketStorer.h"
+#include "td/mtproto/PingConnection.h"
+#include "td/mtproto/RawConnection.h"
 #include "td/mtproto/SessionConnection.h"
+#include "td/mtproto/utils.h"
+
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
+#include "td/utils/Random.h"
+#include "td/utils/Time.h"
+#include "td/utils/UInt.h"
+
 namespace td {
 namespace mtproto {
 namespace detail {
+
 class PingConnectionReqPQ
     : public PingConnection
     , private RawConnection::Callback {
@@ -72,7 +90,7 @@ class PingConnectionPingPong
     : public PingConnection
     , private SessionConnection::Callback {
  public:
-  PingConnectionPingPong(unique_ptr<mtproto::RawConnection> raw_connection, unique_ptr<mtproto::AuthData> auth_data)
+  PingConnectionPingPong(unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data)
       : auth_data_(std::move(auth_data)) {
     auth_data_->set_header("");
     connection_ =
@@ -80,8 +98,8 @@ class PingConnectionPingPong
   }
 
  private:
-  unique_ptr<mtproto::AuthData> auth_data_;
-  unique_ptr<mtproto::SessionConnection> connection_;
+  unique_ptr<AuthData> auth_data_;
+  unique_ptr<SessionConnection> connection_;
   int pong_cnt_{0};
   double rtt_;
   bool is_closed_{false};
@@ -165,12 +183,15 @@ class PingConnectionPingPong
 };
 
 }  // namespace detail
+
 unique_ptr<PingConnection> PingConnection::create_req_pq(unique_ptr<RawConnection> raw_connection, size_t ping_count) {
   return make_unique<detail::PingConnectionReqPQ>(std::move(raw_connection), ping_count);
 }
+
 unique_ptr<PingConnection> PingConnection::create_ping_pong(unique_ptr<RawConnection> raw_connection,
                                                             unique_ptr<AuthData> auth_data) {
   return make_unique<detail::PingConnectionPingPong>(std::move(raw_connection), std::move(auth_data));
 }
+
 }  // namespace mtproto
 }  // namespace td

@@ -9,12 +9,13 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/mtproto/AuthData.h"
 #include "td/mtproto/crypto.h"
 #include "td/mtproto/DhHandshake.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
-#include "td/mtproto/PingConnection.h"
 #include "td/mtproto/Ping.h"
+#include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
@@ -23,9 +24,9 @@
 #include "td/net/TransparentProxy.h"
 
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/net/Session.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/net/Session.h"
 #include "td/telegram/NotificationManager.h"
 
 #include "td/utils/base64.h"
@@ -33,7 +34,9 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
+#include "td/utils/Time.h"
 
 REGISTER_TESTS(mtproto);
 

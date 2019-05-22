@@ -6,22 +6,12 @@
 //
 #pragma once
 
-#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/AuthData.h"
-#include "td/mtproto/NoCryptoStorer.h"
-#include "td/mtproto/PacketInfo.h"
-#include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/RawConnection.h"
-#include "td/mtproto/utils.h"
 
-#include "td/mtproto/mtproto_api.h"
-
-#include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/port/detail/PollableFd.h"
-#include "td/utils/Random.h"
 #include "td/utils/Status.h"
-#include "td/utils/Time.h"
-#include "td/utils/UInt.h"
 
 namespace td {
 namespace mtproto {

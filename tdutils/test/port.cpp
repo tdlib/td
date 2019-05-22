@@ -6,11 +6,11 @@
 //
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
-#include "td/utils/misc.h"
 
 using namespace td;
 
@@ -35,38 +35,44 @@ TEST(Port, files) {
   int cnt = 0;
   const int ITER_COUNT = 1000;
   for (int i = 0; i < ITER_COUNT; i++) {
-    walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
-      if (type == WalkPath::Type::NotDir) {
-        ASSERT_TRUE(name == fd_path || name == fd2_path);
-      }
-      cnt++;
-    }).ensure();
+    walk_path(main_dir,
+              [&](CSlice name, WalkPath::Type type) {
+                if (type == WalkPath::Type::NotDir) {
+                  ASSERT_TRUE(name == fd_path || name == fd2_path);
+                }
+                cnt++;
+              })
+        .ensure();
   }
   ASSERT_EQ((5 * 2 + 2) * ITER_COUNT, cnt);
   bool was_abort = false;
-  walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
-    CHECK(!was_abort);
-    if (type == WalkPath::Type::EnterDir && ends_with(name, PSLICE() << TD_DIR_SLASH << "B")) {
-      was_abort = true;
-      return WalkPath::Action::Abort;
-    }
-    return WalkPath::Action::Continue;
-  }).ensure();
+  walk_path(main_dir,
+            [&](CSlice name, WalkPath::Type type) {
+              CHECK(!was_abort);
+              if (type == WalkPath::Type::EnterDir && ends_with(name, PSLICE() << TD_DIR_SLASH << "B")) {
+                was_abort = true;
+                return WalkPath::Action::Abort;
+              }
+              return WalkPath::Action::Continue;
+            })
+      .ensure();
   CHECK(was_abort);
 
   cnt = 0;
   bool is_first_dir = true;
-  walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
-    cnt++;
-    if (type == WalkPath::Type::EnterDir) {
-      if (is_first_dir) {
-        is_first_dir = false;
-      } else {
-        return WalkPath::Action::SkipDir;
-      }
-    }
-    return WalkPath::Action::Continue;
-  }).ensure();
+  walk_path(main_dir,
+            [&](CSlice name, WalkPath::Type type) {
+              cnt++;
+              if (type == WalkPath::Type::EnterDir) {
+                if (is_first_dir) {
+                  is_first_dir = false;
+                } else {
+                  return WalkPath::Action::SkipDir;
+                }
+              }
+              return WalkPath::Action::Continue;
+            })
+      .ensure();
   ASSERT_EQ(6, cnt);
 
   ASSERT_EQ(0u, fd.get_size());

@@ -20,6 +20,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
 #include "td/utils/List.h"
 #include "td/utils/Status.h"

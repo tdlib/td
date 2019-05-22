@@ -7,7 +7,10 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
+
 namespace td {
+
 namespace detail {
 struct RawCancellationToken {
   std::atomic<bool> is_cancelled_{false};
@@ -21,11 +24,6 @@ class CancellationToken {
   }
   explicit CancellationToken(std::shared_ptr<detail::RawCancellationToken> token) : token_(std::move(token)) {
   }
-  CancellationToken(CancellationToken &&other) = default;
-  CancellationToken(const CancellationToken &other) = default;
-  CancellationToken &operator=(CancellationToken &&other) = default;
-  CancellationToken &operator=(const CancellationToken &other) = default;
-  ~CancellationToken() = default;
 
  private:
   std::shared_ptr<detail::RawCancellationToken> token_;
@@ -41,11 +39,11 @@ class CancellationTokenSource {
     token_ = std::move(other.token_);
     return *this;
   }
+  CancellationTokenSource(const CancellationTokenSource &other) = delete;
+  CancellationTokenSource &operator=(const CancellationTokenSource &other) = delete;
   ~CancellationTokenSource() {
     cancel();
   }
-  CancellationTokenSource(const CancellationTokenSource &other) = delete;
-  CancellationTokenSource &operator=(const CancellationTokenSource &other) = delete;
 
   CancellationToken get_cancellation_token() {
     if (!token_) {
@@ -64,4 +62,5 @@ class CancellationTokenSource {
  private:
   std::shared_ptr<detail::RawCancellationToken> token_;
 };
+
 }  // namespace td

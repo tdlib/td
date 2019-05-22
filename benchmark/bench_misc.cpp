@@ -248,9 +248,9 @@ class WalkPathBench : public Benchmark {
     int cnt = 0;
     td::walk_path("A/",
                   [&](CSlice path, auto type) {
-		    if (type == td::WalkPath::Type::EnterDir) {
-		      return;
-		    }
+                    if (type == td::WalkPath::Type::EnterDir) {
+                      return;
+                    }
                     stat(path).ok();
                     cnt++;
                   })

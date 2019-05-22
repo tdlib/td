@@ -15,8 +15,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
-#include <atomic>
-#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
