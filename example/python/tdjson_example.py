@@ -114,19 +114,19 @@ while True:
             if auth_state['@type'] == 'authorizationStateWaitEncryptionKey':
                 td_send({'@type': 'checkDatabaseEncryptionKey', 'key': 'my_key'})
 
-            # insert phone number for login
+            # enter phone number to log in
             if auth_state['@type'] == 'authorizationStateWaitPhoneNumber':
-                phone_number = input('Please insert your phone number: ')
+                phone_number = input('Please enter your phone number: ')
                 td_send({'@type': 'setAuthenticationPhoneNumber', 'phone_number': phone_number})
 
             # wait for authorization code
             if auth_state['@type'] == 'authorizationStateWaitCode':
-                code = input('Please insert the authentication code you received: ')
+                code = input('Please enter the authentication code you received: ')
                 td_send({'@type': 'checkAuthenticationCode', 'code': code})
 
             # wait for password if present
             if auth_state['@type'] == 'authorizationStateWaitPassword':
-                password = input('Please insert your password: ')
+                password = input('Please enter your password: ')
                 td_send({'@type': 'checkAuthenticationPassword', 'password': password})
 
         # handle an incoming update or an answer to a previously sent request
