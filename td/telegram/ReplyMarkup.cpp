@@ -6,14 +6,18 @@
 //
 #include "td/telegram/ReplyMarkup.h"
 
+#include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-
-#include "td/telegram/misc.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+
+#include <limits>
 
 namespace td {
 
@@ -44,7 +48,7 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardBu
 }
 
 static bool operator==(const InlineKeyboardButton &lhs, const InlineKeyboardButton &rhs) {
-  return lhs.type == rhs.type && lhs.text == rhs.text && lhs.data == rhs.data;
+  return lhs.type == rhs.type && lhs.text == rhs.text && lhs.data == rhs.data && lhs.id == rhs.id;
 }
 
 static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyboardButton &keyboard_button) {
@@ -67,6 +71,9 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
       break;
     case InlineKeyboardButton::Type::Buy:
       string_builder << "Buy";
+      break;
+    case InlineKeyboardButton::Type::UrlAuth:
+      string_builder << "UrlAuth, id = " << keyboard_button.id;
       break;
     default:
       UNREACHABLE();
@@ -213,6 +220,14 @@ static InlineKeyboardButton get_inline_keyboard_button(
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonBuy>(keyboard_button_ptr);
       button.type = InlineKeyboardButton::Type::Buy;
       button.text = std::move(keyboard_button->text_);
+      break;
+    }
+    case telegram_api::keyboardButtonUrlAuth::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonUrlAuth>(keyboard_button_ptr);
+      button.type = InlineKeyboardButton::Type::UrlAuth;
+      button.id = keyboard_button->button_id_;
+      button.text = std::move(keyboard_button->text_);
+      button.data = std::move(keyboard_button->url_);
       break;
     }
     default:
@@ -399,6 +414,20 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
     case td_api::inlineKeyboardButtonTypeBuy::ID:
       current_button.type = InlineKeyboardButton::Type::Buy;
       break;
+    case td_api::inlineKeyboardButtonTypeLoginUrl::ID: {
+      current_button.type = InlineKeyboardButton::Type::UrlAuth;
+      auto login_url = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
+      TRY_RESULT(url, check_url(login_url->url_));
+      current_button.data = std::move(url);
+      if (!clean_input_string(current_button.data)) {
+        return Status::Error(400, "Inline keyboard button url must be encoded in UTF-8");
+      }
+      current_button.id = login_url->id_;
+      if (current_button.id == 0 || current_button.id == std::numeric_limits<int32>::min()) {
+        return Status::Error(400, "Invalid bot_user_id specified");
+      }
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -552,6 +581,22 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
     }
     case InlineKeyboardButton::Type::Buy:
       return make_tl_object<telegram_api::keyboardButtonBuy>(keyboard_button.text);
+    case InlineKeyboardButton::Type::UrlAuth: {
+      int32 flags = 0;
+      int32 bot_user_id = keyboard_button.id;
+      if (bot_user_id > 0) {
+        flags |= telegram_api::inputKeyboardButtonUrlAuth::REQUEST_WRITE_ACCESS_MASK;
+      } else {
+        bot_user_id = -bot_user_id;
+      }
+      auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(UserId(bot_user_id));
+      if (input_user == nullptr) {
+        LOG(ERROR) << "Failed to get InputUser for " << bot_user_id;
+        return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
+      }
+      return make_tl_object<telegram_api::inputKeyboardButtonUrlAuth>(flags, false /*ignored*/, keyboard_button.text,
+                                                                      keyboard_button.data, std::move(input_user));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -647,6 +692,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
       break;
     case InlineKeyboardButton::Type::Buy:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeBuy>();
+      break;
+    case InlineKeyboardButton::Type::UrlAuth:
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeLoginUrl>(keyboard_button.data, keyboard_button.id);
       break;
     default:
       UNREACHABLE();

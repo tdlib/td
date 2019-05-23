@@ -643,6 +643,9 @@ keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 //@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 
+//@description A button that opens a specified URL and automatically logs in in current user if they allowed to do that @url HTTP URL to open @id Unique button identifier
+inlineKeyboardButtonTypeLoginUrl url:string id:int32 = InlineKeyboardButtonType;
+
 //@description A button that sends a special callback query to a bot @data Data to be sent to the bot via a callback query
 inlineKeyboardButtonTypeCallback data:bytes = InlineKeyboardButtonType;
 

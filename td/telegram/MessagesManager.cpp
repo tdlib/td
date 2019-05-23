@@ -23513,7 +23513,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       if (new_message->reply_markup != nullptr) {
         auto content_type = old_message->content->get_type();
         // MessageGame and MessageInvoice reply markup can be generated server side
-        if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice) {
+        // some forwards retain their reply markup
+        if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice &&
+            old_message->forward_info == nullptr) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup
                      << ", message content type is " << old_message->content->get_type() << '/'
                      << new_message->content->get_type();
@@ -23527,9 +23529,18 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       }
     } else {
       if (new_message->reply_markup != nullptr) {
-        LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
-            << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
-            << " to " << *new_message->reply_markup;
+        if (message_id.is_yet_unsent() && old_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard &&
+            new_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard) {
+          // allow the server to update inline keyboard for sent messages
+          // this is needed to get correct button_id for UrlAuth buttons
+          old_message->had_reply_markup = false;
+          old_message->reply_markup = std::move(new_message->reply_markup);
+          is_changed = true;
+        } else {
+          LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
+              << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
+              << " to " << *new_message->reply_markup;
+        }
       } else if (is_new_available) {  // if the message is not accessible anymore, then we don't need a warning
         LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
                    << " has lost reply markup " << *old_message->reply_markup

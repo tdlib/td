@@ -27,6 +27,9 @@ void parse(KeyboardButton &button, ParserT &parser) {
 template <class StorerT>
 void store(InlineKeyboardButton button, StorerT &storer) {
   store(button.type, storer);
+  if (button.type == InlineKeyboardButton::Type::UrlAuth) {
+    store(button.id, storer);
+  }
   store(button.text, storer);
   store(button.data, storer);
 }
@@ -34,6 +37,9 @@ void store(InlineKeyboardButton button, StorerT &storer) {
 template <class ParserT>
 void parse(InlineKeyboardButton &button, ParserT &parser) {
   parse(button.type, parser);
+  if (button.type == InlineKeyboardButton::Type::UrlAuth) {
+    parse(button.id, parser);
+  }
   parse(button.text, parser);
   parse(button.data, parser);
 }
