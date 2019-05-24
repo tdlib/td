@@ -225,7 +225,7 @@ if (NOT MSVC)
 #  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
 endif()
 
-if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
+if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0))
   add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
 endif()
 if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
