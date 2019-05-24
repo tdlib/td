@@ -18104,6 +18104,35 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         m->via_bot_user_id = forwarded_message->sender_user_id;
       }
     }
+    if (!to_secret && forwarded_message->reply_markup != nullptr &&
+        forwarded_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard) {
+      bool need_reply_markup = true;
+      for (auto &row : forwarded_message->reply_markup->inline_keyboard) {
+        for (auto &button : row) {
+          if (button.type == InlineKeyboardButton::Type::Url || button.type == InlineKeyboardButton::Type::UrlAuth) {
+            // ok
+            continue;
+          }
+          if (m->via_bot_user_id.is_valid() && (button.type == InlineKeyboardButton::Type::SwitchInline ||
+                                                button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog)) {
+            // ok
+            continue;
+          }
+
+          need_reply_markup = false;
+        }
+      }
+      if (need_reply_markup) {
+        m->reply_markup = make_unique<ReplyMarkup>(*forwarded_message->reply_markup);
+        for (auto &row : m->reply_markup->inline_keyboard) {
+          for (auto &button : row) {
+            if (button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {
+              button.type = InlineKeyboardButton::Type::SwitchInline;
+            }
+          }
+        }
+      }
+    }
 
     result[i] = m->message_id;
     forwarded_messages.push_back(m);
