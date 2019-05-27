@@ -17501,7 +17501,7 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
   if (m->message_id.is_local()) {
     return false;
   }
-  if (m->via_bot_user_id.is_valid() && !m->is_outgoing) {
+  if (m->via_bot_user_id.is_valid() && m->via_bot_user_id != td_->contacts_manager_->get_my_id()) {
     return false;
   }
 
