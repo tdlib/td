@@ -16798,7 +16798,6 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   bool has_edit_time_limit = !(is_bot && m->is_outgoing) && dialog_id != my_dialog_id &&
                              content_type != MessageContentType::Poll &&
                              content_type != MessageContentType::LiveLocation;
-
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (!m->is_outgoing && dialog_id != my_dialog_id) {
@@ -16821,6 +16820,9 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       if (m->is_channel_post) {
         if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
           return false;
+        }
+        if (is_bot && only_reply_markup) {
+          has_edit_time_limit = false;
         }
       } else {
         if (!m->is_outgoing) {
@@ -17530,7 +17532,7 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
       auto channel_id = dialog_id.get_channel_id();
       auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
       if (m->is_channel_post) {
-        if (!channel_status.can_edit_messages() && (!channel_status.can_post_messages() || !m->is_outgoing)) {
+        if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
           return false;
         }
       } else {
