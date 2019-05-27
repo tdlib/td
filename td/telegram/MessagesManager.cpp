@@ -18129,6 +18129,10 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
             if (button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {
               button.type = InlineKeyboardButton::Type::SwitchInline;
             }
+            if (!button.forward_text.empty()) {
+              button.text = std::move(button.forward_text);
+              button.forward_text.clear();
+            }
           }
         }
       }

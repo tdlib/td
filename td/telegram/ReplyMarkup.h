@@ -28,6 +28,7 @@ struct InlineKeyboardButton {
   Type type;
   int32 id = 0;  // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
   string text;
+  string forward_text;  // UrlAuth only
   string data;
 };
 

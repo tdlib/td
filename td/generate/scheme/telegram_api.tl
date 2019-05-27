@@ -512,8 +512,8 @@ keyboardButtonRequestGeoLocation#fc796b3f text:string = KeyboardButton;
 keyboardButtonSwitchInline#568a748 flags:# same_peer:flags.0?true text:string query:string = KeyboardButton;
 keyboardButtonGame#50f41ccf text:string = KeyboardButton;
 keyboardButtonBuy#afd93fbb text:string = KeyboardButton;
-keyboardButtonUrlAuth#77a34975 text:string url:string button_id:int = KeyboardButton;
-inputKeyboardButtonUrlAuth#af24bb74 flags:# request_write_access:flags.0?true text:string url:string bot:InputUser = KeyboardButton;
+keyboardButtonUrlAuth#10b78d29 flags:# text:string fwd_text:flags.0?string url:string button_id:int = KeyboardButton;
+inputKeyboardButtonUrlAuth#d02e7fd4 flags:# request_write_access:flags.0?true text:string fwd_text:flags.1?string url:string bot:InputUser = KeyboardButton;
 
 keyboardButtonRow#77608b83 buttons:Vector<KeyboardButton> = KeyboardButtonRow;
 
