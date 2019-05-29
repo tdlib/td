@@ -2508,7 +2508,12 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
             << value.size() << " from database";
 
   StickerSetListLogEvent log_event;
-  log_event_parse(log_event, value).ensure();
+  auto status = log_event_parse(log_event, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken
+    LOG(ERROR) << "Can't load installed sticker sets list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    return reload_installed_sticker_sets(is_masks, true);
+  }
 
   vector<int64> sets_to_load;
   for (auto sticker_set_id : log_event.sticker_set_ids) {
@@ -3007,7 +3012,12 @@ void StickersManager::on_load_featured_sticker_sets_from_database(string value) 
   LOG(INFO) << "Successfully loaded featured sticker sets list of size " << value.size() << " from database";
 
   StickerSetListLogEvent log_event;
-  log_event_parse(log_event, value).ensure();
+  auto status = log_event_parse(log_event, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken
+    LOG(ERROR) << "Can't load featured sticker sets list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    return reload_featured_sticker_sets(true);
+  }
 
   vector<int64> sets_to_load;
   for (auto sticker_set_id : log_event.sticker_set_ids) {
@@ -3788,7 +3798,12 @@ void StickersManager::on_load_recent_stickers_from_database(bool is_attached, st
             << value.size() << " from database";
 
   StickerListLogEvent log_event;
-  log_event_parse(log_event, value).ensure();
+  auto status = log_event_parse(log_event, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken, but has been seen in the wild
+    LOG(ERROR) << "Can't load recent stickers: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    return reload_recent_stickers(is_attached, true);
+  }
 
   on_load_recent_stickers_finished(is_attached, std::move(log_event.sticker_ids), true);
 }
@@ -4211,7 +4226,12 @@ void StickersManager::on_load_favorite_stickers_from_database(const string &valu
   LOG(INFO) << "Successfully loaded favorite stickers list of size " << value.size() << " from database";
 
   StickerListLogEvent log_event;
-  log_event_parse(log_event, value).ensure();
+  auto status = log_event_parse(log_event, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken, but has been seen in the wild
+    LOG(ERROR) << "Can't load favorite stickers: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    return reload_favorite_stickers(true);
+  }
 
   on_load_favorite_stickers_finished(std::move(log_event.sticker_ids), true);
 }
