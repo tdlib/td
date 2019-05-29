@@ -5478,6 +5478,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       auto channel_id = dialog_id.get_channel_id();
       if (!td_->contacts_manager_->have_channel(channel_id)) {
         // do not create dialog if there is no info about the channel
+        LOG(WARNING) << "There is no info about " << channel_id << ", so ignore " << to_string(update);
         return;
       }
 
@@ -5530,6 +5531,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
       LOG_IF(WARNING, new_pts == old_pts && pts_count == 0)
           << "Receive from " << source << " useless channel update " << oneline(to_string(update));
+      LOG(INFO) << "Skip already applied channel update";
       return;
     }
 
@@ -5537,6 +5539,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       if (pts_count > 0) {
         d->postponed_channel_updates.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count));
       }
+      LOG(INFO) << "Postpone channel update, because getChannelDifference is run";
       return;
     }
 
@@ -5564,7 +5567,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   if (d == nullptr) {
     d = get_dialog(dialog_id);
     if (d == nullptr) {
-      // dialog was not created by the update
+      LOG(INFO) << "Update didn't created " << dialog_id;
       return;
     }
   }
@@ -9786,23 +9789,16 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   CHECK(message_info.content != nullptr);
 
+  auto dialog_type = dialog_id.get_type();
   UserId sender_user_id = message_info.sender_user_id;
   if (!sender_user_id.is_valid()) {
-    if (!is_broadcast_channel(dialog_id)) {
-      LOG(ERROR) << "Invalid " << sender_user_id << " specified to be a sender of the " << message_id << " in "
-                 << dialog_id;
-      return {DialogId(), nullptr};
-    }
-
-    if (sender_user_id != UserId()) {
+    if (!is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
+      sender_user_id = td_->contacts_manager_->get_service_notifications_user_id();
+    } else if (sender_user_id != UserId()) {
       LOG(ERROR) << "Receive invalid " << sender_user_id;
       sender_user_id = UserId();
     }
   }
-
-  auto dialog_type = dialog_id.get_type();
-  LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
-      << "is_channel_message is true for message received in the " << dialog_id;
 
   int32 flags = message_info.flags;
   if (flags & ~(MESSAGE_FLAG_IS_OUT | MESSAGE_FLAG_IS_FORWARDED | MESSAGE_FLAG_IS_REPLY | MESSAGE_FLAG_HAS_MENTION |
@@ -9816,6 +9812,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_outgoing = (flags & MESSAGE_FLAG_IS_OUT) != 0;
   bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
+
+  LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
+      << "is_channel_message is true for message received in the " << dialog_id;
+  LOG_IF(ERROR, is_channel_post && !is_broadcast_channel(dialog_id))
+      << "is_channel_post is true for message received in the " << dialog_id;
 
   UserId my_id = td_->contacts_manager_->get_my_id();
   DialogId my_dialog_id = DialogId(my_id);
@@ -18071,19 +18072,23 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         forward_info->from_message_id = saved_from_message_id;
       } else {
         if (from_dialog_id != DialogId(my_id)) {
-          if (!forwarded_message->is_channel_post) {
+          if (forwarded_message->is_channel_post) {
+            if (is_broadcast_channel(from_dialog_id)) {
+              auto author_signature = forwarded_message->sender_user_id.is_valid()
+                                          ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
+                                          : forwarded_message->author_signature;
+              forward_info = td::make_unique<MessageForwardInfo>(
+                  UserId(), forwarded_message->date, from_dialog_id, forwarded_message->message_id,
+                  std::move(author_signature), saved_from_dialog_id, saved_from_message_id);
+            } else {
+              LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
+            }
+          } else if (forwarded_message->sender_user_id.is_valid()) {
             forward_info =
                 make_unique<MessageForwardInfo>(forwarded_message->sender_user_id, forwarded_message->date, DialogId(),
                                                 MessageId(), "", saved_from_dialog_id, saved_from_message_id);
           } else {
-            CHECK(from_dialog_id.get_type() == DialogType::Channel);
-            MessageId forwarded_message_id = forwarded_message->message_id;
-            auto author_signature = forwarded_message->sender_user_id.is_valid()
-                                        ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
-                                        : forwarded_message->author_signature;
-            forward_info = td::make_unique<MessageForwardInfo>(UserId(), forwarded_message->date, from_dialog_id,
-                                                               forwarded_message_id, std::move(author_signature),
-                                                               saved_from_dialog_id, saved_from_message_id);
+            LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
           }
         }
       }
@@ -18319,7 +18324,7 @@ Result<MessageId> MessagesManager::add_local_message(
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
 
   bool is_channel_post = is_broadcast_channel(dialog_id);
-  if (!td_->contacts_manager_->have_user_force(sender_user_id) && !(is_channel_post && sender_user_id == UserId())) {
+  if (sender_user_id != UserId() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
     return Status::Error(400, "User not found");
   }
 
@@ -20673,7 +20678,8 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
     return;
   }
   const Message *m = get_message_force(d, d->reply_markup_message_id, "on_dialog_bots_updated");
-  if (m == nullptr || std::find(bot_user_ids.begin(), bot_user_ids.end(), m->sender_user_id) == bot_user_ids.end()) {
+  if (m == nullptr || (m->sender_user_id.is_valid() &&
+                       std::find(bot_user_ids.begin(), bot_user_ids.end(), m->sender_user_id) == bot_user_ids.end())) {
     LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot "
               << (m == nullptr ? UserId() : m->sender_user_id) << " isn't a member of the chat";
     set_dialog_reply_markup(d, MessageId());
@@ -22436,7 +22442,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (*need_update && message->reply_markup->is_personal) {  // if this keyboard is for us
       if (d->reply_markup_message_id != MessageId()) {
         const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
-        if (old_message == nullptr || old_message->sender_user_id == message->sender_user_id) {
+        if (old_message == nullptr ||
+            (old_message->sender_user_id.is_valid() && old_message->sender_user_id == message->sender_user_id)) {
           set_dialog_reply_markup(d, MessageId());
         }
       }
@@ -22887,7 +22894,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   add_message_file_sources(dialog_id, m);
   register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
-  if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
+  if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel &&
+      m->sender_user_id.is_valid()) {
     switch (message_content_type) {
       case MessageContentType::ChatAddUsers:
         td_->contacts_manager_->speculative_add_channel_participants(

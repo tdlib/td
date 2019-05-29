@@ -484,8 +484,8 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
-//@from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded last time; 0 if unknown
-//@from_message_id For messages forwarded to the chat with the current user (saved messages), the identifier of the original message from which the new message was forwarded last time; 0 if unknown
+//@from_chat_id For messages forwarded to the chat with the current user (saved messages) or to the channel discussion supergroup, the identifier of the chat from which the message was forwarded last time; 0 if unknown
+//@from_message_id For messages forwarded to the chat with the current user (saved messages) or to the channel discussion supergroup, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 
@@ -500,7 +500,7 @@ messageSendingStateFailed = MessageSendingState;
 
 //@description Describes a message
 //@id Message identifier, unique for the chat to which the message belongs
-//@sender_user_id Identifier of the user who sent the message; 0 if unknown. It is unknown for channel posts
+//@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts and for channel posts automatically forwarded to discussion group
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
 //@is_outgoing True, if the message is outgoing
