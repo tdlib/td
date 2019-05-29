@@ -20002,8 +20002,11 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
-  LOG_CHECK(m != nullptr) << dialog_id << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
-                          << debug_add_message_to_dialog_fail_reason_ << " " << source;
+  LOG_CHECK(m != nullptr) << td_->contacts_manager_->get_my_id() << " " << dialog_id << " " << old_message_id << " "
+                          << new_message_id << " " << d->last_clear_history_message_id << " "
+                          << d->max_unavailable_message_id << " " << d->last_message_id << " " << d->last_new_message_id
+                          << " " << d->last_assigned_message_id << " " << have_input_peer(dialog_id, AccessRights::Read)
+                          << " " << debug_add_message_to_dialog_fail_reason_ << " " << source;
 
   send_update_message_send_succeeded(d, old_message_id, m);
   if (need_update_dialog_pos) {
