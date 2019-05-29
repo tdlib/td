@@ -51,7 +51,8 @@ class WebPageBlock {
     Table,
     Details,
     RelatedArticles,
-    Map
+    Map,
+    Size
   };
 
   virtual Type get_type() const = 0;

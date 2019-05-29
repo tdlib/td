@@ -597,6 +597,13 @@ void NotificationManager::on_get_message_notifications_from_database(Notificatio
       notifications.pop_back();
     }
   }
+  auto first_message_id = get_first_message_id(group);
+  if (first_message_id.is_valid()) {
+    while (!notifications.empty() && notifications.back().type->get_message_id().get() >= first_message_id.get()) {
+      // possible if notifications was added after the database request was sent
+      notifications.pop_back();
+    }
+  }
 
   add_notifications_to_group_begin(std::move(group_it), std::move(notifications));
 
@@ -761,8 +768,7 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
 
   auto group_it = get_group(group_id);
   if (group_it != groups_.end()) {
-    CHECK(group_it->first.last_notification_date == 0);
-    LOG_CHECK(group_it->second.total_count == 0)
+    LOG_CHECK(group_it->first.last_notification_date == 0 && group_it->second.total_count == 0)
         << running_get_difference_ << " " << delayed_notification_update_count_ << " "
         << unreceived_notification_update_count_ << " " << pending_updates_[group_id.get()].size() << " "
         << group_it->first << " " << group_it->second;
@@ -2091,6 +2097,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   }
   auto removed_notification_count = narrow_cast<int32>(old_group_size - notification_pos);
   if (removed_notification_count == 0) {
+    CHECK(get_temporary_notification_total_count(group_it->second) == 0);
     return;
   }
 
@@ -2104,7 +2111,9 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
 
   vector<int32> removed_notification_ids;
   for (auto i = notification_pos; i < old_group_size; i++) {
-    CHECK(group.notifications[i].type->is_temporary());
+    LOG_CHECK(group.notifications[i].type->is_temporary())
+        << notification_pos << ' ' << i << ' ' << old_group_size << ' ' << removed_notification_count << ' '
+        << group.notifications[i] << ' ' << group << ' ' << group_it->first;
     VLOG(notifications) << "Remove temporary " << group.notifications[i] << " from " << group_id;
     auto notification_id = group.notifications[i].notification_id;
     on_notification_removed(notification_id);
@@ -2139,6 +2148,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
       group_id, [](const td_api::object_ptr<td_api::notification> &notification) {
         return notification->get_id() == td_api::notificationTypeNewPushMessage::ID;
       });
+  CHECK(get_temporary_notification_total_count(group_it->second) == 0);
 }
 
 int32 NotificationManager::get_temporary_notification_total_count(const NotificationGroup &group) {
@@ -2326,7 +2336,8 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
         force_flush_pending_updates(group_id, "reuse call group_id");
 
         auto group_it = get_group(group_id);
-        CHECK(group_it->first.dialog_id == dialog_id);
+        LOG_CHECK(group_it->first.dialog_id == dialog_id)
+            << group_id << ' ' << dialog_id << ' ' << group_it->first << ' ' << group_it->second;
         CHECK(group_it->first.last_notification_date == 0);
         CHECK(group_it->second.total_count == 0);
         CHECK(group_it->second.notifications.empty());

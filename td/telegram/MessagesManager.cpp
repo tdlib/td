@@ -19977,8 +19977,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date;
   } else {
-    LOG_CHECK(sent_message->date > 0) << old_message_id << ' ' << sent_message->message_id << ' ' << sent_message->date
-                                      << ' ' << date;
+    LOG_CHECK(sent_message->date > 0) << old_message_id << ' ' << sent_message->message_id << ' ' << new_message_id
+                                      << ' ' << sent_message->date << ' ' << date;
     sent_message->date = date;
     CHECK(d->last_message_id != old_message_id);
   }

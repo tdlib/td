@@ -268,7 +268,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     LOG(INFO) << "Add " << full_message_id << " to database";
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
-    CHECK(dialog_id.is_valid());
+    LOG_CHECK(dialog_id.is_valid()) << dialog_id << ' ' << message_id << ' ' << full_message_id;
     CHECK(message_id.is_valid());
     SCOPE_EXIT {
       add_message_stmt_.reset();

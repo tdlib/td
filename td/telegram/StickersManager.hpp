@@ -54,6 +54,10 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
 
 template <class ParserT>
 FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
+  if (parser.get_error() != nullptr) {
+    return FileId();
+  }
+
   auto sticker = make_unique<Sticker>();
   bool has_sticker_set_access_hash;
   bool in_sticker_set_stored;
@@ -62,10 +66,18 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   PARSE_FLAG(has_sticker_set_access_hash);
   PARSE_FLAG(in_sticker_set_stored);
   END_PARSE_FLAGS();
-  LOG_CHECK(in_sticker_set_stored == in_sticker_set)
-      << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version() << " " << sticker->is_mask << " "
-      << has_sticker_set_access_hash << " "
-      << format::as_hex_dump<4>(parser.template fetch_string_raw<Slice>(parser.get_left_len()));
+  if (in_sticker_set_stored != in_sticker_set) {
+    Slice data = parser.template fetch_string_raw<Slice>(parser.get_left_len());
+    for (auto c : data) {
+      if (c != '\0') {
+        LOG_CHECK(in_sticker_set_stored == in_sticker_set)
+            << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version() << " " << sticker->is_mask
+            << " " << has_sticker_set_access_hash << " " << format::as_hex_dump<4>(data);
+      }
+    }
+    parser.set_error("Zero sticker set is stored in the database");
+    return FileId();
+  }
   if (!in_sticker_set) {
     parse(sticker->set_id, parser);
     if (has_sticker_set_access_hash) {
@@ -215,6 +227,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     }
     for (uint32 i = 0; i < stored_sticker_count; i++) {
       auto sticker_id = parse_sticker(true, parser);
+      if (parser.get_error() != nullptr) {
+        return;
+      }
       sticker_set->sticker_ids.push_back(sticker_id);
 
       Sticker *sticker = get_sticker(sticker_id);

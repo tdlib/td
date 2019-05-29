@@ -2201,8 +2201,9 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockRelatedArticles *>(ptr));
     case Type::Map:
       return f(static_cast<const WebPageBlockMap *>(ptr));
+    default:
+      UNREACHABLE();
   }
-  UNREACHABLE();
 }
 
 template <class StorerT>
@@ -2216,6 +2217,10 @@ template <class ParserT>
 unique_ptr<WebPageBlock> WebPageBlock::parse(ParserT &parser) {
   Type type;
   td::parse(type, parser);
+  if (static_cast<int32>(type) < 0 || static_cast<int32>(type) >= static_cast<int32>(Type::Size)) {
+    parser.set_error(PSTRING() << "Can't parse unknown BlockType " << static_cast<int32>(type));
+    return nullptr;
+  }
   unique_ptr<WebPageBlock> res;
   call_impl(type, nullptr, [&](const auto *ptr) {
     using ObjT = std::decay_t<decltype(*ptr)>;
