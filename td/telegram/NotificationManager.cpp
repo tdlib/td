@@ -2140,6 +2140,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     }
     std::reverse(added_notifications.begin(), added_notifications.end());
   }
+  CHECK(get_temporary_notification_total_count(group_it->second) == 0);
 
   on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids),
                            false);
@@ -2148,7 +2149,6 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
       group_id, [](const td_api::object_ptr<td_api::notification> &notification) {
         return notification->get_id() == td_api::notificationTypeNewPushMessage::ID;
       });
-  CHECK(get_temporary_notification_total_count(group_it->second) == 0);
 }
 
 int32 NotificationManager::get_temporary_notification_total_count(const NotificationGroup &group) {
