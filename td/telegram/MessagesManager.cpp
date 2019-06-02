@@ -23852,10 +23852,10 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       if (!have_dialog_info(dialog_id)) {
         LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source << ", but forced to create it";
       } else {
-        LOG_IF(ERROR, Slice(source) != Slice("message forward info") &&
-                          Slice(source) != Slice("on_new_callback_query") &&
-                          Slice(source) != Slice("search public dialog") &&
-                          Slice(source) != Slice("create new secret chat") && !force_update_dialog_pos)
+        LOG_IF(ERROR,
+               Slice(source) != Slice("message forward info") && Slice(source) != Slice("message forward from info") &&
+                   Slice(source) != Slice("on_new_callback_query") && Slice(source) != Slice("search public dialog") &&
+                   Slice(source) != Slice("create new secret chat") && !force_update_dialog_pos)
             << "Have no access to " << dialog_id << " received from " << source << ", but forced to create it";
       }
     }
