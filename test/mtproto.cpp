@@ -521,14 +521,14 @@ class FastPingTestActor : public Actor {
       return stop();
     }
     connection_ = r_connection.move_as_ok();
-    LOG(ERROR) << "RTT: " << connection_->rtt_;
+    LOG(INFO) << "RTT: " << connection_->rtt_;
     connection_->rtt_ = 0;
     loop();
   }
 
   void loop() override {
     if (handshake_ && connection_) {
-      LOG(ERROR) << iteration_;
+      LOG(INFO) << "Iteration " << iteration_;
       if (iteration_ == 6) {
         Scheduler::instance()->finish();
         return stop();
