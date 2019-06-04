@@ -22548,13 +22548,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (*need_update) {
-    if (message_content_type == MessageContentType::PinMessage &&
-        (is_dialog_pinned_message_notifications_disabled(d) ||
-         !get_message_content_pinned_message_id(message->content.get()).is_valid())) {
-      // treat message pin without pinned message as an ordinary message
-      message->contains_mention = false;
-    }
-    if (message->contains_mention && is_dialog_mention_notifications_disabled(d)) {
+    if (message_content_type == MessageContentType::PinMessage) {
+      if (is_dialog_pinned_message_notifications_disabled(d) ||
+          !get_message_content_pinned_message_id(message->content.get()).is_valid()) {
+        // treat message pin without pinned message as an ordinary message
+        message->contains_mention = false;
+      }
+    } else if (message->contains_mention && is_dialog_mention_notifications_disabled(d)) {
       // disable mention notification
       message->is_mention_notification_disabled = true;
     }
@@ -24994,7 +24994,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
         CHECK(last_full_message_id == added_full_message_id);
         CHECK(d->last_message_id == d->last_new_message_id);
       } else {
-        LOG(ERROR) << added_full_message_id << " doesn't became last new message";
+        LOG(ERROR) << added_full_message_id << " doesn't became last new message, which is " << d->last_new_message_id;
         dump_debug_message_op(d, 2);
       }
     } else if (last_message_id.get() > d->last_new_message_id.get()) {
