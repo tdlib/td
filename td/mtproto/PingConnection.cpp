@@ -93,6 +93,7 @@ class PingConnectionPingPong
   PingConnectionPingPong(unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data)
       : auth_data_(std::move(auth_data)) {
     auth_data_->set_header("");
+    auth_data_->clear_seq_no();
     connection_ =
         make_unique<SessionConnection>(SessionConnection::Mode::Tcp, std::move(raw_connection), auth_data_.get());
   }
