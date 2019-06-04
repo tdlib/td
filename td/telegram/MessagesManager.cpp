@@ -23505,10 +23505,14 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       << " to " << new_message->is_channel_post << ", message content type is " << old_message->content->get_type()
       << '/' << new_message->content->get_type();
   if (old_message->contains_mention != new_message->contains_mention) {
-    LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available)
-        << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
-        << " to " << new_message->contains_mention << ", is_outgoing = " << old_message->is_outgoing
-        << ", message content type is " << old_message->content->get_type() << '/' << new_message->content->get_type();
+    auto old_type = old_message->content->get_type();
+    if (old_message->edit_date == 0 && is_new_available && old_type != MessageContentType::PinMessage &&
+        old_type != MessageContentType::ExpiredPhoto && old_type != MessageContentType::ExpiredVideo) {
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
+                 << old_message->contains_mention << " to " << new_message->contains_mention
+                 << ", is_outgoing = " << old_message->is_outgoing << ", message content type is "
+                 << old_type << '/' << new_message->content->get_type();
+    }
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
     // old_message->contains_mention = new_message->contains_mention;
