@@ -115,7 +115,7 @@ class StickersManager : public Actor {
   std::pair<int32, vector<int64>> get_archived_sticker_sets(bool is_masks, int64 offset_sticker_set_id, int32 limit,
                                                             bool force, Promise<Unit> &&promise);
 
-  void on_get_archived_sticker_sets(bool is_masks,
+  void on_get_archived_sticker_sets(bool is_masks, int64 offset_sticker_set_id,
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 

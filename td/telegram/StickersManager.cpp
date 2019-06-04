@@ -114,6 +114,7 @@ class SearchStickersQuery : public Td::ResultHandler {
 
 class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  int64 offset_sticker_set_id_;
   bool is_masks_;
 
  public:
@@ -121,6 +122,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   }
 
   void send(bool is_masks, int64 offset_sticker_set_id, int32 limit) {
+    offset_sticker_set_id_ = offset_sticker_set_id;
     is_masks_ = is_masks;
     LOG(INFO) << "Get archived " << (is_masks ? "mask" : "sticker") << " sets from " << offset_sticker_set_id
               << " with limit " << limit;
@@ -143,7 +145,8 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetArchivedStickerSetsQuery " << to_string(ptr);
-    td->stickers_manager_->on_get_archived_sticker_sets(is_masks_, std::move(ptr->sets_), ptr->count_);
+    td->stickers_manager_->on_get_archived_sticker_sets(is_masks_, offset_sticker_set_id_, std::move(ptr->sets_),
+                                                        ptr->count_);
 
     promise_.set_value(Unit());
   }
@@ -2463,10 +2466,16 @@ void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_ins
     }
 
     if (is_archived) {
-      total_count++;
-      sticker_set_ids.insert(sticker_set_ids.begin(), sticker_set->id);
+      if (std::find(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set->id) == sticker_set_ids.end()) {
+        total_count++;
+        sticker_set_ids.insert(sticker_set_ids.begin(), sticker_set->id);
+      }
     } else {
       total_count--;
+      if (total_count < 0) {
+        LOG(ERROR) << "Total count of archived sticker sets became negative";
+        total_count = 0;
+      }
       sticker_set_ids.erase(std::remove(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set->id),
                             sticker_set_ids.end());
     }
@@ -2841,11 +2850,7 @@ std::pair<int32, vector<int64>> StickersManager::get_archived_sticker_sets(bool 
 
   vector<int64> &sticker_set_ids = archived_sticker_set_ids_[is_masks];
   int32 total_count = total_archived_sticker_set_count_[is_masks];
-  if (total_count < 0) {
-    total_count = 0;
-  }
-
-  if (!sticker_set_ids.empty()) {
+  if (total_count >= 0) {
     auto offset_it = sticker_set_ids.begin();
     if (offset_sticker_set_id != 0) {
       offset_it = std::find(sticker_set_ids.begin(), sticker_set_ids.end(), offset_sticker_set_id);
@@ -2878,11 +2883,20 @@ std::pair<int32, vector<int64>> StickersManager::get_archived_sticker_sets(bool 
 }
 
 void StickersManager::on_get_archived_sticker_sets(
-    bool is_masks, vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets, int32 total_count) {
+    bool is_masks, int64 offset_sticker_set_id, vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
+    int32 total_count) {
   vector<int64> &sticker_set_ids = archived_sticker_set_ids_[is_masks];
   if (!sticker_set_ids.empty() && sticker_set_ids.back() == 0) {
     return;
   }
+  if (total_count < 0) {
+    LOG(ERROR) << "Receive " << total_count << " as total count of archived sticker sets";
+  }
+
+  // if 0 sticker sets are received then set offset_sticker_set_id was found and there is no stickers after it
+  // or it wasn't found and there is no archived sets at all
+  bool is_last =
+      sticker_sets.empty() && (offset_sticker_set_id == 0 || offset_sticker_set_id == sticker_set_ids.back());
 
   total_archived_sticker_set_count_[is_masks] = total_count;
   for (auto &sticker_set_covered : sticker_sets) {
@@ -2897,9 +2911,9 @@ void StickersManager::on_get_archived_sticker_sets(
       }
     }
   }
-  if (sticker_set_ids.size() >= static_cast<size_t>(total_count)) {
-    if (sticker_set_ids.size() > static_cast<size_t>(total_count)) {
-      LOG(ERROR) << "Expected total of " << total_count << " archived sticker sets, but only " << sticker_set_ids.size()
+  if (sticker_set_ids.size() >= static_cast<size_t>(total_count) || is_last) {
+    if (sticker_set_ids.size() != static_cast<size_t>(total_count)) {
+      LOG(ERROR) << "Expected total of " << total_count << " archived sticker sets, but " << sticker_set_ids.size()
                  << " found";
       total_archived_sticker_set_count_[is_masks] = static_cast<int32>(sticker_set_ids.size());
     }
