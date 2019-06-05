@@ -283,7 +283,7 @@ Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) 
     SCOPE_EXIT {
       path.resize(size);
     };
-    Result<bool> status;
+    Result<bool> status = true;
 #ifdef DT_DIR
     if (entry->d_type == DT_UNKNOWN) {
       status = walk_path(path, func);
@@ -296,9 +296,8 @@ Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) 
 #warning "Slow walk_path"
     status = walk_path(path, func);
 #endif
-    TRY_RESULT(is_ok, std::move(status));
-    if (!is_ok) {
-      return false;
+    if (status.is_error() || !status.ok()) {
+      return status;
     }
   }
 }
@@ -315,9 +314,9 @@ Result<bool> walk_path_dir(string &path, DIR *subdir, const WalkFunction &func) 
     case WalkPath::Action::Continue:
       break;
   }
-  TRY_RESULT(is_ok, walk_path_subdir(path, subdir, func));
-  if (!is_ok) {
-    return false;
+  auto status = walk_path_subdir(path, subdir, func);
+  if (status.is_error() || !status.ok()) {
+    return status;
   }
   switch (func(path, WalkPath::Type::ExitDir)) {
     case WalkPath::Action::Abort:
