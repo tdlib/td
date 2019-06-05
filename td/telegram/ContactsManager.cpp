@@ -7123,6 +7123,10 @@ void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 com
 void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id,
                                                             int32 common_chat_count) {
   CHECK(user_full != nullptr);
+  if (common_chat_count < 0) {
+    LOG(ERROR) << "Receive " << common_chat_count << " as common group count with " << user_id;
+    common_chat_count = 0;
+  }
   if (user_full->is_inited && user_full->common_chat_count != common_chat_count) {
     user_full->common_chat_count = common_chat_count;
     user_full->is_common_chat_count_changed = true;

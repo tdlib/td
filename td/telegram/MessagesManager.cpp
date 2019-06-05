@@ -11876,6 +11876,7 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
   if (!result.empty() && result.back() == DialogId()) {
     return;
   }
+  bool is_last = chats.empty() && offset_chat_id == 0;
   for (auto &chat : chats) {
     DialogId dialog_id;
     switch (chat->get_id()) {
@@ -11940,7 +11941,7 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
       result.push_back(dialog_id);
     }
   }
-  if (result.size() >= static_cast<size_t>(total_count)) {
+  if (result.size() >= static_cast<size_t>(total_count) || is_last) {
     result.push_back(DialogId());
   }
 }
@@ -23510,8 +23511,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         old_type != MessageContentType::ExpiredPhoto && old_type != MessageContentType::ExpiredVideo) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
                  << old_message->contains_mention << " to " << new_message->contains_mention
-                 << ", is_outgoing = " << old_message->is_outgoing << ", message content type is "
-                 << old_type << '/' << new_message->content->get_type();
+                 << ", is_outgoing = " << old_message->is_outgoing << ", message content type is " << old_type << '/'
+                 << new_message->content->get_type();
     }
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
