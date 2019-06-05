@@ -7985,7 +7985,10 @@ Slice ContactsManager::get_dialog_invite_link_hash(const string &invite_link) {
 
   for (auto &url : INVITE_LINK_URLS) {
     if (begins_with(lower_cased_invite_link, url)) {
-      return Slice(invite_link).substr(url.size() + offset);
+      Slice hash = Slice(invite_link).substr(url.size() + offset);
+      hash.truncate(hash.find('#'));
+      hash.truncate(hash.find('?'));
+      return hash;
     }
   }
   return Slice();
