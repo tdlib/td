@@ -139,13 +139,11 @@ void StorageManager::create_stats_worker() {
 }
 
 void StorageManager::on_all_files(Result<FileStats> r_file_stats, bool dummy) {
+  if (is_closed_ && r_file_stats.is_ok()) {
+    r_file_stats = Status::Error(500, "Request aborted");
+  }
   if (r_file_stats.is_error()) {
-    LOG(ERROR) << "Stats for GC failed: " << r_file_stats.error();
-    auto promises = std::move(pending_run_gc_);
-    for (auto &promise : promises) {
-      promise.set_error(r_file_stats.error().clone());
-    }
-    return;
+    return on_gc_finished(std::move(r_file_stats), false);
   }
 
   create_gc_worker();
@@ -200,7 +198,9 @@ void StorageManager::create_gc_worker() {
 
 void StorageManager::on_gc_finished(Result<FileStats> r_file_stats, bool dummy) {
   if (r_file_stats.is_error()) {
-    LOG(ERROR) << "GC failed: " << r_file_stats.error();
+    if (r_file_stats.error().code() != 500) {
+      LOG(ERROR) << "GC failed: " << r_file_stats.error();
+    }
     auto promises = std::move(pending_run_gc_);
     for (auto &promise : promises) {
       promise.set_error(r_file_stats.error().clone());
