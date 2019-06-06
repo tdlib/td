@@ -6909,6 +6909,19 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
+    if (!is_empty) {
+      CHECK(photo->get_id() == telegram_api::userProfilePhoto::ID);
+      auto user_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
+
+      auto copy_location = [](telegram_api::FileLocation *location_ptr) {
+        if (location_ptr->get_id() == telegram_api::fileLocation::ID) {
+          auto location = static_cast<telegram_api::fileLocation *>(location_ptr);
+          location->file_reference_ = location->file_reference_.copy();
+        }
+      };
+      copy_location(user_photo->photo_small_.get());
+      copy_location(user_photo->photo_big_.get());
+    }
     pending_user_photos_[user_id] = std::move(photo);
 
     UserFull *user_full = get_user_full(user_id);
