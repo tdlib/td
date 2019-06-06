@@ -3375,7 +3375,6 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
 
   bool need_logging = [&] {
     switch (function->get_id()) {
-      case td_api::getTextEntities::ID:
       case td_api::parseTextEntities::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
@@ -3645,7 +3644,7 @@ void Td::start_up() {
 }
 
 void Td::tear_down() {
-  CHECK(close_flag_ == 5);
+  LOG_CHECK(close_flag_ == 5) << close_flag_;
 }
 
 void Td::hangup_shared() {
