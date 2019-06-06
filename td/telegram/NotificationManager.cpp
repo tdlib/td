@@ -248,18 +248,24 @@ void NotificationManager::init() {
 
   auto call_notification_group_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_call_group_ids");
   if (!call_notification_group_ids_string.empty()) {
-    call_notification_group_ids_ = transform(full_split(call_notification_group_ids_string, ','), [](Slice str) {
+    auto call_notification_group_ids = transform(full_split(call_notification_group_ids_string, ','), [](Slice str) {
       return NotificationGroupId{to_integer_safe<int32>(str).ok()};
     });
-    VLOG(notifications) << "Load call_notification_group_ids_ = " << call_notification_group_ids_;
-    for (auto &group_id : call_notification_group_ids_) {
+    VLOG(notifications) << "Load call_notification_group_ids = " << call_notification_group_ids;
+    for (auto &group_id : call_notification_group_ids) {
       if (group_id.get() > current_notification_group_id_.get()) {
         LOG(ERROR) << "Fix current notification group id from " << current_notification_group_id_ << " to " << group_id;
         current_notification_group_id_ = group_id;
         G()->td_db()->get_binlog_pmc()->set("notification_group_id_current",
                                             to_string(current_notification_group_id_.get()));
       }
-      available_call_notification_group_ids_.insert(group_id);
+      auto it = get_group_force(group_id);
+      if (it != groups_.end()) {
+        LOG(ERROR) << "Have " << it->first << " " << it->second << " as a call notification group";
+      } else {
+        call_notification_group_ids_.push_back(group_id);
+        available_call_notification_group_ids_.insert(group_id);
+      }
     }
   }
 
