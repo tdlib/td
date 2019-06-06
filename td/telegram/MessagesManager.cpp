@@ -4654,26 +4654,10 @@ bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api
     // allow dummyUpdate just in case
     return true;
   }
-  if (constructor_id == telegram_api::updateNewMessage::ID) {
-    auto message = static_cast<const telegram_api::updateNewMessage *>(update.get())->message_.get();
-    if (message->get_id() == telegram_api::message::ID) {
-      auto m = static_cast<const telegram_api::message *>(message);
-      bool is_outgoing =
-          (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 || UserId(m->from_id_) == td_->contacts_manager_->get_my_id();
-      if (is_outgoing && m->media_ != nullptr && m->media_->get_id() != telegram_api::messageMediaEmpty::ID) {
-        // allow outgoing media, because they are returned if random_id coincided
-        return true;
-      }
-    }
-    if (message->get_id() == telegram_api::messageService::ID) {
-      auto m = static_cast<const telegram_api::messageService *>(message);
-      bool is_outgoing =
-          (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 || UserId(m->from_id_) == td_->contacts_manager_->get_my_id();
-      if (is_outgoing && m->action_->get_id() == telegram_api::messageActionScreenshotTaken::ID) {
-        // allow outgoing messageActionScreenshotTaken, because they are returned if random_id coincided
-        return true;
-      }
-    }
+  if (constructor_id == telegram_api::updateNewMessage::ID ||
+      constructor_id == telegram_api::updateNewChannelMessage::ID) {
+    // new outgoing messages are received again if random_id coincide
+    return true;
   }
 
   return false;
