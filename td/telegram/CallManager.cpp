@@ -45,21 +45,22 @@ void CallManager::update_call(Update call) {
 }
 
 void CallManager::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
-                              CallProtocol &&protocol, Promise<CallId> promise) {
+                              CallProtocol &&protocol, bool is_video, Promise<CallId> promise) {
   LOG(INFO) << "Create call with " << user_id;
   auto call_id = create_call_actor();
   auto actor = get_call_actor(call_id);
   CHECK(!actor.empty());
-  send_closure(actor, &CallActor::create_call, user_id, std::move(input_user), std::move(protocol), std::move(promise));
+  send_closure(actor, &CallActor::create_call, user_id, std::move(input_user), std::move(protocol), is_video,
+               std::move(promise));
 }
 
-void CallManager::discard_call(CallId call_id, bool is_disconnected, int32 duration, int64 connection_id,
+void CallManager::discard_call(CallId call_id, bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
                                Promise<> promise) {
   auto actor = get_call_actor(call_id);
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::discard_call, is_disconnected, duration, connection_id, std::move(promise));
+  send_closure(actor, &CallActor::discard_call, is_disconnected, duration, is_video, connection_id, std::move(promise));
 }
 
 void CallManager::accept_call(CallId call_id, CallProtocol &&protocol, Promise<> promise) {

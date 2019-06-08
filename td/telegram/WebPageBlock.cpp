@@ -2023,8 +2023,11 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                        *td->contacts_manager_->get_channel_dialog_photo(channel_id),
                                                        td->contacts_manager_->get_channel_username(channel_id));
         } else {
+          bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
           return td::make_unique<WebPageBlockChatLink>(
-              std::move(channel->title_), get_dialog_photo(td->file_manager_.get(), std::move(channel->photo_)),
+              std::move(channel->title_),
+              get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
+                               has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
               std::move(channel->username_));
         }
       } else {

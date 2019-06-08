@@ -78,8 +78,8 @@ class CallActor : public NetQueryCallback {
   CallActor(CallId call_id, ActorShared<> parent, Promise<int64> promise);
 
   void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
-                   Promise<CallId> &&promise);
-  void discard_call(bool is_disconnected, int32 duration, int64 connection_id, Promise<> promise);
+                   bool is_video, Promise<CallId> &&promise);
+  void discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id, Promise<> promise);
   void accept_call(CallProtocol &&protocol, Promise<> promise);
   void rate_call(int32 rating, string comment, Promise<> promise);
   void send_call_debug_information(string data, Promise<> promise);
@@ -114,6 +114,7 @@ class CallActor : public NetQueryCallback {
   bool is_accepted_{false};
 
   bool is_outgoing_{false};
+  bool is_video_{false};
   UserId user_id_;
   tl_object_ptr<telegram_api::InputUser> input_user_;
 
@@ -160,7 +161,7 @@ class CallActor : public NetQueryCallback {
 
   void on_begin_exchanging_key();
 
-  void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug);
+  void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug, bool is_video);
 
   void on_set_rating_query_result(NetQueryPtr net_query);
   void on_set_debug_query_result(NetQueryPtr net_query);

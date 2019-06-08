@@ -5468,10 +5468,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
                   telegram_api::user::SUPPORT_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-        3337190045231018,
-        telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146, BufferSlice()),
-        telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216,
-                                                              BufferSlice()));
+        3337190045231018, telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(702229962, 26779),
+        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(702229962, 26781), 1);
     if (G()->is_test_dc()) {
       profile_photo = nullptr;
       flags -= telegram_api::user::PHOTO_MASK;
@@ -6590,7 +6588,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
         auto server_photo = telegram_api::move_object_as<telegram_api::photo>(photo_ptr);
         auto profile_photo = convert_photo_to_profile_photo(server_photo);
         if (profile_photo) {
-          get_profile_photo(td_->file_manager_.get(), std::move(profile_photo));
+          get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(profile_photo));
         } else {
           LOG(ERROR) << "Failed to get profile photo from " << to_string(server_photo);
         }
@@ -6961,19 +6959,6 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
-    if (!is_empty) {
-      CHECK(photo->get_id() == telegram_api::userProfilePhoto::ID);
-      auto user_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
-
-      auto copy_location = [](telegram_api::FileLocation *location_ptr) {
-        if (location_ptr->get_id() == telegram_api::fileLocation::ID) {
-          auto location = static_cast<telegram_api::fileLocation *>(location_ptr);
-          location->file_reference_ = location->file_reference_.copy();
-        }
-      };
-      copy_location(user_photo->photo_small_.get());
-      copy_location(user_photo->photo_big_.get());
-    }
     pending_user_photos_[user_id] = std::move(photo);
 
     UserFull *user_full = get_user_full(user_id);
@@ -6995,7 +6980,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
   u->is_photo_inited = true;
-  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), std::move(photo));
+  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
 
   if (new_photo != u->photo) {
     u->photo = new_photo;
@@ -8009,7 +7994,13 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->chat_id = ChatId();
       invite_link_info->channel_id = ChannelId();
       invite_link_info->title = chat_invite->title_;
-      invite_link_info->photo = get_dialog_photo(td_->file_manager_.get(), std::move(chat_invite->photo_));
+      if (chat_invite->photo_ != nullptr && chat_invite->photo_->get_id() == telegram_api::photo::ID) {
+        auto photo = telegram_api::move_object_as<telegram_api::photo>(chat_invite->photo_);
+        invite_link_info->photo =
+            get_profile_photo(td_->file_manager_.get(), UserId(), 0, convert_photo_to_profile_photo(photo));
+      } else {
+        invite_link_info->photo = DialogPhoto();
+      }
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids.clear();
       for (auto &user : chat_invite->participants_) {
@@ -8476,7 +8467,8 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
 
 void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
                                            tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
-  DialogPhoto new_chat_photo = get_dialog_photo(td_->file_manager_.get(), std::move(chat_photo_ptr));
+  DialogPhoto new_chat_photo =
+      get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
     if (c->photo_source_id.is_valid()) {
@@ -8601,7 +8593,8 @@ void ContactsManager::invalidate_chat_full(ChatId chat_id) {
 
 void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
                                               tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
-  DialogPhoto new_chat_photo = get_dialog_photo(td_->file_manager_.get(), std::move(chat_photo_ptr));
+  DialogPhoto new_chat_photo =
+      get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
     if (c->photo_source_id.is_valid()) {

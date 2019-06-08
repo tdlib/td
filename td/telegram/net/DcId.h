@@ -40,6 +40,13 @@ class DcId {
   static DcId from_value(int32 value) {
     return DcId{value, false};
   }
+  static DcId create(int32 dc_id_value) {
+    if (DcId::is_valid(dc_id_value)) {
+      return DcId(dc_id_value, true);
+    } else {
+      return DcId::invalid();
+    }
+  }
 
   bool is_empty() const {
     return !is_valid();

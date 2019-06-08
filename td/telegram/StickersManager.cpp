@@ -1248,6 +1248,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
     LOG(ERROR) << "Wrong dc_id = " << document->dc_id_ << " in document " << to_string(document);
     return {};
   }
+  auto dc_id = DcId::internal(document->dc_id_);
 
   Dimensions dimensions;
   tl_object_ptr<telegram_api::documentAttributeSticker> sticker;
@@ -1272,13 +1273,13 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
 
   int64 document_id = document->id_;
   FileId sticker_id = td_->file_manager_->register_remote(
-      FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, DcId::internal(document->dc_id_),
+      FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, dc_id,
                              document->file_reference_.as_slice().str()),
       FileLocationSource::FromServer, DialogId(), document->size_, 0, PSTRING() << document_id << ".webp");
 
   PhotoSize thumbnail;
   for (auto &thumb : document->thumbs_) {
-    auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
+    auto photo_size = get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, 0, 0, "", dc_id, DialogId(),
                                      std::move(thumb), has_webp_thumbnail(sticker), false);
     if (photo_size.get_offset() == 0) {
       thumbnail = std::move(photo_size.get<0>());
@@ -1732,8 +1733,8 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
 
   PhotoSize thumbnail;
   if (set->thumb_ != nullptr) {
-    auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
-                                     std::move(set->thumb_), true, false);
+    auto photo_size = get_photo_size(td_->file_manager_.get(), {set_id, s->access_hash}, 0, 0, "",
+                                     DcId::create(set->thumb_dc_id_), DialogId(), std::move(set->thumb_), true, false);
     if (photo_size.get_offset() == 0) {
       thumbnail = std::move(photo_size.get<0>());
     } else {

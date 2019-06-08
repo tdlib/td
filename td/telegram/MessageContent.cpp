@@ -443,10 +443,11 @@ class MessageCall : public MessageContent {
   int64 call_id;
   int32 duration;
   CallDiscardReason discard_reason;
+  bool is_video;
 
   MessageCall() = default;
-  MessageCall(int64 call_id, int32 duration, CallDiscardReason discard_reason)
-      : call_id(call_id), duration(duration), discard_reason(discard_reason) {
+  MessageCall(int64 call_id, int32 duration, CallDiscardReason discard_reason, bool is_video)
+      : call_id(call_id), duration(duration), discard_reason(discard_reason), is_video(is_video) {
   }
 
   MessageContentType get_type() const override {
@@ -906,6 +907,9 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Call: {
       auto m = static_cast<const MessageCall *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_video);
+      END_STORE_FLAGS();
       store(m->call_id, storer);
       store(m->duration, storer);
       store(m->discard_reason, storer);
@@ -1227,6 +1231,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Call: {
       auto m = make_unique<MessageCall>();
+      if (parser.version() >= static_cast<int32>(Version::AddVideoCallsSupport)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(m->is_video);
+        END_PARSE_FLAGS();
+      } else {
+        m->is_video = false;
+      }
       parse(m->call_id, parser);
       parse(m->duration, parser);
       parse(m->discard_reason, parser);
@@ -2891,10 +2902,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
             CHECK(new_file_view.has_remote_location());
             CHECK(!new_file_view.remote_location().is_web());
             FileId file_id = td->file_manager_->register_remote(
-                FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
-                                       new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid(),
-                                       new_file_view.remote_location().get_upload_file_reference().str(),
-                                       new_file_view.remote_location().get_download_file_reference().str()),
+                FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
+                                       new_file_view.remote_location().get_access_hash(), 0, 0, DcId::invalid(),
+                                       new_file_view.remote_location().get_upload_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
           }
@@ -3078,7 +3088,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Call: {
       auto old_ = static_cast<const MessageCall *>(old_content);
       auto new_ = static_cast<const MessageCall *>(new_content);
-      if (old_->call_id != new_->call_id) {
+      if (old_->call_id != new_->call_id || old_->is_video != new_->is_video) {
         is_content_changed = true;
       }
       if (old_->duration != new_->duration || old_->discard_reason != new_->discard_reason) {
@@ -3330,14 +3340,12 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from);
 
 // fileLocationUnavailable#7c596b46 volume_id:long local_id:int secret:long = FileLocation;
 static auto secret_to_telegram(secret_api::fileLocationUnavailable &file_location) {
-  return make_tl_object<telegram_api::fileLocationUnavailable>(file_location.volume_id_, file_location.local_id_,
-                                                               file_location.secret_);
+  return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
 }
 
 // fileLocation#53d69076 dc_id:int volume_id:long local_id:int secret:long = FileLocation;
 static auto secret_to_telegram(secret_api::fileLocation &file_location) {
-  return make_tl_object<telegram_api::fileLocation>(file_location.dc_id_, file_location.volume_id_,
-                                                    file_location.local_id_, file_location.secret_, BufferSlice());
+  return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
 }
 
 // photoSizeEmpty#e17e23c type:string = PhotoSize;
@@ -3353,9 +3361,9 @@ static auto secret_to_telegram(secret_api::photoSize &photo_size) {
   if (!clean_input_string(photo_size.type_)) {
     photo_size.type_.clear();
   }
-  return make_tl_object<telegram_api::photoSize>(photo_size.type_,
-                                                 secret_to_telegram<telegram_api::FileLocation>(*photo_size.location_),
-                                                 photo_size.w_, photo_size.h_, photo_size.size_);
+  return make_tl_object<telegram_api::photoSize>(
+      photo_size.type_, secret_to_telegram<telegram_api::fileLocationToBeDeprecated>(*photo_size.location_),
+      photo_size.w_, photo_size.h_, photo_size.size_);
 }
 
 // photoCachedSize#e9a734fa type:string location:FileLocation w:int h:int bytes:bytes = PhotoSize;
@@ -3364,8 +3372,8 @@ static auto secret_to_telegram(secret_api::photoCachedSize &photo_size) {
     photo_size.type_.clear();
   }
   return make_tl_object<telegram_api::photoCachedSize>(
-      photo_size.type_, secret_to_telegram<telegram_api::FileLocation>(*photo_size.location_), photo_size.w_,
-      photo_size.h_, photo_size.bytes_.clone());
+      photo_size.type_, secret_to_telegram<telegram_api::fileLocationToBeDeprecated>(*photo_size.location_),
+      photo_size.w_, photo_size.h_, photo_size.bytes_.clone());
 }
 
 // documentAttributeImageSize #6c37c15c w:int h:int = DocumentAttribute;
@@ -4214,7 +4222,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto phone_call = move_tl_object_as<telegram_api::messageActionPhoneCall>(action);
       auto duration =
           (phone_call->flags_ & telegram_api::messageActionPhoneCall::DURATION_MASK) != 0 ? phone_call->duration_ : 0;
-      return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_));
+      auto is_video = (phone_call->flags_ & telegram_api::messageActionPhoneCall::VIDEO_MASK) != 0;
+      return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_),
+                                      is_video);
     }
     case telegram_api::messageActionPaymentSent::ID: {
       LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent in " << owner_dialog_id;

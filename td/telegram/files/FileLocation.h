@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/Photo.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -345,6 +346,14 @@ class FullRemoteFileLocation {
     return type;
   }
 
+  void check_file_reference() {
+    FileReferenceView view(file_reference_);
+    if (!(view.has_upload() && view.has_download())) {
+      LOG(ERROR) << "Tried to register file with invalid file reference";
+      file_reference_.clear();
+    }
+  }
+
  public:
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -476,7 +485,8 @@ class FullRemoteFileLocation {
           return make_tl_object<telegram_api::inputSecureFileLocation>(common().id_, common().access_hash_);
         } else {
           return make_tl_object<telegram_api::inputDocumentFileLocation>(
-              common().id_, common().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()));
+              common().id_, common().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
+              string());
         }
       case LocationType::Web:
       case LocationType::None:
@@ -514,31 +524,29 @@ class FullRemoteFileLocation {
 
   // TODO: this constructor is just for immediate unserialize
   FullRemoteFileLocation() = default;
-  FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
-                         DcId dc_id, std::string upload_file_reference, std::string download_file_reference)
-      : file_type_(file_type)
+
+  // photo
+  FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, int32 local_id, int64 volume_id,
+                         DcId dc_id, std::string file_reference)
+      : file_type_(source.file_type)
       , dc_id_(dc_id)
-      , file_reference_(FileReferenceView::create_two(upload_file_reference, download_file_reference))
-      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, secret, local_id}) {
+      , file_reference_(FileReferenceView::create_one(file_reference))
+      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, -1, local_id}) {  // TODO(now) use source
     CHECK(is_photo());
-    FileReferenceView view(file_reference_);
-    if (!(view.has_upload() && view.has_download())) {
-      LOG(ERROR) << "Tried to register file with invalid file reference";
-      file_reference_.clear();
-    }
+    check_file_reference();
   }
+
+  // document
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
       : file_type_(file_type)
       , dc_id_(dc_id)
       , file_reference_(FileReferenceView::create_one(file_reference))
       , variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
-    FileReferenceView view(file_reference_);
-    if (!(view.has_upload() && view.has_download())) {
-      LOG(ERROR) << "Tried to register file with invalid file reference";
-      file_reference_.clear();
-    }
+    check_file_reference();
   }
+
+  // web document
   FullRemoteFileLocation(FileType file_type, string url, int64 access_hash)
       : file_type_(file_type)
       , web_location_flag_{true}
@@ -647,14 +655,6 @@ class RemoteFileLocation {
   explicit RemoteFileLocation(const FullRemoteFileLocation &full) : variant_(full) {
   }
   explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
-  }
-  RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
-                     DcId dc_id, std::string upload_file_reference, std::string download_file_reference)
-      : variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id,
-                                        std::move(upload_file_reference), std::move(download_file_reference)}) {
-  }
-  RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
-      : variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id, std::move(file_reference)}) {
   }
 
  private:

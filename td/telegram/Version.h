@@ -30,6 +30,7 @@ enum class Version : int32 {
   SupportInstantView2_0,
   AddNotificationGroupInfoMaxRemovedMessageId,
   SupportMinithumbnails,
+  AddVideoCallsSupport,
   Next
 };
 
