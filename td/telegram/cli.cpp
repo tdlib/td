@@ -3910,12 +3910,12 @@ void main(int argc, char **argv) {
       get_chat_list = true;
     } else if (!std::strcmp(argv[i], "--disable-network") || !std::strcmp(argv[i], "-n")) {
       disable_network = true;
-    } else if (!std::strcmp(argv[i], "--api_id")) {
+    } else if (!std::strcmp(argv[i], "--api_id") || !std::strcmp(argv[i], "--api-id")) {
       if (i + 1 >= argc) {
         return usage();
       }
       api_id = td::to_integer<int32>(Slice(argv[++i]));
-    } else if (!std::strcmp(argv[i], "--api_hash")) {
+    } else if (!std::strcmp(argv[i], "--api_hash") || !std::strcmp(argv[i], "--api-hash")) {
       if (i + 1 >= argc) {
         return usage();
       }
@@ -3930,7 +3930,6 @@ void main(int argc, char **argv) {
 
   SET_VERBOSITY_LEVEL(new_verbosity_level);
   ClientActor::execute(td_api::make_object<td_api::setLogTagVerbosityLevel>("update_file", 2));
-  ClientActor::execute(td_api::make_object<td_api::setLogTagVerbosityLevel>("notifications", 2));
   ClientActor::execute(td_api::make_object<td_api::setLogTagVerbosityLevel>("file_reference", 2));
 
   {
