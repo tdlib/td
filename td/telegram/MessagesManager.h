@@ -1902,10 +1902,10 @@ class MessagesManager : public Actor {
                         double view_date);
   void ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
                              double view_date);
-  void ttl_on_view(const Dialog *d, Message *message, double view_date, double now);
-  bool ttl_on_open(Dialog *d, Message *message, double now, bool is_local_read);
-  void ttl_register_message(DialogId dialog_id, const Message *message, double now);
-  void ttl_unregister_message(DialogId dialog_id, const Message *message, double now, const char *source);
+  void ttl_on_view(const Dialog *d, Message *m, double view_date, double now);
+  bool ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read);
+  void ttl_register_message(DialogId dialog_id, const Message *m, double now);
+  void ttl_unregister_message(DialogId dialog_id, const Message *m, double now, const char *source);
   void ttl_loop(double now);
   void ttl_update_timeout(double now);
 
