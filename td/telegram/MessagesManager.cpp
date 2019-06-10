@@ -15271,17 +15271,23 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId
   return get_message_object(full_message_id.get_dialog_id(), get_message_force(full_message_id, "get_message_object"));
 }
 
-tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dialog_id, const Message *message) const {
-  if (message == nullptr) {
+tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dialog_id, const Message *m,
+                                                                   bool for_event_log) const {
+  if (m == nullptr) {
     return nullptr;
   }
 
   // TODO get_message_sending_state_object
   tl_object_ptr<td_api::MessageSendingState> sending_state;
-  if (message->is_failed_to_send) {
+  if (m->is_failed_to_send) {
     sending_state = make_tl_object<td_api::messageSendingStateFailed>();
-  } else if (message->message_id.is_yet_unsent()) {
+  } else if (m->message_id.is_yet_unsent()) {
     sending_state = make_tl_object<td_api::messageSendingStatePending>();
+  }
+
+  if (for_event_log) {
+    CHECK(m->message_id.is_server());
+    CHECK(sending_state == nullptr);
   }
 
   bool can_delete = true;
@@ -15289,18 +15295,18 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto is_bot = td_->auth_manager_->is_bot();
   if (dialog_type == DialogType::Channel) {
     auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
-    can_delete = can_delete_channel_message(dialog_status, message, is_bot);
+    can_delete = can_delete_channel_message(dialog_status, m, is_bot);
   }
 
   DialogId my_dialog_id = get_my_dialog_id();
   bool can_delete_for_self = false;
-  bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, message);
+  bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
   if (can_delete) {
     switch (dialog_type) {
       case DialogType::User:
       case DialogType::Chat:
         // TODO allow to delete yet unsent message just for self
-        can_delete_for_self = !message->message_id.is_yet_unsent() || dialog_id == my_dialog_id;
+        can_delete_for_self = !m->message_id.is_yet_unsent() || dialog_id == my_dialog_id;
         break;
       case DialogType::Channel:
       case DialogType::SecretChat:
@@ -15311,27 +15317,45 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
         UNREACHABLE();
     }
   }
+  if (for_event_log) {
+    can_delete_for_self = false;
+    can_delete_for_all_users = false;
+  }
 
-  bool is_outgoing = message->is_outgoing;
+  bool is_outgoing = m->is_outgoing;
   if (dialog_id == my_dialog_id) {
     // in Saved Messages all non-forwarded messages must be outgoing
     // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
-    auto forward_info = message->forward_info.get();
+    auto forward_info = m->forward_info.get();
     is_outgoing = forward_info == nullptr ||
                   (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
   }
+
+  int32 ttl = m->ttl;
+  double ttl_expires_in = 0;
+  if (!for_event_log) {
+    if (m->ttl_expires_at != 0) {
+      ttl_expires_in = max(m->ttl_expires_at - Time::now(), 1e-3);
+    } else {
+      ttl_expires_in = m->ttl;
+    }
+  } else {
+    ttl = 0;
+  }
+  bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, is_bot);
+  bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
+  auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
+  auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
+  bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
   return make_tl_object<td_api::message>(
-      message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id, "sender_user_id"),
-      dialog_id.get(), std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, is_bot),
-      can_forward_message(dialog_id, message), can_delete_for_self, can_delete_for_all_users, message->is_channel_post,
-      message->contains_unread_mention, message->date, message->edit_date,
-      get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(), message->ttl,
-      message->ttl_expires_at != 0 ? max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
-      td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
-      message->author_signature, message->views, message->media_album_id,
-      get_message_content_object(message->content.get(), td_, message->date, message->is_content_secret),
-      get_reply_markup_object(message->reply_markup));
+      m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
+      dialog_id.get(), std::move(sending_state), is_outgoing, can_be_edited, can_be_forwarded, can_delete_for_self,
+      can_delete_for_all_users, m->is_channel_post, contains_unread_mention, m->date, m->edit_date,
+      get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
+      media_album_id, get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret),
+      get_reply_markup_object(m->reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -22212,7 +22236,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (message.second == nullptr) {
         return make_tl_object<td_api::chatEventMessageUnpinned>();
       }
-      return make_tl_object<td_api::chatEventMessagePinned>(get_message_object(message.first, message.second.get()));
+      return make_tl_object<td_api::chatEventMessagePinned>(
+          get_message_object(message.first, message.second.get(), true));
     }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
@@ -22227,8 +22252,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMessageEdited>(
-          get_message_object(old_message.first, old_message.second.get()),
-          get_message_object(new_message.first, new_message.second.get()));
+          get_message_object(old_message.first, old_message.second.get(), true),
+          get_message_object(new_message.first, new_message.second.get(), true));
     }
     case telegram_api::channelAdminLogEventActionStopPoll::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStopPoll>(action_ptr);
@@ -22242,7 +22267,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         LOG(ERROR) << "Receive not a poll in channelAdminLogEventActionStopPoll";
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventPollStopped>(get_message_object(message.first, message.second.get()));
+      return make_tl_object<td_api::chatEventPollStopped>(
+          get_message_object(message.first, message.second.get(), true));
     }
     case telegram_api::channelAdminLogEventActionDeleteMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
@@ -22252,7 +22278,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         LOG(ERROR) << "Failed to get deleted message";
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventMessageDeleted>(get_message_object(message.first, message.second.get()));
+      return make_tl_object<td_api::chatEventMessageDeleted>(
+          get_message_object(message.first, message.second.get(), true));
     }
     case telegram_api::channelAdminLogEventActionChangeStickerSet::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeStickerSet>(action_ptr);

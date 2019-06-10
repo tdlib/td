@@ -1700,7 +1700,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
-  tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *message) const;
+  tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
+                                                    bool for_event_log = false) const;
 
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
                                                              vector<tl_object_ptr<td_api::message>> &&messages);
