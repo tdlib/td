@@ -47,7 +47,6 @@ add_custom_target(build_java
   DEPENDS td_generate_java_api
 )
 
-set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
 add_custom_target(generate_javadoc
   COMMAND ${Java_JAVADOC_EXECUTABLE} -d ${JAVA_OUTPUT_DIRECTORY}/../docs org.drinkless.tdlib
   WORKING_DIRECTORY ${TD_API_JAVA_PATH}

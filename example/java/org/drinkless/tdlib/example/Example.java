@@ -54,7 +54,11 @@ public final class Example {
     private static volatile String currentPrompt = null;
 
     static {
-        System.loadLibrary("tdjni");
+        try {
+            System.loadLibrary("tdjni");
+        } catch (UnsatisfiedLinkError e) {
+            e.printStackTrace();
+        }
     }
 
     private static void print(String str) {
