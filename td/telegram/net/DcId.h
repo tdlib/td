@@ -42,7 +42,7 @@ class DcId {
   }
   static DcId create(int32 dc_id_value) {
     if (DcId::is_valid(dc_id_value)) {
-      return DcId(dc_id_value, true);
+      return DcId(dc_id_value, false);
     } else {
       return DcId::invalid();
     }
