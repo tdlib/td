@@ -379,9 +379,9 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
       auto permissions = st->permissions_.get();
       bool can_send_polls = permissions->can_send_polls_;
-      bool can_send_media = permissions->can_send_media_messages_ || permissions->can_send_other_messages_ ||
-                            permissions->can_add_web_page_previews_;
-      bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls;
+      bool can_send_media = permissions->can_send_media_messages_;
+      bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
+                               permissions->can_send_other_messages_ || permissions->can_add_web_page_previews_;
       return DialogParticipantStatus::Restricted(
           st->is_member_, st->restricted_until_date_, can_send_messages, can_send_media,
           permissions->can_send_other_messages_, permissions->can_send_other_messages_,
@@ -581,9 +581,9 @@ RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBan
 
 RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions) {
   bool can_send_polls = permissions->can_send_polls_;
-  bool can_send_media = permissions->can_send_media_messages_ || permissions->can_send_other_messages_ ||
-                        permissions->can_add_web_page_previews_;
-  bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls;
+  bool can_send_media = permissions->can_send_media_messages_;
+  bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
+                           permissions->can_send_other_messages_ || permissions->can_add_web_page_previews_;
   return RestrictedRights(can_send_messages, can_send_media, permissions->can_send_other_messages_,
                           permissions->can_send_other_messages_, permissions->can_send_other_messages_,
                           permissions->can_send_other_messages_, permissions->can_add_web_page_previews_,

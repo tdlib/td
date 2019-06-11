@@ -321,7 +321,7 @@ users total_count:int32 user_ids:vector<int32> = Users;
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
-//@can_send_other_messages True, if the user can send animations, games, and stickers and use inline bots. Implies can_send_media_messages permissions
+//@can_send_other_messages True, if the user can send animations, games, and stickers and use inline bots. Implies can_send_messages permissions
 //@can_add_web_page_previews True, if the user may add a web page preview to his messages. Implies can_send_messages permissions
 //@can_change_info True, if the user can change the chat title, photo, and other settings
 //@can_invite_users True, if the user can invite new users to the chat
