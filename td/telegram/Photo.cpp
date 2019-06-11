@@ -331,7 +331,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     res.type = static_cast<unsigned char>(type[0]);
   }
   if (source.type == PhotoSizeSource::Type::Thumbnail) {
-    source.thumbnail_type = res.type;
+    source.thumbnail().thumbnail_type = res.type;
   }
 
   res.file_id = register_photo(file_manager, source, id, access_hash, file_reference, std::move(location),

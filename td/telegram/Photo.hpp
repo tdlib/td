@@ -14,6 +14,126 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+template <class StorerT>
+void OfflineInputStickerSet::store(StorerT &storer) const {
+  using td::store;
+  store(sticker_set_id, storer);
+  store(sticker_set_access_hash, storer);
+}
+template <class ParserT>
+void OfflineInputStickerSet::parse(ParserT &parser) {
+  using td::parse;
+  parse(sticker_set_id, parser);
+  parse(sticker_set_access_hash, parser);
+}
+
+template <class StorerT>
+void OfflineInputStickerSet::AsKey::store(StorerT &storer) const {
+  using td::store;
+  store(key.sticker_set_id, storer);
+}
+
+template <class StorerT>
+void OfflineInputPeer::store(StorerT &storer) const {
+  using td::store;
+  store(dialog_id, storer);
+  store(dialog_access_hash, storer);
+}
+template <class ParserT>
+void OfflineInputPeer::parse(ParserT &parser) {
+  using td::parse;
+  parse(dialog_id, parser);
+  parse(dialog_access_hash, parser);
+}
+
+template <class StorerT>
+void OfflineInputPeer::AsKey::store(StorerT &storer) const {
+  using td::store;
+  store(key.dialog_id, storer);
+}
+
+template <class StorerT>
+void PhotoSizeSource::store(StorerT &storer) const {
+  using td::store;
+  store(file_type, storer);
+  store(type, storer);
+  switch (type) {
+    case Type::DialogPhoto: {
+      auto &dialog_photo = this->dialog_photo();
+      store(dialog_photo.input_peer, storer);
+      store(dialog_photo.is_big, storer);
+      break;
+    }
+    case Type::StickerSetThumbnail: {
+      auto &sticker_set_thumbnail = this->sticker_set_thumbnail();
+      store(sticker_set_thumbnail.input_sticker_set, storer);
+      break;
+    }
+    case Type::Thumbnail: {
+      auto &thumbnail = this->thumbnail();
+      store(thumbnail.thumbnail_type, storer);
+      break;
+    }
+    case Type::Empty:
+      break;
+  }
+}
+template <class ParserT>
+void PhotoSizeSource::parse(ParserT &parser) {
+  using td::parse;
+  parse(file_type, parser);
+  parse(type, parser);
+  switch (type) {
+    case Type::DialogPhoto: {
+      DialogPhoto dialog_photo;
+      parse(dialog_photo.input_peer, parser);
+      parse(dialog_photo.is_big, parser);
+      variant = dialog_photo;
+      break;
+    }
+    case Type::StickerSetThumbnail: {
+      StickerSetThumbnail sticker_set_thumbnail;
+      parse(sticker_set_thumbnail.input_sticker_set, parser);
+      variant = sticker_set_thumbnail;
+      break;
+    }
+    case Type::Thumbnail: {
+      Thumbnail thumbnail;
+      parse(thumbnail.thumbnail_type, parser);
+      variant = thumbnail;
+      break;
+    }
+    case Type::Empty:
+      break;
+  }
+}
+
+template <class StorerT>
+void PhotoSizeSource::AsKey::store(StorerT &storer) const {
+  using td::store;
+  store(key.file_type, storer);
+  store(key.type, storer);
+  switch (key.type) {
+    case Type::DialogPhoto: {
+      auto &dialog_photo = this->key.dialog_photo();
+      store(dialog_photo.input_peer.as_key(), storer);
+      store(dialog_photo.is_big, storer);
+      break;
+    }
+    case Type::StickerSetThumbnail: {
+      auto &sticker_set_thumbnail = this->key.sticker_set_thumbnail();
+      store(sticker_set_thumbnail.input_sticker_set.as_key(), storer);
+      break;
+    }
+    case Type::Thumbnail: {
+      auto &thumbnail = this->key.thumbnail();
+      store(thumbnail.thumbnail_type, storer);
+      break;
+    }
+    case Type::Empty:
+      break;
+  }
+}
 
 template <class StorerT>
 void store(Dimensions dimensions, StorerT &storer) {

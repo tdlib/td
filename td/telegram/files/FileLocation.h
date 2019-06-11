@@ -170,6 +170,7 @@ struct PhotoRemoteFileLocation {
   int64 volume_id_;
   int64 secret_;
   int32 local_id_;
+  PhotoSizeSource source_;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -474,10 +475,43 @@ class FullRemoteFileLocation {
 
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
-      case LocationType::Photo:
-        return make_tl_object<telegram_api::inputFileLocation>(
-            photo().volume_id_, photo().local_id_, photo().secret_,
-            BufferSlice(FileReferenceView(file_reference_).download()));
+      case LocationType::Photo: {
+        switch (photo().source_.type) {
+          case PhotoSizeSource::Type::Empty:
+            return make_tl_object<telegram_api::inputFileLocation>(
+                photo().volume_id_, photo().local_id_, photo().secret_,
+                BufferSlice(FileReferenceView(file_reference_).download()));
+          case PhotoSizeSource::Type::Thumbnail: {
+            auto &thumbnail = photo().source_.thumbnail();
+            switch (file_type_) {
+              case FileType::Photo:
+                return make_tl_object<telegram_api::inputPhotoFileLocation>(
+                    photo().id_, photo().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
+                    std::string(1, thumbnail.thumbnail_type));
+              case FileType::Thumbnail:
+                return make_tl_object<telegram_api::inputDocumentFileLocation>(
+                    photo().id_, photo().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
+                    std::string(1, thumbnail.thumbnail_type));
+              default:
+              case FileType::EncryptedThumbnail:
+                UNREACHABLE();
+            }
+          }
+          case PhotoSizeSource::Type::DialogPhoto: {
+            LOG(ERROR) << "DIALOG PHOTO";
+            auto &dialog_photo = photo().source_.dialog_photo();
+            return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
+                dialog_photo.is_big * telegram_api::inputPeerPhotoFileLocation::Flags::BIG_MASK, dialog_photo.is_big,
+                dialog_photo.input_peer.as_telegram_api(), photo().volume_id_, photo().local_id_);
+          }
+          case PhotoSizeSource::Type::StickerSetThumbnail: {
+            LOG(ERROR) << "StickerSetThumbnail";
+            auto &sticker_set_thumbnail = photo().source_.sticker_set_thumbnail();
+            return make_tl_object<telegram_api::inputStickerSetThumb>(
+                sticker_set_thumbnail.input_sticker_set.as_telegram_api(), photo().volume_id_, photo().local_id_);
+          }
+        }
+      }
       case LocationType::Common:
         if (is_encrypted_secret()) {
           return make_tl_object<telegram_api::inputEncryptedFileLocation>(common().id_, common().access_hash_);
@@ -531,7 +565,7 @@ class FullRemoteFileLocation {
       : file_type_(source.file_type)
       , dc_id_(dc_id)
       , file_reference_(FileReferenceView::create_one(file_reference))
-      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, -1, local_id}) {  // TODO(now) use source
+      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, -1, local_id, source}) {
     CHECK(is_photo());
     check_file_reference();
   }

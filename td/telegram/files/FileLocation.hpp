@@ -9,11 +9,13 @@
 #include "td/telegram/files/FileLocation.h"
 
 #include "td/telegram/files/FileType.h"
-#include "td/telegram/net/DcId.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/Variant.h"
+
+#include "td/telegram/Photo.hpp"
 
 namespace td {
 
@@ -45,6 +47,7 @@ void PhotoRemoteFileLocation::store(StorerT &storer) const {
   store(volume_id_, storer);
   store(secret_, storer);
   store(local_id_, storer);
+  store(source_, storer);
 }
 
 template <class ParserT>
@@ -55,6 +58,9 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
   parse(volume_id_, parser);
   parse(secret_, parser);
   parse(local_id_, parser);
+  if (parser.version() >= static_cast<int32>(Version::PhotoSizeSource)) {
+    parse(source_, parser);
+  }
 }
 
 template <class StorerT>
@@ -63,6 +69,7 @@ void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
   store(key.id_, storer);
   store(key.volume_id_, storer);
   store(key.local_id_, storer);
+  store(key.source_.as_key(), storer);
 }
 
 template <class StorerT>

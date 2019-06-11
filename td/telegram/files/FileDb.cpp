@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileLocation.hpp"
 #include "td/telegram/Version.h"
+#include "td/telegram/logevent/LogEvent.h"  // WithVersion
 
 #include "td/actor/actor.h"
 
@@ -276,7 +277,8 @@ class FileDb : public FileDbInterface {
     //LOG(DEBUG) << "By id " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
     //LOG(INFO) << attempt_count;
 
-    TlParser parser(data_str);
+    logevent::WithVersion<TlParser> parser(data_str);
+    parser.set_version(static_cast<int32>(Version::Initial));
     FileData data;
     data.parse(parser, true);
     parser.fetch_end();
@@ -313,7 +315,12 @@ Status fix_file_remote_location_key_bug(SqliteDb &db) {
     CHECK(TlParser(key).fetch_int() == OLD_KEY_MAGIC);
     auto remote_str = PSTRING() << key.substr(4, 4) << Slice("\0\0\0\0") << key.substr(8);
     FullRemoteFileLocation remote;
-    if (unserialize(remote, remote_str).is_ok()) {
+    logevent::WithVersion<TlParser> parser(remote_str);
+    parser.set_version(static_cast<int32>(Version::Initial));
+    parse(remote, parser);
+    parser.fetch_end();
+    auto status = parser.get_status();
+    if (status.is_ok()) {
       kv.set(FileDbInterface::as_key(remote), value);
     }
     LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(key));

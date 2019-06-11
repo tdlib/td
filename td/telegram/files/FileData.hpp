@@ -29,13 +29,18 @@ void FileData::store(StorerT &storer) const {
   bool has_expected_size = size_ == 0 && expected_size_ != 0;
   bool encryption_key_is_secure = encryption_key_.is_secure();
   bool has_sources = !file_source_ids_.empty();
+  bool has_version = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_owner_dialog_id);
   STORE_FLAG(has_expected_size);
   STORE_FLAG(encryption_key_is_secure);
   STORE_FLAG(has_sources);
+  STORE_FLAG(has_version);
   END_STORE_FLAGS();
 
+  if (has_version) {
+    store(static_cast<int32>(Version::Next) - 1, storer);
+  }
   if (has_owner_dialog_id) {
     store(owner_dialog_id_, storer);
   }
@@ -67,13 +72,20 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
   bool has_expected_size;
   bool encryption_key_is_secure;
   bool has_sources;
+  bool has_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_owner_dialog_id);
   PARSE_FLAG(has_expected_size);
   PARSE_FLAG(encryption_key_is_secure);
   PARSE_FLAG(has_sources);
+  PARSE_FLAG(has_version);
   END_PARSE_FLAGS_GENERIC();
 
+  int32 version = 0;
+  if (has_version) {
+    parse(version, parser);
+  }
+  parser.set_version(version);
   if (has_owner_dialog_id) {
     parse(owner_dialog_id_, parser);
   }

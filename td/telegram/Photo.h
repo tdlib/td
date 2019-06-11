@@ -47,38 +47,146 @@ struct PhotoSize {
   FileId file_id;
 };
 
+struct OfflineInputStickerSet {
+  int64 sticker_set_id = 0;
+  int64 sticker_set_access_hash = 0;
+  OfflineInputStickerSet() = default;
+  OfflineInputStickerSet(int64 sticker_set_id, int64 sticker_set_access_hash)
+      : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
+  }
+  tl_object_ptr<telegram_api::InputStickerSet> as_telegram_api() const {
+    return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
+  }
+  template <class StorerT>
+  void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
+  struct AsKey {
+    const OfflineInputStickerSet &key;
+    template <class StorerT>
+    void store(StorerT &storer) const;
+  };
+  AsKey as_key() const {
+    return AsKey{*this};
+  }
+};
+
+struct OfflineInputPeer {
+  DialogId dialog_id;
+  int64 dialog_access_hash = 0;
+  OfflineInputPeer() = default;
+  OfflineInputPeer(DialogId dialog_id, int64 dialog_access_hash)
+      : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash) {
+  }
+  tl_object_ptr<telegram_api::InputPeer> as_telegram_api() const {
+    switch (dialog_id.get_type()) {
+      case DialogType::User: {
+        UserId user_id = dialog_id.get_user_id();
+        return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), dialog_access_hash);
+      }
+      case DialogType::Chat: {
+        ChatId chat_id = dialog_id.get_chat_id();
+        return make_tl_object<telegram_api::inputPeerChat>(chat_id.get());
+      }
+      case DialogType::Channel: {
+        ChannelId channel_id = dialog_id.get_channel_id();
+        return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), dialog_access_hash);
+      }
+      case DialogType::SecretChat:
+        return nullptr;
+      case DialogType::None:
+        return make_tl_object<telegram_api::inputPeerEmpty>();
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }  // namespace td
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
+  struct AsKey {
+    const OfflineInputPeer &key;
+    template <class StorerT>
+    void store(StorerT &storer) const;
+  };
+  AsKey as_key() const {
+    return AsKey{*this};
+  }
+};
+
 struct PhotoSizeSource {
-  enum class Type : int32 { Thumbnail, DialogPhoto, StickerSetThumbnail };
+  enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
   Type type;
   FileType file_type;
 
   // for photos, document thumbnails, encrypted thumbnails
-  int32 thumbnail_type = 0;
-
+  struct Thumbnail {
+    Thumbnail() = default;
+    Thumbnail(int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
+    }
+    int32 thumbnail_type = 0;
+  };
   // for dialog photos
-  DialogId dialog_id;
-  int64 dialog_access_hash = 0;
-  bool is_big = false;
+  struct DialogPhoto {
+    DialogPhoto() = default;
+    DialogPhoto(OfflineInputPeer input_peer, bool is_big) : input_peer(input_peer), is_big(is_big) {
+    }
 
+    OfflineInputPeer input_peer;
+    bool is_big = false;
+  };
   // for sticker set thumbnails
-  int64 sticker_set_id = 0;
-  int64 sticker_set_access_hash = 0;
+  struct StickerSetThumbnail {
+    StickerSetThumbnail() = default;
+    explicit StickerSetThumbnail(OfflineInputStickerSet input_sticker_set) : input_sticker_set(input_sticker_set) {
+    }
+    OfflineInputStickerSet input_sticker_set;
+  };
+  Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
+
+  PhotoSizeSource() : type(Type::Empty), file_type(FileType::None) {
+  }
 
   PhotoSizeSource(FileType file_type, int32 thumbnail_type)
-      : type(Type::Thumbnail), file_type(file_type), thumbnail_type(thumbnail_type) {
+      : type(Type::Thumbnail), file_type(file_type), variant(Thumbnail(thumbnail_type)) {
   }
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
       : type(Type::DialogPhoto)
       , file_type(FileType::ProfilePhoto)
-      , dialog_id(dialog_id)
-      , dialog_access_hash(dialog_access_hash)
-      , is_big(is_big) {
+      , variant(DialogPhoto(OfflineInputPeer(dialog_id, dialog_access_hash), is_big)) {
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
       : type(Type::StickerSetThumbnail)
       , file_type(FileType::Thumbnail)
-      , sticker_set_id(sticker_set_id)
-      , sticker_set_access_hash(sticker_set_access_hash) {
+      , variant(StickerSetThumbnail(OfflineInputStickerSet(sticker_set_id, sticker_set_access_hash))) {
+  }
+
+  Thumbnail &thumbnail() {
+    return variant.get<Thumbnail>();
+  }
+  const Thumbnail &thumbnail() const {
+    return variant.get<Thumbnail>();
+  }
+  const DialogPhoto &dialog_photo() const {
+    return variant.get<DialogPhoto>();
+  }
+  const StickerSetThumbnail &sticker_set_thumbnail() const {
+    return variant.get<StickerSetThumbnail>();
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
+  struct AsKey {
+    const PhotoSizeSource &key;
+    template <class StorerT>
+    void store(StorerT &storer) const;
+  };
+  AsKey as_key() const {
+    return AsKey{*this};
   }
 };
 

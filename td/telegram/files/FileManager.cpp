@@ -19,6 +19,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/logevent/LogEvent.h"
 
 #include "td/actor/SleepActor.h"
 
@@ -2618,7 +2619,12 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   binary.remove_suffix(1);
   auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
-  auto status = unserialize(remote_location, decoded_binary);
+  logevent::WithVersion<TlParser> parser(decoded_binary);
+  //TODO(now): encode version?
+  parser.set_version(static_cast<int32>(Version::Initial));
+  parse(remote_location, parser);
+  parser.fetch_end();
+  auto status = parser.get_status();
   if (status.is_error()) {
     return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
   }
