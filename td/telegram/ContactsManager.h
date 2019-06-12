@@ -166,7 +166,7 @@ class ContactsManager : public Actor {
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
-  void on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants);
+  void on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants, bool from_update);
   void on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id, UserId user_id, int32 date, int32 version);
   void on_update_chat_description(ChatId chat_id, string &&description);
   void on_update_chat_edit_administrator(ChatId chat_id, UserId user_id, bool is_administrator, int32 version);
@@ -905,7 +905,7 @@ class ContactsManager : public Actor {
 
   bool on_update_chat_full_participants_short(ChatFull *chat_full, ChatId chat_id, int32 version);
   void on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id, vector<DialogParticipant> participants,
-                                        int32 version);
+                                        int32 version, bool from_update);
   void on_update_chat_full_invite_link(ChatFull *chat_full,
                                        tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
 

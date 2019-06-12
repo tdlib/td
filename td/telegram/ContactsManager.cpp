@@ -6751,7 +6751,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       chat->is_changed = true;
     }
 
-    on_get_chat_participants(std::move(chat_full->participants_));
+    on_get_chat_participants(std::move(chat_full->participants_), false);
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_),
                                                              "on_get_chat_full");
 
@@ -7380,7 +7380,8 @@ void ContactsManager::update_dialog_online_member_count(const vector<DialogParti
   td_->messages_manager_->on_update_dialog_online_member_count(dialog_id, online_member_count, is_from_server);
 }
 
-void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr) {
+void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr,
+                                               bool from_update) {
   switch (participants_ptr->get_id()) {
     case telegram_api::chatParticipantsForbidden::ID: {
       auto participants = move_tl_object_as<telegram_api::chatParticipantsForbidden>(participants_ptr);
@@ -7474,7 +7475,8 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         chat_full->is_changed = true;
       }
 
-      on_update_chat_full_participants(chat_full, chat_id, std::move(new_participants), participants->version_);
+      on_update_chat_full_participants(chat_full, chat_id, std::move(new_participants), participants->version_,
+                                       from_update);
       update_chat_full(chat_full, chat_id);
       break;
     }
@@ -8546,7 +8548,8 @@ bool ContactsManager::on_update_chat_full_participants_short(ChatFull *chat_full
 }
 
 void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id,
-                                                       vector<DialogParticipant> participants, int32 version) {
+                                                       vector<DialogParticipant> participants, int32 version,
+                                                       bool from_update) {
   if (version <= -1) {
     LOG(ERROR) << "Receive members with wrong version " << version << " in " << chat_id;
     return;
@@ -8559,7 +8562,8 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
     return;
   }
 
-  if (chat_full->participants.size() != participants.size() && version == chat_full->version) {
+  if ((chat_full->participants.size() != participants.size() && version == chat_full->version) ||
+      (from_update && version != chat_full->version + 1)) {
     LOG(INFO) << "Members of " << chat_id << " has changed";
     // this is possible in very rare situations
     repair_chat_participants(chat_id);

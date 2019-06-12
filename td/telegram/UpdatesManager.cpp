@@ -1660,7 +1660,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactLink> up
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_get_chat_participants(std::move(update->participants_));
+  td_->contacts_manager_->on_get_chat_participants(std::move(update->participants_), true);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipantAdd> update, bool /*force_apply*/) {
