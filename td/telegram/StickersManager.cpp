@@ -27,6 +27,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -34,6 +35,7 @@
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/format.h"
@@ -43,6 +45,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <type_traits>
@@ -4792,7 +4795,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
 
   if (result.is_error()) {
     if (!G()->close_flag()) {
-      LOG(ERROR) << "Reseive " << result.error() << " from GetEmojiKeywordsLanguageQuery";
+      LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsLanguageQuery";
     }
     for (auto &promise : promises) {
       promise.set_error(result.error().clone());
@@ -4887,7 +4890,7 @@ void StickersManager::on_get_emoji_keywords(
 
   if (result.is_error()) {
     if (!G()->close_flag()) {
-      LOG(ERROR) << "Reseive " << result.error() << " from GetEmojiKeywordsQuery";
+      LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsQuery";
     }
     for (auto &promise : promises) {
       promise.set_error(result.error().clone());
@@ -4969,7 +4972,7 @@ void StickersManager::on_get_emoji_keywords_difference(
     Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
   if (result.is_error()) {
     if (!G()->close_flag()) {
-      LOG(ERROR) << "Reseive " << result.error() << " from GetEmojiKeywordsDifferenceQuery";
+      LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsDifferenceQuery";
     }
     emoji_language_code_last_difference_times_[language_code] = Time::now_cached() - EMOJI_KEYWORDS_UPDATE_DELAY - 2;
     return;

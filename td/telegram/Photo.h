@@ -56,7 +56,7 @@ struct OfflineInputStickerSet {
       : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
   }
 
-  tl_object_ptr<telegram_api::InputStickerSet> as_telegram_api() const {
+  tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const {
     return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
   }
 
@@ -85,29 +85,7 @@ struct OfflineInputPeer {
       : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash) {
   }
 
-  tl_object_ptr<telegram_api::InputPeer> as_telegram_api() const {
-    switch (dialog_id.get_type()) {
-      case DialogType::User: {
-        UserId user_id = dialog_id.get_user_id();
-        return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), dialog_access_hash);
-      }
-      case DialogType::Chat: {
-        ChatId chat_id = dialog_id.get_chat_id();
-        return make_tl_object<telegram_api::inputPeerChat>(chat_id.get());
-      }
-      case DialogType::Channel: {
-        ChannelId channel_id = dialog_id.get_channel_id();
-        return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), dialog_access_hash);
-      }
-      case DialogType::SecretChat:
-        return nullptr;
-      case DialogType::None:
-        return make_tl_object<telegram_api::inputPeerEmpty>();
-      default:
-        UNREACHABLE();
-        return nullptr;
-    }
-  }
+  tl_object_ptr<telegram_api::InputPeer> get_input_peer() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

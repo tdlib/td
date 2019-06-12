@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/Photo.h"
 
 #include "td/telegram/files/FileId.hpp"

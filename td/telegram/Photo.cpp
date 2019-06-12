@@ -9,10 +9,13 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
@@ -26,6 +29,30 @@
 #include <limits>
 
 namespace td {
+
+tl_object_ptr<telegram_api::InputPeer> OfflineInputPeer::get_input_peer() const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      UserId user_id = dialog_id.get_user_id();
+      return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), dialog_access_hash);
+    }
+    case DialogType::Chat: {
+      ChatId chat_id = dialog_id.get_chat_id();
+      return make_tl_object<telegram_api::inputPeerChat>(chat_id.get());
+    }
+    case DialogType::Channel: {
+      ChannelId channel_id = dialog_id.get_channel_id();
+      return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), dialog_access_hash);
+    }
+    case DialogType::SecretChat:
+      return nullptr;
+    case DialogType::None:
+      return make_tl_object<telegram_api::inputPeerEmpty>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
 
 static uint16 get_dimension(int32 size) {
   if (size < 0 || size > 65535) {

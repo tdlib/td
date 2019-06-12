@@ -20,6 +20,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/Version.h"
 
 #include "td/actor/SleepActor.h"
 
@@ -35,6 +36,7 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/tl_parsers.h"
 
 #include <algorithm>
 #include <cmath>

@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileLocation.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/misc.h"
