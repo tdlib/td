@@ -13,8 +13,8 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/logevent/LogEvent.h"  // WithVersion
 
 #include "td/db/SqliteKeyValue.h"
 
@@ -47,7 +47,6 @@ struct DbFileInfo {
   int64 size;
 };
 
-// long and blocking
 template <class CallbackT>
 void scan_db(CancellationToken &token, CallbackT &&callback) {
   G()->td_db()->get_file_db_shared()->pmc().get_by_range("file0", "file:", [&](Slice key, Slice value) {
@@ -99,7 +98,6 @@ struct FsFileInfo {
   uint64 mtime_nsec;
 };
 
-// long and blocking
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   for (int32 i = 0; i < file_type_size; i++) {
@@ -108,33 +106,35 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       continue;
     }
     auto files_dir = get_files_dir(file_type);
-    td::walk_path(files_dir, [&](CSlice path, WalkPath::Type type) {
-      if (token) {
-        return WalkPath::Action::Abort;
-      }
-      if (type != WalkPath::Type::NotDir) {
-        return WalkPath::Action::Continue;
-      }
-      auto r_stat = stat(path);
-      if (r_stat.is_error()) {
-        LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
-        return WalkPath::Action::Continue;
-      }
-      auto stat = r_stat.move_as_ok();
-      if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
-        // skip .nomedia file
-        return WalkPath::Action::Continue;
-      }
+    td::walk_path(files_dir,
+                  [&](CSlice path, WalkPath::Type type) {
+                    if (token) {
+                      return WalkPath::Action::Abort;
+                    }
+                    if (type != WalkPath::Type::NotDir) {
+                      return WalkPath::Action::Continue;
+                    }
+                    auto r_stat = stat(path);
+                    if (r_stat.is_error()) {
+                      LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
+                      return WalkPath::Action::Continue;
+                    }
+                    auto stat = r_stat.move_as_ok();
+                    if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
+                      // skip .nomedia file
+                      return WalkPath::Action::Continue;
+                    }
 
-      FsFileInfo info;
-      info.path = path.str();
-      info.size = stat.size_;
-      info.file_type = file_type;
-      info.atime_nsec = stat.atime_nsec_;
-      info.mtime_nsec = stat.mtime_nsec_;
-      callback(info);
-      return WalkPath::Action::Continue;
-    }).ignore();
+                    FsFileInfo info;
+                    info.path = path.str();
+                    info.size = stat.size_;
+                    info.file_type = file_type;
+                    info.atime_nsec = stat.atime_nsec_;
+                    info.mtime_nsec = stat.mtime_nsec_;
+                    callback(info);
+                    return WalkPath::Action::Continue;
+                  })
+        .ignore();
   }
 }
 }  // namespace

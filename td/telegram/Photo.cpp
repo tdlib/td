@@ -328,7 +328,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     res.type = 0;
     LOG(ERROR) << "Wrong photoSize \"" << type << "\" " << res;
   } else {
-    res.type = static_cast<unsigned char>(type[0]);
+    res.type = static_cast<uint8>(type[0]);
   }
   if (source.type == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;

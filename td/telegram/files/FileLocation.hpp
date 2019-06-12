@@ -9,13 +9,13 @@
 #include "td/telegram/files/FileLocation.h"
 
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/net/DcId.h"
+#include "td/telegram/Photo.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/Variant.h"
-
-#include "td/telegram/Photo.hpp"
 
 namespace td {
 
@@ -58,7 +58,7 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
   parse(volume_id_, parser);
   parse(secret_, parser);
   parse(local_id_, parser);
-  if (parser.version() >= static_cast<int32>(Version::PhotoSizeSource)) {
+  if (parser.version() >= static_cast<int32>(Version::AddPhotoSizeSource)) {
     parse(source_, parser);
   }
 }

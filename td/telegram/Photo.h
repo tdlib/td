@@ -50,22 +50,27 @@ struct PhotoSize {
 struct OfflineInputStickerSet {
   int64 sticker_set_id = 0;
   int64 sticker_set_access_hash = 0;
+
   OfflineInputStickerSet() = default;
   OfflineInputStickerSet(int64 sticker_set_id, int64 sticker_set_access_hash)
       : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
   }
+
   tl_object_ptr<telegram_api::InputStickerSet> as_telegram_api() const {
     return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
   }
+
   template <class StorerT>
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
+
   struct AsKey {
     const OfflineInputStickerSet &key;
     template <class StorerT>
     void store(StorerT &storer) const;
   };
+
   AsKey as_key() const {
     return AsKey{*this};
   }
@@ -74,10 +79,12 @@ struct OfflineInputStickerSet {
 struct OfflineInputPeer {
   DialogId dialog_id;
   int64 dialog_access_hash = 0;
+
   OfflineInputPeer() = default;
   OfflineInputPeer(DialogId dialog_id, int64 dialog_access_hash)
       : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash) {
   }
+
   tl_object_ptr<telegram_api::InputPeer> as_telegram_api() const {
     switch (dialog_id.get_type()) {
       case DialogType::User: {
@@ -99,18 +106,20 @@ struct OfflineInputPeer {
       default:
         UNREACHABLE();
         return nullptr;
-    }  // namespace td
+    }
   }
 
   template <class StorerT>
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
+
   struct AsKey {
     const OfflineInputPeer &key;
     template <class StorerT>
     void store(StorerT &storer) const;
   };
+
   AsKey as_key() const {
     return AsKey{*this};
   }
@@ -124,7 +133,7 @@ struct PhotoSizeSource {
   // for photos, document thumbnails, encrypted thumbnails
   struct Thumbnail {
     Thumbnail() = default;
-    Thumbnail(int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
+    explicit Thumbnail(int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
     }
     int32 thumbnail_type = 0;
   };
@@ -180,11 +189,13 @@ struct PhotoSizeSource {
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
+
   struct AsKey {
     const PhotoSizeSource &key;
     template <class StorerT>
     void store(StorerT &storer) const;
   };
+
   AsKey as_key() const {
     return AsKey{*this};
   }

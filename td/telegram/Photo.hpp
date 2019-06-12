@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Photo.h"
 
 #include "td/telegram/files/FileId.hpp"
@@ -13,13 +14,17 @@
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
+#include <limits>
+
 namespace td {
+
 template <class StorerT>
 void OfflineInputStickerSet::store(StorerT &storer) const {
   using td::store;
   store(sticker_set_id, storer);
   store(sticker_set_access_hash, storer);
 }
+
 template <class ParserT>
 void OfflineInputStickerSet::parse(ParserT &parser) {
   using td::parse;
@@ -39,11 +44,18 @@ void OfflineInputPeer::store(StorerT &storer) const {
   store(dialog_id, storer);
   store(dialog_access_hash, storer);
 }
+
 template <class ParserT>
 void OfflineInputPeer::parse(ParserT &parser) {
   using td::parse;
   parse(dialog_id, parser);
   parse(dialog_access_hash, parser);
+  switch (dialog_id.get_type()) {
+    case DialogType::SecretChat:
+    case DialogType::None:
+      parser.set_error("Invalid chat id");
+      break;
+  }
 }
 
 template <class StorerT>
@@ -78,6 +90,7 @@ void PhotoSizeSource::store(StorerT &storer) const {
       break;
   }
 }
+
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
   using td::parse;
@@ -100,6 +113,9 @@ void PhotoSizeSource::parse(ParserT &parser) {
     case Type::Thumbnail: {
       Thumbnail thumbnail;
       parse(thumbnail.thumbnail_type, parser);
+      if (thumbnail.thumbnail_type < 0 || thumbnail.thumbnail_type > std::numeric_limits<uint8>::max()) {
+        parser.set_error("Wrong thumbnail type");
+      }
       variant = thumbnail;
       break;
     }

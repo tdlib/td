@@ -31,7 +31,7 @@ enum class Version : int32 {
   AddNotificationGroupInfoMaxRemovedMessageId,
   SupportMinithumbnails,
   AddVideoCallsSupport,
-  PhotoSizeSource,
+  AddPhotoSizeSource,
   Next
 };
 
