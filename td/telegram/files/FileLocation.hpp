@@ -69,7 +69,6 @@ void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
   store(key.id_, storer);
   store(key.volume_id_, storer);
   store(key.local_id_, storer);
-  store(key.source_.as_key(), storer);
 }
 
 template <class StorerT>

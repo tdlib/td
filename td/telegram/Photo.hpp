@@ -32,12 +32,6 @@ void OfflineInputStickerSet::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void OfflineInputStickerSet::AsKey::store(StorerT &storer) const {
-  using td::store;
-  store(key.sticker_set_id, storer);
-}
-
-template <class StorerT>
 void OfflineInputPeer::store(StorerT &storer) const {
   using td::store;
   store(dialog_id, storer);
@@ -57,12 +51,6 @@ void OfflineInputPeer::parse(ParserT &parser) {
     default:
       break;
   }
-}
-
-template <class StorerT>
-void OfflineInputPeer::AsKey::store(StorerT &storer) const {
-  using td::store;
-  store(key.dialog_id, storer);
 }
 
 template <class StorerT>
@@ -118,33 +106,6 @@ void PhotoSizeSource::parse(ParserT &parser) {
         parser.set_error("Wrong thumbnail type");
       }
       variant = thumbnail;
-      break;
-    }
-    case Type::Empty:
-      break;
-  }
-}
-
-template <class StorerT>
-void PhotoSizeSource::AsKey::store(StorerT &storer) const {
-  using td::store;
-  store(key.file_type, storer);
-  store(key.type, storer);
-  switch (key.type) {
-    case Type::DialogPhoto: {
-      auto &dialog_photo = this->key.dialog_photo();
-      store(dialog_photo.input_peer.as_key(), storer);
-      store(dialog_photo.is_big, storer);
-      break;
-    }
-    case Type::StickerSetThumbnail: {
-      auto &sticker_set_thumbnail = this->key.sticker_set_thumbnail();
-      store(sticker_set_thumbnail.input_sticker_set.as_key(), storer);
-      break;
-    }
-    case Type::Thumbnail: {
-      auto &thumbnail = this->key.thumbnail();
-      store(thumbnail.thumbnail_type, storer);
       break;
     }
     case Type::Empty:

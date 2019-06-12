@@ -64,16 +64,6 @@ struct OfflineInputStickerSet {
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
-
-  struct AsKey {
-    const OfflineInputStickerSet &key;
-    template <class StorerT>
-    void store(StorerT &storer) const;
-  };
-
-  AsKey as_key() const {
-    return AsKey{*this};
-  }
 };
 
 struct OfflineInputPeer {
@@ -91,16 +81,6 @@ struct OfflineInputPeer {
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
-
-  struct AsKey {
-    const OfflineInputPeer &key;
-    template <class StorerT>
-    void store(StorerT &storer) const;
-  };
-
-  AsKey as_key() const {
-    return AsKey{*this};
-  }
 };
 
 struct PhotoSizeSource {
@@ -167,16 +147,6 @@ struct PhotoSizeSource {
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
-
-  struct AsKey {
-    const PhotoSizeSource &key;
-    template <class StorerT>
-    void store(StorerT &storer) const;
-  };
-
-  AsKey as_key() const {
-    return AsKey{*this};
-  }
 };
 
 struct Photo {
