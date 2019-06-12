@@ -452,8 +452,9 @@ class FileManager : public FileLoadManager::Callback {
   FileId parse_file(ParserT &parser);
 
  private:
-  static constexpr char PERSISTENT_ID_VERSION = 2;
+  static constexpr char PERSISTENT_ID_VERSION_OLD = 2;
   static constexpr char PERSISTENT_ID_VERSION_MAP = 3;
+  static constexpr char PERSISTENT_ID_VERSION = 4;
 
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;
@@ -559,6 +560,8 @@ class FileManager : public FileLoadManager::Callback {
 
   Result<FileId> from_persistent_id_map(Slice binary, FileType file_type);
   Result<FileId> from_persistent_id_v2(Slice binary, FileType file_type);
+  Result<FileId> from_persistent_id_v3(Slice binary, FileType file_type);
+  Result<FileId> from_persistent_id_v23(Slice binary, FileType file_type, int32 version);
 
   string fix_file_extension(Slice file_name, Slice file_type, Slice file_extension);
   string get_file_name(FileType file_type, Slice path);

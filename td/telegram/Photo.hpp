@@ -54,6 +54,8 @@ void OfflineInputPeer::parse(ParserT &parser) {
     case DialogType::None:
       parser.set_error("Invalid chat id");
       break;
+    default:
+      break;
   }
 }
 

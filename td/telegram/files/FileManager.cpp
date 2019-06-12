@@ -2564,6 +2564,7 @@ string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
   auto binary = serialize(location_copy);
 
   binary = zero_encode(binary);
+  binary.push_back(narrow_cast<td::uint8>(Version::Next) - 1);
   binary.push_back(PERSISTENT_ID_VERSION);
   return base64url_encode(binary);
 }
@@ -2587,8 +2588,11 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (binary.empty()) {
     return Status::Error(10, "Remote file id can't be empty");
   }
-  if (binary.back() == PERSISTENT_ID_VERSION) {
+  if (binary.back() == PERSISTENT_ID_VERSION_OLD) {
     return from_persistent_id_v2(binary, file_type);
+  }
+  if (binary.back() == PERSISTENT_ID_VERSION) {
+    return from_persistent_id_v3(binary, file_type);
   }
   if (binary.back() == PERSISTENT_ID_VERSION_MAP) {
     return from_persistent_id_map(binary, file_type);
@@ -2617,13 +2621,14 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
   return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_map", false).move_as_ok();
 }
 
-Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
-  binary.remove_suffix(1);
+Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {
+  if (version < 0 || version >= static_cast<int32>(Version::Next)) {
+    return Status::Error("Invalid remote id");
+  }
   auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
   logevent::WithVersion<TlParser> parser(decoded_binary);
-  //TODO(now): encode version?
-  parser.set_version(static_cast<int32>(Version::Initial));
+  parser.set_version(version);
   parse(remote_location, parser);
   parser.fetch_end();
   auto status = parser.get_status();
@@ -2643,6 +2648,19 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   auto file_id =
       register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
   return file_id;
+}
+Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
+  binary.remove_suffix(1);
+  return from_persistent_id_v23(binary, file_type, 0);
+}
+Result<FileId> FileManager::from_persistent_id_v3(Slice binary, FileType file_type) {
+  binary.remove_suffix(1);
+  if (binary.empty()) {
+    return Status::Error("Invalid remote id");
+  }
+  auto version = static_cast<uint8>(binary.back());
+  binary.remove_suffix(1);
+  return from_persistent_id_v23(binary, file_type, version);
 }
 
 FileView FileManager::get_file_view(FileId file_id) const {
