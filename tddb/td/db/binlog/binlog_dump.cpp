@@ -28,19 +28,19 @@ int main(int argc, char *argv[]) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   td::Binlog binlog;
   binlog
-      .init(
-          argv[1],
-          [&](auto &event) {
-            info[0].compressed_size += event.raw_event_.size();
-            info[event.type_].compressed_size += event.raw_event_.size();
-          },
-          td::DbKey::raw_key("cucumber"), td::DbKey::empty(), -1,
-          [&](auto &event) mutable {
-            info[0].full_size += event.raw_event_.size();
-            info[event.type_].full_size += event.raw_event_.size();
-            LOG(PLAIN) << "LogEvent[" << td::tag("id", td::format::as_hex(event.id_)) << td::tag("type", event.type_)
-                       << td::tag("flags", event.flags_) << td::tag("data", td::format::escaped(event.data_)) << "]\n";
-          })
+      .init(argv[1],
+            [&](auto &event) {
+              info[0].compressed_size += event.raw_event_.size();
+              info[event.type_].compressed_size += event.raw_event_.size();
+            },
+            td::DbKey::raw_key("cucumber"), td::DbKey::empty(), -1,
+            [&](auto &event) mutable {
+              info[0].full_size += event.raw_event_.size();
+              info[event.type_].full_size += event.raw_event_.size();
+              LOG(PLAIN) << "LogEvent[" << td::tag("id", td::format::as_hex(event.id_)) << td::tag("type", event.type_)
+                         << td::tag("flags", event.flags_) << td::tag("size", event.data_.size())
+                         << td::tag("data", td::format::escaped(event.data_)) << "]\n";
+            })
       .ensure();
 
   for (auto &it : info) {
