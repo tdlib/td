@@ -2884,10 +2884,12 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
     parser.fetch_end();
     auto status = parser.get_status();
     if (status.is_error()) {
+      G()->td_db()->get_sqlite_sync_pmc()->erase(with_stickers ? get_full_sticker_set_database_key(sticker_set_id)
+                                                               : get_sticker_set_database_key(sticker_set_id));
+      // need to crash, because the current StickerSet state is spoiled by parse_sticker_set
       LOG(FATAL) << "Failed to parse sticker set " << sticker_set_id << ": " << status << ' '
                  << format::as_hex_dump<4>(Slice(value));
     }
-    status.ensure();
   }
   if (!sticker_set->is_thumbnail_reloaded) {
     reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
