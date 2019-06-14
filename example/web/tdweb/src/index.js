@@ -473,7 +473,9 @@ class FileManager {
 
   registerFile(file) {
     if (file.idb_key || file.arr) {
-      file.is_downloading_completed = true;
+      file.local.is_downloading_completed = true;
+    } else {
+      file.local.is_downloading_completed = false;
     }
     let info = {};
     const cached_info = this.cache.get(file.id);
@@ -484,8 +486,7 @@ class FileManager {
     }
     if (file.idb_key) {
       info.idb_key = file.idb_key;
-      // TODO: uncomment after supported in telegram-react
-      //delete file.idb_key;
+      delete file.idb_key;
     } else {
       delete info.idb_key;
     }
@@ -573,7 +574,6 @@ class FileManager {
     throw new Error('File is not loaded');
   }
   async doLoad(info, offset, size) {
-    log.error('LOAD', info);
     if (!info.arr && !info.idb_key && info.file.local.path) {
       try {
         const count = await this.client.sendInternal({
