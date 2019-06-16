@@ -493,6 +493,7 @@ class ContactsManager : public Actor {
 
     std::unordered_map<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
 
+    bool is_min_access_hash = false;
     bool is_received = false;
     bool is_verified = false;
     bool is_support = false;
@@ -814,8 +815,8 @@ class ContactsManager : public Actor {
 
   static const CSlice INVITE_LINK_URLS[3];
 
-  static bool have_input_peer_user(const User *user, AccessRights access_rights);
-  static bool have_input_peer_chat(const Chat *chat, AccessRights access_rights);
+  static bool have_input_peer_user(const User *u, AccessRights access_rights);
+  static bool have_input_peer_chat(const Chat *c, AccessRights access_rights);
   static bool have_input_peer_channel(const Channel *c, AccessRights access_rights);
   static bool have_input_encrypted_peer(const SecretChat *secret_chat, AccessRights access_rights);
 

@@ -2426,6 +2426,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(has_language_code);
   STORE_FLAG(have_access_hash);
   STORE_FLAG(is_support);
+  STORE_FLAG(is_min_access_hash);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -2483,6 +2484,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(has_language_code);
   PARSE_FLAG(have_access_hash);
   PARSE_FLAG(is_support);
+  PARSE_FLAG(is_min_access_hash);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -2794,7 +2796,7 @@ tl_object_ptr<telegram_api::InputUser> ContactsManager::get_input_user(UserId us
   }
 
   const User *u = get_user(user_id);
-  if (u == nullptr || u->access_hash == -1) {
+  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
     if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
       return make_tl_object<telegram_api::inputUser>(user_id.get(), 0);
     }
@@ -2810,7 +2812,7 @@ bool ContactsManager::have_input_user(UserId user_id) const {
   }
 
   const User *u = get_user(user_id);
-  if (u == nullptr || u->access_hash == -1) {
+  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
     if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
       return true;
     }
@@ -2839,17 +2841,17 @@ bool ContactsManager::have_input_peer_user(UserId user_id, AccessRights access_r
   return have_input_peer_user(get_user(user_id), access_rights);
 }
 
-bool ContactsManager::have_input_peer_user(const User *user, AccessRights access_rights) {
-  if (user == nullptr) {
+bool ContactsManager::have_input_peer_user(const User *u, AccessRights access_rights) {
+  if (u == nullptr) {
     return false;
   }
-  if (user->access_hash == -1) {
+  if (u->access_hash == -1 || u->is_min_access_hash) {
     return false;
   }
   if (access_rights == AccessRights::Read) {
     return true;
   }
-  if (user->is_deleted) {
+  if (u->is_deleted) {
     return false;
   }
   return true;
@@ -2872,17 +2874,17 @@ bool ContactsManager::have_input_peer_chat(ChatId chat_id, AccessRights access_r
   return have_input_peer_chat(get_chat(chat_id), access_rights);
 }
 
-bool ContactsManager::have_input_peer_chat(const Chat *chat, AccessRights access_rights) {
-  if (chat == nullptr) {
+bool ContactsManager::have_input_peer_chat(const Chat *c, AccessRights access_rights) {
+  if (c == nullptr) {
     return false;
   }
   if (access_rights == AccessRights::Read) {
     return true;
   }
-  if (chat->status.is_left()) {
+  if (c->status.is_left()) {
     return false;
   }
-  if (access_rights == AccessRights::Write && !chat->is_active) {
+  if (access_rights == AccessRights::Write && !c->is_active) {
     return false;
   }
   return true;
@@ -5093,14 +5095,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     if (!is_bot) {
       G()->shared_config().set_option_string("my_phone_number", user->phone_);
     }
-  } else {
-    /*
-    if (!(flags & USER_FLAG_HAS_ACCESS_HASH) && !(flags & USER_FLAG_IS_DELETED) &&
-        !(flags & USER_FLAG_IS_INACCESSIBLE)) {
-      LOG(ERROR) << user_id << " has no access_hash";
-      return;
-    }
-    */
   }
 
   if (expect_support) {
@@ -5111,11 +5105,16 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
 
   User *u = add_user(user_id, "on_get_user");
-  auto access_hash = have_access_hash ? user->access_hash_ : -1;
-  if (have_access_hash && u->access_hash != access_hash) {
-    LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << " to " << access_hash;
-    u->access_hash = access_hash;
-    u->is_changed = true;
+  if (have_access_hash) {  // access_hash must be updated before photo
+    auto access_hash = user->access_hash_;
+    bool is_min_access_hash = !is_received && ((flags & USER_FLAG_HAS_PHONE_NUMBER) == 0);
+    if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash)) {
+      LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << "/"
+                 << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
+      u->access_hash = access_hash;
+      u->is_min_access_hash = is_min_access_hash;
+      u->is_changed = true;
+    }
   }
   if (is_received) {
     on_update_user_phone_number(u, user_id, std::move(user->phone_));
@@ -6274,7 +6273,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     save_user(u, user_id, from_binlog);
   }
 
-  if (!u->is_received && u->access_hash != -1 && !u->is_repaired && !G()->close_flag()) {
+  if (!u->is_received && u->access_hash != -1 && !u->is_min_access_hash && !u->is_repaired && !G()->close_flag()) {
     u->is_repaired = true;
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
@@ -6588,6 +6587,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
         auto server_photo = telegram_api::move_object_as<telegram_api::photo>(photo_ptr);
         auto profile_photo = convert_photo_to_profile_photo(server_photo);
         if (profile_photo) {
+          LOG_IF(ERROR, u->access_hash == -1) << "Receive profile photo of " << user_id << " without access hash";
           get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(profile_photo));
         } else {
           LOG(ERROR) << "Failed to get profile photo from " << to_string(server_photo);
@@ -6980,6 +6980,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
   u->is_photo_inited = true;
+  LOG_IF(ERROR, u->access_hash == -1) << "Update profile photo of " << user_id << " without access hash";
   ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
 
   if (new_photo != u->photo) {

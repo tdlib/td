@@ -3222,7 +3222,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
     int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
     if (sender_access_hash != -1) {
-      flags |= telegram_api::user::ACCESS_HASH_MASK;
+      // set phone number flag to show that this is a full access hash
+      flags |= telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::PHONE_MASK;
     }
     if (sender_photo != nullptr) {
       flags |= telegram_api::user::PHOTO_MASK;
