@@ -7997,13 +7997,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->chat_id = ChatId();
       invite_link_info->channel_id = ChannelId();
       invite_link_info->title = chat_invite->title_;
-      if (chat_invite->photo_ != nullptr && chat_invite->photo_->get_id() == telegram_api::photo::ID) {
-        auto photo = telegram_api::move_object_as<telegram_api::photo>(chat_invite->photo_);
-        invite_link_info->photo =
-            get_profile_photo(td_->file_manager_.get(), UserId(), 0, convert_photo_to_profile_photo(photo));
-      } else {
-        invite_link_info->photo = DialogPhoto();
-      }
+      invite_link_info->photo = get_photo(td_->file_manager_.get(), std::move(chat_invite->photo_), DialogId());
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids.clear();
       for (auto &user : chat_invite->participants_) {
@@ -10606,6 +10600,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   DialogId dialog_id;
   string title;
   const DialogPhoto *photo = nullptr;
+  DialogPhoto invite_link_photo;
   int32 participant_count = 0;
   vector<int32> member_user_ids;
   bool is_public = false;
@@ -10648,7 +10643,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         get_supergroup_id_object(channel_id, "get_chat_invite_link_info_object"), !is_megagroup);
   } else {
     title = invite_link_info->title;
-    photo = &invite_link_info->photo;
+    invite_link_photo = as_dialog_photo(invite_link_info->photo);
+    photo = &invite_link_photo;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids);
     is_public = invite_link_info->is_public;

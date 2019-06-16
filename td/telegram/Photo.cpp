@@ -264,7 +264,6 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
       return DialogPhoto();
     }
   }
-
   return result;
 }
 

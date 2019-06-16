@@ -709,7 +709,7 @@ class ContactsManager : public Actor {
     ChatId chat_id;  // TODO DialogId
     ChannelId channel_id;
     string title;
-    DialogPhoto photo;
+    Photo photo;
     int32 participant_count = 0;
     vector<UserId> participant_user_ids;
 
