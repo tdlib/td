@@ -623,7 +623,7 @@ class WebPageBlockPreformatted : public WebPageBlock {
 
  public:
   WebPageBlockPreformatted() = default;
-  WebPageBlockPreformatted(RichText &&text, string language) : text(std::move(text)), language(std::move(language)) {
+  WebPageBlockPreformatted(RichText &&text, string &&language) : text(std::move(text)), language(std::move(language)) {
   }
 
   Type get_type() const override {
@@ -713,7 +713,7 @@ class WebPageBlockAnchor : public WebPageBlock {
 
  public:
   WebPageBlockAnchor() = default;
-  explicit WebPageBlockAnchor(string name) : name(std::move(name)) {
+  explicit WebPageBlockAnchor(string &&name) : name(std::move(name)) {
   }
 
   Type get_type() const override {
@@ -985,7 +985,7 @@ class WebPageBlockPhoto : public WebPageBlock {
 
  public:
   WebPageBlockPhoto() = default;
-  WebPageBlockPhoto(Photo photo, WebPageBlockCaption &&caption, string &&url, WebPageId web_page_id)
+  WebPageBlockPhoto(Photo &&photo, WebPageBlockCaption &&caption, string &&url, WebPageId web_page_id)
       : photo(std::move(photo)), caption(std::move(caption)), url(std::move(url)), web_page_id(web_page_id) {
   }
 
@@ -1147,7 +1147,7 @@ class WebPageBlockEmbedded : public WebPageBlock {
 
  public:
   WebPageBlockEmbedded() = default;
-  WebPageBlockEmbedded(string url, string html, Photo poster_photo, Dimensions dimensions,
+  WebPageBlockEmbedded(string &&url, string &&html, Photo &&poster_photo, Dimensions dimensions,
                        WebPageBlockCaption &&caption, bool is_full_width, bool allow_scrolling)
       : url(std::move(url))
       , html(std::move(html))
@@ -1214,7 +1214,7 @@ class WebPageBlockEmbeddedPost : public WebPageBlock {
 
  public:
   WebPageBlockEmbeddedPost() = default;
-  WebPageBlockEmbeddedPost(string url, string author, Photo author_photo, int32 date,
+  WebPageBlockEmbeddedPost(string &&url, string &&author, Photo &&author_photo, int32 date,
                            vector<unique_ptr<WebPageBlock>> &&page_blocks, WebPageBlockCaption &&caption)
       : url(std::move(url))
       , author(std::move(author))
@@ -1354,7 +1354,7 @@ class WebPageBlockChatLink : public WebPageBlock {
 
  public:
   WebPageBlockChatLink() = default;
-  WebPageBlockChatLink(string title, DialogPhoto photo, string username)
+  WebPageBlockChatLink(string &&title, DialogPhoto photo, string &&username)
       : title(std::move(title)), photo(std::move(photo)), username(std::move(username)) {
   }
 
