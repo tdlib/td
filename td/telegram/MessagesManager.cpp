@@ -6872,7 +6872,25 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     return;
   }
 
-  // TODO check that messages are received in decreasing message_id order
+  {
+    // check that messages are received in decreasing message_id order
+    MessageId cur_message_id = MessageId::max();
+    for (const auto &message : messages) {
+      MessageId message_id = get_message_id(message);
+      if (message_id.get() >= cur_message_id.get()) {
+        string error = PSTRING() << "Receive messages in the wrong order in history of " << dialog_id << " from "
+                                 << from_message_id << " with offset " << offset << ", limit " << limit
+                                 << ", from_the_end = " << from_the_end << ": ";
+        for (const auto &debug_message : messages) {
+          error += to_string(debug_message);
+        }
+        // TODO move to ERROR
+        LOG(FATAL) << error;
+        return;
+      }
+      cur_message_id = message_id;
+    }
+  }
 
   // be aware that dialog may not yet exist
   // be aware that returned messages are guaranteed to be consecutive messages, but if !from_the_end they
@@ -15032,6 +15050,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   auto debug_first_database_message_id = d->first_database_message_id;
   auto debug_last_message_id = d->last_message_id;
   auto debug_last_new_message_id = d->last_new_message_id;
+  auto debug_cur_message_id = MessageId::max();
   size_t pos = 0;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
@@ -15045,6 +15064,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       break;
     }
+    if (message->message_id.get() >= debug_cur_message_id.get()) {
+      // TODO move to ERROR
+      LOG(FATAL) << "Receive message " << message->message_id << " after " << debug_cur_message_id
+                 << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
+                 << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
+      break;
+    }
+    debug_cur_message_id = message->message_id;
+
     if (message->message_id.get() < d->first_database_message_id.get()) {
       if (d->have_full_history) {
         LOG(ERROR) << "Have full history in the " << dialog_id << " and receive " << message->message_id
@@ -15086,10 +15114,10 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (next_message != nullptr && !next_message->have_previous) {
         LOG_CHECK(m->message_id.get() < next_message->message_id.get())
-            << m->message_id << ' ' << next_message->message_id << ' ' << dialog_id << ' ' << from_message_id << ' '
-            << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local << ' ' << messages.size() << ' '
-            << debug_first_database_message_id << ' ' << last_added_message_id << ' ' << added_new_message << ' ' << pos
-            << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
+            << m->message_id << ' ' << next_message->message_id << ' ' << debug_cur_message_id << ' ' << dialog_id
+            << ' ' << from_message_id << ' ' << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local
+            << ' ' << messages.size() << ' ' << debug_first_database_message_id << ' ' << last_added_message_id << ' '
+            << added_new_message << ' ' << pos << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
             << to_string(get_message_object(dialog_id, m)) << to_string(get_message_object(dialog_id, next_message));
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
