@@ -508,8 +508,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_
                         << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id << "}";
 }
 
-Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
-                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id) {
+Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
+                               tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo,
+                               DialogId owner_dialog_id) {
   FileId file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::create(file->dc_id_), string()),
       FileLocationSource::FromServer, owner_dialog_id, photo->size_, 0,

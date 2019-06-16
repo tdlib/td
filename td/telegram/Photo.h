@@ -212,8 +212,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_
 
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id);
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id);
-Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
-                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id);
+Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
+                               tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id);
 Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_api::WebDocument> web_document,
                              DialogId owner_dialog_id);
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo);

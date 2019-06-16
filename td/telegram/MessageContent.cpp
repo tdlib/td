@@ -3706,7 +3706,7 @@ unique_ptr<MessageContent> get_secret_message_content(
         message_photo->caption_.clear();
       }
       return make_unique<MessagePhoto>(
-          get_photo(td->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
+          get_encrypted_file_photo(td->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
           get_secret_media_caption(std::move(message_text), std::move(message_photo->caption_)));
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
