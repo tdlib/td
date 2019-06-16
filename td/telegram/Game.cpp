@@ -35,8 +35,10 @@ Game::Game(Td *td, string title, string description, tl_object_ptr<telegram_api:
     : title_(std::move(title)), description_(std::move(description)) {
   CHECK(td != nullptr);
   CHECK(photo != nullptr);
-  if (photo->get_id() == telegram_api::photo::ID) {
-    photo_ = get_photo(td->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id);
+  photo_ = get_photo(td->file_manager_.get(), std::move(photo), owner_dialog_id);
+  if (photo_.id == -2) {
+    LOG(ERROR) << "Receive empty photo for game " << title;
+    photo_.id = 0;  // to prevent null photo in td_api
   }
   if (document != nullptr) {
     int32 document_id = document->get_id();

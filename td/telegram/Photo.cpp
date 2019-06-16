@@ -552,6 +552,11 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.date = photo->date_;
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
+  if (res.id == -2) {
+    LOG(ERROR) << "Receive photo with id " << res.id;
+    res.id = -3;
+  }
+
   for (auto &size_ptr : photo->sizes_) {
     auto photo_size = get_photo_size(file_manager, {FileType::Photo, 0}, photo->id_, photo->access_hash_,
                                      photo->file_reference_.as_slice().str(), DcId::create(photo->dc_id_),

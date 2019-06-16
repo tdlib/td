@@ -441,12 +441,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       page->site_name = std::move(web_page->site_name_);
       page->title = std::move(web_page->title_);
       page->description = std::move(web_page->description_);
-      if ((web_page->flags_ & WEBPAGE_FLAG_HAS_PHOTO) && web_page->photo_->get_id() == telegram_api::photo::ID) {
-        page->photo = get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(web_page->photo_),
-                                owner_dialog_id);
-      } else {
-        page->photo.id = -2;
-      }
+      page->photo = get_photo(td_->file_manager_.get(), std::move(web_page->photo_), owner_dialog_id);
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW) {
         page->embed_url = std::move(web_page->embed_url_);
         page->embed_type = std::move(web_page->embed_type_);
@@ -1188,11 +1183,11 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   CHECK(page != nullptr);
   std::unordered_map<int64, Photo> photos;
   for (auto &photo_ptr : page->photos_) {
-    if (photo_ptr->get_id() == telegram_api::photo::ID) {
-      Photo photo =
-          get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id);
-      int64 photo_id = photo.id;
-      photos.emplace(photo_id, std::move(photo));
+    Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
+    if (photo.id == -2 || photo.id == 0) {
+      LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
+    } else {
+      photos.emplace(photo.id, std::move(photo));
     }
   }
   if (web_page->photo.id != -2 && web_page->photo.id != 0) {

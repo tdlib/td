@@ -1268,15 +1268,11 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           LOG_IF(ERROR, !is_photo) << "Wrong result type " << result->type_;
           auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
           photo->id_ = std::move(result->id_);
-          auto photo_ptr = std::move(result->photo_);
-          int32 photo_id = photo_ptr->get_id();
-          if (photo_id == telegram_api::photoEmpty::ID) {
+          Photo p = get_photo(td_->file_manager_.get(), std::move(result->photo_), DialogId());
+          if (p.id == -2) {
             LOG(ERROR) << "Receive empty cached photo in the result of inline query";
             break;
           }
-          CHECK(photo_id == telegram_api::photo::ID);
-
-          Photo p = get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), DialogId());
           photo->photo_ = get_photo_object(td_->file_manager_.get(), &p);
           photo->title_ = std::move(result->title_);
           photo->description_ = std::move(result->description_);

@@ -6544,19 +6544,12 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user->is_changed = true;
   }
 
-  int32 photo_id =
-      user_full->profile_photo_ == nullptr ? telegram_api::photoEmpty::ID : user_full->profile_photo_->get_id();
-  if (photo_id == telegram_api::photoEmpty::ID) {
+  Photo photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+  if (photo.id == -2) {
     user->photo_count = 0;
     user->photos_offset = 0;
     user->photos.clear();
-  } else {
-    CHECK(photo_id == telegram_api::photo::ID);
-
-    //  Photo profile_photo =
-    //      get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(user_full->profile_photo_));
   }
-
   if ((user_full->flags_ & USER_FULL_FLAG_HAS_BOT_INFO) != 0 && !u->is_deleted) {
     on_update_user_full_bot_info(user, user_id, u->bot_info_version, std::move(user_full->bot_info_));
   }
@@ -6585,12 +6578,14 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     for (auto &photo_ptr : photos) {
       if (photo_ptr->get_id() == telegram_api::photo::ID) {
         auto server_photo = telegram_api::move_object_as<telegram_api::photo>(photo_ptr);
-        auto profile_photo = convert_photo_to_profile_photo(server_photo);
-        if (profile_photo) {
-          LOG_IF(ERROR, u->access_hash == -1) << "Receive profile photo of " << user_id << " without access hash";
-          get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(profile_photo));
-        } else {
-          LOG(ERROR) << "Failed to get profile photo from " << to_string(server_photo);
+        if (server_photo->id_ == u->photo.id) {
+          auto profile_photo = convert_photo_to_profile_photo(server_photo);
+          if (profile_photo) {
+            LOG_IF(ERROR, u->access_hash == -1) << "Receive profile photo of " << user_id << " without access hash";
+            get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(profile_photo));
+          } else {
+            LOG(ERROR) << "Failed to get profile photo from " << to_string(server_photo);
+          }
         }
 
         auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId());
@@ -6618,17 +6613,15 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
 
   for (auto &photo : photos) {
-    int32 photo_id = photo->get_id();
-    if (photo_id == telegram_api::photoEmpty::ID) {
+    auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId());
+    if (user_photo.id == -2) {
       LOG(ERROR) << "Have got empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
                  << " and limit " << limit << ". Receive " << photo_count << " photos out of " << total_count
                  << " photos";
       continue;
     }
-    CHECK(photo_id == telegram_api::photo::ID);
 
-    user->photos.push_back(
-        get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo), DialogId()));
+    user->photos.push_back(std::move(user_photo));
     add_user_photo_id(u, user_id, user->photos.back().id, photo_get_file_ids(user->photos.back()));
   }
 }

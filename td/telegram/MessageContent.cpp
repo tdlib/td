@@ -3760,19 +3760,15 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         return make_unique<MessageExpiredPhoto>();
       }
 
-      auto photo_ptr = std::move(message_photo->photo_);
-      int32 photo_id = photo_ptr->get_id();
-      if (photo_id == telegram_api::photoEmpty::ID) {
+      auto photo = get_photo(td->file_manager_.get(), std::move(message_photo->photo_), owner_dialog_id);
+      if (photo.id == -2) {
         return make_unique<MessageExpiredPhoto>();
       }
-      CHECK(photo_id == telegram_api::photo::ID);
 
       if (ttl != nullptr && (message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
         *ttl = message_photo->ttl_seconds_;
       }
-      return make_unique<MessagePhoto>(
-          get_photo(td->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id),
-          std::move(message));
+      return make_unique<MessagePhoto>(std::move(photo), std::move(message));
     }
     case telegram_api::messageMediaGeo::ID: {
       auto message_geo_point = move_tl_object_as<telegram_api::messageMediaGeo>(media);
@@ -4130,16 +4126,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionChatEditPhoto::ID: {
       auto chat_edit_photo = move_tl_object_as<telegram_api::messageActionChatEditPhoto>(action);
-
-      auto photo_ptr = std::move(chat_edit_photo->photo_);
-      int32 photo_id = photo_ptr->get_id();
-      if (photo_id == telegram_api::photoEmpty::ID) {
+      auto photo = get_photo(td->file_manager_.get(), std::move(chat_edit_photo->photo_), owner_dialog_id);
+      if (photo.id == -2) {
         break;
       }
-      CHECK(photo_id == telegram_api::photo::ID);
-
-      return make_unique<MessageChatChangePhoto>(
-          get_photo(td->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id));
+      return make_unique<MessageChatChangePhoto>(std::move(photo));
     }
     case telegram_api::messageActionChatDeletePhoto::ID: {
       return make_unique<MessageChatDeletePhoto>();
