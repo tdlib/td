@@ -14,7 +14,7 @@ application/davmount+xml			davmount
 application/docbook+xml				dbk
 application/dssc+der				dssc
 application/dssc+xml				xdssc
-application/ecmascript				ecma
+application/ecmascript				es
 application/emma+xml				emma
 application/epub+zip				epub
 application/exi					exi
@@ -506,6 +506,7 @@ application/x-font-pcf				pcf
 application/x-font-snf				snf
 application/x-font-ttf				ttf ttc
 application/x-font-type1			pfa pfb pfm afm
+application/x-font-woff				woff
 application/x-freearc				arc
 application/x-futuresplash			spl
 application/x-gca-compressed			gca
@@ -563,6 +564,7 @@ application/x-tex				tex
 application/x-tex-tfm				tfm
 application/x-texinfo				texinfo texi
 application/x-tgif				obj
+application/x-tgsticker				tgs
 application/x-ustar				ustar
 application/x-wais-source			src
 application/x-x509-ca-cert			der crt
@@ -737,6 +739,7 @@ video/3gpp2					3g2
 video/h261					h261
 video/h263					h263
 video/h264					h264
+video/h265					h265
 video/jpeg					jpgv
 video/jpm					jpm jpgm
 video/mj2					mj2 mjp2
