@@ -327,15 +327,15 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
 }
 
 bool UpdatesManager::is_acceptable_user(UserId user_id) const {
-  return td_->contacts_manager_->have_user(user_id);
+  return !td_->contacts_manager_->have_user_force(user_id) || !td_->contacts_manager_->have_user(user_id);
 }
 
 bool UpdatesManager::is_acceptable_chat(ChatId chat_id) const {
-  return td_->contacts_manager_->have_chat(chat_id);
+  return td_->contacts_manager_->have_chat_force(chat_id);
 }
 
 bool UpdatesManager::is_acceptable_channel(ChannelId channel_id) const {
-  return td_->contacts_manager_->have_channel(channel_id);
+  return td_->contacts_manager_->have_channel_force(channel_id);
 }
 
 bool UpdatesManager::is_acceptable_dialog(DialogId dialog_id) const {
