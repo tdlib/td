@@ -129,9 +129,9 @@ static FileId register_photo(FileManager *file_manager, const PhotoSizeSource &s
                              bool is_png = false) {
   int32 local_id = location->local_id_;
   int64 volume_id = location->volume_id_;
-  LOG(DEBUG) << "Receive " << (is_webp ? "webp" : (is_png ? "png" : "jpeg")) << " photo of type "
-             << static_cast<int8>(source.file_type) << " in [" << dc_id << "," << volume_id << "," << local_id
-             << "]. Id: (" << id << ", " << access_hash << ")";
+  LOG(DEBUG) << "Receive " << (is_webp ? "webp" : (is_png ? "png" : "jpeg")) << " photo of type " << source.file_type
+             << " in [" << dc_id << "," << volume_id << "," << local_id << "]. Id: (" << id << ", " << access_hash
+             << ")";
   auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id)
                                   << (is_webp ? ".webp" : (is_png ? ".png" : ".jpg"));
   auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
