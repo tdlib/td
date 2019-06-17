@@ -126,7 +126,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 sc
   const int ttl = 3;
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
-      PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
+      PromiseCreator::lambda([promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
         promise.set_result([&]() -> Result<SimpleConfig> {
           TRY_RESULT(http_query, std::move(r_query));
           return decode_config(http_query->content_);
@@ -160,7 +160,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
   }
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
-      PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
+      PromiseCreator::lambda([promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
         promise.set_result([&]() -> Result<SimpleConfig> {
           TRY_RESULT(http_query, std::move(r_query));
           TRY_RESULT(json, json_decode(http_query->content_));

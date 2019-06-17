@@ -18,7 +18,7 @@ HttpInboundConnection::HttpInboundConnection(SocketFd fd, size_t max_post_size, 
     , callback_(std::move(callback)) {
 }
 
-void HttpInboundConnection::on_query(HttpQueryPtr query) {
+void HttpInboundConnection::on_query(unique_ptr<HttpQuery> query) {
   CHECK(!callback_.empty());
   send_closure(callback_, &Callback::handle, std::move(query), ActorOwn<HttpInboundConnection>(actor_id(this)));
 }

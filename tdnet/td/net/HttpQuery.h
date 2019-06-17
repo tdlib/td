@@ -42,8 +42,6 @@ class HttpQuery {
   int get_retry_after() const;
 };
 
-using HttpQueryPtr = unique_ptr<HttpQuery>;
-
 StringBuilder &operator<<(StringBuilder &sb, const HttpQuery &q);
 
 }  // namespace td

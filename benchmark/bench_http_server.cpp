@@ -19,9 +19,10 @@
 namespace td {
 
 static int cnt = 0;
+
 class HelloWorld : public HttpInboundConnection::Callback {
  public:
-  void handle(HttpQueryPtr query, ActorOwn<HttpInboundConnection> connection) override {
+  void handle(unique_ptr<HttpQuery> query, ActorOwn<HttpInboundConnection> connection) override {
     // LOG(ERROR) << *query;
     HttpHeaderCreator hc;
     Slice content = "hello world";

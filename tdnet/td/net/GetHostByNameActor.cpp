@@ -48,7 +48,7 @@ class GoogleDnsResolver : public Actor {
     const int timeout = 10;
     const int ttl = 3;
     begin_time_ = Time::now();
-    auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<HttpQueryPtr> r_http_query) {
+    auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<HttpQuery>> r_http_query) {
       send_closure(actor_id, &GoogleDnsResolver::on_result, std::move(r_http_query));
     });
     wget_ = create_actor<Wget>(
@@ -58,7 +58,7 @@ class GoogleDnsResolver : public Actor {
         SslStream::VerifyPeer::Off);
   }
 
-  static Result<IPAddress> get_ip_address(Result<HttpQueryPtr> r_http_query) {
+  static Result<IPAddress> get_ip_address(Result<unique_ptr<HttpQuery>> r_http_query) {
     TRY_RESULT(http_query, std::move(r_http_query));
     TRY_RESULT(json_value, json_decode(http_query->content_));
     if (json_value.type() != JsonValue::Type::Object) {
@@ -79,7 +79,7 @@ class GoogleDnsResolver : public Actor {
     return ip;
   }
 
-  void on_result(Result<HttpQueryPtr> r_http_query) {
+  void on_result(Result<unique_ptr<HttpQuery>> r_http_query) {
     auto end_time = Time::now();
     auto result = get_ip_address(std::move(r_http_query));
     VLOG(dns_resolver) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in "

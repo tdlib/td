@@ -27,7 +27,8 @@ int main(int argc, char *argv[]) {
   auto scheduler = td::make_unique<td::ConcurrentScheduler>();
   scheduler->init(0);
   scheduler
-      ->create_actor_unsafe<td::Wget>(0, "Client", td::PromiseCreator::lambda([](td::Result<td::HttpQueryPtr> res) {
+      ->create_actor_unsafe<td::Wget>(0, "Client",
+                                      td::PromiseCreator::lambda([](td::Result<td::unique_ptr<td::HttpQuery>> res) {
                                         LOG(ERROR) << *res.ok();
                                         td::Scheduler::instance()->finish();
                                       }),

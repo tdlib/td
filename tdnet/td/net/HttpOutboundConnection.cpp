@@ -10,7 +10,7 @@
 
 namespace td {
 
-void HttpOutboundConnection::on_query(HttpQueryPtr query) {
+void HttpOutboundConnection::on_query(unique_ptr<HttpQuery> query) {
   CHECK(!callback_.empty());
   send_closure(callback_, &Callback::handle, std::move(query));
 }

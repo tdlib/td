@@ -21,6 +21,7 @@
 namespace td {
 
 namespace detail {
+
 class HttpConnectionBase : public Actor {
  public:
   void write_next(BufferSlice buffer);
@@ -50,7 +51,7 @@ class HttpConnectionBase : public Actor {
   size_t max_files_;
   int32 idle_timeout_;
   HttpReader reader_;
-  HttpQueryPtr current_query_;
+  unique_ptr<HttpQuery> current_query_;
   bool close_after_write_ = false;
 
   void live_event();
@@ -60,8 +61,9 @@ class HttpConnectionBase : public Actor {
   void timeout_expired() override;
   void loop() override;
 
-  virtual void on_query(HttpQueryPtr) = 0;
+  virtual void on_query(unique_ptr<HttpQuery> query) = 0;
   virtual void on_error(Status error) = 0;
 };
+
 }  // namespace detail
 }  // namespace td

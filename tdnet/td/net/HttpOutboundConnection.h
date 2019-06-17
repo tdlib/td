@@ -21,7 +21,7 @@ class HttpOutboundConnection final : public detail::HttpConnectionBase {
  public:
   class Callback : public Actor {
    public:
-    virtual void handle(HttpQueryPtr query) = 0;
+    virtual void handle(unique_ptr<HttpQuery> query) = 0;
     virtual void on_connection_error(Status error) = 0;  // TODO rename to on_error
   };
   HttpOutboundConnection(SocketFd fd, SslStream ssl_stream, size_t max_post_size, size_t max_files, int32 idle_timeout,
@@ -36,7 +36,7 @@ class HttpOutboundConnection final : public detail::HttpConnectionBase {
   // void write_error(Status error);
 
  private:
-  void on_query(HttpQueryPtr query) override;
+  void on_query(unique_ptr<HttpQuery> query) override;
   void on_error(Status error) override;
   void hangup() override {
     callback_.release();
