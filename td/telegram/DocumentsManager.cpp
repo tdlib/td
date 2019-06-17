@@ -215,6 +215,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   bool is_web = false;
   bool is_web_no_proxy = false;
   string url;
+  FileLocationSource source = FileLocationSource::FromServer;
   if (remote_document.document != nullptr) {
     auto document = std::move(remote_document.document);
 
@@ -224,6 +225,15 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     size = document->size_;
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
+
+    if (owner_dialog_id.get_type() == DialogType::SecretChat) {
+      // secret_api::decryptedMessageMediaExternalDocument
+      if (document_type != Document::Type::Sticker) {
+        LOG(ERROR) << "Receive " << document_type << " in " << owner_dialog_id;
+        return {};
+      }
+      source = FileLocationSource::FromUser;
+    }
 
     if (document_type != Document::Type::VoiceNote) {
       for (auto &thumb : document->thumbs_) {
@@ -302,7 +312,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
   }
 
-  LOG(DEBUG) << "Receive document with id = " << id << " of type " << static_cast<int32>(document_type);
+  LOG(DEBUG) << "Receive document with id = " << id << " of type " << document_type;
   if (!is_web && !DcId::is_valid(dc_id)) {
     LOG(ERROR) << "Wrong dc_id = " << dc_id;
     return {};
@@ -321,14 +331,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   FileId file_id;
   if (!is_web) {
     file_id = td_->file_manager_->register_remote(
-        FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id), std::move(file_reference)),
-        FileLocationSource::FromServer, owner_dialog_id, size, 0, suggested_file_name);
+        FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id), std::move(file_reference)), source,
+        owner_dialog_id, size, 0, suggested_file_name);
     if (!encryption_key.empty()) {
       td_->file_manager_->set_encryption_key(file_id, std::move(encryption_key));
     }
   } else if (!is_web_no_proxy) {
-    file_id = td_->file_manager_->register_remote(FullRemoteFileLocation(file_type, url, access_hash),
-                                                  FileLocationSource::FromServer, owner_dialog_id, 0, size, file_name);
+    file_id = td_->file_manager_->register_remote(FullRemoteFileLocation(file_type, url, access_hash), source,
+                                                  owner_dialog_id, 0, size, file_name);
   } else {
     auto r_file_id = td_->file_manager_->from_persistent_id(url, file_type);
     if (r_file_id.is_error()) {

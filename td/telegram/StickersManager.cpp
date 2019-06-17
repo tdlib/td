@@ -1646,7 +1646,6 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
     return {};
   }
 
-  vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
   tl_object_ptr<secret_api::InputStickerSet> input_sticker_set = make_tl_object<secret_api::inputStickerSetEmpty>();
   if (sticker->set_id) {
     const StickerSet *sticker_set = get_sticker_set(sticker->set_id);
@@ -1657,12 +1656,13 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
       // TODO load sticker set
     }
   }
-  attributes.push_back(
-      make_tl_object<secret_api::documentAttributeSticker>(sticker->alt, std::move(input_sticker_set)));
 
+  vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
+  attributes.push_back(
+      secret_api::make_object<secret_api::documentAttributeSticker>(sticker->alt, std::move(input_sticker_set)));
   if (sticker->dimensions.width != 0 && sticker->dimensions.height != 0) {
-    attributes.push_back(
-        make_tl_object<secret_api::documentAttributeImageSize>(sticker->dimensions.width, sticker->dimensions.height));
+    attributes.push_back(secret_api::make_object<secret_api::documentAttributeImageSize>(sticker->dimensions.width,
+                                                                                         sticker->dimensions.height));
   }
 
   if (file_view.is_encrypted_secret()) {

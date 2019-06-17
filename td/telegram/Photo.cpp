@@ -134,9 +134,11 @@ static FileId register_photo(FileManager *file_manager, const PhotoSizeSource &s
              << "]. Id: (" << id << ", " << access_hash << ")";
   auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id)
                                   << (is_webp ? ".webp" : (is_png ? ".png" : ".jpg"));
+  auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
+                                                                                   : FileLocationSource::FromServer;
   return file_manager->register_remote(
       FullRemoteFileLocation(source, id, access_hash, local_id, volume_id, dc_id, std::move(file_reference)),
-      FileLocationSource::FromServer, owner_dialog_id, file_size, 0, std::move(suggested_name));
+      file_location_source, owner_dialog_id, file_size, 0, std::move(suggested_name));
 }
 
 ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash,
