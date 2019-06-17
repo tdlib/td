@@ -9552,9 +9552,9 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
       if (d->new_secret_chat_notification_id.is_valid()) {
         remove_new_secret_chat_notification(d, true);
       }
-      if (d->message_notification_group.group_id.is_valid() && get_dialog_pending_notification_count(d, false) == 0) {
-        d->message_notification_group.last_notification_id = NotificationId();
-        d->message_notification_group.last_notification_date = 0;
+      if (d->message_notification_group.group_id.is_valid() && get_dialog_pending_notification_count(d, false) == 0 &&
+          !d->message_notification_group.last_notification_id.is_valid()) {
+        CHECK(d->message_notification_group.last_notification_date == 0);
         d->message_notification_group.try_reuse = true;
         d->message_notification_group.is_changed = true;
         on_dialog_updated(d->dialog_id, "on_update_secret_chat_state");
