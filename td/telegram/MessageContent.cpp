@@ -2904,7 +2904,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
                                        new_file_view.remote_location().get_access_hash(), 0, 0, DcId::invalid(),
-                                       new_file_view.remote_location().get_upload_file_reference().str()),
+                                       new_file_view.remote_location().get_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
           }

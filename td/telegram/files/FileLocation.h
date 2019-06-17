@@ -33,92 +33,6 @@ class FileReferenceView {
   static Slice invalid_file_reference() {
     return Slice("#");
   }
-  static std::string create_invalid() {
-    return create_one(invalid_file_reference());
-  }
-  static std::string create_one(Slice first) {
-    if (first.empty()) {
-      return {};
-    }
-    unsigned char second_length = 255;
-    return PSTRING() << static_cast<char>(second_length) << first;
-  }
-  static std::string create_two(Slice first, Slice second) {
-    if (first.empty() && second.empty()) {
-      return {};
-    }
-    if (second.size() >= 255) {
-      LOG(ERROR) << "File reference is too big " << base64_encode(second);
-      second = invalid_file_reference();
-    }
-    char second_length = static_cast<char>(static_cast<unsigned char>(second.size()));
-    return PSTRING() << second_length << first << second;
-  }
-
-  explicit FileReferenceView(Slice data) {
-    if (data.empty()) {
-      return;
-    }
-
-    unsigned char second_size = data.ubegin()[0];
-    if (second_size == 255) {
-      first_ = data.substr(1);
-      second_ = data.substr(1);
-    } else {
-      if (second_size > data.size() - 1) {
-        first_ = second_ = data;
-        return;
-      }
-      auto first_size = data.size() - 1 - second_size;
-      first_ = data.substr(1, first_size);
-      second_ = data.substr(1 + first_size);
-      size_ = 2;
-    }
-  }
-  Slice upload() const {
-    return first_;
-  }
-  Slice download() const {
-    return second_;
-  }
-  bool has_upload() const {
-    return upload() != invalid_file_reference();
-  }
-  bool has_download() const {
-    return download() != invalid_file_reference();
-  }
-  std::pair<std::string, bool> delete_file_reference(Slice bad_file_reference) const {
-    if (bad_file_reference == FileReferenceView::invalid_file_reference()) {
-      return {string(), false};
-    }
-    auto first = first_;
-    auto second = second_;
-    bool is_changed = false;
-    if (first == bad_file_reference) {
-      first = invalid_file_reference();
-      is_changed = true;
-    }
-    if (second == bad_file_reference) {
-      second = invalid_file_reference();
-      is_changed = true;
-    }
-    if (!is_changed) {
-      return {string(), false};
-    }
-    return {create(first, second), true};
-  }
-
- private:
-  std::string create(Slice first, Slice second) const {
-    if (size_ == 1) {
-      return create_one(first);
-    }
-    return create_two(first, second);
-  }
-
-  Slice first_;
-  Slice second_;
-  int size_{1};
 };
 
 struct EmptyRemoteFileLocation {
@@ -349,8 +263,7 @@ class FullRemoteFileLocation {
   }
 
   void check_file_reference() {
-    FileReferenceView view(file_reference_);
-    if (!(view.has_upload() && view.has_download())) {
+    if (file_reference_ == FileReferenceView::invalid_file_reference()) {
       LOG(ERROR) << "Tried to register file with invalid file reference";
       file_reference_.clear();
     }
@@ -410,29 +323,17 @@ class FullRemoteFileLocation {
   }
 
   bool delete_file_reference(Slice bad_file_reference) {
-    auto res = FileReferenceView(file_reference_).delete_file_reference(bad_file_reference);
-    if (res.second) {
-      file_reference_ = res.first;
+    if (file_reference_ != FileReferenceView::invalid_file_reference() && file_reference_ == bad_file_reference) {
+      file_reference_ = FileReferenceView::invalid_file_reference().str();
+      return true;
     }
-    return res.second;
+    return false;
   }
-  bool has_upload_file_reference() const {
-    return FileReferenceView(file_reference_).has_upload();
+  bool has_file_reference() const {
+    return file_reference_ != FileReferenceView::invalid_file_reference();
   }
-  bool has_download_file_reference() const {
-    return FileReferenceView(file_reference_).has_download();
-  }
-  bool has_any_file_reference() const {
-    return has_upload_file_reference() || has_download_file_reference();
-  }
-  Slice get_raw_file_reference() const {
+  Slice get_file_reference() const {
     return file_reference_;
-  }
-  Slice get_upload_file_reference() const {
-    return FileReferenceView(file_reference_).upload();
-  }
-  Slice get_download_file_reference() const {
-    return FileReferenceView(file_reference_).download();
   }
 
   string get_url() const {
@@ -479,19 +380,18 @@ class FullRemoteFileLocation {
       case LocationType::Photo: {
         switch (photo().source_.type) {
           case PhotoSizeSource::Type::Empty:
-            return make_tl_object<telegram_api::inputFileLocation>(
-                photo().volume_id_, photo().local_id_, photo().secret_,
-                BufferSlice(FileReferenceView(file_reference_).download()));
+            return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_,
+                                                                   photo().secret_, BufferSlice(file_reference_));
           case PhotoSizeSource::Type::Thumbnail: {
             auto &thumbnail = photo().source_.thumbnail();
             switch (file_type_) {
               case FileType::Photo:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
-                    photo().id_, photo().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
+                    photo().id_, photo().access_hash_, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
               case FileType::Thumbnail:
                 return make_tl_object<telegram_api::inputDocumentFileLocation>(
-                    photo().id_, photo().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
+                    photo().id_, photo().access_hash_, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
               default:
                 UNREACHABLE();
@@ -516,9 +416,8 @@ class FullRemoteFileLocation {
         } else if (is_secure()) {
           return make_tl_object<telegram_api::inputSecureFileLocation>(common().id_, common().access_hash_);
         } else {
-          return make_tl_object<telegram_api::inputDocumentFileLocation>(
-              common().id_, common().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()),
-              string());
+          return make_tl_object<telegram_api::inputDocumentFileLocation>(common().id_, common().access_hash_,
+                                                                         BufferSlice(file_reference_), string());
         }
       case LocationType::Web:
       case LocationType::None:
@@ -533,14 +432,13 @@ class FullRemoteFileLocation {
     LOG_CHECK(is_common()) << file << ' ' << line;
     LOG_CHECK(is_document()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_,
-                                                       BufferSlice(FileReferenceView(file_reference_).upload()));
+                                                       BufferSlice(file_reference_));
   }
 
 #define as_input_photo() as_input_photo_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputPhoto> as_input_photo_impl(const char *file, int line) const {
     LOG_CHECK(is_photo()) << file << ' ' << line;
-    return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_,
-                                                    BufferSlice(FileReferenceView(file_reference_).upload()));
+    return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_, BufferSlice(file_reference_));
   }
 
   tl_object_ptr<telegram_api::inputEncryptedFile> as_input_encrypted_file() const {
@@ -562,7 +460,7 @@ class FullRemoteFileLocation {
                          DcId dc_id, std::string file_reference)
       : file_type_(source.file_type)
       , dc_id_(dc_id)
-      , file_reference_(FileReferenceView::create_one(file_reference))
+      , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, -1, local_id, source}) {
     CHECK(is_photo());
     check_file_reference();
@@ -572,7 +470,7 @@ class FullRemoteFileLocation {
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
       : file_type_(file_type)
       , dc_id_(dc_id)
-      , file_reference_(FileReferenceView::create_one(file_reference))
+      , file_reference_(std::move(file_reference))
       , variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
     check_file_reference();
@@ -639,9 +537,7 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
     string_builder << ", " << full_remote_file_location.get_dc_id();
   }
   if (!full_remote_file_location.file_reference_.empty()) {
-    FileReferenceView view(full_remote_file_location.file_reference_);
-    string_builder << ", " << tag("file_reference_upload", base64_encode(view.upload()))
-                   << tag("file_reference_download", base64_encode(view.download()));
+    string_builder << ", " << tag("file_reference", base64_encode(full_remote_file_location.file_reference_));
   }
 
   string_builder << ", location = ";

@@ -203,7 +203,7 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
   if (new_remote.full) {
     if (remote_.full && remote_.full.value() == new_remote.full.value()) {
       if (remote_.full.value().get_access_hash() != new_remote.full.value().get_access_hash() ||
-          remote_.full.value().get_raw_file_reference() != new_remote.full.value().get_raw_file_reference()) {
+          remote_.full.value().get_file_reference() != new_remote.full.value().get_file_reference()) {
         on_pmc_changed();
       }
     } else {
@@ -272,7 +272,7 @@ bool FileNode::delete_file_reference(Slice file_reference) {
 
   if (!remote_.full.value().delete_file_reference(file_reference)) {
     VLOG(file_references) << "Can't delete unmatching file reference " << format::escaped(file_reference) << ", have "
-                          << format::escaped(remote_.full.value().get_raw_file_reference());
+                          << format::escaped(remote_.full.value().get_file_reference());
     return false;
   }
 
@@ -473,7 +473,7 @@ bool FileView::has_active_upload_remote_location() const {
   if (remote_location().is_encrypted_any()) {
     return true;
   }
-  return remote_location().has_upload_file_reference();
+  return remote_location().has_file_reference();
 }
 
 bool FileView::has_active_download_remote_location() const {
@@ -483,7 +483,7 @@ bool FileView::has_active_download_remote_location() const {
   if (remote_location().is_encrypted_any()) {
     return true;
   }
-  return remote_location().has_download_file_reference();
+  return remote_location().has_file_reference();
 }
 
 const FullRemoteFileLocation &FileView::remote_location() const {
@@ -1138,13 +1138,13 @@ static int merge_choose_remote_location(const FullRemoteFileLocation &x, FileLoc
   if (x.is_web() != y.is_web()) {
     return x.is_web();  // prefer non-web
   }
-  auto x_ref = x.has_any_file_reference();
-  auto y_ref = y.has_any_file_reference();
+  auto x_ref = x.has_file_reference();
+  auto y_ref = y.has_file_reference();
   if (x_ref || y_ref) {
     if (x_ref != y_ref) {
       return !x_ref;
     }
-    if (x.get_raw_file_reference() != y.get_raw_file_reference()) {
+    if (x.get_file_reference() != y.get_file_reference()) {
       return merge_choose_file_source_location(x_source, y_source);
     }
   }
