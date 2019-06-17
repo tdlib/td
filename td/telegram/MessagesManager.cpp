@@ -3483,13 +3483,13 @@ class GetChannelAdminLogQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->messages_manager_->on_get_event_log(random_id_, result_ptr.move_as_ok());
+    td->messages_manager_->on_get_event_log(channel_id_, random_id_, result_ptr.move_as_ok());
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelAdminLogQuery");
-    td->messages_manager_->on_get_event_log(random_id_, nullptr);
+    td->messages_manager_->on_get_event_log(channel_id_, random_id_, nullptr);
     promise_.set_error(std::move(status));
   }
 };
@@ -22177,7 +22177,7 @@ int64 MessagesManager::get_dialog_event_log(DialogId dialog_id, const string &qu
 }
 
 tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_object(
-    tl_object_ptr<telegram_api::ChannelAdminLogEventAction> &&action_ptr) {
+    ChannelId channel_id, tl_object_ptr<telegram_api::ChannelAdminLogEventAction> &&action_ptr) {
   CHECK(action_ptr != nullptr);
   switch (action_ptr->get_id()) {
     case telegram_api::channelAdminLogEventActionParticipantJoin::ID:
@@ -22186,7 +22186,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
-      auto member = td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->participant_));
+      auto member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->participant_));
       return make_tl_object<td_api::chatEventMemberInvited>(
           td_->contacts_manager_->get_user_id_object(member.user_id, "chatEventMemberInvited"),
           member.status.get_chat_member_status_object());
@@ -22194,9 +22194,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
       auto old_member =
-          td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->prev_participant_));
-      auto new_member =
-          td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->new_participant_));
+          td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->prev_participant_));
+      auto new_member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->new_participant_));
       if (old_member.user_id != new_member.user_id) {
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
         return nullptr;
@@ -22208,9 +22207,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
       auto old_member =
-          td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->prev_participant_));
-      auto new_member =
-          td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->new_participant_));
+          td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->prev_participant_));
+      auto new_member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->new_participant_));
       if (old_member.user_id != new_member.user_id) {
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
         return nullptr;
@@ -22237,8 +22235,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionChangePhoto::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);
       auto file_manager = td_->file_manager_.get();
-      auto old_photo = get_photo(file_manager, std::move(action->prev_photo_), DialogId());
-      auto new_photo = get_photo(file_manager, std::move(action->new_photo_), DialogId());
+      auto old_photo = get_photo(file_manager, std::move(action->prev_photo_), DialogId(channel_id));
+      auto new_photo = get_photo(file_manager, std::move(action->new_photo_), DialogId(channel_id));
       return make_tl_object<td_api::chatEventPhotoChanged>(get_photo_object(file_manager, &old_photo),
                                                            get_photo_object(file_manager, &new_photo));
     }
@@ -22325,7 +22323,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
   }
 }
 
-void MessagesManager::on_get_event_log(int64 random_id,
+void MessagesManager::on_get_event_log(ChannelId channel_id, int64 random_id,
                                        tl_object_ptr<telegram_api::channels_adminLogResults> &&events) {
   auto it = chat_events_.find(random_id);
   CHECK(it != chat_events_.end());
@@ -22337,7 +22335,7 @@ void MessagesManager::on_get_event_log(int64 random_id,
     return;
   }
 
-  LOG(INFO) << "Receive " << to_string(events);
+  LOG(INFO) << "Receive in " << channel_id << " " << to_string(events);
 
   td_->contacts_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
   td_->contacts_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
@@ -22357,7 +22355,7 @@ void MessagesManager::on_get_event_log(int64 random_id,
     }
     LOG_IF(ERROR, !td_->contacts_manager_->have_user(user_id)) << "Have no info about " << user_id;
 
-    auto action = get_chat_event_action_object(std::move(event->action_));
+    auto action = get_chat_event_action_object(channel_id, std::move(event->action_));
     if (action == nullptr) {
       continue;
     }

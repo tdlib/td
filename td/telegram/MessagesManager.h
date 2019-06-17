@@ -446,7 +446,8 @@ class MessagesManager : public Actor {
                              const tl_object_ptr<td_api::chatEventLogFilters> &filters, const vector<UserId> &user_ids,
                              Promise<Unit> &&promise);
 
-  void on_get_event_log(int64 random_id, tl_object_ptr<telegram_api::channels_adminLogResults> &&events);
+  void on_get_event_log(ChannelId channel_id, int64 random_id,
+                        tl_object_ptr<telegram_api::channels_adminLogResults> &&events);
 
   tl_object_ptr<td_api::chatEvents> get_chat_events_object(int64 random_id);
 
@@ -2047,7 +2048,7 @@ class MessagesManager : public Actor {
       const tl_object_ptr<td_api::chatEventLogFilters> &filters);
 
   tl_object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
-      tl_object_ptr<telegram_api::ChannelAdminLogEventAction> &&action_ptr);
+      ChannelId channel_id, tl_object_ptr<telegram_api::ChannelAdminLogEventAction> &&action_ptr);
 
   void on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
                        tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file);
