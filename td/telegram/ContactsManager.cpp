@@ -2966,7 +2966,7 @@ const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
 
   auto it = pending_user_photos_.find(user_id);
   if (it != pending_user_photos_.end()) {
-    do_update_user_photo(u, user_id, std::move(it->second));
+    do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
     pending_user_photos_.erase(it);
     update_user(u, user_id);
   }
@@ -5119,7 +5119,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_received) {
     on_update_user_phone_number(u, user_id, std::move(user->phone_));
   }
-  on_update_user_photo(u, user_id, std::move(user->photo_));
+  on_update_user_photo(u, user_id, std::move(user->photo_), "on_get_user");
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
 
@@ -6941,7 +6941,7 @@ void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegra
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
-    on_update_user_photo(u, user_id, std::move(photo_ptr));
+    on_update_user_photo(u, user_id, std::move(photo_ptr), "on_update_user_photo");
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user photo about unknown " << user_id;
@@ -6949,7 +6949,7 @@ void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegra
 }
 
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
-                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
+                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
     pending_user_photos_[user_id] = std::move(photo);
@@ -6967,13 +6967,14 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     return;
   }
 
-  do_update_user_photo(u, user_id, std::move(photo));
+  do_update_user_photo(u, user_id, std::move(photo), source);
 }
 
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
-                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
+                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   u->is_photo_inited = true;
-  LOG_IF(ERROR, u->access_hash == -1) << "Update profile photo of " << user_id << " without access hash";
+  LOG_IF(ERROR, u->access_hash == -1) << "Update profile photo of " << user_id << " without access hash from "
+                                      << source;
   ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
 
   if (new_photo != u->photo) {
