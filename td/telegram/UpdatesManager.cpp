@@ -326,20 +326,32 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
   }
 }
 
+bool UpdatesManager::is_acceptable_user(UserId user_id) const {
+  return td_->contacts_manager_->have_user(user_id);
+}
+
+bool UpdatesManager::is_acceptable_chat(ChatId chat_id) const {
+  return td_->contacts_manager_->have_chat(chat_id);
+}
+
+bool UpdatesManager::is_acceptable_channel(ChannelId channel_id) const {
+  return td_->contacts_manager_->have_channel(channel_id);
+}
+
 bool UpdatesManager::is_acceptable_dialog(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (!td_->contacts_manager_->have_user(dialog_id.get_user_id())) {
+      if (!is_acceptable_user(dialog_id.get_user_id())) {
         return false;
       }
       break;
     case DialogType::Chat:
-      if (!td_->contacts_manager_->have_chat(dialog_id.get_chat_id())) {
+      if (!is_acceptable_chat(dialog_id.get_chat_id())) {
         return false;
       }
       break;
     case DialogType::Channel:
-      if (!td_->contacts_manager_->have_channel(dialog_id.get_channel_id())) {
+      if (!is_acceptable_channel(dialog_id.get_channel_id())) {
         return false;
       }
       break;
@@ -359,7 +371,7 @@ bool UpdatesManager::is_acceptable_message_entities(
     if (entity->get_id() == telegram_api::messageEntityMentionName::ID) {
       auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
       UserId user_id(entity_mention_name->user_id_);
-      if (!td_->contacts_manager_->have_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
+      if (!is_acceptable_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
         return false;
       }
     }
@@ -376,13 +388,13 @@ bool UpdatesManager::is_acceptable_message_forward_header(
   auto flags = header->flags_;
   if (flags & telegram_api::messageFwdHeader::CHANNEL_ID_MASK) {
     ChannelId channel_id(header->channel_id_);
-    if (!td_->contacts_manager_->have_channel(channel_id)) {
+    if (!is_acceptable_channel(channel_id)) {
       return false;
     }
   }
   if (flags & telegram_api::messageFwdHeader::FROM_ID_MASK) {
     UserId user_id(header->from_id_);
-    if (!td_->contacts_manager_->have_user(user_id)) {
+    if (!is_acceptable_user(user_id)) {
       return false;
     }
   }
@@ -409,7 +421,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         return false;
       }
       if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        if (!td_->contacts_manager_->have_user(UserId(message->from_id_))) {
+        if (!is_acceptable_user(UserId(message->from_id_))) {
           return false;
         }
       }
@@ -419,7 +431,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
       }
 
       if ((message->flags_ & MessagesManager::MESSAGE_FLAG_IS_SENT_VIA_BOT) &&
-          !td_->contacts_manager_->have_user(UserId(message->via_bot_id_))) {
+          !is_acceptable_user(UserId(message->via_bot_id_))) {
         return false;
       }
 
@@ -433,7 +445,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         if (media_id == telegram_api::messageMediaContact::ID) {
           auto message_media_contact = static_cast<const telegram_api::messageMediaContact *>(message->media_.get());
           UserId user_id(message_media_contact->user_id_);
-          if (user_id != UserId() && !td_->contacts_manager_->have_user(user_id)) {
+          if (user_id != UserId() && !is_acceptable_user(user_id)) {
             return false;
           }
         }
@@ -451,7 +463,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
                   auto page_block_channel = static_cast<const telegram_api::pageBlockChannel *>(page_block.get());
                   auto channel_id = ContactsManager::get_channel_id(page_block_channel->channel_);
                   if (channel_id.is_valid()) {
-                    if (!td_->contacts_manager_->have_channel(channel_id)) {
+                    if (!is_acceptable_channel(channel_id)) {
                       return false;
                     }
                   } else {
@@ -476,7 +488,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         return false;
       }
       if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        if (!td_->contacts_manager_->have_user(UserId(message->from_id_))) {
+        if (!is_acceptable_user(UserId(message->from_id_))) {
           return false;
         }
       }
@@ -506,7 +518,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
           for (auto &user : chat_create->users_) {
-            if (!td_->contacts_manager_->have_user(UserId(user))) {
+            if (!is_acceptable_user(UserId(user))) {
               return false;
             }
           }
@@ -515,7 +527,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChatAddUser::ID: {
           auto chat_add_user = static_cast<const telegram_api::messageActionChatAddUser *>(action);
           for (auto &user : chat_add_user->users_) {
-            if (!td_->contacts_manager_->have_user(UserId(user))) {
+            if (!is_acceptable_user(UserId(user))) {
               return false;
             }
           }
@@ -523,28 +535,28 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         }
         case telegram_api::messageActionChatJoinedByLink::ID: {
           auto chat_joined_by_link = static_cast<const telegram_api::messageActionChatJoinedByLink *>(action);
-          if (!td_->contacts_manager_->have_user(UserId(chat_joined_by_link->inviter_id_))) {
+          if (!is_acceptable_user(UserId(chat_joined_by_link->inviter_id_))) {
             return false;
           }
           break;
         }
         case telegram_api::messageActionChatDeleteUser::ID: {
           auto chat_delete_user = static_cast<const telegram_api::messageActionChatDeleteUser *>(action);
-          if (!td_->contacts_manager_->have_user(UserId(chat_delete_user->user_id_))) {
+          if (!is_acceptable_user(UserId(chat_delete_user->user_id_))) {
             return false;
           }
           break;
         }
         case telegram_api::messageActionChatMigrateTo::ID: {
           auto chat_migrate_to = static_cast<const telegram_api::messageActionChatMigrateTo *>(action);
-          if (!td_->contacts_manager_->have_channel(ChannelId(chat_migrate_to->channel_id_))) {
+          if (!is_acceptable_channel(ChannelId(chat_migrate_to->channel_id_))) {
             return false;
           }
           break;
         }
         case telegram_api::messageActionChannelMigrateFrom::ID: {
           auto channel_migrate_from = static_cast<const telegram_api::messageActionChannelMigrateFrom *>(action);
-          if (!td_->contacts_manager_->have_chat(ChatId(channel_migrate_from->chat_id_))) {
+          if (!is_acceptable_chat(ChatId(channel_migrate_from->chat_id_))) {
             return false;
           }
           break;
