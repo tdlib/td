@@ -480,9 +480,9 @@ Changes in 1.1.0:
 * Added parameter `as_album` to method `getPublicMessageLink` to enable getting public links for media albums.
 * Added field `html` to class `publicMessageLink`, containing HTML-code for message/message album embedding.
 * Added parameter `only_if_pending` to method `cancelDownloadFile` to allow keeping already started downloads.
-* Methods `createPrivateChat`, `createBasciGroupChat`, `createSupergroupChat` and `createSecretChat`
-  can now be called without a prior call to `getUser`/`getBasicGroup`/`getSupergorup`/`getSecretChat`.
-* Added parameter `force` to methods `createPrivateChat`, `createBasciGroupChat` and `createSupergroupChat` to allow
+* Methods `createPrivateChat`, `createBasicGroupChat`, `createSupergroupChat` and `createSecretChat`
+  can now be called without a prior call to `getUser`/`getBasicGroup`/`getSupergroup`/`getSecretChat`.
+* Added parameter `force` to methods `createPrivateChat`, `createBasicGroupChat` and `createSupergroupChat` to allow
   creating a chat without network requests.
 * Numerous optimizations and bug fixes.
 

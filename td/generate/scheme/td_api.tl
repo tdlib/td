@@ -1966,7 +1966,7 @@ backgroundTypeSolid color:int32 = BackgroundType;
 //@description Describes a chat background
 //@id Unique background identifier
 //@is_default True, if this is one of default backgrounds
-//@is_dark True, if this background is dark and is recommended to be used with dark theme
+//@is_dark True, if the background is dark and is recommended to be used with dark theme
 //@name Unique background name
 //@document Document with the background; may be null. Null only for solid backgrounds
 //@type Type of the background
@@ -2701,8 +2701,8 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 //@description The list of saved animations was updated @animation_ids The new list of file identifiers of saved animations
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
-//@description The selected background has changed @background The new selected background; may be null
-updateSelectedBackground background:background = Update;
+//@description The selected background has changed @for_dark_theme True, if background for dark theme has changed @background The new selected background; may be null
+updateSelectedBackground for_dark_theme:Bool background:background = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;
@@ -3651,8 +3651,8 @@ deleteSavedCredentials = Ok;
 getSupportUser = User;
 
 
-//@description Returns backgrounds installed by the user
-getBackgrounds = Backgrounds;
+//@description Returns backgrounds installed by the user @for_dark_theme True, if the backgrounds needs to be ordered for dark theme
+getBackgrounds for_dark_theme:Bool = Backgrounds;
 
 //@description Constructs a persistent HTTP URL for a background @name Background name @type Background type
 getBackgroundUrl name:string type:BackgroundType = HttpUrl;
@@ -3661,8 +3661,8 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes selected by the user background; adds background to the list of installed backgrounds
-//@background The input background to use, null for solid backgrounds @type Background type
-setBackground background:InputBackground type:BackgroundType = Background;
+//@background The input background to use, null for solid backgrounds @type Background type @for_dark_theme True, if the background is chosen for dark theme
+setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 
 //@description Removes background from the list of installed backgrounds @background_id The background indentifier
 removeBackground background_id:int64 = Ok;

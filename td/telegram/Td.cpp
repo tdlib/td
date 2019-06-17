@@ -2929,16 +2929,19 @@ class GetSupportUserRequest : public RequestActor<> {
 };
 
 class GetBackgroundsRequest : public RequestOnceActor {
+  bool for_dark_theme_;
+
   void do_run(Promise<Unit> &&promise) override {
     td->background_manager_->get_backgrounds(std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->background_manager_->get_backgrounds_object());
+    send_result(td->background_manager_->get_backgrounds_object(for_dark_theme_));
   }
 
  public:
-  GetBackgroundsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  GetBackgroundsRequest(ActorShared<Td> td, uint64 request_id, bool for_dark_theme)
+      : RequestOnceActor(std::move(td), request_id), for_dark_theme_(for_dark_theme) {
   }
 };
 
@@ -2952,7 +2955,7 @@ class SearchBackgroundRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->background_manager_->get_background_object(background_id_));
+    send_result(td->background_manager_->get_background_object(background_id_, false));
   }
 
  public:
@@ -2964,25 +2967,27 @@ class SearchBackgroundRequest : public RequestActor<> {
 class SetBackgroundRequest : public RequestActor<> {
   td_api::object_ptr<td_api::InputBackground> input_background_;
   td_api::object_ptr<td_api::BackgroundType> background_type_;
+  bool for_dark_theme_ = false;
 
   BackgroundId background_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    background_id_ =
-        td->background_manager_->set_background(input_background_.get(), background_type_.get(), std::move(promise));
+    background_id_ = td->background_manager_->set_background(input_background_.get(), background_type_.get(),
+                                                             for_dark_theme_, std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->background_manager_->get_background_object(background_id_));
+    send_result(td->background_manager_->get_background_object(background_id_, for_dark_theme_));
   }
 
  public:
   SetBackgroundRequest(ActorShared<Td> td, uint64 request_id,
                        td_api::object_ptr<td_api::InputBackground> &&input_background,
-                       td_api::object_ptr<td_api::BackgroundType> background_type)
+                       td_api::object_ptr<td_api::BackgroundType> background_type, bool for_dark_theme)
       : RequestActor(std::move(td), request_id)
       , input_background_(std::move(input_background))
-      , background_type_(std::move(background_type)) {
+      , background_type_(std::move(background_type))
+      , for_dark_theme_(for_dark_theme) {
   }
 };
 
@@ -7081,7 +7086,7 @@ void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
 
 void Td::on_request(uint64 id, const td_api::getBackgrounds &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetBackgroundsRequest);
+  CREATE_REQUEST(GetBackgroundsRequest, request.for_dark_theme_);
 }
 
 void Td::on_request(uint64 id, td_api::getBackgroundUrl &request) {
@@ -7103,7 +7108,8 @@ void Td::on_request(uint64 id, td_api::searchBackground &request) {
 
 void Td::on_request(uint64 id, td_api::setBackground &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SetBackgroundRequest, std::move(request.background_), std::move(request.type_));
+  CREATE_REQUEST(SetBackgroundRequest, std::move(request.background_), std::move(request.type_),
+                 request.for_dark_theme_);
 }
 
 void Td::on_request(uint64 id, const td_api::removeBackground &request) {
