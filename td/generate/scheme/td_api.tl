@@ -251,10 +251,10 @@ poll id:int64 question:string options:vector<pollOption> total_voter_count:int32
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
-//@small A small (160x160) user profile photo @big A big (640x640) user profile photo
+//@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed @big A big (640x640) user profile photo. The file can be downloaded only before the photo is changed
 profilePhoto id:int64 small:file big:file = ProfilePhoto;
 
-//@description Describes the photo of a chat @small A small (160x160) chat photo @big A big (640x640) chat photo
+//@description Describes the photo of a chat @small A small (160x160) chat photo. The file can be downloaded only before the photo is changed @big A big (640x640) chat photo. The file can be downloaded only before the photo is changed
 chatPhoto small:file big:file = ChatPhoto;
 
 
@@ -1555,7 +1555,7 @@ stickers stickers:vector<sticker> = Stickers;
 emojis emojis:vector<string> = Emojis;
 
 //@description Represents a sticker set
-//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format with width and height 100; may be null
+//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format with width and height 100; may be null. The file can be downloaded only before the thumbnail is changed
 //@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
 //@is_official True, if the sticker set is official @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
 //@stickers List of stickers in this set @emojis A list of emoji corresponding to the stickers in the same order. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object
