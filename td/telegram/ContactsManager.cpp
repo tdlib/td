@@ -5104,6 +5104,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
 
+  if (!is_received && !have_user_force(user_id)) {
+    // we must preload information about received inaccessible users from database in order to not save
+    // the min-user to the database and to not override access_hash and another info
+    LOG(INFO) << "Receive inaccessible " << user_id;
+  }
+
   User *u = add_user(user_id, "on_get_user");
   if (have_access_hash) {  // access_hash must be updated before photo
     auto access_hash = user->access_hash_;
