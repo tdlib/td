@@ -1622,7 +1622,8 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
   for (size_t i = 0; i < group.notifications.size(); i++) {
     auto &notification = group.notifications[i];
     if (notification.notification_id == notification_id) {
-      if (notification.type->get_message_id() != type->get_message_id()) {
+      if (notification.type->get_message_id() != type->get_message_id() ||
+          notification.type->is_temporary() != type->is_temporary()) {
         LOG(ERROR) << "Ignore edit of " << notification_id << " with " << *type << ", because previous type is "
                    << *notification.type;
         return;
@@ -1639,7 +1640,8 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
   }
   for (auto &notification : group.pending_notifications) {
     if (notification.notification_id == notification_id) {
-      if (notification.type->get_message_id() != type->get_message_id()) {
+      if (notification.type->get_message_id() != type->get_message_id() ||
+          notification.type->is_temporary() != type->is_temporary()) {
         LOG(ERROR) << "Ignore edit of " << notification_id << " with " << *type << ", because previous type is "
                    << *notification.type;
         return;
