@@ -1983,6 +1983,12 @@ void StickersManager::update_load_requests(StickerSet *sticker_set, bool with_st
   }
 
   sticker_set->load_without_stickers_requests.clear();
+
+  if (status.message() == "STICKERSET_INVALID") {
+    // the sticker set is likely to be deleted
+    // clear short_name_to_sticker_set_id_ to allow next searchStickerSet request to succeed
+    short_name_to_sticker_set_id_.erase(clean_username(sticker_set->short_name));
+  }
 }
 
 void StickersManager::update_load_request(uint32 load_request_id, const Status &status) {
