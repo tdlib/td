@@ -326,6 +326,33 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
   }
 }
 
+bool UpdatesManager::is_acceptable_dialog(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (!td_->contacts_manager_->have_user(dialog_id.get_user_id())) {
+        return false;
+      }
+      break;
+    case DialogType::Chat:
+      if (!td_->contacts_manager_->have_chat(dialog_id.get_chat_id())) {
+        return false;
+      }
+      break;
+    case DialogType::Channel:
+      if (!td_->contacts_manager_->have_channel(dialog_id.get_channel_id())) {
+        return false;
+      }
+      break;
+    case DialogType::None:
+      return false;
+    case DialogType::SecretChat:
+    default:
+      UNREACHABLE();
+      return false;
+  }
+  return true;
+}
+
 bool UpdatesManager::is_acceptable_message_entities(
     const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const {
   for (auto &entity : message_entities) {
@@ -340,13 +367,37 @@ bool UpdatesManager::is_acceptable_message_entities(
   return true;
 }
 
+bool UpdatesManager::is_acceptable_message_forward_header(
+    const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const {
+  if (header == nullptr) {
+    return true;
+  }
+
+  auto flags = header->flags_;
+  if (flags & telegram_api::messageFwdHeader::CHANNEL_ID_MASK) {
+    ChannelId channel_id(header->channel_id_);
+    if (!td_->contacts_manager_->have_channel(channel_id)) {
+      return false;
+    }
+  }
+  if (flags & telegram_api::messageFwdHeader::FROM_ID_MASK) {
+    UserId user_id(header->from_id_);
+    if (!td_->contacts_manager_->have_user(user_id)) {
+      return false;
+    }
+  }
+  if (flags & telegram_api::messageFwdHeader::SAVED_FROM_PEER_MASK) {
+    DialogId dialog_id(header->saved_from_peer_);
+    if (!is_acceptable_dialog(dialog_id)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_ptr) const {
   CHECK(message_ptr != nullptr);
   int32 constructor_id = message_ptr->get_id();
-
-  bool is_channel_post = false;
-  DialogId dialog_id;
-  UserId sender_user_id;
 
   switch (constructor_id) {
     case telegram_api::messageEmpty::ID:
@@ -354,30 +405,17 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::message::ID: {
       auto message = static_cast<const telegram_api::message *>(message_ptr);
 
-      is_channel_post = (message->flags_ & MessagesManager::MESSAGE_FLAG_IS_POST) != 0;
-      dialog_id = DialogId(message->to_id_);
-      if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        sender_user_id = UserId(message->from_id_);
+      if (!is_acceptable_dialog(DialogId(message->to_id_))) {
+        return false;
       }
-
-      if (message->flags_ & MessagesManager::MESSAGE_FLAG_IS_FORWARDED) {
-        CHECK(message->fwd_from_ != nullptr);
-        auto flags = message->fwd_from_->flags_;
-        bool from_post = (flags & MessagesManager::MESSAGE_FORWARD_HEADER_FLAG_HAS_CHANNEL_ID) != 0;
-        if (from_post && !td_->contacts_manager_->have_channel(ChannelId(message->fwd_from_->channel_id_))) {
+      if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
+        if (!td_->contacts_manager_->have_user(UserId(message->from_id_))) {
           return false;
         }
-        if (flags & MessagesManager::MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_ID) {
-          UserId user_id(message->fwd_from_->from_id_);
-          if (from_post && !td_->contacts_manager_->have_min_user(user_id)) {
-            return false;
-          }
-          if (!from_post && !td_->contacts_manager_->have_user(user_id)) {
-            return false;
-          }
-        }
-      } else {
-        CHECK(message->fwd_from_ == nullptr);
+      }
+
+      if (!is_acceptable_message_forward_header(message->fwd_from_)) {
+        return false;
       }
 
       if ((message->flags_ & MessagesManager::MESSAGE_FLAG_IS_SENT_VIA_BOT) &&
@@ -434,10 +472,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::messageService::ID: {
       auto message = static_cast<const telegram_api::messageService *>(message_ptr);
 
-      is_channel_post = (message->flags_ & MessagesManager::MESSAGE_FLAG_IS_POST) != 0;
-      dialog_id = DialogId(message->to_id_);
+      if (!is_acceptable_dialog(DialogId(message->to_id_))) {
+        return false;
+      }
       if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        sender_user_id = UserId(message->from_id_);
+        if (!td_->contacts_manager_->have_user(UserId(message->from_id_))) {
+          return false;
+        }
       }
 
       const telegram_api::MessageAction *action = message->action_.get();
@@ -517,43 +558,6 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     default:
       UNREACHABLE();
       return false;
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::None:
-      LOG(ERROR) << "Receive message in the invalid " << dialog_id;
-      return false;
-    case DialogType::User: {
-      if (!td_->contacts_manager_->have_user(dialog_id.get_user_id())) {
-        return false;
-      }
-      break;
-    }
-    case DialogType::Chat: {
-      if (!td_->contacts_manager_->have_chat(dialog_id.get_chat_id())) {
-        return false;
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      if (!td_->contacts_manager_->have_channel(dialog_id.get_channel_id())) {
-        return false;
-      }
-      break;
-    }
-    case DialogType::SecretChat:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-
-  if (sender_user_id != UserId()) {
-    if (is_channel_post && !td_->contacts_manager_->have_min_user(sender_user_id)) {
-      return false;
-    }
-    if (!is_channel_post && !td_->contacts_manager_->have_user(sender_user_id)) {
-      return false;
-    }
   }
 
   return true;

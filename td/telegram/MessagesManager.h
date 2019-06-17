@@ -141,13 +141,6 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 16;
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID = 1 << 17;
 
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_ID = 1 << 0;
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_CHANNEL_ID = 1 << 1;
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID = 1 << 2;
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 3;
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_SAVED_FROM = 1 << 4;
-  static constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_SENDER_NAME = 1 << 5;
-
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 2;

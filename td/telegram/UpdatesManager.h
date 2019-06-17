@@ -162,7 +162,12 @@ class UpdatesManager : public Actor {
 
   static const vector<tl_object_ptr<telegram_api::Update>> *get_updates(const telegram_api::Updates *updates_ptr);
 
+  bool is_acceptable_dialog(DialogId dialog_id) const;
+
   bool is_acceptable_message_entities(const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const;
+
+  bool is_acceptable_message_forward_header(
+      const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const;
 
   bool is_acceptable_message(const telegram_api::Message *message_ptr) const;
 

@@ -17880,19 +17880,20 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   DialogId from_dialog_id;
   MessageId from_message_id;
   string sender_name;
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_ID) != 0) {
+  if ((flags & telegram_api::messageFwdHeader::FROM_ID_MASK) != 0) {
     sender_user_id = UserId(forward_header->from_id_);
     if (!sender_user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid sender id in message forward header: " << oneline(to_string(forward_header));
       sender_user_id = UserId();
     }
   }
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_CHANNEL_ID) != 0) {
+  if ((flags & telegram_api::messageFwdHeader::CHANNEL_ID_MASK) != 0) {
     channel_id = ChannelId(forward_header->channel_id_);
     if (!channel_id.is_valid()) {
       LOG(ERROR) << "Receive invalid channel id in message forward header: " << oneline(to_string(forward_header));
     }
   }
+  constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID = telegram_api::messageFwdHeader::CHANNEL_POST_MASK;
   if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID) != 0) {
     message_id = MessageId(ServerMessageId(forward_header->channel_post_));
     if (!message_id.is_valid()) {
@@ -17900,10 +17901,11 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       message_id = MessageId();
     }
   }
+  constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE = telegram_api::messageFwdHeader::POST_AUTHOR_MASK;
   if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE) != 0) {
     author_signature = std::move(forward_header->post_author_);
   }
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_SAVED_FROM) != 0) {
+  if ((flags & telegram_api::messageFwdHeader::SAVED_FROM_PEER_MASK) != 0) {
     from_dialog_id = DialogId(forward_header->saved_from_peer_);
     from_message_id = MessageId(ServerMessageId(forward_header->saved_from_msg_id_));
     if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {
@@ -17913,7 +17915,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       from_message_id = MessageId();
     }
   }
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_SENDER_NAME) != 0) {
+  if ((flags & telegram_api::messageFwdHeader::FROM_NAME_MASK) != 0) {
     sender_name = std::move(forward_header->from_name_);
   }
 
