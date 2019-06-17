@@ -461,7 +461,7 @@ class FullRemoteFileLocation {
       : file_type_(source.file_type)
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
-      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, -1, local_id, source}) {
+      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, 0, local_id, source}) {
     CHECK(is_photo());
     check_file_reference();
   }
