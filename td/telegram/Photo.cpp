@@ -55,7 +55,7 @@ tl_object_ptr<telegram_api::InputPeer> PhotoSizeSource::DialogPhoto::get_input_p
 }
 
 FileType get_photo_size_source_file_type(const PhotoSizeSource &source) {
-  switch (source.type) {
+  switch (source.get_type()) {
     case PhotoSizeSource::Type::Thumbnail:
       return source.thumbnail().file_type;
     case PhotoSizeSource::Type::DialogPhoto:
@@ -70,10 +70,10 @@ FileType get_photo_size_source_file_type(const PhotoSizeSource &source) {
 }
 
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
-  if (lhs.type != rhs.type) {
+  if (lhs.get_type() != rhs.get_type()) {
     return false;
   }
-  switch (lhs.type) {
+  switch (lhs.get_type()) {
     case PhotoSizeSource::Type::Thumbnail:
       return lhs.thumbnail().file_type == rhs.thumbnail().file_type &&
              lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
@@ -398,7 +398,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   } else {
     res.type = static_cast<uint8>(type[0]);
   }
-  if (source.type == PhotoSizeSource::Type::Thumbnail) {
+  if (source.get_type() == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;
   }
 

@@ -395,7 +395,7 @@ class FullRemoteFileLocation {
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
       case LocationType::Photo: {
-        switch (photo().source_.type) {
+        switch (photo().source_.get_type()) {
           case PhotoSizeSource::Type::Empty:
             return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_,
                                                                    photo().secret_, BufferSlice(file_reference_));

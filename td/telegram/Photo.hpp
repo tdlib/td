@@ -74,6 +74,7 @@ void PhotoSizeSource::DialogPhoto::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoSizeSource::store(StorerT &storer) const {
   using td::store;
+  auto type = get_type();
   store(type, storer);
   switch (type) {
     case Type::Thumbnail:
@@ -93,6 +94,7 @@ void PhotoSizeSource::store(StorerT &storer) const {
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
   using td::parse;
+  Type type;
   parse(type, parser);
   switch (type) {
     case Type::Thumbnail: {

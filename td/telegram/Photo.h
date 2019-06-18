@@ -49,7 +49,6 @@ struct PhotoSize {
 
 struct PhotoSizeSource {
   enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
-  Type type;
 
   // for photos, document thumbnails, encrypted thumbnails
   struct Thumbnail {
@@ -104,18 +103,19 @@ struct PhotoSizeSource {
     template <class ParserT>
     void parse(ParserT &parser);
   };
-  Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
 
-  PhotoSizeSource() : type(Type::Empty) {
-  }
-  PhotoSizeSource(FileType file_type, int32 thumbnail_type)
-      : type(Type::Thumbnail), variant(Thumbnail(file_type, thumbnail_type)) {
+  PhotoSizeSource() = default;
+  PhotoSizeSource(FileType file_type, int32 thumbnail_type) : variant(Thumbnail(file_type, thumbnail_type)) {
   }
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-      : type(Type::DialogPhoto), variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
+      : variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
-      : type(Type::StickerSetThumbnail), variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
+      : variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
+  }
+
+  Type get_type() const {
+    return static_cast<Type>(variant.get_offset() + 1);
   }
 
   Thumbnail &thumbnail() {
@@ -135,6 +135,9 @@ struct PhotoSizeSource {
   void store(StorerT &storer) const;
   template <class ParserT>
   void parse(ParserT &parser);
+
+ private:
+  Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
 };
 
 struct Photo {
