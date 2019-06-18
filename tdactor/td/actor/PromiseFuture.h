@@ -250,7 +250,7 @@ class CancellablePromise : public PromiseT {
     return true;
   }
   virtual bool is_cancelled() const {
-    return bool(cancellation_token_);
+    return static_cast<bool>(cancellation_token_);
   }
 
  private:

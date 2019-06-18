@@ -212,7 +212,7 @@ class ConstFileNodePtr {
   }
 
   explicit operator bool() const {
-    return bool(file_node_ptr_);
+    return static_cast<bool>(file_node_ptr_);
   }
   const FullRemoteFileLocation *get_remote() const {
     return file_node_ptr_.get_remote();
