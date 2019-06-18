@@ -480,7 +480,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
                PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                        proxy_id](Result<IPAddress> result) mutable {
                  if (result.is_error()) {
-                   return promise.set_error(Status::Error(400, result.error().message()));
+                   return promise.set_error(Status::Error(400, result.error().public_message()));
                  }
                  send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, proxy_id, result.move_as_ok(),
                               std::move(promise));
@@ -497,7 +497,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, main_dc_id, false, extra);
   if (r_socket_fd.is_error()) {
-    return promise.set_error(Status::Error(400, r_socket_fd.error().message()));
+    return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
@@ -505,7 +505,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
                               transport_type = std::move(extra.transport_type)](Result<SocketFd> r_socket_fd) mutable {
         if (r_socket_fd.is_error()) {
-          return promise.set_error(Status::Error(400, r_socket_fd.error().message()));
+          return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
         }
         send_closure(actor_id, &ConnectionCreator::ping_proxy_socket_fd, r_socket_fd.move_as_ok(),
                      std::move(transport_type), std::move(promise));
@@ -552,7 +552,7 @@ void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::Transp
                                PromiseCreator::lambda([promise = std::move(promise)](
                                                           Result<unique_ptr<mtproto::RawConnection>> result) mutable {
                                  if (result.is_error()) {
-                                   return promise.set_error(Status::Error(400, result.error().message()));
+                                   return promise.set_error(Status::Error(400, result.error().public_message()));
                                  }
                                  auto ping_time = result.ok()->rtt_;
                                  promise.set_value(std::move(ping_time));
@@ -1487,7 +1487,7 @@ void ConnectionCreator::on_ping_main_dc_result(uint64 token, Result<double> resu
 
   if (--request.left_queries == 0) {
     if (request.result.is_error()) {
-      request.promise.set_error(Status::Error(400, request.result.error().message()));
+      request.promise.set_error(Status::Error(400, request.result.error().public_message()));
     } else {
       request.promise.set_value(request.result.move_as_ok());
     }
