@@ -22,6 +22,7 @@ Choose your preferred programming language to see examples of usage and a detail
 - [PHP](#php)
 - [Lua](#lua)
 - [Ruby](#ruby)
+- [Clojure](#clojure)
 - [Emacs Lisp](#emacslisp)
 - [D](#d)
 - [Elixir](#elixir)
@@ -170,6 +171,13 @@ TDLib can be used from the Ruby programming language through the [JSON](https://
 
 See [tdlib-ruby](https://github.com/centosadmin/tdlib-ruby) for examples of Ruby bindings and a client for TDLib.
 See [example/ruby](https://github.com/tdlib/td/tree/master/example/ruby) for an example of logging in to Telegram using TDLib and `tdlib-ruby` gem.
+
+<a name="clojure"></a>
+## Using TDLib in Clojure projects
+
+TDLib can be used from the Clojure programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
+
+See [clojure-tdlib-json-wrapper](https://github.com/MityaSaray/clojure-tdlib-json-wrapper) for an example of TDLib Clojure bindings.
 
 <a name="emacslisp"></a>
 ## Using TDLib in Emacs Lisp projects
