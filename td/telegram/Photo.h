@@ -47,25 +47,6 @@ struct PhotoSize {
   FileId file_id;
 };
 
-struct OfflineInputStickerSet {
-  int64 sticker_set_id = 0;
-  int64 sticker_set_access_hash = 0;
-
-  OfflineInputStickerSet() = default;
-  OfflineInputStickerSet(int64 sticker_set_id, int64 sticker_set_access_hash)
-      : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
-  }
-
-  tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const {
-    return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-  template <class ParserT>
-  void parse(ParserT &parser);
-};
-
 struct OfflineInputPeer {
   DialogId dialog_id;
   int64 dialog_access_hash = 0;
@@ -106,10 +87,22 @@ struct PhotoSizeSource {
   };
   // for sticker set thumbnails
   struct StickerSetThumbnail {
+    int64 sticker_set_id = 0;
+    int64 sticker_set_access_hash = 0;
+
     StickerSetThumbnail() = default;
-    explicit StickerSetThumbnail(OfflineInputStickerSet input_sticker_set) : input_sticker_set(input_sticker_set) {
+    StickerSetThumbnail(int64 sticker_set_id, int64 sticker_set_access_hash)
+        : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
     }
-    OfflineInputStickerSet input_sticker_set;
+
+    tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const {
+      return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
   Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
 
@@ -126,7 +119,7 @@ struct PhotoSizeSource {
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
       : type(Type::StickerSetThumbnail)
       , file_type(FileType::Thumbnail)
-      , variant(StickerSetThumbnail(OfflineInputStickerSet(sticker_set_id, sticker_set_access_hash))) {
+      , variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
   }
 
   Thumbnail &thumbnail() {

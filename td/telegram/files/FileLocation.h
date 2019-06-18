@@ -422,8 +422,8 @@ class FullRemoteFileLocation {
           }
           case PhotoSizeSource::Type::StickerSetThumbnail: {
             auto &sticker_set_thumbnail = photo().source_.sticker_set_thumbnail();
-            return make_tl_object<telegram_api::inputStickerSetThumb>(
-                sticker_set_thumbnail.input_sticker_set.get_input_sticker_set(), photo().volume_id_, photo().local_id_);
+            return make_tl_object<telegram_api::inputStickerSetThumb>(sticker_set_thumbnail.get_input_sticker_set(),
+                                                                      photo().volume_id_, photo().local_id_);
           }
         }
       }

@@ -64,10 +64,8 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
              lhs.dialog_photo().input_peer.dialog_access_hash == rhs.dialog_photo().input_peer.dialog_access_hash &&
              lhs.dialog_photo().is_big == rhs.dialog_photo().is_big;
     case PhotoSizeSource::Type::StickerSetThumbnail:
-      return lhs.sticker_set_thumbnail().input_sticker_set.sticker_set_id ==
-                 rhs.sticker_set_thumbnail().input_sticker_set.sticker_set_id &&
-             lhs.sticker_set_thumbnail().input_sticker_set.sticker_set_access_hash ==
-                 rhs.sticker_set_thumbnail().input_sticker_set.sticker_set_access_hash;
+      return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
+             lhs.sticker_set_thumbnail().sticker_set_access_hash == rhs.sticker_set_thumbnail().sticker_set_access_hash;
     case PhotoSizeSource::Type::Thumbnail:
       return lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
     case PhotoSizeSource::Type::Empty:

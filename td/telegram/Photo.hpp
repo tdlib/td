@@ -18,14 +18,14 @@
 namespace td {
 
 template <class StorerT>
-void OfflineInputStickerSet::store(StorerT &storer) const {
+void PhotoSizeSource::StickerSetThumbnail::store(StorerT &storer) const {
   using td::store;
   store(sticker_set_id, storer);
   store(sticker_set_access_hash, storer);
 }
 
 template <class ParserT>
-void OfflineInputStickerSet::parse(ParserT &parser) {
+void PhotoSizeSource::StickerSetThumbnail::parse(ParserT &parser) {
   using td::parse;
   parse(sticker_set_id, parser);
   parse(sticker_set_access_hash, parser);
@@ -65,11 +65,9 @@ void PhotoSizeSource::store(StorerT &storer) const {
       store(dialog_photo.is_big, storer);
       break;
     }
-    case Type::StickerSetThumbnail: {
-      auto &sticker_set_thumbnail = this->sticker_set_thumbnail();
-      store(sticker_set_thumbnail.input_sticker_set, storer);
+    case Type::StickerSetThumbnail:
+      store(sticker_set_thumbnail(), storer);
       break;
-    }
     case Type::Thumbnail: {
       auto &thumbnail = this->thumbnail();
       store(thumbnail.thumbnail_type, storer);
@@ -95,7 +93,7 @@ void PhotoSizeSource::parse(ParserT &parser) {
     }
     case Type::StickerSetThumbnail: {
       StickerSetThumbnail sticker_set_thumbnail;
-      parse(sticker_set_thumbnail.input_sticker_set, parser);
+      parse(sticker_set_thumbnail, parser);
       variant = sticker_set_thumbnail;
       break;
     }
