@@ -25135,6 +25135,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
   if (!have_access) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because have no read access to it";
+    active_get_channel_differencies_.erase(dialog_id);
     after_get_channel_difference(dialog_id, false);
     return;
   }
