@@ -32,17 +32,20 @@ void PhotoSizeSource::StickerSetThumbnail::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void OfflineInputPeer::store(StorerT &storer) const {
+void PhotoSizeSource::DialogPhoto::store(StorerT &storer) const {
   using td::store;
   store(dialog_id, storer);
   store(dialog_access_hash, storer);
+  store(is_big, storer);
 }
 
 template <class ParserT>
-void OfflineInputPeer::parse(ParserT &parser) {
+void PhotoSizeSource::DialogPhoto::parse(ParserT &parser) {
   using td::parse;
   parse(dialog_id, parser);
   parse(dialog_access_hash, parser);
+  parse(is_big, parser);
+
   switch (dialog_id.get_type()) {
     case DialogType::SecretChat:
     case DialogType::None:
@@ -59,12 +62,9 @@ void PhotoSizeSource::store(StorerT &storer) const {
   store(file_type, storer);
   store(type, storer);
   switch (type) {
-    case Type::DialogPhoto: {
-      auto &dialog_photo = this->dialog_photo();
-      store(dialog_photo.input_peer, storer);
-      store(dialog_photo.is_big, storer);
+    case Type::DialogPhoto:
+      store(dialog_photo(), storer);
       break;
-    }
     case Type::StickerSetThumbnail:
       store(sticker_set_thumbnail(), storer);
       break;
@@ -86,8 +86,7 @@ void PhotoSizeSource::parse(ParserT &parser) {
   switch (type) {
     case Type::DialogPhoto: {
       DialogPhoto dialog_photo;
-      parse(dialog_photo.input_peer, parser);
-      parse(dialog_photo.is_big, parser);
+      parse(dialog_photo, parser);
       variant = dialog_photo;
       break;
     }

@@ -47,23 +47,6 @@ struct PhotoSize {
   FileId file_id;
 };
 
-struct OfflineInputPeer {
-  DialogId dialog_id;
-  int64 dialog_access_hash = 0;
-
-  OfflineInputPeer() = default;
-  OfflineInputPeer(DialogId dialog_id, int64 dialog_access_hash)
-      : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash) {
-  }
-
-  tl_object_ptr<telegram_api::InputPeer> get_input_peer() const;
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-  template <class ParserT>
-  void parse(ParserT &parser);
-};
-
 struct PhotoSizeSource {
   enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
   Type type;
@@ -76,15 +59,26 @@ struct PhotoSizeSource {
     }
     int32 thumbnail_type = 0;
   };
+
   // for dialog photos
   struct DialogPhoto {
     DialogPhoto() = default;
-    DialogPhoto(OfflineInputPeer input_peer, bool is_big) : input_peer(input_peer), is_big(is_big) {
+    DialogPhoto(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
+        : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash), is_big(is_big) {
     }
 
-    OfflineInputPeer input_peer;
+    tl_object_ptr<telegram_api::InputPeer> get_input_peer() const;
+
+    DialogId dialog_id;
+    int64 dialog_access_hash = 0;
     bool is_big = false;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
+
   // for sticker set thumbnails
   struct StickerSetThumbnail {
     int64 sticker_set_id = 0;
@@ -114,7 +108,7 @@ struct PhotoSizeSource {
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
       : type(Type::DialogPhoto)
       , file_type(FileType::ProfilePhoto)
-      , variant(DialogPhoto(OfflineInputPeer(dialog_id, dialog_access_hash), is_big)) {
+      , variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
       : type(Type::StickerSetThumbnail)

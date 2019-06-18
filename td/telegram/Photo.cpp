@@ -30,7 +30,7 @@
 
 namespace td {
 
-tl_object_ptr<telegram_api::InputPeer> OfflineInputPeer::get_input_peer() const {
+tl_object_ptr<telegram_api::InputPeer> PhotoSizeSource::DialogPhoto::get_input_peer() const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
@@ -60,8 +60,8 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
   }
   switch (lhs.type) {
     case PhotoSizeSource::Type::DialogPhoto:
-      return lhs.dialog_photo().input_peer.dialog_id == rhs.dialog_photo().input_peer.dialog_id &&
-             lhs.dialog_photo().input_peer.dialog_access_hash == rhs.dialog_photo().input_peer.dialog_access_hash &&
+      return lhs.dialog_photo().dialog_id == rhs.dialog_photo().dialog_id &&
+             lhs.dialog_photo().dialog_access_hash == rhs.dialog_photo().dialog_access_hash &&
              lhs.dialog_photo().is_big == rhs.dialog_photo().is_big;
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
@@ -69,6 +69,7 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
     case PhotoSizeSource::Type::Thumbnail:
       return lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
     case PhotoSizeSource::Type::Empty:
+    default:
       return true;
   }
 }

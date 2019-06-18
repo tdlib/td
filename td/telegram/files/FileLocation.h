@@ -418,7 +418,7 @@ class FullRemoteFileLocation {
             auto &dialog_photo = photo().source_.dialog_photo();
             return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
                 dialog_photo.is_big * telegram_api::inputPeerPhotoFileLocation::Flags::BIG_MASK, dialog_photo.is_big,
-                dialog_photo.input_peer.get_input_peer(), photo().volume_id_, photo().local_id_);
+                dialog_photo.get_input_peer(), photo().volume_id_, photo().local_id_);
           }
           case PhotoSizeSource::Type::StickerSetThumbnail: {
             auto &sticker_set_thumbnail = photo().source_.sticker_set_thumbnail();
