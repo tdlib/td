@@ -460,6 +460,9 @@ function onOptionsChanged() {
   var pre_text = [];
   if (os_windows) {
     let win10_sdk = (target === 'C++/CX' ? ' and Windows 10 SDK' : '');
+    if (target !== 'C++/CLI' && target !== 'C++/CX') {
+      pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux instead for them.');
+    }
     pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/ru/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
     pre_text.push('Download and install <a href="https://cmake.org/download/">CMake</a>; choose "Add CMake to the system PATH" option while installing.');
     pre_text.push('Download and install <a href="https://git-scm.com/download/win">Git</a>.');
