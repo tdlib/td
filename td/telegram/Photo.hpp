@@ -13,9 +13,24 @@
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
-#include <limits>
-
 namespace td {
+
+template <class StorerT>
+void PhotoSizeSource::Thumbnail::store(StorerT &storer) const {
+  using td::store;
+  store(file_type, storer);
+  store(thumbnail_type, storer);
+}
+
+template <class ParserT>
+void PhotoSizeSource::Thumbnail::parse(ParserT &parser) {
+  using td::parse;
+  parse(file_type, parser);
+  parse(thumbnail_type, parser);
+  if (thumbnail_type < 0 || thumbnail_type > 255) {
+    parser.set_error("Wrong thumbnail type");
+  }
+}
 
 template <class StorerT>
 void PhotoSizeSource::StickerSetThumbnail::store(StorerT &storer) const {
@@ -59,20 +74,17 @@ void PhotoSizeSource::DialogPhoto::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoSizeSource::store(StorerT &storer) const {
   using td::store;
-  store(file_type, storer);
   store(type, storer);
   switch (type) {
+    case Type::Thumbnail:
+      store(thumbnail(), storer);
+      break;
     case Type::DialogPhoto:
       store(dialog_photo(), storer);
       break;
     case Type::StickerSetThumbnail:
       store(sticker_set_thumbnail(), storer);
       break;
-    case Type::Thumbnail: {
-      auto &thumbnail = this->thumbnail();
-      store(thumbnail.thumbnail_type, storer);
-      break;
-    }
     case Type::Empty:
       break;
   }
@@ -81,9 +93,14 @@ void PhotoSizeSource::store(StorerT &storer) const {
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
   using td::parse;
-  parse(file_type, parser);
   parse(type, parser);
   switch (type) {
+    case Type::Thumbnail: {
+      Thumbnail thumbnail;
+      parse(thumbnail, parser);
+      variant = thumbnail;
+      break;
+    }
     case Type::DialogPhoto: {
       DialogPhoto dialog_photo;
       parse(dialog_photo, parser);
@@ -94,15 +111,6 @@ void PhotoSizeSource::parse(ParserT &parser) {
       StickerSetThumbnail sticker_set_thumbnail;
       parse(sticker_set_thumbnail, parser);
       variant = sticker_set_thumbnail;
-      break;
-    }
-    case Type::Thumbnail: {
-      Thumbnail thumbnail;
-      parse(thumbnail.thumbnail_type, parser);
-      if (thumbnail.thumbnail_type < 0 || thumbnail.thumbnail_type > std::numeric_limits<uint8>::max()) {
-        parser.set_error("Wrong thumbnail type");
-      }
-      variant = thumbnail;
       break;
     }
     case Type::Empty:

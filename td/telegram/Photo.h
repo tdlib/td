@@ -50,14 +50,20 @@ struct PhotoSize {
 struct PhotoSizeSource {
   enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
   Type type;
-  FileType file_type;
 
   // for photos, document thumbnails, encrypted thumbnails
   struct Thumbnail {
     Thumbnail() = default;
-    explicit Thumbnail(int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
+    Thumbnail(FileType file_type, int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
     }
+
+    FileType file_type;
     int32 thumbnail_type = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   // for dialog photos
@@ -100,20 +106,16 @@ struct PhotoSizeSource {
   };
   Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
 
-  PhotoSizeSource() : type(Type::Empty), file_type(FileType::None) {
+  PhotoSizeSource() : type(Type::Empty) {
   }
   PhotoSizeSource(FileType file_type, int32 thumbnail_type)
-      : type(Type::Thumbnail), file_type(file_type), variant(Thumbnail(thumbnail_type)) {
+      : type(Type::Thumbnail), variant(Thumbnail(file_type, thumbnail_type)) {
   }
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-      : type(Type::DialogPhoto)
-      , file_type(FileType::ProfilePhoto)
-      , variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
+      : type(Type::DialogPhoto), variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
-      : type(Type::StickerSetThumbnail)
-      , file_type(FileType::Thumbnail)
-      , variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
+      : type(Type::StickerSetThumbnail), variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
   }
 
   Thumbnail &thumbnail() {
@@ -135,9 +137,6 @@ struct PhotoSizeSource {
   void parse(ParserT &parser);
 };
 
-bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
-bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
-
 struct Photo {
   int64 id = 0;
   int32 date = 0;
@@ -147,6 +146,11 @@ struct Photo {
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
 };
+
+FileType get_photo_size_source_file_type(const PhotoSizeSource &source);
+
+bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
+bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
 
 Dimensions get_dimensions(int32 width, int32 height);
 

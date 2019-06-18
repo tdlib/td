@@ -401,7 +401,7 @@ class FullRemoteFileLocation {
                                                                    photo().secret_, BufferSlice(file_reference_));
           case PhotoSizeSource::Type::Thumbnail: {
             auto &thumbnail = photo().source_.thumbnail();
-            switch (file_type_) {
+            switch (thumbnail.file_type) {
               case FileType::Photo:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
                     photo().id_, photo().access_hash_, BufferSlice(file_reference_),
@@ -475,7 +475,7 @@ class FullRemoteFileLocation {
   // photo
   FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, int32 local_id, int64 volume_id,
                          DcId dc_id, std::string file_reference)
-      : file_type_(source.file_type)
+      : file_type_(get_photo_size_source_file_type(source))
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, 0, local_id, source}) {

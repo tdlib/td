@@ -54,11 +54,29 @@ tl_object_ptr<telegram_api::InputPeer> PhotoSizeSource::DialogPhoto::get_input_p
   }
 }
 
+FileType get_photo_size_source_file_type(const PhotoSizeSource &source) {
+  switch (source.type) {
+    case PhotoSizeSource::Type::Thumbnail:
+      return source.thumbnail().file_type;
+    case PhotoSizeSource::Type::DialogPhoto:
+      return FileType::ProfilePhoto;
+    case PhotoSizeSource::Type::StickerSetThumbnail:
+      return FileType::Thumbnail;
+    case PhotoSizeSource::Type::Empty:
+    default:
+      UNREACHABLE();
+      return FileType::Thumbnail;
+  }
+}
+
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
-  if (lhs.type != rhs.type || lhs.file_type != rhs.file_type) {
+  if (lhs.type != rhs.type) {
     return false;
   }
   switch (lhs.type) {
+    case PhotoSizeSource::Type::Thumbnail:
+      return lhs.thumbnail().file_type == rhs.thumbnail().file_type &&
+             lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
     case PhotoSizeSource::Type::DialogPhoto:
       return lhs.dialog_photo().dialog_id == rhs.dialog_photo().dialog_id &&
              lhs.dialog_photo().dialog_access_hash == rhs.dialog_photo().dialog_access_hash &&
@@ -66,8 +84,6 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
              lhs.sticker_set_thumbnail().sticker_set_access_hash == rhs.sticker_set_thumbnail().sticker_set_access_hash;
-    case PhotoSizeSource::Type::Thumbnail:
-      return lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
     case PhotoSizeSource::Type::Empty:
     default:
       return true;
@@ -153,9 +169,9 @@ static FileId register_photo(FileManager *file_manager, const PhotoSizeSource &s
                              bool is_png = false) {
   int32 local_id = location->local_id_;
   int64 volume_id = location->volume_id_;
-  LOG(DEBUG) << "Receive " << (is_webp ? "webp" : (is_png ? "png" : "jpeg")) << " photo of type " << source.file_type
-             << " in [" << dc_id << "," << volume_id << "," << local_id << "]. Id: (" << id << ", " << access_hash
-             << ")";
+  LOG(DEBUG) << "Receive " << (is_webp ? "webp" : (is_png ? "png" : "jpeg")) << " photo of type "
+             << get_photo_size_source_file_type(source) << " in [" << dc_id << "," << volume_id << "," << local_id
+             << "]. Id: (" << id << ", " << access_hash << ")";
   auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id)
                                   << (is_webp ? ".webp" : (is_png ? ".png" : ".jpg"));
   auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
