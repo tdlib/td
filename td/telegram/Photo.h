@@ -53,7 +53,7 @@ struct PhotoSizeSource {
   // for photos, document thumbnails, encrypted thumbnails
   struct Thumbnail {
     Thumbnail() = default;
-    Thumbnail(FileType file_type, int32 thumbnail_type) : thumbnail_type(thumbnail_type) {
+    Thumbnail(FileType file_type, int32 thumbnail_type) : file_type(file_type), thumbnail_type(thumbnail_type) {
     }
 
     FileType file_type;

@@ -14,6 +14,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
+#include "td/utils/Variant.h"
 
 #include <type_traits>
 #include <unordered_set>
@@ -184,6 +185,29 @@ std::enable_if_t<!std::is_enum<T>::value> store(const T &val, StorerT &storer) {
 template <class T, class ParserT>
 std::enable_if_t<!std::is_enum<T>::value> parse(T &val, ParserT &parser) {
   val.parse(parser);
+}
+
+template <class... Types, class StorerT>
+void store(const Variant<Types...> &variant, StorerT &storer) {
+  store(variant.get_offset(), storer);
+  variant.visit([&storer](auto &&value) {
+    using td::store;
+    store(value, storer);
+  });
+}
+template <class... Types, class ParserT>
+void parse(Variant<Types...> &variant, ParserT &parser) {
+  auto type_offset = parser.fetch_int();
+  if (type_offset < 0 || type_offset >= static_cast<int32>(sizeof...(Types))) {
+    return parser.set_error("Invalid type");
+  }
+  variant.for_each([type_offset, &parser, &variant](int offset, auto *ptr) {
+    using T = std::decay_t<decltype(*ptr)>;
+    if (offset == type_offset) {
+      variant = T();
+      parse(variant.get<T>(), parser);
+    }
+  });
 }
 
 template <class T>

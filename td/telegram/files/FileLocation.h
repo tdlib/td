@@ -744,6 +744,8 @@ struct PartialLocalFileLocationPtr {
 
   template <class StorerT>
   void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const PartialLocalFileLocationPtr &lhs, const PartialLocalFileLocationPtr &rhs) {

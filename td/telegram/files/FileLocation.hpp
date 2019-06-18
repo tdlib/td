@@ -42,24 +42,48 @@ void PartialRemoteFileLocation::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoRemoteFileLocation::store(StorerT &storer) const {
   using td::store;
+  bool has_secret = secret_ != 0;
+  bool has_source = source_.get_type() != PhotoSizeSource::Type::Empty;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_secret);
+  STORE_FLAG(has_source);
+  END_STORE_FLAGS();
   store(id_, storer);
   store(access_hash_, storer);
   store(volume_id_, storer);
-  store(secret_, storer);
+  if (has_secret) {
+    store(secret_, storer);
+  }
   store(local_id_, storer);
-  store(source_, storer);
+  if (has_source) {
+    store(source_, storer);
+  }
 }
 
 template <class ParserT>
 void PhotoRemoteFileLocation::parse(ParserT &parser) {
   using td::parse;
+  bool has_secret = true;
+  bool has_source = false;
+  if (parser.version() >= static_cast<int32>(Version::AddPhotoSizeSource)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_secret);
+    PARSE_FLAG(has_source);
+    END_PARSE_FLAGS();
+  }
   parse(id_, parser);
   parse(access_hash_, parser);
   parse(volume_id_, parser);
-  parse(secret_, parser);
+  if (has_secret) {
+    parse(secret_, parser);
+  } else {
+    secret_ = 0;
+  }
   parse(local_id_, parser);
-  if (parser.version() >= static_cast<int32>(Version::AddPhotoSizeSource)) {
+  if (has_source) {
     parse(source_, parser);
+  } else {
+    source_ = PhotoSizeSource();
   }
 }
 
@@ -177,31 +201,12 @@ void FullRemoteFileLocation::AsKey::store(StorerT &storer) const {
 
 template <class StorerT>
 void RemoteFileLocation::store(StorerT &storer) const {
-  storer.store_int(variant_.get_offset());
-  bool ok{false};
-  variant_.visit([&](auto &&value) {
-    using td::store;
-    store(value, storer);
-    ok = true;
-  });
-  CHECK(ok);
+  td::store(variant_, storer);
 }
 
 template <class ParserT>
 void RemoteFileLocation::parse(ParserT &parser) {
-  auto type = static_cast<Type>(parser.fetch_int());
-  switch (type) {
-    case Type::Empty:
-      variant_ = EmptyRemoteFileLocation();
-      return;
-    case Type::Partial:
-      variant_ = PartialRemoteFileLocation();
-      return partial().parse(parser);
-    case Type::Full:
-      variant_ = FullRemoteFileLocation();
-      return full().parse(parser);
-  }
-  parser.set_error("Invalid type in RemoteFileLocation");
+  td::parse(variant_, parser);
 }
 
 template <class StorerT>
@@ -261,32 +266,19 @@ void PartialLocalFileLocationPtr::store(StorerT &storer) const {
   td::store(*location_, storer);
 }
 
+template <class ParserT>
+void PartialLocalFileLocationPtr::parse(ParserT &parser) {
+  td::parse(*location_, parser);
+}
+
 template <class StorerT>
 void LocalFileLocation::store(StorerT &storer) const {
-  using td::store;
-  store(variant_.get_offset(), storer);
-  variant_.visit([&](auto &&value) {
-    using td::store;
-    store(value, storer);
-  });
+  td::store(variant_, storer);
 }
 
 template <class ParserT>
 void LocalFileLocation::parse(ParserT &parser) {
-  using td::parse;
-  auto type = static_cast<Type>(parser.fetch_int());
-  switch (type) {
-    case Type::Empty:
-      variant_ = EmptyLocalFileLocation();
-      return;
-    case Type::Partial:
-      variant_ = PartialLocalFileLocationPtr();
-      return parse(partial(), parser);
-    case Type::Full:
-      variant_ = FullLocalFileLocation();
-      return parse(full(), parser);
-  }
-  return parser.set_error("Invalid type in LocalFileLocation");
+  td::parse(variant_, parser);
 }
 
 template <class StorerT>

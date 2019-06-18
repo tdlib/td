@@ -73,51 +73,12 @@ void PhotoSizeSource::DialogPhoto::parse(ParserT &parser) {
 
 template <class StorerT>
 void PhotoSizeSource::store(StorerT &storer) const {
-  using td::store;
-  auto type = get_type();
-  store(type, storer);
-  switch (type) {
-    case Type::Thumbnail:
-      store(thumbnail(), storer);
-      break;
-    case Type::DialogPhoto:
-      store(dialog_photo(), storer);
-      break;
-    case Type::StickerSetThumbnail:
-      store(sticker_set_thumbnail(), storer);
-      break;
-    case Type::Empty:
-      break;
-  }
+  td::store(variant, storer);
 }
 
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
-  using td::parse;
-  Type type;
-  parse(type, parser);
-  switch (type) {
-    case Type::Thumbnail: {
-      Thumbnail thumbnail;
-      parse(thumbnail, parser);
-      variant = thumbnail;
-      break;
-    }
-    case Type::DialogPhoto: {
-      DialogPhoto dialog_photo;
-      parse(dialog_photo, parser);
-      variant = dialog_photo;
-      break;
-    }
-    case Type::StickerSetThumbnail: {
-      StickerSetThumbnail sticker_set_thumbnail;
-      parse(sticker_set_thumbnail, parser);
-      variant = sticker_set_thumbnail;
-      break;
-    }
-    case Type::Empty:
-      break;
-  }
+  td::parse(variant, parser);
 }
 
 template <class StorerT>
