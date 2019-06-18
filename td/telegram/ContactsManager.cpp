@@ -2427,6 +2427,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(have_access_hash);
   STORE_FLAG(is_support);
   STORE_FLAG(is_min_access_hash);
+  STORE_FLAG(is_scam);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -2485,6 +2486,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(have_access_hash);
   PARSE_FLAG(is_support);
   PARSE_FLAG(is_min_access_hash);
+  PARSE_FLAG(is_scam);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -2648,6 +2650,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(use_new_rights);
   STORE_FLAG(has_participant_count);
   STORE_FLAG(have_default_permissions);
+  STORE_FLAG(is_scam);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -2702,6 +2705,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(use_new_rights);
   PARSE_FLAG(has_participant_count);
   PARSE_FLAG(have_default_permissions);
+  PARSE_FLAG(is_scam);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -5157,6 +5161,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
   string restriction_reason = std::move(user->restriction_reason_);
+  bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
   string inline_query_placeholder = user->bot_inline_placeholder_;
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
@@ -5190,7 +5195,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
-      restriction_reason != u->restriction_reason || is_inline_bot != u->is_inline_bot ||
+      restriction_reason != u->restriction_reason || is_scam != u->is_scam || is_inline_bot != u->is_inline_bot ||
       inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
@@ -5201,6 +5206,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->can_join_groups = can_join_groups;
     u->can_read_all_group_messages = can_read_all_group_messages;
     u->restriction_reason = std::move(restriction_reason);
+    u->is_scam = is_scam;
     u->is_inline_bot = is_inline_bot;
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
@@ -5483,7 +5489,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
         std::move(profile_photo), nullptr, 0, string(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
@@ -10109,6 +10115,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
   string restriction_reason = std::move(channel.restriction_reason_);
+  bool is_scam = (channel.flags_ & CHANNEL_FLAG_IS_SCAM) != 0;
   int32 participant_count =
       (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0 ? channel.participants_count_ : 0;
 
@@ -10196,11 +10203,12 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason) {
+      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
     c->restriction_reason = std::move(restriction_reason);
+    c->is_scam = is_scam;
 
     c->need_send_update = true;
     invalidate_channel_full(channel_id, false);
@@ -10250,6 +10258,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = false;
   string restriction_reason;
+  bool is_scam = false;
 
   {
     bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
@@ -10268,11 +10277,12 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
 
   if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason) {
+      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
     c->restriction_reason = std::move(restriction_reason);
+    c->is_scam = is_scam;
 
     c->need_send_update = true;
     invalidate_channel_full(channel_id, false);
@@ -10357,7 +10367,7 @@ int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) co
                      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
                      get_profile_photo_object(td_->file_manager_.get(), nullptr),
                      get_link_state_object(LinkState::Unknown), get_link_state_object(LinkState::Unknown), false, false,
-                     "", false, td_api::make_object<td_api::userTypeUnknown>(), "")));
+                     "", false, false, td_api::make_object<td_api::userTypeUnknown>(), "")));
   }
   return user_id.get();
 }
@@ -10383,8 +10393,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), &u->photo), get_link_state_object(u->outbound),
-      get_link_state_object(u->inbound), u->is_verified, u->is_support, u->restriction_reason, u->is_received,
-      std::move(type), u->language_code);
+      get_link_state_object(u->inbound), u->is_verified, u->is_support, u->restriction_reason, u->is_scam,
+      u->is_received, std::move(type), u->language_code);
 }
 
 vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {
@@ -10466,7 +10476,7 @@ int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
                      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, true, false, "")));
+                     0, false, true, false, "", false)));
   }
   return channel_id.get();
 }
@@ -10483,7 +10493,7 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   return make_tl_object<td_api::supergroup>(channel_id.get(), channel->username, channel->date,
                                             get_channel_status(channel).get_chat_member_status_object(),
                                             channel->participant_count, channel->sign_messages, !channel->is_megagroup,
-                                            channel->is_verified, channel->restriction_reason);
+                                            channel->is_verified, channel->restriction_reason, channel->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

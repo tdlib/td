@@ -3245,8 +3245,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name, string(), string(),
-        string(), std::move(sender_photo), nullptr, 0, string(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name,
+        string(), string(), string(), std::move(sender_photo), nullptr, 0, string(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
   }
 
@@ -3564,7 +3564,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, sender_name, string(), string(), string(),
         nullptr, nullptr, 0, string(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");

@@ -503,6 +503,7 @@ class ContactsManager : public Actor {
     bool can_read_all_group_messages = true;
     bool is_inline_bot = false;
     bool need_location_bot = false;
+    bool is_scam = false;
 
     bool is_photo_inited = false;
     bool is_repaired = false;
@@ -630,6 +631,7 @@ class ContactsManager : public Actor {
 
     bool is_megagroup = false;
     bool is_verified = false;
+    bool is_scam = false;
 
     bool is_title_changed = true;
     bool is_username_changed = true;
@@ -752,6 +754,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FLAG_NEED_LOCATION_BOT = 1 << 21;
   static constexpr int32 USER_FLAG_HAS_LANGUAGE_CODE = 1 << 22;
   static constexpr int32 USER_FLAG_IS_SUPPORT = 1 << 23;
+  static constexpr int32 USER_FLAG_IS_SCAM = 1 << 24;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
@@ -785,6 +788,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_BANNED_RIGHTS = 1 << 15;
   static constexpr int32 CHANNEL_FLAG_HAS_UNBAN_DATE = 1 << 16;
   static constexpr int32 CHANNEL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 17;
+  static constexpr int32 CHANNEL_FLAG_IS_SCAM = 1 << 19;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
