@@ -115,7 +115,6 @@ struct PhotoSizeSource {
 
   PhotoSizeSource() : type(Type::Empty), file_type(FileType::None) {
   }
-
   PhotoSizeSource(FileType file_type, int32 thumbnail_type)
       : type(Type::Thumbnail), file_type(file_type), variant(Thumbnail(thumbnail_type)) {
   }
@@ -148,6 +147,9 @@ struct PhotoSizeSource {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
+bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
 
 struct Photo {
   int64 id = 0;

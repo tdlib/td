@@ -203,7 +203,8 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
   if (new_remote.full) {
     if (remote_.full && remote_.full.value() == new_remote.full.value()) {
       if (remote_.full.value().get_access_hash() != new_remote.full.value().get_access_hash() ||
-          remote_.full.value().get_file_reference() != new_remote.full.value().get_file_reference()) {
+          remote_.full.value().get_file_reference() != new_remote.full.value().get_file_reference() ||
+          remote_.full.value().get_source() != new_remote.full.value().get_source()) {
         on_pmc_changed();
       }
     } else {
@@ -1148,7 +1149,8 @@ static int merge_choose_remote_location(const FullRemoteFileLocation &x, FileLoc
       return merge_choose_file_source_location(x_source, y_source);
     }
   }
-  if (x.get_access_hash() != y.get_access_hash() && (x_source != y_source || x.is_web() || x.get_id() == y.get_id())) {
+  if ((x.get_access_hash() != y.get_access_hash() || x.get_source() != y.get_source()) &&
+      (x_source != y_source || x.is_web() || x.get_id() == y.get_id())) {
     return merge_choose_file_source_location(x_source, y_source);
   }
   return 2;

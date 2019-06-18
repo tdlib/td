@@ -318,6 +318,21 @@ class FullRemoteFileLocation {
         return 0;
     }
   }
+
+  PhotoSizeSource get_source() const {
+    switch (location_type()) {
+      case LocationType::Photo:
+        return photo().source_;
+      case LocationType::Common:
+      case LocationType::Web:
+        return PhotoSizeSource();
+      case LocationType::None:
+      default:
+        UNREACHABLE();
+        return PhotoSizeSource();
+    }
+  }
+
   void clear_file_reference() {
     file_reference_.clear();
   }
@@ -329,9 +344,11 @@ class FullRemoteFileLocation {
     }
     return false;
   }
+
   bool has_file_reference() const {
     return file_reference_ != FileReferenceView::invalid_file_reference();
   }
+
   Slice get_file_reference() const {
     return file_reference_;
   }
