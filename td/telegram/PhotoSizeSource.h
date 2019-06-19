@@ -27,11 +27,6 @@ struct PhotoSizeSource {
 
     FileType file_type;
     int32 thumbnail_type = 0;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
   };
 
   // for dialog photos
@@ -46,11 +41,6 @@ struct PhotoSizeSource {
     DialogId dialog_id;
     int64 dialog_access_hash = 0;
     bool is_big = false;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
   };
 
   // for sticker set thumbnails
@@ -66,11 +56,6 @@ struct PhotoSizeSource {
     tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const {
       return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
     }
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
   };
 
   PhotoSizeSource() = default;

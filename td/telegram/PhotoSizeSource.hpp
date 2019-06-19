@@ -13,52 +13,46 @@
 namespace td {
 
 template <class StorerT>
-void PhotoSizeSource::Thumbnail::store(StorerT &storer) const {
-  using td::store;
-  store(file_type, storer);
-  store(thumbnail_type, storer);
+void store(const PhotoSizeSource::Thumbnail &source, StorerT &storer) {
+  store(source.file_type, storer);
+  store(source.thumbnail_type, storer);
 }
 
 template <class ParserT>
-void PhotoSizeSource::Thumbnail::parse(ParserT &parser) {
-  using td::parse;
-  parse(file_type, parser);
-  parse(thumbnail_type, parser);
-  if (thumbnail_type < 0 || thumbnail_type > 255) {
+void parse(PhotoSizeSource::Thumbnail &source, ParserT &parser) {
+  parse(source.file_type, parser);
+  parse(source.thumbnail_type, parser);
+  if (source.thumbnail_type < 0 || source.thumbnail_type > 255) {
     parser.set_error("Wrong thumbnail type");
   }
 }
 
 template <class StorerT>
-void PhotoSizeSource::StickerSetThumbnail::store(StorerT &storer) const {
-  using td::store;
-  store(sticker_set_id, storer);
-  store(sticker_set_access_hash, storer);
+void store(const PhotoSizeSource::StickerSetThumbnail &source, StorerT &storer) {
+  store(source.sticker_set_id, storer);
+  store(source.sticker_set_access_hash, storer);
 }
 
 template <class ParserT>
-void PhotoSizeSource::StickerSetThumbnail::parse(ParserT &parser) {
-  using td::parse;
-  parse(sticker_set_id, parser);
-  parse(sticker_set_access_hash, parser);
+void parse(PhotoSizeSource::StickerSetThumbnail &source, ParserT &parser) {
+  parse(source.sticker_set_id, parser);
+  parse(source.sticker_set_access_hash, parser);
 }
 
 template <class StorerT>
-void PhotoSizeSource::DialogPhoto::store(StorerT &storer) const {
-  using td::store;
-  store(dialog_id, storer);
-  store(dialog_access_hash, storer);
-  store(is_big, storer);
+void store(const PhotoSizeSource::DialogPhoto &source, StorerT &storer) {
+  store(source.dialog_id, storer);
+  store(source.dialog_access_hash, storer);
+  store(source.is_big, storer);
 }
 
 template <class ParserT>
-void PhotoSizeSource::DialogPhoto::parse(ParserT &parser) {
-  using td::parse;
-  parse(dialog_id, parser);
-  parse(dialog_access_hash, parser);
-  parse(is_big, parser);
+void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
+  parse(source.dialog_id, parser);
+  parse(source.dialog_access_hash, parser);
+  parse(source.is_big, parser);
 
-  switch (dialog_id.get_type()) {
+  switch (source.dialog_id.get_type()) {
     case DialogType::SecretChat:
     case DialogType::None:
       parser.set_error("Invalid chat id");
