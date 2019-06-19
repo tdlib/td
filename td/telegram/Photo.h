@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
 
@@ -20,7 +21,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/Variant.h"
 
 namespace td {
 
@@ -47,99 +47,6 @@ struct PhotoSize {
   FileId file_id;
 };
 
-struct PhotoSizeSource {
-  enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
-
-  // for photos, document thumbnails, encrypted thumbnails
-  struct Thumbnail {
-    Thumbnail() = default;
-    Thumbnail(FileType file_type, int32 thumbnail_type) : file_type(file_type), thumbnail_type(thumbnail_type) {
-    }
-
-    FileType file_type;
-    int32 thumbnail_type = 0;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  // for dialog photos
-  struct DialogPhoto {
-    DialogPhoto() = default;
-    DialogPhoto(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-        : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash), is_big(is_big) {
-    }
-
-    tl_object_ptr<telegram_api::InputPeer> get_input_peer() const;
-
-    DialogId dialog_id;
-    int64 dialog_access_hash = 0;
-    bool is_big = false;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  // for sticker set thumbnails
-  struct StickerSetThumbnail {
-    int64 sticker_set_id = 0;
-    int64 sticker_set_access_hash = 0;
-
-    StickerSetThumbnail() = default;
-    StickerSetThumbnail(int64 sticker_set_id, int64 sticker_set_access_hash)
-        : sticker_set_id(sticker_set_id), sticker_set_access_hash(sticker_set_access_hash) {
-    }
-
-    tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const {
-      return make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, sticker_set_access_hash);
-    }
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  PhotoSizeSource() = default;
-  PhotoSizeSource(FileType file_type, int32 thumbnail_type) : variant(Thumbnail(file_type, thumbnail_type)) {
-  }
-  PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-      : variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
-  }
-  PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
-      : variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
-  }
-
-  Type get_type() const {
-    return static_cast<Type>(variant.get_offset() + 1);
-  }
-
-  Thumbnail &thumbnail() {
-    return variant.get<Thumbnail>();
-  }
-  const Thumbnail &thumbnail() const {
-    return variant.get<Thumbnail>();
-  }
-  const DialogPhoto &dialog_photo() const {
-    return variant.get<DialogPhoto>();
-  }
-  const StickerSetThumbnail &sticker_set_thumbnail() const {
-    return variant.get<StickerSetThumbnail>();
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-  template <class ParserT>
-  void parse(ParserT &parser);
-
- private:
-  Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
-};
-
 struct Photo {
   int64 id = 0;
   int32 date = 0;
@@ -149,11 +56,6 @@ struct Photo {
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
 };
-
-FileType get_photo_size_source_file_type(const PhotoSizeSource &source);
-
-bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
-bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
 
 Dimensions get_dimensions(int32 width, int32 height);
 

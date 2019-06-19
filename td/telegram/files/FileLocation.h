@@ -11,7 +11,7 @@
 #include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/Photo.h"
+#include "td/telegram/PhotoSizeSource.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -475,7 +475,7 @@ class FullRemoteFileLocation {
   // photo
   FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, int32 local_id, int64 volume_id,
                          DcId dc_id, std::string file_reference)
-      : file_type_(get_photo_size_source_file_type(source))
+      : file_type_(source.get_file_type())
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, 0, local_id, source}) {

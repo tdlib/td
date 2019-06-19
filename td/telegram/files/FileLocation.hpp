@@ -10,7 +10,7 @@
 
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/Photo.hpp"
+#include "td/telegram/PhotoSizeSource.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
