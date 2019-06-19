@@ -1120,21 +1120,22 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   info.actor_ = create_actor<detail::GenAuthKeyActor>(
       PSLICE() << get_name() << "::GenAuthKey", get_name(), std::move(info.handshake_),
       td::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
-      PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_connection) {
-        if (r_connection.is_error()) {
-          if (r_connection.error().code() != 1) {
-            LOG(WARNING) << "Failed to open connection: " << r_connection.error();
-          }
-          return;
-        }
-        send_closure(self, &Session::connection_add, r_connection.move_as_ok());
-      }),
       PromiseCreator::lambda(
-          [self = actor_shared(this, handshake_id + 1), handshake_perf = PerfWarningTimer("handshake", 1000.1)](
-              Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
-            // later is just to avoid lost hangup
-            send_closure_later(std::move(self), &Session::on_handshake_ready, std::move(handshake));
+          [self = actor_id(this), guard = callback_](Result<unique_ptr<mtproto::RawConnection>> r_connection) {
+            if (r_connection.is_error()) {
+              if (r_connection.error().code() != 1) {
+                LOG(WARNING) << "Failed to open connection: " << r_connection.error();
+              }
+              return;
+            }
+            send_closure(self, &Session::connection_add, r_connection.move_as_ok());
           }),
+      PromiseCreator::lambda([self = actor_shared(this, handshake_id + 1),
+                              handshake_perf = PerfWarningTimer("handshake", 1000.1),
+                              guard = callback_](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
+        // later is just to avoid lost hangup
+        send_closure_later(std::move(self), &Session::on_handshake_ready, std::move(handshake));
+      }),
       callback_);
 }
 
