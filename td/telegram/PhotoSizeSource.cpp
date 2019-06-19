@@ -46,7 +46,7 @@ FileType PhotoSizeSource::get_file_type() const {
       return FileType::ProfilePhoto;
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return FileType::Thumbnail;
-    case PhotoSizeSource::Type::Empty:
+    case PhotoSizeSource::Type::Legacy:
     default:
       UNREACHABLE();
       return FileType::Thumbnail;
@@ -68,7 +68,8 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
              lhs.sticker_set_thumbnail().sticker_set_access_hash == rhs.sticker_set_thumbnail().sticker_set_access_hash;
-    case PhotoSizeSource::Type::Empty:
+    case PhotoSizeSource::Type::Legacy:
+      return lhs.legacy().secret == rhs.legacy().secret;
     default:
       return true;
   }

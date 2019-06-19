@@ -13,6 +13,16 @@
 namespace td {
 
 template <class StorerT>
+void store(const PhotoSizeSource::Legacy &source, StorerT &storer) {
+  store(source.secret, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::Legacy &source, ParserT &parser) {
+  parse(source.secret, parser);
+}
+
+template <class StorerT>
 void store(const PhotoSizeSource::Thumbnail &source, StorerT &storer) {
   store(source.file_type, storer);
   store(source.thumbnail_type, storer);

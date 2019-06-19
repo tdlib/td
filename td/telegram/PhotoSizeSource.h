@@ -17,7 +17,16 @@
 namespace td {
 
 struct PhotoSizeSource {
-  enum class Type : int32 { Empty, Thumbnail, DialogPhoto, StickerSetThumbnail };
+  enum class Type : int32 { Legacy, Thumbnail, DialogPhoto, StickerSetThumbnail };
+
+  // for legacy photos with secret
+  struct Legacy {
+    Legacy() = default;
+    explicit Legacy(int64 secret) : secret(secret) {
+    }
+
+    int64 secret = 0;
+  };
 
   // for photos, document thumbnails, encrypted thumbnails
   struct Thumbnail {
@@ -59,6 +68,8 @@ struct PhotoSizeSource {
   };
 
   PhotoSizeSource() = default;
+  explicit PhotoSizeSource(int64 secret) : variant(Legacy(secret)) {
+  }
   PhotoSizeSource(FileType file_type, int32 thumbnail_type) : variant(Thumbnail(file_type, thumbnail_type)) {
   }
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
@@ -69,13 +80,19 @@ struct PhotoSizeSource {
   }
 
   Type get_type() const {
-    return static_cast<Type>(variant.get_offset() + 1);
+    auto offset = variant.get_offset();
+    CHECK(offset >= 0);
+    return static_cast<Type>(offset);
   }
 
   FileType get_file_type() const;
 
   Thumbnail &thumbnail() {
     return variant.get<Thumbnail>();
+  }
+
+  const Legacy &legacy() const {
+    return variant.get<Legacy>();
   }
   const Thumbnail &thumbnail() const {
     return variant.get<Thumbnail>();
@@ -93,7 +110,7 @@ struct PhotoSizeSource {
   void parse(ParserT &parser);
 
  private:
-  Variant<Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
+  Variant<Legacy, Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
 };
 
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);

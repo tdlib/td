@@ -83,7 +83,6 @@ struct PhotoRemoteFileLocation {
   int64 id_;
   int64 access_hash_;
   int64 volume_id_;
-  int64 secret_;
   int32 local_id_;
   PhotoSizeSource source_;
 
@@ -325,11 +324,11 @@ class FullRemoteFileLocation {
         return photo().source_;
       case LocationType::Common:
       case LocationType::Web:
-        return PhotoSizeSource();
+        return PhotoSizeSource(0);
       case LocationType::None:
       default:
         UNREACHABLE();
-        return PhotoSizeSource();
+        return PhotoSizeSource(0);
     }
   }
 
@@ -396,9 +395,9 @@ class FullRemoteFileLocation {
     switch (location_type()) {
       case LocationType::Photo: {
         switch (photo().source_.get_type()) {
-          case PhotoSizeSource::Type::Empty:
-            return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_,
-                                                                   photo().secret_, BufferSlice(file_reference_));
+          case PhotoSizeSource::Type::Legacy:
+            return make_tl_object<telegram_api::inputFileLocation>(
+                photo().volume_id_, photo().local_id_, photo().source_.legacy().secret, BufferSlice(file_reference_));
           case PhotoSizeSource::Type::Thumbnail: {
             auto &thumbnail = photo().source_.thumbnail();
             switch (thumbnail.file_type) {
@@ -478,7 +477,7 @@ class FullRemoteFileLocation {
       : file_type_(source.get_file_type())
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
-      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, 0, local_id, source}) {
+      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, local_id, source}) {
     CHECK(is_photo());
     check_file_reference();
   }

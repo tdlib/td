@@ -42,49 +42,27 @@ void PartialRemoteFileLocation::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoRemoteFileLocation::store(StorerT &storer) const {
   using td::store;
-  bool has_secret = secret_ != 0;
-  bool has_source = source_.get_type() != PhotoSizeSource::Type::Empty;
-  BEGIN_STORE_FLAGS();
-  STORE_FLAG(has_secret);
-  STORE_FLAG(has_source);
-  END_STORE_FLAGS();
   store(id_, storer);
   store(access_hash_, storer);
   store(volume_id_, storer);
-  if (has_secret) {
-    store(secret_, storer);
-  }
+  store(source_, storer);
   store(local_id_, storer);
-  if (has_source) {
-    store(source_, storer);
-  }
 }
 
 template <class ParserT>
 void PhotoRemoteFileLocation::parse(ParserT &parser) {
   using td::parse;
-  bool has_secret = true;
-  bool has_source = false;
-  if (parser.version() >= static_cast<int32>(Version::AddPhotoSizeSource)) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(has_secret);
-    PARSE_FLAG(has_source);
-    END_PARSE_FLAGS();
-  }
   parse(id_, parser);
   parse(access_hash_, parser);
   parse(volume_id_, parser);
-  if (has_secret) {
-    parse(secret_, parser);
-  } else {
-    secret_ = 0;
-  }
-  parse(local_id_, parser);
-  if (has_source) {
+  if (parser.version() >= static_cast<int32>(Version::AddPhotoSizeSource)) {
     parse(source_, parser);
   } else {
-    source_ = PhotoSizeSource();
+    int64 secret;
+    parse(secret, parser);
+    source_ = PhotoSizeSource(secret);
   }
+  parse(local_id_, parser);
 }
 
 template <class StorerT>
