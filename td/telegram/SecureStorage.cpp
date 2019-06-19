@@ -352,7 +352,7 @@ Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, S
 Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::string dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
-  auto src_file_size = src_file.get_size();
+  TRY_RESULT(src_file_size, src_file.get_size());
 
   BufferSliceDataView random_prefix_view(gen_random_prefix(src_file_size));
   FileDataView data_view(src_file, src_file_size);
@@ -370,7 +370,7 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
 Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src, std::string dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
-  auto src_file_size = src_file.get_size();
+  TRY_RESULT(src_file_size, src_file.get_size());
 
   FileDataView src_file_view(src_file, src_file_size);
 

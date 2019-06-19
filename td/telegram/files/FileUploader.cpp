@@ -164,13 +164,13 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
 
   if (local_is_ready) {
     CHECK(!fd_.empty());
-    local_size = fd_.get_size();
+    TRY_RESULT(local_size, fd_.get_size());
     LOG(INFO) << "Set file local_size to " << local_size;
     if (local_size == 0) {
       return Status::Error("Can't upload empty file");
     }
   } else if (!fd_.empty()) {
-    auto real_local_size = fd_.get_size();
+    TRY_RESULT(real_local_size, fd_.get_size());
     if (real_local_size < local_size) {
       LOG(ERROR) << tag("real_local_size", real_local_size) << " < " << tag("local_size", local_size);
       PrefixInfo info;

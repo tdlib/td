@@ -359,7 +359,8 @@ Result<bool> walk_path_file(string &path, const WalkFunction &func) {
 
 Result<bool> walk_path(string &path, const WalkFunction &func) {
   TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
-  auto stat = fd.stat();
+  TRY_RESULT(stat, fd.stat());
+
   bool is_dir = stat.is_dir_;
   bool is_reg = stat.is_reg_;
   if (is_dir) {

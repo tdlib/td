@@ -37,7 +37,8 @@ void FileHashUploader::start_up() {
 
 Status FileHashUploader::init() {
   TRY_RESULT(fd, FileFd::open(local_.path_, FileFd::Read));
-  if (fd.get_size() != size_) {
+  TRY_RESULT(file_size, fd.get_size());
+  if (file_size != size_) {
     return Status::Error("size mismatch");
   }
   fd_ = BufferedFd<FileFd>(std::move(fd));

@@ -130,7 +130,8 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
     FileFd fd;
     std::string path;
     std::tie(fd, path) = r_pair.move_as_ok();
-    if (fd.stat().size_ != expected_size) {
+    auto r_size = fd.get_size();
+    if (r_size.is_error() || r_size.ok() != expected_size) {
       return true;
     }
     fd.close();

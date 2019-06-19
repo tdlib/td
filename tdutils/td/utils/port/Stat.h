@@ -34,7 +34,7 @@ Result<CpuStat> cpu_stat() TD_WARN_UNUSED_RESULT;
 #if TD_PORT_POSIX
 
 namespace detail {
-Stat fstat(int native_fd);  // TODO return Result<Stat>
+Result<Stat> fstat(int native_fd);
 }  // namespace detail
 
 Status update_atime(CSlice path) TD_WARN_UNUSED_RESULT;

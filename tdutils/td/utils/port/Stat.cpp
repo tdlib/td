@@ -111,11 +111,13 @@ Stat from_native_stat(const struct ::stat &buf) {
   return res;
 }
 
-Stat fstat(int native_fd) {
+Result<Stat> fstat(int native_fd) {
   struct ::stat buf;
   int err = detail::skip_eintr([&] { return ::fstat(native_fd, &buf); });
   auto fstat_errno = errno;
-  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "Stat for fd " << native_fd << " failed");
+  if (err < 0) {
+    return Status::PosixError(fstat_errno, PSLICE() << "Stat for fd " << native_fd << " failed");
+  }
   return detail::from_native_stat(buf);
 }
 
@@ -135,7 +137,7 @@ Status update_atime(int native_fd) {
   }
   return Status::OK();
 #elif TD_DARWIN
-  auto info = fstat(native_fd);
+  TRY_RESULT(info, fstat(native_fd));
   timeval upd[2];
   auto now = Clocks::system();
   // access time

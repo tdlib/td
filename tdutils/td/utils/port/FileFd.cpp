@@ -424,8 +424,9 @@ NativeFd FileFd::move_as_native_fd() {
   return res;
 }
 
-int64 FileFd::get_size() {
-  return stat().size_;
+Result<int64> FileFd::get_size() {
+  TRY_RESULT(s, stat());
+  return s.size_;
 }
 
 #if TD_PORT_WINDOWS
@@ -435,7 +436,7 @@ static uint64 filetime_to_unix_time_nsec(LONGLONG filetime) {
 }
 #endif
 
-Stat FileFd::stat() {
+Result<Stat> FileFd::stat() {
   CHECK(!empty());
 #if TD_PORT_POSIX
   return detail::fstat(get_native_fd().fd());

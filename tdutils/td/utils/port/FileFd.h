@@ -49,9 +49,9 @@ class FileFd {
   void close();
   bool empty() const;
 
-  int64 get_size();
+  Result<int64> get_size();
 
-  Stat stat();
+  Result<Stat> stat();
 
   Status sync() TD_WARN_UNUSED_RESULT;
 
