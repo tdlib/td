@@ -24535,6 +24535,12 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
                       << ", last_new_message_id = " << d->last_new_message_id
                       << ", max_notification_message_id = " << d->max_notification_message_id;
+
+  if (d->messages != nullptr) {
+    CHECK(d->messages->message_id == last_message_id);
+    CHECK(d->messages->left == nullptr);
+    CHECK(d->messages->right == nullptr);
+  }
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
