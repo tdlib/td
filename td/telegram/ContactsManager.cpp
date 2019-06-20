@@ -4390,6 +4390,10 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
                                                              DialogParticipantStatus status,
                                                              DialogParticipantStatus old_status,
                                                              Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot() && status.is_restricted() && status.is_member() && !old_status.is_member()) {
+    // allow bots to restrict left chat members without trying to add them
+    status.set_is_member(false);
+  }
   if (old_status == status) {
     return promise.set_value(Unit());
   }
