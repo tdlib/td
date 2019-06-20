@@ -148,21 +148,45 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
   }
 
   switch (location_type()) {
-    case LocationType::Web: {
+    case LocationType::Web:
       variant_ = WebRemoteFileLocation();
       return web().parse(parser);
-    }
-    case LocationType::Photo: {
+    case LocationType::Photo:
       variant_ = PhotoRemoteFileLocation();
-      return photo().parse(parser);
-    }
-    case LocationType::Common: {
+      photo().parse(parser);
+      if (parser.get_error() != nullptr) {
+        return;
+      }
+      switch (photo().source_.get_type()) {
+        case PhotoSizeSource::Type::Legacy:
+          break;
+        case PhotoSizeSource::Type::Thumbnail:
+          if (photo().source_.get_file_type() != file_type_ ||
+              (file_type_ != FileType::Photo && file_type_ != FileType::Thumbnail &&
+               file_type_ != FileType::EncryptedThumbnail)) {
+            parser.set_error("Invalid FileType in PhotoRemoteFileLocation Thumbnail");
+          }
+          break;
+        case PhotoSizeSource::Type::DialogPhoto:
+          if (file_type_ != FileType::ProfilePhoto) {
+            parser.set_error("Invalid FileType in PhotoRemoteFileLocation DialogPhoto");
+          }
+          break;
+        case PhotoSizeSource::Type::StickerSetThumbnail:
+          if (file_type_ != FileType::Thumbnail) {
+            parser.set_error("Invalid FileType in PhotoRemoteFileLocation StickerSetThumbnail");
+          }
+          break;
+        default:
+          UNREACHABLE();
+          break;
+      }
+      return;
+    case LocationType::Common:
       variant_ = CommonRemoteFileLocation();
       return common().parse(parser);
-    }
-    case LocationType::None: {
+    case LocationType::None:
       break;
-    }
   }
   parser.set_error("Invalid FileType in FullRemoteFileLocation");
 }

@@ -393,7 +393,7 @@ class FullRemoteFileLocation {
 
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
-      case LocationType::Photo: {
+      case LocationType::Photo:
         switch (photo().source_.get_type()) {
           case PhotoSizeSource::Type::Legacy:
             return make_tl_object<telegram_api::inputFileLocation>(
@@ -410,7 +410,7 @@ class FullRemoteFileLocation {
                     photo().id_, photo().access_hash_, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
               default:
-                UNREACHABLE();
+                break;
             }
           }
           case PhotoSizeSource::Type::DialogPhoto: {
@@ -424,8 +424,11 @@ class FullRemoteFileLocation {
             return make_tl_object<telegram_api::inputStickerSetThumb>(sticker_set_thumbnail.get_input_sticker_set(),
                                                                       photo().volume_id_, photo().local_id_);
           }
+          default:
+            break;
         }
-      }
+        UNREACHABLE();
+        return nullptr;
       case LocationType::Common:
         if (is_encrypted_secret()) {
           return make_tl_object<telegram_api::inputEncryptedFileLocation>(common().id_, common().access_hash_);
