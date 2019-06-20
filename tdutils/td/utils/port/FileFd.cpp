@@ -446,19 +446,17 @@ Result<Stat> FileFd::stat() {
   FILE_BASIC_INFO basic_info;
   auto status = GetFileInformationByHandleEx(get_native_fd().fd(), FileBasicInfo, &basic_info, sizeof(basic_info));
   if (!status) {
-    auto error = OS_ERROR("Stat failed");
-    LOG(FATAL) << error;
+    return OS_ERROR("Get FileBasicInfo failed");
   }
   res.atime_nsec_ = filetime_to_unix_time_nsec(basic_info.LastAccessTime.QuadPart);
   res.mtime_nsec_ = filetime_to_unix_time_nsec(basic_info.LastWriteTime.QuadPart);
   res.is_dir_ = (basic_info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-  res.is_reg_ = true;
+  res.is_reg_ = !res.is_dir_;  // TODO this is still wrong
 
   FILE_STANDARD_INFO standard_info;
   status = GetFileInformationByHandleEx(get_native_fd().fd(), FileStandardInfo, &standard_info, sizeof(standard_info));
   if (!status) {
-    auto error = OS_ERROR("Stat failed");
-    LOG(FATAL) << error;
+    return OS_ERROR("Get FileStandardInfo failed");
   }
   res.size_ = standard_info.EndOfFile.QuadPart;
 

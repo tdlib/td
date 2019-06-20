@@ -113,10 +113,8 @@ Stat from_native_stat(const struct ::stat &buf) {
 
 Result<Stat> fstat(int native_fd) {
   struct ::stat buf;
-  int err = detail::skip_eintr([&] { return ::fstat(native_fd, &buf); });
-  auto fstat_errno = errno;
-  if (err < 0) {
-    return Status::PosixError(fstat_errno, PSLICE() << "Stat for fd " << native_fd << " failed");
+  if (detail::skip_eintr([&] { return ::fstat(native_fd, &buf); }) < 0) {
+    return OS_ERROR(PSLICE() << "Stat for fd " << native_fd << " failed");
   }
   return detail::from_native_stat(buf);
 }
