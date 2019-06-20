@@ -3896,16 +3896,16 @@ void ContactsManager::on_update_contacts_reset() {
   UserId my_id = get_my_id();
   for (auto &p : users_) {
     UserId user_id = p.first;
-    User &u = p.second;
-    bool is_contact = u.outbound == LinkState::Contact;
+    User u = &p.second;
+    bool is_contact = u->outbound == LinkState::Contact;
     if (is_contact) {
       LOG(INFO) << "Drop contact with " << user_id;
       if (user_id != my_id) {
         CHECK(contacts_hints_.has_key(user_id.get()));
       }
-      on_update_user_links(&u, user_id, LinkState::KnowsPhoneNumber, u.inbound);
-      update_user(&u, user_id);
-      CHECK(u.outbound != LinkState::Contact);
+      on_update_user_links(u, user_id, LinkState::KnowsPhoneNumber, u->inbound);
+      update_user(u, user_id);
+      CHECK(u->outbound != LinkState::Contact);
       if (user_id != my_id) {
         CHECK(!contacts_hints_.has_key(user_id.get()));
       }
@@ -4899,18 +4899,19 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
   UserId my_id = get_my_id();
   for (auto &p : users_) {
     UserId user_id = p.first;
-    User &u = p.second;
-    bool is_contact = u.outbound == LinkState::Contact;
+    User *u = &p.second;
+    bool is_contact = u->outbound == LinkState::Contact;
     bool should_be_contact = contact_user_ids.count(user_id) == 1;
     if (is_contact != should_be_contact) {
       if (is_contact) {
         LOG(INFO) << "Drop contact with " << user_id;
         if (user_id != my_id) {
-          CHECK(contacts_hints_.has_key(user_id.get()));
+          LOG_CHECK(contacts_hints_.has_key(user_id.get()))
+              << my_id << " " << user_id << " " << to_string(get_user_object(user_id, u));
         }
-        on_update_user_links(&u, user_id, LinkState::KnowsPhoneNumber, u.inbound);
-        update_user(&u, user_id);
-        CHECK(u.outbound != LinkState::Contact);
+        on_update_user_links(u, user_id, LinkState::KnowsPhoneNumber, u->inbound);
+        update_user(u, user_id);
+        CHECK(u->outbound != LinkState::Contact);
         if (user_id != my_id) {
           CHECK(!contacts_hints_.has_key(user_id.get()));
         }
