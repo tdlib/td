@@ -8676,10 +8676,16 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
                                                             bool from_update, const char *source) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
-    if (d->last_new_message_id.is_valid() && max_unavailable_message_id.get() > d->last_new_message_id.get()) {
-      LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message id to " << max_unavailable_message_id
-                 << " from " << source << ", but last new message id is " << d->last_new_message_id;
-      max_unavailable_message_id = d->last_new_message_id;
+    if (max_unavailable_message_id.get() > d->last_new_message_id.get() && from_update) {
+      if (d->last_new_message_id.is_valid()) {
+        if (!td_->auth_manager_->is_bot()) {
+          LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message id to " << max_unavailable_message_id
+                     << " from " << source << ", but last new message id is " << d->last_new_message_id;
+        }
+        max_unavailable_message_id = d->last_new_message_id;
+      } else if (max_unavailable_message_id.is_server()) {
+        set_dialog_last_new_message_id(d, max_unavailable_message_id, source);
+      }
     }
 
     if (d->max_unavailable_message_id == max_unavailable_message_id) {
@@ -20488,11 +20494,11 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
                 d->last_assigned_message_id.get(), d->last_clear_history_message_id.get(),
                 d->deleted_last_message_id.get(), d->max_unavailable_message_id.get(), d->max_added_message_id.get()});
   if (last < d->last_read_inbox_message_id.get() &&
-      d->last_read_inbox_message_id.get() < d->last_new_message_id.get() + MessageId::FULL_TYPE_MASK) {
+      d->last_read_inbox_message_id.get() <= (d->last_new_message_id.get() | MessageId::FULL_TYPE_MASK)) {
     last = d->last_read_inbox_message_id.get();
   }
   if (last < d->last_read_outbox_message_id.get() &&
-      d->last_read_outbox_message_id.get() < d->last_new_message_id.get() + MessageId::FULL_TYPE_MASK) {
+      d->last_read_outbox_message_id.get() <= (d->last_new_message_id.get() | MessageId::FULL_TYPE_MASK)) {
     last = d->last_read_outbox_message_id.get();
   }
 
@@ -24395,6 +24401,12 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     last_message_id = last_database_message_id;
   }
 
+  if (!d->last_new_message_id.is_valid() && d->max_unavailable_message_id.is_valid() &&
+      d->max_unavailable_message_id.is_server()) {
+    LOG(ERROR) << "Bugfixing wrong last_new_message_id with max_unavailable_message_id to "
+               << d->max_unavailable_message_id << " in " << dialog_id;
+    set_dialog_last_new_message_id(d, d->max_unavailable_message_id, "fix_new_dialog 11");
+  }
   if (last_message_id.is_valid()) {
     if ((last_message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
         !d->last_new_message_id.is_valid()) {
