@@ -167,7 +167,8 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
             parser.set_error("Invalid FileType in PhotoRemoteFileLocation Thumbnail");
           }
           break;
-        case PhotoSizeSource::Type::DialogPhoto:
+        case PhotoSizeSource::Type::DialogPhotoSmall:
+        case PhotoSizeSource::Type::DialogPhotoBig:
           if (file_type_ != FileType::ProfilePhoto) {
             parser.set_error("Invalid FileType in PhotoRemoteFileLocation DialogPhoto");
           }

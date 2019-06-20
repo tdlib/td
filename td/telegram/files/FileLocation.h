@@ -413,10 +413,12 @@ class FullRemoteFileLocation {
                 break;
             }
           }
-          case PhotoSizeSource::Type::DialogPhoto: {
+          case PhotoSizeSource::Type::DialogPhotoSmall:
+          case PhotoSizeSource::Type::DialogPhotoBig: {
             auto &dialog_photo = photo().source_.dialog_photo();
+            bool is_big = photo().source_.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
-                dialog_photo.is_big * telegram_api::inputPeerPhotoFileLocation::Flags::BIG_MASK, dialog_photo.is_big,
+                is_big * telegram_api::inputPeerPhotoFileLocation::Flags::BIG_MASK, false /*ignored*/,
                 dialog_photo.get_input_peer(), photo().volume_id_, photo().local_id_);
           }
           case PhotoSizeSource::Type::StickerSetThumbnail: {

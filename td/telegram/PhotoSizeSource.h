@@ -17,7 +17,7 @@
 namespace td {
 
 struct PhotoSizeSource {
-  enum class Type : int32 { Legacy, Thumbnail, DialogPhoto, StickerSetThumbnail };
+  enum class Type : int32 { Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail };
 
   // for legacy photos with secret
   struct Legacy {
@@ -41,15 +41,22 @@ struct PhotoSizeSource {
   // for dialog photos
   struct DialogPhoto {
     DialogPhoto() = default;
-    DialogPhoto(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-        : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash), is_big(is_big) {
+    DialogPhoto(DialogId dialog_id, int64 dialog_access_hash)
+        : dialog_id(dialog_id), dialog_access_hash(dialog_access_hash) {
     }
 
     tl_object_ptr<telegram_api::InputPeer> get_input_peer() const;
 
     DialogId dialog_id;
     int64 dialog_access_hash = 0;
-    bool is_big = false;
+  };
+
+  struct DialogPhotoSmall : public DialogPhoto {
+    using DialogPhoto::DialogPhoto;
+  };
+
+  struct DialogPhotoBig : public DialogPhoto {
+    using DialogPhoto::DialogPhoto;
   };
 
   // for sticker set thumbnails
@@ -72,8 +79,12 @@ struct PhotoSizeSource {
   }
   PhotoSizeSource(FileType file_type, int32 thumbnail_type) : variant(Thumbnail(file_type, thumbnail_type)) {
   }
-  PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big)
-      : variant(DialogPhoto(dialog_id, dialog_access_hash, is_big)) {
+  PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big) {
+    if (is_big) {
+      variant = DialogPhotoBig(dialog_id, dialog_access_hash);
+    } else {
+      variant = DialogPhotoSmall(dialog_id, dialog_access_hash);
+    }
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
       : variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
@@ -98,7 +109,11 @@ struct PhotoSizeSource {
     return variant.get<Thumbnail>();
   }
   const DialogPhoto &dialog_photo() const {
-    return variant.get<DialogPhoto>();
+    if (variant.get_offset() == 2) {
+      return variant.get<DialogPhotoSmall>();
+    } else {
+      return variant.get<DialogPhotoBig>();
+    }
   }
   const StickerSetThumbnail &sticker_set_thumbnail() const {
     return variant.get<StickerSetThumbnail>();
@@ -110,7 +125,7 @@ struct PhotoSizeSource {
   void parse(ParserT &parser);
 
  private:
-  Variant<Legacy, Thumbnail, DialogPhoto, StickerSetThumbnail> variant;
+  Variant<Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail> variant;
 };
 
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);

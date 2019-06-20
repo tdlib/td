@@ -42,7 +42,8 @@ FileType PhotoSizeSource::get_file_type() const {
   switch (get_type()) {
     case PhotoSizeSource::Type::Thumbnail:
       return thumbnail().file_type;
-    case PhotoSizeSource::Type::DialogPhoto:
+    case PhotoSizeSource::Type::DialogPhotoSmall:
+    case PhotoSizeSource::Type::DialogPhotoBig:
       return FileType::ProfilePhoto;
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return FileType::Thumbnail;
@@ -61,10 +62,10 @@ bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
     case PhotoSizeSource::Type::Thumbnail:
       return lhs.thumbnail().file_type == rhs.thumbnail().file_type &&
              lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
-    case PhotoSizeSource::Type::DialogPhoto:
+    case PhotoSizeSource::Type::DialogPhotoSmall:
+    case PhotoSizeSource::Type::DialogPhotoBig:
       return lhs.dialog_photo().dialog_id == rhs.dialog_photo().dialog_id &&
-             lhs.dialog_photo().dialog_access_hash == rhs.dialog_photo().dialog_access_hash &&
-             lhs.dialog_photo().is_big == rhs.dialog_photo().is_big;
+             lhs.dialog_photo().dialog_access_hash == rhs.dialog_photo().dialog_access_hash;
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
              lhs.sticker_set_thumbnail().sticker_set_access_hash == rhs.sticker_set_thumbnail().sticker_set_access_hash;

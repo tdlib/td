@@ -53,14 +53,12 @@ template <class StorerT>
 void store(const PhotoSizeSource::DialogPhoto &source, StorerT &storer) {
   store(source.dialog_id, storer);
   store(source.dialog_access_hash, storer);
-  store(source.is_big, storer);
 }
 
 template <class ParserT>
 void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
   parse(source.dialog_id, parser);
   parse(source.dialog_access_hash, parser);
-  parse(source.is_big, parser);
 
   switch (source.dialog_id.get_type()) {
     case DialogType::SecretChat:
@@ -70,6 +68,26 @@ void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
     default:
       break;
   }
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::DialogPhotoSmall &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::DialogPhoto &>(source), storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::DialogPhotoSmall &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::DialogPhoto &>(source), parser);
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::DialogPhotoBig &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::DialogPhoto &>(source), storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::DialogPhotoBig &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::DialogPhoto &>(source), parser);
 }
 
 template <class StorerT>
