@@ -18932,6 +18932,9 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
   auto from_notification_id = NotificationId::max();
   auto from_message_id = MessageId::max();
   vector<Notification> res;
+  if (!from_mentions && from_message_id.get() <= d->last_read_inbox_message_id.get()) {
+    return res;
+  }
   while (true) {
     auto result = do_get_message_notifications_from_database_force(d, from_mentions, from_notification_id,
                                                                    from_message_id, limit);
