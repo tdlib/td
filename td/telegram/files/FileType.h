@@ -14,7 +14,7 @@
 
 namespace td {
 
-enum class FileType : int8 {
+enum class FileType : int32 {
   Thumbnail,
   ProfilePhoto,
   Photo,

@@ -30,7 +30,13 @@ void store(const PhotoSizeSource::Thumbnail &source, StorerT &storer) {
 
 template <class ParserT>
 void parse(PhotoSizeSource::Thumbnail &source, ParserT &parser) {
-  parse(source.file_type, parser);
+  int32 raw_type;
+  parse(raw_type, parser);
+  if (raw_type < 0 || raw_type >= static_cast<int32>(FileType::Size)) {
+    return parser.set_error("Wrong file type in PhotoSizeSource::Thumbnail");
+  }
+  source.file_type = static_cast<FileType>(raw_type);
+
   parse(source.thumbnail_type, parser);
   if (source.thumbnail_type < 0 || source.thumbnail_type > 255) {
     parser.set_error("Wrong thumbnail type");
@@ -63,8 +69,7 @@ void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
   switch (source.dialog_id.get_type()) {
     case DialogType::SecretChat:
     case DialogType::None:
-      parser.set_error("Invalid chat id");
-      break;
+      return parser.set_error("Invalid chat id");
     default:
       break;
   }
