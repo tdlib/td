@@ -205,7 +205,7 @@ void parse(Variant<Types...> &variant, ParserT &parser) {
     using T = std::decay_t<decltype(*ptr)>;
     if (offset == type_offset) {
       variant = T();
-      parse(variant.get<T>(), parser);
+      parse(variant.template get<T>(), parser);
     }
   });
 }
