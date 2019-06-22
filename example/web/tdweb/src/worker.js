@@ -99,7 +99,7 @@ async function loadTdlibAsmjs(onFS) {
   console.log('got td_asm.js');
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
-  const module = Module({
+  const module = Module.default({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
     },
