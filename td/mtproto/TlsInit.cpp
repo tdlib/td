@@ -75,7 +75,7 @@ class TlsHello {
   };
 
   static const TlsHello &get_default() {
-    static TlsHello res = [] {
+    static TlsHello result = [] {
       TlsHello res;
       res.ops_ = {
           Op::string("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
@@ -112,7 +112,7 @@ class TlsHello {
           Op::string("\x00\x01\x00\x00\x15")};
       return res;
     }();
-    return res;
+    return result;
   }
   Span<Op> get_ops() const {
     return ops_;
@@ -148,6 +148,9 @@ class TlsHelloContext {
 class TlsHelloCalcLength {
  public:
   void do_op(const TlsHello::Op &op, const TlsHelloContext *context) {
+    if (status_.is_error()) {
+      return;
+    }
     using Type = TlsHello::Op::Type;
     switch (op.type) {
       case Type::String:
@@ -155,13 +158,13 @@ class TlsHelloCalcLength {
         break;
       case Type::Random:
         if (op.length <= 0 || op.length > 1024) {
-          on_error(Status::Error("Invalid random length"));
+          return on_error(Status::Error("Invalid random length"));
         }
         size_ += op.length;
         break;
       case Type::Zero:
-        if (op.length < 0 || op.length > 1024) {
-          on_error(Status::Error("Invalid zero length"));
+        if (op.length <= 0 || op.length > 1024) {
+          return on_error(Status::Error("Invalid zero length"));
         }
         size_ += op.length;
         break;
@@ -171,8 +174,8 @@ class TlsHelloCalcLength {
         break;
       case Type::Grease:
         CHECK(context);
-        if (op.seed < 0 || static_cast<size_t>(op.seed) > context->grease_size()) {
-          on_error(Status::Error("Invalid grease seed"));
+        if (op.seed < 0 || static_cast<size_t>(op.seed) >= context->grease_size()) {
+          return on_error(Status::Error("Invalid grease seed"));
         }
         size_ += 2;
         break;
@@ -180,22 +183,25 @@ class TlsHelloCalcLength {
         size_ += 2;
         scope_offset_.push_back(size_);
         break;
-      case Type::EndScope:
+      case Type::EndScope: {
         if (scope_offset_.empty()) {
-          on_error(Status::Error("Unbalanced scopes"));
+          return on_error(Status::Error("Unbalanced scopes"));
         }
         auto begin_offset = scope_offset_.back();
         scope_offset_.pop_back();
         auto end_offset = size_;
         auto size = end_offset - begin_offset;
         if (size >= (1 << 14)) {
-          on_error(Status::Error("Scope is too big"));
+          return on_error(Status::Error("Scope is too big"));
         }
         break;
+      }
+      default:
+        UNREACHABLE();
     }
   }
 
-  Result<int64> finish() {
+  Result<size_t> finish() {
     if (size_ > 515) {
       on_error(Status::Error("Too long for zero padding"));
     }
@@ -215,7 +221,7 @@ class TlsHelloCalcLength {
   }
 
  private:
-  int64 size_{0};
+  size_t size_{0};
   Status status_;
   std::vector<size_t> scope_offset_;
 
@@ -277,6 +283,7 @@ class TlsHelloStore {
       }
     }
   }
+
   void finish(int32 unix_time) {
     int zero_pad = 515 - static_cast<int>(get_offset());
     using Op = TlsHello::Op;

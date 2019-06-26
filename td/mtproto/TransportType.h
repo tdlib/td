@@ -21,7 +21,7 @@ struct TransportType {
   }
 
   bool emulate_tls() const {
-    return secret.size() >= 17 && secret[0] == '\0xee';
+    return secret.size() >= 17 && secret[0] == '\xee';
   }
 };
 

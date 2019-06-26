@@ -5,9 +5,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/net/TransparentProxy.h"
 
+#include "td/utils/Status.h"
+
 namespace td {
+
 class Grease {
  public:
   static void init(MutableSlice res);
@@ -28,4 +32,5 @@ class TlsInit : public TransparentProxy {
 
   Status loop_impl() override;
 };
+
 }  // namespace td
