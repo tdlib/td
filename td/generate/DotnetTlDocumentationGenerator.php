@@ -206,9 +206,12 @@ EOT
         $colon = '';
         foreach ($known_fields as $name => $type) {
             $field_type = $this->getTypeName($type);
-            if (substr($field_type, 0, 5) !== 'Array' && substr($field_type, 0, 6) !== 'String' &&
-                ucfirst($field_type) === $field_type) {
-                $field_type = '::Telegram::Td::Api::'.$field_type;
+            $pos = 0;
+            while (substr($field_type, $pos, 6) === 'Array<') {
+                $pos += 6;
+            }
+            if (substr($field_type, $pos, 6) !== 'String' && ucfirst(substr($field_type, $pos)) === substr($field_type, $pos)) {
+                $field_type = substr($field_type, 0, $pos).'::Telegram::Td::Api::'.substr($field_type, $pos);
             }
             $full_constructor .= $colon.$field_type.' '.$this->getParameterName($name, $class_name);
             $colon = ', ';

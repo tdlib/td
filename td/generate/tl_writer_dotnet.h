@@ -284,9 +284,12 @@ class TlWriterDotNet : public TL_writer {
     std::stringstream ss;
     ss << (field_num == 0 ? "" : ", ");
     auto field_type = gen_field_type(a);
-    if (field_type.substr(0, 5) != "Array" && field_type.substr(0, 6) != "String" &&
-        to_upper(field_type[0]) == field_type[0]) {
-      field_type = "::Telegram::Td::Api::" + field_type;
+    auto pos = 0;
+    while (field_type.substr(pos, 6) == "Array<") {
+      pos += 6;
+    }
+    if (field_type.substr(pos, 6) != "String" && to_upper(field_type[pos]) == field_type[pos]) {
+      field_type = field_type.substr(0, pos) + "::Telegram::Td::Api::" + field_type.substr(pos);
     }
     ss << field_type << " " << to_camelCase(a.name);
     return ss.str();
