@@ -21,6 +21,7 @@
 
 #include "td/mtproto/Ping.h"
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/TlsInit.h"
 
 #include "td/net/GetHostByNameActor.h"
 #include "td/net/HttpProxy.h"
@@ -961,6 +962,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       client.checking_connections++;
     }
 
+    bool emulate_tls = extra.transport_type.emulate_tls();
+
     auto promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), check_mode, transport_type = extra.transport_type, hash = client.hash,
          debug_str = extra.debug_str,
@@ -973,7 +976,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
                                                actor_id(this), client.hash, extra.stat);
 
-    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
+    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || emulate_tls) {
       VLOG(connections) << "In client_loop: create new transparent proxy connection " << extra.debug_str;
       class Callback : public TransparentProxy::Callback {
        public:
@@ -1013,10 +1016,14 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         children_[token] = {
             true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
                                        proxy.proxy().password().str(), std::move(callback), create_reference(token))};
-      } else {
+      } else if (proxy.use_http_tcp_proxy()) {
         children_[token] = {true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
                                                           proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                           std::move(callback), create_reference(token))};
+      } else {
+        children_[token] = {true, create_actor<TlsInit>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                                        "www.google.com" /*todo use domain*/, "", std::move(callback),
+                                                        create_reference(token))};
       }
     } else {
       VLOG(connections) << "In client_loop: create new direct connection " << extra.debug_str;

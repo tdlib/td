@@ -123,8 +123,9 @@ class OldTransport : public IStreamTransport {
 
 class ObfuscatedTransport : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, std::string secret, bool emulate_tls)
-      : dc_id_(dc_id), secret_(std::move(secret)), emulate_tls_(emulate_tls), impl_(secret_.size() >= 17) {
+  ObfuscatedTransport(int16 dc_id, std::string secret)
+      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
+    emulate_tls_ = secret.size() >= 17 && secret[0] == '\0xee';
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;

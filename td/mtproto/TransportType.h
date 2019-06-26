@@ -15,11 +15,13 @@ struct TransportType {
   enum Type { Tcp, ObfuscatedTcp, Http } type = Tcp;
   int16 dc_id{0};
   string secret;
-  bool emulate_tls{false};
 
   TransportType() = default;
-  TransportType(Type type, int16 dc_id, string secret, bool emulate_tls = false)
-      : type(type), dc_id(dc_id), secret(std::move(secret)), emulate_tls(emulate_tls) {
+  TransportType(Type type, int16 dc_id, string secret) : type(type), dc_id(dc_id), secret(std::move(secret)) {
+  }
+
+  bool emulate_tls() const {
+    return secret.size() >= 17 && secret[0] == '\0xee';
   }
 };
 
