@@ -348,6 +348,7 @@ set(TDLIB_SOURCE
   td/mtproto/RawConnection.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
+  td/mtproto/TlsReaderByteFlow.cpp
   td/mtproto/Transport.cpp
   td/mtproto/utils.cpp
 
@@ -478,6 +479,7 @@ set(TDLIB_SOURCE
   td/mtproto/RawConnection.h
   td/mtproto/SessionConnection.h
   td/mtproto/TcpTransport.h
+  td/mtproto/TlsReaderByteFlow.h
   td/mtproto/Transport.h
   td/mtproto/TransportType.h
   td/mtproto/utils.h

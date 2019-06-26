@@ -184,7 +184,12 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   };
   fix_key(key);
   aes_ctr_byte_flow_.init(key, as<UInt128>(rheader.data() + 8 + 32));
-  aes_ctr_byte_flow_.set_input(input_);
+  if (emulate_tls_) {
+    tls_reader_byte_flow_.set_input(input_);
+    tls_reader_byte_flow_ >> aes_ctr_byte_flow_;
+  } else {
+    aes_ctr_byte_flow_.set_input(input_);
+  }
   aes_ctr_byte_flow_ >> byte_flow_sink_;
 
   output_key_ = as<UInt256>(header.data() + 8);
@@ -193,6 +198,67 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   output_->append(header_slice.substr(0, 56));
   output_state_.encrypt(header_slice, header_slice);
   output_->append(header_slice.substr(56, 8));
+}
+
+Result<size_t> ObfuscatedTransport::read_next(BufferSlice *message, uint32 *quick_ack) {
+  if (emulate_tls_) {
+    tls_reader_byte_flow_.wakeup();
+  } else {
+    aes_ctr_byte_flow_.wakeup();
+  }
+  return impl_.read_from_stream(byte_flow_sink_.get_output(), message, quick_ack);
+}
+
+void ObfuscatedTransport::write(BufferWriter &&message, bool quick_ack) {
+  impl_.write_prepare_inplace(&message, quick_ack);
+  output_state_.encrypt(message.as_slice(), message.as_slice());
+  if (emulate_tls_) {
+    do_write_tls(std::move(message));
+  } else {
+    do_write(message.as_buffer_slice());
+  }
+}
+
+void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
+  size_t size = message.size();
+
+  if (size > (1 << 14)) {
+    auto buffer_slice = message.as_buffer_slice();
+    auto slice = buffer_slice.as_slice();
+    while (!slice.empty()) {
+      auto buf = buffer_slice.from_slice(slice.substr(0, 1 << 14));
+      slice.remove_prefix(buf.size());
+      BufferBuilder builder;
+      builder.append(std::move(buf));
+      do_write_tls(std::move(builder));
+    }
+    return;
+  }
+
+  BufferBuilder builder(std::move(message));
+  do_write_tls(std::move(builder));
+}
+
+void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
+  size_t size = builder.size();
+  CHECK(size <= (1 << 14));
+
+  char buf[] = "\x17\x03\x03\x00\x00";
+  buf[3] = (size >> 8) & 0xff;
+  buf[4] = size & 0xff;
+  builder.prepend(Slice(buf, 5));
+
+  if (is_first_tls_packet_) {
+    is_first_tls_packet_ = false;
+    Slice first_prefix("\x14\x03\x03\x00\x01\x01");
+    builder.prepend(first_prefix);
+  }
+
+  do_write(builder.extract());
+}
+
+void ObfuscatedTransport::do_write(BufferSlice &&slice) {
+  output_->append(std::move(slice));
 }
 
 }  // namespace tcp

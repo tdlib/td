@@ -8,6 +8,7 @@
 
 #include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/TransportType.h"
+#include "td/mtproto/TlsReaderByteFlow.h"
 
 #include "td/utils/AesCtrByteFlow.h"
 #include "td/utils/buffer.h"
@@ -122,24 +123,17 @@ class OldTransport : public IStreamTransport {
 
 class ObfuscatedTransport : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, std::string secret)
-      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
+  ObfuscatedTransport(int16 dc_id, std::string secret, bool emulate_tls)
+      : dc_id_(dc_id), secret_(std::move(secret)), emulate_tls_(emulate_tls), impl_(secret_.size() >= 17) {
   }
-  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT {
-    aes_ctr_byte_flow_.wakeup();
-    return impl_.read_from_stream(byte_flow_sink_.get_output(), message, quick_ack);
-  }
+
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
 
   bool support_quick_ack() const override {
     return impl_.support_quick_ack();
   }
 
-  void write(BufferWriter &&message, bool quick_ack) override {
-    impl_.write_prepare_inplace(&message, quick_ack);
-    auto slice = message.as_buffer_slice();
-    output_state_.encrypt(slice.as_slice(), slice.as_slice());
-    output_->append(std::move(slice));
-  }
+  void write(BufferWriter &&message, bool quick_ack) override;
 
   void init(ChainBufferReader *input, ChainBufferWriter *output) override;
 
@@ -152,7 +146,14 @@ class ObfuscatedTransport : public IStreamTransport {
   }
 
   size_t max_prepend_size() const override {
-    return 4;
+    size_t res = 4;
+    if (emulate_tls_) {
+      res += 5;
+      if (is_first_tls_packet_) {
+        res += 6;
+      }
+    }
+    return res;
   }
 
   size_t max_append_size() const override {
@@ -166,7 +167,10 @@ class ObfuscatedTransport : public IStreamTransport {
  private:
   int16 dc_id_;
   std::string secret_;
+  bool emulate_tls_;
+  bool is_first_tls_packet_{true};
   TransportImpl impl_;
+  TlsReaderByteFlow tls_reader_byte_flow_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;
@@ -177,6 +181,10 @@ class ObfuscatedTransport : public IStreamTransport {
   UInt256 output_key_;
   AesCtrState output_state_;
   ChainBufferWriter *output_;
+
+  void do_write_tls(BufferWriter &&message);
+  void do_write_tls(BufferBuilder &&builder);
+  void do_write(BufferSlice &&message);
 };
 
 using Transport = ObfuscatedTransport;

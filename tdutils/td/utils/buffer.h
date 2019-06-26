@@ -731,6 +731,8 @@ class BufferBuilder {
   BufferBuilder(Slice slice, size_t prepend_size, size_t append_size)
       : buffer_writer_(slice, prepend_size, append_size) {
   }
+  explicit BufferBuilder(BufferWriter &&buffer_writer) : buffer_writer_(std::move(buffer_writer)) {
+  }
 
   void append(BufferSlice slice);
   void append(Slice slice);
@@ -739,7 +741,7 @@ class BufferBuilder {
   void prepend(Slice slice);
 
   template <class F>
-  void for_each(F &&f) {
+  void for_each(F &&f) const & {
     for (auto &slice : reversed(to_prepend_)) {
       f(slice);
     }
@@ -750,6 +752,19 @@ class BufferBuilder {
       f(slice);
     }
   }
+  template <class F>
+  void for_each(F &&f) && {
+    for (auto &slice : reversed(to_prepend_)) {
+      f(std::move(slice));
+    }
+    if (!buffer_writer_.empty()) {
+      f(buffer_writer_.as_buffer_slice());
+    }
+    for (auto &slice : to_append_) {
+      f(std::move(slice));
+    }
+  }
+  size_t size() const;
 
   BufferSlice extract();
 

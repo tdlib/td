@@ -12,13 +12,14 @@ namespace td {
 namespace mtproto {
 
 struct TransportType {
-  enum Type { Tcp, ObfuscatedTcp, Http } type;
-  int16 dc_id;
+  enum Type { Tcp, ObfuscatedTcp, Http } type = Tcp;
+  int16 dc_id{0};
   string secret;
+  bool emulate_tls{false};
 
-  TransportType() : type(Tcp), dc_id(0), secret() {
-  }
-  TransportType(Type type, int16 dc_id, string secret) : type(type), dc_id(dc_id), secret(std::move(secret)) {
+  TransportType() = default;
+  TransportType(Type type, int16 dc_id, string secret, bool emulate_tls = false)
+      : type(type), dc_id(dc_id), secret(std::move(secret)), emulate_tls(emulate_tls) {
   }
 };
 

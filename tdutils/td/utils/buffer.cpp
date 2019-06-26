@@ -133,15 +133,20 @@ BufferSlice BufferBuilder::extract() {
   if (to_append_.empty() && to_prepend_.empty()) {
     return buffer_writer_.as_buffer_slice();
   }
-  size_t total_size = 0;
-  for_each([&](auto &&slice) { total_size += slice.size(); });
+  size_t total_size = size();
   BufferWriter writer(0, 0, total_size);
-  for_each([&](auto &&slice) {
+  std::move(*this).for_each([&](auto &&slice) {
     writer.prepare_append().truncate(slice.size()).copy_from(slice.as_slice());
     writer.confirm_append(slice.size());
   });
   *this = {};
   return writer.as_buffer_slice();
+}
+
+size_t BufferBuilder::size() const {
+  size_t total_size = 0;
+  for_each([&](auto &&slice) { total_size += slice.size(); });
+  return total_size;
 }
 
 bool BufferBuilder::append_inplace(Slice slice) {
