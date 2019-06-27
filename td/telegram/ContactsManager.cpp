@@ -7259,6 +7259,9 @@ void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState ou
     }
     inbound = outbound;
   }
+  if (!u->phone_number.empty() && outbound == LinkState::None) {
+    outbound = LinkState::KnowsPhoneNumber;
+  }
 
   LOG(DEBUG) << "Update " << user_id << " links from (" << u->outbound << ", " << u->inbound << ") to (" << outbound
              << ", " << inbound << ")";
