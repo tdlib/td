@@ -4865,7 +4865,8 @@ vector<string> StickersManager::get_emoji_language_codes(Promise<Unit> &promise)
     double now = Time::now_cached();
     for (auto &language_code : it->second) {
       double last_difference_time = get_emoji_language_code_last_difference_time(language_code);
-      if (last_difference_time < now - EMOJI_KEYWORDS_UPDATE_DELAY) {
+      if (last_difference_time < now - EMOJI_KEYWORDS_UPDATE_DELAY &&
+          get_emoji_language_code_version(language_code) != 0) {
         load_emoji_keywords_difference(language_code);
       }
     }
