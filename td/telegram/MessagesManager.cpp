@@ -25129,7 +25129,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     return;
   }
 
-  if (force && get_channel_difference_to_logevent_id_.count(dialog_id) == 0) {
+  if (force && get_channel_difference_to_logevent_id_.count(dialog_id) == 0 && !G()->ignore_backgrond_updates()) {
     auto channel_id = dialog_id.get_channel_id();
     CHECK(input_channel->get_id() == telegram_api::inputChannel::ID);
     auto access_hash = static_cast<const telegram_api::inputChannel &>(*input_channel).access_hash_;
@@ -26188,6 +26188,11 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {
+        if (G()->ignore_backgrond_updates()) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
         GetChannelDifferenceLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
