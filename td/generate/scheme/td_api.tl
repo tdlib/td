@@ -2015,7 +2015,7 @@ checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 //@description A general message with hidden content @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentHidden is_pinned:Bool = PushMessageContent;
 
-//@description An animation message (GIF-style) @animation Message content; may be null @caption Animation caption @is_pinned True, if the message is a pinned message with the specified content
+//@description An animation message (GIF-style). @animation Message content; may be null @caption Animation caption @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentAnimation animation:animation caption:string is_pinned:Bool = PushMessageContent;
 
 //@description An audio message @audio Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
@@ -2921,7 +2921,7 @@ getFile file_id:int32 = File;
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
 //@description Returns an ordered list of chats. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
-//-For optimal performance the number of returned chats is chosen by the library. @offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
+//-For optimal performance the number of returned chats is chosen by the library @offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
 //@limit The maximum number of chats to be returned. It is possible that fewer chats than the limit are returned even if the end of the list is not reached
 getChats offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
 
@@ -3242,15 +3242,15 @@ createNewSupergroupChat title:string is_channel:Bool description:string = Chat;
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
 createNewSecretChat user_id:int32 = Chat;
 
-//@description Creates a new supergroup from an existing basic group and sends a corresponding messageChatUpgradeTo and messageChatUpgradeFrom. Deactivates the original basic group @chat_id Identifier of the chat to upgrade
+//@description Creates a new supergroup from an existing basic group and sends a corresponding messageChatUpgradeTo and messageChatUpgradeFrom; requires creator privileges. Deactivates the original basic group @chat_id Identifier of the chat to upgrade
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires administrator rights in basic groups and the appropriate administrator rights in supergroups and channels. The title will not be changed until the request to the server has been completed
+//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
 //@chat_id Chat identifier @title New title of the chat; 1-128 characters
 setChatTitle chat_id:int53 title:string = Ok;
 
-//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires administrator rights in basic groups and the appropriate administrator rights in supergroups and channels. The photo will not be changed before request to the server has been completed
+//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The photo will not be changed before request to the server has been completed
 //@chat_id Chat identifier @photo New chat photo. You can use a zero InputFileId to delete the chat photo. Files that are accessible only by HTTP URL are not acceptable
 setChatPhoto chat_id:int53 photo:InputFile = Ok;
 
@@ -3276,13 +3276,13 @@ toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
-//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires appropriate administrator rights @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
+//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info rights @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
 setChatDescription chat_id:int53 description:string = Ok;
 
-//@description Pins a message in a chat; requires appropriate administrator rights in the group or channel @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
+//@description Pins a message in a chat; requires can_pin_messages rights @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
 
-//@description Removes the pinned message from a chat; requires appropriate administrator rights in the group or channel @chat_id Identifier of the chat
+//@description Removes the pinned message from a chat; requires can_pin_messages rights in the group or channel @chat_id Identifier of the chat
 unpinChatMessage chat_id:int53 = Ok;
 
 //@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
@@ -3381,7 +3381,7 @@ readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 deleteFile file_id:int32 = Ok;
 
 
-//@description Generates a new invite link for a chat; the previously generated link is revoked. Available for basic groups, supergroups, and channels. Requires administrator rights in basic groups and the appropriate administrator rights in supergroups and channels @chat_id Chat identifier
+//@description Generates a new invite link for a chat; the previously generated link is revoked. Available for basic groups, supergroups, and channels. Requires can_invite_users right @chat_id Chat identifier
 generateChatInviteLink chat_id:int53 = ChatInviteLink;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; should begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
@@ -3596,13 +3596,13 @@ disconnectAllWebsites = Ok;
 //@description Changes the username of a supergroup or channel, requires creator privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
 setSupergroupUsername supergroup_id:int32 username:string = Ok;
 
-//@description Changes the sticker set of a supergroup; requires appropriate rights in the supergroup @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
+//@description Changes the sticker set of a supergroup; requires can_change_info rights @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
 setSupergroupStickerSet supergroup_id:int32 sticker_set_id:int64 = Ok;
 
-//@description Toggles sender signatures messages sent in a channel; requires appropriate administrator rights in the channel. @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
+//@description Toggles sender signatures messages sent in a channel; requires can_change_info rights @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
 toggleSupergroupSignMessages supergroup_id:int32 sign_messages:Bool = Ok;
 
-//@description Toggles whether the message history of a supergroup is available to new members; requires appropriate administrator rights in the supergroup. @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
+//@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info rights @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int32 is_all_history_available:Bool = Ok;
 
 //@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
