@@ -5134,7 +5134,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_received) {
     on_update_user_phone_number(u, user_id, std::move(user->phone_));
   }
-  on_update_user_photo(u, user_id, std::move(user->photo_), "on_get_user");
+  on_update_user_photo(u, user_id, std::move(user->photo_), source);
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
 
