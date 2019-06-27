@@ -4535,7 +4535,7 @@ void ContactsManager::export_chat_invite_link(ChatId chat_id, Promise<Unit> &&pr
     return promise.set_error(Status::Error(3, "Chat is deactivated"));
   }
 
-  if (!get_chat_permissions(c).can_invite_users()) {
+  if (!get_chat_status(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
   }
 
