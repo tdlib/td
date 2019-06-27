@@ -40,7 +40,7 @@ string HttpUrl::get_url() const {
     result += ':';
     result += to_string(specified_port_);
   }
-  CHECK(!query_.empty() && query_[0] == '/');
+  LOG_CHECK(!query_.empty() && query_[0] == '/') << query_;
   result += query_;
   return result;
 }
