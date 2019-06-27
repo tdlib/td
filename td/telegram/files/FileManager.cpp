@@ -2641,7 +2641,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   if (is_document_type(real_file_type) && is_document_type(file_type)) {
     real_file_type = file_type;
   } else if (is_background_type(real_file_type) && is_background_type(file_type)) {
-    real_file_type = file_type;
+    // type of file matches, but real type is in the stored remote location
   } else if (real_file_type != file_type && file_type != FileType::Temp) {
     return Status::Error(10, "Type of file mismatch");
   }
