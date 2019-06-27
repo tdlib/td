@@ -894,7 +894,7 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
     VLOG(dc) << "Request new connection";
     unique_ptr<mtproto::AuthData> auth_data;
     if (auth_data_.use_pfs() && auth_data_.has_auth_key(Time::now())) {
-      auth_data = make_unique<mtproto::AuthData>(auth_data_);
+      // auth_data = make_unique<mtproto::AuthData>(auth_data_);
     }
     callback_->request_raw_connection(std::move(auth_data), std::move(promise));
   }
