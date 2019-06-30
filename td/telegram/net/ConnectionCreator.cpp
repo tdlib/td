@@ -244,7 +244,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
       return true;
     }
     if (secret.size() == 34) {
-      return begins_with(secret, "dd");
+      return begins_with(secret, "dd") || begins_with(secret, "ee");
     }
     return false;
   };
