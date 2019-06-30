@@ -459,7 +459,7 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, 
 tl_object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
   return td_api::make_object<td_api::chatPermissions>(
       can_send_messages(), can_send_media(), can_send_polls(),
-      can_send_stickers() && can_send_animations() && can_send_games() && can_use_inline_bots(),
+      can_send_stickers() || can_send_animations() || can_send_games() || can_use_inline_bots(),
       can_add_web_page_previews(), can_change_info_and_settings(), can_invite_users(), can_pin_messages());
 }
 
