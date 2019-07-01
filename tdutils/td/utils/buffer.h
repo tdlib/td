@@ -288,6 +288,10 @@ class BufferWriter {
     auto end = buffer_->end_.load(std::memory_order_relaxed);
     return MutableSlice(buffer_->data_ + buffer_->begin_, buffer_->data_ + end);
   }
+  Slice as_slice() const {
+    auto end = buffer_->end_.load(std::memory_order_relaxed);
+    return Slice(buffer_->data_ + buffer_->begin_, buffer_->data_ + end);
+  }
 
   MutableSlice prepare_prepend() {
     if (is_null()) {
@@ -743,13 +747,13 @@ class BufferBuilder {
   template <class F>
   void for_each(F &&f) const & {
     for (auto &slice : reversed(to_prepend_)) {
-      f(slice);
+      f(slice.as_slice());
     }
     if (!buffer_writer_.empty()) {
-      f(buffer_writer_.as_buffer_slice());
+      f(buffer_writer_.as_slice());
     }
     for (auto &slice : to_append_) {
-      f(slice);
+      f(slice.as_slice());
     }
   }
   template <class F>
