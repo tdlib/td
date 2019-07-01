@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/Iocp.h"
@@ -13,10 +14,18 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
-td::Status test_tls(const td::string &url) {
+#include <map>
+
+struct TlsInfo {
+  td::vector<td::int32> extension_list;
+  size_t encrypted_application_data_length = 0;
+};
+
+td::Result<TlsInfo> test_tls(const td::string &url) {
   td::IPAddress address;
   TRY_STATUS(address.init_host_port(url, 443));
   TRY_RESULT(socket, td::SocketFd::open(address));
@@ -90,11 +99,11 @@ td::Status test_tls(const td::string &url) {
 
   socket.write(request);
 
+  TlsInfo info;
   auto end_time = td::Time::now() + 3;
   td::string result;
   size_t pos = 0;
   size_t server_hello_length = 0;
-  size_t encrypted_application_data_length = 0;
   while (td::Time::now() < end_time) {
     char buf[1];
     TRY_RESULT(res, socket.read(td::MutableSlice{buf, sizeof(buf)}));
@@ -131,7 +140,6 @@ td::Status test_tls(const td::string &url) {
         if (server_hello_length > 0) {
           if (pos == 5) {
             CHECK_LENGTH(server_hello_length);
-            pos += server_hello_length;
 
             EXPECT_STR(5, "\x02\x00", "Non-TLS response 2");
             EXPECT_STR(9, "\x03\x03", "Non-TLS response 3");
@@ -151,7 +159,22 @@ td::Status test_tls(const td::string &url) {
             }
             EXPECT_STR(44, request.substr(44, 32), "TLS <= 1.2: expected mirrored session_id");
             EXPECT_STR(76, "\x13\x01\x00", "TLS <= 1.2: expected x25519 as a chosen cipher");
-            EXPECT_STR(79, "\x00\x2e", "Support only TLS 1.3 extension list of size 47");
+            pos += 74;
+            size_t extensions_length = read_length();
+            if (extensions_length + 76 != server_hello_length) {
+              return td::Status::Error("Receive wrong extensions length");
+            }
+            while (pos < 5 + server_hello_length - 4) {
+              info.extension_list.push_back(read_length());
+              size_t extension_length = read_length();
+              if (pos + extension_length > 5 + server_hello_length) {
+                return td::Status::Error("Receive wrong extension length");
+              }
+              pos += extension_length;
+            }
+            if (pos != 5 + server_hello_length) {
+              return td::Status::Error("Receive wrong extensions list");
+            }
           }
           if (pos == 5 + server_hello_length) {
             CHECK_LENGTH(9);
@@ -161,15 +184,15 @@ td::Status test_tls(const td::string &url) {
           }
           if (pos == 14 + server_hello_length) {
             CHECK_LENGTH(2);
-            encrypted_application_data_length = read_length();
-            if (encrypted_application_data_length == 0) {
+            info.encrypted_application_data_length = read_length();
+            if (info.encrypted_application_data_length == 0) {
               return td::Status::Error("Receive empty encrypted application data");
             }
           }
-          if (encrypted_application_data_length > 0) {
-            CHECK_LENGTH(encrypted_application_data_length);
-            pos += encrypted_application_data_length;
-            return td::Status::OK();
+          if (info.encrypted_application_data_length > 0) {
+            CHECK_LENGTH(info.encrypted_application_data_length);
+            pos += info.encrypted_application_data_length;
+            return info;
           }
         }
       }
@@ -197,7 +220,42 @@ int main(int argc, char *argv[]) {
     urls.emplace_back(argv[i]);
   }
   for (auto &url : urls) {
-    LOG(ERROR) << url << ": " << test_tls(url);
+    const int MAX_TRIES = 100;
+    std::map<size_t, int> length_count;
+    td::vector<td::int32> extension_list;
+    for (int i = 0; i < MAX_TRIES; i++) {
+      auto r_tls_info = test_tls(url);
+      if (r_tls_info.is_error()) {
+        LOG(ERROR) << url << ": " << r_tls_info.error();
+        break;
+      } else {
+        auto tls_info = r_tls_info.move_as_ok();
+        length_count[tls_info.encrypted_application_data_length]++;
+        if (i == 0) {
+          extension_list = tls_info.extension_list;
+        } else {
+          if (extension_list != tls_info.extension_list) {
+            LOG(ERROR) << url << ": TLS 1.3.0 extension list has changed from " << extension_list << " to "
+                       << tls_info.extension_list;
+            break;
+          }
+        }
+      }
+
+      if (i == MAX_TRIES - 1) {
+        if (extension_list != td::vector<td::int32>{51, 43} && extension_list != td::vector<td::int32>{43, 51}) {
+          LOG(ERROR) << url << ": TLS 1.3.0 unsupported extension list " << extension_list;
+        } else {
+          td::string length_distribution = "|";
+          for (auto it : length_count) {
+            length_distribution += PSTRING()
+                                   << it.first << " : " << static_cast<int>(it.second * 100.0 / MAX_TRIES) << "%|";
+          }
+          LOG(ERROR) << url << ": TLS 1.3.0 with extensions " << extension_list
+                     << " and encrypted application data length distribution " << length_distribution;
+        }
+      }
+    }
   }
 
 #if TD_PORT_WINDOWS
