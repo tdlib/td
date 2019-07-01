@@ -154,6 +154,7 @@ class ObfuscatedTransport : public IStreamTransport {
         res += 6;
       }
     }
+    res += header_.size();
     if (res & 3) {
       res += 4 - (res & 3);
     }
@@ -173,6 +174,7 @@ class ObfuscatedTransport : public IStreamTransport {
   std::string secret_;
   bool emulate_tls_{false};
   bool is_first_tls_packet_{true};
+  std::string header_;
   TransportImpl impl_;
   TlsReaderByteFlow tls_reader_byte_flow_;
   AesCtrByteFlow aes_ctr_byte_flow_;
@@ -190,6 +192,7 @@ class ObfuscatedTransport : public IStreamTransport {
 
   void do_write_tls(BufferWriter &&message);
   void do_write_tls(BufferBuilder &&builder);
+  void do_write_main(BufferWriter &&message);
   void do_write(BufferSlice &&message);
 };
 

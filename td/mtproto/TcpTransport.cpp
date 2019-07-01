@@ -195,9 +195,9 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   output_key_ = as<UInt256>(header.data() + 8);
   fix_key(output_key_);
   output_state_.init(output_key_, as<UInt128>(header.data() + 8 + 32));
-  output_->append(header_slice.substr(0, 56));
+  header_ = header;
   output_state_.encrypt(header_slice, header_slice);
-  output_->append(header_slice.substr(56, 8));
+  MutableSlice(header_).substr(56).copy_from(header_slice.substr(56));
 }
 
 Result<size_t> ObfuscatedTransport::read_next(BufferSlice *message, uint32 *quick_ack) {
@@ -215,16 +215,26 @@ void ObfuscatedTransport::write(BufferWriter &&message, bool quick_ack) {
   if (emulate_tls_) {
     do_write_tls(std::move(message));
   } else {
-    do_write(message.as_buffer_slice());
+    do_write_main(std::move(message));
   }
 }
 
+void ObfuscatedTransport::do_write_main(BufferWriter &&message) {
+  BufferBuilder builder(std::move(message));
+  if (!header_.empty()) {
+    builder.prepend(header_);
+    header_ = {};
+  }
+  do_write(builder.extract());
+}
+
 void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
-  if (message.size() > MAX_TLS_PACKET_LENGTH) {
+  CHECK(header_.size() <= MAX_TLS_PACKET_LENGTH);
+  if (message.size() + header_.size() > MAX_TLS_PACKET_LENGTH) {
     auto buffer_slice = message.as_buffer_slice();
     auto slice = buffer_slice.as_slice();
     while (!slice.empty()) {
-      auto buf = buffer_slice.from_slice(slice.substr(0, MAX_TLS_PACKET_LENGTH));
+      auto buf = buffer_slice.from_slice(slice.substr(0, MAX_TLS_PACKET_LENGTH - header_.size()));
       slice.remove_prefix(buf.size());
       BufferBuilder builder;
       builder.append(std::move(buf));
@@ -238,6 +248,11 @@ void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
 }
 
 void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
+  if (!header_.empty()) {
+    builder.prepend(header_);
+    header_ = {};
+  }
+
   size_t size = builder.size();
   CHECK(size <= MAX_TLS_PACKET_LENGTH);
 
