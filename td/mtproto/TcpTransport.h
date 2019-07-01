@@ -181,7 +181,7 @@ class ObfuscatedTransport : public IStreamTransport {
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;
 
-  static constexpr int32 MAX_TLS_PACKET_LENGTH = 1 << 14;
+  static constexpr int32 MAX_TLS_PACKET_LENGTH = 2878;
 
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_

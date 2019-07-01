@@ -25,11 +25,6 @@ void TlsReaderByteFlow::loop() {
       return;
     }
     size_t len = (buf[3] << 8) | buf[4];
-    if (len > (1 << 14)) {
-      close_input(Status::Error("Packet length is too big (emulated tls)"));
-      return;
-    }
-
     if (it.size() < len) {
       set_need_size(5 + len);
       return;
