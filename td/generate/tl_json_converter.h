@@ -7,11 +7,12 @@
 #pragma once
 
 #include "td/tl/tl_config.h"
+#include "td/tl/tl_writer.h"
 
 #include <string>
 
 namespace td {
 
-void gen_json_converter(const tl::tl_config &config, const std::string &file_name);
+void gen_json_converter(const tl::tl_config &config, const std::string &file_name, tl::TL_writer::Mode mode);
 
 }  // namespace td

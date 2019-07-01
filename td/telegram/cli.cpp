@@ -589,13 +589,13 @@ class CliClient final : public Actor {
 
     auto as_json_str = json_encode<std::string>(ToJson(result));
     // LOG(INFO) << "Receive result [" << generation << "][id=" << id << "] " << as_json_str;
-    auto copy_as_json_str = as_json_str;
-    auto as_json_value = json_decode(copy_as_json_str).move_as_ok();
-    td_api::object_ptr<td_api::Object> object;
-    from_json(object, as_json_value).ensure();
-    CHECK(object != nullptr);
-    auto as_json_str2 = json_encode<std::string>(ToJson(object));
-    LOG_CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
+    //auto copy_as_json_str = as_json_str;
+    //auto as_json_value = json_decode(copy_as_json_str).move_as_ok();
+    //td_api::object_ptr<td_api::Object> object;
+    //from_json(object, as_json_value).ensure();
+    //CHECK(object != nullptr);
+    //auto as_json_str2 = json_encode<std::string>(ToJson(object));
+    //LOG_CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
     // LOG(INFO) << "Receive result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {

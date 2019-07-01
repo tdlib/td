@@ -19,6 +19,8 @@
 
 namespace td {
 
+using Mode = tl::TL_writer::Mode;
+
 template <class T>
 void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_header) {
   sb << "void to_json(JsonValueScope &jv, "
@@ -55,8 +57,11 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
   sb << "}\n";
 }
 
-void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header) {
+void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode) {
   for (auto *custom_type : schema.custom_types) {
+    if (!((custom_type->is_query_ && mode != Mode::Server) || (custom_type->is_result_ && mode != Mode::Client))) {
+      continue;
+    }
     if (custom_type->constructors.size() > 1) {
       auto type_name = tl::simple::gen_cpp_name(custom_type->name);
       sb << "void to_json(JsonValueScope &jv, const td_api::" << type_name << " &object)";
@@ -73,6 +78,9 @@ void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_he
     for (auto *constructor : custom_type->constructors) {
       gen_to_json_constructor(sb, constructor, is_header);
     }
+  }
+  if (mode == Mode::Server) {
+    return;
   }
   for (auto *function : schema.functions) {
     gen_to_json_constructor(sb, function, is_header);
@@ -104,11 +112,17 @@ void gen_from_json_constructor(StringBuilder &sb, const T *constructor, bool is_
   }
 }
 
-void gen_from_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header) {
+void gen_from_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode) {
   for (auto *custom_type : schema.custom_types) {
+    if (!((custom_type->is_query_ && mode != Mode::Client) || (custom_type->is_result_ && mode != Mode::Server))) {
+      continue;
+    }
     for (auto *constructor : custom_type->constructors) {
       gen_from_json_constructor(sb, constructor, is_header);
     }
+  }
+  if (mode == Mode::Client) {
+    return;
   }
   for (auto *function : schema.functions) {
     gen_from_json_constructor(sb, function, is_header);
@@ -143,9 +157,12 @@ void gen_tl_constructor_from_string(StringBuilder &sb, Slice name, const Vec &ve
   sb << "}\n";
 }
 
-void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header) {
+void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode) {
   Vec vec_for_nullary;
   for (auto *custom_type : schema.custom_types) {
+    if (!((custom_type->is_query_ && mode != Mode::Client) || (custom_type->is_result_ && mode != Mode::Server))) {
+      continue;
+    }
     Vec vec;
     for (auto *constructor : custom_type->constructors) {
       vec.push_back(std::make_pair(constructor->id, constructor->name));
@@ -158,6 +175,9 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
   }
   gen_tl_constructor_from_string(sb, "Object", vec_for_nullary, is_header);
 
+  if (mode == Mode::Client) {
+    return;
+  }
   Vec vec_for_function;
   for (auto *function : schema.functions) {
     vec_for_function.push_back(std::make_pair(function->id, function->name));
@@ -165,7 +185,8 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
   gen_tl_constructor_from_string(sb, "Function", vec_for_function, is_header);
 }
 
-void gen_json_converter_file(const tl::simple::Schema &schema, const std::string &file_name_base, bool is_header) {
+void gen_json_converter_file(const tl::simple::Schema &schema, const std::string &file_name_base, bool is_header,
+                             Mode mode) {
   auto file_name = is_header ? file_name_base + ".h" : file_name_base + ".cpp";
   file_name = "auto/" + file_name;
   auto old_file_content = [&] {
@@ -202,9 +223,9 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
   }
   sb << "namespace td {\n";
   sb << "namespace td_api{\n";
-  gen_tl_constructor_from_string(sb, schema, is_header);
-  gen_from_json(sb, schema, is_header);
-  gen_to_json(sb, schema, is_header);
+  gen_tl_constructor_from_string(sb, schema, is_header, mode);
+  gen_from_json(sb, schema, is_header, mode);
+  gen_to_json(sb, schema, is_header, mode);
   sb << "}  // namespace td_api\n";
   sb << "}  // namespace td\n";
 
@@ -226,10 +247,10 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
   }
 }
 
-void gen_json_converter(const tl::tl_config &config, const std::string &file_name) {
+void gen_json_converter(const tl::tl_config &config, const std::string &file_name, Mode mode) {
   tl::simple::Schema schema(config);
-  gen_json_converter_file(schema, file_name, true);
-  gen_json_converter_file(schema, file_name, false);
+  gen_json_converter_file(schema, file_name, true, mode);
+  gen_json_converter_file(schema, file_name, false, mode);
 }
 
 }  // namespace td

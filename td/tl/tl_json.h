@@ -39,11 +39,22 @@ inline void to_json(JsonValueScope &jv, const JsonVectorInt64 &vec) {
   }
 }
 
+template <class T>
+auto lazy_to_json(JsonValueScope &jv, const T &t) -> decltype(td_api::to_json(jv, t)) {
+  return td_api::to_json(jv, t);
+}
+
+template <class T>
+void lazy_to_json(std::reference_wrapper<JsonValueScope>, const T &t) {
+  UNREACHABLE();
+}
+
 inline void to_json(JsonValueScope &jv, const td_api::Object &object) {
-  td_api::downcast_call(const_cast<td_api::Object &>(object), [&jv](const auto &object) { to_json(jv, object); });
+  td_api::downcast_call(const_cast<td_api::Object &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
 }
 inline void to_json(JsonValueScope &jv, const td_api::Function &object) {
-  td_api::downcast_call(const_cast<td_api::Function &>(object), [&jv](const auto &object) { to_json(jv, object); });
+  td_api::downcast_call(const_cast<td_api::Function &>(object),
+                        [&jv](const auto &object) { lazy_to_json(jv, object); });
 }
 
 template <class T>
