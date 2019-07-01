@@ -37,6 +37,7 @@ void TlsReaderByteFlow::loop() {
 
     output_.append(it.cut_head(len));
     *input_ = std::move(it);
+    on_output_updated();
   }
 }
 
