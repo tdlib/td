@@ -2603,6 +2603,10 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     parse(status, parser);
     parse(default_permissions, parser);
   } else {
+    if (can_edit != (is_creator || is_administrator || everyone_is_administrator)) {
+      LOG(ERROR) << "Have wrong can_edit flag";
+    }
+
     if (kicked || !is_active) {
       status = DialogParticipantStatus::Banned(0);
     } else if (left) {

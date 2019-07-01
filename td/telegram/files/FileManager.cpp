@@ -2566,7 +2566,7 @@ string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
   auto binary = serialize(location_copy);
 
   binary = zero_encode(binary);
-  binary.push_back(narrow_cast<td::uint8>(Version::Next) - 1);
+  binary.push_back(static_cast<char>(narrow_cast<td::uint8>(Version::Next) - 1));
   binary.push_back(PERSISTENT_ID_VERSION);
   return base64url_encode(binary);
 }
@@ -2660,7 +2660,7 @@ Result<FileId> FileManager::from_persistent_id_v3(Slice binary, FileType file_ty
   if (binary.empty()) {
     return Status::Error("Invalid remote id");
   }
-  auto version = static_cast<uint8>(binary.back());
+  int32 version = static_cast<uint8>(binary.back());
   binary.remove_suffix(1);
   return from_persistent_id_v23(binary, file_type, version);
 }
