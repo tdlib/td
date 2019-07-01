@@ -220,13 +220,11 @@ void ObfuscatedTransport::write(BufferWriter &&message, bool quick_ack) {
 }
 
 void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
-  size_t size = message.size();
-
-  if (size > (1 << 14)) {
+  if (message.size() > MAX_TLS_PACKET_LENGTH) {
     auto buffer_slice = message.as_buffer_slice();
     auto slice = buffer_slice.as_slice();
     while (!slice.empty()) {
-      auto buf = buffer_slice.from_slice(slice.substr(0, 1 << 14));
+      auto buf = buffer_slice.from_slice(slice.substr(0, MAX_TLS_PACKET_LENGTH));
       slice.remove_prefix(buf.size());
       BufferBuilder builder;
       builder.append(std::move(buf));
@@ -241,11 +239,11 @@ void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
 
 void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
   size_t size = builder.size();
-  CHECK(size <= (1 << 14));
+  CHECK(size <= MAX_TLS_PACKET_LENGTH);
 
   char buf[] = "\x17\x03\x03\x00\x00";
-  buf[3] = (size >> 8) & 0xff;
-  buf[4] = size & 0xff;
+  buf[3] = static_cast<char>((size >> 8) & 0xff);
+  buf[4] = static_cast<char>(size & 0xff);
   builder.prepend(Slice(buf, 5));
 
   if (is_first_tls_packet_) {

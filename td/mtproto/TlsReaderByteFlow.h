@@ -12,7 +12,6 @@ namespace td {
 
 class TlsReaderByteFlow final : public ByteFlowBase {
  public:
-  TlsReaderByteFlow() = default;
   void loop() override;
 };
 

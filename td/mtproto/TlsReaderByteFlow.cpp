@@ -21,12 +21,12 @@ void TlsReaderByteFlow::loop() {
     uint8 buf[5];
     it.advance(5, MutableSlice(buf, 5));
     if (Slice(buf, 3) != Slice("\x17\x03\x03")) {
-      close_input(td::Status::Error("Invalid bytes at the beginning of a packet (emulated tls)"));
+      close_input(Status::Error("Invalid bytes at the beginning of a packet (emulated tls)"));
       return;
     }
     size_t len = (buf[3] << 8) | buf[4];
     if (len > (1 << 14)) {
-      close_input(td::Status::Error("Packet lenght is too big (emulated tls)"));
+      close_input(Status::Error("Packet length is too big (emulated tls)"));
       return;
     }
 

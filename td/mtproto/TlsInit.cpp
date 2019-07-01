@@ -8,14 +8,18 @@
 
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/Random.h"
 #include "td/utils/Span.h"
 
+#include <cstdlib>
+
 namespace td {
+
 void Grease::init(MutableSlice res) {
   Random::secure_bytes(res);
   for (auto &c : res) {
-    c = (c & 0xF0) + 0x0A;
+    c = static_cast<char>((c & 0xF0) + 0x0A);
   }
   for (size_t i = 1; i < res.size(); i += 2) {
     if (res[i] == res[i - 1]) {
@@ -110,29 +114,36 @@ class TlsHello {
           Op::string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x02"),
           Op::grease(3),
           Op::string("\x00\x01\x00\x00\x15")};
+      res.grease_size_ = 7;
       return res;
     }();
     return result;
   }
+
   Span<Op> get_ops() const {
     return ops_;
   }
 
+  size_t get_grease_size() const {
+    return grease_size_;
+  }
+
  private:
   std::vector<Op> ops_;
+  size_t grease_size_;
 };
 
 class TlsHelloContext {
  public:
-  explicit TlsHelloContext(std::string domain) {
-    Grease::init(MutableSlice(grease_.data(), grease_.size()));
-    domain_ = std::move(domain);
+  TlsHelloContext(size_t grease_size, std::string domain) : grease_(grease_size, '\0'), domain_(std::move(domain)) {
+    Grease::init(grease_);
   }
+
   char get_grease(size_t i) const {
     CHECK(i < grease_.size());
     return grease_[i];
   }
-  size_t grease_size() const {
+  size_t get_grease_size() const {
     return grease_.size();
   }
   Slice get_domain() const {
@@ -140,8 +151,7 @@ class TlsHelloContext {
   }
 
  private:
-  constexpr static size_t MAX_GREASE = 8;
-  std::array<char, MAX_GREASE> grease_;
+  std::string grease_;
   std::string domain_;
 };
 
@@ -174,7 +184,7 @@ class TlsHelloCalcLength {
         break;
       case Type::Grease:
         CHECK(context);
-        if (op.seed < 0 || static_cast<size_t>(op.seed) >= context->grease_size()) {
+        if (op.seed < 0 || static_cast<size_t>(op.seed) >= context->get_grease_size()) {
           return on_error(Status::Error("Invalid grease seed"));
         }
         size_ += 2;
@@ -234,9 +244,9 @@ class TlsHelloCalcLength {
 
 class TlsHelloStore {
  public:
-  TlsHelloStore(MutableSlice dest) : data_(dest), dest_(dest) {
+  explicit TlsHelloStore(MutableSlice dest) : data_(dest), dest_(dest) {
   }
-  void do_op(const TlsHello::Op &op, TlsHelloContext *context) {
+  void do_op(const TlsHello::Op &op, const TlsHelloContext *context) {
     using Type = TlsHello::Op::Type;
     switch (op.type) {
       case Type::String:
@@ -281,19 +291,20 @@ class TlsHelloStore {
         data_[begin_offset + 1] = static_cast<char>(size & 0xff);
         break;
       }
+      default:
+        UNREACHABLE();
     }
   }
 
-  void finish(int32 unix_time) {
+  void finish(Slice secret, int32 unix_time) {
     int zero_pad = 515 - static_cast<int>(get_offset());
     using Op = TlsHello::Op;
     do_op(Op::begin_scope(), nullptr);
     do_op(Op::zero(zero_pad), nullptr);
     do_op(Op::end_scope(), nullptr);
 
-    auto tmp = sha256(data_);
-    auto hash_dest = data_.substr(11);
-    hash_dest.copy_from(tmp);
+    auto hash_dest = data_.substr(11, 32);
+    hmac_sha256(secret, data_, hash_dest);
     int32 old = as<int32>(hash_dest.substr(28).data());
     as<int32>(hash_dest.substr(28).data()) = old ^ unix_time;
     CHECK(dest_.empty());
@@ -303,97 +314,68 @@ class TlsHelloStore {
   MutableSlice data_;
   MutableSlice dest_;
   std::vector<size_t> scope_offset_;
-  size_t get_offset() {
+
+  size_t get_offset() const {
     return data_.size() - dest_.size();
   }
 };
 
 class TlsObfusaction {
  public:
-  static std::string generate_header(std::string domain, int32 unix_time) {
+  static std::string generate_header(std::string domain, Slice secret, int32 unix_time) {
+    CHECK(!domain.empty());
+    CHECK(secret.size() == 16);
+
     auto &hello = TlsHello::get_default();
-    TlsHelloContext context(domain);
+    TlsHelloContext context(hello.get_grease_size(), std::move(domain));
     TlsHelloCalcLength calc_length;
     for (auto &op : hello.get_ops()) {
       calc_length.do_op(op, &context);
     }
     auto length = calc_length.finish().move_as_ok();
-    std::string data(length, 0);
+    std::string data(length, '\0');
     TlsHelloStore storer(data);
     for (auto &op : hello.get_ops()) {
       storer.do_op(op, &context);
     }
-    storer.finish(0);
+    storer.finish(secret, unix_time);
     return data;
   }
 };
 
 void TlsInit::send_hello() {
-  auto hello = TlsObfusaction::generate_header(username_, 0);
+  auto hello =
+      TlsObfusaction::generate_header(username_, password_, static_cast<int32>(Clocks::system()));  // TODO correct time
   fd_.output_buffer().append(hello);
   state_ = State::WaitHelloResponse;
 }
 
 Status TlsInit::wait_hello_response() {
-  //[
   auto it = fd_.input_buffer().clone();
-  //S "\x16\x03\x03"
-  {
-    Slice first = "\x16\x03\x03";
-    std::string got_first(first.size(), 0);
-    if (it.size() < first.size()) {
-      return td::Status::OK();
+  for (auto first : {Slice("\x16\x03\x03"), Slice("\x14\x03\x03\x00\x01\x01\x17\x03\x03")}) {
+    if (it.size() < first.size() + 2) {
+      return Status::OK();
     }
+
+    std::string got_first(first.size(), '\0');
     it.advance(first.size(), got_first);
     if (first != got_first) {
       return Status::Error("First part of response to hello is invalid");
     }
-  }
 
-  //[
-  {
-    if (it.size() < 2) {
-      return td::Status::OK();
-    }
     uint8 tmp[2];
     it.advance(2, MutableSlice(tmp, 2));
     size_t skip_size = (tmp[0] << 8) + tmp[1];
     if (it.size() < skip_size) {
-      return td::Status::OK();
+      return Status::OK();
     }
     it.advance(skip_size);
   }
 
-  //S "\x14\x03\x03\x00\x01\x01\x17\x03\x03"
-  {
-    Slice first = "\x14\x03\x03\x00\x01\x01\x17\x03\x03";
-    std::string got_first(first.size(), 0);
-    if (it.size() < first.size()) {
-      return td::Status::OK();
-    }
-    it.advance(first.size(), got_first);
-    if (first != got_first) {
-      return Status::Error("Second part of response to hello is invalid");
-    }
-  }
-
-  //[
-  {
-    if (it.size() < 2) {
-      return td::Status::OK();
-    }
-    uint8 tmp[2];
-    it.advance(2, MutableSlice(tmp, 2));
-    size_t skip_size = (tmp[0] << 8) + tmp[1];
-    if (it.size() < skip_size) {
-      return td::Status::OK();
-    }
-    it.advance(skip_size);
-  }
   fd_.input_buffer() = std::move(it);
 
   stop();
-  return td::Status::OK();
+  return Status::OK();
 }
 
 Status TlsInit::loop_impl() {
@@ -407,4 +389,5 @@ Status TlsInit::loop_impl() {
   }
   return Status::OK();
 }
+
 }  // namespace td

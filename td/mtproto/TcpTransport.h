@@ -7,8 +7,8 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
-#include "td/mtproto/TransportType.h"
 #include "td/mtproto/TlsReaderByteFlow.h"
+#include "td/mtproto/TransportType.h"
 
 #include "td/utils/AesCtrByteFlow.h"
 #include "td/utils/buffer.h"
@@ -125,7 +125,7 @@ class ObfuscatedTransport : public IStreamTransport {
  public:
   ObfuscatedTransport(int16 dc_id, std::string secret)
       : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
-    emulate_tls_ = secret.size() >= 17 && secret[0] == '\xee';
+    emulate_tls_ = secret_.size() >= 17 && secret_[0] == '\xee';
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
@@ -154,6 +154,9 @@ class ObfuscatedTransport : public IStreamTransport {
         res += 6;
       }
     }
+    if (res & 3) {
+      res += 4 - (res & 3);
+    }
     return res;
   }
 
@@ -168,13 +171,15 @@ class ObfuscatedTransport : public IStreamTransport {
  private:
   int16 dc_id_;
   std::string secret_;
-  bool emulate_tls_;
+  bool emulate_tls_{false};
   bool is_first_tls_packet_{true};
   TransportImpl impl_;
   TlsReaderByteFlow tls_reader_byte_flow_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;
+
+  static constexpr int32 MAX_TLS_PACKET_LENGTH = 1 << 14;
 
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_

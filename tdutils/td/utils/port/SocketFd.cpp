@@ -86,6 +86,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   Result<size_t> write(Slice data) {
+    // LOG(ERROR) << "Write: " << format::as_hex_dump<0>(data);
     output_writer_.append(data);
     if (is_write_waiting_) {
       auto lock = lock_.lock();
@@ -103,6 +104,8 @@ class SocketFdImpl : private Iocp::Callback {
     auto res = input_reader_.advance(td::min(slice.size(), input_reader_.size()), slice);
     if (res == 0) {
       get_poll_info().clear_flags(PollFlags::Read());
+    } else {
+      // LOG(ERROR) << "Read: " << format::as_hex_dump<0>(Slice(slice.substr(0, res)));
     }
     return res;
   }

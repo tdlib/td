@@ -30,15 +30,12 @@
 #include "td/telegram/net/Session.h"
 #include "td/telegram/NotificationManager.h"
 
-#include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
-#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Random.h"
-#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
@@ -591,15 +588,18 @@ class Mtproto_FastPing : public Test {
 };
 RegisterTest<Mtproto_FastPing> mtproto_fastping("Mtproto_FastPing");
 
-TEST(Mtproto, TlsObfusaction) {
-  std::string s(10000, 'a');
+TEST(Mtproto, Grease) {
+  std::string s(10000, '0');
   Grease::init(s);
   for (auto c : s) {
-    CHECK((c & 0xf) == 0xa);
+    CHECK((c & 0xF) == 0xA);
   }
   for (size_t i = 1; i < s.size(); i += 2) {
     CHECK(s[i] != s[i - 1]);
   }
+}
+
+TEST(Mtproto, TlsObfusaction) {
   std::string domain = "www.google.com";
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   ConcurrentScheduler sched;
@@ -619,7 +619,8 @@ TEST(Mtproto, TlsObfusaction) {
     IPAddress ip_address;
     ip_address.init_host_port(domain, 443).ensure();
     SocketFd fd = SocketFd::open(ip_address).move_as_ok();
-    create_actor<TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "", make_unique<Callback>(), ActorShared<>())
+    create_actor<TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "0123456789secret", make_unique<Callback>(),
+                          ActorShared<>())
         .release();
   }
 

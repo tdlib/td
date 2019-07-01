@@ -502,6 +502,8 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
+  bool emulate_tls = extra.transport_type.emulate_tls();
+
   auto socket_fd_promise =
       PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
                               transport_type = std::move(extra.transport_type)](Result<SocketFd> r_socket_fd) mutable {
@@ -512,7 +514,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
                      std::move(transport_type), std::move(promise));
       });
   CHECK(proxy.use_proxy());
-  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
+  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || emulate_tls) {
     class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
@@ -526,18 +528,25 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
      private:
       Promise<SocketFd> promise_;
     };
+    auto callback = make_unique<Callback>(std::move(socket_fd_promise));
+
     LOG(INFO) << "Start ping proxy: " << extra.debug_str;
     auto token = next_token();
     if (proxy.use_socks5_proxy()) {
       children_[token] = {
           false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
-                                      proxy.proxy().password().str(),
-                                      make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
-    } else {
+                                      proxy.proxy().password().str(), std::move(callback), create_reference(token))};
+    } else if (proxy.use_http_tcp_proxy()) {
+      children_[token] = {false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                                         proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                                         std::move(callback), create_reference(token))};
+    } else if (emulate_tls) {
       children_[token] = {
-          false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
-                                         proxy.proxy().user().str(), proxy.proxy().password().str(),
-                                         make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
+          false, create_actor<TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
+                                       hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
+                                       create_reference(token))};
+    } else {
+      UNREACHABLE();
     }
   } else {
     socket_fd_promise.set_value(std::move(socket_fd));
@@ -1020,10 +1029,13 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         children_[token] = {true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
                                                           proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                           std::move(callback), create_reference(token))};
+      } else if (emulate_tls) {
+        children_[token] = {
+            true, create_actor<TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
+                                        hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
+                                        create_reference(token))};
       } else {
-        children_[token] = {true, create_actor<TlsInit>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
-                                                        "www.google.com" /*todo use domain*/, "", std::move(callback),
-                                                        create_reference(token))};
+        UNREACHABLE();
       }
     } else {
       VLOG(connections) << "In client_loop: create new direct connection " << extra.debug_str;
