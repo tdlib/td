@@ -378,8 +378,8 @@ Status TlsInit::wait_hello_response() {
   auto response_rand_slice = response.as_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
   std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
-  std::string hash_dest(32, 0);
-  hmac_sha256(password_, PSLICE() << hello_rand_ << response_rand, hash_dest);
+  std::string hash_dest(32, '\0');
+  hmac_sha256(password_, PSLICE() << hello_rand_ << response.as_slice(), hash_dest);
   if (hash_dest != response_rand) {
     return td::Status::Error("response hash mismatch");
   }
