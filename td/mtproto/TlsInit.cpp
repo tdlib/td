@@ -12,6 +12,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Span.h"
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace td {
@@ -376,8 +377,8 @@ Status TlsInit::wait_hello_response() {
   auto response = fd_.input_buffer().cut_head(it.begin().clone()).read_as_buffer_slice();
   auto response_rand_slice = response.as_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
-  std::fill(response_rand_slice.begin(), response_rand_slice.end(), 0);
-  std::string hash_dest(32, 0);
+  std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
+  std::string hash_dest(32, '\0');
   hmac_sha256(password_, PSLICE() << hello_rand_ << response_rand_slice, hash_dest);
   if (hash_dest != response_rand) {
     return td::Status::Error("response hash mismatch");
