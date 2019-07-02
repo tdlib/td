@@ -610,7 +610,7 @@ TEST(Mtproto, TlsObfusaction) {
     class Callback : public TransparentProxy::Callback {
      public:
       void set_result(Result<SocketFd> result) override {
-        result.ensure();
+        CHECK(result.is_error() && result.error().message() == "response hash mismatch");
         Scheduler::instance()->finish();
       }
       void on_connected() override {

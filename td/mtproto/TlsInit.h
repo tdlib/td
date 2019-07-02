@@ -27,6 +27,7 @@ class TlsInit : public TransparentProxy {
     SendHello,
     WaitHelloResponse,
   } state_ = State::SendHello;
+  std::string hello_rand_;
 
   void send_hello();
   Status wait_hello_response();

@@ -346,6 +346,7 @@ class TlsObfusaction {
 void TlsInit::send_hello() {
   auto hello =
       TlsObfusaction::generate_header(username_, password_, static_cast<int32>(Clocks::system()));  // TODO correct time
+  hello_rand_ = Slice(hello).substr(11, 32).str();
   fd_.output_buffer().append(hello);
   state_ = State::WaitHelloResponse;
 }
@@ -372,7 +373,15 @@ Status TlsInit::wait_hello_response() {
     it.advance(skip_size);
   }
 
-  fd_.input_buffer() = std::move(it);
+  auto response = fd_.input_buffer().cut_head(it.begin().clone()).read_as_buffer_slice();
+  auto response_rand_slice = response.as_slice().substr(11, 32);
+  auto response_rand = response_rand_slice.str();
+  std::fill(response_rand_slice.begin(), response_rand_slice.end(), 0);
+  std::string hash_dest(32, 0);
+  hmac_sha256(password_, PSLICE() << hello_rand_ << response_rand_slice, hash_dest);
+  if (hash_dest != response_rand) {
+    return td::Status::Error("response hash mismatch");
+  }
 
   stop();
   return Status::OK();
