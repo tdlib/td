@@ -374,7 +374,7 @@ Status TlsInit::wait_hello_response() {
     it.advance(skip_size);
   }
 
-  auto response = fd_.input_buffer().cut_head(it.begin().clone()).read_as_buffer_slice();
+  auto response = fd_.input_buffer().cut_head(it.begin().clone()).move_as_buffer_slice();
   auto response_rand_slice = response.as_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
   std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
