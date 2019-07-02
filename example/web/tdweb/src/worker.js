@@ -61,17 +61,20 @@ async function initLocalForage() {
   localforage.defineDriver(memoryDriver);
 }
 
-async function loadTdlibWasm(onFS) {
+async function loadTdlibWasm(onFS, wasmUrl) {
   console.log('loadTdlibWasm');
   const Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
-  const td_wasm = td_wasm_release;
+  let td_wasm = td_wasm_release;
+  if (wasmUrl) {
+    td_wasm = wasmUrl;
+  }
   const module = Module.default({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
     },
     instantiateWasm: (imports, successCallback) => {
-      log.info('start instantiateWasm');
+      log.info('start instantiateWasm', td_wasm);
       const next = instance => {
         log.info('finish instantiateWasm');
         successCallback(instance);
@@ -99,7 +102,7 @@ async function loadTdlibAsmjs(onFS) {
   console.log('got td_asm.js');
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
-  const module = Module({
+  const module = Module.default({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
     },
@@ -122,7 +125,7 @@ async function loadTdlibAsmjs(onFS) {
   return TdModule;
 }
 
-async function loadTdlib(mode, onFS) {
+async function loadTdlib(mode, onFS, wasmUrl) {
   const wasmSupported = (() => {
     try {
       if (
@@ -152,7 +155,7 @@ async function loadTdlib(mode, onFS) {
   if (mode === 'asmjs') {
     return loadTdlibAsmjs(onFS);
   }
-  return loadTdlibWasm(onFS);
+  return loadTdlibWasm(onFS, wasmUrl);
 }
 
 class OutboundFileSystem {
@@ -481,7 +484,7 @@ class TdClient {
     }
 
     log.info('load TdModule');
-    this.TdModule = await loadTdlib(mode, this.onFS);
+    this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_create', 'number', []),
