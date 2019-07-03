@@ -9,6 +9,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/queue.h"
+#include "td/utils/Random.h"
+#include "td/utils/port/sleep.h"
 
 // TODO: check system calls
 // TODO: all return values must be checked
@@ -899,8 +901,36 @@ class RingBenchmark : public td::Benchmark {
   }
 };
 
+void test_queue() {
+  std::vector<td::thread> threads;
+  constexpr size_t threads_n = 100;
+  std::vector<td::MpscPollableQueue<int>> queues(threads_n);
+  for (auto &q : queues) {
+    q.init();
+  }
+  for (size_t i = 0; i < threads_n; i++) {
+    threads.emplace_back([&q = queues[i]] {
+      while (true) {
+        auto got = q.reader_wait_nonblock();
+        while (got-- > 0) {
+          q.reader_get_unsafe();
+        }
+        q.reader_get_event_fd().wait(1000);
+      }
+    });
+  }
+
+  while (true) {
+    td::usleep_for(100);
+    for (int i = 0; i < 5; i++) {
+      queues[td::Random::fast(0, threads_n - 1)].writer_put(1);
+    }
+  }
+}
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  //test_queue();
 #define BENCH_Q2(Q, N)                      \
   std::fprintf(stderr, "!%s %d:\t", #Q, N); \
   td::bench(QueueBenchmark2<Q>(N));

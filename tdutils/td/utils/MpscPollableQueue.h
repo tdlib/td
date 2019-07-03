@@ -29,9 +29,9 @@ class MpscPollableQueue {
       return narrow_cast<int>(ready);
     }
 
+    event_fd_.acquire();
     auto guard = lock_.lock();
     if (writer_vector_.empty()) {
-      event_fd_.acquire();
       wait_event_fd_ = true;
       return 0;
     } else {
@@ -52,6 +52,7 @@ class MpscPollableQueue {
     writer_vector_.push_back(std::move(value));
     if (wait_event_fd_) {
       wait_event_fd_ = false;
+      guard.reset();
       event_fd_.release();
     }
   }
