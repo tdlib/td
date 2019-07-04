@@ -97,7 +97,7 @@ class Transport {
   static size_t calc_crypto_size(size_t data_size);
 
   template <class HeaderT>
-  static size_t calc_crypto_size2(size_t data_size);
+  static size_t calc_crypto_size2(size_t data_size, PacketInfo *info);
 
   static size_t calc_no_crypto_size(size_t data_size);
 

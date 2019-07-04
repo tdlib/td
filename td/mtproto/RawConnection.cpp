@@ -27,6 +27,7 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
   info.no_crypto_flag = false;
   info.salt = salt;
   info.session_id = session_id;
+  info.use_random_padding = transport_->use_random_padding();
 
   auto packet = BufferWriter{Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
                              transport_->max_append_size()};

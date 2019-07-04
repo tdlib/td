@@ -31,6 +31,7 @@ class IStreamTransport {
   virtual size_t max_prepend_size() const = 0;
   virtual size_t max_append_size() const = 0;
   virtual TransportType get_type() const = 0;
+  virtual bool use_random_padding() const = 0;
 };
 
 unique_ptr<IStreamTransport> create_transport(TransportType type);

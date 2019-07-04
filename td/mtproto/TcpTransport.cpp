@@ -61,7 +61,7 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
 
   size_t append_size = 0;
   if (with_padding()) {
-    append_size = static_cast<uint32>(Random::secure_int32()) % 16;
+    append_size = Random::secure_uint32() % 16;
     MutableSlice append = message->prepare_append().truncate(append_size);
     CHECK(append.size() == append_size);
     Random::secure_bytes(append);
@@ -170,15 +170,16 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   string rheader = header;
   std::reverse(rheader.begin(), rheader.end());
   UInt256 key = as<UInt256>(rheader.data() + 8);
-  if (secret_.size() == 17) {
-    secret_ = secret_.substr(1);
+  Slice secret_view = secret_;
+  if (secret_view.size() == 17) {
+    secret_view.remove_prefix(1);
   }
   auto fix_key = [&](UInt256 &key) {
-    if (secret_.size() == 16) {
+    if (secret_view.size() == 16) {
       Sha256State state;
       sha256_init(&state);
       sha256_update(as_slice(key), &state);
-      sha256_update(secret_, &state);
+      sha256_update(secret_view, &state);
       sha256_final(&state, as_slice(key));
     }
   };

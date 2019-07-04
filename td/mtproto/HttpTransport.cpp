@@ -100,6 +100,10 @@ size_t Transport::max_append_size() const {
   return 0;
 }
 
+bool Transport::use_random_padding() const {
+  return false;
+}
+
 }  // namespace http
 }  // namespace mtproto
 }  // namespace td

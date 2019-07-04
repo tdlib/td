@@ -42,6 +42,7 @@ class Transport : public IStreamTransport {
   TransportType get_type() const override {
     return {TransportType::Http, 0, secret_};
   }
+  bool use_random_padding() const override;
 
  private:
   string secret_;

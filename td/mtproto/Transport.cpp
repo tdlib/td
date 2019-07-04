@@ -158,11 +158,10 @@ std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key,
   return std::make_pair(as<uint32>(msg_key_large_raw) | (1u << 31), res);
 }
 
-template <class HeaderT>
-size_t Transport::calc_crypto_size2(size_t data_size) {
-  size_t enc_size = HeaderT::encrypted_header_size();
-  size_t raw_size = sizeof(HeaderT) - enc_size;
+namespace {
+size_t do_calc_crypto_size2_basic(size_t data_size, size_t enc_size, size_t raw_size) {
   size_t encrypted_size = (enc_size + data_size + 12 + 15) & ~15;
+
   std::array<size_t, 10> sizes{{64, 128, 192, 256, 384, 512, 768, 1024, 1280}};
   for (auto size : sizes) {
     if (encrypted_size <= size) {
@@ -172,6 +171,29 @@ size_t Transport::calc_crypto_size2(size_t data_size) {
   encrypted_size = (encrypted_size - 1280 + 447) / 448 * 448 + 1280;
 
   return raw_size + encrypted_size;
+}
+
+size_t do_calc_crypto_size2_rand(size_t data_size, size_t enc_size, size_t raw_size) {
+  size_t rand_data_size = td::Random::secure_uint32() & 0xff;
+  size_t encrypted_size = (enc_size + data_size + rand_data_size + 12 + 15) & ~15;
+  return raw_size + encrypted_size;
+}
+}  // namespace
+
+template <class HeaderT>
+size_t Transport::calc_crypto_size2(size_t data_size, PacketInfo *info) {
+  if (info->size != 0) {
+    return info->size;
+  }
+
+  size_t enc_size = HeaderT::encrypted_header_size();
+  size_t raw_size = sizeof(HeaderT) - enc_size;
+  if (info->use_random_padding) {
+    info->size = narrow_cast<uint32>(do_calc_crypto_size2_rand(data_size, enc_size, raw_size));
+  } else {
+    info->size = narrow_cast<uint32>(do_calc_crypto_size2_basic(data_size, enc_size, raw_size));
+  }
+  return info->size;
 }
 
 size_t Transport::calc_no_crypto_size(size_t data_size) {
@@ -332,7 +354,7 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
   if (info->version == 1) {
     size = calc_crypto_size<HeaderT>(data_size);
   } else {
-    size = calc_crypto_size2<HeaderT>(data_size);
+    size = calc_crypto_size2<HeaderT>(data_size, info);
   }
 
   size_t pad_size = size - (sizeof(HeaderT) + data_size);
@@ -365,7 +387,7 @@ size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, Pa
   if (info->version == 1) {
     size = calc_crypto_size<CryptoHeader>(data_size);
   } else {
-    size = calc_crypto_size2<CryptoHeader>(data_size);
+    size = calc_crypto_size2<CryptoHeader>(data_size, info);
   }
   if (size > dest.size()) {
     return size;
@@ -388,7 +410,7 @@ size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key
   if (info->version == 1) {
     size = calc_crypto_size<EndToEndHeader>(data_size);
   } else {
-    size = calc_crypto_size2<EndToEndHeader>(data_size);
+    size = calc_crypto_size2<EndToEndHeader>(data_size, info);
   }
   if (size > dest.size()) {
     return size;

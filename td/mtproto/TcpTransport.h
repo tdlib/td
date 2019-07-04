@@ -115,6 +115,10 @@ class OldTransport : public IStreamTransport {
     return TransportType{TransportType::Tcp, 0, ""};
   }
 
+  bool use_random_padding() const override {
+    return false;
+  }
+
  private:
   TransportImpl impl_{false};
   ChainBufferReader *input_;
@@ -126,6 +130,7 @@ class ObfuscatedTransport : public IStreamTransport {
   ObfuscatedTransport(int16 dc_id, std::string secret)
       : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
     emulate_tls_ = secret_.size() >= 17 && secret_[0] == '\xee';
+    use_random_padding_ = secret_.size() >= 17;
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
@@ -168,11 +173,15 @@ class ObfuscatedTransport : public IStreamTransport {
   TransportType get_type() const override {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
+  bool use_random_padding() const override {
+    return use_random_padding_;
+  }
 
  private:
   int16 dc_id_;
   std::string secret_;
   bool emulate_tls_{false};
+  bool use_random_padding_{false};
   bool is_first_tls_packet_{true};
   std::string header_;
   TransportImpl impl_;
