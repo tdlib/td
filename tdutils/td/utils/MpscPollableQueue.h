@@ -44,6 +44,7 @@ class MpscPollableQueue {
       }
       event_fd_.acquire();
     }
+    UNREACHABLE();
   }
   ValueType reader_get_unsafe() {
     return std::move(reader_vector_[reader_pos_++]);
