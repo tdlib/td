@@ -29,16 +29,20 @@ class MpscPollableQueue {
       return narrow_cast<int>(ready);
     }
 
-    event_fd_.acquire();
-    auto guard = lock_.lock();
-    if (writer_vector_.empty()) {
-      wait_event_fd_ = true;
-      return 0;
-    } else {
-      reader_vector_.clear();
-      reader_pos_ = 0;
-      std::swap(writer_vector_, reader_vector_);
-      return narrow_cast<int>(reader_vector_.size());
+    for (int i = 0; i < 2; i++) {
+      auto guard = lock_.lock();
+      if (writer_vector_.empty()) {
+        if (i == 1) {
+          wait_event_fd_ = true;
+          return 0;
+        }
+      } else {
+        reader_vector_.clear();
+        reader_pos_ = 0;
+        std::swap(writer_vector_, reader_vector_);
+        return narrow_cast<int>(reader_vector_.size());
+      }
+      event_fd_.acquire();
     }
   }
   ValueType reader_get_unsafe() {
