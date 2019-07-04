@@ -81,6 +81,18 @@ int64 Random::secure_int64() {
   return res;
 }
 
+uint32 Random::secure_uint32() {
+  uint32 res = 0;
+  secure_bytes(reinterpret_cast<unsigned char *>(&res), sizeof(uint32));
+  return res;
+}
+
+uint64 Random::secure_uint64() {
+  uint64 res = 0;
+  secure_bytes(reinterpret_cast<unsigned char *>(&res), sizeof(uint64));
+  return res;
+}
+
 void Random::add_seed(Slice bytes, double entropy) {
   RAND_add(bytes.data(), static_cast<int>(bytes.size()), entropy);
   random_seed_generation++;
