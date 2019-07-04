@@ -71,17 +71,20 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   td_db_ = std::move(td_db_ptr);
 
   string save_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
+  auto default_time_difference = Clocks::system() - Time::now();
   if (save_diff_str.empty()) {
-    server_time_difference_ = Clocks::system() - Time::now();
+    server_time_difference_ = default_time_difference;
     server_time_difference_was_updated_ = false;
   } else {
     double save_diff;
     unserialize(save_diff, save_diff_str).ensure();
-    double diff = save_diff + Clocks::system() - Time::now();
+    double diff = save_diff + default_time_difference;
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
     server_time_difference_ = diff;
     server_time_difference_was_updated_ = false;
   }
+  dns_time_difference_ = default_time_difference;
+  dns_time_difference_was_updated_ = false;
 
   return Status::OK();
 }
@@ -97,6 +100,27 @@ void Global::update_server_time_difference(double diff) {
     auto str = serialize(save_diff);
     td_db()->get_binlog_pmc()->set("server_time_difference", str);
   }
+}
+
+void Global::update_dns_time_difference(double diff) {
+  dns_time_difference_ = diff;
+  dns_time_difference_was_updated_ = true;
+}
+
+double Global::get_dns_time_difference() const {
+  // rely that was updated flag is monotonic. Currenly it is true. If it stops being monitonic at some point it won't
+  // lead to problems anyway.
+  bool dns_flag = dns_time_difference_was_updated_;
+  double dns_diff = dns_time_difference_;
+  bool server_flag = server_time_difference_was_updated_;
+  double server_diff = server_time_difference_;
+  if (dns_flag != server_flag) {
+    return dns_flag ? dns_diff : server_diff;
+  }
+  if (dns_flag) {
+    return std::max(dns_diff, server_diff);
+  }
+  return server_diff;
 }
 
 DcId Global::get_webfile_dc_id() const {

@@ -137,6 +137,10 @@ class Global : public ActorContext {
     return server_time_difference_.load(std::memory_order_relaxed);
   }
 
+  void update_dns_time_difference(double diff);
+
+  double get_dns_time_difference() const;
+
   ActorId<StateManager> state_manager() const {
     return state_manager_;
   }
@@ -383,6 +387,8 @@ class Global : public ActorContext {
 
   std::atomic<double> server_time_difference_{0.0};
   std::atomic<bool> server_time_difference_was_updated_{false};
+  std::atomic<double> dns_time_difference_{0.0};
+  std::atomic<bool> dns_time_difference_was_updated_{false};
   std::atomic<bool> close_flag_{false};
 
   std::vector<std::shared_ptr<NetStatsCallback>> net_stats_file_callbacks_;
