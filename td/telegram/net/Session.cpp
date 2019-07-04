@@ -955,7 +955,6 @@ void Session::connection_open_finish(ConnectionInfo *info,
     }
   }
 
-  // mtproto::TransportType transport_type = raw_connection->get_transport_type();
   mtproto::SessionConnection::Mode mode;
   Slice mode_name;
   if (mode_ == Mode::Tcp) {

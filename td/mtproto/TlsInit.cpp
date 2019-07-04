@@ -346,7 +346,7 @@ class TlsObfusaction {
 
 void TlsInit::send_hello() {
   auto hello =
-      TlsObfusaction::generate_header(username_, password_, static_cast<int32>(Clocks::system()));  // TODO correct time
+      TlsObfusaction::generate_header(username_, password_, static_cast<int32>(Time::now() + server_time_difference_));
   hello_rand_ = hello.substr(11, 32);
   fd_.output_buffer().append(hello);
   state_ = State::WaitHelloResponse;

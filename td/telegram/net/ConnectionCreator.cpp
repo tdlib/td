@@ -544,7 +544,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       children_[token] = {
           false, create_actor<TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
                                        hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
-                                       create_reference(token))};
+                                       create_reference(token), G()->get_server_time_difference())};
     } else {
       UNREACHABLE();
     }
@@ -1033,7 +1033,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         children_[token] = {
             true, create_actor<TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
                                         hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
-                                        create_reference(token))};
+                                        create_reference(token), G()->get_server_time_difference())};
       } else {
         UNREACHABLE();
       }

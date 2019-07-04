@@ -620,7 +620,7 @@ TEST(Mtproto, TlsObfusaction) {
     ip_address.init_host_port(domain, 443).ensure();
     SocketFd fd = SocketFd::open(ip_address).move_as_ok();
     create_actor<TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "0123456789secret", make_unique<Callback>(),
-                          ActorShared<>())
+                          ActorShared<>(), Clocks::system() - Time::now())
         .release();
   }
 
