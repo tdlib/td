@@ -455,6 +455,7 @@ class ConfigRecoverer : public Actor {
         VLOG(config_recoverer) << "Config has expired at " << config->expires_;
       }
 
+      G()->update_server_time_difference(config->date_ - Time::now());
       simple_config_expires_at_ = get_config_expire_time();
       simple_config_at_ = Time::now_cached();
       for (size_t i = 1; i < simple_config_.dc_options.size(); i++) {
