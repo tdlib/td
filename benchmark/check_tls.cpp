@@ -21,8 +21,8 @@
 #include <map>
 
 struct TlsInfo {
-  td::vector<td::int32> extension_list;
-  size_t encrypted_application_data_length = 0;
+  td::vector<size_t> extension_list;
+  td::vector<size_t> encrypted_application_data_length;
 };
 
 td::Result<TlsInfo> test_tls(const td::string &url) {
@@ -104,11 +104,12 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
   td::string result;
   size_t pos = 0;
   size_t server_hello_length = 0;
+  size_t encrypted_application_data_length_sum = 0;
   while (td::Time::now() < end_time) {
-    char buf[1];
+    char buf[20000];
     TRY_RESULT(res, socket.read(td::MutableSlice{buf, sizeof(buf)}));
     if (res > 0) {
-      auto read_length = [&] {
+      auto read_length = [&]() -> size_t {
         CHECK(result.size() >= 2 + pos);
         pos += 2;
         return static_cast<unsigned char>(result[pos - 2]) * 256 + static_cast<unsigned char>(result[pos - 1]);
@@ -177,22 +178,31 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
             }
           }
           if (pos == 5 + server_hello_length) {
-            CHECK_LENGTH(9);
+            CHECK_LENGTH(6);
             EXPECT_STR(pos, "\x14\x03\x03\x00\x01\x01", "Expected dummy ChangeCipherSpec");
-            EXPECT_STR(pos + 6, "\x17\x03\x03", "Expected encrypted application data");
-            pos += 9;
+            pos += 6;
           }
-          if (pos == 14 + server_hello_length) {
+          if (pos == 11 + server_hello_length + encrypted_application_data_length_sum) {
+            if (pos == result.size()) {
+              return info;
+            }
+
+            CHECK_LENGTH(3);
+            EXPECT_STR(pos, "\x17\x03\x03", "Expected encrypted application data");
+            pos += 3;
+          }
+          if (pos == 14 + server_hello_length + encrypted_application_data_length_sum) {
             CHECK_LENGTH(2);
-            info.encrypted_application_data_length = read_length();
-            if (info.encrypted_application_data_length == 0) {
+            size_t encrypted_application_data_length = read_length();
+            info.encrypted_application_data_length.push_back(encrypted_application_data_length);
+            if (encrypted_application_data_length == 0) {
               return td::Status::Error("Receive empty encrypted application data");
             }
           }
-          if (info.encrypted_application_data_length > 0) {
-            CHECK_LENGTH(info.encrypted_application_data_length);
-            pos += info.encrypted_application_data_length;
-            return info;
+          if (pos == 16 + server_hello_length + encrypted_application_data_length_sum) {
+            CHECK_LENGTH(info.encrypted_application_data_length.back());
+            pos += info.encrypted_application_data_length.back();
+            encrypted_application_data_length_sum += info.encrypted_application_data_length.back() + 5;
           }
         }
       }
@@ -221,8 +231,8 @@ int main(int argc, char *argv[]) {
   }
   for (auto &url : urls) {
     const int MAX_TRIES = 100;
-    std::map<size_t, int> length_count;
-    td::vector<td::int32> extension_list;
+    td::vector<std::map<size_t, int>> length_count;
+    td::vector<size_t> extension_list;
     for (int i = 0; i < MAX_TRIES; i++) {
       auto r_tls_info = test_tls(url);
       if (r_tls_info.is_error()) {
@@ -230,7 +240,12 @@ int main(int argc, char *argv[]) {
         break;
       } else {
         auto tls_info = r_tls_info.move_as_ok();
-        length_count[tls_info.encrypted_application_data_length]++;
+        if (length_count.size() < tls_info.encrypted_application_data_length.size()) {
+          length_count.resize(tls_info.encrypted_application_data_length.size());
+        }
+        for (size_t t = 0; t < tls_info.encrypted_application_data_length.size(); t++) {
+          length_count[t][tls_info.encrypted_application_data_length[t]]++;
+        }
         if (i == 0) {
           extension_list = tls_info.extension_list;
         } else {
@@ -243,16 +258,22 @@ int main(int argc, char *argv[]) {
       }
 
       if (i == MAX_TRIES - 1) {
-        if (extension_list != td::vector<td::int32>{51, 43} && extension_list != td::vector<td::int32>{43, 51}) {
+        if (extension_list != td::vector<size_t>{51, 43} && extension_list != td::vector<size_t>{43, 51}) {
           LOG(ERROR) << url << ": TLS 1.3.0 unsupported extension list " << extension_list;
         } else {
           td::string length_distribution = "|";
-          for (auto it : length_count) {
-            length_distribution += PSTRING()
-                                   << it.first << " : " << static_cast<int>(it.second * 100.0 / MAX_TRIES) << "%|";
+          for (size_t t = 0; t < length_count.size(); t++) {
+            for (auto it : length_count[t]) {
+              length_distribution += PSTRING()
+                                     << it.first << " : " << static_cast<int>(it.second * 100.0 / MAX_TRIES) << "%|";
+            }
+            if (t + 1 != length_count.size()) {
+              length_distribution += " + |";
+            }
           }
-          LOG(ERROR) << url << ": TLS 1.3.0 with extensions " << extension_list
-                     << " and encrypted application data length distribution " << length_distribution;
+          LOG(ERROR) << url << ": TLS 1.3.0 with extensions " << extension_list << " and "
+                     << (length_count.size() != 1 ? "unsupported " : "")
+                     << "encrypted application data length distribution " << length_distribution;
         }
       }
     }
