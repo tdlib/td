@@ -658,6 +658,14 @@ class ChainBufferWriter {
     }
     return res;
   }
+  MutableSlice prepare_append_at_least(size_t size) {
+    CHECK(!empty());
+    auto res = prepare_append_inplace();
+    if (res.size() < size) {
+      return prepare_append_alloc(size);
+    }
+    return res;
+  }
   MutableSlice prepare_append_inplace() {
     CHECK(!empty());
     return writer_.prepare_append();
@@ -679,9 +687,9 @@ class ChainBufferWriter {
     writer_.confirm_append(size);
   }
 
-  void append(Slice slice) {
+  void append(Slice slice, size_t hint = 0) {
     while (!slice.empty()) {
-      auto ready = prepare_append(slice.size());
+      auto ready = prepare_append(td::max(slice.size(), hint));
       auto shift = min(ready.size(), slice.size());
       std::memcpy(ready.data(), slice.data(), shift);
       confirm_append(shift);

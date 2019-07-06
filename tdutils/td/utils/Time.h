@@ -15,17 +15,21 @@ namespace td {
 
 class Time {
  public:
-  static double now() {
-    double now = Clocks::monotonic();
-    now_.store(now, std::memory_order_relaxed);
-    return now;
-  }
+  static double now();
   static double now_cached() {
-    return now_.load(std::memory_order_relaxed);
+    // Temporary(?) use now in now_cached
+    // Problem:
+    //   thread A: check that now() > timestamp and notifies thread B
+    //   thread B: must see that now() > timestamp()
+    //
+    //   now() and now_cached() must be monotonic
+    //
+    //   if a=now[_cached]() happens before b=now[_cached] than
+    //     a <= b
+    //
+    // As an alternative we may say that now_cached is a thread local copy of now
+    return now();
   }
-
- private:
-  static std::atomic<double> now_;
 };
 
 inline void relax_timeout_at(double *timeout, double new_timeout) {
@@ -70,6 +74,9 @@ class Timestamp {
 
   double at() const {
     return at_;
+  }
+  double at_unix() {
+    return at_ + td::Clocks::system() - Time::now();
   }
 
   double in() const {

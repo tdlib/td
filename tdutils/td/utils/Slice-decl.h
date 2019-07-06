@@ -9,6 +9,7 @@
 #include "td/utils/common.h"
 
 #include <type_traits>
+#include <limits>
 
 namespace td {
 
@@ -57,6 +58,8 @@ class MutableSlice {
 
   char &back();
   char &operator[](size_t i);
+
+  static const size_t npos = std::numeric_limits<size_t>::max();
 };
 
 class Slice {
@@ -120,6 +123,8 @@ class Slice {
 
   char back() const;
   char operator[](size_t i) const;
+
+  static const size_t npos = std::numeric_limits<size_t>::max();
 };
 
 bool operator==(const Slice &a, const Slice &b);

@@ -401,7 +401,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
-  LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
+  LOG(DEBUG + 10) << "Try to init IP address of " << host << " with port " << port;
   auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (err != 0) {
 #if TD_WINDOWS
@@ -466,7 +466,7 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
   }
 
   is_valid_ = true;
-  LOG(INFO) << "Have address " << get_ip_str() << " with port " << get_port();
+  LOG(DEBUG + 10) << "Have address " << get_ip_str() << " with port " << get_port();
   return Status::OK();
 }
 
@@ -497,6 +497,11 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
 CSlice IPAddress::ipv4_to_str(uint32 ipv4) {
   ipv4 = ntohl(ipv4);
   return ::td::get_ip_str(AF_INET, &ipv4);
+}
+
+CSlice IPAddress::ipv6_to_str(Slice ipv6) {
+  CHECK(ipv6.size() == 16);
+  return ::td::get_ip_str(AF_INET6, ipv6.ubegin());
 }
 
 Slice IPAddress::get_ip_str() const {

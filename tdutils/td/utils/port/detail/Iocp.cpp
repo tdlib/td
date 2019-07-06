@@ -25,7 +25,7 @@ void Iocp::loop() {
     ULONG_PTR key = 0;
     WSAOVERLAPPED *overlapped = nullptr;
     BOOL ok =
-        GetQueuedCompletionStatus(iocp_handle_.fd(), &bytes, &key, reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
+        GetQueuedCompletionStatus(iocp_handle_->fd(), &bytes, &key, reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
     if (bytes || key || overlapped) {
       // LOG(ERROR) << "Got IOCP " << bytes << " " << key << " " << overlapped;
     }
@@ -58,30 +58,52 @@ void Iocp::init() {
     auto error = OS_ERROR("IOCP creation failed");
     LOG(FATAL) << error;
   }
-  iocp_handle_ = NativeFd(res);
+  iocp_handle_ = std::make_shared<NativeFd>(res);
 }
 
 void Iocp::clear() {
-  iocp_handle_.close();
+  iocp_handle_.reset();
 }
 
 void Iocp::subscribe(const NativeFd &native_fd, Callback *callback) {
   CHECK(iocp_handle_);
   auto iocp_handle =
-      CreateIoCompletionPort(native_fd.fd(), iocp_handle_.fd(), reinterpret_cast<ULONG_PTR>(callback), 0);
+      CreateIoCompletionPort(native_fd.fd(), iocp_handle_->fd(), reinterpret_cast<ULONG_PTR>(callback), 0);
   if (iocp_handle == nullptr) {
     auto error = OS_ERROR("CreateIoCompletionPort");
     LOG(FATAL) << error;
   }
-  LOG_CHECK(iocp_handle == iocp_handle_.fd()) << iocp_handle << " " << iocp_handle_.fd();
+  LOG_CHECK(iocp_handle == iocp_handle_->fd()) << iocp_handle << " " << iocp_handle_->fd();
 }
 
-void Iocp::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
-  if (PostQueuedCompletionStatus(iocp_handle_.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
+IocpRef Iocp::get_ref() const {
+  return IocpRef(iocp_handle_);
+}
+
+namespace {
+void iocp_post(NativeFd &iocp_handle, size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped) {
+  if (PostQueuedCompletionStatus(iocp_handle.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
                                  reinterpret_cast<OVERLAPPED *>(overlapped)) == 0) {
     auto error = OS_ERROR("IOCP post failed");
     LOG(FATAL) << error;
   }
+}
+}  // namespace
+
+void Iocp::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
+  iocp_post(*iocp_handle_, size, callback, overlapped);
+}
+
+IocpRef::IocpRef(std::weak_ptr<NativeFd> iocp_handle) : iocp_handle_(std::move(iocp_handle)) {
+}
+
+bool IocpRef::post(size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped) {
+  auto iocp_handle = iocp_handle_.lock();
+  if (!iocp_handle) {
+    return false;
+  }
+  iocp_post(*iocp_handle, size, callback, overlapped);
+  return true;
 }
 
 }  // namespace detail

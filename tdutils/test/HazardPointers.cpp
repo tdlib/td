@@ -26,12 +26,12 @@ TEST(HazardPointers, stress) {
   int thread_id = 0;
   for (auto &thread : threads) {
     thread = td::thread([&, thread_id] {
-      auto holder = hazard_pointers.get_holder(thread_id, 0);
+      std::remove_reference_t<decltype(hazard_pointers)>::Holder holder(hazard_pointers, thread_id, 0);
       for (int i = 0; i < 1000000; i++) {
         auto &node = nodes[td::Random::fast(0, threads_n - 1)];
         auto *str = holder.protect(node.name_);
         if (str) {
-          CHECK(*str == "one" || *str == "twotwo");
+          CHECK(*str == td::Slice("one") || *str == td::Slice("twotwo"));
         }
         holder.clear();
         if (td::Random::fast(0, 5) == 0) {

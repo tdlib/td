@@ -11,7 +11,9 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/IoSlice.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 
 #include <limits>
@@ -103,13 +105,25 @@ Result<size_t> BufferedFdBase<FdT>::flush_read(size_t max_read) {
 
 template <class FdT>
 Result<size_t> BufferedFdBase<FdT>::flush_write() {
-  size_t result = 0;
   // TODO: sync on demand
   write_->sync_with_writer();
+  size_t result = 0;
   while (!write_->empty() && ::td::can_write(*this)) {
-    Slice slice = write_->prepare_read();
-    TRY_RESULT(x, FdT::write(slice));
-    write_->confirm_read(x);
+    constexpr size_t buf_size = 20;
+    IoSlice buf[buf_size];
+
+    auto it = write_->clone();
+    size_t buf_i;
+    for (buf_i = 0; buf_i < buf_size; buf_i++) {
+      Slice slice = it.prepare_read();
+      if (slice.empty()) {
+        break;
+      }
+      buf[buf_i] = as_io_slice(slice);
+      it.confirm_read(slice.size());
+    }
+    TRY_RESULT(x, FdT::writev(Span<IoSlice>(buf, buf_i)));
+    write_->advance(x);
     result += x;
   }
   return result;

@@ -12,6 +12,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
+#include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -118,7 +119,7 @@ inline string rand_string(char from, char to, int len) {
   return res;
 }
 
-inline vector<string> rand_split(string str) {
+inline vector<string> rand_split(Slice str) {
   vector<string> res;
   size_t pos = 0;
   while (pos < str.size()) {
@@ -128,7 +129,7 @@ inline vector<string> rand_split(string str) {
     } else {
       len = Random::fast(100, 200);
     }
-    res.push_back(str.substr(pos, len));
+    res.push_back(str.substr(pos, len).str());
     pos += len;
   }
   return res;

@@ -31,4 +31,6 @@ void signal_safe_write_signal_number(int sig, bool add_header = true);
 
 void signal_safe_write_pointer(void *p, bool add_header = true);
 
+Status set_default_failure_signal_handler();
+
 }  // namespace td

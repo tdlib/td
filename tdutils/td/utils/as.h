@@ -28,7 +28,7 @@ class As {
   }
   ~As() = default;
 
-  As &operator=(const T &new_value) && {
+  As &operator=(T new_value) && {
     std::memcpy(ptr_, &new_value, sizeof(T));
     return *this;
   }

@@ -53,7 +53,7 @@ class DecTree {
       T->left_ = std::move(P.first);
       T->right_ = std::move(P.second);
       T->relax();
-      return std::move(T);
+      return T;
     }
     if (Compare()(key, Tree->key_)) {
       Tree->left_ = insert_node(std::move(Tree->left_), std::move(key), std::move(value), y);
@@ -151,7 +151,7 @@ class DecTree {
       P.first = std::move(Tree);
       return P;
     }
-  }
+  }  // namespace td
 
   static unique_ptr<Node> merge_node(unique_ptr<Node> left, unique_ptr<Node> right) {
     if (left == nullptr) {

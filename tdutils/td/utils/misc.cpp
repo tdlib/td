@@ -169,6 +169,17 @@ bool is_zero_or_one(unsigned char c) {
 
 }  // namespace
 
+string buffer_to_hex(Slice buffer) {
+  const char *hex = "0123456789ABCDEF";
+  std::string res(2 * buffer.size(), '\0');
+  for (std::size_t i = 0; i < buffer.size(); i++) {
+    auto c = buffer.ubegin()[i];
+    res[2 * i] = hex[c & 15];
+    res[2 * i + 1] = hex[c >> 4];
+  }
+  return res;
+}
+
 std::string zero_encode(Slice data) {
   return x_encode(data, is_zero);
 }

@@ -105,4 +105,8 @@
 
 #define TD_CONCURRENCY_PAD 128
 
+#if !TD_WINDOWS && defined(__SIZEOF_INT128__)
+#define TD_HAVE_INT128 1
+#endif
+
 // clang-format on

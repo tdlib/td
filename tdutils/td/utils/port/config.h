@@ -40,7 +40,7 @@
 
 #if TD_EMSCRIPTEN
   #define TD_THREAD_UNSUPPORTED 1
-#elif TD_TIZEN
+#elif TD_TIZEN || TD_LINUX || TD_DARWIN
   #define TD_THREAD_PTHREAD 1
 #else
   #define TD_THREAD_STL 1

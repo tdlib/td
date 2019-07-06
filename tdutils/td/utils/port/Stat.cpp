@@ -349,7 +349,7 @@ Result<CpuStat> cpu_stat() {
 namespace td {
 
 Result<Stat> stat(CSlice path) {
-  TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read));
+  TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read | FileFd::PrivateFlags::WinStat));
   return fd.stat();
 }
 

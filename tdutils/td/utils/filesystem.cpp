@@ -83,7 +83,7 @@ Status write_file(CSlice to, Slice data) {
   return Status::OK();
 }
 
-static std::string clean_filename_part(Slice name, int max_length) {
+static string clean_filename_part(Slice name, int max_length) {
   auto is_ok = [](uint32 code) {
     if (code < 32) {
       return false;
@@ -137,7 +137,7 @@ static std::string clean_filename_part(Slice name, int max_length) {
   return new_name;
 }
 
-std::string clean_filename(CSlice name) {
+string clean_filename(CSlice name) {
   if (!check_utf8(name)) {
     return {};
   }

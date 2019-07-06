@@ -20,6 +20,10 @@ class VectorQueue {
   void push(S &&s) {
     vector_.push_back(std::forward<S>(s));
   }
+  template <class... Args>
+  void emplace(Args &&... args) {
+    vector_.emplace_back(std::forward<Args>(args)...);
+  }
   T pop() {
     try_shrink();
     return std::move(vector_[read_pos_++]);

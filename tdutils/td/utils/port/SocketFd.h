@@ -11,7 +11,9 @@
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/IPAddress.h"
+#include "td/utils/port/IoSlice.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 
 #include <memory>
@@ -43,6 +45,7 @@ class SocketFd {
   Status get_pending_error() TD_WARN_UNUSED_RESULT;
 
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
+  Result<size_t> writev(Span<IoSlice> slices) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
 
   const NativeFd &get_native_fd() const;

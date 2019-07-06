@@ -71,17 +71,27 @@ string sha512(Slice data) TD_WARN_UNUSED_RESULT;
 
 struct Sha256StateImpl;
 
+struct Sha256State;
+void sha256_init(Sha256State *state);
+void sha256_update(Slice data, Sha256State *state);
+void sha256_final(Sha256State *state, MutableSlice output, bool destroy = true);
+
 struct Sha256State {
   Sha256State();
   Sha256State(Sha256State &&from);
   Sha256State &operator=(Sha256State &&from);
   ~Sha256State();
+  void init() {
+    sha256_init(this);
+  }
+  void feed(Slice data) {
+    sha256_update(data, this);
+  }
+  void extract(MutableSlice dest) {
+    sha256_final(this, dest, false);
+  }
   unique_ptr<Sha256StateImpl> impl;
 };
-
-void sha256_init(Sha256State *state);
-void sha256_update(Slice data, Sha256State *state);
-void sha256_final(Sha256State *state, MutableSlice output);
 
 void md5(Slice input, MutableSlice output);
 
@@ -89,6 +99,7 @@ void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice
 void pbkdf2_sha512(Slice password, Slice salt, int iteration_count, MutableSlice dest);
 
 void hmac_sha256(Slice key, Slice message, MutableSlice dest);
+void hmac_sha512(Slice key, Slice message, MutableSlice dest);
 
 // Interface may be improved
 Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data);
@@ -103,8 +114,11 @@ uint32 crc32(Slice data);
 
 #if TD_HAVE_CRC32C
 uint32 crc32c(Slice data);
+uint32 crc32c_extend(uint32 old_crc, Slice data);
+uint32 crc32c_extend(uint32 old_crc, uint32 new_crc, size_t data_size);
 #endif
 
 uint64 crc64(Slice data);
+uint16 crc16(Slice data);
 
 }  // namespace td

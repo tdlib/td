@@ -109,7 +109,15 @@ class ServerSocketFdImpl : private Iocp::Callback {
     VLOG(fd) << get_native_fd() << " on_read";
     if (is_read_active_) {
       is_read_active_ = false;
-      auto r_socket = SocketFd::from_native_fd(std::move(accept_socket_));
+      auto r_socket = [&]() -> Result<SocketFd> {
+        auto from = get_native_fd().socket();
+        auto status = setsockopt(accept_socket_.socket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
+                                 reinterpret_cast<const char *>(&from), sizeof(from));
+        if (status != 0) {
+          return OS_SOCKET_ERROR("Failed to set SO_UPDATE_ACCEPT_CONTEXT options");
+        }
+        return SocketFd::from_native_fd(std::move(accept_socket_));
+      }();
       VLOG(fd) << get_native_fd() << " finish accept";
       if (r_socket.is_error()) {
         return on_error(r_socket.move_as_error());

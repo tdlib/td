@@ -10,10 +10,11 @@
 
 #include <array>
 #include <atomic>
+#include <memory>
 
 namespace td {
 
-template <class T, int MaxPointersN = 1>
+template <class T, int MaxPointersN = 1, class Deleter = std::default_delete<T>>
 class HazardPointers {
  public:
   explicit HazardPointers(size_t threads_n) : threads_(threads_n) {
@@ -35,12 +36,17 @@ class HazardPointers {
 
   class Holder {
    public:
-    T *protect(std::atomic<T *> &to_protect) {
+    template <class S>
+    S *protect(std::atomic<S *> &to_protect) {
       return do_protect(hazard_ptr_, to_protect);
+    }
+    Holder(HazardPointers &hp, size_t thread_id, size_t pos) : Holder(hp.get_hazard_ptr(thread_id, pos)) {
+      CHECK(hazard_ptr_.load() == 0);
+      hazard_ptr_.store(reinterpret_cast<T *>(1));
     }
     Holder(const Holder &other) = delete;
     Holder &operator=(const Holder &other) = delete;
-    Holder(Holder &&other) = default;  // TODO
+    Holder(Holder &&other) = delete;
     Holder &operator=(Holder &&other) = delete;
     ~Holder() {
       clear();
@@ -56,15 +62,11 @@ class HazardPointers {
     std::atomic<T *> &hazard_ptr_;
   };
 
-  Holder get_holder(size_t thread_id, size_t pos) {
-    return Holder(get_hazard_ptr(thread_id, pos));
-  }
-
   void retire(size_t thread_id, T *ptr = nullptr) {
     CHECK(thread_id < threads_.size());
     auto &data = threads_[thread_id];
     if (ptr) {
-      data.to_delete.push_back(unique_ptr<T>(ptr));
+      data.to_delete.push_back(std::unique_ptr<T, Deleter>(ptr));
     }
     for (auto it = data.to_delete.begin(); it != data.to_delete.end();) {
       if (!is_protected(it->get())) {
@@ -95,23 +97,24 @@ class HazardPointers {
  private:
   struct ThreadData {
     std::array<std::atomic<T *>, MaxPointersN> hazard;
-    char pad[TD_CONCURRENCY_PAD - sizeof(std::array<std::atomic<T *>, MaxPointersN>)];
+    char pad[TD_CONCURRENCY_PAD - sizeof(hazard)];
 
     // stupid gc
-    std::vector<unique_ptr<T>> to_delete;
-    char pad2[TD_CONCURRENCY_PAD - sizeof(std::vector<unique_ptr<T>>)];
+    std::vector<std::unique_ptr<T, Deleter>> to_delete;
+    char pad2[TD_CONCURRENCY_PAD - sizeof(to_delete)];
   };
   std::vector<ThreadData> threads_;
-  char pad2[TD_CONCURRENCY_PAD - sizeof(std::vector<ThreadData>)];
+  char pad2[TD_CONCURRENCY_PAD - sizeof(threads_)];
 
-  static T *do_protect(std::atomic<T *> &hazard_ptr, std::atomic<T *> &to_protect) {
+  template <class S>
+  static S *do_protect(std::atomic<T *> &hazard_ptr, std::atomic<S *> &to_protect) {
     T *saved = nullptr;
     T *to_save;
     while ((to_save = to_protect.load()) != saved) {
       hazard_ptr.store(to_save);
       saved = to_save;
     }
-    return saved;
+    return static_cast<S *>(saved);
   }
 
   static void do_clear(std::atomic<T *> &hazard_ptr) {

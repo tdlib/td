@@ -16,6 +16,9 @@ namespace td {
 Timer::Timer() : start_time_(Time::now()) {
 }
 
+double Timer::elapsed() const {
+  return Time::now() - start_time_;
+}
 StringBuilder &operator<<(StringBuilder &string_builder, const Timer &timer) {
   return string_builder << "in " << Time::now() - timer.start_time_;
 }

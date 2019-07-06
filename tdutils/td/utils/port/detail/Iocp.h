@@ -19,6 +19,7 @@
 namespace td {
 namespace detail {
 
+class IocpRef;
 class Iocp final : public Context<Iocp> {
  public:
   Iocp() = default;
@@ -41,12 +42,27 @@ class Iocp final : public Context<Iocp> {
   void interrupt_loop();
   void clear();
 
+  IocpRef get_ref() const;
+
  private:
-  NativeFd iocp_handle_;
-  std::vector<td::thread> workers_;
+  std::shared_ptr<NativeFd> iocp_handle_;
 };
 
-}  // namespace detail
+class IocpRef {
+ public:
+  IocpRef() = default;
+  IocpRef(const Iocp &) = delete;
+  IocpRef &operator=(const Iocp &) = delete;
+  IocpRef(IocpRef &&) = default;
+  IocpRef &operator=(IocpRef &&) = default;
+
+  IocpRef(std::weak_ptr<NativeFd> iocp_handle);
+
+  bool post(size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped);
+ private:
+  std::weak_ptr<NativeFd> iocp_handle_;
+};
+} // namespace detail
 }  // namespace td
 
 #endif

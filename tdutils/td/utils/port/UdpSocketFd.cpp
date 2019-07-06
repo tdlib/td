@@ -784,6 +784,80 @@ bool UdpSocketFd::empty() const {
 const NativeFd &UdpSocketFd::get_native_fd() const {
   return get_poll_info().native_fd();
 }
+
+#if TD_PORT_POSIX
+td::Result<td::uint32> UdpSocketFd::maximize_snd_buffer(td::uint32 max) {
+  socklen_t intsize = sizeof(td::uint32);
+  td::uint32 last_good = 0;
+  td::uint32 min, avg;
+  td::uint32 old_size;
+
+  auto socket_fd = get_native_fd().fd();
+
+  if (!max) {
+    max = default_udp_max_snd_buffer_size;
+  }
+
+  /* Start with the default size. */
+  if (getsockopt(socket_fd, SOL_SOCKET, SO_SNDBUF, &old_size, &intsize)) {
+    return td::Status::PosixError(errno, "getsockopt() failed");
+  }
+
+  /* Binary-search for the real maximum. */
+  min = last_good = old_size;
+
+  while (min <= max) {
+    avg = (min + max) / 2;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_SNDBUF, &avg, intsize) == 0) {
+      last_good = avg;
+      min = avg + 1;
+    } else {
+      max = avg - 1;
+    }
+  }
+  return last_good;
+}
+
+td::Result<td::uint32> UdpSocketFd::maximize_rcv_buffer(td::uint32 max) {
+  socklen_t intsize = sizeof(td::uint32);
+  td::uint32 last_good = 0;
+  td::uint32 min, avg;
+  td::uint32 old_size;
+
+  auto socket_fd = get_native_fd().fd();
+
+  if (!max) {
+    max = default_udp_max_rcv_buffer_size;
+  }
+
+  /* Start with the default size. */
+  if (getsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &old_size, &intsize)) {
+    return td::Status::PosixError(errno, "getsockopt() failed");
+  }
+
+  /* Binary-search for the real maximum. */
+  min = last_good = old_size;
+
+  while (min <= max) {
+    avg = (min + max) / 2;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &avg, intsize) == 0) {
+      last_good = avg;
+      min = avg + 1;
+    } else {
+      max = avg - 1;
+    }
+  }
+  return last_good;
+}
+#else
+td::Result<td::uint32> UdpSocketFd::maximize_snd_buffer(td::uint32 max) {
+  return 0;
+}
+td::Result<td::uint32> UdpSocketFd::maximize_rcv_buffer(td::uint32 max) {
+  return 0;
+}
+#endif
+
 #if TD_PORT_POSIX
 Status UdpSocketFd::send_message(const OutboundMessage &message, bool &is_sent) {
   return impl_->send_message(message, is_sent);

@@ -51,6 +51,18 @@ class SpanImpl {
     SpanImpl copy{other};
     *this = copy;
   }
+  template <class OtherInnerT>
+  bool operator==(const SpanImpl<T, OtherInnerT> &other) const {
+    if (size() != other.size()) {
+      return false;
+    }
+    for (size_t i = 0; i < size(); i++) {
+      if ((*this)[i] != other[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   InnerT &operator[](size_t i) {
     DCHECK(i < size());
@@ -73,6 +85,9 @@ class SpanImpl {
   }
   size_t size() const {
     return size_;
+  }
+  bool empty() const {
+    return size() == 0;
   }
 
   SpanImpl &truncate(size_t size) {
@@ -98,5 +113,14 @@ using Span = detail::SpanImpl<T, const T>;
 
 template <class T>
 using MutableSpan = detail::SpanImpl<T, T>;
+
+template <class T>
+auto span(const T *ptr, size_t size) {
+  return Span<T>(ptr, size);
+}
+template <class T>
+auto mutable_span(T *ptr, size_t size) {
+  return MutableSpan<T>(ptr, size);
+}
 
 }  // namespace td

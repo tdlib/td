@@ -110,7 +110,7 @@ inline size_t MutableSlice::find(char c) const {
       return pos;
     }
   }
-  return static_cast<size_t>(-1);
+  return npos;
 }
 
 inline size_t MutableSlice::rfind(char c) const {
@@ -119,7 +119,7 @@ inline size_t MutableSlice::rfind(char c) const {
       return pos;
     }
   }
-  return static_cast<size_t>(-1);
+  return npos;
 }
 
 inline void MutableSlice::copy_from(Slice from) {
@@ -245,7 +245,7 @@ inline size_t Slice::find(char c) const {
       return pos;
     }
   }
-  return static_cast<size_t>(-1);
+  return npos;
 }
 
 inline size_t Slice::rfind(char c) const {
@@ -254,7 +254,7 @@ inline size_t Slice::rfind(char c) const {
       return pos;
     }
   }
-  return static_cast<size_t>(-1);
+  return npos;
 }
 
 inline char Slice::back() const {
@@ -303,6 +303,7 @@ inline std::size_t SliceHash::operator()(Slice slice) const {
 inline Slice as_slice(Slice slice) {
   return slice;
 }
+
 inline MutableSlice as_slice(MutableSlice slice) {
   return slice;
 }

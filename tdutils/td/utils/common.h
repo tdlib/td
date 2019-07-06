@@ -64,6 +64,13 @@
 #endif
 // clang-format on
 
+#if TD_USE_ASAN
+#include <sanitizer/lsan_interface.h>
+#define TD_LSAN_IGNORE(x) __lsan_ignore_object(x)
+#else
+#define TD_LSAN_IGNORE(x) (void)(x)
+#endif
+
 namespace td {
 
 inline bool likely(bool x) {

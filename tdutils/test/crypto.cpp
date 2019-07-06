@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/base64.h"
+#include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/Slice.h"
@@ -164,7 +165,59 @@ TEST(Crypto, crc32c) {
 
   for (std::size_t i = 0; i < strings.size(); i++) {
     ASSERT_EQ(answers[i], td::crc32c(strings[i]));
+
+    auto v = td::rand_split(strings[i]);
+    td::uint32 a = 0;
+    td::uint32 b = 0;
+    for (auto &x : v) {
+      a = td::crc32c_extend(a, x);
+      auto x_crc = td::crc32c(x);
+      b = td::crc32c_extend(b, x_crc, x.size());
+    }
+    ASSERT_EQ(answers[i], a);
+    ASSERT_EQ(answers[i], b);
   }
+}
+TEST(Crypto, crc32c_benchmark) {
+  class Crc32cExtendBenchmark : public td::Benchmark {
+   public:
+    Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
+    }
+    std::string get_description() const override {
+      return PSTRING() << "Crc32c with chunk_size=" << chunk_size_;
+    }
+    void start_up_n(int n) override {
+      if (n > (1 << 20)) {
+        cnt_ = n / (1 << 20);
+        n = (1 << 20);
+      } else {
+        cnt_ = 1;
+      }
+      data_ = std::string(n, 'a');
+    }
+    void run(int n) override {
+      td::uint32 res = 0;
+      for (int i = 0; i < cnt_; i++) {
+        td::Slice data(data_);
+        while (!data.empty()) {
+          auto head = data.substr(0, chunk_size_);
+          data = data.substr(head.size());
+          res = td::crc32c_extend(res, head);
+        }
+      }
+      td::do_not_optimize_away(res);
+    }
+
+   private:
+    size_t chunk_size_;
+    std::string data_;
+    int cnt_;
+  };
+  bench(Crc32cExtendBenchmark(2));
+  bench(Crc32cExtendBenchmark(8));
+  bench(Crc32cExtendBenchmark(32));
+  bench(Crc32cExtendBenchmark(128));
+  bench(Crc32cExtendBenchmark(65536));
 }
 #endif
 
@@ -173,6 +226,14 @@ TEST(Crypto, crc64) {
 
   for (std::size_t i = 0; i < strings.size(); i++) {
     ASSERT_EQ(answers[i], td::crc64(strings[i]));
+  }
+}
+
+TEST(Crypto, crc16) {
+  td::vector<td::uint16> answers{0, 9842, 25046, 37023};
+
+  for (std::size_t i = 0; i < strings.size(); i++) {
+    ASSERT_EQ(answers[i], td::crc16(strings[i]));
   }
 }
 

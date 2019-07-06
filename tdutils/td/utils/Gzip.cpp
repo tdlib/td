@@ -129,9 +129,23 @@ void Gzip::clear() {
 Gzip::Gzip() : impl_(make_unique<Impl>()) {
 }
 
-Gzip::Gzip(Gzip &&other) = default;
+Gzip::Gzip(Gzip &&other) : Gzip() {
+  swap(other);
+}
 
-Gzip &Gzip::operator=(Gzip &&other) = default;
+Gzip &Gzip::operator=(Gzip &&other) {
+  clear();
+  swap(other);
+  return *this;
+}
+
+void Gzip::swap(Gzip &other) {
+  std::swap(impl_, other.impl_);
+  std::swap(input_size_, other.input_size_);
+  std::swap(output_size_, other.output_size_);
+  std::swap(close_input_flag_, other.close_input_flag_);
+  std::swap(mode_, other.mode_);
+}
 
 Gzip::~Gzip() {
   clear();

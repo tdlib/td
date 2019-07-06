@@ -109,7 +109,7 @@ class Variant {
   static constexpr int npos = -1;
   Variant() {
   }
-  Variant(Variant &&other) {
+  Variant(Variant &&other) noexcept {
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
   }
   Variant(const Variant &other) {

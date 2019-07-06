@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/logging.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -25,7 +26,7 @@ class MpmcWaiter {
       auto state = state_.load(std::memory_order_relaxed);
       if (!State::has_worker(state)) {
         auto new_state = State::with_worker(state, worker_id);
-        if (state_.compare_exchange_strong(state, new_state)) {
+        if (state_.compare_exchange_strong(state, new_state, std::memory_order_acq_rel)) {
           td::this_thread::yield();
           return yields + 1;
         }
@@ -62,6 +63,7 @@ class MpmcWaiter {
   }
 
   void notify() {
+    std::atomic_thread_fence(std::memory_order_seq_cst);
     if (state_.load(std::memory_order_acquire) == State::awake()) {
       return;
     }
