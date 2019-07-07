@@ -2947,7 +2947,7 @@ sendMessage chat_id:int53 reply_to_message_id:int53 disable_notification:Bool fr
 sendMessageAlbum chat_id:int53 reply_to_message_id:int53 disable_notification:Bool from_background:Bool input_message_contents:vector<InputMessageContent> = Messages;
 
 //@description Invites a bot to a chat (if it is not yet a member) and sends it the /start command. Bots can't be invited to a private chat other than the chat with the bot. Bots can't be invited to channels (although they can be added as admins) and secret chats. Returns the sent message
-//@bot_user_id Identifier of the bot @chat_id Identifier of the target chat @parameter A hidden parameter sent to the bot for deep linking purposes (https://api.telegram.org/bots#deep-linking)
+//@bot_user_id Identifier of the bot @chat_id Identifier of the target chat @parameter A hidden parameter sent to the bot for deep linking purposes (https://core.telegram.org/bots#deep-linking)
 sendBotStartMessage bot_user_id:int32 chat_id:int53 parameter:string = Message;
 
 //@description Sends the result of an inline query as a message. Returns the sent message. Always clears a chat draft message @chat_id Target chat @reply_to_message_id Identifier of a message to reply to or 0
