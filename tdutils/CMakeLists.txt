@@ -105,7 +105,6 @@ set(TDUTILS_SOURCE
   td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
-  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/unicode.cpp
@@ -185,6 +184,9 @@ set(TDUTILS_SOURCE
   td/utils/format.h
   td/utils/Gzip.h
   td/utils/GzipByteFlow.h
+  td/utils/Hash.h
+  td/utils/HashMap.h
+  td/utils/HashSet.h
   td/utils/HazardPointers.h
   td/utils/Heap.h
   td/utils/Hints.h
@@ -298,8 +300,7 @@ if (CRC32C_FOUND)
   target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 if (ABSL_FOUND)
-  #target_link_libraries(tdutils PRIVATE absl::base absl::time)
-  target_link_libraries_system(tdutils absl::base absl::container absl::hash )
+  target_link_libraries(tdutils absl::base absl::container absl::hash)
 endif()
 
 if (WIN32 AND WINGETOPT_FOUND)
