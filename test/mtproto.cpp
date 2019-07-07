@@ -599,29 +599,36 @@ TEST(Mtproto, Grease) {
   }
 }
 
-TEST(Mtproto, TlsObfusaction) {
-  std::string domain = "www.google.com";
+TEST(Mtproto, TlsTransport) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   ConcurrentScheduler sched;
   int threads_n = 1;
   sched.init(threads_n);
   {
     auto guard = sched.get_main_guard();
-    class Callback : public TransparentProxy::Callback {
-     public:
-      void set_result(Result<SocketFd> result) override {
-        CHECK(result.is_error() && result.error().message() == "Response hash mismatch");
-        Scheduler::instance()->finish();
-      }
-      void on_connected() override {
+    class RunTest : public Actor {
+     private:
+      void start_up() override {
+        class Callback : public TransparentProxy::Callback {
+         public:
+          void set_result(Result<SocketFd> result) override {
+            CHECK(result.is_error() && result.error().message() == "Response hash mismatch");
+            Scheduler::instance()->finish();
+          }
+          void on_connected() override {
+          }
+        };
+
+        const std::string domain = "www.google.com";
+        IPAddress ip_address;
+        ip_address.init_host_port(domain, 443).ensure();
+        SocketFd fd = SocketFd::open(ip_address).move_as_ok();
+        create_actor<TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "0123456789secret",
+                              make_unique<Callback>(), ActorShared<>(), Clocks::system() - Time::now())
+            .release();
       }
     };
-    IPAddress ip_address;
-    ip_address.init_host_port(domain, 443).ensure();
-    SocketFd fd = SocketFd::open(ip_address).move_as_ok();
-    create_actor<TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "0123456789secret", make_unique<Callback>(),
-                          ActorShared<>(), Clocks::system() - Time::now())
-        .release();
+    create_actor<RunTest>("RunTest").release();
   }
 
   sched.start();
