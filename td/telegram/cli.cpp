@@ -3936,9 +3936,35 @@ void main(int argc, char **argv) {
     ConcurrentScheduler scheduler;
     scheduler.init(3);
 
+    class CreateClient : public Actor {
+     public:
+      CreateClient(ConcurrentScheduler *scheduler, bool use_test_dc, bool get_chat_list, bool disable_network,
+                   int32 api_id, std::string api_hash)
+          : scheduler_(scheduler)
+          , use_test_dc_(use_test_dc)
+          , get_chat_list_(get_chat_list)
+          , disable_network_(disable_network)
+          , api_id_(api_id)
+          , api_hash_(std::move(api_hash)) {
+      }
+
+     private:
+      void start_up() override {
+        create_actor<CliClient>("CliClient", scheduler_, use_test_dc_, get_chat_list_, disable_network_, api_id_,
+                                api_hash_)
+            .release();
+      }
+
+      ConcurrentScheduler *scheduler_;
+      bool use_test_dc_;
+      bool get_chat_list_;
+      bool disable_network_;
+      int32 api_id_;
+      std::string api_hash_;
+    };
     scheduler
-        .create_actor_unsafe<CliClient>(0, "CliClient", &scheduler, use_test_dc, get_chat_list, disable_network, api_id,
-                                        api_hash)
+        .create_actor_unsafe<CreateClient>(0, "CreateClient", &scheduler, use_test_dc, get_chat_list, disable_network,
+                                           api_id, api_hash)
         .release();
 
     scheduler.start();
