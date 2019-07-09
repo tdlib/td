@@ -117,4 +117,5 @@ std::shared_ptr<AuthDataShared> AuthDataShared::create(DcId dc_id, std::shared_p
                                                        std::shared_ptr<Guard> guard) {
   return std::make_shared<AuthDataSharedImpl>(dc_id, std::move(public_rsa_key), std::move(guard));
 }
+
 }  // namespace td

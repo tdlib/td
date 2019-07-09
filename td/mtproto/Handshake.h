@@ -17,7 +17,6 @@
 #include "td/utils/UInt.h"
 
 namespace td {
-
 namespace mtproto {
 
 class AuthKeyHandshakeContext {

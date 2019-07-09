@@ -14,6 +14,7 @@
 
 namespace td {
 namespace mtproto {
+
 HandshakeActor::HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_ptr<RawConnection> raw_connection,
                                unique_ptr<AuthKeyHandshakeContext> context, double timeout,
                                Promise<unique_ptr<RawConnection>> raw_connection_promise,
@@ -86,5 +87,6 @@ void HandshakeActor::return_handshake() {
   }
   handshake_promise_.set_value(std::move(handshake_));
 }
+
 }  // namespace mtproto
 }  // namespace td

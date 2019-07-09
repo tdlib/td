@@ -20,5 +20,5 @@ namespace mtproto {
 ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
                              Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent);
 
-}
+}  // namespace mtproto
 }  // namespace td

@@ -245,4 +245,5 @@ void DcAuthManager::loop() {
     dc_loop(dc);
   }
 }
+
 }  // namespace td

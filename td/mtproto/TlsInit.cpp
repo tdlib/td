@@ -16,6 +16,7 @@
 #include <cstdlib>
 
 namespace td {
+namespace mtproto {
 
 void Grease::init(MutableSlice res) {
   Random::secure_bytes(res);
@@ -400,4 +401,5 @@ Status TlsInit::loop_impl() {
   return Status::OK();
 }
 
+}  // namespace mtproto
 }  // namespace td

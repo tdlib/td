@@ -20,6 +20,7 @@
 #include <utility>
 
 namespace td {
+
 enum class AuthState : int32 { Empty, KeyNoAuth, OK };
 
 inline StringBuilder &operator<<(StringBuilder &sb, AuthState state) {

@@ -9,6 +9,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
+namespace mtproto {
 
 void TlsReaderByteFlow::loop() {
   while (true) {
@@ -36,4 +37,5 @@ void TlsReaderByteFlow::loop() {
   }
 }
 
+}  // namespace mtproto
 }  // namespace td

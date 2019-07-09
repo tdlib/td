@@ -52,4 +52,5 @@ class NetQueryCounter {
  private:
   bool is_alive_;
 };
+
 }  // namespace td

@@ -9,10 +9,12 @@
 #include "td/utils/ByteFlow.h"
 
 namespace td {
+namespace mtproto {
 
 class TlsReaderByteFlow final : public ByteFlowBase {
  public:
   void loop() override;
 };
 
+}  // namespace mtproto
 }  // namespace td

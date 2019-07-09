@@ -12,6 +12,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
+namespace mtproto {
 
 class Grease {
  public:
@@ -41,4 +42,5 @@ class TlsInit : public TransparentProxy {
   Status loop_impl() override;
 };
 
+}  // namespace mtproto
 }  // namespace td

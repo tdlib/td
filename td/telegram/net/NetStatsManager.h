@@ -143,6 +143,7 @@ class NetStatsManager : public Actor {
   void on_stats_updated(size_t id);
   void on_net_type_updated(NetType net_type);
 };
+
 }  // namespace td
 
 /*

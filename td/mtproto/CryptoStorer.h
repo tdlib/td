@@ -25,6 +25,7 @@ class msg_container {
   static const int32 ID = 0x73f1f8dc;
 };
 }  // namespace mtproto_api
+
 namespace mtproto {
 
 template <class Object, class ObjectStorer>

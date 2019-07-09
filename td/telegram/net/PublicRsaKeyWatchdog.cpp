@@ -118,4 +118,5 @@ void PublicRsaKeyWatchdog::sync_key(std::shared_ptr<PublicRsaKeyShared> &key) {
     }
   }
 }
+
 }  // namespace td

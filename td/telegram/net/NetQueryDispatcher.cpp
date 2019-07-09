@@ -6,6 +6,7 @@
 //
 #include "td/telegram/net/NetQueryDispatcher.h"
 
+#include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDelayer.h"

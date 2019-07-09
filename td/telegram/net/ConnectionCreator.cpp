@@ -475,10 +475,10 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
                                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                          std::move(callback), create_reference(token))};
     } else if (secret.emulate_tls()) {
-      children_[token] = {
-          false, create_actor<TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
-                                       secret.get_proxy_secret().str(), std::move(callback), create_reference(token),
-                                       G()->get_dns_time_difference())};
+      children_[token] = {false, create_actor<mtproto::TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip,
+                                                                secret.get_domain(), secret.get_proxy_secret().str(),
+                                                                std::move(callback), create_reference(token),
+                                                                G()->get_dns_time_difference())};
     } else {
       UNREACHABLE();
     }
@@ -968,9 +968,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
                                                           std::move(callback), create_reference(token))};
       } else if (secret.emulate_tls()) {
         children_[token] = {
-            true, create_actor<TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
-                                        secret.get_proxy_secret().str(), std::move(callback), create_reference(token),
-                                        G()->get_dns_time_difference())};
+            true, create_actor<mtproto::TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
+                                                 secret.get_proxy_secret().str(), std::move(callback),
+                                                 create_reference(token), G()->get_dns_time_difference())};
       } else {
         UNREACHABLE();
       }

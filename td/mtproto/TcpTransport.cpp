@@ -16,6 +16,7 @@
 namespace td {
 namespace mtproto {
 namespace tcp {
+
 size_t IntermediateTransport::read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) {
   CHECK(message);
   size_t stream_size = stream->size();
