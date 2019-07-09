@@ -125,61 +125,6 @@ class ConnectionCreator::ProxyInfo {
   IPAddress ip_address_;
 };
 
-template <class StorerT>
-void Proxy::store(StorerT &storer) const {
-  using td::store;
-  store(type_, storer);
-  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
-    store(server_, storer);
-    store(port_, storer);
-    store(user_, storer);
-    store(password_, storer);
-  } else if (type_ == Proxy::Type::Mtproto) {
-    store(server_, storer);
-    store(port_, storer);
-    store(secret_.get_encoded_secret(), storer);
-  } else {
-    CHECK(type_ == Proxy::Type::None);
-  }
-}
-
-template <class ParserT>
-void Proxy::parse(ParserT &parser) {
-  using td::parse;
-  parse(type_, parser);
-  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
-    parse(server_, parser);
-    parse(port_, parser);
-    parse(user_, parser);
-    parse(password_, parser);
-  } else if (type_ == Proxy::Type::Mtproto) {
-    parse(server_, parser);
-    parse(port_, parser);
-    secret_ = mtproto::ProxySecret::from_link(parser.template fetch_string<Slice>()).move_as_ok();
-  } else {
-    LOG_CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
-  }
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
-  switch (proxy.type()) {
-    case Proxy::Type::Socks5:
-      return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::HttpTcp:
-      return string_builder << "ProxyHttpTcp " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::HttpCaching:
-      return string_builder << "ProxyHttpCaching " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::Mtproto:
-      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/"
-                            << proxy.secret().get_encoded_secret();
-    case Proxy::Type::None:
-      return string_builder << "ProxyEmpty";
-    default:
-      UNREACHABLE();
-      return string_builder;
-  }
-}
-
 ConnectionCreator::ClientInfo::ClientInfo() {
   flood_control.add_limit(1, 1);
   flood_control.add_limit(4, 2);

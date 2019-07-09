@@ -580,6 +580,7 @@ set(TDLIB_SOURCE
   td/telegram/net/NetQueryDispatcher.h
   td/telegram/net/NetStatsManager.h
   td/telegram/net/NetType.h
+  td/telegram/net/Proxy.h
   td/telegram/net/PublicRsaKeyShared.h
   td/telegram/net/PublicRsaKeyWatchdog.h
   td/telegram/net/Session.h

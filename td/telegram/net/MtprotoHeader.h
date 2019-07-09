@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/Proxy.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"

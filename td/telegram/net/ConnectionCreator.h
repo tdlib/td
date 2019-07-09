@@ -13,17 +13,17 @@
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/Proxy.h"
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/AuthData.h"
-#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/TransportType.h"
+
+#include "td/net/NetStats.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
-
-#include "td/net/NetStats.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FloodControlStrict.h"
@@ -32,7 +32,6 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
 #include <map>
@@ -54,98 +53,6 @@ class GetHostByNameActor;
 namespace td {
 
 extern int VERBOSITY_NAME(connections);
-
-class Proxy {
- public:
-  static Proxy socks5(string server, int32 port, string user, string password) {
-    Proxy proxy;
-    proxy.type_ = Type::Socks5;
-    proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
-    proxy.user_ = std::move(user);
-    proxy.password_ = std::move(password);
-    return proxy;
-  }
-
-  static Proxy http_tcp(string server, int32 port, string user, string password) {
-    Proxy proxy;
-    proxy.type_ = Type::HttpTcp;
-    proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
-    proxy.user_ = std::move(user);
-    proxy.password_ = std::move(password);
-    return proxy;
-  }
-
-  static Proxy http_caching(string server, int32 port, string user, string password) {
-    Proxy proxy;
-    proxy.type_ = Type::HttpCaching;
-    proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
-    proxy.user_ = std::move(user);
-    proxy.password_ = std::move(password);
-    return proxy;
-  }
-
-  static Proxy mtproto(string server, int32 port, mtproto::ProxySecret secret) {
-    Proxy proxy;
-    proxy.type_ = Type::Mtproto;
-    proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
-    proxy.secret_ = std::move(secret);
-    return proxy;
-  }
-
-  CSlice server() const {
-    return server_;
-  }
-
-  int32 port() const {
-    return port_;
-  }
-
-  CSlice user() const {
-    return user_;
-  }
-
-  CSlice password() const {
-    return password_;
-  }
-
-  const mtproto::ProxySecret &secret() const {
-    return secret_;
-  }
-
-  enum class Type : int32 { None, Socks5, Mtproto, HttpTcp, HttpCaching };
-  Type type() const {
-    return type_;
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-
-  template <class ParserT>
-  void parse(ParserT &parser);
-
- private:
-  Type type_{Type::None};
-  string server_;
-  int32 port_ = 0;
-  string user_;
-  string password_;
-  mtproto::ProxySecret secret_;
-};
-
-inline bool operator==(const Proxy &lhs, const Proxy &rhs) {
-  return lhs.type() == rhs.type() && lhs.server() == rhs.server() && lhs.port() == rhs.port() &&
-         lhs.user() == rhs.user() && lhs.password() == rhs.password() && lhs.secret() == rhs.secret();
-}
-
-inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy);
 
 class ConnectionCreator : public NetQueryCallback {
  public:
