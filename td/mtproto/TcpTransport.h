@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/TlsReaderByteFlow.h"
 #include "td/mtproto/TransportType.h"
 
@@ -112,7 +113,7 @@ class OldTransport : public IStreamTransport {
   }
 
   TransportType get_type() const override {
-    return TransportType{TransportType::Tcp, 0, ""};
+    return TransportType{TransportType::Tcp, 0, ProxySecret()};
   }
 
   bool use_random_padding() const override {
@@ -127,10 +128,8 @@ class OldTransport : public IStreamTransport {
 
 class ObfuscatedTransport : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, std::string secret)
-      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
-    emulate_tls_ = secret_.size() >= 17 && secret_[0] == '\xee';
-    use_random_padding_ = secret_.size() >= 17;
+  ObfuscatedTransport(int16 dc_id, const ProxySecret &secret)
+      : dc_id_(dc_id), secret_(secret), impl_(secret_.use_random_padding()) {
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
@@ -153,7 +152,7 @@ class ObfuscatedTransport : public IStreamTransport {
 
   size_t max_prepend_size() const override {
     size_t res = 4;
-    if (emulate_tls_) {
+    if (secret_.emulate_tls()) {
       res += 5;
       if (is_first_tls_packet_) {
         res += 6;
@@ -174,21 +173,19 @@ class ObfuscatedTransport : public IStreamTransport {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
   bool use_random_padding() const override {
-    return use_random_padding_;
+    return secret_.use_random_padding();
   }
 
  private:
   int16 dc_id_;
-  std::string secret_;
-  bool emulate_tls_{false};
-  bool use_random_padding_{false};
   bool is_first_tls_packet_{true};
+  ProxySecret secret_;
   std::string header_;
   TransportImpl impl_;
   TlsReaderByteFlow tls_reader_byte_flow_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
-  ChainBufferReader *input_;
+  ChainBufferReader *input_ = nullptr;
 
   static constexpr int32 MAX_TLS_PACKET_LENGTH = 2878;
 

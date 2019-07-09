@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/net/HttpQuery.h"
@@ -40,7 +41,7 @@ class Transport : public IStreamTransport {
   size_t max_prepend_size() const override;
   size_t max_append_size() const override;
   TransportType get_type() const override {
-    return {TransportType::Http, 0, secret_};
+    return {TransportType::Http, 0, ProxySecret::from_raw(secret_)};
   }
   bool use_random_padding() const override;
 

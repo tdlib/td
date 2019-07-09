@@ -56,6 +56,7 @@ class AuthKey {
   }
 
   enum : int32 { AUTH_FLAG = 1, WAS_AUTH_FLAG = 2 };
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_binary(auth_key_id_);

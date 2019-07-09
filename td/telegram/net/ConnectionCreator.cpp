@@ -137,7 +137,7 @@ void Proxy::store(StorerT &storer) const {
   } else if (type_ == Proxy::Type::Mtproto) {
     store(server_, storer);
     store(port_, storer);
-    store(secret_, storer);
+    store(secret_.get_encoded_secret(), storer);
   } else {
     CHECK(type_ == Proxy::Type::None);
   }
@@ -155,7 +155,7 @@ void Proxy::parse(ParserT &parser) {
   } else if (type_ == Proxy::Type::Mtproto) {
     parse(server_, parser);
     parse(port_, parser);
-    parse(secret_, parser);
+    secret_ = mtproto::ProxySecret::from_link(parser.template fetch_string<Slice>()).move_as_ok();
   } else {
     LOG_CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
   }
@@ -170,7 +170,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
     case Proxy::Type::HttpCaching:
       return string_builder << "ProxyHttpCaching " << proxy.server() << ":" << proxy.port();
     case Proxy::Type::Mtproto:
-      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/" << proxy.secret();
+      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/"
+                            << proxy.secret().get_encoded_secret();
     case Proxy::Type::None:
       return string_builder << "ProxyEmpty";
     default:
@@ -239,16 +240,6 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
     return promise.set_error(Status::Error(400, "Wrong port number"));
   }
 
-  auto is_secret_supported = [](Slice secret) {
-    if (secret.size() == 32) {
-      return true;
-    }
-    if (secret.size() == 34) {
-      return begins_with(secret, "dd") || begins_with(secret, "ee");
-    }
-    return false;
-  };
-
   Proxy new_proxy;
   switch (proxy_type->get_id()) {
     case td_api::proxyTypeSocks5::ID: {
@@ -267,13 +258,11 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
     }
     case td_api::proxyTypeMtproto::ID: {
       auto type = td_api::move_object_as<td_api::proxyTypeMtproto>(proxy_type);
-      if (hex_decode(type->secret_).is_error()) {
-        return promise.set_error(Status::Error(400, "Wrong secret"));
+      auto r_secret = mtproto::ProxySecret::from_link(type->secret_);
+      if (r_secret.is_error()) {
+        return promise.set_error(r_secret.move_as_error());
       }
-      if (!is_secret_supported(type->secret_)) {
-        return promise.set_error(Status::Error(400, "Unsupported secret"));
-      }
-      new_proxy = Proxy::mtproto(server, port, type->secret_);
+      new_proxy = Proxy::mtproto(server, port, r_secret.move_as_ok());
       break;
     }
     default:
@@ -397,7 +386,7 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
     }
   } else {
     url += "&secret=";
-    url += url_encode(proxy.secret());
+    url += proxy.secret().get_encoded_secret();
   }
   promise.set_value(std::move(url));
 }
@@ -502,7 +491,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
-  bool emulate_tls = extra.transport_type.emulate_tls();
+  auto secret = extra.transport_type.secret;
 
   auto socket_fd_promise =
       PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
@@ -514,7 +503,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
                      std::move(transport_type), std::move(promise));
       });
   CHECK(proxy.use_proxy());
-  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || emulate_tls) {
+  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || secret.emulate_tls()) {
     class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
@@ -540,11 +529,11 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       children_[token] = {false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
                                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                          std::move(callback), create_reference(token))};
-    } else if (emulate_tls) {
+    } else if (secret.emulate_tls()) {
       children_[token] = {
-          false, create_actor<TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
-                                       hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
-                                       create_reference(token), G()->get_dns_time_difference())};
+          false, create_actor<TlsInit>("PingTlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
+                                       secret.get_proxy_secret().str(), std::move(callback), create_reference(token),
+                                       G()->get_dns_time_difference())};
     } else {
       UNREACHABLE();
     }
@@ -694,7 +683,7 @@ td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 prox
       type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str(), true);
       break;
     case Proxy::Type::Mtproto:
-      type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().str());
+      type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().get_encoded_secret());
       break;
     default:
       UNREACHABLE();
@@ -790,8 +779,11 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
   if (r_socket_fd.is_error()) {
     return promise.set_error(r_socket_fd.move_as_error());
   }
+
+  // TODO TransportType is wrong
   auto raw_connection = make_unique<mtproto::RawConnection>(
-      r_socket_fd.move_as_ok(), mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, ""}, nullptr);
+      r_socket_fd.move_as_ok(),
+      mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, mtproto::ProxySecret()}, nullptr);
   raw_connection->extra_ = network_generation_;
   promise.set_value(std::move(raw_connection));
 }
@@ -805,8 +797,7 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
   if (proxy.use_mtproto_proxy()) {
-    TRY_RESULT(secret, hex_decode(proxy.proxy().secret()));
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy.proxy().secret()};
   }
   if (proxy.use_http_caching_proxy()) {
     CHECK(info.option != nullptr);
@@ -815,14 +806,15 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
       proxy_authorization =
           "|basic " + td::base64_encode(PSLICE() << proxy.proxy().user() << ':' << proxy.proxy().password());
     }
-    return mtproto::TransportType{mtproto::TransportType::Http, 0,
-                                  PSTRING() << info.option->get_ip_address().get_ip_str() << proxy_authorization};
+    return mtproto::TransportType{
+        mtproto::TransportType::Http, 0,
+        mtproto::ProxySecret::from_raw(PSTRING() << info.option->get_ip_address().get_ip_str() << proxy_authorization)};
   }
 
   if (info.use_http) {
-    return mtproto::TransportType{mtproto::TransportType::Http, 0, ""};
+    return mtproto::TransportType{mtproto::TransportType::Http, 0, mtproto::ProxySecret()};
   } else {
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret()};
   }
 }
 
@@ -971,7 +963,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       client.checking_connections++;
     }
 
-    bool emulate_tls = extra.transport_type.emulate_tls();
+    mtproto::ProxySecret secret = extra.transport_type.secret;
 
     auto promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), check_mode, transport_type = extra.transport_type, hash = client.hash,
@@ -985,7 +977,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
                                                actor_id(this), client.hash, extra.stat);
 
-    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || emulate_tls) {
+    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || secret.emulate_tls()) {
       VLOG(connections) << "In client_loop: create new transparent proxy connection " << extra.debug_str;
       class Callback : public TransparentProxy::Callback {
        public:
@@ -1029,11 +1021,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         children_[token] = {true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
                                                           proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                           std::move(callback), create_reference(token))};
-      } else if (emulate_tls) {
+      } else if (secret.emulate_tls()) {
         children_[token] = {
-            true, create_actor<TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, "www.google.com",
-                                        hex_decode(proxy.proxy().secret().substr(2)).move_as_ok(), std::move(callback),
-                                        create_reference(token), G()->get_dns_time_difference())};
+            true, create_actor<TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
+                                        secret.get_proxy_secret().str(), std::move(callback), create_reference(token),
+                                        G()->get_dns_time_difference())};
       } else {
         UNREACHABLE();
       }

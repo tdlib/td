@@ -16,6 +16,7 @@
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/Ping.h"
 #include "td/mtproto/PingConnection.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TlsInit.h"
 #include "td/mtproto/TransportType.h"
@@ -177,8 +178,9 @@ class TestPingActor : public Actor {
 
   void start_up() override {
     ping_connection_ = mtproto::PingConnection::create_req_pq(
-        make_unique<mtproto::RawConnection>(SocketFd::open(ip_address_).move_as_ok(),
-                                            mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
+        make_unique<mtproto::RawConnection>(
+            SocketFd::open(ip_address_).move_as_ok(),
+            mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr),
         3);
 
     Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
@@ -287,9 +289,9 @@ class HandshakeTestActor : public Actor {
   }
   void loop() override {
     if (!wait_for_raw_connection_ && !raw_connection_) {
-      raw_connection_ =
-          make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
-                                              mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
+      raw_connection_ = make_unique<mtproto::RawConnection>(
+          SocketFd::open(get_default_ip_address()).move_as_ok(),
+          mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
       handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 0);
@@ -483,9 +485,9 @@ class FastPingTestActor : public Actor {
 
   void start_up() override {
     // Run handshake to create key and salt
-    auto raw_connection =
-        make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
-                                            mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
+    auto raw_connection = make_unique<mtproto::RawConnection>(
+        SocketFd::open(get_default_ip_address()).move_as_ok(),
+        mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
     create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,

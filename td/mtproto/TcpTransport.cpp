@@ -170,22 +170,19 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   string rheader = header;
   std::reverse(rheader.begin(), rheader.end());
   UInt256 key = as<UInt256>(rheader.data() + 8);
-  Slice secret_view = secret_;
-  if (secret_view.size() == 17) {
-    secret_view.remove_prefix(1);
-  }
+  Slice proxy_secret = secret_.get_proxy_secret();
   auto fix_key = [&](UInt256 &key) {
-    if (secret_view.size() == 16) {
+    if (!proxy_secret.empty()) {
       Sha256State state;
       sha256_init(&state);
       sha256_update(as_slice(key), &state);
-      sha256_update(secret_view, &state);
+      sha256_update(proxy_secret, &state);
       sha256_final(&state, as_slice(key));
     }
   };
   fix_key(key);
   aes_ctr_byte_flow_.init(key, as<UInt128>(rheader.data() + 8 + 32));
-  if (emulate_tls_) {
+  if (secret_.emulate_tls()) {
     tls_reader_byte_flow_.set_input(input_);
     tls_reader_byte_flow_ >> aes_ctr_byte_flow_;
   } else {
@@ -202,7 +199,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
 }
 
 Result<size_t> ObfuscatedTransport::read_next(BufferSlice *message, uint32 *quick_ack) {
-  if (emulate_tls_) {
+  if (secret_.emulate_tls()) {
     tls_reader_byte_flow_.wakeup();
   } else {
     aes_ctr_byte_flow_.wakeup();
@@ -213,7 +210,7 @@ Result<size_t> ObfuscatedTransport::read_next(BufferSlice *message, uint32 *quic
 void ObfuscatedTransport::write(BufferWriter &&message, bool quick_ack) {
   impl_.write_prepare_inplace(&message, quick_ack);
   output_state_.encrypt(message.as_slice(), message.as_slice());
-  if (emulate_tls_) {
+  if (secret_.emulate_tls()) {
     do_write_tls(std::move(message));
   } else {
     do_write_main(std::move(message));

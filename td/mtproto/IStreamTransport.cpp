@@ -19,7 +19,7 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
     case TransportType::Tcp:
       return td::make_unique<tcp::OldTransport>();
     case TransportType::Http:
-      return td::make_unique<http::Transport>(type.secret);
+      return td::make_unique<http::Transport>(type.secret.get_raw_secret().str());
   }
   UNREACHABLE();
 }

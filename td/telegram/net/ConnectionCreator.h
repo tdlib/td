@@ -16,6 +16,7 @@
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/actor/actor.h"
@@ -86,7 +87,7 @@ class Proxy {
     return proxy;
   }
 
-  static Proxy mtproto(string server, int32 port, string secret) {
+  static Proxy mtproto(string server, int32 port, mtproto::ProxySecret secret) {
     Proxy proxy;
     proxy.type_ = Type::Mtproto;
     proxy.server_ = std::move(server);
@@ -111,7 +112,7 @@ class Proxy {
     return password_;
   }
 
-  CSlice secret() const {
+  const mtproto::ProxySecret &secret() const {
     return secret_;
   }
 
@@ -132,7 +133,7 @@ class Proxy {
   int32 port_ = 0;
   string user_;
   string password_;
-  string secret_;
+  mtproto::ProxySecret secret_;
 };
 
 inline bool operator==(const Proxy &lhs, const Proxy &rhs) {

@@ -345,6 +345,7 @@ set(TDLIB_SOURCE
   td/mtproto/IStreamTransport.cpp
   td/mtproto/Ping.cpp
   td/mtproto/PingConnection.cpp
+  td/mtproto/ProxySecret.cpp
   td/mtproto/RawConnection.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
@@ -476,6 +477,7 @@ set(TDLIB_SOURCE
   td/mtproto/PacketStorer.h
   td/mtproto/Ping.h
   td/mtproto/PingConnection.h
+  td/mtproto/ProxySecret.h
   td/mtproto/Query.h
   td/mtproto/RawConnection.h
   td/mtproto/SessionConnection.h
