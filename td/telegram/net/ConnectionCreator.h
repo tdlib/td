@@ -68,7 +68,8 @@ class ConnectionCreator : public NetQueryCallback {
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
                               Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0,
                               unique_ptr<mtproto::AuthData> auth_data = {});
-  void request_raw_connection_by_ip(IPAddress ip_address, Promise<unique_ptr<mtproto::RawConnection>> promise);
+  void request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
+                                    Promise<unique_ptr<mtproto::RawConnection>> promise);
 
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
                               std::shared_ptr<NetStatsCallback> media_callback);

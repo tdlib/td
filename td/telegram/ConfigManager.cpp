@@ -197,11 +197,11 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
 #endif
 }
 
-ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise) {
+ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, mtproto::ProxySecret secret, Promise<FullConfig> promise) {
   class SessionCallback : public Session::Callback {
    public:
-    SessionCallback(ActorShared<> parent, IPAddress address)
-        : parent_(std::move(parent)), address_(std::move(address)) {
+    SessionCallback(ActorShared<> parent, IPAddress address, mtproto::ProxySecret secret)
+        : parent_(std::move(parent)), address_(std::move(address)), secret_(std::move(secret)) {
     }
     void on_failed() final {
     }
@@ -213,7 +213,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
       VLOG(config_recoverer) << "Request full config from " << address_ << ", try = " << request_raw_connection_cnt_;
       if (request_raw_connection_cnt_ <= 2) {
         send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection_by_ip, address_,
-                     std::move(promise));
+                     mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, secret_}, std::move(promise));
       } else {
         // Delay all queries except first forever
         delay_forever_.push_back(std::move(promise));
@@ -229,6 +229,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
    private:
     ActorShared<> parent_;
     IPAddress address_;
+    mtproto::ProxySecret secret_;
     size_t request_raw_connection_cnt_{0};
     std::vector<Promise<unique_ptr<mtproto::RawConnection>>> delay_forever_;
   };
@@ -309,13 +310,14 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
 
   class GetConfigActor : public NetQueryCallback {
    public:
-    GetConfigActor(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise)
-        : dc_id_(dc_id), ip_address_(std::move(ip_address)), promise_(std::move(promise)) {
+    GetConfigActor(DcId dc_id, IPAddress ip_address, mtproto::ProxySecret secret, Promise<FullConfig> promise)
+        : dc_id_(dc_id), ip_address_(std::move(ip_address)), secret_(std::move(secret)), promise_(std::move(promise)) {
     }
 
    private:
     void start_up() override {
-      auto session_callback = make_unique<SessionCallback>(actor_shared(this, 1), std::move(ip_address_));
+      auto session_callback =
+          make_unique<SessionCallback>(actor_shared(this, 1), std::move(ip_address_), std::move(secret_));
 
       auto auth_data = std::make_shared<SimpleAuthData>(dc_id_);
       int32 int_dc_id = dc_id_.get_raw_id();
@@ -357,10 +359,12 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     DcId dc_id_;
     IPAddress ip_address_;
     ActorOwn<Session> session_;
+    mtproto::ProxySecret secret_;
     Promise<FullConfig> promise_;
   };
 
-  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", dc_id, std::move(ip_address), std::move(promise)));
+  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", dc_id, std::move(ip_address), std::move(secret),
+                                                 std::move(promise)));
 }
 
 class ConfigRecoverer : public Actor {
@@ -611,6 +615,7 @@ class ConfigRecoverer : public Actor {
       VLOG(config_recoverer) << "ASK FULL CONFIG";
       full_config_query_ = get_full_config(
           dc_options_.dc_options[dc_options_i_].get_dc_id(), dc_options_.dc_options[dc_options_i_].get_ip_address(),
+          dc_options_.dc_options[dc_options_i_].get_secret(),
           PromiseCreator::lambda([actor_id = actor_shared(this)](Result<FullConfig> r_full_config) {
             send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
           }));

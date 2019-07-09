@@ -718,19 +718,48 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
   client_loop(client);
 }
 
-void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
+void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                                      Promise<unique_ptr<mtproto::RawConnection>> promise) {
   auto r_socket_fd = SocketFd::open(ip_address);
   if (r_socket_fd.is_error()) {
     return promise.set_error(r_socket_fd.move_as_error());
   }
+  auto socket_fd = r_socket_fd.move_as_ok();
 
-  // TODO TransportType is wrong
-  auto raw_connection = make_unique<mtproto::RawConnection>(
-      r_socket_fd.move_as_ok(),
-      mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, mtproto::ProxySecret()}, nullptr);
-  raw_connection->extra_ = network_generation_;
-  promise.set_value(std::move(raw_connection));
+  auto socket_fd_promise =
+      PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this), transport_type,
+                              network_generation = network_generation_](Result<SocketFd> r_socket_fd) mutable {
+        if (r_socket_fd.is_error()) {
+          return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
+        }
+        auto raw_connection = make_unique<mtproto::RawConnection>(r_socket_fd.move_as_ok(), transport_type, nullptr);
+        raw_connection->extra_ = network_generation;
+        promise.set_value(std::move(raw_connection));
+      });
+
+  if (transport_type.secret.emulate_tls()) {
+    class Callback : public TransparentProxy::Callback {
+     public:
+      explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
+      }
+      void set_result(Result<SocketFd> result) override {
+        promise_.set_result(std::move(result));
+      }
+      void on_connected() override {
+      }
+
+     private:
+      Promise<SocketFd> promise_;
+    };
+    auto token = next_token();
+    auto callback = td::make_unique<Callback>(std::move(socket_fd_promise));
+    children_[token] = {false, create_actor<mtproto::TlsInit>(
+                                   "TlsInit", std::move(socket_fd), ip_address, transport_type.secret.get_domain(),
+                                   transport_type.secret.get_proxy_secret().str(), std::move(callback),
+                                   create_reference(token), G()->get_dns_time_difference())};
+  } else {
+    socket_fd_promise.set_value(std::move(socket_fd));
+  }
 }
 
 Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const ProxyInfo &proxy,
