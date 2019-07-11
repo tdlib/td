@@ -43,7 +43,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   static bool is_custom_language_code(Slice language_code);
 
-  vector<string> get_used_language_codes() const;
+  vector<string> get_used_language_codes();
 
   void on_language_pack_changed();
 
@@ -152,6 +152,8 @@ class LanguagePackManager : public NetQueryCallback {
       tl_object_ptr<td_api::languagePackString> &&str);
 
   void inc_generation();
+
+  void repair_chosen_language_info();
 
   static bool is_valid_key(Slice key);
 

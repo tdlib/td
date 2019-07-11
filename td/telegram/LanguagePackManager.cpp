@@ -207,6 +207,7 @@ void LanguagePackManager::start_up() {
     if (language->version_ == -1) {
       load_empty_language_pack(language_code_);
     }
+    repair_chosen_language_info();
 
     std::lock_guard<std::mutex> language_lock(language->mutex_);
     base_language_code_ = language->base_language_code_;
@@ -237,7 +238,7 @@ void LanguagePackManager::tear_down() {
   }
 }
 
-vector<string> LanguagePackManager::get_used_language_codes() const {
+vector<string> LanguagePackManager::get_used_language_codes() {
   if (language_pack_.empty() || language_code_.empty()) {
     return {};
   }
@@ -261,17 +262,23 @@ vector<string> LanguagePackManager::get_used_language_codes() const {
       }
     }
   }
-  CHECK(info != nullptr);
 
   vector<string> result;
   if (language_code_.size() <= 2) {
     result.push_back(language_code_);
   }
-  if (!info->base_language_code_.empty()) {
-    result.push_back(info->base_language_code_);
-  }
-  if (!info->plural_code_.empty()) {
-    result.push_back(info->plural_code_);
+  if (info == nullptr) {
+    LOG(ERROR) << "Failed to find information about chosen language " << language_code_;
+    if (!is_custom_language_code(language_code_)) {
+      search_language_info(language_code_, Auto());
+    }
+  } else {
+    if (!info->base_language_code_.empty()) {
+      result.push_back(info->base_language_code_);
+    }
+    if (!info->plural_code_.empty()) {
+      result.push_back(info->plural_code_);
+    }
   }
   return result;
 }
@@ -436,6 +443,7 @@ void LanguagePackManager::inc_generation() {
     CHECK(check_language_code_name(language_code_));
     auto language = add_language(database_, language_pack_, language_code_);
     on_language_pack_version_changed(false, std::numeric_limits<int32>::max());
+    repair_chosen_language_info();
 
     {
       std::lock_guard<std::mutex> lock(language->mutex_);
@@ -815,6 +823,28 @@ void LanguagePackManager::search_language_info(string language_code,
       G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguage(language_pack_, language_code)),
                                       DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
       std::move(request_promise));
+}
+
+void LanguagePackManager::repair_chosen_language_info() {
+  CHECK(!language_pack_.empty() && !language_code_.empty());
+  if (is_custom_language_code(language_code_)) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+
+  LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> languages_lock(pack->mutex_);
+  for (auto &server_info : pack->server_language_pack_infos_) {
+    if (server_info.first == language_code_) {
+      return;
+    }
+  }
+
+  LOG(INFO) << "Repair info about language " << language_code_;
+  search_language_info(language_code_, Auto());
 }
 
 td_api::object_ptr<td_api::languagePackInfo> LanguagePackManager::get_language_pack_info_object(
