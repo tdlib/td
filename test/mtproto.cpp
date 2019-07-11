@@ -121,105 +121,17 @@ TEST(Mtproto, GetHostByNameActor) {
   sched.finish();
 }
 
-class Date {
- public:
-  static bool is_leap(int year) {
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-  }
-  static int32 days_in_month(int year, int month) {
-    int cnt[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    return cnt[month - 1] + (month == 2 && is_leap(year));
-  }
-  static int64 seconds_in_day() {
-    return 24 * 60 * 60;
-  }
-  static Result<int64> to_unix_time(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 second) {
-    int64 res = 0;
-    if (year < 1970 || year > 2037) {
-      return td::Status::Error("invalid year");
-    }
-    if (month < 1 || month > 12) {
-      return td::Status::Error("invalid month");
-    }
-    if (day < 1 || day > days_in_month(year, month)) {
-      return td::Status::Error("invalid day");
-    }
-    if (hour < 0 || hour > 24) {  // is hour == 24 possible?
-      return td::Status::Error("invalid hour");
-    }
-    if (minute < 0 || minute > 60) {
-      return td::Status::Error("invalid minute");
-    }
-    if (second < 0 || second > 60) {
-      return td::Status::Error("invalid second");
-    }
-    for (int y = 1970; y < year; y++) {
-      res += (is_leap(y) + 365) * seconds_in_day();
-    }
-    for (int m = 1; m < month; m++) {
-      res += days_in_month(year, m) * seconds_in_day();
-    }
-    res += (day - 1) * seconds_in_day();
-    res += hour * 60 * 60;
-    res += minute * 60;
-    res += second;
-    return res;
-  }
-};
-
 TEST(Time, to_unix_time) {
-  ASSERT_EQ(0, Date::to_unix_time(1970, 1, 1, 0, 0, 0).move_as_ok());
-  ASSERT_EQ(60 * 60 + 60 + 1, Date::to_unix_time(1970, 1, 1, 1, 1, 1).move_as_ok());
-  ASSERT_EQ(24 * 60 * 60, Date::to_unix_time(1970, 1, 2, 0, 0, 0).move_as_ok());
-  ASSERT_EQ(31 * 24 * 60 * 60, Date::to_unix_time(1970, 2, 1, 0, 0, 0).move_as_ok());
-  ASSERT_EQ(365 * 24 * 60 * 60, Date::to_unix_time(1971, 1, 1, 0, 0, 0).move_as_ok());
-  ASSERT_EQ(1562780559, Date::to_unix_time(2019, 7, 10, 17, 42, 39).move_as_ok());
-}
-
-Result<int64> parse_http_date(std::string slice) {
-  td::Parser p(slice);
-  p.read_till(',');  // ignore week day
-  p.skip(',');
-  p.skip_whitespaces();
-  TRY_RESULT(day, to_integer_safe<int32>(p.read_word()));
-  auto month_name = p.read_word();
-  to_lower_inplace(month_name);
-  TRY_RESULT(year, to_integer_safe<int32>(p.read_word()));
-  p.skip_whitespaces();
-  p.skip_nofail('0');
-  TRY_RESULT(hour, to_integer_safe<int32>(p.read_till(':')));
-  p.skip(':');
-  p.skip_nofail('0');
-  TRY_RESULT(minute, to_integer_safe<int32>(p.read_till(':')));
-  p.skip(':');
-  p.skip_nofail('0');
-  TRY_RESULT(second, to_integer_safe<int32>(p.read_word()));
-  auto gmt = p.read_word();
-  TRY_STATUS(std::move(p.status()));
-  if (gmt != "GMT") {
-    return Status::Error("timezone must be GMT");
-  }
-
-  Slice month_names[12] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
-
-  int month = 0;
-
-  for (int m = 1; m <= 12; m++) {
-    if (month_names[m - 1] == month_name) {
-      month = m;
-      break;
-    }
-  }
-
-  if (month == 0) {
-    return Status::Error("Unknown month name");
-  }
-
-  return Date::to_unix_time(year, month, day, hour, minute, second);
+  ASSERT_EQ(0, HttpDate::to_unix_time(1970, 1, 1, 0, 0, 0).move_as_ok());
+  ASSERT_EQ(60 * 60 + 60 + 1, HttpDate::to_unix_time(1970, 1, 1, 1, 1, 1).move_as_ok());
+  ASSERT_EQ(24 * 60 * 60, HttpDate::to_unix_time(1970, 1, 2, 0, 0, 0).move_as_ok());
+  ASSERT_EQ(31 * 24 * 60 * 60, HttpDate::to_unix_time(1970, 2, 1, 0, 0, 0).move_as_ok());
+  ASSERT_EQ(365 * 24 * 60 * 60, HttpDate::to_unix_time(1971, 1, 1, 0, 0, 0).move_as_ok());
+  ASSERT_EQ(1562780559, HttpDate::to_unix_time(2019, 7, 10, 17, 42, 39).move_as_ok());
 }
 
 TEST(Time, parse_http_date) {
-  ASSERT_EQ(784887151, parse_http_date("Tue, 15 Nov 1994 08:12:31 GMT").move_as_ok());
+  ASSERT_EQ(784887151, HttpDate::parse_http_date("Tue, 15 Nov 1994 08:12:31 GMT").move_as_ok());
 }
 
 TEST(Mtproto, config) {

@@ -753,6 +753,9 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
     };
     auto token = next_token();
     auto callback = td::make_unique<Callback>(std::move(socket_fd_promise));
+    LOG(INFO) << "Tls in ConfigRecoverer " << ip_address << " " << transport_type.secret.get_domain() << " "
+              << transport_type.secret.emulate_tls() << " " << transport_type.secret.get_proxy_secret().size()
+              << transport_type.secret.get_encoded_secret();
     children_[token] = {false, create_actor<mtproto::TlsInit>(
                                    "TlsInit", std::move(socket_fd), ip_address, transport_type.secret.get_domain(),
                                    transport_type.secret.get_proxy_secret().str(), std::move(callback),
@@ -984,7 +987,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         bool was_connected_{false};
         unique_ptr<detail::StatsCallback> stats_callback_;
       };
-      LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : "HTTP") << ": " << extra.debug_str;
+      LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "Tls"))
+                << ": " << extra.debug_str;
       auto token = next_token();
       auto callback = td::make_unique<Callback>(std::move(promise), std::move(stats_callback));
       if (proxy.use_socks5_proxy()) {

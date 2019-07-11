@@ -28,14 +28,34 @@ extern int VERBOSITY_NAME(config_recoverer);
 class ConfigShared;
 
 using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
+struct SimpleConfigResult {
+  Result<SimpleConfig> r_config;
+  Result<int64> r_http_date;
+};
 
 Result<SimpleConfig> decode_config(Slice input);
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config, bool is_test,
                                    int32 scheduler_id);
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
-                                        int32 scheduler_id);
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+                                        bool is_test, int32 scheduler_id);
+
+class HttpDate {
+ public:
+  static bool is_leap(int year) {
+    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+  }
+  static int32 days_in_month(int year, int month) {
+    static int cnt[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    return cnt[month - 1] + (month == 2 && is_leap(year));
+  }
+  static int64 seconds_in_day() {
+    return 24 * 60 * 60;
+  }
+  static Result<int64> to_unix_time(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 second);
+  static Result<int64> parse_http_date(std::string slice);
+};
 
 using FullConfig = tl_object_ptr<telegram_api::config>;
 
