@@ -102,16 +102,17 @@ Result<SimpleConfig> decode_config(Slice input) {
 
   TlParser len_parser{data_cbc};
   int len = len_parser.fetch_int();
-  if (len < 0 || len > 204) {
+  if (len < 8 || len > 208) {
     return Status::Error(PSLICE() << "Invalid " << tag("data length", len) << " after aes_cbc_decrypt");
   }
   int constructor_id = len_parser.fetch_int();
   if (constructor_id != telegram_api::help_configSimple::ID) {
     return Status::Error(PSLICE() << "Wrong " << tag("constructor", format::as_hex(constructor_id)));
   }
-  BufferSlice raw_config(data_cbc.substr(8, len));
+  BufferSlice raw_config(data_cbc.substr(8, len - 8));
   TlBufferParser parser{&raw_config};
   auto config = telegram_api::help_configSimple::fetch(parser);
+  parser.fetch_end();
   TRY_STATUS(parser.get_status());
   return std::move(config);
 }

@@ -479,6 +479,7 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
   }
   TlParser parser(packet);
   tl_object_ptr<mtproto_api::Object> object = mtproto_api::Object::fetch(parser);
+  parser.fetch_end();
   if (parser.get_error()) {
     // msg_container is not real tl object
     if (packet.size() >= 4 && as<int32>(packet.begin()) == mtproto_api::msg_container::ID) {

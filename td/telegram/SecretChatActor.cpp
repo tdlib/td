@@ -895,6 +895,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
   Status status;
   if (id == secret_api::decryptedMessageLayer::ID) {
     auto message_with_layer = secret_api::decryptedMessageLayer::fetch(parser);
+    parser.fetch_end();
     if (!parser.get_error()) {
       auto layer = message_with_layer->layer_;
       if (layer < DEFAULT_LAYER && false /*TODO: fix android app bug? */) {
@@ -930,6 +931,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
   if (config_state_.his_layer == 8) {
     TlBufferParser new_parser(&data_buffer);
     auto message_without_layer = secret_api::DecryptedMessage::fetch(new_parser);
+    parser.fetch_end();
     if (!new_parser.get_error()) {
       message->decrypted_message_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
           BufferSlice(), config_state_.his_layer, -1, -1, std::move(message_without_layer));

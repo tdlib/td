@@ -3580,6 +3580,7 @@ void Td::on_result(NetQueryPtr query) {
     auto ok = query->move_as_ok();
     TlBufferParser parser(&ok);
     auto ptr = telegram_api::Updates::fetch(parser);
+    parser.fetch_end();
     if (parser.get_error()) {
       LOG(ERROR) << "Failed to fetch update: " << parser.get_error() << format::as_hex_dump<4>(ok.as_slice());
       updates_manager_->schedule_get_difference("failed to fetch update");
