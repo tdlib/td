@@ -144,11 +144,17 @@ TEST(Mtproto, config) {
     auto guard = sched.get_main_guard();
 
     auto run = [&](auto &func, bool is_test) {
-      auto promise = PromiseCreator::lambda([&, num = cnt](Result<SimpleConfig> r_simple_config) {
-        if (r_simple_config.is_ok()) {
-          LOG(WARNING) << num << " " << to_string(r_simple_config.ok());
+      auto promise = PromiseCreator::lambda([&, num = cnt](Result<SimpleConfigResult> r_simple_config_result) {
+        if (r_simple_config_result.is_ok()) {
+          auto simple_config_result = r_simple_config_result.move_as_ok();
+          auto date = simple_config_result.r_http_date.is_ok()
+                          ? to_string(simple_config_result.r_http_date.ok())
+                          : (PSTRING() << simple_config_result.r_http_date.error());
+          auto config = simple_config_result.r_config.is_ok() ? to_string(simple_config_result.r_config.ok())
+                                                              : (PSTRING() << simple_config_result.r_config.error());
+          LOG(ERROR) << num << " " << date << " " << config;
         } else {
-          LOG(ERROR) << num << " " << r_simple_config.error();
+          LOG(ERROR) << num << " " << r_simple_config_result.error();
         }
         if (--cnt == 0) {
           Scheduler::instance()->finish();

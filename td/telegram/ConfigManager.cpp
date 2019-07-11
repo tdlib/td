@@ -58,30 +58,32 @@
 namespace td {
 
 int VERBOSITY_NAME(config_recoverer) = VERBOSITY_NAME(INFO);
-Result<int64> HttpDate::to_unix_time(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 second) {
-  int64 res = 0;
+
+Result<int32> HttpDate::to_unix_time(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 second) {
   if (year < 1970 || year > 2037) {
-    return td::Status::Error("invalid year");
+    return Status::Error("Invalid year");
   }
   if (month < 1 || month > 12) {
-    return td::Status::Error("invalid month");
+    return Status::Error("Invalid month");
   }
   if (day < 1 || day > days_in_month(year, month)) {
-    return td::Status::Error("invalid day");
+    return Status::Error("Invalid day");
   }
-  if (hour < 0 || hour > 24) {  // is hour == 24 possible?
-    return td::Status::Error("invalid hour");
+  if (hour < 0 || hour >= 24) {
+    return Status::Error("Invalid hour");
   }
-  if (minute < 0 || minute > 60) {
-    return td::Status::Error("invalid minute");
+  if (minute < 0 || minute >= 60) {
+    return Status::Error("Invalid minute");
   }
   if (second < 0 || second > 60) {
-    return td::Status::Error("invalid second");
+    return Status::Error("Invalid second");
   }
-  for (int y = 1970; y < year; y++) {
+
+  int32 res = 0;
+  for (int32 y = 1970; y < year; y++) {
     res += (is_leap(y) + 365) * seconds_in_day();
   }
-  for (int m = 1; m < month; m++) {
+  for (int32 m = 1; m < month; m++) {
     res += days_in_month(year, m) * seconds_in_day();
   }
   res += (day - 1) * seconds_in_day();
@@ -91,11 +93,12 @@ Result<int64> HttpDate::to_unix_time(int32 year, int32 month, int32 day, int32 h
   return res;
 }
 
-Result<int64> HttpDate::parse_http_date(std::string slice) {
-  td::Parser p(slice);
+Result<int32> HttpDate::parse_http_date(std::string slice) {
+  Parser p(slice);
   p.read_till(',');  // ignore week day
   p.skip(',');
   p.skip_whitespaces();
+  p.skip_nofail('0');
   TRY_RESULT(day, to_integer_safe<int32>(p.read_word()));
   auto month_name = p.read_word();
   to_lower_inplace(month_name);
@@ -115,7 +118,7 @@ Result<int64> HttpDate::parse_http_date(std::string slice) {
     return Status::Error("timezone must be GMT");
   }
 
-  Slice month_names[12] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
+  static Slice month_names[12] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
 
   int month = 0;
 
@@ -134,7 +137,7 @@ Result<int64> HttpDate::parse_http_date(std::string slice) {
 }
 
 Result<SimpleConfig> decode_config(Slice input) {
-  static auto rsa = td::RSA::from_pem(
+  static auto rsa = RSA::from_pem(
                         "-----BEGIN RSA PUBLIC KEY-----\n"
                         "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP\n"
                         "BwXD3DOoKCSpjDqYoXgCqB7ioln4eDCFfOBUlfXUEvM/fnKCpF46VkAftlb4VuPD\n"
@@ -207,7 +210,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
         promise.set_result([&]() -> Result<SimpleConfigResult> {
           TRY_RESULT(http_query, std::move(r_query));
           SimpleConfigResult res;
-          res.r_http_date = HttpDate::parse_http_date(http_query->get_arg("date").str());
+          res.r_http_date = HttpDate::parse_http_date(http_query->get_header("date").str());
           res.r_config = decode_config(http_query->content_);
           return res;
         }());
@@ -243,10 +246,9 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, con
       PromiseCreator::lambda([promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
         promise.set_result([&]() -> Result<SimpleConfigResult> {
           TRY_RESULT(http_query, std::move(r_query));
-          LOG(ERROR) << *http_query;
 
           SimpleConfigResult res;
-          res.r_http_date = HttpDate::parse_http_date(http_query->get_arg("date").str());
+          res.r_http_date = HttpDate::parse_http_date(http_query->get_header("date").str());
           res.r_config = [&]() -> Result<SimpleConfig> {
             TRY_RESULT(json, json_decode(http_query->content_));
             if (json.type() != JsonValue::Type::Object) {
