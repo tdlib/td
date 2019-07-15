@@ -3666,6 +3666,10 @@ void Td::on_config_option_updated(const string &name) {
   } else if (name == "disable_top_chats") {
     send_closure(top_dialog_manager_, &TopDialogManager::update_is_enabled,
                  !G()->shared_config().get_option_boolean(name));
+  } else if (name == "connection_parameters") {
+    if (G()->mtproto_header().set_parameters(G()->shared_config().get_option_string(name))) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
   } else if (name == "is_emulator") {
     if (G()->mtproto_header().set_is_emulator(G()->shared_config().get_option_boolean(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
@@ -4126,6 +4130,7 @@ Status Td::init(DbKey key) {
 
   options_.language_pack = G()->shared_config().get_option_string("localization_target");
   options_.language_code = G()->shared_config().get_option_string("language_pack_id");
+  options_.parameters = G()->shared_config().get_option_string("connection_parameters");
   options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
@@ -4694,6 +4699,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   }
   options_.language_pack = "";
   options_.language_code = "";
+  options_.parameters = "";
   options_.is_emulator = false;
   options_.proxy = Proxy();
 
@@ -6679,6 +6685,17 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
   switch (request.name_[0]) {
+    case 'c':
+      if (!is_bot && set_string_option("connection_parameters", [](Slice value) {
+            string value_copy = value.str();
+            auto r_json_value = get_json_value(value_copy);
+            if (r_json_value.is_error()) {
+              return false;
+            }
+            return r_json_value.ok()->get_id() == td_api::jsonValueObject::ID;
+          })) {
+        return;
+      }
     case 'd':
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;

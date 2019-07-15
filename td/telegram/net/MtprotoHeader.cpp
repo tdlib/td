@@ -7,6 +7,9 @@
 #include "td/telegram/net/MtprotoHeader.h"
 
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/JsonValue.h"
+
+#include "td/tl/tl_object_store.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -34,6 +37,9 @@ class HeaderStorer {
     bool have_proxy = !is_anonymous && options.proxy.type() == Proxy::Type::Mtproto;
     if (have_proxy) {
       flags |= 1 << 0;
+    }
+    if (!options.parameters.empty()) {
+      flags |= 1 << 1;
     }
     if (options.is_emulator) {
       flags |= 1 << 10;
@@ -66,6 +72,12 @@ class HeaderStorer {
       store(static_cast<int32>(0x75588b3f), storer);
       store(Slice(options.proxy.server()), storer);
       store(options.proxy.port(), storer);
+    }
+    if (!options.parameters.empty()) {
+      auto parameters_copy = options.parameters;
+      auto json_value = get_input_json_value(parameters_copy).move_as_ok();
+      CHECK(json_value != nullptr);
+      TlStoreBoxedUnknown<TlStoreObject>::store(json_value, storer);
     }
   }
 

@@ -17,6 +17,8 @@ namespace td {
 
 Result<td_api::object_ptr<td_api::JsonValue>> get_json_value(MutableSlice json);
 
+Result<telegram_api::object_ptr<telegram_api::JSONValue>> get_input_json_value(MutableSlice json);
+
 td_api::object_ptr<td_api::JsonValue> convert_json_value_object(
     const tl_object_ptr<telegram_api::JSONValue> &json_value);
 

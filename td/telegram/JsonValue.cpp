@@ -51,6 +51,11 @@ Result<td_api::object_ptr<td_api::JsonValue>> get_json_value(MutableSlice json) 
   return get_json_value_object(json_value);
 }
 
+Result<telegram_api::object_ptr<telegram_api::JSONValue>> get_input_json_value(MutableSlice json) {
+  TRY_RESULT(json_value, get_json_value(json));
+  return convert_json_value(std::move(json_value));
+}
+
 static td_api::object_ptr<td_api::jsonObjectMember> convert_json_value_member_object(
     const telegram_api::object_ptr<telegram_api::jsonObjectValue> &json_object_value) {
   CHECK(json_object_value != nullptr);
