@@ -409,6 +409,9 @@ class FullRemoteFileLocation {
                 return make_tl_object<telegram_api::inputDocumentFileLocation>(
                     photo().id_, photo().access_hash_, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
+              default:
+                UNREACHABLE();
+                break;
             }
             break;
           }
