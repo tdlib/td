@@ -159,7 +159,7 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
               return td::Status::Error("Receive too short server hello 2");
             }
             EXPECT_STR(44, request.substr(44, 32), "TLS <= 1.2: expected mirrored session_id");
-            EXPECT_STR(76, "\x13\x01\x00", "TLS <= 1.2: expected x25519 as a chosen cipher");
+            EXPECT_STR(76, "\x13\x01\x00", "TLS <= 1.2: expected 0x1301 as a chosen cipher");
             pos += 74;
             size_t extensions_length = read_length();
             if (extensions_length + 76 != server_hello_length) {
