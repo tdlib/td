@@ -1231,11 +1231,8 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
 }
 
 bool StickersManager::has_webp_thumbnail(const tl_object_ptr<telegram_api::documentAttributeSticker> &sticker) {
-  if (sticker == nullptr) {
-    return false;
-  }
-
-  return get_sticker_set_id(sticker->stickerset_) != 0;
+  // server tries to always replace user-provided thumbnail with server-side webp thumbnail
+  return true;
 }
 
 std::pair<int64, FileId> StickersManager::on_get_sticker_document(
