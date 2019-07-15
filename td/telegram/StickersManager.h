@@ -52,7 +52,7 @@ class StickersManager : public Actor {
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(int64 sticker_set_id) const;
 
   void create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions, bool from_message,
-                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
+                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                       MultiPromiseActor *load_data_multipromise_ptr);
 
   bool has_input_media(FileId sticker_file_id, bool is_secret) const;
@@ -261,6 +261,7 @@ class StickersManager : public Actor {
     PhotoSize message_thumbnail;
     PhotoSize sticker_thumbnail;
     FileId file_id;
+    bool is_animated = false;
     bool is_mask = false;
     int32 point = -1;
     double x_shift = 0;
@@ -293,6 +294,7 @@ class StickersManager : public Actor {
     bool is_installed = false;
     bool is_archived = false;
     bool is_official = false;
+    bool is_animated = false;
     bool is_masks = false;
     bool is_viewed = true;
     bool is_thumbnail_reloaded = false;
@@ -474,6 +476,8 @@ class StickersManager : public Actor {
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
   void tear_down() override;
+
+  static string get_sticker_mime_type(const Sticker *s);
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

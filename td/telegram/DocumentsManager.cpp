@@ -212,10 +212,27 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string minithumbnail;
   PhotoSize thumbnail;
   FileEncryptionKey encryption_key;
+  bool is_animated_sticker = false;
   bool is_web = false;
   bool is_web_no_proxy = false;
   string url;
   FileLocationSource source = FileLocationSource::FromServer;
+
+  auto fix_animated_sticker_type = [&] {
+    if (mime_type != "application/x-tgsticker") {
+      return;
+    }
+
+    is_animated_sticker = true;
+    if (document_type == Document::Type::General) {
+      document_type = Document::Type::Sticker;
+      file_type = FileType::Sticker;
+      default_extension = Slice("tgs");
+      owner_dialog_id = DialogId();
+      file_name.clear();
+    }
+  };
+
   if (remote_document.document != nullptr) {
     auto document = std::move(remote_document.document);
 
@@ -225,6 +242,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     size = document->size_;
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
+
+    fix_animated_sticker_type();
 
     if (owner_dialog_id.get_type() == DialogType::SecretChat) {
       // secret_api::decryptedMessageMediaExternalDocument
@@ -262,6 +281,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     if (encryption_key.empty()) {
       return {};
     }
+
+    fix_animated_sticker_type();
 
     if (document_type != Document::Type::VoiceNote) {
       thumbnail = get_secret_thumbnail_photo_size(td_->file_manager_.get(), std::move(document->thumb_),
@@ -310,6 +331,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       default:
         UNREACHABLE();
     }
+
+    fix_animated_sticker_type();
   }
 
   LOG(DEBUG) << "Receive document with id = " << id << " of type " << document_type;
@@ -383,7 +406,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       break;
     case Document::Type::Sticker:
       td_->stickers_manager_->create_sticker(file_id, std::move(thumbnail), dimensions, true, std::move(sticker),
-                                             load_data_multipromise_ptr);
+                                             is_animated_sticker, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
       td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail), has_stickers,

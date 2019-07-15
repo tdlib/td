@@ -782,8 +782,12 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
         return fix_file_extension(file_name, "wallpaper", "jpg");
       }
       break;
-    case FileType::Document:
     case FileType::Sticker:
+      if (extension != "webp" && extension != "tgs") {
+        return fix_file_extension(file_name, "sticker", "webp");
+      }
+      break;
+    case FileType::Document:
     case FileType::Animation:
     case FileType::Encrypted:
     case FileType::Temp:

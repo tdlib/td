@@ -23966,13 +23966,13 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
           auto new_file_type = new_file_view.get_type();
           auto is_document_file_type = [](FileType file_type) {
             switch (file_type) {
-              case FileType::Video:
-              case FileType::VoiceNote:
+              case FileType::Animation:
+              case FileType::Audio:
               case FileType::Document:
               case FileType::Sticker:
-              case FileType::Audio:
-              case FileType::Animation:
+              case FileType::Video:
               case FileType::VideoNote:
+              case FileType::VoiceNote:
                 return true;
               default:
                 return false;
