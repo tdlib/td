@@ -42,8 +42,8 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   }
   store(sticker->alt, storer);
   store(sticker->dimensions, storer);
-  store(sticker->message_thumbnail, storer);
-  store(sticker->sticker_thumbnail, storer);
+  store(sticker->s_thumbnail, storer);
+  store(sticker->m_thumbnail, storer);
   store(file_id, storer);
   if (sticker->is_mask) {
     store(sticker->point, storer);
@@ -93,8 +93,11 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   }
   parse(sticker->alt, parser);
   parse(sticker->dimensions, parser);
-  parse(sticker->message_thumbnail, parser);
-  parse(sticker->sticker_thumbnail, parser);
+  PhotoSize thumbnail;
+  parse(thumbnail, parser);
+  add_sticker_thumbnail(sticker.get(), thumbnail);
+  parse(thumbnail, parser);
+  add_sticker_thumbnail(sticker.get(), thumbnail);
   parse(sticker->file_id, parser);
   if (sticker->is_mask) {
     parse(sticker->point, parser);

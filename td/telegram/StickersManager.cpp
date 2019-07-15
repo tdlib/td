@@ -1081,8 +1081,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
                                                                   sticker->x_shift, sticker->y_shift, sticker->scale)
                            : nullptr;
 
-  const PhotoSize &thumbnail =
-      sticker->sticker_thumbnail.file_id.is_valid() ? sticker->sticker_thumbnail : sticker->message_thumbnail;
+  const PhotoSize &thumbnail = sticker->m_thumbnail.file_id.is_valid() ? sticker->m_thumbnail : sticker->s_thumbnail;
   return make_tl_object<td_api::sticker>(sticker->set_id, sticker->dimensions.width, sticker->dimensions.height,
                                          sticker->alt, sticker->is_animated, sticker->is_mask, std::move(mask_position),
                                          get_photo_size_object(td_->file_manager_.get(), &thumbnail),
@@ -1199,18 +1198,16 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
       s->alt = new_sticker->alt;
       s->is_changed = true;
     }
-    if (s->message_thumbnail != new_sticker->message_thumbnail && new_sticker->message_thumbnail.file_id.is_valid()) {
-      LOG_IF(INFO, s->message_thumbnail.file_id.is_valid())
-          << "Sticker " << file_id << " message thumbnail has changed from " << s->message_thumbnail << " to "
-          << new_sticker->message_thumbnail;
-      s->message_thumbnail = new_sticker->message_thumbnail;
+    if (s->s_thumbnail != new_sticker->s_thumbnail && new_sticker->s_thumbnail.file_id.is_valid()) {
+      LOG_IF(INFO, s->s_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " s thumbnail has changed from "
+                                                      << s->s_thumbnail << " to " << new_sticker->s_thumbnail;
+      s->s_thumbnail = new_sticker->s_thumbnail;
       s->is_changed = true;
     }
-    if (s->sticker_thumbnail != new_sticker->sticker_thumbnail && new_sticker->sticker_thumbnail.file_id.is_valid()) {
-      LOG_IF(INFO, s->sticker_thumbnail.file_id.is_valid())
-          << "Sticker " << file_id << " thumbnail has changed from " << s->sticker_thumbnail << " to "
-          << new_sticker->sticker_thumbnail;
-      s->sticker_thumbnail = new_sticker->sticker_thumbnail;
+    if (s->m_thumbnail != new_sticker->m_thumbnail && new_sticker->m_thumbnail.file_id.is_valid()) {
+      LOG_IF(INFO, s->m_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " m thumbnail has changed from "
+                                                      << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
+      s->m_thumbnail = new_sticker->m_thumbnail;
       s->is_changed = true;
     }
     if (s->is_animated != new_sticker->is_animated && new_sticker->is_animated) {
@@ -1241,8 +1238,8 @@ bool StickersManager::has_webp_thumbnail(const tl_object_ptr<telegram_api::docum
   return get_sticker_set_id(sticker->stickerset_) != 0;
 }
 
-std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
-                                                                  bool from_message) {
+std::pair<int64, FileId> StickersManager::on_get_sticker_document(
+    tl_object_ptr<telegram_api::Document> &&document_ptr) {
   int32 document_constructor_id = document_ptr->get_id();
   if (document_constructor_id == telegram_api::documentEmpty::ID) {
     LOG(ERROR) << "Empty sticker document received";
@@ -1297,7 +1294,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
     }
   }
 
-  create_sticker(sticker_id, std::move(thumbnail), dimensions, from_message, std::move(sticker),
+  create_sticker(sticker_id, std::move(thumbnail), dimensions, std::move(sticker),
                  document->mime_type_ == "application/x-tgsticker", nullptr);
   return {document_id, sticker_id};
 }
@@ -1400,13 +1397,13 @@ StickersManager::StickerSet *StickersManager::add_sticker_set(int64 sticker_set_
 FileId StickersManager::get_sticker_thumbnail_file_id(FileId file_id) const {
   auto sticker = get_sticker(file_id);
   CHECK(sticker != nullptr);
-  return sticker->message_thumbnail.file_id;
+  return sticker->s_thumbnail.file_id;
 }
 
 void StickersManager::delete_sticker_thumbnail(FileId file_id) {
   auto &sticker = stickers_[file_id];
   CHECK(sticker != nullptr);
-  sticker->message_thumbnail = PhotoSize();
+  sticker->s_thumbnail = PhotoSize();
 }
 
 vector<FileId> StickersManager::get_sticker_file_ids(FileId file_id) const {
@@ -1414,11 +1411,11 @@ vector<FileId> StickersManager::get_sticker_file_ids(FileId file_id) const {
   auto sticker = get_sticker(file_id);
   CHECK(sticker != nullptr);
   result.push_back(file_id);
-  if (sticker->message_thumbnail.file_id.is_valid()) {
-    result.push_back(sticker->message_thumbnail.file_id);
+  if (sticker->s_thumbnail.file_id.is_valid()) {
+    result.push_back(sticker->s_thumbnail.file_id);
   }
-  if (sticker->sticker_thumbnail.file_id.is_valid()) {
-    result.push_back(sticker->sticker_thumbnail.file_id);
+  if (sticker->m_thumbnail.file_id.is_valid()) {
+    result.push_back(sticker->m_thumbnail.file_id);
   }
   return result;
 }
@@ -1430,8 +1427,8 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   CHECK(!new_sticker);
   new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id = new_id;
-  // there is no reason to dup sticker_thumb
-  new_sticker->message_thumbnail.file_id = td_->file_manager_->dup_file_id(new_sticker->message_thumbnail.file_id);
+  // there is no reason to dup m_thumbnail
+  new_sticker->s_thumbnail.file_id = td_->file_manager_->dup_file_id(new_sticker->s_thumbnail.file_id);
   return new_id;
 }
 
@@ -1470,11 +1467,11 @@ bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
 
     new_->is_changed = true;
 
-    if (old_->message_thumbnail != new_->message_thumbnail) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->message_thumbnail.file_id, old_->message_thumbnail.file_id));
+    if (old_->s_thumbnail != new_->s_thumbnail) {
+      //    LOG_STATUS(td_->file_manager_->merge(new_->s_thumbnail.file_id, old_->s_thumbnail.file_id));
     }
-    if (old_->sticker_thumbnail != new_->sticker_thumbnail) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->sticker_thumbnail.file_id, old_->sticker_thumbnail.file_id));
+    if (old_->m_thumbnail != new_->m_thumbnail) {
+      //    LOG_STATUS(td_->file_manager_->merge(new_->m_thumbnail.file_id, old_->m_thumbnail.file_id));
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
@@ -1570,7 +1567,22 @@ void StickersManager::on_resolve_sticker_set_short_name(FileId sticker_file_id, 
   }
 }
 
-void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions, bool from_message,
+void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
+  if (!thumbnail.file_id.is_valid()) {
+    return;
+  }
+  if (thumbnail.type == 'm') {
+    s->m_thumbnail = thumbnail;
+    return;
+  }
+  if (thumbnail.type == 's' || thumbnail.type == 't') {
+    s->s_thumbnail = thumbnail;
+    return;
+  }
+  LOG(ERROR) << "Receive sticker thumbnail of unsupported type " << thumbnail.type;
+}
+
+void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                                      MultiPromiseActor *load_data_multipromise_ptr) {
   if (is_animated) {
@@ -1581,11 +1593,7 @@ void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimens
   auto s = make_unique<Sticker>();
   s->file_id = file_id;
   s->dimensions = dimensions;
-  if (from_message) {
-    s->message_thumbnail = std::move(thumbnail);
-  } else {
-    s->sticker_thumbnail = std::move(thumbnail);
-  }
+  add_sticker_thumbnail(s.get(), thumbnail);
   if (sticker != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(sticker->stickerset_), load_data_multipromise_ptr);
     s->alt = std::move(sticker->alt_);
@@ -1612,7 +1620,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
   if (is_secret) {
     if (file_view.is_encrypted_secret()) {
-      if (file_view.has_remote_location() && !sticker->message_thumbnail.file_id.is_valid()) {
+      if (file_view.has_remote_location() && !sticker->s_thumbnail.file_id.is_valid()) {
         return true;
       }
     } else if (!file_view.is_encrypted()) {
@@ -1646,7 +1654,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
     if (!input_file) {
       return {};
     }
-    if (sticker->message_thumbnail.file_id.is_valid() && thumbnail.empty()) {
+    if (sticker->s_thumbnail.file_id.is_valid() && thumbnail.empty()) {
       return {};
     }
   } else if (!file_view.is_encrypted()) {
@@ -1681,8 +1689,8 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
     auto &encryption_key = file_view.encryption_key();
     return SecretInputMedia{std::move(input_file),
                             make_tl_object<secret_api::decryptedMessageMediaDocument>(
-                                std::move(thumbnail), sticker->message_thumbnail.dimensions.width,
-                                sticker->message_thumbnail.dimensions.height, get_sticker_mime_type(sticker),
+                                std::move(thumbnail), sticker->s_thumbnail.dimensions.width,
+                                sticker->s_thumbnail.dimensions.height, get_sticker_mime_type(sticker),
                                 narrow_cast<int32>(file_view.size()), BufferSlice(encryption_key.key_slice()),
                                 BufferSlice(encryption_key.iv_slice()), std::move(attributes), "")};
   } else {
@@ -1855,7 +1863,7 @@ int64 StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_api::St
 
       auto &sticker_ids = sticker_set->sticker_ids;
 
-      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_), true).second;
+      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_)).second;
       if (sticker_id.is_valid() && std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
         sticker_ids.push_back(sticker_id);
         sticker_set->is_changed = true;
@@ -1879,7 +1887,7 @@ int64 StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_api::St
       auto &sticker_ids = sticker_set->sticker_ids;
 
       for (auto &cover : multicovered_set->covers_) {
-        auto sticker_id = on_get_sticker_document(std::move(cover), true).second;
+        auto sticker_id = on_get_sticker_document(std::move(cover)).second;
         if (sticker_id.is_valid() &&
             std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
           sticker_ids.push_back(sticker_id);
@@ -1934,7 +1942,7 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
   s->sticker_ids.clear();
   bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : documents) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), false);
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr));
     if (!sticker_id.second.is_valid()) {
       continue;
     }
@@ -2353,7 +2361,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
       CHECK(sticker_ids.empty());
 
       for (auto &sticker : found_stickers->stickers_) {
-        FileId sticker_id = on_get_sticker_document(std::move(sticker), false).second;
+        FileId sticker_id = on_get_sticker_document(std::move(sticker)).second;
         if (sticker_id.is_valid()) {
           sticker_ids.push_back(sticker_id);
         }
@@ -4036,7 +4044,7 @@ void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
   vector<FileId> recent_sticker_ids;
   recent_sticker_ids.reserve(stickers->stickers_.size());
   for (auto &document_ptr : stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), true).second;
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr)).second;
     if (!sticker_id.is_valid()) {
       continue;
     }
@@ -4464,7 +4472,7 @@ void StickersManager::on_get_favorite_stickers(
   vector<FileId> favorite_sticker_ids;
   favorite_sticker_ids.reserve(favorite_stickers->stickers_.size());
   for (auto &document_ptr : favorite_stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), true).second;
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr)).second;
     if (!sticker_id.is_valid()) {
       continue;
     }

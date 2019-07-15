@@ -405,7 +405,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
                       std::move(mime_type), !is_web);
       break;
     case Document::Type::Sticker:
-      td_->stickers_manager_->create_sticker(file_id, std::move(thumbnail), dimensions, true, std::move(sticker),
+      td_->stickers_manager_->create_sticker(file_id, std::move(thumbnail), dimensions, std::move(sticker),
                                              is_animated_sticker, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:

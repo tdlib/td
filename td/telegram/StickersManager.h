@@ -51,7 +51,7 @@ class StickersManager : public Actor {
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(int64 sticker_set_id) const;
 
-  void create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions, bool from_message,
+  void create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                       MultiPromiseActor *load_data_multipromise_ptr);
 
@@ -258,8 +258,8 @@ class StickersManager : public Actor {
     int64 set_id = 0;
     string alt;
     Dimensions dimensions;
-    PhotoSize message_thumbnail;
-    PhotoSize sticker_thumbnail;
+    PhotoSize s_thumbnail;
+    PhotoSize m_thumbnail;
     FileId file_id;
     bool is_animated = false;
     bool is_mask = false;
@@ -341,8 +341,7 @@ class StickersManager : public Actor {
 
   StickerSet *add_sticker_set(int64 sticker_set_id, int64 access_hash);
 
-  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
-                                                   bool from_message);
+  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr);
 
   static tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(const StickerSet *set);
 
@@ -476,6 +475,8 @@ class StickersManager : public Actor {
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
   void tear_down() override;
+
+  static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 
   static string get_sticker_mime_type(const Sticker *s);
 
