@@ -59,8 +59,7 @@ For example, take a look at [tdl](https://github.com/Bannerets/tdl), which provi
 at [Airgram](https://github.com/airgram/airgram) - modern TDLib framework for TypeScript/JavaScript.
 
 You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tdlnode](https://github.com/fonbah/tdlnode), [tglib](https://github.com/nodegin/tglib),
-[Paper Plane](https://github.com/BlackSuited/paper-plane), [node-tlg](https://github.com/dilongfa/node-tlg) and
-[example/javascript](https://github.com/tdlib/td/tree/master/example/javascript) for other examples of TDLib JSON interface integration with Node.js.
+[Paper Plane](https://github.com/BlackSuited/paper-plane) and [node-tlg](https://github.com/dilongfa/node-tlg) for other examples of TDLib JSON interface integration with Node.js.
 
 TDLib can be used also from NativeScript through the [JSON](https://github.com/tdlib/td#using-json) interface.
 See [nativescript-tglib](https://github.com/arpit2438735/nativescript-tglib) as an example of a NativeScript library for building Telegram clients.
