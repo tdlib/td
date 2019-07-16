@@ -72,8 +72,7 @@ TDLib can be used from the Go programming language through the [JSON](https://gi
 Convenient Go wrappers already exist for our JSON interface.
 For example, take a look at [go-tdlib](https://github.com/zelenin/go-tdlib) or [go-tdlib](https://github.com/Arman92/go-tdlib), which provide a convenient TDLib client, a generator for TDLib API classes and contain many examples.
 
-You can also see [go-tdjson](https://github.com/L11R/go-tdjson) for another example of TDLib JSON interface integration with Go and
-[example/go](https://github.com/tdlib/td/tree/master/example/go/main.go) for a proof of concept example of using the TDLib JSON interface from Go.
+You can also see [go-tdjson](https://github.com/L11R/go-tdjson) for another example of TDLib JSON interface integration with Go.
 
 <a name="java"></a>
 ## Using TDLib in Java projects
