@@ -11,17 +11,14 @@
 namespace td {
 
 void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code) {
-  phone_registered_ = (sent_code->flags_ & SENT_CODE_FLAG_IS_USER_REGISTERED) != 0;
   phone_code_hash_ = sent_code->phone_code_hash_;
   sent_code_info_ = get_authentication_code_info(std::move(sent_code->type_));
   next_code_info_ = get_authentication_code_info(std::move(sent_code->next_type_));
   next_code_timestamp_ = Timestamp::in((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
 }
 
-td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_authorization_state_wait_code(
-    const TermsOfService &terms_of_service) const {
-  return make_tl_object<td_api::authorizationStateWaitCode>(
-      phone_registered_, terms_of_service.get_terms_of_service_object(), get_authentication_code_info_object());
+td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_authorization_state_wait_code() const {
+  return make_tl_object<td_api::authorizationStateWaitCode>(get_authentication_code_info_object());
 }
 
 td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentication_code_info_object() const {

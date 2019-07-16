@@ -132,19 +132,19 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
             client.queryAsync(query:["@type":"setAuthenticationPhoneNumber", "phone_number":phone], f:checkAuthenticationError)
 
         case "authorizationStateWaitCode":
-            var first_name: String = ""
-            var last_name: String = ""
             var code: String = ""
-            if let is_registered = authorizationState["is_registered"] as? Bool, is_registered {
-            } else {
-                print("Enter your first name: ")
-                first_name = myReadLine()
-                print("Enter your last name: ")
-                last_name = myReadLine()
-            }
             print("Enter (SMS) code: ")
             code = myReadLine()
-            client.queryAsync(query:["@type":"checkAuthenticationCode", "code":code, "first_name":first_name, "last_name":last_name], f:checkAuthenticationError)
+            client.queryAsync(query:["@type":"checkAuthenticationCode", "code":code], f:checkAuthenticationError)
+
+        case "authorizationStateWaitRegistration":
+            var first_name: String = ""
+            var last_name: String = ""
+            print("Enter your first name: ")
+            first_name = myReadLine()
+            print("Enter your last name: ")
+            last_name = myReadLine()
+            client.queryAsync(query:["@type":"registerUser", "first_name":first_name, "last_name":last_name], f:checkAuthenticationError)
 
         case "authorizationStateWaitPassword":
             print("Enter password: ")

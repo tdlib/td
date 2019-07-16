@@ -88,8 +88,11 @@ authorizationStateWaitEncryptionKey is_encrypted:Bool = AuthorizationState;
 //@description TDLib needs the user's phone number to authorize
 authorizationStateWaitPhoneNumber = AuthorizationState;
 
-//@description TDLib needs the user's authentication code to finalize authorization @is_registered True, if the user is already registered @terms_of_service Telegram terms of service, which should be accepted before user can continue registration; may be null @code_info Information about the authorization code that was sent
-authorizationStateWaitCode is_registered:Bool terms_of_service:termsOfService code_info:authenticationCodeInfo = AuthorizationState;
+//@description TDLib needs the user's authentication code to authorize @code_info Information about the authorization code that was sent
+authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState;
+
+//@description The user is unregistered and need to accept terms of service and enter his first name and last name to finish registration @terms_of_service Telegram terms of service
+authorizationStateWaitRegistration terms_of_service:termsOfService = AuthorizationState;
 
 //@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; may be empty @has_recovery_email_address True, if a recovery email address has been set up
 //@recovery_email_address_pattern Pattern of the email address to which the recovery email was sent; empty until a recovery email has been sent
@@ -2805,9 +2808,11 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 resendAuthenticationCode = Ok;
 
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code The verification code received via SMS, Telegram message, phone call, or flash call
-//@first_name If the user is not yet registered, the first name of the user; 1-64 characters. You can also pass an empty string for unregistered user there to check verification code validness. In the latter case PHONE_NUMBER_UNOCCUPIED error will be returned for a valid code
-//@last_name If the user is not yet registered; the last name of the user; optional; 0-64 characters
-checkAuthenticationCode code:string first_name:string last_name:string = Ok;
+checkAuthenticationCode code:string = Ok;
+
+//@description Finishes user registration. Works only when the current authorization state is authorizationStateWaitRegistration
+//@first_name The first name of the user; 1-64 characters @last_name The last name of the user; 0-64 characters
+registerUser first_name:string last_name:string = Ok;
 
 //@description Checks the authentication password for correctness. Works only when the current authorization state is authorizationStateWaitPassword @password The password to check
 checkAuthenticationPassword password:string = Ok;

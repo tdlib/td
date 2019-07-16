@@ -100,7 +100,7 @@ namespace TdApp
             {
                 var args = command.Split(" ".ToCharArray(), 2);
                 AcceptCommand(command);
-                _client.Send(new TdApi.CheckAuthenticationCode(args[1], String.Empty, String.Empty), _handler);
+                _client.Send(new TdApi.CheckAuthenticationCode(args[1]), _handler);
             }
             else if (command.StartsWith("cap"))
             {

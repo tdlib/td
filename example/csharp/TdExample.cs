@@ -98,7 +98,13 @@ namespace TdExample
             else if (_authorizationState is TdApi.AuthorizationStateWaitCode)
             {
                 string code = ReadLine("Please enter authentication code: ");
-                _client.Send(new TdApi.CheckAuthenticationCode(code, "", ""), new AuthorizationRequestHandler());
+                _client.Send(new TdApi.CheckAuthenticationCode(code), new AuthorizationRequestHandler());
+            }
+            else if (_authorizationState is TdApi.AuthorizationStateWaitRegistration)
+            {
+                string firstName = ReadLine("Please enter your first name: ");
+                string lastName = ReadLine("Please enter your last name: ");
+                _client.Send(new TdApi.RegisterUser(firstName, lastName), new AuthorizationRequestHandler());
             }
             else if (_authorizationState is TdApi.AuthorizationStateWaitPassword)
             {

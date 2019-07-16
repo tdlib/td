@@ -117,7 +117,13 @@ public final class Example {
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {
                 String code = promptString("Please enter authentication code: ");
-                client.send(new TdApi.CheckAuthenticationCode(code, "", ""), new AuthorizationRequestHandler());
+                client.send(new TdApi.CheckAuthenticationCode(code), new AuthorizationRequestHandler());
+                break;
+            }
+            case TdApi.AuthorizationStateWaitRegistration.CONSTRUCTOR: {
+                String firstName = promptString("Please enter your first name: ");
+                String lastName = promptString("Please enter your last name: ");
+                client.send(new TdApi.RegisterUser(firstName, lastName), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR: {

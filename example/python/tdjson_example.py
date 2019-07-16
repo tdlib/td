@@ -124,6 +124,12 @@ while True:
                 code = input('Please enter the authentication code you received: ')
                 td_send({'@type': 'checkAuthenticationCode', 'code': code})
 
+            # wait for first and last name for new users
+            if auth_state['@type'] == 'authorizationStateWaitRegistration':
+                first_name = input('Please enter your first name: ')
+                last_name = input('Please enter your last name: ')
+                td_send({'@type': 'registerUser', 'first_name': first_name, 'last_name': last_name})
+
             # wait for password if present
             if auth_state['@type'] == 'authorizationStateWaitPassword':
                 password = input('Please enter your password: ')

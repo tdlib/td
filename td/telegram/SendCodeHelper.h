@@ -8,7 +8,6 @@
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/TermsOfService.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
@@ -20,8 +19,7 @@ namespace td {
 class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
-  td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code(
-      const TermsOfService &terms_of_service) const;
+  td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
   Result<telegram_api::auth_resendCode> resend_code();
 
@@ -44,9 +42,6 @@ class SendCodeHelper {
   }
   Slice phone_code_hash() const {
     return phone_code_hash_;
-  }
-  bool phone_registered() const {
-    return phone_registered_;
   }
 
   template <class StorerT>
@@ -77,7 +72,6 @@ class SendCodeHelper {
   };
 
   string phone_number_;
-  bool phone_registered_;
   string phone_code_hash_;
 
   SendCodeHelper::AuthenticationCodeInfo sent_code_info_;

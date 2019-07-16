@@ -51,10 +51,12 @@ void AuthManager::DbState::store(StorerT &storer) const {
   bool has_terms_of_service = !terms_of_service_.get_id().empty();
   bool is_pbkdf2_supported = true;
   bool is_srp_supported = true;
+  bool is_wait_registration_supported = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_terms_of_service);
   STORE_FLAG(is_pbkdf2_supported);
   STORE_FLAG(is_srp_supported);
+  STORE_FLAG(is_wait_registration_supported);
   END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
@@ -69,6 +71,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
     store(send_code_helper_, storer);
   } else if (state_ == State::WaitPassword) {
     store(wait_password_state_, storer);
+  } else if (state_ == State::WaitRegistration) {
   } else {
     UNREACHABLE();
   }
@@ -80,13 +83,21 @@ void AuthManager::DbState::parse(ParserT &parser) {
   bool has_terms_of_service = false;
   bool is_pbkdf2_supported = false;
   bool is_srp_supported = false;
+  bool is_wait_registration_supported = false;
   if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_terms_of_service);
     PARSE_FLAG(is_pbkdf2_supported);
     PARSE_FLAG(is_srp_supported);
+    PARSE_FLAG(is_wait_registration_supported);
     END_PARSE_FLAGS();
   }
+  if (!is_wait_registration_supported) {
+    return parser.set_error("Have no wait registration support");
+  }
+  CHECK(is_pbkdf2_supported);
+  CHECK(is_srp_supported);
+
   parse(state_, parser);
   parse(api_id_, parser);
   parse(api_hash_, parser);
@@ -98,17 +109,9 @@ void AuthManager::DbState::parse(ParserT &parser) {
 
   if (state_ == State::WaitCode) {
     parse(send_code_helper_, parser);
-    if (parser.version() < static_cast<int32>(Version::AddTermsOfService)) {
-      return parser.set_error("Have no terms of service");
-    }
   } else if (state_ == State::WaitPassword) {
-    if (!is_pbkdf2_supported) {
-      return parser.set_error("Need PBKDF2 support");
-    }
-    if (!is_srp_supported) {
-      return parser.set_error("Need SRP support");
-    }
     parse(wait_password_state_, parser);
+  } else if (state_ == State::WaitRegistration) {
   } else {
     parser.set_error(PSTRING() << "Unexpected " << tag("state", static_cast<int32>(state_)));
   }

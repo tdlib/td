@@ -3254,6 +3254,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::setAuthenticationPhoneNumber::ID:
     case td_api::resendAuthenticationCode::ID:
     case td_api::checkAuthenticationCode::ID:
+    case td_api::registerUser::ID:
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
     case td_api::recoverAuthenticationPassword::ID:
@@ -4741,10 +4742,14 @@ void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) 
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationCode &request) {
   CLEAN_INPUT_STRING(request.code_);
+  send_closure(auth_manager_actor_, &AuthManager::check_code, id, std::move(request.code_));
+}
+
+void Td::on_request(uint64 id, td_api::registerUser &request) {
   CLEAN_INPUT_STRING(request.first_name_);
   CLEAN_INPUT_STRING(request.last_name_);
-  send_closure(auth_manager_actor_, &AuthManager::check_code, id, std::move(request.code_),
-               std::move(request.first_name_), std::move(request.last_name_));
+  send_closure(auth_manager_actor_, &AuthManager::register_user, id, std::move(request.first_name_),
+               std::move(request.last_name_));
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationPassword &request) {

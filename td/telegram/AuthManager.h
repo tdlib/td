@@ -35,7 +35,8 @@ class AuthManager : public NetActor {
   void set_phone_number(uint64 query_id, string phone_number,
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
   void resend_authentication_code(uint64 query_id);
-  void check_code(uint64 query_id, string code, string first_name, string last_name);
+  void check_code(uint64 query_id, string code);
+  void register_user(uint64 query_id, string first_name, string last_name);
   void check_bot_token(uint64 query_id, string bot_token);
   void check_password(uint64 query_id, string password);
   void request_password_recovery(uint64 query_id);
@@ -57,6 +58,7 @@ class AuthManager : public NetActor {
     WaitPhoneNumber,
     WaitCode,
     WaitPassword,
+    WaitRegistration,
     Ok,
     LoggingOut,
     DestroyingKeys,
@@ -102,30 +104,32 @@ class AuthManager : public NetActor {
 
     // WaitCode
     SendCodeHelper send_code_helper_;
-    TermsOfService terms_of_service_;
 
     // WaitPassword
     WaitPasswordState wait_password_state_;
 
+    // WaitRegistration
+    TermsOfService terms_of_service_;
+
+    DbState() = default;
+    // TODO layer 104+: remove terms_of_service
     static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
                              TermsOfService terms_of_service) {
-      DbState state;
-      state.state_ = State::WaitCode;
-      state.api_id_ = api_id;
-      state.api_hash_ = api_hash;
+      DbState state(State::WaitCode, api_id, api_hash);
       state.send_code_helper_ = std::move(send_code_helper);
       state.terms_of_service_ = std::move(terms_of_service);
-      state.state_timestamp_ = Timestamp::now();
       return state;
     }
 
     static DbState wait_password(int32 api_id, string api_hash, WaitPasswordState wait_password_state) {
-      DbState state;
-      state.state_ = State::WaitPassword;
-      state.api_id_ = api_id;
-      state.api_hash_ = api_hash;
+      DbState state(State::WaitPassword, api_id, api_hash);
       state.wait_password_state_ = std::move(wait_password_state);
-      state.state_timestamp_ = Timestamp::now();
+      return state;
+    }
+
+    static DbState wait_registration(int32 api_id, string api_hash, TermsOfService terms_of_service) {
+      DbState state(State::WaitRegistration, api_id, api_hash);
+      state.terms_of_service_ = std::move(terms_of_service);
       return state;
     }
 
@@ -133,6 +137,11 @@ class AuthManager : public NetActor {
     void store(StorerT &storer) const;
     template <class ParserT>
     void parse(ParserT &parser);
+
+   private:
+    DbState(State state, int32 api_id, string api_hash)
+        : state_(state), api_id_(api_id), api_hash_(api_hash), state_timestamp_(Timestamp::now()) {
+    }
   };
 
   bool load_state();
@@ -148,7 +157,11 @@ class AuthManager : public NetActor {
   // State::WaitCode
   SendCodeHelper send_code_helper_;
   string code_;
+
+  // State::WaitPassword
   string password_;
+
+  // State::WaitRegistration
   TermsOfService terms_of_service_;
 
   // for bots

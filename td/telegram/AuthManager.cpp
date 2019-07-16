@@ -99,9 +99,12 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::Ok:
       return make_tl_object<td_api::authorizationStateReady>();
     case State::WaitCode:
-      return send_code_helper_.get_authorization_state_wait_code(terms_of_service_);
+      return send_code_helper_.get_authorization_state_wait_code();
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
+    case State::WaitRegistration:
+      return make_tl_object<td_api::authorizationStateWaitRegistration>(
+          terms_of_service_.get_terms_of_service_object());
     case State::WaitPassword:
       return make_tl_object<td_api::authorizationStateWaitPassword>(
           wait_password_state_.hint_, wait_password_state_.has_recovery_, wait_password_state_.email_address_pattern_);
@@ -169,7 +172,8 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
 void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                    td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings) {
   if (state_ != State::WaitPhoneNumber) {
-    if ((state_ == State::WaitCode || state_ == State::WaitPassword) && net_query_id_ == 0) {
+    if ((state_ == State::WaitCode || state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
+        net_query_id_ == 0) {
       // ok
     } else {
       return on_query_error(query_id, Status::Error(8, "setAuthenticationPhoneNumber unexpected"));
@@ -218,33 +222,38 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
                                                   NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
-void AuthManager::check_code(uint64 query_id, string code, string first_name, string last_name) {
+void AuthManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
   }
 
-  code_ = code;
+  code_ = std::move(code);
   on_new_query(query_id);
-  if (send_code_helper_.phone_registered() || first_name.empty()) {
-    start_net_query(NetQueryType::SignIn,
-                    G()->net_query_creator().create(
-                        create_storer(telegram_api::auth_signIn(send_code_helper_.phone_number().str(),
-                                                                send_code_helper_.phone_code_hash().str(), code)),
-                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
-  } else {
-    first_name = clean_name(first_name, MAX_NAME_LENGTH);
-    if (first_name.empty()) {
-      return on_query_error(Status::Error(8, "First name can't be empty"));
-    }
+  start_net_query(NetQueryType::SignIn,
+                  G()->net_query_creator().create(
+                      create_storer(telegram_api::auth_signIn(send_code_helper_.phone_number().str(),
+                                                              send_code_helper_.phone_code_hash().str(), code_)),
+                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+}
 
-    last_name = clean_name(last_name, MAX_NAME_LENGTH);
-    start_net_query(
-        NetQueryType::SignUp,
-        G()->net_query_creator().create(create_storer(telegram_api::auth_signUp(
-                                            send_code_helper_.phone_number().str(),
-                                            send_code_helper_.phone_code_hash().str(), code, first_name, last_name)),
-                                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+void AuthManager::register_user(uint64 query_id, string first_name, string last_name) {
+  if (state_ != State::WaitRegistration) {
+    return on_query_error(query_id, Status::Error(8, "registerUser unexpected"));
   }
+
+  on_new_query(query_id);
+  first_name = clean_name(first_name, MAX_NAME_LENGTH);
+  if (first_name.empty()) {
+    return on_query_error(Status::Error(8, "First name can't be empty"));
+  }
+
+  last_name = clean_name(last_name, MAX_NAME_LENGTH);
+  start_net_query(
+      NetQueryType::SignUp,
+      G()->net_query_creator().create(create_storer(telegram_api::auth_signUp(send_code_helper_.phone_number().str(),
+                                                                              send_code_helper_.phone_code_hash().str(),
+                                                                              code_, first_name, last_name)),
+                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
 void AuthManager::check_password(uint64 query_id, string password) {
@@ -374,7 +383,9 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
-  terms_of_service_ = TermsOfService(std::move(sent_code->terms_of_service_));
+  if (terms_of_service_.get_id().empty()) {
+    terms_of_service_ = TermsOfService(std::move(sent_code->terms_of_service_));
+  }
 
   send_code_helper_.on_sent_code(std::move(sent_code));
 
@@ -591,6 +602,12 @@ void AuthManager::on_result(NetQueryPtr result) {
                                                         DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
         return;
       }
+      if (type == NetQueryType::SignIn && result->error().message() == CSlice("PHONE_NUMBER_UNOCCUPIED")) {
+        code_ = "11111";
+        update_state(State::WaitRegistration);
+        on_query_ok();
+        return;
+      }
       if (type != NetQueryType::LogOut) {
         if (query_id_ != 0) {
           if (state_ == State::WaitPhoneNumber) {
@@ -686,6 +703,9 @@ bool AuthManager::load_state() {
     terms_of_service_ = std::move(db_state.terms_of_service_);
   } else if (db_state.state_ == State::WaitPassword) {
     wait_password_state_ = std::move(db_state.wait_password_state_);
+  } else if (db_state.state_ == State::WaitRegistration) {
+    code_ = "11111";  // the code has already been checked
+    terms_of_service_ = std::move(db_state.terms_of_service_);
   } else {
     UNREACHABLE();
   }
@@ -694,21 +714,23 @@ bool AuthManager::load_state() {
 }
 
 void AuthManager::save_state() {
-  if (state_ != State::WaitCode && state_ != State::WaitPassword) {
+  if (state_ != State::WaitCode && state_ != State::WaitPassword && state_ != State::WaitRegistration) {
     if (state_ != State::Closing) {
       G()->td_db()->get_binlog_pmc()->erase("auth_state");
     }
     return;
   }
 
-  DbState db_state;
-  if (state_ == State::WaitCode) {
-    db_state = DbState::wait_code(api_id_, api_hash_, send_code_helper_, terms_of_service_);
-  } else if (state_ == State::WaitPassword) {
-    db_state = DbState::wait_password(api_id_, api_hash_, wait_password_state_);
-  } else {
-    UNREACHABLE();
-  }
+  DbState db_state = [&] {
+    if (state_ == State::WaitCode) {
+      return DbState::wait_code(api_id_, api_hash_, send_code_helper_, terms_of_service_);
+    } else if (state_ == State::WaitPassword) {
+      return DbState::wait_password(api_id_, api_hash_, wait_password_state_);
+    } else {
+      CHECK(state_ == State::WaitRegistration);
+      return DbState::wait_registration(api_id_, api_hash_, terms_of_service_);
+    }
+  }();
   G()->td_db()->get_binlog_pmc()->set("auth_state", log_event_store(db_state).as_slice().str());
 }
 

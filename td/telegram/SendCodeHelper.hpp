@@ -32,7 +32,7 @@ template <class StorerT>
 void SendCodeHelper::store(StorerT &storer) const {
   using td::store;
   store(phone_number_, storer);
-  store(phone_registered_, storer);
+  store(true, storer);
   store(phone_code_hash_, storer);
   store(sent_code_info_, storer);
   store(next_code_info_, storer);
@@ -41,9 +41,10 @@ void SendCodeHelper::store(StorerT &storer) const {
 
 template <class ParserT>
 void SendCodeHelper::parse(ParserT &parser) {
+  bool legacy_is_registered = false;
   using td::parse;
   parse(phone_number_, parser);
-  parse(phone_registered_, parser);
+  parse(legacy_is_registered, parser);
   parse(phone_code_hash_, parser);
   parse(sent_code_info_, parser);
   parse(next_code_info_, parser);

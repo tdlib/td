@@ -215,7 +215,10 @@ class DoAuthentication : public Task {
         function = make_tl_object<td_api::setAuthenticationPhoneNumber>(phone_, nullptr);
         break;
       case td_api::authorizationStateWaitCode::ID:
-        function = make_tl_object<td_api::checkAuthenticationCode>(code_, name_, "");
+        function = make_tl_object<td_api::checkAuthenticationCode>(code_);
+        break;
+      case td_api::authorizationStateWaitRegistration::ID:
+        function = make_tl_object<td_api::registerUser>(name_, "");
         break;
       case td_api::authorizationStateWaitTdlibParameters::ID: {
         auto parameters = td_api::make_object<td_api::tdlibParameters>();

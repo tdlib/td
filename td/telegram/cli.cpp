@@ -1264,14 +1264,14 @@ class CliClient final : public Actor {
     } else if (op == "sdek" || op == "SetDatabaseEncryptionKey") {
       send_request(td_api::make_object<td_api::setDatabaseEncryptionKey>(args));
     } else if (op == "cac") {
-      string code;
+      send_request(td_api::make_object<td_api::checkAuthenticationCode>(args));
+    } else if (op == "ru") {
       string first_name;
       string last_name;
 
-      std::tie(code, args) = split(args);
       std::tie(first_name, last_name) = split(args);
 
-      send_request(td_api::make_object<td_api::checkAuthenticationCode>(code, first_name, last_name));
+      send_request(td_api::make_object<td_api::registerUser>(first_name, last_name));
     } else if (op == "cap") {
       send_request(td_api::make_object<td_api::checkAuthenticationPassword>(args));
     } else if (op == "cab" || op == "cabt") {
