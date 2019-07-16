@@ -170,7 +170,6 @@ See [d-tdlib-service](https://github.com/Lord-Evil/d-tdlib-service) for an examp
 TDLib can be used from the Ruby programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
 See [tdlib-ruby](https://github.com/centosadmin/tdlib-ruby) for examples of Ruby bindings and a client for TDLib.
-See [example/ruby](https://github.com/tdlib/td/tree/master/example/ruby) for an example of logging in to Telegram using TDLib and `tdlib-ruby` gem.
 
 <a name="clojure"></a>
 ## Using TDLib in Clojure projects

@@ -181,7 +181,7 @@ all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1
 `TDLib` JSON interface adheres to semantic versioning and versions with the same major version number are binary and backward compatible, but the underlying `TDLib` API can be different for different minor and even patch versions.
 If you need to support different `TDLib` versions then you can use a value of the `version` option to find exact `TDLib` version and to use appropriate API then.
 
-See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) and [example/ruby/example.rb](https://github.com/tdlib/td/tree/master/example/ruby/example.rb) for examples of such usage.
+See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
 
 <a name="license"></a>
 ## License
