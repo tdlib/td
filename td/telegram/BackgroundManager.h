@@ -75,6 +75,12 @@ class BackgroundManager : public Actor {
     bool is_dark = false;
     BackgroundType type;
     FileSourceId file_source_id;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   class BackgroundLogEvent;

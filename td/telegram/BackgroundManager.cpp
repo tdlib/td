@@ -255,55 +255,58 @@ BackgroundManager::BackgroundManager(Td *td, ActorShared<> parent) : td_(td), pa
   upload_background_file_callback_ = std::make_shared<UploadBackgroundFileCallback>();
 }
 
+template <class StorerT>
+void BackgroundManager::Background::store(StorerT &storer) const {
+  bool has_file_id = file_id.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_creator);
+  STORE_FLAG(is_default);
+  STORE_FLAG(is_dark);
+  STORE_FLAG(has_file_id);
+  END_STORE_FLAGS();
+  td::store(id, storer);
+  td::store(access_hash, storer);
+  td::store(name, storer);
+  if (has_file_id) {
+    storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(file_id, storer);
+  }
+  td::store(type, storer);
+}
+
+template <class ParserT>
+void BackgroundManager::Background::parse(ParserT &parser) {
+  bool has_file_id;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(is_creator);
+  PARSE_FLAG(is_default);
+  PARSE_FLAG(is_dark);
+  PARSE_FLAG(has_file_id);
+  END_PARSE_FLAGS();
+  td::parse(id, parser);
+  td::parse(access_hash, parser);
+  td::parse(name, parser);
+  if (has_file_id) {
+    file_id = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
+  } else {
+    file_id = FileId();
+  }
+  td::parse(type, parser);
+}
+
 class BackgroundManager::BackgroundLogEvent {
  public:
-  BackgroundId background_id_;
-  int64 access_hash_;
-  string name_;
-  FileId file_id_;
-  bool is_creator_;
-  bool is_default_;
-  bool is_dark_;
-  BackgroundType type_;
+  Background background_;
   BackgroundType set_type_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    bool has_file_id = file_id_.is_valid();
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(is_creator_);
-    STORE_FLAG(is_default_);
-    STORE_FLAG(is_dark_);
-    STORE_FLAG(has_file_id);
-    END_STORE_FLAGS();
-    td::store(background_id_, storer);
-    td::store(access_hash_, storer);
-    td::store(name_, storer);
-    if (has_file_id) {
-      storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(file_id_, storer);
-    }
-    td::store(type_, storer);
+    td::store(background_, storer);
     td::store(set_type_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    bool has_file_id;
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(is_creator_);
-    PARSE_FLAG(is_default_);
-    PARSE_FLAG(is_dark_);
-    PARSE_FLAG(has_file_id);
-    END_PARSE_FLAGS();
-    td::parse(background_id_, parser);
-    td::parse(access_hash_, parser);
-    td::parse(name_, parser);
-    if (has_file_id) {
-      file_id_ = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
-    } else {
-      file_id_ = FileId();
-    }
-    td::parse(type_, parser);
+    td::parse(background_, parser);
     td::parse(set_type_, parser);
   }
 };
@@ -317,20 +320,20 @@ void BackgroundManager::start_up() {
       BackgroundLogEvent logevent;
       log_event_parse(logevent, logevent_string).ensure();
 
-      CHECK(logevent.background_id_.is_valid());
-      set_background_id_[for_dark_theme] = logevent.background_id_;
+      CHECK(logevent.background_.id.is_valid());
+      set_background_id_[for_dark_theme] = logevent.background_.id;
       set_background_type_[for_dark_theme] = logevent.set_type_;
 
       auto *background = add_background(set_background_id_[for_dark_theme]);
-      CHECK(!background->id.is_valid());
+      //CHECK(!background->id.is_valid());
       background->id = set_background_id_[for_dark_theme];
-      background->access_hash = logevent.access_hash_;
-      background->is_creator = logevent.is_creator_;
-      background->is_default = logevent.is_default_;
-      background->is_dark = logevent.is_dark_;
-      background->type = logevent.type_;
-      background->name = std::move(logevent.name_);
-      background->file_id = logevent.file_id_;
+      background->access_hash = logevent.background_.access_hash;
+      background->is_creator = logevent.background_.is_creator;
+      background->is_default = logevent.background_.is_default;
+      background->is_dark = logevent.background_.is_dark;
+      background->type = logevent.background_.type;
+      background->name = std::move(logevent.background_.name);
+      background->file_id = logevent.background_.file_id;
 
       name_to_background_id_.emplace(background->name, background->id);
       if (background->file_id.is_valid()) {
@@ -605,9 +608,7 @@ void BackgroundManager::save_background_id(bool for_dark_theme) const {
   if (background_id.is_valid()) {
     const Background *background = get_background(background_id);
     CHECK(background != nullptr);
-    BackgroundLogEvent logevent{background_id,       background->access_hash, background->name,
-                                background->file_id, background->is_creator,  background->is_default,
-                                background->is_dark, background->type,        set_background_type_[for_dark_theme]};
+    BackgroundLogEvent logevent{*background, set_background_type_[for_dark_theme]};
     G()->td_db()->get_binlog_pmc()->set(key, log_event_store(logevent).as_slice().str());
   } else {
     G()->td_db()->get_binlog_pmc()->erase(key);
@@ -850,6 +851,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     if (background->file_id.is_valid()) {
       LOG(ERROR) << "Background file has changed from " << background->file_id << " to " << document.file_id;
       file_id_to_background_id_.erase(background->file_id);
+      background->file_source_id = FileSourceId();
     }
     if (!background->file_source_id.is_valid()) {
       background->file_source_id =
