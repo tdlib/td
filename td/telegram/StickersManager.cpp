@@ -1272,11 +1272,13 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
     return {};
   }
 
+  bool is_animated = document->mime_type_ == "application/x-tgsticker";
   int64 document_id = document->id_;
-  FileId sticker_id = td_->file_manager_->register_remote(
-      FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, dc_id,
-                             document->file_reference_.as_slice().str()),
-      FileLocationSource::FromServer, DialogId(), document->size_, 0, PSTRING() << document_id << ".webp");
+  FileId sticker_id =
+      td_->file_manager_->register_remote(FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_,
+                                                                 dc_id, document->file_reference_.as_slice().str()),
+                                          FileLocationSource::FromServer, DialogId(), document->size_, 0,
+                                          PSTRING() << document_id << (is_animated ? ".tgs" : ".webp"));
 
   PhotoSize thumbnail;
   for (auto &thumb : document->thumbs_) {
@@ -1291,8 +1293,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
     }
   }
 
-  create_sticker(sticker_id, std::move(thumbnail), dimensions, std::move(sticker),
-                 document->mime_type_ == "application/x-tgsticker", nullptr);
+  create_sticker(sticker_id, std::move(thumbnail), dimensions, std::move(sticker), is_animated, nullptr);
   return {document_id, sticker_id};
 }
 

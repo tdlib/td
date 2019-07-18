@@ -1343,16 +1343,16 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
       return Status::Error("Can't merge files. Different encryption keys");
     }
   }
-  if (trusted_by_source == 0) {  // if new is more trusted
-    if (remote_name_i == 2) {
-      remote_name_i = 0;
-    }
-    if (url_i == 2) {
-      url_i = 0;
-    }
-    if (expected_size_i == 2) {
-      expected_size_i = 0;
-    }
+
+  // prefer more trusted source
+  if (remote_name_i == 2) {
+    remote_name_i = trusted_by_source;
+  }
+  if (url_i == 2) {
+    url_i = trusted_by_source;
+  }
+  if (expected_size_i == 2) {
+    expected_size_i = trusted_by_source;
   }
 
   int node_i =

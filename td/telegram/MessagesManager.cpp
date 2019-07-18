@@ -25267,7 +25267,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   // There are many ways of handling a gap in a channel:
   // 1) Delete all known messages in the chat, begin from scratch. It is easy to implement, but suddenly disappearing
   //    messages looks awful for the user.
-  // 2) Save all messages loaded in the memory until application restart, but delete all messages from database.
+  // 2) Save all messages loaded in the memory until application restart, but delete all messages from the database.
   //    Messages left in the memory must be lazily updated using calls to getHistory. It looks much smoothly for the
   //    user, he will need to redownload messages only after client restart. Unsynchronized messages left in the
   //    memory shouldn't be saved to database, results of getHistory and getMessage must be used to update state of
