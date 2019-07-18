@@ -498,6 +498,12 @@ BackgroundId BackgroundManager::add_solid_background(int32 color) {
 BackgroundId BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                                const td_api::BackgroundType *background_type, bool for_dark_theme,
                                                Promise<Unit> &&promise) {
+  if (background_type == nullptr) {
+    set_background_id(BackgroundId(), BackgroundType(), for_dark_theme);
+    promise.set_value(Unit());
+    return BackgroundId();
+  }
+
   auto r_type = get_background_type(background_type);
   if (r_type.is_error()) {
     promise.set_error(r_type.move_as_error());

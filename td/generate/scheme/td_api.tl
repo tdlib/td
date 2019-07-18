@@ -3668,7 +3668,9 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes selected by the user background; adds background to the list of installed backgrounds
-//@background The input background to use, null for solid backgrounds @type Background type @for_dark_theme True, if the background is chosen for dark theme
+//@background The input background to use, null for solid backgrounds
+//@type Background type; null for default background. The method will return error 404 if type is null
+//@for_dark_theme True, if the background is chosen for dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 
 //@description Removes background from the list of installed backgrounds @background_id The background indentifier

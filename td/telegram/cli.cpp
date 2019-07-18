@@ -1993,6 +1993,8 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
     } else if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
+    } else if (op == "sbgd") {
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, nullptr, as_bool(args)));
     } else if (op == "sbgw" || op == "sbgwd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
