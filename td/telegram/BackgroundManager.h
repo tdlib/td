@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -53,7 +54,7 @@ class BackgroundManager : public Actor {
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
-  BackgroundId on_get_background(BackgroundId expected_background_id,
+  BackgroundId on_get_background(BackgroundId expected_background_id, const string &expected_background_name,
                                  telegram_api::object_ptr<telegram_api::wallPaper> wallpaper);
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
@@ -95,7 +96,7 @@ class BackgroundManager : public Actor {
 
   void save_background_id(bool for_dark_theme) const;
 
-  void reload_background_from_server(BackgroundId background_id,
+  void reload_background_from_server(BackgroundId background_id, const string &background_name,
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
                                      Promise<Unit> &&promise) const;
 
@@ -110,6 +111,10 @@ class BackgroundManager : public Actor {
   Background *get_background_ref(BackgroundId background_id);
 
   const Background *get_background(BackgroundId background_id) const;
+
+  static string get_background_name_database_key(const string &name);
+
+  void on_load_background_from_database(string name, string value);
 
   void on_get_backgrounds(Result<telegram_api::object_ptr<telegram_api::account_WallPapers>> result);
 
@@ -144,6 +149,9 @@ class BackgroundManager : public Actor {
   std::unordered_map<string, BackgroundId> name_to_background_id_;
 
   std::unordered_map<FileId, BackgroundId, FileIdHash> file_id_to_background_id_;
+
+  std::unordered_set<string> loaded_from_database_backgrounds_;
+  std::unordered_map<string, vector<Promise<Unit>>> being_loaded_from_database_backgrounds_;
 
   BackgroundId set_background_id_[2];
   BackgroundType set_background_type_[2];

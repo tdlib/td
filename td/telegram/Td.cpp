@@ -2961,6 +2961,7 @@ class SearchBackgroundRequest : public RequestActor<> {
  public:
   SearchBackgroundRequest(ActorShared<Td> td, uint64 request_id, string &&name)
       : RequestActor(std::move(td), request_id), name_(std::move(name)) {
+    set_tries(3);
   }
 };
 

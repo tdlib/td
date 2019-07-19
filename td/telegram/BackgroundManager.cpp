@@ -25,6 +25,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/db/SqliteKeyValueAsync.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -38,14 +40,17 @@ namespace td {
 class GetBackgroundQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   BackgroundId background_id_;
+  string background_name_;
 
  public:
   explicit GetBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(BackgroundId background_id, telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper) {
+  void send(BackgroundId background_id, const string &background_name,
+            telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper) {
     background_id_ = background_id;
-    LOG(INFO) << "Load " << background_id << " from server: " << to_string(input_wallpaper);
+    background_name_ = background_name;
+    LOG(INFO) << "Load " << background_id_ << "/" << background_name_ << " from server: " << to_string(input_wallpaper);
     send_query(
         G()->net_query_creator().create(create_storer(telegram_api::account_getWallPaper(std::move(input_wallpaper)))));
   }
@@ -56,13 +61,13 @@ class GetBackgroundQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->background_manager_->on_get_background(background_id_, result_ptr.move_as_ok());
+    td->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok());
 
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getBackground: " << status;
+    LOG(INFO) << "Receive error for getBackground " << background_id_ << "/" << background_name_ << ": " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -395,18 +400,19 @@ Result<string> BackgroundManager::get_background_url(const string &name,
 }
 
 void BackgroundManager::reload_background_from_server(
-    BackgroundId background_id, telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
-    Promise<Unit> &&promise) const {
+    BackgroundId background_id, const string &background_name,
+    telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper, Promise<Unit> &&promise) const {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
-  td_->create_handler<GetBackgroundQuery>(std::move(promise))->send(background_id, std::move(input_wallpaper));
+  td_->create_handler<GetBackgroundQuery>(std::move(promise))
+      ->send(background_id, background_name, std::move(input_wallpaper));
 }
 
 void BackgroundManager::reload_background(BackgroundId background_id, int64 access_hash, Promise<Unit> &&promise) {
   reload_background_from_server(
-      background_id, telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash),
-      std::move(promise));
+      background_id, string(),
+      telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), std::move(promise));
 }
 
 BackgroundId BackgroundManager::search_background(const string &name, Promise<Unit> &&promise) {
@@ -434,9 +440,54 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     return background_id;
   }
 
-  reload_background_from_server(BackgroundId(), telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
+  if (G()->parameters().use_file_db && loaded_from_database_backgrounds_.count(name) == 0) {
+    auto &queries = being_loaded_from_database_backgrounds_[name];
+    queries.push_back(std::move(promise));
+    if (queries.size() == 1) {
+      LOG(INFO) << "Trying to load background " << name << " from database";
+      G()->td_db()->get_sqlite_pmc()->get(
+          get_background_name_database_key(name), PromiseCreator::lambda([name](string value) {
+            send_closure(G()->background_manager(), &BackgroundManager::on_load_background_from_database,
+                         std::move(name), std::move(value));
+          }));
+    }
+    return BackgroundId();
+  }
+
+  reload_background_from_server(BackgroundId(), name, telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
                                 std::move(promise));
   return BackgroundId();
+}
+
+void BackgroundManager::on_load_background_from_database(string name, string value) {
+  auto promises_it = being_loaded_from_database_backgrounds_.find(name);
+  CHECK(promises_it != being_loaded_from_database_backgrounds_.end());
+  auto promises = std::move(promises_it->second);
+  CHECK(!promises.empty());
+  being_loaded_from_database_backgrounds_.erase(promises_it);
+
+  loaded_from_database_backgrounds_.insert(name);
+
+  CHECK(name.size() > 6);
+  if (name_to_background_id_.count(name) == 0 && !value.empty()) {
+    LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
+    Background background;
+    auto status = log_event_parse(background, value);
+    if (status.is_error() || background.type.type == BackgroundType::Type::Solid || !background.file_id.is_valid() ||
+        !background.id.is_valid()) {
+      LOG(ERROR) << "Can't load bacground " << name << ": " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    } else {
+      if (background.name != name) {
+        LOG(ERROR) << "Expected background " << name << ", but received " << background.name;
+        name_to_background_id_.emplace(name, background.id);
+      }
+      add_background(background);
+    }
+  }
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
 }
 
 td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background_object(
@@ -678,7 +729,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
                                                     Promise<Unit> &&promise) {
   CHECK(wallpaper != nullptr);
 
-  BackgroundId background_id = on_get_background(BackgroundId(), std::move(wallpaper));
+  BackgroundId background_id = on_get_background(BackgroundId(), string(), std::move(wallpaper));
   if (!background_id.is_valid()) {
     td_->file_manager_->cancel_upload(file_id);
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background"));
@@ -774,13 +825,16 @@ void BackgroundManager::add_background(const Background &background) {
   if (result->name != background.name) {
     if (!result->name.empty()) {
       LOG(ERROR) << "Background name has changed from " << result->name << " to " << background.name;
-      name_to_background_id_.erase(result->name);
+      // keep correspondence from previous name to background ID
+      // it will not harm, because background names can't be reassigned
+      // name_to_background_id_.erase(result->name);
     }
 
     result->name = background.name;
 
     if (result->name.size() > 6) {
       name_to_background_id_.emplace(result->name, result->id);
+      loaded_from_database_backgrounds_.erase(result->name);  // don't needed anymore
     }
   }
 
@@ -836,7 +890,12 @@ const BackgroundManager::Background *BackgroundManager::get_background(Backgroun
   }
 }
 
+string BackgroundManager::get_background_name_database_key(const string &name) {
+  return PSTRING() << "bgn" << name;
+}
+
 BackgroundId BackgroundManager::on_get_background(BackgroundId expected_background_id,
+                                                  const string &expected_background_name,
                                                   telegram_api::object_ptr<telegram_api::wallPaper> wallpaper) {
   CHECK(wallpaper != nullptr);
 
@@ -883,6 +942,17 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   background.file_id = document.file_id;
   add_background(background);
 
+  if (!expected_background_name.empty() && background.name != expected_background_name) {
+    LOG(ERROR) << "Expected background " << expected_background_name << ", but receive " << background.name;
+    name_to_background_id_.emplace(expected_background_name, id);
+  }
+
+  if (G()->parameters().use_file_db && background.name.size() > 6) {
+    LOG(INFO) << "Save " << id << " to database with name " << background.name;
+    G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),
+                                        log_event_store(background).as_slice().str(), Auto());
+  }
+
   return id;
 }
 
@@ -913,7 +983,7 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
   installed_background_ids_.clear();
   auto wallpapers = telegram_api::move_object_as<telegram_api::account_wallPapers>(wallpapers_ptr);
   for (auto &wallpaper : wallpapers->wallpapers_) {
-    auto background_id = on_get_background(BackgroundId(), std::move(wallpaper));
+    auto background_id = on_get_background(BackgroundId(), string(), std::move(wallpaper));
     if (background_id.is_valid()) {
       installed_background_ids_.push_back(background_id);
     }
