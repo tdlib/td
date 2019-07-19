@@ -537,7 +537,12 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
                                      photo->file_reference_.as_slice().str(), DcId::create(photo->dc_id_),
                                      owner_dialog_id, std::move(size_ptr), false, false);
     if (photo_size.get_offset() == 0) {
-      res.photos.push_back(std::move(photo_size.get<0>()));
+      PhotoSize &size = photo_size.get<0>();
+      if (size.type == 0 || size.type == 't' || size.type == 'i') {
+        LOG(ERROR) << "Skip unallowed photo size " << size;
+        continue;
+      }
+      res.photos.push_back(std::move(size));
     } else {
       res.minithumbnail = std::move(photo_size.get<1>());
     }
