@@ -314,36 +314,22 @@ class BackgroundManager::BackgroundLogEvent {
 void BackgroundManager::start_up() {
   for (int i = 0; i < 2; i++) {
     bool for_dark_theme = static_cast<bool>(i);
-    // G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
     auto logevent_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key(for_dark_theme));
     if (!logevent_string.empty()) {
       BackgroundLogEvent logevent;
       log_event_parse(logevent, logevent_string).ensure();
 
       CHECK(logevent.background_.id.is_valid());
+      bool needs_file_id = (logevent.background_.type.type != BackgroundType::Type::Solid);
+      if (logevent.background_.file_id.is_valid() != needs_file_id) {
+        LOG(ERROR) << "Failed to load " << logevent.background_.id << " of " << logevent.background_.type;
+        G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
+        continue;
+      }
       set_background_id_[for_dark_theme] = logevent.background_.id;
       set_background_type_[for_dark_theme] = logevent.set_type_;
 
-      auto *background = add_background(set_background_id_[for_dark_theme]);
-      //CHECK(!background->id.is_valid());
-      background->id = set_background_id_[for_dark_theme];
-      background->access_hash = logevent.background_.access_hash;
-      background->is_creator = logevent.background_.is_creator;
-      background->is_default = logevent.background_.is_default;
-      background->is_dark = logevent.background_.is_dark;
-      background->type = logevent.background_.type;
-      background->name = std::move(logevent.background_.name);
-      background->file_id = logevent.background_.file_id;
-
-      name_to_background_id_.emplace(background->name, background->id);
-      if (background->file_id.is_valid()) {
-        background->file_source_id =
-            td_->file_reference_manager_->create_background_file_source(background->id, background->access_hash);
-        for (auto file_id : Document(Document::Type::General, background->file_id).get_file_ids(td_)) {
-          td_->file_manager_->add_file_source(file_id, background->file_source_id);
-        }
-        file_id_to_background_id_.emplace(background->file_id, background->id);
-      }
+      add_background(logevent.background_);
     }
 
     send_update_selected_background(for_dark_theme);
@@ -483,18 +469,16 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
 BackgroundId BackgroundManager::add_solid_background(int32 color) {
   CHECK(0 <= color && color < 0x1000000);
   BackgroundId background_id(static_cast<int64>(color) + 1);
-  auto *background = add_background(background_id);
-  if (background->id != background_id) {
-    background->id = background_id;
-    background->access_hash = 0;
-    background->is_creator = true;
-    background->is_default = false;
-    background->is_dark = (color & 0x808080) == 0;
-    background->type = BackgroundType(color);
-    background->name = background->type.get_color_hex_string();
-    background->file_id = FileId();
-    background->file_source_id = FileSourceId();
-  }
+
+  Background background;
+  background.id = background_id;
+  background.is_creator = true;
+  background.is_default = false;
+  background.is_dark = (color & 0x808080) == 0;
+  background.type = BackgroundType(color);
+  background.name = background.type.get_color_hex_string();
+  add_background(background);
+
   return background_id;
 }
 
@@ -764,17 +748,74 @@ void BackgroundManager::on_reset_background(Result<Unit> &&result, Promise<Unit>
   promise.set_value(Unit());
 }
 
-BackgroundManager::Background *BackgroundManager::add_background(BackgroundId background_id) {
-  CHECK(background_id.is_valid());
-  auto *result = &backgrounds_[background_id];
+void BackgroundManager::add_background(const Background &background) {
+  CHECK(background.id.is_valid());
+  auto *result = &backgrounds_[background.id];
+
+  FileSourceId file_source_id;
+  auto it = background_id_to_file_source_id_.find(background.id);
+  if (it != background_id_to_file_source_id_.end()) {
+    CHECK(!result->id.is_valid());
+    file_source_id = it->second.second;
+    background_id_to_file_source_id_.erase(it);
+  }
+
   if (!result->id.is_valid()) {
-    auto it = background_id_to_file_source_id_.find(background_id);
-    if (it != background_id_to_file_source_id_.end()) {
-      result->file_source_id = it->second.second;
-      background_id_to_file_source_id_.erase(it);
+    result->id = background.id;
+  } else {
+    CHECK(result->id == background.id);
+  }
+  result->access_hash = background.access_hash;
+  result->is_creator = background.is_creator;
+  result->is_default = background.is_default;
+  result->is_dark = background.is_dark;
+  result->type = background.type;
+
+  if (result->name != background.name) {
+    if (!result->name.empty()) {
+      LOG(ERROR) << "Background name has changed from " << result->name << " to " << background.name;
+      name_to_background_id_.erase(result->name);
+    }
+
+    result->name = background.name;
+
+    if (result->name.size() > 6) {
+      name_to_background_id_.emplace(result->name, result->id);
     }
   }
-  return result;
+
+  if (result->file_id != background.file_id) {
+    if (result->file_id.is_valid()) {
+      if (td_->file_manager_->get_file_view(result->file_id).file_id() !=
+          td_->file_manager_->get_file_view(background.file_id).file_id()) {
+        LOG(ERROR) << "Background file has changed from " << result->file_id << " to " << background.file_id;
+        file_id_to_background_id_.erase(result->file_id);
+        result->file_source_id = FileSourceId();
+      }
+      CHECK(!file_source_id.is_valid());
+    }
+    if (file_source_id.is_valid()) {
+      result->file_source_id = file_source_id;
+    }
+
+    result->file_id = background.file_id;
+
+    if (result->file_id.is_valid()) {
+      if (!result->file_source_id.is_valid()) {
+        result->file_source_id =
+            td_->file_reference_manager_->create_background_file_source(result->id, result->access_hash);
+      }
+      for (auto file_id : Document(Document::Type::General, result->file_id).get_file_ids(td_)) {
+        td_->file_manager_->add_file_source(file_id, result->file_source_id);
+      }
+    }
+
+    file_id_to_background_id_.emplace(result->file_id, result->id);
+  } else {
+    // if file_source_id is valid, then this is a new background with result->file_id == FileId()
+    // then background.file_id == FileId(), then this is a solid background, which can't have file_source_id
+    CHECK(!file_source_id.is_valid());
+  }
 }
 
 BackgroundManager::Background *BackgroundManager::get_background_ref(BackgroundId background_id) {
@@ -829,40 +870,19 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     LOG(ERROR) << "Receive wrong document in " << to_string(wallpaper);
     return BackgroundId();
   }
-  CHECK(document.type == Document::Type::General);
+  CHECK(document.type == Document::Type::General);  // guaranteed by is_background parameter to on_get_document
 
-  auto *background = add_background(id);
-  background->id = id;
-  background->access_hash = wallpaper->access_hash_;
-  background->is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
-  background->is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
-  background->is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
-  background->type = get_background_type(is_pattern, std::move(wallpaper->settings_));
-  if (background->name != wallpaper->slug_) {
-    if (!background->name.empty()) {
-      LOG(ERROR) << "Background name has changed from " << background->name << " to " << wallpaper->slug_;
-      name_to_background_id_.erase(background->name);
-    }
+  Background background;
+  background.id = id;
+  background.access_hash = wallpaper->access_hash_;
+  background.is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
+  background.is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
+  background.is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
+  background.type = get_background_type(is_pattern, std::move(wallpaper->settings_));
+  background.name = std::move(wallpaper->slug_);
+  background.file_id = document.file_id;
+  add_background(background);
 
-    background->name = std::move(wallpaper->slug_);
-    name_to_background_id_.emplace(background->name, id);
-  }
-  if (background->file_id != document.file_id) {
-    if (background->file_id.is_valid()) {
-      LOG(ERROR) << "Background file has changed from " << background->file_id << " to " << document.file_id;
-      file_id_to_background_id_.erase(background->file_id);
-      background->file_source_id = FileSourceId();
-    }
-    if (!background->file_source_id.is_valid()) {
-      background->file_source_id =
-          td_->file_reference_manager_->create_background_file_source(id, background->access_hash);
-    }
-    for (auto file_id : document.get_file_ids(td_)) {
-      td_->file_manager_->add_file_source(file_id, background->file_source_id);
-    }
-    background->file_id = document.file_id;
-    file_id_to_background_id_.emplace(background->file_id, id);
-  }
   return id;
 }
 
