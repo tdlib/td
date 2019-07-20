@@ -18,6 +18,7 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/TransportType.h"
+#include "td/mtproto/RawConnection.h"
 
 #include "td/net/NetStats.h"
 
@@ -82,6 +83,52 @@ class ConnectionCreator : public NetQueryCallback {
   void get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise);
   void get_proxy_link(int32 proxy_id, Promise<string> promise);
   void ping_proxy(int32 proxy_id, Promise<double> promise);
+
+  struct ConnectionData {
+    SocketFd socket_fd;
+    StateManager::ConnectionToken connection_token;
+    unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
+  };
+  class ProxyInfo {
+   public:
+    ProxyInfo(Proxy *proxy, IPAddress ip_address) : proxy_(proxy), ip_address_(std::move(ip_address)) {
+    }
+    bool use_proxy() const {
+      return proxy_ != nullptr;
+    }
+    Proxy::Type proxy_type() const {
+      return proxy_ == nullptr ? Proxy::Type::None : proxy_->type();
+    }
+    bool use_socks5_proxy() const {
+      return proxy_type() == Proxy::Type::Socks5;
+    }
+    bool use_http_tcp_proxy() const {
+      return proxy_type() == Proxy::Type::HttpTcp;
+    }
+    bool use_http_caching_proxy() const {
+      return proxy_type() == Proxy::Type::HttpCaching;
+    }
+    bool use_mtproto_proxy() const {
+      return proxy_type() == Proxy::Type::Mtproto;
+    }
+    const Proxy &proxy() const {
+      CHECK(use_proxy());
+      return *proxy_;
+    }
+    const IPAddress &ip_address() const {
+      return ip_address_;
+    }
+
+   private:
+    Proxy *proxy_;
+    IPAddress ip_address_;
+  };
+
+  static ActorOwn<> prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy,
+                                       mtproto::TransportType transport_type, string debug_str, IPAddress mtproto_ip,
+                                       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
+                                       ActorShared<> parent, bool use_connection_token,
+                                       Promise<ConnectionData> promise);
 
  private:
   ActorShared<> parent_;
@@ -207,11 +254,6 @@ class ConnectionCreator : public NetQueryCallback {
 
   void client_wakeup(size_t hash);
   void client_loop(ClientInfo &client);
-  struct ConnectionData {
-    SocketFd socket_fd;
-    StateManager::ConnectionToken connection_token;
-    unique_ptr<detail::StatsCallback> stats_callback;
-  };
   void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
                                     mtproto::TransportType transport_type, size_t hash, string debug_str,
                                     uint32 network_generation);
@@ -234,7 +276,6 @@ class ConnectionCreator : public NetQueryCallback {
     IPAddress mtproto_ip;
     bool check_mode{false};
   };
-  class ProxyInfo;
 
   static Result<mtproto::TransportType> get_transport_type(const ProxyInfo &proxy,
                                                            const DcOptionsSet::ConnectionInfo &info);

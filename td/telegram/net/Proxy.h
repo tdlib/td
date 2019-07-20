@@ -13,10 +13,18 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
+#include "td/tl/TlObject.h"
+
 namespace td {
+
+namespace td_api {
+class ProxyType;
+}
 
 class Proxy {
  public:
+  static Result<Proxy> from_td_api(string server, int port, tl_object_ptr<td_api::ProxyType> proxy_type);
+
   static Proxy socks5(string server, int32 port, string user, string password) {
     Proxy proxy;
     proxy.type_ = Type::Socks5;

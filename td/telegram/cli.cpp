@@ -3589,7 +3589,7 @@ class CliClient final : public Actor {
     } else if (op == "rproxy") {
       send_request(td_api::make_object<td_api::removeProxy>(as_proxy_id(args)));
     } else if (op == "aproxy" || op == "aeproxy" || op == "aeproxytcp" || op == "editproxy" || op == "editeproxy" ||
-               op == "editeproxytcp") {
+               op == "editeproxytcp" || op == "tproxy") {
       string proxy_id;
       string server;
       string port;
@@ -3615,6 +3615,8 @@ class CliClient final : public Actor {
       if (op[0] == 'e') {
         send_request(td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), server, to_integer<int32>(port),
                                                             enable, std::move(type)));
+      } else if (op == "tproxy") {
+        send_request(td_api::make_object<td_api::testProxy>(server, to_integer<int32>(port), std::move(type)));
       } else {
         send_request(td_api::make_object<td_api::addProxy>(server, to_integer<int32>(port), enable, std::move(type)));
       }

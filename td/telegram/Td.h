@@ -1022,6 +1022,7 @@ class Td final : public NetQueryCallback {
 
   // test
   void on_request(uint64 id, td_api::testNetwork &request);
+  void on_request(uint64 id, td_api::testProxy &request);
   void on_request(uint64 id, td_api::testGetDifference &request);
   void on_request(uint64 id, td_api::testUseUpdate &request);
   void on_request(uint64 id, td_api::testUseError &request);

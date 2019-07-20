@@ -3995,6 +3995,8 @@ testCallVectorStringObject x:vector<testString> = TestVectorStringObject;
 testSquareInt x:int32 = TestInt;
 //@description Sends a simple network request to the Telegram servers; for testing only. Can be called before authorization
 testNetwork = Ok;
+//@description Sends a simple network request to the Telegram servers via proxy; for testing only. Can be called before authorization @server Proxy ip @port Proxy port @type Proxy type
+testProxy server:string port:int32 type:ProxyType = Ok;
 //@description Forces an updates.getDifference call to the Telegram servers; for testing only
 testGetDifference = Ok;
 //@description Does nothing and ensures that the Update object is used; for testing only. This is an offline method. Can be called before authorization
