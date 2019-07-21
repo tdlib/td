@@ -639,39 +639,11 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
         promise.set_value(std::move(raw_connection));
       });
 
-<<<<<<< HEAD
-  if (transport_type.secret.emulate_tls()) {
-    class Callback : public TransparentProxy::Callback {
-     public:
-      explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
-      }
-      void set_result(Result<SocketFd> result) override {
-        promise_.set_result(std::move(result));
-      }
-      void on_connected() override {
-      }
-
-     private:
-      Promise<SocketFd> promise_;
-    };
-    auto token = next_token();
-    auto callback = td::make_unique<Callback>(std::move(socket_fd_promise));
-    LOG(INFO) << "TLS in ConfigRecoverer " << ip_address << " " << transport_type.secret.get_domain() << " "
-              << transport_type.secret.emulate_tls() << " " << transport_type.secret.get_proxy_secret().size()
-              << transport_type.secret.get_encoded_secret();
-    children_[token] = {false, create_actor<mtproto::TlsInit>(
-                                   "TlsInit", std::move(socket_fd), ip_address, transport_type.secret.get_domain(),
-                                   transport_type.secret.get_proxy_secret().str(), std::move(callback),
-                                   create_reference(token), G()->get_dns_time_difference())};
-  } else {
-    socket_fd_promise.set_value(std::move(socket_fd));
-=======
   auto token = next_token();
   auto ref = prepare_connection(std::move(socket_fd), {nullptr, IPAddress()}, transport_type, "", IPAddress(), nullptr,
                                 create_reference(token), true, std::move(connection_promise));
   if (!ref.empty()) {
     children_[token] = {false, std::move(ref)};
->>>>>>> td_api: TestProxy query draft
   }
 }
 
@@ -789,7 +761,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback_;
       bool use_connection_token_;
     };
-    LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "Tls"))
+    LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "TLS"))
               << ": " << debug_str;
     auto callback = td::make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token);
     if (proxy.use_socks5_proxy()) {
@@ -939,75 +911,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto stats_callback =
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
                                                actor_id(this), client.hash, extra.stat);
-<<<<<<< HEAD
-
-    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || secret.emulate_tls()) {
-      VLOG(connections) << "In client_loop: create new transparent proxy connection " << extra.debug_str;
-      class Callback : public TransparentProxy::Callback {
-       public:
-        explicit Callback(Promise<ConnectionData> promise, unique_ptr<detail::StatsCallback> stats_callback)
-            : promise_(std::move(promise)), stats_callback_(std::move(stats_callback)) {
-        }
-        void set_result(Result<SocketFd> result) override {
-          if (result.is_error()) {
-            connection_token_ = StateManager::ConnectionToken();
-            if (was_connected_) {
-              stats_callback_->on_error();
-            }
-            promise_.set_error(result.move_as_error());
-          } else {
-            ConnectionData data;
-            data.socket_fd = result.move_as_ok();
-            data.connection_token = std::move(connection_token_);
-            data.stats_callback = std::move(stats_callback_);
-            promise_.set_value(std::move(data));
-          }
-        }
-        void on_connected() override {
-          connection_token_ = StateManager::connection_proxy(G()->state_manager());
-          was_connected_ = true;
-        }
-
-       private:
-        Promise<ConnectionData> promise_;
-        StateManager::ConnectionToken connection_token_;
-        bool was_connected_{false};
-        unique_ptr<detail::StatsCallback> stats_callback_;
-      };
-      LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "TLS"))
-                << ": " << extra.debug_str;
-      auto token = next_token();
-      auto callback = td::make_unique<Callback>(std::move(promise), std::move(stats_callback));
-      if (proxy.use_socks5_proxy()) {
-        children_[token] = {
-            true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
-                                       proxy.proxy().password().str(), std::move(callback), create_reference(token))};
-      } else if (proxy.use_http_tcp_proxy()) {
-        children_[token] = {true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
-                                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
-                                                          std::move(callback), create_reference(token))};
-      } else if (secret.emulate_tls()) {
-        children_[token] = {
-            true, create_actor<mtproto::TlsInit>("TlsInit", std::move(socket_fd), extra.mtproto_ip, secret.get_domain(),
-                                                 secret.get_proxy_secret().str(), std::move(callback),
-                                                 create_reference(token), G()->get_dns_time_difference())};
-      } else {
-        UNREACHABLE();
-      }
-    } else {
-      VLOG(connections) << "In client_loop: create new direct connection " << extra.debug_str;
-
-      ConnectionData data;
-      data.socket_fd = std::move(socket_fd);
-      data.stats_callback = std::move(stats_callback);
-      promise.set_result(std::move(data));
-=======
     auto token = next_token();
     auto ref = prepare_connection(std::move(socket_fd), proxy, extra.transport_type, extra.debug_str, extra.mtproto_ip,
                                   std::move(stats_callback), create_reference(token), true, std::move(promise));
     if (!ref.empty()) {
       children_[token] = {true, std::move(ref)};
->>>>>>> td_api: TestProxy query draft
     }
   }
 }
