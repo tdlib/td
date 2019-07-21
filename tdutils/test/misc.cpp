@@ -6,7 +6,6 @@
 //
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
-#include "td/utils/bits.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
 #include "td/utils/CancellationToken.h"
@@ -30,8 +29,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
-#include "td/utils/translit.h"
 #include "td/utils/Time.h"
+#include "td/utils/translit.h"
 #include "td/utils/uint128.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
@@ -40,8 +39,8 @@
 #include <clocale>
 #include <limits>
 #include <locale>
-#include <utility>
 #include <unordered_map>
+#include <utility>
 
 #if TD_HAVE_ABSL
 #include <absl/container/flat_hash_map.h>
@@ -673,6 +672,7 @@ TEST(Misc, Bits) {
   ASSERT_EQ(4, count_bits64((1ull << 63) | 7));
 }
 
+#if !TD_THREAD_UNSUPPORTED
 TEST(Misc, Time) {
   Stage run;
   Stage check;
@@ -703,6 +703,7 @@ TEST(Misc, Time) {
     thread.join();
   }
 }
+#endif
 
 TEST(Misc, uint128) {
   std::vector<uint64> parts = {0,
@@ -753,19 +754,15 @@ TEST(Misc, uint128) {
     }
   }
 
-  for (auto a : nums) {
 #if TD_HAVE_INT128
+  for (auto a : nums) {
     auto ia = to_intrinsic(a);
     ensure_eq(a, ia);
     CHECK(a.is_zero() == ia.is_zero());
-#endif
     for (int i = 0; i <= 130; i++) {
-#if TD_HAVE_INT128
       ensure_eq(a.shl(i), ia.shl(i));
       ensure_eq(a.shr(i), ia.shr(i));
-#endif
     }
-#if TD_HAVE_INT128
     for (auto b : parts) {
       ensure_eq(a.mult(b), ia.mult(b));
     }
@@ -792,10 +789,8 @@ TEST(Misc, uint128) {
         ensure_eq(a.mod(b), ia.mod(ib));
       }
     }
-#endif
   }
 
-#if TD_HAVE_INT128
   for (auto signed_part : signed_parts) {
     auto a = uint128_emulated::from_signed(signed_part);
     auto ia = uint128_intrinsic::from_signed(signed_part);
@@ -828,7 +823,7 @@ Status test_hash(const std::vector<ValueT> &values) {
 
 class BadValue {
  public:
-  BadValue(size_t value) : value_(value) {
+  explicit BadValue(size_t value) : value_(value) {
   }
 
   template <class H>
@@ -845,7 +840,7 @@ class BadValue {
 
 class ValueA {
  public:
-  ValueA(size_t value) : value_(value) {
+  explicit ValueA(size_t value) : value_(value) {
   }
   template <class H>
   friend H AbslHashValue(H hasher, ValueA value) {
@@ -861,7 +856,7 @@ class ValueA {
 
 class ValueB {
  public:
-  ValueB(size_t value) : value_(value) {
+  explicit ValueB(size_t value) : value_(value) {
   }
 
   template <class H>

@@ -10,8 +10,9 @@
 
 // TODO:
 // windows,
-// anonymous map
+// anonymous maps,
 // huge pages?
+
 #if TD_WINDOWS
 #else
 #include <sys/mman.h>
@@ -19,10 +20,10 @@
 #endif
 
 namespace td {
-namespace detail {
-class MemoryMappingImpl {
+
+class MemoryMapping::Impl {
  public:
-  MemoryMappingImpl(MutableSlice data, int64 offset) : data_(data), offset_(offset) {
+  Impl(MutableSlice data, int64 offset) : data_(data), offset_(offset) {
   }
   Slice as_slice() const {
     return data_.substr(narrow_cast<size_t>(offset_));
@@ -36,7 +37,7 @@ class MemoryMappingImpl {
   int64 offset_;
 };
 
-Result<int64> get_page_size() {
+static Result<int64> get_page_size() {
 #if TD_WINDOWS
   return Status::Error("Unimplemented");
 #else
@@ -50,11 +51,11 @@ Result<int64> get_page_size() {
   return page_size.clone();
 #endif
 }
-}  // namespace detail
 
 Result<MemoryMapping> MemoryMapping::create_anonymous(const MemoryMapping::Options &options) {
   return Status::Error("Unsupported yet");
 }
+
 Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, const MemoryMapping::Options &options) {
 #if TD_WINDOWS
   return Status::Error("Unsupported yet");
@@ -76,7 +77,7 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
     end = begin + stat.size_;
   }
 
-  TRY_RESULT(page_size, detail::get_page_size());
+  TRY_RESULT(page_size, get_page_size());
   auto fixed_begin = begin / page_size * page_size;
 
   auto data_offset = begin - fixed_begin;
@@ -87,8 +88,7 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
     return OS_ERROR("mmap call failed");
   }
 
-  return MemoryMapping(std::make_unique<detail::MemoryMappingImpl>(
-      MutableSlice(reinterpret_cast<char *>(data), data_size), data_offset));
+  return MemoryMapping(make_unique<Impl>(MutableSlice(static_cast<char *>(data), data_size), data_offset));
 #endif
 }
 
@@ -96,14 +96,15 @@ MemoryMapping::MemoryMapping(MemoryMapping &&other) = default;
 MemoryMapping &MemoryMapping::operator=(MemoryMapping &&other) = default;
 MemoryMapping::~MemoryMapping() = default;
 
-MemoryMapping::MemoryMapping(std::unique_ptr<detail::MemoryMappingImpl> impl) : impl_(std::move(impl)) {
+MemoryMapping::MemoryMapping(unique_ptr<Impl> impl) : impl_(std::move(impl)) {
 }
+
 Slice MemoryMapping::as_slice() const {
   return impl_->as_slice();
 }
+
 MutableSlice MemoryMapping::as_mutable_slice() {
   return impl_->as_mutable_slice();
 }
 
 }  // namespace td
-

@@ -14,6 +14,7 @@
 #include <cstring>
 
 namespace td {
+
 class BufferedReader {
  public:
   explicit BufferedReader(FileFd &file, size_t buff_size = 8152)
@@ -58,4 +59,5 @@ inline Result<size_t> BufferedReader::read(MutableSlice slice) {
   begin_pos_ += left;
   return left + available;
 }
+
 }  // namespace td

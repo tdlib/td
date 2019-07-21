@@ -178,10 +178,11 @@ TEST(Crypto, crc32c) {
     ASSERT_EQ(answers[i], b);
   }
 }
+
 TEST(Crypto, crc32c_benchmark) {
   class Crc32cExtendBenchmark : public td::Benchmark {
    public:
-    Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
+    explicit Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
     }
     std::string get_description() const override {
       return PSTRING() << "Crc32c with chunk_size=" << chunk_size_;

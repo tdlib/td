@@ -23,6 +23,7 @@
 namespace td {
 
 namespace detail {
+
 struct MpmcStat {
   void alloc_ok(size_t thread_id) {
     s(thread_id).alloc_ok_cnt++;
@@ -64,13 +65,15 @@ struct MpmcStat {
     return arr[thread_id];
   }
 };
+
+extern MpmcStat stat_;
+
 }  // namespace detail
-extern detail::MpmcStat stat_;
 
 template <class T>
 class OneValue {
  public:
-  inline bool set_value(T &value) {
+  bool set_value(T &value) {
     value_ = std::move(value);
     int state = Empty;
     if (state_.compare_exchange_strong(state, Value, std::memory_order_acq_rel)) {
@@ -79,7 +82,7 @@ class OneValue {
     value = std::move(value_);
     return false;
   }
-  inline bool get_value(T &value) {
+  bool get_value(T &value) {
     auto old_state = state_.exchange(Taken, std::memory_order_acq_rel);
     if (old_state == Value) {
       value = std::move(value_);

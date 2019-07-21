@@ -171,7 +171,7 @@ bool is_zero_or_one(unsigned char c) {
 
 string buffer_to_hex(Slice buffer) {
   const char *hex = "0123456789ABCDEF";
-  std::string res(2 * buffer.size(), '\0');
+  string res(2 * buffer.size(), '\0');
   for (std::size_t i = 0; i < buffer.size(); i++) {
     auto c = buffer.ubegin()[i];
     res[2 * i] = hex[c & 15];

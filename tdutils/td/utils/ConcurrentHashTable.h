@@ -6,35 +6,37 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
 #include "td/utils/HazardPointers.h"
 
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
-#include <vector>
+#include <mutex>
+
+namespace td {
+
 // AtomicHashArray<KeyT, ValueT>
-// Building block for other conurrent hash maps
+// Building block for other concurrent hash maps
 //
 // Support one operation:
 //  template <class F>
 //  bool with_value(KeyT key, bool should_create, F &&func);
 //
 //  Finds slot for key, and call func(value)
-//  Creates slot if shoul_create is true.
+//  Creates slot if should_create is true.
 //  Returns true if func was called.
 //
-//  Concurrent calls with same key may result in concurrent calls of func(value)
-//  It is resposibility of caller to handle such races.
+//  Concurrent calls with the same key may result in concurrent calls to func(value)
+//  It is responsibility of the caller to handle such races.
 //
 //  Key should already be random
-//  It is resposibility of caller to provide unique random key.
-//  One may use injective hash function, or handle collisions on some other way.
+//  It is responsibility of the caller to provide unique random key.
+//  One may use injective hash function, or handle collisions in some other way.
 
-namespace td {
 template <class KeyT, class ValueT>
 class AtomicHashArray {
  public:
-  AtomicHashArray(size_t n) : nodes_(n) {
+  explicit AtomicHashArray(size_t n) : nodes_(n) {
   }
   struct Node {
     std::atomic<KeyT> key{KeyT{}};
@@ -54,7 +56,7 @@ class AtomicHashArray {
   bool with_value(KeyT key, bool should_create, F &&f) {
     DCHECK(key != empty_key());
     size_t pos = static_cast<size_t>(key) % nodes_.size();
-    size_t n = std::min(std::max(size_t(300), nodes_.size() / 16 + 2), nodes_.size());
+    size_t n = td::min(td::max(static_cast<size_t>(300), nodes_.size() / 16 + 2), nodes_.size());
 
     for (size_t i = 0; i < n; i++) {
       pos++;
@@ -93,10 +95,10 @@ class AtomicHashArray {
 template <class KeyT, class ValueT>
 class ConcurrentHashMap {
   using HashMap = AtomicHashArray<KeyT, std::atomic<ValueT>>;
-  static td::HazardPointers<HashMap> hp_;
+  static HazardPointers<HashMap> hp_;
 
  public:
-  ConcurrentHashMap(size_t n = 32) {
+  explicit ConcurrentHashMap(size_t n = 32) {
     n = 1;
     hash_map_.store(make_unique<HashMap>(n).release());
   }
@@ -105,7 +107,7 @@ class ConcurrentHashMap {
   ConcurrentHashMap(ConcurrentHashMap &&) = delete;
   ConcurrentHashMap &operator=(ConcurrentHashMap &&) = delete;
   ~ConcurrentHashMap() {
-    td::unique_ptr<HashMap>(hash_map_.load());
+    unique_ptr<HashMap>(hash_map_.load());
   }
 
   static std::string get_name() {
@@ -156,6 +158,7 @@ class ConcurrentHashMap {
       do_migrate(hash_map);
     }
   }
+
   ValueT find(KeyT key, ValueT value) {
     typename HazardPointers<HashMap>::Holder holder(hp_, get_thread_id(), 0);
     while (true) {
@@ -173,6 +176,7 @@ class ConcurrentHashMap {
       do_migrate(hash_map);
     }
   }
+
   template <class F>
   void for_each(F &&f) {
     auto hash_map = hash_map_.load();
@@ -312,4 +316,5 @@ class ConcurrentHashMap {
 
 template <class KeyT, class ValueT>
 td::HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
+
 }  // namespace td

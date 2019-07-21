@@ -5,33 +5,41 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/port/stacktrace.h"
+
 #include "td/utils/port/signals.h"
 
-#if !TD_WINDOWS && !TD_ANDROID && !TD_FREEBSD
+#if __GLIBC__
 #include <execinfo.h>
+#endif
+
+#if TD_LINUX || TD_FREEBSD
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #if TD_LINUX
 #include <sys/prctl.h>
 #endif
-
 #endif
 
 namespace td {
+
 namespace {
+
 void print_backtrace(void) {
-#if !TD_WINDOWS && !TD_ANDROID && !TD_FREEBSD
+#if __GLIBC__
   void *buffer[128];
   int nptrs = backtrace(buffer, 128);
-  td::signal_safe_write("------- Stack Backtrace -------\n", false);
+  signal_safe_write("------- Stack Backtrace -------\n", false);
   backtrace_symbols_fd(buffer, nptrs, 2);
-  td::signal_safe_write("-------------------------------\n", false);
+  signal_safe_write("-------------------------------\n", false);
 #endif
 }
+
 void print_backtrace_gdb(void) {
-#if !TD_WINDOWS && !TD_DARWIN && !TD_ANDROID
-  char pid_buf[30], *pid_buf_begin = pid_buf + sizeof(pid_buf);
+#if TD_LINUX || TD_FREEBSD
+  char pid_buf[30];
+  char *pid_buf_begin = pid_buf + sizeof(pid_buf);
   pid_t pid = getpid();
   *--pid_buf_begin = '\0';
   do {
@@ -46,23 +54,23 @@ void print_backtrace_gdb(void) {
 
 #if TD_LINUX
     if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) < 0) {
-      td::signal_safe_write("Can't set dumpable\n");
+      signal_safe_write("Can't set dumpable\n");
       return;
     }
 #if defined(PR_SET_PTRACER)
-    // We can't use td::EventFd because we are in a signal handler
+    // We can't use EventFd because we are in a signal handler
     int fds[2];
     bool need_set_ptracer = true;
     if (pipe(fds) < 0) {
       need_set_ptracer = false;
-      td::signal_safe_write("Can't create a pipe\n");
+      signal_safe_write("Can't create a pipe\n");
     }
 #endif
 #endif
 
     int child_pid = fork();
     if (child_pid < 0) {
-      td::signal_safe_write("Can't fork() to run gdb\n");
+      signal_safe_write("Can't fork() to run gdb\n");
       return;
     }
     if (!child_pid) {
@@ -80,20 +88,21 @@ void print_backtrace_gdb(void) {
 #if TD_LINUX && defined(PR_SET_PTRACER)
       if (need_set_ptracer) {
         if (prctl(PR_SET_PTRACER, child_pid, 0, 0, 0) < 0) {
-          td::signal_safe_write("Can't set ptracer\n");
+          signal_safe_write("Can't set ptracer\n");
         }
         if (write(fds[1], "a", 1) != 1) {
-          td::signal_safe_write("Can't write to pipe\n");
+          signal_safe_write("Can't write to pipe\n");
         }
       }
 #endif
       waitpid(child_pid, nullptr, 0);
     }
   } else {
-    td::signal_safe_write("Can't get name of executable file to pass to gdb\n");
+    signal_safe_write("Can't get name of executable file to pass to gdb\n");
   }
 #endif
 }
+
 }  // namespace
 
 void Stacktrace::print_to_stderr(const PrintOptions &options) {
@@ -102,4 +111,5 @@ void Stacktrace::print_to_stderr(const PrintOptions &options) {
   }
   print_backtrace();
 }
+
 }  // namespace td

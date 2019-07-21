@@ -6,7 +6,6 @@
 //
 #include "td/utils/tests.h"
 
-#include "td/utils/base64.h"
 #include "td/utils/crypto.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/Parser.h"
@@ -228,4 +227,5 @@ Status TestsRunner::verify(Slice data) {
   }
   return regression_tester_->verify_test(PSLICE() << name() << "_default", data);
 }
+
 }  // namespace td

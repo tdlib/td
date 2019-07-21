@@ -4,13 +4,18 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include <cstdio>
-#include "td/utils/tests.h"
 #include "td/utils/benchmark.h"
-#include "td/utils/SpinLock.h"
-#include "td/utils/HazardPointers.h"
 #include "td/utils/ConcurrentHashTable.h"
+#include "td/utils/HazardPointers.h"
+#include "td/utils/port/thread.h"
+#include "td/utils/SpinLock.h"
+#include "td/utils/tests.h"
+
 #include <algorithm>
+#include <atomic>
+#include <cstdio>
+
+#if !TD_THREAD_UNSUPPORTED
 
 #if TD_HAVE_ABSL
 #include <absl/container/flat_hash_map.h>
@@ -18,7 +23,7 @@
 #include <unordered_map>
 #endif
 
-#if TD_WITH_JUNCTION
+#if TD_WITH_LIBCUCKOO
 #include <third-party/libcuckoo/libcuckoo/cuckoohash_map.hh>
 #endif
 
@@ -27,13 +32,14 @@
 #include <junction/ConcurrentMap_Linear.h>
 #include <junction/ConcurrentMap_Leapfrog.h>
 #endif
+
 namespace td {
 
 // Non resizable HashMap. Just an example
 template <class KeyT, class ValueT>
 class ArrayHashMap {
  public:
-  ArrayHashMap(size_t n) : array_(n) {
+  explicit ArrayHashMap(size_t n) : array_(n) {
   }
   struct Node {
     std::atomic<KeyT> key{KeyT{}};
@@ -61,7 +67,7 @@ class ArrayHashMap {
 template <class KeyT, class ValueT>
 class ConcurrentHashMapMutex {
  public:
-  ConcurrentHashMapMutex(size_t) {
+  explicit ConcurrentHashMapMutex(size_t) {
   }
   static std::string get_name() {
     return "ConcurrentHashMapMutex";
@@ -87,10 +93,11 @@ class ConcurrentHashMapMutex {
   std::unordered_map<KeyT, ValueT> hash_map_;
 #endif
 };
+
 template <class KeyT, class ValueT>
 class ConcurrentHashMapSpinlock {
  public:
-  ConcurrentHashMapSpinlock(size_t) {
+  explicit ConcurrentHashMapSpinlock(size_t) {
   }
   static std::string get_name() {
     return "ConcurrentHashMapSpinlock";
@@ -109,18 +116,19 @@ class ConcurrentHashMapSpinlock {
   }
 
  private:
-  td::SpinLock spinlock_;
+  SpinLock spinlock_;
 #if TD_HAVE_ABSL
   absl::flat_hash_map<KeyT, ValueT> hash_map_;
 #else
   std::unordered_map<KeyT, ValueT> hash_map_;
 #endif
 };
+
 #if TD_WITH_LIBCUCKOO
 template <class KeyT, class ValueT>
 class ConcurrentHashMapLibcuckoo {
  public:
-  ConcurrentHashMapLibcuckoo(size_t) {
+  explicit ConcurrentHashMapLibcuckoo(size_t) {
   }
   static std::string get_name() {
     return "ConcurrentHashMapLibcuckoo";
@@ -137,11 +145,12 @@ class ConcurrentHashMapLibcuckoo {
   cuckoohash_map<KeyT, ValueT> hash_map_;
 };
 #endif
+
 #if TD_WITH_JUNCTION
 template <class KeyT, class ValueT>
 class ConcurrentHashMapJunction {
  public:
-  ConcurrentHashMapJunction(size_t size) : hash_map_() {
+  explicit ConcurrentHashMapJunction(size_t size) : hash_map_() {
   }
   static std::string get_name() {
     return "ConcurrentHashMapJunction";
@@ -152,6 +161,11 @@ class ConcurrentHashMapJunction {
   ValueT find(KeyT key, ValueT default_value) {
     return hash_map_.get(key);
   }
+
+  ConcurrentHashMapJunction(const ConcurrentHashMapJunction &) = delete;
+  ConcurrentHashMapJunction &operator=(const ConcurrentHashMapJunction &) = delete;
+  ConcurrentHashMapJunction(ConcurrentHashMapJunction &&other) = delete;
+  ConcurrentHashMapJunction &operator=(ConcurrentHashMapJunction &&) = delete;
   ~ConcurrentHashMapJunction() {
     junction::DefaultQSBR.flush();
   }
@@ -160,6 +174,7 @@ class ConcurrentHashMapJunction {
   junction::ConcurrentMap_Leapfrog<KeyT, ValueT> hash_map_;
 };
 #endif
+
 }  // namespace td
 
 template <class HashMap>
@@ -169,7 +184,7 @@ class HashMapBenchmark : public td::Benchmark {
     int value;
   };
   std::vector<Query> queries;
-  std::unique_ptr<HashMap> hash_map;
+  td::unique_ptr<HashMap> hash_map;
 
   size_t threads_n = 16;
   int mod_;
@@ -177,7 +192,7 @@ class HashMapBenchmark : public td::Benchmark {
   int n_;
 
  public:
-  HashMapBenchmark(size_t threads_n) : threads_n(threads_n) {
+  explicit HashMapBenchmark(size_t threads_n) : threads_n(threads_n) {
   }
   std::string get_description() const override {
     return hash_map->get_name();
@@ -185,7 +200,7 @@ class HashMapBenchmark : public td::Benchmark {
   void start_up_n(int n) override {
     n *= (int)threads_n;
     n_ = n;
-    hash_map = std::make_unique<HashMap>(n * 2);
+    hash_map = td::make_unique<HashMap>(n * 2);
   }
 
   void run(int n) override {
@@ -217,8 +232,6 @@ class HashMapBenchmark : public td::Benchmark {
     queries.clear();
     hash_map.reset();
   }
-
- private:
 };
 
 template <class HashMap>
@@ -240,3 +253,4 @@ TEST(ConcurrentHashMap, Benchmark) {
 #endif
 }
 
+#endif

@@ -13,7 +13,9 @@
 #else
 #include <unordered_set>
 #endif
+
 namespace td {
+
 #if TD_HAVE_ABSL
 template <class Key, class H = Hash<Key>>
 using HashSet = absl::flat_hash_set<Key, H>;
@@ -21,4 +23,5 @@ using HashSet = absl::flat_hash_set<Key, H>;
 template <class Key, class H = Hash<Key>>
 using HashSet = std::unordered_set<Key, H>;
 #endif
+
 }  // namespace td

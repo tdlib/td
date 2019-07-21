@@ -20,9 +20,9 @@ namespace td {
 class Hasher {
  public:
   Hasher() = default;
-  Hasher(size_t init_value) : hash_(init_value) {
+  explicit Hasher(size_t init_value) : hash_(init_value) {
   }
-  std::size_t finalize() {
+  std::size_t finalize() const {
     return hash_;
   }
 
@@ -34,7 +34,7 @@ class Hasher {
   template <class A, class B>
   static Hasher combine(Hasher hasher, const std::pair<A, B> &value) {
     hasher = AbslHashValue(std::move(hasher), value.first);
-    hasher = AbslHashValue(std::move(hasher), value.first);
+    hasher = AbslHashValue(std::move(hasher), value.second);
     return hasher;
   }
 

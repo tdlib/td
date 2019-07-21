@@ -652,7 +652,7 @@ class UdpSocketFdImpl {
     //};
     struct std::array<detail::UdpSocketSendHelper, 16> helpers;
     struct std::array<struct mmsghdr, 16> headers;
-    size_t to_send = td::min(messages.size(), headers.size());
+    size_t to_send = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_send; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
       headers[i].msg_len = 0;
@@ -703,7 +703,7 @@ class UdpSocketFdImpl {
     //};
     struct std::array<detail::UdpSocketReceiveHelper, 16> helpers;
     struct std::array<struct mmsghdr, 16> headers;
-    size_t to_receive = td::min(messages.size(), headers.size());
+    size_t to_receive = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_receive; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
       headers[i].msg_len = 0;
@@ -786,29 +786,20 @@ const NativeFd &UdpSocketFd::get_native_fd() const {
 }
 
 #if TD_PORT_POSIX
-td::Result<td::uint32> UdpSocketFd::maximize_snd_buffer(td::uint32 max) {
-  socklen_t intsize = sizeof(td::uint32);
-  td::uint32 last_good = 0;
-  td::uint32 min, avg;
-  td::uint32 old_size;
-
-  auto socket_fd = get_native_fd().fd();
-
-  if (!max) {
-    max = default_udp_max_snd_buffer_size;
-  }
-
+static Result<uint32> maximize_buffer(int socket_fd, int optname, uint32 max) {
   /* Start with the default size. */
-  if (getsockopt(socket_fd, SOL_SOCKET, SO_SNDBUF, &old_size, &intsize)) {
-    return td::Status::PosixError(errno, "getsockopt() failed");
+  uint32 old_size;
+  socklen_t intsize = sizeof(old_size);
+  if (getsockopt(socket_fd, SOL_SOCKET, optname, &old_size, &intsize)) {
+    return OS_ERROR("getsockopt() failed");
   }
 
   /* Binary-search for the real maximum. */
-  min = last_good = old_size;
-
+  uint32 last_good = old_size;
+  uint32 min = old_size;
   while (min <= max) {
-    avg = (min + max) / 2;
-    if (setsockopt(socket_fd, SOL_SOCKET, SO_SNDBUF, &avg, intsize) == 0) {
+    uint32 avg = min + (max - min) / 2;
+    if (setsockopt(socket_fd, SOL_SOCKET, optname, &avg, intsize) == 0) {
       last_good = avg;
       min = avg + 1;
     } else {
@@ -818,42 +809,18 @@ td::Result<td::uint32> UdpSocketFd::maximize_snd_buffer(td::uint32 max) {
   return last_good;
 }
 
-td::Result<td::uint32> UdpSocketFd::maximize_rcv_buffer(td::uint32 max) {
-  socklen_t intsize = sizeof(td::uint32);
-  td::uint32 last_good = 0;
-  td::uint32 min, avg;
-  td::uint32 old_size;
+Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {
+  return maximize_buffer(get_native_fd().fd(), SO_SNDBUF, max == 0 ? default_udp_max_snd_buffer_size : max);
+}
 
-  auto socket_fd = get_native_fd().fd();
-
-  if (!max) {
-    max = default_udp_max_rcv_buffer_size;
-  }
-
-  /* Start with the default size. */
-  if (getsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &old_size, &intsize)) {
-    return td::Status::PosixError(errno, "getsockopt() failed");
-  }
-
-  /* Binary-search for the real maximum. */
-  min = last_good = old_size;
-
-  while (min <= max) {
-    avg = (min + max) / 2;
-    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &avg, intsize) == 0) {
-      last_good = avg;
-      min = avg + 1;
-    } else {
-      max = avg - 1;
-    }
-  }
-  return last_good;
+Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max) {
+  return maximize_buffer(get_native_fd().fd(), SO_RCVBUF, max == 0 ? default_udp_max_rcv_buffer_size : max);
 }
 #else
-td::Result<td::uint32> UdpSocketFd::maximize_snd_buffer(td::uint32 max) {
+Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {
   return 0;
 }
-td::Result<td::uint32> UdpSocketFd::maximize_rcv_buffer(td::uint32 max) {
+Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max) {
   return 0;
 }
 #endif

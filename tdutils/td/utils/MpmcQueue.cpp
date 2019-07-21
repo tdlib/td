@@ -5,6 +5,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/MpmcQueue.h"
+
 namespace td {
-detail::MpmcStat stat_;
-}
+namespace detail {
+
+MpmcStat stat_;
+
+}  // namespace detail
+}  // namespace td

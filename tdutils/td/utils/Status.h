@@ -27,6 +27,7 @@
       return try_status.move_as_error(); \
     }                                    \
   }
+
 #define TRY_STATUS_PREFIX(status, prefix)             \
   {                                                   \
     auto try_status = (status);                       \
@@ -34,7 +35,9 @@
       return try_status.move_as_error_prefix(prefix); \
     }                                                 \
   }
+
 #define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
+
 #define TRY_RESULT_PREFIX(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
 
@@ -264,8 +267,18 @@ class Status {
     return std::move(*this);
   }
 
-  Status move_as_error_prefix(std::string prefix) TD_WARN_UNUSED_RESULT {
-    return td::Status::Error(code(), prefix + message().c_str());
+  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
+    CHECK(is_error());
+    Info info = get_info();
+    switch (info.error_type) {
+      case ErrorType::general:
+        return Error(code(), PSLICE() << prefix << message());
+      case ErrorType::os:
+        return Status(false, ErrorType::os, code(), PSLICE() << prefix << message());
+      default:
+        UNREACHABLE();
+        return {};
+    }
   }
 
  private:
@@ -438,10 +451,9 @@ class Result {
     };
     return std::move(status_);
   }
-  Status move_as_error_prefix(std::string prefix) TD_WARN_UNUSED_RESULT {
-    CHECK(status_.is_error());
+  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
-      status_ = Status::Error<-4>();
+      status_ = Status::Error<-5>();
     };
     return status_.move_as_error_prefix(prefix);
   }

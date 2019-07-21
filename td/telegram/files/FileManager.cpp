@@ -2652,13 +2652,15 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
   auto file_id =
-      register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
+      register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v23", false).move_as_ok();
   return file_id;
 }
+
 Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
   return from_persistent_id_v23(binary, file_type, 0);
 }
+
 Result<FileId> FileManager::from_persistent_id_v3(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
   if (binary.empty()) {
@@ -2676,6 +2678,7 @@ FileView FileManager::get_file_view(FileId file_id) const {
   }
   return FileView(file_node);
 }
+
 FileView FileManager::get_sync_file_view(FileId file_id) {
   auto file_node = get_sync_file_node(file_id);
   if (!file_node) {

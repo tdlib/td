@@ -5,13 +5,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 namespace td {
+
 class Stacktrace {
  public:
   struct PrintOptions {
     bool use_gdb = false;
-    PrintOptions() {
-    }
   };
   static void print_to_stderr(const PrintOptions &options = PrintOptions());
 };

@@ -80,15 +80,13 @@ IocpRef Iocp::get_ref() const {
   return IocpRef(iocp_handle_);
 }
 
-namespace {
-void iocp_post(NativeFd &iocp_handle, size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped) {
+static void iocp_post(NativeFd &iocp_handle, size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped) {
   if (PostQueuedCompletionStatus(iocp_handle.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
                                  reinterpret_cast<OVERLAPPED *>(overlapped)) == 0) {
     auto error = OS_ERROR("IOCP post failed");
     LOG(FATAL) << error;
   }
 }
-}  // namespace
 
 void Iocp::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
   iocp_post(*iocp_handle_, size, callback, overlapped);

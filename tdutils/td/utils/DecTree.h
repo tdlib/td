@@ -151,7 +151,7 @@ class DecTree {
       P.first = std::move(Tree);
       return P;
     }
-  }  // namespace td
+  }
 
   static unique_ptr<Node> merge_node(unique_ptr<Node> left, unique_ptr<Node> right) {
     if (left == nullptr) {

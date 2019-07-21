@@ -137,12 +137,12 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     native_flags |= O_APPEND;
   }
 
-  if (flags & Direct) {
 #if TD_LINUX
-    LOG(ERROR) << "DIRECT";
+  if (flags & Direct) {
     native_flags |= O_DIRECT;
-#endif
   }
+#endif
+
   int native_fd = detail::skip_eintr([&] { return ::open(filepath.c_str(), native_flags, static_cast<mode_t>(mode)); });
   if (native_fd < 0) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});

@@ -125,7 +125,6 @@ class BufferedStdinImpl : public Iocp::Callback {
         inc_refcnt();
       }
     }
-    LOG(ERROR) << "Close";
     if (!iocp_ref_.post(0, this, nullptr)) {
       dec_refcnt();
     }
@@ -138,7 +137,6 @@ class BufferedStdinImpl : public Iocp::Callback {
   bool dec_refcnt() {
     if (--refcnt_ == 0) {
       delete this;
-      LOG(ERROR) << "Delete this";
       return true;
     }
     return false;

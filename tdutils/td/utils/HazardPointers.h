@@ -19,7 +19,7 @@ class HazardPointers {
  public:
   explicit HazardPointers(size_t threads_n) : threads_(threads_n) {
     for (auto &data : threads_) {
-      for (auto &ptr : data.hazard) {
+      for (auto &ptr : data.hazard_) {
 // workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64658
 #if TD_GCC && GCC_VERSION <= 40902
         ptr = nullptr;
@@ -66,12 +66,12 @@ class HazardPointers {
     CHECK(thread_id < threads_.size());
     auto &data = threads_[thread_id];
     if (ptr) {
-      data.to_delete.push_back(std::unique_ptr<T, Deleter>(ptr));
+      data.to_delete_.push_back(std::unique_ptr<T, Deleter>(ptr));
     }
-    for (auto it = data.to_delete.begin(); it != data.to_delete.end();) {
+    for (auto it = data.to_delete_.begin(); it != data.to_delete_.end();) {
       if (!is_protected(it->get())) {
         it->reset();
-        it = data.to_delete.erase(it);
+        it = data.to_delete_.erase(it);
       } else {
         ++it;
       }
@@ -89,19 +89,19 @@ class HazardPointers {
   size_t to_delete_size_unsafe() const {
     size_t res = 0;
     for (auto &thread : threads_) {
-      res += thread.to_delete.size();
+      res += thread.to_delete_.size();
     }
     return res;
   }
 
  private:
   struct ThreadData {
-    std::array<std::atomic<T *>, MaxPointersN> hazard;
-    char pad[TD_CONCURRENCY_PAD - sizeof(hazard)];
+    std::array<std::atomic<T *>, MaxPointersN> hazard_;
+    char pad[TD_CONCURRENCY_PAD - sizeof(hazard_)];
 
     // stupid gc
-    std::vector<std::unique_ptr<T, Deleter>> to_delete;
-    char pad2[TD_CONCURRENCY_PAD - sizeof(to_delete)];
+    std::vector<std::unique_ptr<T, Deleter>> to_delete_;
+    char pad2[TD_CONCURRENCY_PAD - sizeof(to_delete_)];
   };
   std::vector<ThreadData> threads_;
   char pad2[TD_CONCURRENCY_PAD - sizeof(threads_)];
@@ -123,7 +123,7 @@ class HazardPointers {
 
   bool is_protected(T *ptr) {
     for (auto &thread : threads_) {
-      for (auto &hazard_ptr : thread.hazard) {
+      for (auto &hazard_ptr : thread.hazard_) {
         if (hazard_ptr.load() == ptr) {
           return true;
         }
@@ -134,7 +134,7 @@ class HazardPointers {
 
   std::atomic<T *> &get_hazard_ptr(size_t thread_id, size_t pos) {
     CHECK(thread_id < threads_.size());
-    return threads_[thread_id].hazard[pos];
+    return threads_[thread_id].hazard_[pos];
   }
 };
 

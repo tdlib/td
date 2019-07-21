@@ -226,7 +226,7 @@ class DefaultLog : public LogInterface {
         break;
     }
     if (!slice.empty() && slice.back() == '\n') {
-      TsCerr() << color << slice.substr(0, slice.size() - 1) << TC_EMPTY << "\n";
+      TsCerr() << color << slice.substr(0, slice.size() - 1) << TC_EMPTY "\n";
     } else {
       TsCerr() << color << slice << TC_EMPTY;
     }

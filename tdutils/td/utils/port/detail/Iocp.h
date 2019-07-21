@@ -59,10 +59,12 @@ class IocpRef {
   IocpRef(std::weak_ptr<NativeFd> iocp_handle);
 
   bool post(size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped);
+
  private:
   std::weak_ptr<NativeFd> iocp_handle_;
 };
-} // namespace detail
+
+}  // namespace detail
 }  // namespace td
 
 #endif

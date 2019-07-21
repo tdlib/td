@@ -13,6 +13,7 @@ namespace td {
 class Timer {
  public:
   Timer();
+
   double elapsed() const;
 
  private:
