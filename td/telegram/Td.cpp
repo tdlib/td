@@ -51,6 +51,7 @@
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
@@ -88,6 +89,8 @@
 
 #include "td/db/binlog/BinlogEvent.h"
 
+#include "td/mtproto/HandshakeActor.h"
+#include "td/mtproto/RawConnection.h"
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
 
 #include "td/utils/buffer.h"
@@ -103,10 +106,6 @@
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/utf8.h"
-
-#include "td/mtproto/HandshakeActor.h"
-#include "td/mtproto/RawConnection.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
 
 #include <limits>
 #include <tuple>
@@ -544,41 +543,50 @@ class TestQuery : public Td::ResultHandler {
  private:
   uint64 request_id_;
 };
-class TestProxyRequest : public RequestActor<Unit> {
+
+class TestProxyRequest : public RequestOnceActor {
   Proxy proxy_;
   ActorOwn<> child_;
 
+  static constexpr int16 DC_ID = 2;
+
   auto get_transport() {
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 2, proxy_.secret()};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, DC_ID, proxy_.secret()};
   }
 
   void do_run(Promise<Unit> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(Unit());
-    }
-
     IPAddress ip;
     auto status = ip.init_host_port(proxy_.server(), proxy_.port());
     if (status.is_error()) {
-      return promise.set_error(std::move(status));
+      return promise.set_error(Status::Error(400, status.public_message()));
     }
     auto r_socket_fd = SocketFd::open(ip);
     if (r_socket_fd.is_error()) {
-      return promise.set_error(r_socket_fd.move_as_error());
+      return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
     }
 
-    auto connection_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), promise = std::move(promise)](Result<ConnectionCreator::ConnectionData> r) mutable {
-          send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r), std::move(promise));
-        });
+    auto dc_options = ConnectionCreator::get_default_dc_options(false);
+    IPAddress mtproto_ip;
+    for (auto &dc_option : dc_options.dc_options) {
+      if (dc_option.get_dc_id().get_raw_id() == DC_ID) {
+        mtproto_ip = dc_option.get_ip_address();
+        break;
+      }
+    }
 
-    child_ = ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), {&proxy_, ip}, get_transport(), "",
-                                                   IPAddress(), nullptr, {}, false, std::move(connection_promise));
+    auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                         Result<ConnectionCreator::ConnectionData> r_data) mutable {
+      send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r_data), std::move(promise));
+    });
+
+    child_ =
+        ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), {&proxy_, ip}, get_transport(), "TestPingDC2",
+                                              std::move(mtproto_ip), nullptr, {}, false, std::move(connection_promise));
   }
 
-  void on_connection_data(Result<ConnectionCreator::ConnectionData> r, Promise<Unit> &&promise) {
-    if (r.is_error()) {
-      return promise.set_error(r.move_as_error());
+  void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data, Promise<Unit> &&promise) {
+    if (r_data.is_error()) {
+      return promise.set_error(r_data.move_as_error());
     }
     class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
      public:
@@ -592,8 +600,8 @@ class TestProxyRequest : public RequestActor<Unit> {
      private:
       PublicRsaKeyShared public_rsa_key{DcId::empty(), false};
     };
-    auto handshake = make_unique<mtproto::AuthKeyHandshake>(2, 0);
-    auto data = r.move_as_ok();
+    auto handshake = make_unique<mtproto::AuthKeyHandshake>(DC_ID, 3600);
+    auto data = r_data.move_as_ok();
     auto raw_connection = make_unique<mtproto::RawConnection>(std::move(data.socket_fd), get_transport(), nullptr);
     child_ = create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
@@ -601,22 +609,15 @@ class TestProxyRequest : public RequestActor<Unit> {
         PromiseCreator::lambda(
             [promise = std::move(promise)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
               if (handshake.is_error()) {
-                return promise.set_error(handshake.move_as_error());
+                return promise.set_error(Status::Error(400, handshake.error().public_message()));
               }
               promise.set_value(Unit());
             }));
   }
 
-  void do_set_result(Unit &&result) override {
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::ok>());
-  }
-
  public:
   TestProxyRequest(ActorShared<Td> td, uint64 request_id, Proxy proxy)
-      : RequestActor(std::move(td), request_id), proxy_(std::move(proxy)) {
+      : RequestOnceActor(std::move(td), request_id), proxy_(std::move(proxy)) {
   }
 };
 
@@ -7605,9 +7606,9 @@ void Td::on_request(uint64 id, td_api::testNetwork &request) {
 }
 
 void Td::on_request(uint64 id, td_api::testProxy &request) {
-  auto r_proxy = Proxy::from_td_api(std::move(request.server_), request.port_, std::move(request.type_));
+  auto r_proxy = Proxy::from_td_api(std::move(request.server_), request.port_, request.type_.get());
   if (r_proxy.is_error()) {
-    return send_error(id, r_proxy.move_as_error());
+    return send_closure(actor_id(this), &Td::send_error, id, r_proxy.move_as_error());
   }
   CREATE_REQUEST(TestProxyRequest, r_proxy.move_as_ok());
 }

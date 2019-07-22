@@ -645,8 +645,8 @@ TEST(Mtproto, TlsTransport) {
         IPAddress ip_address;
         ip_address.init_host_port(domain, 443).ensure();
         SocketFd fd = SocketFd::open(ip_address).move_as_ok();
-        create_actor<mtproto::TlsInit>("TlsInit", std::move(fd), IPAddress(), domain, "0123456789secret",
-                                       make_unique<Callback>(), ActorShared<>(), Clocks::system() - Time::now())
+        create_actor<mtproto::TlsInit>("TlsInit", std::move(fd), domain, "0123456789secret", make_unique<Callback>(),
+                                       ActorShared<>(), Clocks::system() - Time::now())
             .release();
       }
     };

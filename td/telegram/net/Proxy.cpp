@@ -5,9 +5,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/net/Proxy.h"
+
 #include "td/telegram/td_api.h"
+
 namespace td {
-Result<Proxy> Proxy::from_td_api(string server, int port, td_api::object_ptr<td_api::ProxyType> proxy_type) {
+
+Result<Proxy> Proxy::from_td_api(string server, int port, td_api::ProxyType *proxy_type) {
   if (proxy_type == nullptr) {
     return Status::Error(400, "Proxy type should not be empty");
   }
@@ -18,31 +21,47 @@ Result<Proxy> Proxy::from_td_api(string server, int port, td_api::object_ptr<td_
     return Status::Error(400, "Wrong port number");
   }
 
-  Proxy new_proxy;
   switch (proxy_type->get_id()) {
     case td_api::proxyTypeSocks5::ID: {
-      auto type = td_api::move_object_as<td_api::proxyTypeSocks5>(proxy_type);
-      new_proxy = Proxy::socks5(server, port, type->username_, type->password_);
-      break;
+      auto type = static_cast<td_api::proxyTypeSocks5 *>(proxy_type);
+      return Proxy::socks5(std::move(server), port, std::move(type->username_), std::move(type->password_));
     }
     case td_api::proxyTypeHttp::ID: {
-      auto type = td_api::move_object_as<td_api::proxyTypeHttp>(proxy_type);
+      auto type = static_cast<td_api::proxyTypeHttp *>(proxy_type);
       if (type->http_only_) {
-        new_proxy = Proxy::http_caching(server, port, type->username_, type->password_);
+        return Proxy::http_caching(std::move(server), port, std::move(type->username_), std::move(type->password_));
       } else {
-        new_proxy = Proxy::http_tcp(server, port, type->username_, type->password_);
+        return Proxy::http_tcp(std::move(server), port, std::move(type->username_), std::move(type->password_));
       }
-      break;
     }
     case td_api::proxyTypeMtproto::ID: {
-      auto type = td_api::move_object_as<td_api::proxyTypeMtproto>(proxy_type);
+      auto type = static_cast<td_api::proxyTypeMtproto *>(proxy_type);
       TRY_RESULT(secret, mtproto::ProxySecret::from_link(type->secret_));
-      new_proxy = Proxy::mtproto(server, port, secret);
-      break;
+      return Proxy::mtproto(std::move(server), port, std::move(secret));
     }
     default:
       UNREACHABLE();
+      return Status::Error(400, "Wrong proxy type");
   }
-  return new_proxy;
 }
+
+StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
+  switch (proxy.type()) {
+    case Proxy::Type::Socks5:
+      return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::HttpTcp:
+      return string_builder << "ProxyHttpTcp " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::HttpCaching:
+      return string_builder << "ProxyHttpCaching " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::Mtproto:
+      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/"
+                            << proxy.secret().get_encoded_secret();
+    case Proxy::Type::None:
+      return string_builder << "ProxyEmpty";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 }  // namespace td

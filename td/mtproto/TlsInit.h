@@ -21,10 +21,10 @@ class Grease {
 
 class TlsInit : public TransparentProxy {
  public:
-  TlsInit(SocketFd socket_fd, IPAddress ip_address, string domain, string secret, unique_ptr<Callback> callback,
-          ActorShared<> parent, double server_time_difference)
-      : TransparentProxy(std::move(socket_fd), std::move(ip_address), std::move(domain), std::move(secret),
-                         std::move(callback), std::move(parent))
+  TlsInit(SocketFd socket_fd, string domain, string secret, unique_ptr<Callback> callback, ActorShared<> parent,
+          double server_time_difference)
+      : TransparentProxy(std::move(socket_fd), IPAddress(), std::move(domain), std::move(secret), std::move(callback),
+                         std::move(parent))
       , server_time_difference_(server_time_difference) {
   }
 

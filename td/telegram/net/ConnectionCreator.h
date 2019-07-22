@@ -17,8 +17,8 @@
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/AuthData.h"
-#include "td/mtproto/TransportType.h"
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/TransportType.h"
 
 #include "td/net/NetStats.h"
 
@@ -42,13 +42,13 @@
 #include <utility>
 
 namespace td {
-namespace mtproto {
-class RawConnection;
-}  // namespace mtproto
+
 namespace detail {
 class StatsCallback;
-}
+}  // namespace detail
+
 class GetHostByNameActor;
+
 }  // namespace td
 
 namespace td {
@@ -123,6 +123,8 @@ class ConnectionCreator : public NetQueryCallback {
     Proxy *proxy_;
     IPAddress ip_address_;
   };
+
+  static DcOptions get_default_dc_options(bool is_test);
 
   static ActorOwn<> prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy,
                                        mtproto::TransportType transport_type, string debug_str, IPAddress mtproto_ip,
@@ -266,8 +268,6 @@ class ConnectionCreator : public NetQueryCallback {
   void schedule_get_proxy_info(int32 expires);
 
   void on_proxy_resolved(Result<IPAddress> ip_address, bool dummy);
-
-  static DcOptions get_default_dc_options(bool is_test);
 
   struct FindConnectionExtra {
     DcOptionsSet::Stat *stat{nullptr};

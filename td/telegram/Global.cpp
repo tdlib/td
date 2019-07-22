@@ -120,7 +120,10 @@ double Global::get_dns_time_difference() const {
   if (dns_flag) {
     return std::max(dns_diff, server_diff);
   }
-  return server_diff;
+  if (td_db_) {
+    return server_diff;
+  }
+  return Clocks::system() - Time::now();
 }
 
 DcId Global::get_webfile_dc_id() const {

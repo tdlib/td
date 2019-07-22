@@ -3612,13 +3612,14 @@ class CliClient final : public Actor {
           type = td_api::make_object<td_api::proxyTypeSocks5>(user, password);
         }
       }
+      auto port_int = to_integer<int32>(port);
       if (op[0] == 'e') {
-        send_request(td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), server, to_integer<int32>(port),
-                                                            enable, std::move(type)));
+        send_request(
+            td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), server, port_int, enable, std::move(type)));
       } else if (op == "tproxy") {
-        send_request(td_api::make_object<td_api::testProxy>(server, to_integer<int32>(port), std::move(type)));
+        send_request(td_api::make_object<td_api::testProxy>(server, port_int, std::move(type)));
       } else {
-        send_request(td_api::make_object<td_api::addProxy>(server, to_integer<int32>(port), enable, std::move(type)));
+        send_request(td_api::make_object<td_api::addProxy>(server, port_int, enable, std::move(type)));
       }
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(td_api::make_object<td_api::getProxies>());

@@ -10,10 +10,9 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
-
-#include "td/tl/TlObject.h"
 
 namespace td {
 
@@ -23,7 +22,7 @@ class ProxyType;
 
 class Proxy {
  public:
-  static Result<Proxy> from_td_api(string server, int port, tl_object_ptr<td_api::ProxyType> proxy_type);
+  static Result<Proxy> from_td_api(string server, int port, td_api::ProxyType *proxy_type);
 
   static Proxy socks5(string server, int32 port, string user, string password) {
     Proxy proxy;
@@ -143,23 +142,6 @@ inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
   return !(lhs == rhs);
 }
 
-inline StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
-  switch (proxy.type()) {
-    case Proxy::Type::Socks5:
-      return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::HttpTcp:
-      return string_builder << "ProxyHttpTcp " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::HttpCaching:
-      return string_builder << "ProxyHttpCaching " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::Mtproto:
-      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/"
-                            << proxy.secret().get_encoded_secret();
-    case Proxy::Type::None:
-      return string_builder << "ProxyEmpty";
-    default:
-      UNREACHABLE();
-      return string_builder;
-  }
-}
+StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy);
 
 }  // namespace td
