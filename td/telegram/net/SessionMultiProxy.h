@@ -58,8 +58,6 @@ class SessionMultiProxy : public Actor {
 
   bool get_pfs_flag() const;
 
-  void update_auth_state();
-
   void on_query_finished(uint32 generation, int session_id);
 };
 

@@ -42,11 +42,11 @@ class AuthDataSharedImpl : public AuthDataShared {
     }
     return res;
   }
-  using AuthDataShared::get_auth_state;
-  std::pair<AuthState, bool> get_auth_state() override {
+  using AuthDataShared::get_auth_key_state;
+  std::pair<AuthKeyState, bool> get_auth_key_state() override {
     // TODO (perf):
     auto auth_key = get_auth_key();
-    AuthState state = get_auth_state(auth_key);
+    AuthKeyState state = get_auth_key_state(auth_key);
     return std::make_pair(state, auth_key.was_auth_flag());
   }
 
@@ -109,7 +109,7 @@ class AuthDataSharedImpl : public AuthDataShared {
   }
 
   void log_auth_key(const mtproto::AuthKey &auth_key) {
-    LOG(WARNING) << dc_id_ << " " << tag("auth_key_id", auth_key.id()) << tag("state", get_auth_state(auth_key));
+    LOG(WARNING) << dc_id_ << " " << tag("auth_key_id", auth_key.id()) << tag("state", get_auth_key_state(auth_key));
   }
 };
 

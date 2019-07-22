@@ -50,7 +50,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
       if (!dc_manager_.is_alive()) {
         return false;
       }
-      send_closure(dc_manager_, &DcAuthManager::update_auth_state);
+      send_closure(dc_manager_, &DcAuthManager::update_auth_key_state);
       return true;
     }
 
@@ -62,8 +62,8 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
   info.dc_id = auth_data->dc_id();
   CHECK(info.dc_id.is_exact());
   info.shared_auth_data = std::move(auth_data);
-  auto state_was_auth = info.shared_auth_data->get_auth_state();
-  info.auth_state = state_was_auth.first;
+  auto state_was_auth = info.shared_auth_data->get_auth_key_state();
+  info.auth_key_state = state_was_auth.first;
   was_auth_ |= state_was_auth.second;
   if (!main_dc_id_.is_exact()) {
     main_dc_id_ = info.dc_id;
@@ -91,13 +91,13 @@ DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
   return &*it;
 }
 
-void DcAuthManager::update_auth_state() {
+void DcAuthManager::update_auth_key_state() {
   int32 dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
-  auto state_was_auth = dc.shared_auth_data->get_auth_state();
-  VLOG(dc) << "Update dc auth state " << tag("dc_id", dc_id) << tag("old_auth_state", dc.auth_state)
-           << tag("new_auth_state", state_was_auth.first);
-  dc.auth_state = state_was_auth.first;
+  auto state_was_auth = dc.shared_auth_data->get_auth_key_state();
+  VLOG(dc) << "Update DC auth key state " << tag("dc_id", dc_id) << tag("old_auth_key_state", dc.auth_key_state)
+           << tag("new_auth_key_state", state_was_auth.first);
+  dc.auth_key_state = state_was_auth.first;
   was_auth_ |= state_was_auth.second;
 
   loop();
@@ -149,8 +149,8 @@ void DcAuthManager::on_result(NetQueryPtr result) {
 }
 
 void DcAuthManager::dc_loop(DcInfo &dc) {
-  VLOG(dc) << "In dc_loop: " << dc.dc_id << " " << dc.auth_state;
-  if (dc.auth_state == AuthState::OK) {
+  VLOG(dc) << "In dc_loop: " << dc.dc_id << " " << dc.auth_key_state;
+  if (dc.auth_key_state == AuthKeyState::OK) {
     return;
   }
   CHECK(dc.shared_auth_data);
@@ -209,7 +209,7 @@ void DcAuthManager::destroy_loop() {
   }
   bool is_ready{true};
   for (auto &dc : dcs_) {
-    is_ready &= dc.auth_state == AuthState::Empty;
+    is_ready &= dc.auth_key_state == AuthKeyState::Empty;
   }
 
   if (is_ready) {
@@ -231,13 +231,13 @@ void DcAuthManager::loop() {
     return;
   }
   auto main_dc = find_dc(main_dc_id_.get_raw_id());
-  if (!main_dc || main_dc->auth_state != AuthState::OK) {
+  if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
     if (was_auth_) {
       G()->shared_config().set_option_boolean("auth", false);
       destroy_loop();
     }
     VLOG(dc) << "Skip loop because auth state of main dc " << main_dc_id_.get_raw_id() << " is "
-             << (main_dc != nullptr ? (PSTRING() << main_dc->auth_state) : "unknown");
+             << (main_dc != nullptr ? (PSTRING() << main_dc->auth_key_state) : "unknown");
 
     return;
   }

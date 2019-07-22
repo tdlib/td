@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
@@ -344,9 +345,9 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise) {
       }
       return res;
     }
-    std::pair<AuthState, bool> get_auth_state() override {
+    std::pair<AuthKeyState, bool> get_auth_key_state() override {
       auto auth_key = get_auth_key();
-      AuthState state = AuthDataShared::get_auth_state(auth_key);
+      AuthKeyState state = AuthDataShared::get_auth_key_state(auth_key);
       return std::make_pair(state, auth_key.was_auth_flag());
     }
     void set_auth_key(const mtproto::AuthKey &auth_key) override {

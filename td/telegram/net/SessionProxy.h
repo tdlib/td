@@ -40,7 +40,7 @@ class SessionProxy : public Actor {
  private:
   unique_ptr<Callback> callback_;
   std::shared_ptr<AuthDataShared> auth_data_;
-  AuthState auth_state_;
+  AuthKeyState auth_key_state_;
   bool is_main_;
   bool allow_media_only_;
   bool is_media_;
@@ -58,7 +58,7 @@ class SessionProxy : public Actor {
   void close_session();
   void open_session(bool force = false);
 
-  void update_auth_state();
+  void update_auth_key_state();
   void on_tmp_auth_key_updated(mtproto::AuthKey auth_key);
   void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts);
 

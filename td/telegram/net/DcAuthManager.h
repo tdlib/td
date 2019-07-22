@@ -32,7 +32,7 @@ class DcAuthManager : public NetQueryCallback {
   struct DcInfo {
     DcId dc_id;
     std::shared_ptr<AuthDataShared> shared_auth_data;
-    AuthState auth_state;
+    AuthKeyState auth_key_state;
 
     enum class State : int32 { Waiting, Export, Import, BeforeOk, Ok };
     State state = State::Waiting;
@@ -52,7 +52,7 @@ class DcAuthManager : public NetQueryCallback {
   DcInfo &get_dc(int32 dc_id);
   DcInfo *find_dc(int32 dc_id);
 
-  void update_auth_state();
+  void update_auth_key_state();
 
   void on_result(NetQueryPtr result) override;
   void dc_loop(DcInfo &dc);

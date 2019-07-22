@@ -95,14 +95,14 @@ void SessionProxy::start_up() {
       if (!session_proxy_.is_alive()) {
         return false;
       }
-      send_closure(session_proxy_, &SessionProxy::update_auth_state);
+      send_closure(session_proxy_, &SessionProxy::update_auth_key_state);
       return true;
     }
 
    private:
     ActorShared<SessionProxy> session_proxy_;
   };
-  auth_state_ = auth_data_->get_auth_state().first;
+  auth_key_state_ = auth_data_->get_auth_key_state().first;
   auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
   open_session();
 }
@@ -117,7 +117,7 @@ void SessionProxy::tear_down() {
 }
 
 void SessionProxy::send(NetQueryPtr query) {
-  if (query->auth_flag() == NetQuery::AuthFlag::On && auth_state_ != AuthState::OK) {
+  if (query->auth_flag() == NetQuery::AuthFlag::On && auth_key_state_ != AuthKeyState::OK) {
     query->debug(PSTRING() << get_name() << ": wait for auth");
     pending_queries_.emplace_back(std::move(query));
     return;
@@ -176,9 +176,9 @@ void SessionProxy::open_session(bool force) {
       return true;
     }
     if (need_destroy_) {
-      return auth_state_ != AuthState::Empty;
+      return auth_key_state_ != AuthKeyState::Empty;
     }
-    if (auth_state_ != AuthState::OK) {
+    if (auth_key_state_ != AuthKeyState::OK) {
       return false;
     }
     return is_main_ || !pending_queries_.empty();
@@ -205,14 +205,14 @@ void SessionProxy::open_session(bool force) {
       auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, need_destroy_, tmp_auth_key_, server_salts_);
 }
 
-void SessionProxy::update_auth_state() {
-  auto old_auth_state = auth_state_;
-  auth_state_ = auth_data_->get_auth_state().first;
-  if (auth_state_ != old_auth_state && old_auth_state == AuthState::OK) {
+void SessionProxy::update_auth_key_state() {
+  auto old_auth_key_state = auth_key_state_;
+  auth_key_state_ = auth_data_->get_auth_key_state().first;
+  if (auth_key_state_ != old_auth_key_state && old_auth_key_state == AuthKeyState::OK) {
     close_session();
   }
   open_session();
-  if (session_.empty() || auth_state_ != AuthState::OK) {
+  if (session_.empty() || auth_key_state_ != AuthKeyState::OK) {
     return;
   }
   for (auto &query : pending_queries_) {
