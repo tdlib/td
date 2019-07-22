@@ -6784,6 +6784,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
           })) {
         return;
       }
+      break;
     case 'd':
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;

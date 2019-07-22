@@ -97,7 +97,7 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
 
   // LOG(ERROR) << td::format::as_hex_dump<0>(td::Slice(request));
 
-  socket.write(request);
+  TRY_STATUS(socket.write(request));
 
   TlsInfo info;
   auto end_time = td::Time::now() + 3;

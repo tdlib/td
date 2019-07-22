@@ -212,7 +212,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
           SimpleConfigResult res;
           res.r_http_date = HttpDate::parse_http_date(http_query->get_header("date").str());
           res.r_config = decode_config(http_query->content_);
-          return res;
+          return std::move(res);
         }());
       }),
       std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), timeout, ttl, prefer_ipv6,
@@ -277,7 +277,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, con
             }
             return decode_config(data);
           }();
-          return res;
+          return std::move(res);
         }());
       }),
       PSTRING() << "https://www.google.com/resolve?name=" << url_encode(name) << "&type=16",

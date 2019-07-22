@@ -77,7 +77,9 @@ void print_backtrace_gdb(void) {
 #if TD_LINUX && defined(PR_SET_PTRACER)
       if (need_set_ptracer) {
         char c;
-        read(fds[0], &c, 1);
+        if (read(fds[0], &c, 1) < 0) {
+          signal_safe_write("Failed to read from pipe\n");
+        }
       }
 #endif
       dup2(2, 1);  // redirect output to stderr
