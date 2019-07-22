@@ -89,40 +89,10 @@ class ConnectionCreator : public NetQueryCallback {
     StateManager::ConnectionToken connection_token;
     unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
   };
-  class ProxyInfo {
-   public:
-    explicit ProxyInfo(const Proxy *proxy) : proxy_(proxy) {
-    }
-    bool use_proxy() const {
-      return proxy_ != nullptr;
-    }
-    Proxy::Type proxy_type() const {
-      return proxy_ == nullptr ? Proxy::Type::None : proxy_->type();
-    }
-    bool use_socks5_proxy() const {
-      return proxy_type() == Proxy::Type::Socks5;
-    }
-    bool use_http_tcp_proxy() const {
-      return proxy_type() == Proxy::Type::HttpTcp;
-    }
-    bool use_http_caching_proxy() const {
-      return proxy_type() == Proxy::Type::HttpCaching;
-    }
-    bool use_mtproto_proxy() const {
-      return proxy_type() == Proxy::Type::Mtproto;
-    }
-    const Proxy &proxy() const {
-      CHECK(use_proxy());
-      return *proxy_;
-    }
-
-   private:
-    const Proxy *proxy_;
-  };
 
   static DcOptions get_default_dc_options(bool is_test);
 
-  static ActorOwn<> prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy, const IPAddress &mtproto_ip,
+  static ActorOwn<> prepare_connection(SocketFd socket_fd, const Proxy &proxy, const IPAddress &mtproto_ip,
                                        mtproto::TransportType transport_type, Slice actor_name_prefix, Slice debug_str,
                                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                        ActorShared<> parent, bool use_connection_token,
@@ -273,10 +243,10 @@ class ConnectionCreator : public NetQueryCallback {
     bool check_mode{false};
   };
 
-  static Result<mtproto::TransportType> get_transport_type(const ProxyInfo &proxy,
+  static Result<mtproto::TransportType> get_transport_type(const Proxy &proxy,
                                                            const DcOptionsSet::ConnectionInfo &info);
 
-  Result<SocketFd> find_connection(const ProxyInfo &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
+  Result<SocketFd> find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
                                    bool allow_media_only, FindConnectionExtra &extra);
 
   ActorId<GetHostByNameActor> get_dns_resolver();

@@ -295,7 +295,6 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   if (proxy_id == 0) {
-    ProxyInfo proxy{nullptr};
     auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
     bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
@@ -314,7 +313,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     request.result = Status::Error(400, "Failed to ping");
 
     for (auto &info : infos) {
-      auto r_transport_type = get_transport_type(ProxyInfo{nullptr}, info);
+      auto r_transport_type = get_transport_type(Proxy(), info);
       if (r_transport_type.is_error()) {
         LOG(ERROR) << r_transport_type.error();
         on_ping_main_dc_result(token, r_transport_type.move_as_error());
@@ -359,7 +358,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   if (it == proxies_.end()) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
-  ProxyInfo proxy(&it->second);
+  const Proxy &proxy = it->second;
   auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, ip_address, main_dc_id, false, extra);
@@ -639,7 +638,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
       });
 
   auto token = next_token();
-  auto ref = prepare_connection(std::move(socket_fd), ProxyInfo{nullptr}, IPAddress(), transport_type, "Raw",
+  auto ref = prepare_connection(std::move(socket_fd), Proxy(), IPAddress(), transport_type, "Raw",
                                 PSTRING() << "to IP address " << ip_address, nullptr, create_reference(token), false,
                                 std::move(connection_promise));
   if (!ref.empty()) {
@@ -647,7 +646,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
   }
 }
 
-Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const ProxyInfo &proxy,
+Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy &proxy,
                                                                      const DcOptionsSet::ConnectionInfo &info) {
   int32 int_dc_id = info.option->get_dc_id().get_raw_id();
   if (G()->is_test_dc()) {
@@ -656,14 +655,13 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
   if (proxy.use_mtproto_proxy()) {
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy.proxy().secret()};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy.secret()};
   }
   if (proxy.use_http_caching_proxy()) {
     CHECK(info.option != nullptr);
     string proxy_authorization;
-    if (!proxy.proxy().user().empty() || !proxy.proxy().password().empty()) {
-      proxy_authorization =
-          "|basic " + td::base64_encode(PSLICE() << proxy.proxy().user() << ':' << proxy.proxy().password());
+    if (!proxy.user().empty() || !proxy.password().empty()) {
+      proxy_authorization = "|basic " + td::base64_encode(PSLICE() << proxy.user() << ':' << proxy.password());
     }
     return mtproto::TransportType{
         mtproto::TransportType::Http, 0,
@@ -677,8 +675,8 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   }
 }
 
-Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, const IPAddress &proxy_ip_address,
-                                                    DcId dc_id, bool allow_media_only, FindConnectionExtra &extra) {
+Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
+                                                    bool allow_media_only, FindConnectionExtra &extra) {
   extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
   bool prefer_ipv6 =
       G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy_ip_address.is_ipv6());
@@ -714,9 +712,9 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, cons
   }
 }
 
-ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy,
-                                                 const IPAddress &mtproto_ip, mtproto::TransportType transport_type,
-                                                 Slice actor_name_prefix, Slice debug_str,
+ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy &proxy, const IPAddress &mtproto_ip,
+                                                 mtproto::TransportType transport_type, Slice actor_name_prefix,
+                                                 Slice debug_str,
                                                  unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                                  ActorShared<> parent, bool use_connection_token,
                                                  Promise<ConnectionData> promise) {
@@ -766,11 +764,11 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
     auto callback = make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token);
     if (proxy.use_socks5_proxy()) {
       return ActorOwn<>(create_actor<Socks5>(PSLICE() << actor_name_prefix << "Socks5", std::move(socket_fd),
-                                             mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                             mtproto_ip, proxy.user().str(), proxy.password().str(),
                                              std::move(callback), std::move(parent)));
     } else if (proxy.use_http_tcp_proxy()) {
       return ActorOwn<>(create_actor<HttpProxy>(PSLICE() << actor_name_prefix << "HttpProxy", std::move(socket_fd),
-                                                mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                                mtproto_ip, proxy.user().str(), proxy.password().str(),
                                                 std::move(callback), std::move(parent)));
     } else if (transport_type.secret.emulate_tls()) {
       return ActorOwn<>(create_actor<mtproto::TlsInit>(
@@ -802,7 +800,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     return;
   }
 
-  ProxyInfo proxy{active_proxy_id_ == 0 ? nullptr : &proxies_[active_proxy_id_]};
+  Proxy proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
+
   if (proxy.use_proxy() && !proxy_ip_address_.is_valid()) {
     VLOG(connections) << "Exit client_loop, because there is no valid IP address for proxy: " << proxy_ip_address_;
     return;

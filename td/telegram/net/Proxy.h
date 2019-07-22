@@ -88,6 +88,22 @@ class Proxy {
     return type_;
   }
 
+  bool use_proxy() const {
+    return type() != Proxy::Type::None;
+  }
+  bool use_socks5_proxy() const {
+    return type() == Proxy::Type::Socks5;
+  }
+  bool use_mtproto_proxy() const {
+    return type() == Proxy::Type::Mtproto;
+  }
+  bool use_http_tcp_proxy() const {
+    return type() == Proxy::Type::HttpTcp;
+  }
+  bool use_http_caching_proxy() const {
+    return type() == Proxy::Type::HttpCaching;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
