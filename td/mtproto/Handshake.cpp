@@ -31,13 +31,13 @@ void AuthKeyHandshake::clear() {
   state_ = Start;
 }
 
-bool AuthKeyHandshake::is_ready_for_start() {
+bool AuthKeyHandshake::is_ready_for_start() const {
   return state_ == Start;
 }
-bool AuthKeyHandshake::is_ready_for_message(const UInt128 &message_nonce) {
+bool AuthKeyHandshake::is_ready_for_message(const UInt128 &message_nonce) const {
   return state_ != Finish && state_ != Start && nonce == message_nonce;
 }
-bool AuthKeyHandshake::is_ready_for_finish() {
+bool AuthKeyHandshake::is_ready_for_finish() const {
   return state_ == Finish;
 }
 void AuthKeyHandshake::on_finish() {

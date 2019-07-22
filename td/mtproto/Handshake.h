@@ -42,13 +42,13 @@ class AuthKeyHandshake {
   double server_time_diff = 0;
   uint64 server_salt = 0;
 
-  bool is_ready_for_start();
+  bool is_ready_for_start() const;
   Status start_main(Callback *connection) TD_WARN_UNUSED_RESULT;
   Status start_tmp(Callback *connection, int32 expires_in) TD_WARN_UNUSED_RESULT;
 
-  bool is_ready_for_message(const UInt128 &message_nonce);
+  bool is_ready_for_message(const UInt128 &message_nonce) const;
 
-  bool is_ready_for_finish();
+  bool is_ready_for_finish() const;
   void on_finish();
 
   AuthKeyHandshake(int32 dc_id, int32 expires_in) {
@@ -71,7 +71,7 @@ class AuthKeyHandshake {
   }
   void resume(Callback *connection);
   Status on_message(Slice message, Callback *connection, Context *context) TD_WARN_UNUSED_RESULT;
-  bool is_ready() {
+  bool is_ready() const {
     return is_ready_for_finish();
   }
   void clear();

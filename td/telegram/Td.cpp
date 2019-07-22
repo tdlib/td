@@ -547,6 +547,7 @@ class TestQuery : public Td::ResultHandler {
 class TestProxyRequest : public RequestOnceActor {
   Proxy proxy_;
   ActorOwn<> child_;
+  Promise<> promise_;
 
   static constexpr int16 DC_ID = 2;
 
@@ -555,14 +556,15 @@ class TestProxyRequest : public RequestOnceActor {
   }
 
   void do_run(Promise<Unit> &&promise) override {
+    promise_ = std::move(promise);
     IPAddress ip;
     auto status = ip.init_host_port(proxy_.server(), proxy_.port());
     if (status.is_error()) {
-      return promise.set_error(Status::Error(400, status.public_message()));
+      return promise_.set_error(Status::Error(400, status.public_message()));
     }
     auto r_socket_fd = SocketFd::open(ip);
     if (r_socket_fd.is_error()) {
-      return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
+      return promise_.set_error(Status::Error(400, r_socket_fd.error().public_message()));
     }
 
     auto dc_options = ConnectionCreator::get_default_dc_options(false);
@@ -574,19 +576,19 @@ class TestProxyRequest : public RequestOnceActor {
       }
     }
 
-    auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
-                                                         Result<ConnectionCreator::ConnectionData> r_data) mutable {
-      send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r_data), std::move(promise));
-    });
+    auto connection_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this)](Result<ConnectionCreator::ConnectionData> r_data) mutable {
+          send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r_data));
+        });
 
     child_ = ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), ConnectionCreator::ProxyInfo{&proxy_},
                                                    mtproto_ip, get_transport(), "Test", "TestPingDC2", nullptr, {},
                                                    false, std::move(connection_promise));
   }
 
-  void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data, Promise<Unit> &&promise) {
+  void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data) {
     if (r_data.is_error()) {
-      return promise.set_error(r_data.move_as_error());
+      return promise_.set_error(r_data.move_as_error());
     }
     class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
      public:
@@ -605,14 +607,31 @@ class TestProxyRequest : public RequestOnceActor {
     auto raw_connection = make_unique<mtproto::RawConnection>(std::move(data.socket_fd), get_transport(), nullptr);
     child_ = create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
-        PromiseCreator::lambda([](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {}),
+        PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {
+          send_closure(actor_id, &TestProxyRequest::on_handshake_connection, std::move(raw_connection));
+        }),
         PromiseCreator::lambda(
-            [promise = std::move(promise)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
-              if (handshake.is_error()) {
-                return promise.set_error(Status::Error(400, handshake.error().public_message()));
-              }
-              promise.set_value(Unit());
+            [actor_id = actor_id(this)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
+              send_closure(actor_id, &TestProxyRequest::on_handshake, std::move(handshake));
             }));
+  }
+  void on_handshake_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+    if (r_raw_connection.is_error()) {
+      promise_.set_error(Status::Error(400, r_raw_connection.move_as_error().public_message()));
+    }
+  }
+  void on_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake) {
+    if (!promise_) {
+      return;
+    }
+    if (r_handshake.is_error()) {
+      promise_.set_error(Status::Error(400, r_handshake.move_as_error().public_message()));
+    }
+
+    auto handshake = r_handshake.move_as_ok();
+    if (!handshake->is_ready_for_finish()) {
+      promise_.set_error(Status::Error(400, "Handshake is not ready"));
+    }
   }
 
  public:
@@ -620,6 +639,7 @@ class TestProxyRequest : public RequestOnceActor {
       : RequestOnceActor(std::move(td), request_id), proxy_(std::move(proxy)) {
   }
 };
+constexpr int16 TestProxyRequest::DC_ID;
 
 class GetAccountTtlRequest : public RequestActor<int32> {
   int32 account_ttl_;
