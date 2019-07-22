@@ -295,7 +295,7 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   if (proxy_id == 0) {
-    ProxyInfo proxy{nullptr, IPAddress()};
+    ProxyInfo proxy{nullptr};
     auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
     bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
@@ -314,7 +314,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     request.result = Status::Error(400, "Failed to ping");
 
     for (auto &info : infos) {
-      auto r_transport_type = get_transport_type(ProxyInfo{nullptr, IPAddress()}, info);
+      auto r_transport_type = get_transport_type(ProxyInfo{nullptr}, info);
       if (r_transport_type.is_error()) {
         LOG(ERROR) << r_transport_type.error();
         on_ping_main_dc_result(token, r_transport_type.move_as_error());
@@ -359,10 +359,10 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   if (it == proxies_.end()) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
-  ProxyInfo proxy(&it->second, ip_address);
+  ProxyInfo proxy(&it->second);
   auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
   FindConnectionExtra extra;
-  auto r_socket_fd = find_connection(proxy, main_dc_id, false, extra);
+  auto r_socket_fd = find_connection(proxy, ip_address, main_dc_id, false, extra);
   if (r_socket_fd.is_error()) {
     return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
   }
@@ -638,7 +638,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
       });
 
   auto token = next_token();
-  auto ref = prepare_connection(std::move(socket_fd), {nullptr, IPAddress()}, transport_type,
+  auto ref = prepare_connection(std::move(socket_fd), ProxyInfo{nullptr}, transport_type,
                                 PSTRING() << "to IP address " << ip_address, IPAddress(), nullptr,
                                 create_reference(token), false, std::move(connection_promise));
   if (!ref.empty()) {
@@ -676,11 +676,11 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   }
 }
 
-Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
-                                                    FindConnectionExtra &extra) {
+Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, const IPAddress &proxy_ip_address,
+                                                    DcId dc_id, bool allow_media_only, FindConnectionExtra &extra) {
   extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
   bool prefer_ipv6 =
-      G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy.ip_address().is_ipv6());
+      G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy_ip_address.is_ipv6());
   bool only_http = proxy.use_http_caching_proxy();
   TRY_RESULT(info, dc_options_set_.find_connection(
                        dc_id, allow_media_only, proxy.use_proxy() && proxy.use_socks5_proxy(), prefer_ipv6, only_http));
@@ -692,10 +692,10 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
                               << (info.use_http ? " over HTTP" : "");
 
   if (proxy.use_mtproto_proxy()) {
-    extra.debug_str = PSTRING() << "Mtproto " << proxy.ip_address() << extra.debug_str;
+    extra.debug_str = PSTRING() << "Mtproto " << proxy_ip_address << extra.debug_str;
 
     LOG(INFO) << "Create: " << extra.debug_str;
-    return SocketFd::open(proxy.ip_address());
+    return SocketFd::open(proxy_ip_address);
   }
 
   extra.check_mode |= info.should_check;
@@ -703,9 +703,9 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
   if (proxy.use_proxy()) {
     extra.mtproto_ip = info.option->get_ip_address();
     extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP")) << ' '
-                                << proxy.ip_address() << " --> " << extra.mtproto_ip << extra.debug_str;
+                                << proxy_ip_address << " --> " << extra.mtproto_ip << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
-    return SocketFd::open(proxy.ip_address());
+    return SocketFd::open(proxy_ip_address);
   } else {
     extra.debug_str = PSTRING() << info.option->get_ip_address() << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
@@ -800,9 +800,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     return;
   }
 
-  ProxyInfo proxy{active_proxy_id_ == 0 ? nullptr : &proxies_[active_proxy_id_], proxy_ip_address_};
-  if (proxy.use_proxy() && !proxy.ip_address().is_valid()) {
-    VLOG(connections) << "Exit client_loop, because there is no valid IP address for proxy: " << proxy.ip_address();
+  ProxyInfo proxy{active_proxy_id_ == 0 ? nullptr : &proxies_[active_proxy_id_]};
+  if (proxy.use_proxy() && !proxy_ip_address_.is_valid()) {
+    VLOG(connections) << "Exit client_loop, because there is no valid IP address for proxy: " << proxy_ip_address_;
     return;
   }
 
@@ -870,7 +870,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     // Create new RawConnection
     // sync part
     FindConnectionExtra extra;
-    auto r_socket_fd = find_connection(proxy, client.dc_id, client.allow_media_only, extra);
+    auto r_socket_fd = find_connection(proxy, proxy_ip_address_, client.dc_id, client.allow_media_only, extra);
     check_mode |= extra.check_mode;
     if (r_socket_fd.is_error()) {
       LOG(WARNING) << extra.debug_str << ": " << r_socket_fd.error();

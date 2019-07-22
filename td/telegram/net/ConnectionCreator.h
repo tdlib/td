@@ -91,7 +91,7 @@ class ConnectionCreator : public NetQueryCallback {
   };
   class ProxyInfo {
    public:
-    ProxyInfo(Proxy *proxy, IPAddress ip_address) : proxy_(proxy), ip_address_(std::move(ip_address)) {
+    explicit ProxyInfo(const Proxy *proxy) : proxy_(proxy) {
     }
     bool use_proxy() const {
       return proxy_ != nullptr;
@@ -115,13 +115,9 @@ class ConnectionCreator : public NetQueryCallback {
       CHECK(use_proxy());
       return *proxy_;
     }
-    const IPAddress &ip_address() const {
-      return ip_address_;
-    }
 
    private:
-    Proxy *proxy_;
-    IPAddress ip_address_;
+    const Proxy *proxy_;
   };
 
   static DcOptions get_default_dc_options(bool is_test);
@@ -280,8 +276,8 @@ class ConnectionCreator : public NetQueryCallback {
   static Result<mtproto::TransportType> get_transport_type(const ProxyInfo &proxy,
                                                            const DcOptionsSet::ConnectionInfo &info);
 
-  Result<SocketFd> find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
-                                   FindConnectionExtra &extra);
+  Result<SocketFd> find_connection(const ProxyInfo &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
+                                   bool allow_media_only, FindConnectionExtra &extra);
 
   ActorId<GetHostByNameActor> get_dns_resolver();
 
