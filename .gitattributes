@@ -29,9 +29,6 @@
 *.csproj text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.sln text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.xml text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
-*.rb text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
-*.lock text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
-*.go text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.config text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 
 sqlite/sqlite/* linguist-vendored

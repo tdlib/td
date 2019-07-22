@@ -1187,7 +1187,8 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
     if (photo.id == -2 || photo.id == 0) {
       LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
     } else {
-      photos.emplace(photo.id, std::move(photo));
+      auto photo_id = photo.id;
+      photos.emplace(photo_id, std::move(photo));
     }
   }
   if (web_page->photo.id != -2 && web_page->photo.id != 0) {

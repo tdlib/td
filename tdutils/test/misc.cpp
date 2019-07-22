@@ -872,7 +872,7 @@ class ValueB {
 };
 
 template <template <class T> class HashT>
-void test_hash() {
+static void test_hash() {
   // Just check that the following compiles
   AbslHashValue(Hasher(), ValueA{1});
   HashT<ValueA>()(ValueA{1});

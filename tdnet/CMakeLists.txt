@@ -51,7 +51,7 @@ target_include_directories(tdnet SYSTEM PRIVATE $<BUILD_INTERFACE:${OPENSSL_INCL
 target_link_libraries(tdnet PUBLIC tdutils tdactor PRIVATE ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 target_link_libraries(tdnet PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 if (NOT EMSCRIPTEN)
- target_link_libraries(tdnet PRIVATE ${OPENSSL_SSL_LIBRARY})
+  target_link_libraries(tdnet PRIVATE ${OPENSSL_SSL_LIBRARY})
 endif()
 
 if (WIN32)

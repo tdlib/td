@@ -43,7 +43,7 @@ class ArrayHashMap {
   }
   struct Node {
     std::atomic<KeyT> key{KeyT{}};
-    std::atomic<ValueT> value{};
+    std::atomic<ValueT> value{ValueT{}};
   };
   static std::string get_name() {
     return "ArrayHashMap";
@@ -188,7 +188,7 @@ class HashMapBenchmark : public td::Benchmark {
 
   size_t threads_n = 16;
   int mod_;
-  constexpr static size_t mul_ = 7273;  //1000000000 + 7;
+  static constexpr size_t mul_ = 7273;  //1000000000 + 7;
   int n_;
 
  public:
@@ -235,7 +235,7 @@ class HashMapBenchmark : public td::Benchmark {
 };
 
 template <class HashMap>
-void bench_hash_map() {
+static void bench_hash_map() {
   td::bench(HashMapBenchmark<HashMap>(16));
   td::bench(HashMapBenchmark<HashMap>(1));
 }

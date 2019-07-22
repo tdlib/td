@@ -82,7 +82,7 @@ void print_backtrace_gdb(void) {
 #endif
       dup2(2, 1);  // redirect output to stderr
       execlp("gdb", "gdb", "--batch", "-n", "-ex", "thread", "-ex", "thread apply all bt full", name_buf, pid_buf_begin,
-             NULL);
+             nullptr);
       return;
     } else {
 #if TD_LINUX && defined(PR_SET_PTRACER)

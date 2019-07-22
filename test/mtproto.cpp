@@ -629,7 +629,6 @@ TEST(Mtproto, TlsTransport) {
   {
     auto guard = sched.get_main_guard();
     class RunTest : public Actor {
-     private:
       void start_up() override {
         class Callback : public TransparentProxy::Callback {
          public:

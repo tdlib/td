@@ -197,7 +197,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
       CreateFile(w_filepath.c_str(), desired_access, share_mode, nullptr, creation_disposition, native_flags, nullptr);
 #else
   CREATEFILE2_EXTENDED_PARAMETERS extended_parameters;
-  memset(&extended_parameters, 0, sizeof(extended_parameters));
+  std::memset(&extended_parameters, 0, sizeof(extended_parameters));
   extended_parameters.dwFileFlags = native_flags;
   auto handle = CreateFile2(w_filepath.c_str(), desired_access, share_mode, creation_disposition, &extended_parameters);
 #endif

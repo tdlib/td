@@ -56,7 +56,7 @@ class IocpRef {
   IocpRef(IocpRef &&) = default;
   IocpRef &operator=(IocpRef &&) = default;
 
-  IocpRef(std::weak_ptr<NativeFd> iocp_handle);
+  explicit IocpRef(std::weak_ptr<NativeFd> iocp_handle);
 
   bool post(size_t size, Iocp::Callback *callback, WSAOVERLAPPED *overlapped);
 

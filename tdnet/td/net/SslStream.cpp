@@ -542,12 +542,15 @@ size_t SslStream::flow_write(Slice slice) {
 }
 
 }  // namespace td
-#else 
+
+#else
+
 namespace td {
+
 namespace detail {
-class SslStreamImpl {
-};
-}
+class SslStreamImpl {};
+}  // namespace detail
+
 SslStream::SslStream() = default;
 SslStream::SslStream(SslStream &&) = default;
 SslStream &SslStream::operator=(SslStream &&) = default;
@@ -556,20 +559,26 @@ SslStream::~SslStream() = default;
 Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
   return Status::Error("Not supported in emscripten");
 }
+
 SslStream::SslStream(unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {
 }
+
 ByteFlowInterface &SslStream::read_byte_flow() {
   UNREACHABLE();
 }
+
 ByteFlowInterface &SslStream::write_byte_flow() {
   UNREACHABLE();
 }
+
 size_t SslStream::flow_read(MutableSlice slice) {
   UNREACHABLE();
 }
+
 size_t SslStream::flow_write(Slice slice) {
   UNREACHABLE();
 }
 
 }  // namespace td
+
 #endif

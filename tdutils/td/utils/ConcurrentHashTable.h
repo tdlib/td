@@ -238,7 +238,7 @@ class ConcurrentHashMap {
   TaskCreator task_creator;
 
   void do_migrate(HashMap *ptr) {
-    //LOG(ERROR) << "do migrate: " << ptr;
+    //LOG(ERROR) << "In do_migrate: " << ptr;
     std::unique_lock<std::mutex> lock(migrate_mutex_);
     if (hash_map_.load() != ptr) {
       return;
@@ -260,7 +260,7 @@ class ConcurrentHashMap {
   }
 
   void finish_migrate() {
-    //LOG(ERROR) << "finish_migrate";
+    //LOG(ERROR) << "In finish_migrate";
     hash_map_.store(migrate_to_hash_map_);
     hp_.retire(get_thread_id(), migrate_from_hash_map_);
     migrate_from_hash_map_ = nullptr;
@@ -273,7 +273,7 @@ class ConcurrentHashMap {
     if (migrate_from_hash_map_ != nullptr) {
       return;
     }
-    //LOG(ERROR) << "init_migrate";
+    //LOG(ERROR) << "In init_migrate";
     CHECK(migrate_cnt_ == 0);
     migrate_generation_++;
     migrate_from_hash_map_ = hash_map_.exchange(nullptr);
@@ -285,7 +285,7 @@ class ConcurrentHashMap {
   }
 
   void run_migrate() {
-    //LOG(ERROR) << "run_migrate";
+    //LOG(ERROR) << "In run_migrate";
     size_t cnt = 0;
     while (true) {
       auto task = task_creator.create();
@@ -295,7 +295,7 @@ class ConcurrentHashMap {
       }
       run_task(task);
     }
-    //LOG(ERROR) << "run_migrate " << cnt;
+    //LOG(ERROR) << "In run_migrate " << cnt;
   }
 
   void run_task(Task task) {
@@ -309,7 +309,7 @@ class ConcurrentHashMap {
       //LOG(ERROR) << node_key << " " << node_key;
       auto ok = migrate_to_hash_map_->with_value(
           node_key, true, [&](auto &node_value) { node_value.store(old_value, std::memory_order_relaxed); });
-      LOG_CHECK(ok) << "migration overflow";
+      LOG_CHECK(ok) << "Migration overflow";
     }
   }
 };

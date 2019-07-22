@@ -316,7 +316,7 @@ static void default_failure_signal_handler(int sig) {
 }
 
 Status set_default_failure_signal_handler() {
-  atexit(block_stdin);
+  std::atexit(block_stdin);
   TRY_STATUS(setup_signals_alt_stack());
   TRY_STATUS(set_signal_handler(SignalType::Abort, default_failure_signal_handler));
   TRY_STATUS(set_signal_handler(SignalType::Error, default_failure_signal_handler));

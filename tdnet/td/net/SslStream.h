@@ -14,7 +14,7 @@ namespace td {
 
 namespace detail {
 class SslStreamImpl;
-}
+}  // namespace detail
 
 class SslStream {
  public:
