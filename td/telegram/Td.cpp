@@ -580,7 +580,7 @@ class TestProxyRequest : public RequestOnceActor {
     });
 
     child_ = ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), ConnectionCreator::ProxyInfo{&proxy_},
-                                                   get_transport(), "TestPingDC2", std::move(mtproto_ip), nullptr, {},
+                                                   mtproto_ip, get_transport(), "Test", "TestPingDC2", nullptr, {},
                                                    false, std::move(connection_promise));
   }
 

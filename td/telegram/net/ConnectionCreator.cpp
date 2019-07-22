@@ -379,8 +379,9 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       });
   CHECK(proxy.use_proxy());
   auto token = next_token();
-  auto ref = prepare_connection(std::move(socket_fd), proxy, extra.transport_type, extra.debug_str, extra.mtproto_ip,
-                                nullptr, create_reference(token), false, std::move(connection_promise));
+  auto ref =
+      prepare_connection(std::move(socket_fd), proxy, extra.mtproto_ip, extra.transport_type, "Ping", extra.debug_str,
+                         nullptr, create_reference(token), false, std::move(connection_promise));
   if (!ref.empty()) {
     children_[token] = {false, std::move(ref)};
   }
@@ -638,9 +639,9 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
       });
 
   auto token = next_token();
-  auto ref = prepare_connection(std::move(socket_fd), ProxyInfo{nullptr}, transport_type,
-                                PSTRING() << "to IP address " << ip_address, IPAddress(), nullptr,
-                                create_reference(token), false, std::move(connection_promise));
+  auto ref = prepare_connection(std::move(socket_fd), ProxyInfo{nullptr}, IPAddress(), transport_type, "Raw",
+                                PSTRING() << "to IP address " << ip_address, nullptr, create_reference(token), false,
+                                std::move(connection_promise));
   if (!ref.empty()) {
     children_[token] = {false, std::move(ref)};
   }
@@ -714,8 +715,8 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, cons
 }
 
 ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy,
-                                                 mtproto::TransportType transport_type, string debug_str,
-                                                 IPAddress mtproto_ip,
+                                                 const IPAddress &mtproto_ip, mtproto::TransportType transport_type,
+                                                 Slice actor_name_prefix, Slice debug_str,
                                                  unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                                  ActorShared<> parent, bool use_connection_token,
                                                  Promise<ConnectionData> promise) {
@@ -764,17 +765,18 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
               << ": " << debug_str;
     auto callback = make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token);
     if (proxy.use_socks5_proxy()) {
-      return ActorOwn<>(create_actor<Socks5>("Socks5", std::move(socket_fd), mtproto_ip, proxy.proxy().user().str(),
-                                             proxy.proxy().password().str(), std::move(callback), std::move(parent)));
+      return ActorOwn<>(create_actor<Socks5>(PSLICE() << actor_name_prefix << "Socks5", std::move(socket_fd),
+                                             mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                             std::move(callback), std::move(parent)));
     } else if (proxy.use_http_tcp_proxy()) {
-      return ActorOwn<>(create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), mtproto_ip,
-                                                proxy.proxy().user().str(), proxy.proxy().password().str(),
+      return ActorOwn<>(create_actor<HttpProxy>(PSLICE() << actor_name_prefix << "HttpProxy", std::move(socket_fd),
+                                                mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
                                                 std::move(callback), std::move(parent)));
     } else if (transport_type.secret.emulate_tls()) {
-      return ActorOwn<>(
-          create_actor<mtproto::TlsInit>("TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
-                                         transport_type.secret.get_proxy_secret().str(), std::move(callback),
-                                         std::move(parent), G()->get_dns_time_difference()));
+      return ActorOwn<>(create_actor<mtproto::TlsInit>(
+          PSLICE() << actor_name_prefix << "TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
+          transport_type.secret.get_proxy_secret().str(), std::move(callback), std::move(parent),
+          G()->get_dns_time_difference()));
     } else {
       UNREACHABLE();
     }
@@ -909,8 +911,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
                                                actor_id(this), client.hash, extra.stat);
     auto token = next_token();
-    auto ref = prepare_connection(std::move(socket_fd), proxy, extra.transport_type, extra.debug_str, extra.mtproto_ip,
-                                  std::move(stats_callback), create_reference(token), true, std::move(promise));
+    auto ref = prepare_connection(std::move(socket_fd), proxy, extra.mtproto_ip, extra.transport_type, Slice(),
+                                  extra.debug_str, std::move(stats_callback), create_reference(token), true,
+                                  std::move(promise));
     if (!ref.empty()) {
       children_[token] = {true, std::move(ref)};
     }

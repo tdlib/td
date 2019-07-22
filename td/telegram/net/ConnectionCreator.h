@@ -122,8 +122,8 @@ class ConnectionCreator : public NetQueryCallback {
 
   static DcOptions get_default_dc_options(bool is_test);
 
-  static ActorOwn<> prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy,
-                                       mtproto::TransportType transport_type, string debug_str, IPAddress mtproto_ip,
+  static ActorOwn<> prepare_connection(SocketFd socket_fd, const ProxyInfo &proxy, const IPAddress &mtproto_ip,
+                                       mtproto::TransportType transport_type, Slice actor_name_prefix, Slice debug_str,
                                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                        ActorShared<> parent, bool use_connection_token,
                                        Promise<ConnectionData> promise);
