@@ -136,7 +136,7 @@ class Proxy {
       parse(port_, parser);
       secret_ = mtproto::ProxySecret::from_link(parser.template fetch_string<Slice>()).move_as_ok();
     } else {
-      LOG_CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
+      CHECK(type_ == Proxy::Type::None);
     }
   }
 

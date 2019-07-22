@@ -9,7 +9,9 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/sleep.h"
-#include "td/utils/port/thread.h"
+
+#include <atomic>
+#include <memory>
 
 namespace td {
 

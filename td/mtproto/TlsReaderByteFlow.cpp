@@ -6,6 +6,7 @@
 //
 #include "td/mtproto/TlsReaderByteFlow.h"
 
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 namespace td {

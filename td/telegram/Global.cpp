@@ -118,7 +118,7 @@ double Global::get_dns_time_difference() const {
     return dns_flag ? dns_diff : server_diff;
   }
   if (dns_flag) {
-    return std::max(dns_diff, server_diff);
+    return max(dns_diff, server_diff);
   }
   if (td_db_) {
     return server_diff;

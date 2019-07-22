@@ -13,6 +13,7 @@ char disable_linker_warning_about_empty_file_gzip_cpp TD_UNUSED;
 
 #include <cstring>
 #include <limits>
+#include <utility>
 
 #include <zlib.h>
 

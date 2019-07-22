@@ -58,7 +58,7 @@ void print_backtrace_gdb(void) {
       return;
     }
 #if defined(PR_SET_PTRACER)
-    // We can't use EventFd because we are in a signal handler
+    // We can't use event fd because we are in a signal handler
     int fds[2];
     bool need_set_ptracer = true;
     if (pipe(fds) < 0) {

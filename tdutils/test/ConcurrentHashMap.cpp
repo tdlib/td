@@ -6,14 +6,12 @@
 //
 #include "td/utils/benchmark.h"
 #include "td/utils/ConcurrentHashTable.h"
-#include "td/utils/HazardPointers.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/SpinLock.h"
 #include "td/utils/tests.h"
 
-#include <algorithm>
 #include <atomic>
-#include <cstdio>
+#include <mutex>
 
 #if !TD_THREAD_UNSUPPORTED
 
@@ -29,8 +27,8 @@
 
 #if TD_WITH_JUNCTION
 #include <junction/ConcurrentMap_Grampa.h>
-#include <junction/ConcurrentMap_Linear.h>
 #include <junction/ConcurrentMap_Leapfrog.h>
+#include <junction/ConcurrentMap_Linear.h>
 #endif
 
 namespace td {

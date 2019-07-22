@@ -20,6 +20,7 @@
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/Ping.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TlsInit.h"
 

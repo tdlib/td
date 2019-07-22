@@ -6,6 +6,7 @@
 //
 #include "td/utils/port/MemoryMapping.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
 // TODO:

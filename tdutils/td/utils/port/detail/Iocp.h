@@ -13,8 +13,9 @@
 #include "td/utils/common.h"
 #include "td/utils/Context.h"
 #include "td/utils/port/detail/NativeFd.h"
-#include "td/utils/port/thread.h"
 #include "td/utils/Status.h"
+
+#include <memory>
 
 namespace td {
 namespace detail {

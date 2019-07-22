@@ -8,8 +8,11 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/IoSlice.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/signals.h"
+#include "td/utils/port/thread.h"
+#include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 

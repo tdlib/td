@@ -6,8 +6,8 @@
 //
 #include "td/mtproto/PingConnection.h"
 
-#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/mtproto_api.h"
 #include "td/mtproto/NoCryptoStorer.h"
 #include "td/mtproto/PacketInfo.h"

@@ -12,6 +12,8 @@
 #include <absl/hash/hash.h>
 #endif
 
+#include <utility>
+
 namespace td {
 // A simple wrapper for absl::flat_hash_map, std::unordered_map and probably some our implementaion of hash map in
 // the future

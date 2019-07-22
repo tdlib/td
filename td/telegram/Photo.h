@@ -21,6 +21,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/Variant.h"
 
 namespace td {
 

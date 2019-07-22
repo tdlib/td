@@ -8,6 +8,10 @@
 
 #include "td/net/TransparentProxy.h"
 
+#include "td/actor/actor.h"
+
+#include "td/utils/port/IPAddress.h"
+#include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 

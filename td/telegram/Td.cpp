@@ -89,8 +89,12 @@
 
 #include "td/db/binlog/BinlogEvent.h"
 
+#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/TransportType.h"
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
 
 #include "td/utils/buffer.h"
@@ -99,7 +103,9 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/SocketFd.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

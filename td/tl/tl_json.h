@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/base64.h"
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/misc.h"
@@ -17,6 +18,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
 
+#include <functional>
 #include <type_traits>
 
 namespace td {
