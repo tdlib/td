@@ -131,7 +131,7 @@ void Wget::start_up() {
 }
 
 void Wget::timeout_expired() {
-  on_error(Status::Error("Timeout expired"));
+  on_error(Status::Error("Response timeout expired"));
 }
 
 void Wget::tear_down() {

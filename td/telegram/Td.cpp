@@ -617,7 +617,7 @@ class TestProxyRequest : public RequestOnceActor {
   }
   void on_handshake_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
     if (r_raw_connection.is_error()) {
-      promise_.set_error(Status::Error(400, r_raw_connection.move_as_error().public_message()));
+      return promise_.set_error(Status::Error(400, r_raw_connection.move_as_error().public_message()));
     }
   }
   void on_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake) {
@@ -625,13 +625,14 @@ class TestProxyRequest : public RequestOnceActor {
       return;
     }
     if (r_handshake.is_error()) {
-      promise_.set_error(Status::Error(400, r_handshake.move_as_error().public_message()));
+      return promise_.set_error(Status::Error(400, r_handshake.move_as_error().public_message()));
     }
 
     auto handshake = r_handshake.move_as_ok();
     if (!handshake->is_ready_for_finish()) {
       promise_.set_error(Status::Error(400, "Handshake is not ready"));
     }
+    promise_.set_value(Unit());
   }
 
  public:
