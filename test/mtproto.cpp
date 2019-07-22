@@ -314,7 +314,7 @@ class HandshakeTestActor : public Actor {
           mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
-      handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 0);
+      handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     }
     if (raw_connection_ && handshake_) {
       if (wait_for_result_) {
