@@ -3893,15 +3893,14 @@ void main(int argc, char **argv) {
       if (*arg == '\0' && i + 1 < argc) {
         arg = argv[++i];
       }
-      int new_verbosity = 0;
-      if (arg[0] == 'v') {
-        new_verbosity = 1;
-        while (arg[0] == 'v') {
-          new_verbosity++;
-          arg++;
-        }
+      int new_verbosity = 1;
+      while (*arg == 'v') {
+        new_verbosity++;
+        arg++;
       }
-      new_verbosity += to_integer<int>(Slice(arg));
+      if (*arg) {
+        new_verbosity += to_integer<int>(Slice(arg)) - (new_verbosity == 1);
+      }
       new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
     } else if (!std::strncmp(argv[i], "-l", 2)) {
       const char *arg = argv[i] + 2;
