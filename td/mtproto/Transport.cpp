@@ -150,7 +150,7 @@ std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key,
 
   uint8 msg_key_large_raw[32];
   MutableSlice msg_key_large(msg_key_large_raw, sizeof(msg_key_large_raw));
-  state.extract(msg_key_large);
+  state.extract(msg_key_large, true);
 
   // msg_key = substr (msg_key_large, 8, 16);
   UInt128 res;

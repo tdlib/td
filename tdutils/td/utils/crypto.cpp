@@ -377,60 +377,61 @@ string sha512(Slice data) {
   return result;
 }
 
-struct Sha256StateImpl {
-  SHA256_CTX ctx;
+class Sha256State::Impl {
+ public:
+  SHA256_CTX ctx_;
 };
 
 Sha256State::Sha256State() = default;
 
 Sha256State::Sha256State(Sha256State &&other) {
-  impl = std::move(other.impl);
-  is_inited = other.is_inited;
-  other.is_inited = false;
+  impl_ = std::move(other.impl_);
+  is_inited_ = other.is_inited_;
+  other.is_inited_ = false;
 }
 
 Sha256State &Sha256State::operator=(Sha256State &&other) {
   Sha256State copy(std::move(other));
   using std::swap;
-  swap(impl, copy.impl);
-  swap(is_inited, copy.is_inited);
+  swap(impl_, copy.impl_);
+  swap(is_inited_, copy.is_inited_);
   return *this;
 }
 
 Sha256State::~Sha256State() {
-  if (is_inited) {
+  if (is_inited_) {
     char result[32];
     extract(MutableSlice{result, 32});
-    CHECK(!is_inited);
+    CHECK(!is_inited_);
   }
 }
 
-void sha256_init(Sha256State *state) {
-  if (!state->impl) {
-    state->impl = make_unique<Sha256StateImpl>();
+void Sha256State::init() {
+  if (!impl_) {
+    impl_ = make_unique<Sha256State::Impl>();
   }
-  CHECK(!state->is_inited);
-  int err = SHA256_Init(&state->impl->ctx);
+  CHECK(!is_inited_);
+  int err = SHA256_Init(&impl_->ctx_);
   LOG_IF(FATAL, err != 1);
-  state->is_inited = true;
+  is_inited_ = true;
 }
 
-void sha256_update(Slice data, Sha256State *state) {
-  CHECK(state->impl);
-  CHECK(state->is_inited);
-  int err = SHA256_Update(&state->impl->ctx, data.ubegin(), data.size());
+void Sha256State::feed(Slice data) {
+  CHECK(impl_);
+  CHECK(is_inited_);
+  int err = SHA256_Update(&impl_->ctx_, data.ubegin(), data.size());
   LOG_IF(FATAL, err != 1);
 }
 
-void sha256_final(Sha256State *state, MutableSlice output, bool destroy) {
+void Sha256State::extract(MutableSlice output, bool destroy) {
   CHECK(output.size() >= 32);
-  CHECK(state->impl);
-  CHECK(state->is_inited);
-  int err = SHA256_Final(output.ubegin(), &state->impl->ctx);
+  CHECK(impl_);
+  CHECK(is_inited_);
+  int err = SHA256_Final(output.ubegin(), &impl_->ctx_);
   LOG_IF(FATAL, err != 1);
-  state->is_inited = false;
+  is_inited_ = false;
   if (destroy) {
-    state->impl.reset();
+    impl_.reset();
   }
 }
 

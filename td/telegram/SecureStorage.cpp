@@ -300,7 +300,7 @@ Result<ValueHash> Decryptor::finish() {
   }
 
   UInt256 res;
-  sha256_state_.extract(as_slice(res));
+  sha256_state_.extract(as_slice(res), true);
   return ValueHash{res};
 }
 

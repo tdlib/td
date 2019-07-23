@@ -69,14 +69,8 @@ string sha256(Slice data) TD_WARN_UNUSED_RESULT;
 
 string sha512(Slice data) TD_WARN_UNUSED_RESULT;
 
-struct Sha256StateImpl;
-
-struct Sha256State;
-void sha256_init(Sha256State *state);
-void sha256_update(Slice data, Sha256State *state);
-void sha256_final(Sha256State *state, MutableSlice output, bool destroy = true);
-
-struct Sha256State {
+class Sha256State {
+ public:
   Sha256State();
   Sha256State(const Sha256State &other) = delete;
   Sha256State &operator=(const Sha256State &other) = delete;
@@ -84,18 +78,16 @@ struct Sha256State {
   Sha256State &operator=(Sha256State &&other);
   ~Sha256State();
 
-  void init() {
-    sha256_init(this);
-  }
-  void feed(Slice data) {
-    sha256_update(data, this);
-  }
-  void extract(MutableSlice dest) {
-    sha256_final(this, dest, false);
-  }
+  void init();
 
-  unique_ptr<Sha256StateImpl> impl;
-  bool is_inited = false;
+  void feed(Slice data);
+
+  void extract(MutableSlice dest, bool destroy = false);
+
+ private:
+  class Impl;
+  unique_ptr<Impl> impl_;
+  bool is_inited_ = false;
 };
 
 void md5(Slice input, MutableSlice output);
