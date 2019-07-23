@@ -3704,10 +3704,10 @@ class CliClient final : public Actor {
     }
   }
 
-  bool inited_ = false;
+  bool is_inited_ = false;
   void loop() override {
-    if (!inited_) {
-      inited_ = true;
+    if (!is_inited_) {
+      is_inited_ = true;
       init();
     }
     stdin_.flush_read().ensure();
