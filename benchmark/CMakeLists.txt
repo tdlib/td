@@ -40,6 +40,9 @@ target_link_libraries(bench_tddb PRIVATE tdcore tddb tdutils)
 add_executable(bench_misc bench_misc.cpp)
 target_link_libraries(bench_misc PRIVATE tdcore tdutils)
 
+add_executable(check_proxy check_proxy.cpp)
+target_link_libraries(check_proxy PRIVATE tdclient tdcore)
+
 add_executable(check_tls check_tls.cpp)
 target_link_libraries(check_tls PRIVATE tdutils)
 
