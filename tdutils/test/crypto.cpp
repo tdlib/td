@@ -72,10 +72,12 @@ TEST(Crypto, Sha256State) {
 
     td::Sha256State state;
     state.init();
+    td::Sha256State state2 = std::move(state);
     auto v = td::rand_split(s);
     for (auto &x : v) {
-      state.feed(x);
+      state2.feed(x);
     }
+    state = std::move(state2);
     td::UInt256 result;
     state.extract(as_slice(result));
     ASSERT_TRUE(baseline == result);

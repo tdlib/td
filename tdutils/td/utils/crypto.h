@@ -78,9 +78,12 @@ void sha256_final(Sha256State *state, MutableSlice output, bool destroy = true);
 
 struct Sha256State {
   Sha256State();
-  Sha256State(Sha256State &&from);
-  Sha256State &operator=(Sha256State &&from);
+  Sha256State(const Sha256State &other) = delete;
+  Sha256State &operator=(const Sha256State &other) = delete;
+  Sha256State(Sha256State &&other);
+  Sha256State &operator=(Sha256State &&other);
   ~Sha256State();
+
   void init() {
     sha256_init(this);
   }
@@ -90,7 +93,9 @@ struct Sha256State {
   void extract(MutableSlice dest) {
     sha256_final(this, dest, false);
   }
+
   unique_ptr<Sha256StateImpl> impl;
+  bool is_inited = false;
 };
 
 void md5(Slice input, MutableSlice output);

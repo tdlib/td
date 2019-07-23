@@ -382,20 +382,42 @@ struct Sha256StateImpl {
 };
 
 Sha256State::Sha256State() = default;
-Sha256State::Sha256State(Sha256State &&from) = default;
-Sha256State &Sha256State::operator=(Sha256State &&from) = default;
-Sha256State::~Sha256State() = default;
+
+Sha256State::Sha256State(Sha256State &&other) {
+  impl = std::move(other.impl);
+  is_inited = other.is_inited;
+  other.is_inited = false;
+}
+
+Sha256State &Sha256State::operator=(Sha256State &&other) {
+  Sha256State copy(std::move(other));
+  using std::swap;
+  swap(impl, copy.impl);
+  swap(is_inited, copy.is_inited);
+  return *this;
+}
+
+Sha256State::~Sha256State() {
+  if (is_inited) {
+    char result[32];
+    extract(MutableSlice{result, 32});
+    CHECK(!is_inited);
+  }
+}
 
 void sha256_init(Sha256State *state) {
   if (!state->impl) {
     state->impl = make_unique<Sha256StateImpl>();
   }
+  CHECK(!state->is_inited);
   int err = SHA256_Init(&state->impl->ctx);
   LOG_IF(FATAL, err != 1);
+  state->is_inited = true;
 }
 
 void sha256_update(Slice data, Sha256State *state) {
   CHECK(state->impl);
+  CHECK(state->is_inited);
   int err = SHA256_Update(&state->impl->ctx, data.ubegin(), data.size());
   LOG_IF(FATAL, err != 1);
 }
@@ -403,8 +425,10 @@ void sha256_update(Slice data, Sha256State *state) {
 void sha256_final(Sha256State *state, MutableSlice output, bool destroy) {
   CHECK(output.size() >= 32);
   CHECK(state->impl);
+  CHECK(state->is_inited);
   int err = SHA256_Final(output.ubegin(), &state->impl->ctx);
   LOG_IF(FATAL, err != 1);
+  state->is_inited = false;
   if (destroy) {
     state->impl.reset();
   }
