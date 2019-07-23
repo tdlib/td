@@ -178,10 +178,10 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   auto fix_key = [&](UInt256 &key) {
     if (!proxy_secret.empty()) {
       Sha256State state;
-      sha256_init(&state);
-      sha256_update(as_slice(key), &state);
-      sha256_update(proxy_secret, &state);
-      sha256_final(&state, as_slice(key));
+      state.init();
+      state.feed(as_slice(key));
+      state.feed(proxy_secret);
+      state.extract(as_slice(key));
     }
   };
   fix_key(key);

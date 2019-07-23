@@ -144,13 +144,13 @@ size_t Transport::calc_crypto_size(size_t data_size) {
 std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt) {
   // msg_key_large = SHA256 (substr (auth_key, 88+x, 32) + plaintext + random_padding);
   Sha256State state;
-  sha256_init(&state);
-  sha256_update(Slice(auth_key.key()).substr(88 + X, 32), &state);
-  sha256_update(to_encrypt, &state);
+  state.init();
+  state.feed(Slice(auth_key.key()).substr(88 + X, 32));
+  state.feed(to_encrypt);
 
   uint8 msg_key_large_raw[32];
   MutableSlice msg_key_large(msg_key_large_raw, sizeof(msg_key_large_raw));
-  sha256_final(&state, msg_key_large);
+  state.extract(msg_key_large);
 
   // msg_key = substr (msg_key_large, 8, 16);
   UInt128 res;

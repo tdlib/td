@@ -71,13 +71,13 @@ TEST(Crypto, Sha256State) {
     td::sha256(s, as_slice(baseline));
 
     td::Sha256State state;
-    td::sha256_init(&state);
+    state.init();
     auto v = td::rand_split(s);
     for (auto &x : v) {
-      td::sha256_update(x, &state);
+      state.feed(x);
     }
     td::UInt256 result;
-    td::sha256_final(&state, as_slice(result));
+    state.extract(as_slice(result));
     ASSERT_TRUE(baseline == result);
   }
 }

@@ -63,13 +63,13 @@ static Status data_view_for_each(const DataView &data, F &&f) {
 
 Result<ValueHash> calc_value_hash(const DataView &data_view) {
   Sha256State state;
-  sha256_init(&state);
+  state.init();
   TRY_STATUS(data_view_for_each(data_view, [&state](BufferSlice bytes) {
-    sha256_update(bytes.as_slice(), &state);
+    state.feed(bytes.as_slice());
     return Status::OK();
   }));
   UInt256 res;
-  sha256_final(&state, as_slice(res));
+  state.extract(as_slice(res));
   return ValueHash{res};
 }
 
@@ -267,7 +267,7 @@ EncryptedSecret::EncryptedSecret(UInt256 encrypted_secret) : encrypted_secret_(e
 }
 
 Decryptor::Decryptor(AesCbcState aes_cbc_state) : aes_cbc_state_(std::move(aes_cbc_state)) {
-  sha256_init(&sha256_state_);
+  sha256_state_.init();
 }
 
 Result<BufferSlice> Decryptor::append(BufferSlice data) {
@@ -278,7 +278,7 @@ Result<BufferSlice> Decryptor::append(BufferSlice data) {
     return Status::Error("Part size should be divisible by 16");
   }
   aes_cbc_state_.decrypt(data.as_slice(), data.as_slice());
-  sha256_update(data.as_slice(), &sha256_state_);
+  sha256_state_.feed(data.as_slice());
   if (!skipped_prefix_) {
     to_skip_ = data.as_slice().ubegin()[0];
     size_t to_skip = min(to_skip_, data.size());
@@ -298,8 +298,9 @@ Result<ValueHash> Decryptor::finish() {
   if (to_skip_ < 32) {
     return Status::Error("Too small random prefix");
   }
+
   UInt256 res;
-  sha256_final(&sha256_state_, as_slice(res));
+  sha256_state_.extract(as_slice(res));
   return ValueHash{res};
 }
 

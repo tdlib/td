@@ -42,7 +42,7 @@ Status FileHashUploader::init() {
     return Status::Error("size mismatch");
   }
   fd_ = BufferedFd<FileFd>(std::move(fd));
-  sha256_init(&sha256_state_);
+  sha256_state_.init();
 
   resource_state_.set_unit_size(1024);
   resource_state_.update_estimated_limit(size_);
@@ -69,7 +69,7 @@ Status FileHashUploader::loop_impl() {
   if (state_ == State::NetRequest) {
     // messages.getDocumentByHash#338e2464 sha256:bytes size:int mime_type:string = Document;
     auto hash = BufferSlice(32);
-    sha256_final(&sha256_state_, hash.as_slice());
+    sha256_state_.extract(hash.as_slice());
     auto mime_type = MimeType::from_extension(PathView(local_.path_).extension(), "image/gif");
     auto query =
         telegram_api::messages_getDocumentByHash(std::move(hash), static_cast<int32>(size_), std::move(mime_type));
@@ -101,7 +101,7 @@ Status FileHashUploader::loop_sha() {
     if (ready.empty()) {
       break;
     }
-    sha256_update(ready, &sha256_state_);
+    sha256_state_.feed(ready);
     fd_.input_buffer().confirm_read(ready.size());
   }
   resource_state_.stop_use(limit);
