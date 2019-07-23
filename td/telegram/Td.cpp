@@ -3864,6 +3864,11 @@ void Td::start_up() {
     LOG_IF(FATAL, symbol != c) << "TDLib requires little-endian platform";
   }
 
+  VLOG(td_init) << "Create Global";
+  set_context(std::make_shared<Global>());
+  inc_request_actor_refcnt();  // guard
+  inc_actor_refcnt();          // guard
+
   alarm_timeout_.set_callback(on_alarm_timeout_callback);
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -3893,6 +3898,7 @@ void Td::hangup_shared() {
 }
 
 void Td::hangup() {
+  LOG(INFO) << "Receive Td::hangup";
   close();
   dec_stop_cnt();
 }
@@ -4136,25 +4142,25 @@ void Td::close_impl(bool destroy_flag) {
   if (close_flag_) {
     return;
   }
-  if (state_ == State::WaitParameters) {
+
+  LOG(WARNING) << (destroy_flag ? "Destroy" : "Close") << " Td in state " << static_cast<int32>(state_);
+  if (state_ == State::WaitParameters || state_ == State::Decrypt) {
     clear_requests();
-    state_ = State::Close;
-    return on_closed();
-  }
-  if (state_ == State::Decrypt) {
-    clear_requests();
-    if (destroy_flag) {
+    if (destroy_flag && state_ == State::Decrypt) {
       TdDb::destroy(parameters_).ignore();
     }
     state_ = State::Close;
     close_flag_ = 4;
-    return dec_actor_refcnt();
+    G()->set_close_flag();
+
+    request_actors_.clear();
+    return send_closure_later(actor_id(this), &Td::dec_request_actor_refcnt);  // remove guard
   }
+
   state_ = State::Close;
   close_flag_ = 1;
   G()->set_close_flag();
   send_closure(auth_manager_actor_, &AuthManager::on_closing, destroy_flag);
-  LOG(WARNING) << "Close " << tag("destroy", destroy_flag);
 
   // wait till all request_actors will stop.
   request_actors_.clear();
@@ -4780,11 +4786,6 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   VLOG(td_init) << "Check binlog encryption...";
   TRY_RESULT(encryption_info, TdDb::check_encryption(parameters_));
   is_database_encrypted_ = encryption_info.is_encrypted;
-
-  VLOG(td_init) << "Create Global";
-  set_context(std::make_shared<Global>());
-  inc_request_actor_refcnt();  // guard
-  inc_actor_refcnt();          // guard
 
   VLOG(td_init) << "Create MtprotoHeader::Options";
   options_.api_id = parameters->api_id_;
