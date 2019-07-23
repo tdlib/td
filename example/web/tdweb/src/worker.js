@@ -144,7 +144,7 @@ async function loadTdlib(mode, onFS) {
     if (mode === 'wasm') {
       log.error('WebAssembly is not supported, trying to use it anyway');
     } else {
-      log.warning('WebAssembly is not supported, trying to use asm.js');
+      log.warn('WebAssembly is not supported, trying to use asm.js');
       mode = 'asmjs';
     }
   }
