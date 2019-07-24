@@ -171,7 +171,7 @@ Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, 
 static Slice get_file_base_dir(const FileDirType &file_dir_type) {
   switch (file_dir_type) {
     case FileDirType::Secure:
-      return G()->get_dir();
+      return G()->get_secure_files_dir();
     case FileDirType::Common:
       return G()->get_files_dir();
     default:

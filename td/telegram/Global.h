@@ -86,6 +86,12 @@ class Global : public ActorContext {
   Slice get_dir() const {
     return parameters_.database_directory;
   }
+  Slice get_secure_files_dir() const {
+    if (store_all_files_in_files_directory_) {
+      return get_files_dir();
+    }
+    return get_dir();
+  }
   Slice get_files_dir() const {
     return parameters_.files_directory;
   }
@@ -357,6 +363,10 @@ class Global : public ActorContext {
 
   void add_location_access_hash(double latitude, double longitude, int64 access_hash);
 
+  void set_store_all_files_in_files_directory(bool flag) {
+    store_all_files_in_files_directory_ = flag;
+  }
+
  private:
   std::shared_ptr<DhConfig> dh_config_;
 
@@ -390,6 +400,7 @@ class Global : public ActorContext {
   int32 gc_scheduler_id_;
   int32 slow_net_scheduler_id_;
 
+  std::atomic<bool> store_all_files_in_files_directory_{false};
   std::atomic<double> server_time_difference_{0.0};
   std::atomic<bool> server_time_difference_was_updated_{false};
   std::atomic<double> dns_time_difference_{0.0};

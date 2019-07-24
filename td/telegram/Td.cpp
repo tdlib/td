@@ -6957,6 +6957,11 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (set_integer_option("storage_immunity_delay")) {
         return;
       }
+      if (set_boolean_option("store_all_files_in_files_directory")) {
+        bool value = static_cast<const td_api::optionValueBoolean *>(request.value_.get())->value_;
+        G()->set_store_all_files_in_files_directory(value);
+        return;
+      }
       break;
     case 'X':
     case 'x': {

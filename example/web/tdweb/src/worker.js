@@ -198,11 +198,25 @@ class InboundFileSystem {
     const start = performance.now();
     try {
       const ifs = new InboundFileSystem();
+      ifs.pending = [];
+      ifs.pendingHasTimeout = false;
+      ifs.persistCount = 0;
+      ifs.persistSize = 0;
+      ifs.pendingI = 0;
+      ifs.inPersist = false;
+      ifs.totalCount = 0;
+
       ifs.root = root;
 
-      ifs.store = localforage.createInstance({
-        name: dbName,
-        driver: localForageDrivers
+      //ifs.store = localforage.createInstance({
+      //name: dbName,
+      //driver: localForageDrivers
+      //});
+      log.debug('IDB name: ' + dbName);
+      ifs.idb = new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
 
       ifs.load_pids();
@@ -221,7 +235,18 @@ class InboundFileSystem {
   async load_pids() {
     const keys_start = performance.now();
     log.debug('InboundFileSystem::create::keys start');
-    const keys = await this.store.keys();
+    //const keys = await this.store.keys();
+
+    let idb = await this.idb;
+    let read = idb
+      .transaction(['keyvaluepairs'], 'readonly')
+      .objectStore('keyvaluepairs');
+    const keys = await new Promise((resolve, reject) => {
+      const request = read.getAllKeys();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
     const keys_time = (performance.now() - keys_start) / 1000;
     log.debug(
       'InboundFileSystem::create::keys ' + keys_time + ' ' + keys.length
@@ -243,9 +268,18 @@ class InboundFileSystem {
     }
   }
 
-  async persist(pid, path, arr) {
+  async doPersist(pid, path, arr, resolve, reject, write) {
+    this.persistCount++;
+    let size = arr.length;
+    this.persistSize += size;
     try {
-      await this.store.setItem(pid, new Blob([arr]));
+      //log.debug('persist.do start', pid, path, arr.length);
+      //await this.store.setItem(pid, new Blob([arr]));
+      await new Promise((resolve, reject) => {
+        const request = write.put(new Blob([arr]), pid);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
       if (this.pids) {
         this.pids.add(pid);
       }
@@ -253,12 +287,90 @@ class InboundFileSystem {
     } catch (e) {
       log.error('Failed persist ' + path + ' ', e);
     }
+    //log.debug('persist.do finish', pid, path, arr.length);
+    this.persistCount--;
+    this.persistSize -= size;
+    resolve();
+
+    this.tryFinishPersist();
   }
+
+  async flushPersist() {
+    if (this.inPersist) {
+      return;
+    }
+    log.debug('persist.flush');
+    this.inPersist = true;
+    let idb = await this.idb;
+    this.writeBegin = performance.now();
+    let write = idb
+      .transaction(['keyvaluepairs'], 'readwrite')
+      .objectStore('keyvaluepairs');
+    while (
+      this.pendingI < this.pending.length &&
+      this.persistCount < 20 &&
+      this.persistSize < 50 << 20
+    ) {
+      var q = this.pending[this.pendingI];
+      this.pending[this.pendingI] = null;
+      // TODO: add to transaction
+      this.doPersist(q.pid, q.path, q.arr, q.resolve, q.reject, write);
+      this.pendingI++;
+      this.totalCount++;
+    }
+    log.debug(
+      'persist.flush transaction cnt=' +
+        this.persistCount +
+        ', size=' +
+        this.persistSize
+    );
+    this.inPersist = false;
+    this.tryFinishPersist();
+  }
+
+  async tryFinishPersist() {
+    if (this.inPersist) {
+      return;
+    }
+    if (this.persistCount !== 0) {
+      return;
+    }
+    log.debug('persist.finish ' + (performance.now() - this.writeBegin) / 1000);
+    if (this.pendingI === this.pending.length) {
+      this.pending = [];
+      this.pendingHasTimeout = false;
+      this.pendingI = 0;
+      log.debug('persist.finish done');
+      return;
+    }
+    log.debug('persist.finish continue');
+    this.flushPersist();
+  }
+
+  async persist(pid, path, arr) {
+    if (!this.pendingHasTimeout) {
+      this.pendingHasTimeout = true;
+      log.debug('persist set timeout');
+      setTimeout(() => {
+        this.flushPersist();
+      }, 1);
+    }
+    await new Promise((resolve, reject) => {
+      this.pending.push({
+        pid: pid,
+        path: path,
+        arr: arr,
+        resolve: resolve,
+        reject: reject
+      });
+    });
+  }
+
   async unlink(pid) {
     log.debug('Unlink ' + pid);
     try {
       this.forget(pid);
-      await this.store.removeItem(pid);
+      //await this.store.removeItem(pid);
     } catch (e) {
       log.error('Failed unlink ' + pid + ' ', e);
     }
@@ -551,6 +663,14 @@ class TdClient {
     this.client = this.td_functions.td_create();
 
     this.savingFiles = new Map();
+    this.send({
+      '@type': 'setOption',
+      name: 'store_all_files_in_files_directory',
+      value: {
+        '@type': 'optionValueBoolean',
+        value: true
+      }
+    });
     this.send({
       '@type': 'setOption',
       name: 'language_pack_database_path',
