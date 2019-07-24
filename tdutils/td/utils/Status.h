@@ -36,9 +36,14 @@
     }                                                 \
   }
 
-#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
+#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
+
+#define TRY_RESULT_ASSIGN(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
 
 #define TRY_RESULT_PREFIX(name, result, prefix) \
+  TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result, prefix)
+
+#define TRY_RESULT_PREFIX_ASSIGN(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
 
 #define TRY_RESULT_IMPL(r_name, name, result) \
@@ -46,14 +51,14 @@
   if (r_name.is_error()) {                    \
     return r_name.move_as_error();            \
   }                                           \
-  auto name = r_name.move_as_ok();
+  name = r_name.move_as_ok();
 
 #define TRY_RESULT_PREFIX_IMPL(r_name, name, result, prefix) \
   auto r_name = (result);                                    \
   if (r_name.is_error()) {                                   \
     return r_name.move_as_error_prefix(prefix);              \
   }                                                          \
-  auto name = r_name.move_as_ok();
+  name = r_name.move_as_ok();
 
 #define LOG_STATUS(status)                      \
   {                                             \
