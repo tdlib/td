@@ -116,7 +116,7 @@ class FileReferenceManager : public Actor {
   };
   struct FileSourceBackground {
     BackgroundId background_id;
-    int64 access_hash = 0;
+    int64 access_hash;
   };
 
   // append only
