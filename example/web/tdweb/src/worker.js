@@ -217,11 +217,15 @@ class InboundFileSystem {
         const request = indexedDB.open(dbName);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore('keyvaluepairs');
+        };
       });
 
       ifs.load_pids();
 
       const FS = await FS_promise;
+      await ifs.idb;
       ifs.FS = FS;
       ifs.FS.mkdir(root);
       const create_time = (performance.now() - start) / 1000;
@@ -371,6 +375,15 @@ class InboundFileSystem {
     try {
       this.forget(pid);
       //await this.store.removeItem(pid);
+      let idb = await this.idb;
+      await new Promise((resolve, reject) => {
+        let write = idb
+          .transaction(['keyvaluepairs'], 'readwrite')
+          .objectStore('keyvaluepairs');
+        const request = write.delete(pid);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
     } catch (e) {
       log.error('Failed unlink ' + pid + ' ', e);
     }

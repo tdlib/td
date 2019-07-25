@@ -442,7 +442,7 @@ class FileManager {
 
   init() {
     this.idb = new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(this.instanceName);
+      const request = window.indexedDB.open(this.instanceName, 1);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -490,10 +490,10 @@ class FileManager {
     }
     if (file.arr) {
       const now = Date.now();
-      while (this.totalSize > 10000000) {
+      while (this.totalSize > 100000000) {
         const node = this.lru.getLru();
-        // immunity for 5 seconds
-        if (node.usedAt + 5 * 1000 > now) {
+        // immunity for 60 seconds
+        if (node.usedAt + 60 * 1000 > now) {
           break;
         }
         const lru_info = this.cache.get(node.value);
@@ -545,7 +545,7 @@ class FileManager {
           query.reject();
         }
       };
-      request.onerror = query.reject;
+      request.onerror = () => query.reject(request.error);
     }
   }
 
