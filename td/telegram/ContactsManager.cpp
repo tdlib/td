@@ -2410,6 +2410,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool is_restricted = !restriction_reason.empty();
   bool has_language_code = !language_code.empty();
   bool have_access_hash = access_hash != -1;
+  bool has_cache_version = cache_version != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -2428,6 +2429,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_support);
   STORE_FLAG(is_min_access_hash);
   STORE_FLAG(is_scam);
+  STORE_FLAG(has_cache_version);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -2458,6 +2460,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_language_code) {
     store(language_code, storer);
   }
+  if (has_cache_version) {
+    store(cache_version, storer);
+  }
 }
 
 template <class ParserT>
@@ -2469,6 +2474,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool is_restricted;
   bool has_language_code;
   bool have_access_hash;
+  bool has_cache_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -2487,6 +2493,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_support);
   PARSE_FLAG(is_min_access_hash);
   PARSE_FLAG(is_scam);
+  PARSE_FLAG(has_cache_version);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -2520,6 +2527,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_language_code) {
     parse(language_code, parser);
   }
+  if (has_cache_version) {
+    parse(cache_version, parser);
+  }
   if (first_name.empty() && last_name.empty()) {
     first_name = phone_number;
   }
@@ -2532,6 +2542,7 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   bool use_new_rights = true;
   bool has_default_permissions_version = default_permissions_version != -1;
   bool has_pinned_message_version = pinned_message_version != -1;
+  bool has_cache_version = cache_version != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2544,6 +2555,7 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   STORE_FLAG(use_new_rights);
   STORE_FLAG(has_default_permissions_version);
   STORE_FLAG(has_pinned_message_version);
+  STORE_FLAG(has_cache_version);
   END_STORE_FLAGS();
 
   store(title, storer);
@@ -2562,6 +2574,9 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   if (has_pinned_message_version) {
     store(pinned_message_version, storer);
   }
+  if (has_cache_version) {
+    store(cache_version, storer);
+  }
 }
 
 template <class ParserT>
@@ -2577,6 +2592,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   bool use_new_rights;
   bool has_default_permissions_version;
   bool has_pinned_message_version;
+  bool has_cache_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2589,6 +2605,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   PARSE_FLAG(use_new_rights);
   PARSE_FLAG(has_default_permissions_version);
   PARSE_FLAG(has_pinned_message_version);
+  PARSE_FLAG(has_cache_version);
   END_PARSE_FLAGS();
 
   parse(title, parser);
@@ -2627,6 +2644,9 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   if (has_pinned_message_version) {
     parse(pinned_message_version, parser);
   }
+  if (has_cache_version) {
+    parse(cache_version, parser);
+  }
 }
 
 template <class StorerT>
@@ -2638,6 +2658,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool use_new_rights = true;
   bool has_participant_count = participant_count != 0;
   bool have_default_permissions = true;
+  bool has_cache_version = cache_version != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2655,6 +2676,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(has_participant_count);
   STORE_FLAG(have_default_permissions);
   STORE_FLAG(is_scam);
+  STORE_FLAG(has_cache_version);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -2676,6 +2698,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (is_megagroup) {
     store(default_permissions, storer);
   }
+  if (has_cache_version) {
+    store(cache_version, storer);
+  }
 }
 
 template <class ParserT>
@@ -2693,6 +2718,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool use_new_rights;
   bool has_participant_count;
   bool have_default_permissions;
+  bool has_cache_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2710,6 +2736,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(has_participant_count);
   PARSE_FLAG(have_default_permissions);
   PARSE_FLAG(is_scam);
+  PARSE_FLAG(has_cache_version);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -2749,6 +2776,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
       default_permissions =
           RestrictedRights(true, true, true, true, true, true, true, true, false, anyone_can_invite, false);
     }
+  }
+  if (has_cache_version) {
+    parse(cache_version, parser);
   }
 }
 
@@ -5269,6 +5299,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->need_send_update = true;
   }
 
+  if (u->cache_version != User::CACHE_VERSION && u->is_received) {
+    u->cache_version = User::CACHE_VERSION;
+    u->is_changed = true;
+  }
   update_user(u, user_id);
 }
 
@@ -6305,8 +6339,11 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     save_user(u, user_id, from_binlog);
   }
 
-  if (!u->is_received && u->access_hash != -1 && !u->is_min_access_hash && !u->is_repaired && !G()->close_flag()) {
+  if (u->cache_version != User::CACHE_VERSION && u->access_hash != -1 && !u->is_min_access_hash && !u->is_repaired &&
+      !G()->close_flag()) {
     u->is_repaired = true;
+
+    LOG(INFO) << "Repairing cache of " << user_id;
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
     vector<tl_object_ptr<telegram_api::InputUser>> users;
@@ -6355,6 +6392,12 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 
   if (!from_database) {
     save_chat(c, chat_id, from_binlog);
+  }
+
+  if (c->cache_version != Chat::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
+    c->is_repaired = true;
+    LOG(INFO) << "Repairing cache of " << chat_id;
+    td_->create_handler<GetChatsQuery>(Promise<Unit>())->send(vector<int32>{chat_id.get()});
   }
 }
 
@@ -6441,6 +6484,14 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   }
   c->had_read_access = have_read_access;
   c->was_member = is_member;
+
+  if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
+    c->is_repaired = true;
+    LOG(INFO) << "Repairing cache of " << channel_id;
+    auto input_channel = get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    td_->create_handler<GetChannelsQuery>(Promise<Unit>())->send(std::move(input_channel));
+  }
 }
 
 void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog,
@@ -10084,6 +10135,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
   LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated in " << debug_str;
+  if (c->cache_version != Chat::CACHE_VERSION) {
+    c->cache_version = Chat::CACHE_VERSION;
+    c->is_changed = true;
+  }
   update_chat(c, chat_id);
 }
 
@@ -10109,6 +10164,10 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
     on_update_chat_migrated_to_channel_id(c, chat_id, ChannelId());
   } else {
     // leave active and migrated to as is
+  }
+  if (c->cache_version != Chat::CACHE_VERSION) {
+    c->cache_version = Chat::CACHE_VERSION;
+    c->is_changed = true;
   }
   update_chat(c, chat_id);
 }
@@ -10237,6 +10296,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     invalidate_channel_full(channel_id, false);
   }
 
+  if (c->cache_version != Channel::CACHE_VERSION) {
+    c->cache_version = Channel::CACHE_VERSION;
+    c->is_changed = true;
+  }
   update_channel(c, channel_id);
 }
 
@@ -10311,6 +10374,10 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     invalidate_channel_full(channel_id, false);
   }
 
+  if (c->cache_version != Channel::CACHE_VERSION) {
+    c->cache_version = Channel::CACHE_VERSION;
+    c->is_changed = true;
+  }
   update_channel(c, channel_id);
 }
 

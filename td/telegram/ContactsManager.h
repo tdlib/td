@@ -493,6 +493,9 @@ class ContactsManager : public Actor {
 
     std::unordered_map<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
 
+    static constexpr uint32 CACHE_VERSION = 1;
+    uint32 cache_version = 0;
+
     bool is_min_access_hash = false;
     bool is_received = false;
     bool is_verified = false;
@@ -506,7 +509,8 @@ class ContactsManager : public Actor {
     bool is_scam = false;
 
     bool is_photo_inited = false;
-    bool is_repaired = false;
+
+    bool is_repaired = false;  // whether cached value is rechecked
 
     bool is_name_changed = true;
     bool is_username_changed = true;
@@ -584,6 +588,9 @@ class ContactsManager : public Actor {
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
 
+    static constexpr uint32 CACHE_VERSION = 1;
+    uint32 cache_version = 0;
+
     bool is_active = false;
 
     bool is_title_changed = true;
@@ -591,6 +598,8 @@ class ContactsManager : public Actor {
     bool is_default_permissions_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
+
+    bool is_repaired = false;  // whether cached value is rechecked
 
     bool is_saved = false;        // is current chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current chat being saved to the database
@@ -627,6 +636,9 @@ class ContactsManager : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
+    static constexpr uint32 CACHE_VERSION = 1;
+    uint32 cache_version = 0;
+
     bool sign_messages = false;
 
     bool is_megagroup = false;
@@ -642,6 +654,8 @@ class ContactsManager : public Actor {
     bool was_member = false;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
+
+    bool is_repaired = false;  // whether cached value is rechecked
 
     bool is_saved = false;        // is current channel version being saved/is saved to the database
     bool is_being_saved = false;  // is current channel being saved to the database
