@@ -2176,6 +2176,16 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
 
+    auto prefer_animated = [this](FileId lhs, FileId rhs) {
+      const Sticker *lhs_s = get_sticker(lhs);
+      const Sticker *rhs_s = get_sticker(rhs);
+      return lhs_s->is_animated && !rhs_s->is_animated;
+    };
+    std::stable_sort(prepend_sticker_ids.begin(), prepend_sticker_ids.begin() + recent_sticker_ids_[0].size(),
+                     prefer_animated);
+    std::stable_sort(prepend_sticker_ids.begin() + recent_sticker_ids_[0].size(), prepend_sticker_ids.end(),
+                     prefer_animated);
+
     LOG(INFO) << "Have " << recent_sticker_ids_[0] << " recent and " << favorite_sticker_ids_ << " favorite stickers";
     for (const auto &sticker_id : prepend_sticker_ids) {
       const Sticker *s = get_sticker(sticker_id);
@@ -2223,22 +2233,25 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
   } else {
-    vector<int64> examined_sticker_set_ids;  // = featured_sticker_set_ids_;
+    vector<const StickerSet *> examined_sticker_sets;
     for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
-      if (std::find(examined_sticker_set_ids.begin(), examined_sticker_set_ids.end(), sticker_set_id) ==
-          examined_sticker_set_ids.end()) {
-        examined_sticker_set_ids.push_back(sticker_set_id);
-      }
-    }
-    for (const auto &sticker_set_id : examined_sticker_set_ids) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
       if (sticker_set == nullptr || !sticker_set->was_loaded) {
         continue;
       }
 
+      if (std::find(examined_sticker_sets.begin(), examined_sticker_sets.end(), sticker_set) ==
+          examined_sticker_sets.end()) {
+        examined_sticker_sets.push_back(sticker_set);
+      }
+    }
+    std::stable_sort(
+        examined_sticker_sets.begin(), examined_sticker_sets.end(),
+        [](const StickerSet *lhs, const StickerSet *rhs) { return lhs->is_animated && !rhs->is_animated; });
+    for (auto sticker_set : examined_sticker_sets) {
       auto it = sticker_set->emoji_stickers_map_.find(emoji);
       if (it != sticker_set->emoji_stickers_map_.end()) {
-        LOG(INFO) << "Add " << it->second << " stickers from set " << sticker_set_id;
+        LOG(INFO) << "Add " << it->second << " stickers from set " << sticker_set->id;
         append(result, it->second);
       }
     }
