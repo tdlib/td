@@ -6,6 +6,7 @@
 //
 #include "td/utils/crypto.h"
 
+#include "td/utils/as.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -35,7 +36,6 @@
 #endif
 
 #include <algorithm>
-#include <cstring>
 #include <mutex>
 #include <utility>
 
@@ -143,20 +143,16 @@ void init_crypto() {
 
 template <class FromT>
 static string as_big_endian_string(const FromT &from) {
-  size_t size = sizeof(from);
-  string res(size, '\0');
+  char res[sizeof(FromT)];
+  as<FromT>(res) = from;
 
-  auto ptr = reinterpret_cast<const unsigned char *>(&from);
-  std::memcpy(&res[0], ptr, size);
-
-  size_t i = size;
+  size_t i = sizeof(FromT);
   while (i && res[i - 1] == 0) {
     i--;
   }
 
-  res.resize(i);
-  std::reverse(res.begin(), res.end());
-  return res;
+  std::reverse(res, res + i);
+  return string(res, res + i);
 }
 
 static int pq_factorize_big(Slice pq_str, string *p_str, string *q_str) {

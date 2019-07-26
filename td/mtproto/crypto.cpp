@@ -23,8 +23,6 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 
-#include <cstring>
-
 namespace td {
 
 /*** RSA ***/
@@ -113,8 +111,7 @@ size_t RSA::encrypt(unsigned char *from, size_t from_len, unsigned char *to) con
   while (chunks-- > 0) {
     BigNum x = BigNum::from_binary(Slice(from, 255));
     BigNum::mod_exp(y, x, e_, n_, ctx);
-    string result = y.to_binary(256);
-    std::memcpy(to, result.c_str(), 256);
+    MutableSlice(to, 256).copy_from(y.to_binary(256));
     to += 256;
   }
   return chunks * 256;
@@ -126,8 +123,7 @@ void RSA::decrypt(Slice from, MutableSlice to) const {
   BigNum x = BigNum::from_binary(from);
   BigNum y;
   BigNum::mod_exp(y, x, e_, n_, ctx);
-  string result = y.to_binary(256);
-  std::memcpy(to.data(), result.c_str(), 256);
+  to.copy_from(y.to_binary(256));
 }
 
 }  // namespace td

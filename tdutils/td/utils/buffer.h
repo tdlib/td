@@ -13,7 +13,6 @@
 #include "td/utils/Slice.h"
 
 #include <atomic>
-#include <cstring>
 #include <limits>
 #include <memory>
 
@@ -120,7 +119,7 @@ class BufferSlice {
   }
 
   explicit BufferSlice(Slice slice) : BufferSlice(slice.size()) {
-    std::memcpy(as_slice().begin(), slice.begin(), slice.size());
+    as_slice().copy_from(slice);
   }
 
   BufferSlice(const char *ptr, size_t size) : BufferSlice(Slice(ptr, size)) {
@@ -510,7 +509,7 @@ class ChainBufferIterator {
       // copy to dest if possible
       auto to_dest_size = min(ready.size(), dest.size());
       if (to_dest_size != 0) {
-        std::memcpy(dest.data(), ready.data(), to_dest_size);
+        dest.copy_from(ready.substr(0, to_dest_size));
         dest.remove_prefix(to_dest_size);
       }
 
@@ -691,7 +690,7 @@ class ChainBufferWriter {
     while (!slice.empty()) {
       auto ready = prepare_append(td::max(slice.size(), hint));
       auto shift = min(ready.size(), slice.size());
-      std::memcpy(ready.data(), slice.data(), shift);
+      ready.copy_from(slice.substr(0, shift));
       confirm_append(shift);
       slice.remove_prefix(shift);
     }

@@ -17,7 +17,6 @@
 
 // TODO: do I need \r\n as delimiter?
 
-#include <cstring>
 #include <tuple>
 
 namespace td {
@@ -73,8 +72,7 @@ void Transport::write(BufferWriter &&message, bool quick_ack) {
   Slice src = r_head.ok();
   // LOG(DEBUG) << src;
   MutableSlice dst = message.prepare_prepend();
-  LOG_CHECK(dst.size() >= src.size()) << dst.size() << " >= " << src.size();
-  std::memcpy(dst.end() - src.size(), src.begin(), src.size());
+  dst.substr(dst.size() - src.size()).copy_from(src);
   message.confirm_prepend(src.size());
   output_->append(message.as_buffer_slice());
   turn_ = Read;
