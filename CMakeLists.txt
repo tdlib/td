@@ -343,6 +343,7 @@ set(TDLIB_SOURCE
   td/mtproto/HandshakeActor.cpp
   td/mtproto/HttpTransport.cpp
   td/mtproto/IStreamTransport.cpp
+  td/mtproto/KDF.cpp
   td/mtproto/Ping.cpp
   td/mtproto/PingConnection.cpp
   td/mtproto/ProxySecret.cpp
@@ -473,6 +474,7 @@ set(TDLIB_SOURCE
   td/mtproto/HandshakeConnection.h
   td/mtproto/HttpTransport.h
   td/mtproto/IStreamTransport.h
+  td/mtproto/KDF.h
   td/mtproto/NoCryptoStorer.h
   td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h

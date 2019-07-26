@@ -7,7 +7,7 @@
 #include "td/mtproto/Transport.h"
 
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/KDF.h"
 
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
