@@ -400,6 +400,7 @@ class DbFileSystem {
       dbfs.FS = FS;
       dbfs.syncfs_total_time = 0;
       dbfs.readOnly = readOnly;
+      dbfs.syncActive = 0;
       FS.mkdir(root);
       FS.mount(FS.filesystems.IDBFS, {}, root);
 
@@ -456,10 +457,15 @@ class DbFileSystem {
       log.error('Failed to init DbFileSystem: ', e);
     }
   }
-  async sync() {
+  async sync(force) {
     if (this.readOnly) {
       return;
     }
+    if (this.syncActive > 0 && !force) {
+      log.debug('SYNC: skip');
+      return;
+    }
+    this.syncActive++;
     const start = performance.now();
     await new Promise((resolve, reject) => {
       this.FS.syncfs(false, () => {
@@ -470,10 +476,11 @@ class DbFileSystem {
         resolve();
       });
     });
+    this.syncActive--;
   }
   async close() {
     clearInterval(this.syncfsInterval);
-    await this.sync();
+    await this.sync(true);
   }
   async destroy() {
     clearInterval(this.syncfsInterval);
