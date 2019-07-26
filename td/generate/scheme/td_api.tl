@@ -1703,8 +1703,8 @@ inputInlineQueryResultLocation id:string location:location live_period:int32 tit
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessagePhoto, InputMessageLocation, InputMessageVenue or InputMessageContact
 inputInlineQueryResultPhoto id:string title:string description:string thumbnail_url:string photo_url:string photo_width:int32 photo_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
-//@description Represents a link to a WEBP sticker @id Unique identifier of the query result @thumbnail_url URL of the sticker thumbnail, if it exists
-//@sticker_url The URL of the WEBP sticker (sticker file size must not exceed 5MB) @sticker_width Width of the sticker @sticker_height Height of the sticker
+//@description Represents a link to a WEBP or a TGS sticker @id Unique identifier of the query result @thumbnail_url URL of the sticker thumbnail, if it exists
+//@sticker_url The URL of the WEBP or a TGS sticker (sticker file size must not exceed 5MB) @sticker_width Width of the sticker @sticker_height Height of the sticker
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, inputMessageSticker, InputMessageLocation, InputMessageVenue or InputMessageContact
 inputInlineQueryResultSticker id:string thumbnail_url:string sticker_url:string sticker_width:int32 sticker_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;

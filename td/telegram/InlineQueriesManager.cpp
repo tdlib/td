@@ -535,7 +535,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         id = std::move(sticker->id_);
         thumbnail_url = std::move(sticker->thumbnail_url_);
         content_url = std::move(sticker->sticker_url_);
-        content_type = "image/webp";
+        content_type = "image/webp";  // or "application/x-tgsticker"; not used for previously uploaded files
         width = sticker->sticker_width_;
         height = sticker->sticker_height_;
         is_gallery = true;
