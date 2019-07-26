@@ -827,7 +827,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
                                      << tag("crc", crc64(encrypted_message.as_slice())));
   }
 
-  // expect that message is encrypted with mtproto 2.0 if his layer is at least MTPROTO_2_LAYER
+  // expect that message is encrypted with mtproto 2.0 if their layer is at least MTPROTO_2_LAYER
   std::array<int, 2> versions{{1, 2}};
   if (config_state_.his_layer >= MTPROTO_2_LAYER) {
     std::swap(versions[0], versions[1]);
@@ -2129,7 +2129,7 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionNoop 
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequestKey &request_key) {
   if (pfs_state_.state == PfsState::WaitRequestResponse || pfs_state_.state == PfsState::SendRequest) {
     if (pfs_state_.exchange_id > request_key.exchange_id_) {
-      LOG(INFO) << "RequestKey: silently abort his request";
+      LOG(INFO) << "RequestKey: silently abort their request";
       return Status::OK();
     } else {
       pfs_state_.state = PfsState::Empty;

@@ -91,7 +91,7 @@ authorizationStateWaitPhoneNumber = AuthorizationState;
 //@description TDLib needs the user's authentication code to authorize @code_info Information about the authorization code that was sent
 authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState;
 
-//@description The user is unregistered and need to accept terms of service and enter his first name and last name to finish registration @terms_of_service Telegram terms of service
+//@description The user is unregistered and need to accept terms of service and enter their first name and last name to finish registration @terms_of_service Telegram terms of service
 authorizationStateWaitRegistration terms_of_service:termsOfService = AuthorizationState;
 
 //@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; may be empty @has_recovery_email_address True, if a recovery email address has been set up
@@ -321,12 +321,12 @@ userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfil
 users total_count:int32 user_ids:vector<int32> = Users;
 
 
-//@description Describes actions permitted to be done by a user in a chat
+//@description Describes actions that a user is allowed to take in a chat
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
 //@can_send_other_messages True, if the user can send animations, games, and stickers and use inline bots. Implies can_send_messages permissions
-//@can_add_web_page_previews True, if the user may add a web page preview to his messages. Implies can_send_messages permissions
+//@can_add_web_page_previews True, if the user may add a web page preview to their messages. Implies can_send_messages permissions
 //@can_change_info True, if the user can change the chat title, photo, and other settings
 //@can_invite_users True, if the user can invite new users to the chat
 //@can_pin_messages True, if the user can pin messages
@@ -347,7 +347,7 @@ chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
 //@can_invite_users True, if the administrator can invite new users to the chat
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
 //@can_pin_messages True, if the administrator can pin messages; applicable to groups only
-//@can_promote_members True, if the administrator can add new administrators with a subset of his own privileges or demote administrators that were directly or indirectly promoted by him
+//@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by him
 chatMemberStatusAdministrator can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat, without any additional privileges or restrictions
@@ -493,7 +493,7 @@ secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int
 //@description The message was originally written by a known user @sender_user_id Identifier of the user that originally sent the message
 messageForwardOriginUser sender_user_id:int32 = MessageForwardOrigin;
 
-//@description The message was originally written by a user, which is hidden by his privacy settings @sender_name Name of the sender
+//@description The message was originally written by a user, which is hidden by their privacy settings @sender_name Name of the sender
 messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 
 //@description The message was originally a post in a channel
@@ -606,7 +606,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@type Type of the chat
 //@title Chat title
 //@photo Chat photo; may be null
-//@permissions Actions permitted for non-administrator chat members
+//@permissions Actions that non-administrator chat member are allowed to take in the chat
 //@last_message Last message in the chat; may be null
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned
@@ -3260,7 +3260,7 @@ setChatTitle chat_id:int53 title:string = Ok;
 setChatPhoto chat_id:int53 photo:InputFile = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
-//@chat_id Chat identifier @permissions New members permissions in the chat
+//@chat_id Chat identifier @permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
@@ -3907,7 +3907,7 @@ answerCustomQuery custom_query_id:int64 data:string = Ok;
 setAlarm seconds:double = Ok;
 
 
-//@description Uses current user IP to found his country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
+//@description Uses current user IP to found their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;
 
 //@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram

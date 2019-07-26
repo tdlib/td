@@ -6409,7 +6409,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
   auto dialog_id = full_message_id.get_dialog_id();
   auto can_send_status = can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
-    // user has left the chat during upload of the file or lost his privileges
+    // user has left the chat during upload of the file or lost their privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
 
     fail_send_message(full_message_id, can_send_status.move_as_error());
@@ -6594,7 +6594,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
   auto dialog_id = full_message_id.get_dialog_id();
   auto can_send_status = can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
-    // user has left the chat during upload of the thumbnail or lost his privileges
+    // user has left the chat during upload of the thumbnail or lost their privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
 
     fail_send_message(full_message_id, can_send_status.move_as_error());
