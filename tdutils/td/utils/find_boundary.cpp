@@ -24,7 +24,7 @@ bool find_boundary(ChainBufferReader range, Slice boundary, size_t &already_read
       auto save_range = range.clone();
       char x[MAX_BOUNDARY_LENGTH + 4];
       range.advance(boundary.size(), {x, sizeof(x)});
-      if (std::memcmp(x, boundary.data(), boundary.size()) == 0) {
+      if (Slice(x, boundary.size()) == boundary) {
         return true;
       }
 

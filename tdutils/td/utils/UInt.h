@@ -48,7 +48,7 @@ struct UInt {
 
 template <size_t size>
 bool operator==(const UInt<size> &a, const UInt<size> &b) {
-  return std::memcmp(a.raw, b.raw, sizeof(a.raw)) == 0;
+  return a.as_slice() == b.as_slice();
 }
 
 template <size_t size>
@@ -84,7 +84,7 @@ MutableSlice as_slice(UInt<size> &value) {
 
 template <size_t size>
 bool operator<(const UInt<size> &a, const UInt<size> &b) {
-  return std::memcmp(a.raw, b.raw, sizeof(a.raw)) < 0;
+  return a.as_slice() < b.as_slice();
 }
 
 using UInt128 = UInt<128>;

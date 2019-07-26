@@ -160,11 +160,11 @@ class Parser {
     return status_;
   }
 
-  bool start_with(Slice prefix) {
-    if (prefix.size() + ptr_ > end_) {
+  bool start_with(Slice prefix) const {
+    if (prefix.size() > static_cast<size_t>(end_ - ptr_)) {
       return false;
     }
-    return std::memcmp(prefix.begin(), ptr_, prefix.size()) == 0;
+    return prefix == Slice(ptr_, prefix.size());
   }
 
   bool skip_start_with(Slice prefix) {
