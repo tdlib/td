@@ -173,7 +173,7 @@ inputFileGenerated original_path:string conversion:string expected_size:int32 = 
 //@description Photo description @type Thumbnail type (see https://core.telegram.org/constructor/photoSize) @photo Information about the photo file @width Photo width @height Photo height
 photoSize type:string photo:file width:int32 height:int32 = PhotoSize;
 
-//@description A very poor quality and low resolution image thumbnail @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail
+//@description A very poor quality and low resolution image thumbnail @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
 minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;
 
 
@@ -606,7 +606,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@type Type of the chat
 //@title Chat title
 //@photo Chat photo; may be null
-//@permissions Actions that non-administrator chat member are allowed to take in the chat
+//@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned

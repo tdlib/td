@@ -65,7 +65,7 @@ Changes in 1.4.0:
   - Added the separate notification scope `notificationSettingsScopeChannelChats` for channel chats.
 * Added support for pinned notifications in basic groups and Saved Messages:
   - Added the field `pinned_message_id` to the class `chat`.
-  - Removed the field `pinned_message_id` from the class `supergroupFullInfo` in favor of `Chat.pinned_message_id`.
+  - Removed the field `pinned_message_id` from the class `supergroupFullInfo` in favor of `chat.pinned_message_id`.
   - Added the update `updateChatPinnedMessage`.
   - The right `can_pin_messages` is now applicable to both basic groups and supergroups.
   - Replaced the method `pinSupergroupMessage` with `pinChatMessage` which can be used for any chat type.
@@ -101,7 +101,7 @@ Changes in 1.4.0:
     `pageBlockTableCell`.
   - Added new block types `pageBlockKicker`, `pageBlockRelatedArticles`, `pageBlockTable`, `pageBlockDetails` and
     `pageBlockMap`.
-  - Added the flag `is_rtl` to `webPageInstantView` object.
+  - Added the flag `is_rtl` to the class `webPageInstantView`.
   - Renamed the field `caption` in classes `pageBlockBlockQuote` and `pageBlockPullQuote` to `credit`.
   - Dimensions in `pageBlockEmbedded` can now be unknown.
   - Added the field `url` to `pageBlockPhoto` which contains a URL that needs to be opened when the photo is clicked.
@@ -139,10 +139,10 @@ Changes in 1.4.0:
 * Added the update `updateChatOnlineMemberCount` which is automatically sent for open group chats if the number of
   online members in a group changes.
 * Added support for custom language packs downloaded from the server:
-  - Added the fields `base_language_pack_id`` to the `languagePackInfo` object. Strings from the base language pack
+  - Added the fields `base_language_pack_id`` to the class `languagePackInfo`. Strings from the base language pack
     must be used for untranslated keys from the chosen language pack.
   - Added the fields `plural_code`, `is_official`, `is_rtl`, `is_beta`, `is_installed`, `total_string_count`,
-    `translated_string_count`, `translation_url` to the `languagePackInfo` object.
+    `translated_string_count`, `translation_url` to the class `languagePackInfo`.
   - Added the method `addCustomServerLanguagePack` which adds a custom server language pack to the list of
     installed language packs.
   - Added the method `getLanguagePackInfo` which can be used for handling `https://t.me/setlanguage/...` links.
@@ -210,7 +210,7 @@ Changes in 1.4.0:
   It can now be used to dynamically discover available methods.
 * Added the ability to delete incoming messages in private chats and revoke messages without a time limit:
   - Added the parameter `revoke` to the method `deleteChatHistory`; use it to delete chat history for all chat members.
-  - Added the fields `can_be_deleted_only_for_self` and `can_be_deleted_for_all_users` to `Chat` object
+  - Added the fields `can_be_deleted_only_for_self` and `can_be_deleted_for_all_users` to the class `chat`
     which can be used to determine for whom the chat can be deleted through the `deleteChatHistory` method.
   - The fields `Message.can_be_deleted_only_for_self` and `Message.can_be_deleted_for_all_users` can still be used
     to determine for whom the message can be deleted through the `deleteMessages` method.
@@ -419,7 +419,7 @@ Changes in 1.2.0:
 * Added new message content type `messageWebsiteConnected`.
 * Added new text entity types `textEntityTypeCashtag` and `textEntityTypePhoneNumber`.
 * Added new update `updateUnreadMessageCount`, enabled when message database is used.
-* Method `joinChatByInviteLink` now returns the joined `Chat`.
+* Method `joinChatByInviteLink` now returns the joined `chat`.
 * Method `getWebPagePreview` now accepts `formattedText` instead of plain `string`.
 * Added field `phone_number` to `authenticationCodeInfo`, which contains a phone number that is being authenticated.
 * Added field `is_secret` to `messageAnimation`, `messagePhoto`, `messageVideo` and `messageVideoNote` classes,
