@@ -2190,6 +2190,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       text = std::move(result);
     }
   }
+  LOG_CHECK(check_utf8(text)) << text;
 
   if (!allow_empty && is_empty_string(text)) {
     return Status::Error(3, "Message must be non-empty");

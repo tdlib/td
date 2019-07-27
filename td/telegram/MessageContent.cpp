@@ -996,6 +996,9 @@ static void parse_caption(FormattedText &caption, ParserT &parser) {
   if (parser.version() >= static_cast<int32>(Version::AddCaptionEntities)) {
     parse(caption.entities, parser);
   } else {
+    if (!check_utf8(caption.text)) {
+      caption.text.clear();
+    }
     caption.entities = find_entities(caption.text, false);
   }
 }
@@ -3323,6 +3326,11 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
 }
 
 static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption) {
+  // message_text was already cleaned
+  if (!clean_input_string(message_caption)) {
+    message_caption.clear();
+  }
+
   FormattedText caption;
   if (message_text.empty()) {
     caption.text = std::move(message_caption);
@@ -3703,18 +3711,12 @@ unique_ptr<MessageContent> get_secret_message_content(
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaPhoto::ID: {
       auto message_photo = move_tl_object_as<secret_api::decryptedMessageMediaPhoto>(media);
-      if (!clean_input_string(message_photo->caption_)) {
-        message_photo->caption_.clear();
-      }
       return make_unique<MessagePhoto>(
           get_encrypted_file_photo(td->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
           get_secret_media_caption(std::move(message_text), std::move(message_photo->caption_)));
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
       auto message_document = move_tl_object_as<secret_api::decryptedMessageMediaDocument>(media);
-      if (!clean_input_string(message_document->caption_)) {
-        message_document->caption_.clear();
-      }
       if (!clean_input_string(message_document->mime_type_)) {
         message_document->mime_type_.clear();
       }
