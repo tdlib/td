@@ -603,7 +603,11 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
     return;
   }
 
-  CHECK(pending_answer.logevent_id_ == 0 || logevent_id == 0);
+  if (pending_answer.logevent_id_ != 0 && logevent_id != 0) {
+    LOG(ERROR) << "Duplicate SetPollAnswer log event: " << pending_answer.logevent_id_ << " and " << logevent_id;
+    binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    return;
+  }
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     SetPollAnswerLogEvent logevent;
     logevent.poll_id_ = poll_id;
