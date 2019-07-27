@@ -1634,9 +1634,8 @@ call id:int32 user_id:int32 is_outgoing:Bool state:CallState = Call;
 //@description Contains settings for the authentication of the user's phone number
 //@allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
-//@app_specific_sms_token For official applications only. A single use app specific 11-character token received from SmsManager.createAppSpecificSmsToken if the app is run on Android >= 26 and the authentication code is allowed to be automatically received from the SMS. If specified, this token is preferred over app_hash_string
-//@app_hash_string For official applications only. An 11-character hash string that identifies the app if the app can use Android SMS Retriever API (requires Google Play Services >= 11.0). See https://developers.google.com/identity/sms-retriever/ for more details
-phoneNumberAuthenticationSettings allow_flash_call:Bool is_current_phone_number:Bool app_specific_sms_token:string app_hash_string:string = PhoneNumberAuthenticationSettings;
+//@allow_sms_retriever_api For official applications only. True, if the app can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
+phoneNumberAuthenticationSettings allow_flash_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool = PhoneNumberAuthenticationSettings;
 
 
 //@description Represents a list of animations @animations List of animations

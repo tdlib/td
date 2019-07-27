@@ -48,14 +48,10 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->is_current_phone_number_) {
       flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
     }
-    if (check_utf8(settings->app_specific_sms_token_) && !settings->app_specific_sms_token_.empty()) {
-      app_hash = settings->app_specific_sms_token_;
-    } else if (check_utf8(settings->app_hash_string_) && !settings->app_hash_string_.empty()) {
+    if (settings->allow_sms_retriever_api_) {
       flags |= telegram_api::codeSettings::APP_HASH_PERSISTENT_MASK;
-      app_hash = settings->app_hash_string_;
-    }
-    if (!app_hash.empty()) {
       flags |= telegram_api::codeSettings::APP_HASH_MASK;
+      app_hash = "ignored1234";
     }
   }
   return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
