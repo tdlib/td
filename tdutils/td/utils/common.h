@@ -33,10 +33,10 @@
     #define _CRT_SECURE_NO_WARNINGS
   #endif
 
-  #include <Winsock2.h>
-  #include <ws2tcpip.h>
+  #include <WinSock2.h>
+  #include <WS2tcpip.h>
 
-  #include <Mswsock.h>
+  #include <MSWSock.h>
   #include <Windows.h>
   #undef ERROR
 #endif
