@@ -137,6 +137,10 @@ void AuthManager::get_state(uint64 query_id) {
 }
 
 void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
+  if (state_ == State::WaitPhoneNumber && net_query_id_ == 0) {
+    // can ignore previous checks
+    was_check_bot_token_ = false; // TODO can we remove was_check_bot_token_ after State::Ok is disallowed?
+  }
   if (state_ != State::WaitPhoneNumber && state_ != State::Ok) {
     // TODO do not allow State::Ok
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationBotToken unexpected"));
