@@ -4580,7 +4580,7 @@ void ContactsManager::export_chat_invite_link(ChatId chat_id, Promise<Unit> &&pr
     return promise.set_error(Status::Error(3, "Chat is deactivated"));
   }
 
-  if (!get_chat_status(c).can_invite_users()) {
+  if (!get_chat_status(c).is_administrator() || !get_chat_status(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
   }
 
@@ -4593,7 +4593,7 @@ void ContactsManager::export_channel_invite_link(ChannelId channel_id, Promise<U
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
 
-  if (!get_channel_status(c).can_invite_users()) {
+  if (!get_channel_status(c).is_administrator() || !get_channel_status(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
   }
 
