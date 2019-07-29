@@ -1568,7 +1568,7 @@ Result<vector<MessageEntity>> parse_html(string &text) {
     }
     if (text[i] == 0) {
       return Status::Error(400,
-                           PSLICE() << "Can't found end tag corresponding to start tag at byte offset " << begin_pos);
+                           PSLICE() << "Can't find end tag corresponding to start tag at byte offset " << begin_pos);
     }
 
     auto end_tag_begin_pos = i++;
