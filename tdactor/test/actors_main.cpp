@@ -465,3 +465,55 @@ TEST(Actors, do_after_stop) {
   }
   sched.finish();
 }
+
+class XContext : public ActorContext {
+ public:
+  void validate() {
+    CHECK(x == 1234);
+  }
+  ~XContext() {
+    x = 0;
+  }
+  int x = 1234;
+};
+class WithContext : public Actor {
+ public:
+  void start_up() override {
+    set_context(std::make_shared<XContext>());
+  }
+  void f(unique_ptr<Guard> guard) {
+  }
+  void close() {
+    stop();
+  }
+
+ private:
+};
+
+void check_context() {
+  auto ptr = static_cast<XContext *>(Scheduler::context());
+  CHECK(ptr);
+  ptr->validate();
+}
+
+TEST(Actors, context_during_destruction) {
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
+
+  ConcurrentScheduler sched;
+  int threads_n = 0;
+  sched.init(threads_n);
+
+  {
+    auto guard = sched.get_main_guard();
+    auto with_context = create_actor<WithContext>("WithContext").release();
+    send_closure(with_context, &WithContext::f, create_lambda_guard([] { check_context(); }));
+    send_closure_later(with_context, &WithContext::close);
+    send_closure(with_context, &WithContext::f, create_lambda_guard([] { check_context(); }));
+    send_closure(with_context, &WithContext::f, create_lambda_guard([] { Scheduler::instance()->finish(); }));
+  }
+  sched.start();
+  while (sched.run_main(10)) {
+    // empty
+  }
+  sched.finish();
+}

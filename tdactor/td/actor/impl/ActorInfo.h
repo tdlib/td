@@ -70,14 +70,13 @@ inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
 inline void ActorInfo::clear() {
   //  LOG_IF(WARNING, !mailbox_.empty()) << "Destroy actor with non-empty mailbox: " << get_name()
   //                                     << format::as_array(mailbox_);
-  mailbox_.clear();
+  CHECK(mailbox_.empty());
+  CHECK(!actor_);
   CHECK(!is_running());
   CHECK(!is_migrating());
   // NB: must be in non migrating state
   // store invalid scheduler id.
   sched_id_.store((1 << 30) - 1, std::memory_order_relaxed);
-  destroy_actor();
-  // Destroy context only after destructor.
   context_.reset();
 }
 
@@ -93,6 +92,7 @@ inline void ActorInfo::destroy_actor() {
       break;
   }
   actor_ = nullptr;
+  mailbox_.clear();
 }
 
 template <class ActorT>

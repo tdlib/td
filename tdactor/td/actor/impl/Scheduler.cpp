@@ -369,6 +369,7 @@ void Scheduler::do_stop_actor(ActorInfo *actor_info) {
     event_context_ptr_->flags = 0;
   } else {
     owner_ptr = actor_info->get_actor_unsafe()->clear();
+    actor_info->destroy_actor();
   }
   destroy_actor(actor_info);
 }

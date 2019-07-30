@@ -33,7 +33,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
 
-#include "test/data.h"
+#include "data.h"
 
 #include <algorithm>
 #include <cstdlib>
