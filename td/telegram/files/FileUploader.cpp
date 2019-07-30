@@ -119,6 +119,9 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     file_type = location.partial().file_type_;
   } else {
     path = location.full().path_;
+    if (path.empty()) {
+      return Status::Error("FullLocalFileLocation whith empty path");
+    }
     local_is_ready = true;
     file_type = location.full().file_type_;
   }
@@ -160,8 +163,9 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     fd_ = res_fd.move_as_ok();
     fd_path_ = path;
     is_temp_ = is_temp;
+  } else if (!fd_path_.empty()) {
+    TRY_STATUS(acquire_fd());
   }
-
   if (local_is_ready) {
     CHECK(!fd_.empty());
     TRY_RESULT(local_file_size, fd_.get_size());

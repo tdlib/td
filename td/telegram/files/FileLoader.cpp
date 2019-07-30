@@ -66,10 +66,12 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
 }
 
 void FileLoader::update_download_offset(int64 offset) {
-  parts_manager_.set_streaming_offset(offset);
-  //TODO: cancel only some queries
-  for (auto &it : part_map_) {
-    it.second.second.reset();  // cancel_query(it.second.second);
+  if (parts_manager_.get_streaming_offset() != offset) {
+    parts_manager_.set_streaming_offset(offset);
+    //TODO: cancel only some queries
+    for (auto &it : part_map_) {
+      it.second.second.reset();  // cancel_query(it.second.second);
+    }
   }
   update_estimated_limit();
   loop();
@@ -279,6 +281,10 @@ void FileLoader::on_result(NetQueryPtr query) {
 }
 
 void FileLoader::on_part_query(Part part, NetQueryPtr query) {
+  if (stop_flag_) {
+    // important for secret chats
+    return;
+  }
   auto status = try_on_part_query(part, std::move(query));
   if (status.is_error()) {
     on_error(std::move(status));

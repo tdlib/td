@@ -206,6 +206,9 @@ int32 PartsManager::get_ready_prefix_count() {
   }
   return res;
 }
+int64 PartsManager::get_streaming_offset() const {
+  return streaming_offset_;
+}
 string PartsManager::get_bitmask() {
   int32 prefix_count = -1;
   if (need_check_) {
@@ -452,7 +455,11 @@ void PartsManager::init_common(const std::vector<int> &ready_parts) {
   part_status_ = vector<PartStatus>(part_count_);
 
   for (auto i : ready_parts) {
-    LOG_CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_);
+    LOG_CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_) << tag("size", size_)
+                                         << tag("part_size", part_size_) << tag("known_prefix_flag", known_prefix_flag_)
+                                         << tag("real part_count",
+                                                std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
+                                                                [](auto a, auto b) { return max(a, b + 1); }));
     part_status_[i] = PartStatus::Ready;
     bitmask_.set(i);
     auto part = get_part(i);

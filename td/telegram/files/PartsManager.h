@@ -50,6 +50,7 @@ class PartsManager {
   int32 get_part_count() const;
   int32 get_unchecked_ready_prefix_count();
   int32 get_ready_prefix_count();
+  int64 get_streaming_offset() const;
   string get_bitmask();
 
  private:
