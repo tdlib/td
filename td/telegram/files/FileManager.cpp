@@ -2068,6 +2068,25 @@ void FileManager::run_download(FileNodePtr node) {
   CHECK(!node->file_ids_.empty());
   auto file_id = node->main_file_id_;
 
+  if (node->need_reload_photo_ && file_view.may_reload_photo()) {
+    QueryId id = queries_container_.create(Query{file_id, Query::DownloadReloadDialog});
+    node->download_id_ = id;
+    context_->reload_photo(file_view.remote_location().get_source(),
+                           PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+                             Status error;
+                             if (res.is_ok()) {
+                               error = Status::Error("FILE_DOWNLOAD_ID_INVALID");
+                             } else {
+                               error = res.move_as_error();
+                             }
+                             VLOG(file_references)
+                                 << "Got result from reload photo for file " << file_id << ": " << error;
+                             send_closure(actor_id, &FileManager::on_error, id, std::move(error));
+                           }));
+    node->need_reload_photo_ = false;
+    return;
+  }
+
   // If file reference is needed
   if (!file_view.has_active_download_remote_location()) {
     VLOG(file_references) << "Do not have valid file_reference for file " << file_id;
@@ -3358,6 +3377,13 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
     node->set_generate_location(nullptr);
   }
+
+  if (status.message() == "FILE_ID_INVALID" && FileView(node).may_reload_photo()) {
+    node->need_reload_photo_ = true;
+    run_download(node);
+    return;
+  }
+
   if (FileReferenceManager::is_file_reference_error(status)) {
     string file_reference;
     Slice prefix = "#BASE64";

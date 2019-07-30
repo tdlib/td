@@ -4502,6 +4502,10 @@ void Td::init_file_manager() {
                    std::move(promise));
     }
 
+    void reload_photo(PhotoSizeSource source, Promise<Unit> promise) final {
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::reload_photo, source, std::move(promise));
+    }
+
     ActorShared<> create_reference() final {
       return td_->create_reference();
     }

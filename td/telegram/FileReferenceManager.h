@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
 
@@ -49,6 +50,7 @@ class FileReferenceManager : public Actor {
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
+  void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
 
   bool add_file_source(NodeId node_id, FileSourceId file_source_id);
 

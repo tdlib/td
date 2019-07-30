@@ -351,6 +351,8 @@ class ContactsManager : public Actor {
   bool have_min_user(UserId user_id) const;
   bool have_user_force(UserId user_id);
 
+  void reload_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);

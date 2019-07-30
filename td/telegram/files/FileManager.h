@@ -159,8 +159,9 @@ class FileNode {
   bool is_download_offset_dirty_ = false;
   bool is_download_limit_dirty_ = false;
 
-  bool get_by_hash_ = false;
+  bool get_by_hash_{false};
   bool can_search_locally_{true};
+  bool need_reload_photo_{false};
 
   bool is_download_started_ = false;
   bool generate_was_update_ = false;
@@ -300,6 +301,19 @@ class FileView {
     return node_->encryption_key_;
   }
 
+  bool may_reload_photo() {
+    if (!has_remote_location()) {
+      return false;
+    }
+    if (!remote_location().is_photo()) {
+      return false;
+    }
+    auto type = remote_location().get_source().get_type();
+    return type == PhotoSizeSource::Type::DialogPhotoBig || type == PhotoSizeSource::Type::DialogPhotoSmall ||
+           type == PhotoSizeSource::Type::StickerSetThumbnail;
+    return false;
+  }
+
  private:
   ConstFileNodePtr node_{};
 };
@@ -353,6 +367,8 @@ class FileManager : public FileLoadManager::Callback {
     virtual vector<FileSourceId> get_some_file_sources(FileId file_id) = 0;
 
     virtual void repair_file_reference(FileId file_id, Promise<Unit> promise) = 0;
+
+    virtual void reload_photo(PhotoSizeSource source, Promise<Unit> promise) = 0;
 
     virtual ActorShared<> create_reference() = 0;
 
@@ -475,6 +491,7 @@ class FileManager : public FileLoadManager::Callback {
       UploadWaitFileReference,
       Upload,
       DownloadWaitFileReferece,
+      DownloadReloadDialog,
       Download,
       SetContent,
       Generate

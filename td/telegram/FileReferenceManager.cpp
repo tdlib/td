@@ -336,4 +336,18 @@ void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promi
   run_node(node_id);
 }
 
+void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> promise) {
+  switch (source.get_type()) {
+    case PhotoSizeSource::Type::DialogPhotoBig:
+    case PhotoSizeSource::Type::DialogPhotoSmall:
+      send_closure(G()->contacts_manager(), &ContactsManager::reload_dialog, source.dialog_photo().dialog_id,
+                   std::move(promise));
+      break;
+    case PhotoSizeSource::Type::StickerSetThumbnail:
+      //TODO
+    default:
+      promise.set_error(Status::Error("Unexpected PotoSizeSource type"));
+  }
+}
+
 }  // namespace td

@@ -8907,6 +8907,19 @@ ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   }
 }
 
+void ContactsManager::reload_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return reload_user(dialog_id.get_user_id(), std::move(promise));
+    case DialogType::Chat:
+      return reload_chat(dialog_id.get_chat_id(), std::move(promise));
+    case DialogType::Channel:
+      return reload_channel(dialog_id.get_channel_id(), std::move(promise));
+    default:
+      promise.set_error(Status::Error("Invalid dialog id to reload"));
+  }
+}
+
 void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
   vector<tl_object_ptr<telegram_api::InputUser>> users;
   users.push_back(make_tl_object<telegram_api::inputUserSelf>());
