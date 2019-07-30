@@ -282,7 +282,7 @@ void FileLoader::on_result(NetQueryPtr query) {
 
 void FileLoader::on_part_query(Part part, NetQueryPtr query) {
   if (stop_flag_) {
-    // important for secret chats
+    // important for secret files
     return;
   }
   auto status = try_on_part_query(part, std::move(query));

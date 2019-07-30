@@ -120,7 +120,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   } else {
     path = location.full().path_;
     if (path.empty()) {
-      return Status::Error("FullLocalFileLocation whith empty path");
+      return Status::Error("FullLocalFileLocation with empty path");
     }
     local_is_ready = true;
     file_type = location.full().file_type_;
