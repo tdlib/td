@@ -6344,11 +6344,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << user_id;
-    auto input_user = get_input_user(user_id);
-    CHECK(input_user != nullptr);
-    vector<tl_object_ptr<telegram_api::InputUser>> users;
-    users.push_back(std::move(input_user));
-    td_->create_handler<GetUsersQuery>(Promise<Unit>())->send(std::move(users));
+    reload_user(user_id, Promise<Unit>());
   }
 }
 
@@ -6396,8 +6392,9 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 
   if (c->cache_version != Chat::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
     c->is_repaired = true;
+
     LOG(INFO) << "Repairing cache of " << chat_id;
-    td_->create_handler<GetChatsQuery>(Promise<Unit>())->send(vector<int32>{chat_id.get()});
+    reload_chat(chat_id, Promise<Unit>());
   }
 }
 
@@ -6487,10 +6484,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 
   if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
     c->is_repaired = true;
+
     LOG(INFO) << "Repairing cache of " << channel_id;
-    auto input_channel = get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
-    td_->create_handler<GetChannelsQuery>(Promise<Unit>())->send(std::move(input_channel));
+    reload_channel(channel_id, Promise<Unit>());
   }
 }
 
@@ -7277,11 +7273,7 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
     return promise.set_value(Unit());
   }
 
-  auto input_user = get_input_user(my_id);
-  CHECK(input_user != nullptr);
-  vector<tl_object_ptr<telegram_api::InputUser>> users;
-  users.push_back(std::move(input_user));
-  td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+  reload_user(my_id, std::move(promise));
 }
 
 ContactsManager::LinkState ContactsManager::get_link_state(tl_object_ptr<telegram_api::ContactLink> &&link) {
@@ -8993,6 +8985,23 @@ ContactsManager::UserFull *ContactsManager::get_user_full(UserId user_id) {
   }
 }
 
+void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
+  if (!user_id.is_valid()) {
+    return promise.set_error(Status::Error(6, "Invalid user id"));
+  }
+
+  have_user_force(user_id);
+  auto input_user = get_input_user(user_id);
+  if (input_user == nullptr) {
+    return promise.set_error(Status::Error(6, "User info not found"));
+  }
+
+  // there is no much reason to combine different requests into one request
+  vector<tl_object_ptr<telegram_api::InputUser>> users;
+  users.push_back(std::move(input_user));
+  td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+}
+
 bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
   auto user = get_user(user_id);
   if (user == nullptr) {
@@ -9206,8 +9215,7 @@ void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(6, "Invalid basic group id"));
   }
 
-  // this request will be needed only to download the chat photo,
-  // so there is no reason to combine different requests into one request
+  // there is no much reason to combine different requests into one request
   td_->create_handler<GetChatsQuery>(std::move(promise))->send(vector<int32>{chat_id.get()});
 }
 
@@ -9510,8 +9518,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     return promise.set_error(Status::Error(6, "Supergroup info not found"));
   }
 
-  // this request will be needed only to download the channel photo,
-  // so there is no reason to combine different requests into one request
+  // there is no much reason to combine different requests into one request
   td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
 }
 
