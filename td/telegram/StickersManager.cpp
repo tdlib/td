@@ -1583,7 +1583,7 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
 void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                                      MultiPromiseActor *load_data_multipromise_ptr) {
-  if (is_animated) {
+  if (is_animated && dimensions.width == 0) {
     dimensions.width = 512;
     dimensions.height = 512;
   }
