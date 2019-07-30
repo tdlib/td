@@ -8907,7 +8907,7 @@ ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   }
 }
 
-void ContactsManager::reload_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return reload_user(dialog_id.get_user_id(), std::move(promise));

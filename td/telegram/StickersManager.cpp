@@ -2434,10 +2434,10 @@ bool StickersManager::update_sticker_set_cache(const StickerSet *sticker_set, Pr
   } else {
     if (G()->unix_time() >= sticker_set->expires_at) {
       if (td_->auth_manager_->is_bot()) {
-        reload_sticker_set(set_id, get_input_sticker_set(sticker_set), std::move(promise));
+        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), std::move(promise));
         return true;
       } else {
-        reload_sticker_set(set_id, get_input_sticker_set(sticker_set), Auto());
+        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), Auto());
       }
     }
   }
@@ -2449,7 +2449,7 @@ int64 StickersManager::get_sticker_set(int64 set_id, Promise<Unit> &&promise) {
   const StickerSet *sticker_set = get_sticker_set(set_id);
   if (sticker_set == nullptr) {
     if (set_id == GREAT_MINDS_SET_ID) {
-      reload_sticker_set(set_id, make_tl_object<telegram_api::inputStickerSetID>(set_id, 0), std::move(promise));
+      do_reload_sticker_set(set_id, make_tl_object<telegram_api::inputStickerSetID>(set_id, 0), std::move(promise));
       return 0;
     }
 
@@ -2472,7 +2472,7 @@ int64 StickersManager::search_sticker_set(const string &short_name_to_search, Pr
 
   if (sticker_set == nullptr) {
     auto set_to_load = make_tl_object<telegram_api::inputStickerSetShortName>(short_name);
-    reload_sticker_set(0, std::move(set_to_load), std::move(promise));
+    do_reload_sticker_set(0, std::move(set_to_load), std::move(promise));
     return 0;
   }
 
@@ -2849,7 +2849,7 @@ void StickersManager::load_sticker_sets(vector<int64> &&sticker_set_ids, Promise
             }));
       } else {
         LOG(INFO) << "Trying to load sticker set " << sticker_set_id << " with stickers from server";
-        reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
+        do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
       }
     }
   }
@@ -2885,7 +2885,7 @@ void StickersManager::load_sticker_sets_without_stickers(vector<int64> &&sticker
               }));
         } else {
           LOG(INFO) << "Trying to load sticker set " << sticker_set_id << " from server";
-          reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
+          do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
         }
       }
     }
@@ -2910,7 +2910,7 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
     CHECK(!sticker_set->load_without_stickers_requests.empty());
   }
   if (value.empty()) {
-    return reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
+    return do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
   LOG(INFO) << "Successfully loaded sticker set " << sticker_set_id << " with" << (with_stickers ? "" : "out")
@@ -2936,7 +2936,7 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
     }
   }
   if (!sticker_set->is_thumbnail_reloaded) {
-    reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
+    do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
   if (with_stickers && old_sticker_count < 5 && old_sticker_count < sticker_set->sticker_ids.size()) {
@@ -2947,9 +2947,14 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
   update_load_requests(sticker_set, with_stickers, Status::OK());
 }
 
-void StickersManager::reload_sticker_set(int64 sticker_set_id,
-                                         tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
-                                         Promise<Unit> &&promise) const {
+void StickersManager::reload_sticker_set(int64 sticker_set_id, int64 access_hash, Promise<Unit> &&promise) {
+  do_reload_sticker_set(sticker_set_id, make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id, access_hash),
+                        std::move(promise));
+}
+
+void StickersManager::do_reload_sticker_set(int64 sticker_set_id,
+                                            tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
+                                            Promise<Unit> &&promise) const {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }

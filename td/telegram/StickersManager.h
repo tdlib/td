@@ -201,6 +201,8 @@ class StickersManager : public Actor {
 
   td_api::object_ptr<td_api::httpUrl> get_emoji_suggestions_url_result(int64 random_id);
 
+  void reload_sticker_set(int64 sticker_set_id, int64 access_hash, Promise<Unit> &&promise);
+
   void reload_installed_sticker_sets(bool is_masks, bool force);
 
   void reload_featured_sticker_sets(bool force);
@@ -373,8 +375,8 @@ class StickersManager : public Actor {
 
   void update_load_request(uint32 load_request_id, const Status &status);
 
-  void reload_sticker_set(int64 sticker_set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
-                          Promise<Unit> &&promise) const;
+  void do_reload_sticker_set(int64 sticker_set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
+                             Promise<Unit> &&promise) const;
 
   static void read_featured_sticker_sets(void *td_void);
 

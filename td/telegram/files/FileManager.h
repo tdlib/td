@@ -301,7 +301,7 @@ class FileView {
     return node_->encryption_key_;
   }
 
-  bool may_reload_photo() {
+  bool may_reload_photo() const {
     if (!has_remote_location()) {
       return false;
     }
