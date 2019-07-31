@@ -88,6 +88,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
   res.is_size_final = local_is_ready_;
   res.part_size = part_size;
   res.ready_parts = std::move(parts);
+  res.is_upload = true;
   return res;
 }
 

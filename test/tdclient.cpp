@@ -11,6 +11,7 @@
 
 #include "td/telegram/Client.h"
 #include "td/telegram/ClientActor.h"
+#include "td/telegram/files/PartsManager.h"
 
 #include "td/telegram/td_api.h"
 
@@ -892,6 +893,20 @@ TEST(Client, Multi) {
 
   for (auto &thread : threads) {
     thread.join();
+  }
+}
+
+TEST(PartsManager, hands) {
+  //Status init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
+  //const std::vector<int> &ready_parts, bool use_part_count_limit) TD_WARN_UNUSED_RESULT;
+  {
+    PartsManager pm;
+    pm.init(0, 100000, false, 10, {0, 1, 2}, false, true).ensure_error();
+    //pm.set_known_prefix(0, false).ensure();
+  }
+  {
+    PartsManager pm;
+    pm.init(1, 100000, true, 10, {0, 1, 2}, false, true).ensure_error();
   }
 }
 

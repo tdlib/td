@@ -97,7 +97,9 @@ void FileLoader::start_up() {
   auto part_size = file_info.part_size;
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
-  auto status = parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit);
+  bool is_upload = file_info.is_upload;
+  auto status =
+      parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, is_upload);
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;

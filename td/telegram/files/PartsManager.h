@@ -23,7 +23,7 @@ struct Part {
 class PartsManager {
  public:
   Status init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
-              const std::vector<int> &ready_parts, bool use_part_count_limit) TD_WARN_UNUSED_RESULT;
+              const std::vector<int> &ready_parts, bool use_part_count_limit, bool is_upload) TD_WARN_UNUSED_RESULT;
   bool may_finish();
   bool ready();
   bool unchecked_ready();
@@ -60,6 +60,7 @@ class PartsManager {
 
   enum class PartStatus : int32 { Empty, Pending, Ready };
 
+  bool is_upload_{false};
   bool need_check_{false};
   int64 checked_prefix_size_{0};
 

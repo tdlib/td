@@ -61,6 +61,7 @@ class FileLoader : public FileLoaderActor {
     bool need_delay = false;
     int64 offset{0};
     int64 limit{0};
+    bool is_upload{false};
   };
   virtual Result<FileInfo> init() TD_WARN_UNUSED_RESULT = 0;
   virtual Status on_ok(int64 size) TD_WARN_UNUSED_RESULT = 0;

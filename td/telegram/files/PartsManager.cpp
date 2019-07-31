@@ -96,8 +96,9 @@ Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &read
 }
 
 Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
-                          const std::vector<int> &ready_parts, bool use_part_count_limit) {
+                          const std::vector<int> &ready_parts, bool use_part_count_limit, bool is_upload) {
   CHECK(expected_size >= size);
+  is_upload_ = is_upload;
   use_part_count_limit_ = use_part_count_limit;
   expected_size_ = expected_size;
   if (expected_size_ > MAX_FILE_SIZE) {
@@ -287,6 +288,7 @@ Result<Part> PartsManager::start_part() {
 
 Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   if (!known_prefix_flag_ || size < static_cast<size_t>(known_prefix_size_)) {
+    CHECK(is_upload_);
     return Status::Error("FILE_UPLOAD_RESTART");
   }
   known_prefix_size_ = narrow_cast<int64>(size);
@@ -307,6 +309,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
       << size << " " << is_ready << " " << part_count_ << " " << part_size_ << " " << part_status_.size();
   part_status_.resize(part_count_);
   if (use_part_count_limit_ && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+    CHECK(is_upload_);
     return Status::Error("FILE_UPLOAD_RESTART");
   }
   return Status::OK();
@@ -454,15 +457,19 @@ Status PartsManager::init_common(const std::vector<int> &ready_parts) {
   part_status_ = vector<PartStatus>(part_count_);
 
   for (auto i : ready_parts) {
+    if (known_prefix_flag_ && i >= static_cast<int>(known_prefix_size_ / part_size_)) {
+      CHECK(is_upload_);
+      return Status::Error("FILE_UPLOAD_RESTART");
+    }
+    if (is_upload_ && i >= part_count_) {
+      return Status::Error("FILE_UPLOAD_RESTART");
+    }
     LOG_CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_) << tag("size", size_)
                                          << tag("part_size", part_size_) << tag("known_prefix_flag", known_prefix_flag_)
                                          << tag("known_prefix_size", known_prefix_size_)
                                          << tag("real part_count",
                                                 std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
                                                                 [](auto a, auto b) { return max(a, b + 1); }));
-    if (known_prefix_flag_ && i >= static_cast<int>(known_prefix_size_ / part_size_)) {
-      return Status::Error("FILE_UPLOAD_RESTART");
-    }
     part_status_[i] = PartStatus::Ready;
     bitmask_.set(i);
     auto part = get_part(i);
