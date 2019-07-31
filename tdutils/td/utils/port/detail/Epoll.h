@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/List.h"
+#include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollBase.h"
 #include "td/utils/port/PollFlags.h"

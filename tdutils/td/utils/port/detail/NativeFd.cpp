@@ -16,8 +16,8 @@
 #endif
 
 #if TD_FD_DEBUG
-#include <set>
 #include <mutex>
+#include <set>
 #endif
 
 namespace td {
@@ -26,7 +26,7 @@ namespace td {
 class FdSet {
  public:
   void on_create_fd(NativeFd::Fd fd) {
-    CHECK(fd >= 0);
+    CHECK(is_valid(fd));
     if (is_stdio(fd)) {
       return;
     }
@@ -38,7 +38,7 @@ class FdSet {
   }
 
   void on_release_fd(NativeFd::Fd fd) {
-    CHECK(fd >= 0);
+    CHECK(is_valid(fd));
     if (is_stdio(fd)) {
       return;
     }
@@ -46,7 +46,7 @@ class FdSet {
   }
 
   Status validate(NativeFd::Fd fd) {
-    if (fd < 0) {
+    if (!is_valid(fd)) {
       return Status::Error(PSLICE() << "Invalid fd: " << fd);
     }
     if (is_stdio(fd)) {
@@ -60,7 +60,7 @@ class FdSet {
   }
 
   void on_close_fd(NativeFd::Fd fd) {
-    CHECK(fd >= 0);
+    CHECK(is_valid(fd));
     if (is_stdio(fd)) {
       return;
     }
@@ -75,8 +75,20 @@ class FdSet {
   std::mutex mutex_;
   std::set<NativeFd::Fd> fds_;
 
-  bool is_stdio(NativeFd::Fd fd) {
+  bool is_stdio(NativeFd::Fd fd) const {
+#if TD_PORT_WINDOWS
+    return fd == STD_INPUT_HANDLE || fd == STD_OUTPUT_HANDLE || fd == STD_ERROR_HANDLE;
+#else
     return fd >= 0 && fd <= 2;
+#endif
+  }
+
+  bool is_valid(NativeFd::Fd fd) const {
+#if TD_PORT_WINDOWS
+    return fd != INVALID_HANDLE_VALUE;
+#else
+    return fd >= 0;
+#endif
   }
 };
 
@@ -88,6 +100,7 @@ FdSet &get_fd_set() {
 }  // namespace
 
 #endif
+
 Status NativeFd::validate() const {
 #if TD_FD_DEBUG
   return get_fd_set().validate(fd_.get());
@@ -114,7 +127,9 @@ NativeFd::NativeFd(Socket socket) : fd_(reinterpret_cast<Fd>(socket)), is_socket
   VLOG(fd) << *this << " create";
 }
 #endif
+
 NativeFd &NativeFd::operator=(NativeFd &&from) {
+  CHECK(this != &from);
   close();
   fd_ = std::move(from.fd_);
 #if TD_PORT_WINDOWS
