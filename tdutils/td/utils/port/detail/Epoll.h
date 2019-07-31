@@ -47,9 +47,9 @@ class Epoll final : public PollBase {
   }
 
  private:
-  int epoll_fd = -1;
-  vector<struct epoll_event> events;
-  ListNode list_root;
+  NativeFd epoll_fd_;
+  vector<struct epoll_event> events_;
+  ListNode list_root_;
 };
 
 }  // namespace detail
