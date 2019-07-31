@@ -57,6 +57,15 @@
   }                                                                                                         \
   while (false)
 
+#define TRY_END_PARSE_FLAGS_GENERIC()                        \
+  CHECK(bit_offset_parse < 31);                              \
+  if ((flags_parse & ~((1 << bit_offset_parse) - 1)) != 0) { \
+    parser.set_error("invalid flags");                       \
+    return;                                                  \
+  }                                                          \
+  }                                                          \
+  while (false)
+
 namespace td {
 
 template <class StorerT>

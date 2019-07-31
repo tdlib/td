@@ -80,7 +80,7 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
   PARSE_FLAG(encryption_key_is_secure);
   PARSE_FLAG(has_sources);
   PARSE_FLAG(has_version);
-  END_PARSE_FLAGS_GENERIC();
+  TRY_END_PARSE_FLAGS_GENERIC();
 
   int32 version = 0;
   if (has_version) {
