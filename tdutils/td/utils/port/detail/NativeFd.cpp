@@ -15,13 +15,98 @@
 #include <unistd.h>
 #endif
 
+#if TD_FD_DEBUG
+#include <set>
+#include <mutex>
+#endif
+
 namespace td {
+
+#if TD_FD_DEBUG
+class FdSet {
+ public:
+  void on_create_fd(NativeFd::Fd fd) {
+    CHECK(fd >= 0);
+    if (is_stdio(fd)) {
+      return;
+    }
+    std::unique_lock<std::mutex> guard(mutex_);
+    if (fds_.count(fd) > 1) {
+      LOG(FATAL) << "Create duplicated fd: " << fd;
+    }
+    fds_.insert(fd);
+  }
+
+  void on_release_fd(NativeFd::Fd fd) {
+    CHECK(fd >= 0);
+    if (is_stdio(fd)) {
+      return;
+    }
+    LOG(FATAL) << "Unexpected release of non stdio NativeFd: " << fd;
+  }
+
+  Status validate(NativeFd::Fd fd) {
+    if (fd < 0) {
+      return Status::Error(PSLICE() << "Invalid fd: " << fd);
+    }
+    if (is_stdio(fd)) {
+      return Status::OK();
+    }
+    std::unique_lock<std::mutex> guard(mutex_);
+    if (fds_.count(fd) != 1) {
+      return Status::Error(PSLICE() << "Unknown fd: " << fd);
+    }
+    return Status::OK();
+  }
+
+  void on_close_fd(NativeFd::Fd fd) {
+    CHECK(fd >= 0);
+    if (is_stdio(fd)) {
+      return;
+    }
+    std::unique_lock<std::mutex> guard(mutex_);
+    if (fds_.count(fd) != 1) {
+      LOG(FATAL) << "Close unknown fd: " << fd;
+    }
+    fds_.erase(fd);
+  }
+
+ private:
+  std::mutex mutex_;
+  std::set<NativeFd::Fd> fds_;
+
+  bool is_stdio(NativeFd::Fd fd) {
+    return fd >= 0 && fd <= 2;
+  }
+};
+
+namespace {
+FdSet &get_fd_set() {
+  static FdSet res;
+  return res;
+}
+}  // namespace
+
+#endif
+Status NativeFd::validate() const {
+#if TD_FD_DEBUG
+  return get_fd_set().validate(fd_.get());
+#else
+  return Status::OK();
+#endif
+}
 
 NativeFd::NativeFd(Fd fd) : fd_(fd) {
   VLOG(fd) << *this << " create";
+#if TD_FD_DEBUG
+  get_fd_set().on_create_fd(fd);
+#endif
 }
 
 NativeFd::NativeFd(Fd fd, bool nolog) : fd_(fd) {
+#if TD_FD_DEBUG
+  get_fd_set().on_create_fd(fd);
+#endif
 }
 
 #if TD_PORT_WINDOWS
@@ -29,6 +114,14 @@ NativeFd::NativeFd(Socket socket) : fd_(reinterpret_cast<Fd>(socket)), is_socket
   VLOG(fd) << *this << " create";
 }
 #endif
+NativeFd &NativeFd::operator=(NativeFd &&from) {
+  close();
+  fd_ = std::move(from.fd_);
+#if TD_PORT_WINDOWS
+  is_socket_ = from.is_socket_;
+#endif
+  return *this;
+}
 
 NativeFd::~NativeFd() {
   close();
@@ -105,6 +198,11 @@ void NativeFd::close() {
   if (!*this) {
     return;
   }
+
+#if TD_FD_DEBUG
+  get_fd_set().on_close_fd(fd());
+#endif
+
   VLOG(fd) << *this << " close";
 #if TD_PORT_WINDOWS
   if (is_socket_ ? closesocket(socket()) : !CloseHandle(fd())) {

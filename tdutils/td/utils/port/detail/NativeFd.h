@@ -26,7 +26,7 @@ class NativeFd {
 #endif
   NativeFd() = default;
   NativeFd(NativeFd &&) = default;
-  NativeFd &operator=(NativeFd &&) = default;
+  NativeFd &operator=(NativeFd &&);
   explicit NativeFd(Fd fd);
   NativeFd(Fd fd, bool nolog);
 #if TD_PORT_WINDOWS
@@ -51,6 +51,8 @@ class NativeFd {
 
   void close();
   Fd release();
+
+  Status validate() const;
 
  private:
 #if TD_PORT_POSIX
