@@ -87,7 +87,7 @@ class PartsManager {
   Bitmask bitmask_;
   bool use_part_count_limit_;
 
-  void init_common(const vector<int> &ready_parts);
+  Status init_common(const vector<int> &ready_parts);
   Status init_known_prefix(int64 known_prefix, size_t part_size,
                            const std::vector<int> &ready_parts) TD_WARN_UNUSED_RESULT;
   Status init_no_size(size_t part_size, const std::vector<int> &ready_parts) TD_WARN_UNUSED_RESULT;
