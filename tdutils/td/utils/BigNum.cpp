@@ -86,7 +86,7 @@ BigNum BigNum::from_binary(Slice str) {
 }
 
 BigNum BigNum::from_le_binary(Slice str) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
   return BigNum(make_unique<Impl>(BN_lebin2bn(str.ubegin(), narrow_cast<int>(str.size()), nullptr)));
 #else
   LOG(FATAL) << "Unsupported from_le_binary";
@@ -205,7 +205,7 @@ string BigNum::to_binary(int exact_size) const {
 }
 
 string BigNum::to_le_binary(int exact_size) const {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
   int num_size = get_num_bytes();
   if (exact_size == -1) {
     exact_size = num_size;
