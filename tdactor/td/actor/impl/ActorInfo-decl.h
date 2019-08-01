@@ -32,6 +32,11 @@ class ActorContext {
   ActorContext(ActorContext &&) = delete;
   ActorContext &operator=(ActorContext &&) = delete;
   virtual ~ActorContext() = default;
+
+  virtual int32 get_id() const {
+    return 0;
+  }
+
   const char *tag_ = nullptr;
   std::weak_ptr<ActorContext> this_ptr_;
 };

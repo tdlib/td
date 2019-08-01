@@ -468,6 +468,10 @@ TEST(Actors, do_after_stop) {
 
 class XContext : public ActorContext {
  public:
+  int32 get_id() const override {
+    return 123456789;
+  }
+
   void validate() {
     CHECK(x == 1234);
   }
@@ -476,6 +480,7 @@ class XContext : public ActorContext {
   }
   int x = 1234;
 };
+
 class WithContext : public Actor {
  public:
   void start_up() override {

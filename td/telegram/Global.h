@@ -68,6 +68,11 @@ class Global : public ActorContext {
   Global(Global &&other) = delete;
   Global &operator=(Global &&other) = delete;
 
+  static constexpr int32 ID = -572104940;
+  int32 get_id() const override {
+    return ID;
+  }
+
 #define td_db() get_td_db_impl(__FILE__, __LINE__)
   TdDb *get_td_db_impl(const char *file, int line) {
     LOG_CHECK(td_db_) << close_flag() << " " << file << " " << line;
@@ -410,8 +415,10 @@ class Global : public ActorContext {
 };
 
 inline Global *G() {
-  CHECK(Scheduler::context());
-  return static_cast<Global *>(Scheduler::context());
+  ActorContext *context = Scheduler::context();
+  CHECK(context);
+  CHECK(context->get_id() == Global::ID);
+  return static_cast<Global *>(context);
 }
 
 }  // namespace td

@@ -122,6 +122,9 @@ class MultiTd : public Actor {
      public:
       explicit TdActorContext(std::string tag) : tag_(std::move(tag)) {
       }
+      int32 get_id() const override {
+        return 0x172ae58d;
+      }
       std::string tag_;
     };
     auto context = std::make_shared<TdActorContext>(to_string(td_id));
