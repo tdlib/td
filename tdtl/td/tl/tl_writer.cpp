@@ -16,7 +16,7 @@ namespace tl {
 
 std::string TL_writer::int_to_string(int x) {
   char buf[15];
-  std::sprintf(buf, "%d", x);
+  std::snprintf(buf, sizeof(buf), "%d", x);
   return buf;
 }
 
