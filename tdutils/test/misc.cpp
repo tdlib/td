@@ -751,6 +751,8 @@ TEST(Misc, uint128) {
       auto ia = uint128_intrinsic(hi, lo);
       ensure_eq(a, ia);
 #endif
+      nums.push_back(a);
+      nums.pop_back();
       nums.push_back({hi, lo});
     }
   }
