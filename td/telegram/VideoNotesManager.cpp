@@ -46,6 +46,7 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
 
 FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace) {
   auto file_id = new_video_note->file_id;
+  CHECK(file_id.is_valid());
   LOG(INFO) << "Receive video note " << file_id;
   auto &v = video_notes_[file_id];
   if (v == nullptr) {

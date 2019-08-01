@@ -41,6 +41,9 @@ FileId DocumentsManager::parse_document(ParserT &parser) {
   parse(document->thumbnail, parser);
   parse(document->file_id, parser);
   LOG(DEBUG) << "Parsed document " << document->file_id;
+  if (parser.get_error() != nullptr || !document->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_document(std::move(document), false);
 }
 

@@ -39,6 +39,9 @@ FileId VideoNotesManager::parse_video_note(ParserT &parser) {
   }
   parse(video_note->thumbnail, parser);
   parse(video_note->file_id, parser);
+  if (parser.get_error() != nullptr || !video_note->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_video_note(std::move(video_note), false);
 }
 

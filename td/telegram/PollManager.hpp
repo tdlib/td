@@ -84,6 +84,9 @@ PollId PollManager::parse_poll(ParserT &parser) {
     vector<string> options;
     parse(question, parser);
     parse(options, parser);
+    if (parser.get_error() != nullptr) {
+      return PollId();
+    }
     return create_poll(std::move(question), std::move(options));
   }
 

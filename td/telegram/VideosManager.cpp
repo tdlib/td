@@ -46,6 +46,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
 
 FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
   auto file_id = new_video->file_id;
+  CHECK(file_id.is_valid());
   LOG(INFO) << "Receive video " << file_id;
   auto &v = videos_[file_id];
   if (v == nullptr) {

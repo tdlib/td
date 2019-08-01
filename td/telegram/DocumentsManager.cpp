@@ -437,6 +437,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
 FileId DocumentsManager::on_get_document(unique_ptr<GeneralDocument> new_document, bool replace) {
   auto file_id = new_document->file_id;
+  CHECK(file_id.is_valid());
   LOG(INFO) << "Receive document " << file_id;
   auto &d = documents_[new_document->file_id];
   if (d == nullptr) {

@@ -45,6 +45,9 @@ FileId AudiosManager::parse_audio(ParserT &parser) {
   }
   parse(audio->thumbnail, parser);
   parse(audio->file_id, parser);
+  if (parser.get_error() != nullptr || !audio->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_audio(std::move(audio), false);
 }
 

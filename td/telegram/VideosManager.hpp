@@ -57,6 +57,9 @@ FileId VideosManager::parse_video(ParserT &parser) {
   if (video->has_stickers) {
     parse(video->sticker_file_ids, parser);
   }
+  if (parser.get_error() != nullptr || !video->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_video(std::move(video), false);
 }
 

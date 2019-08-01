@@ -33,6 +33,9 @@ FileId VoiceNotesManager::parse_voice_note(ParserT &parser) {
   parse(voice_note->duration, parser);
   parse(voice_note->waveform, parser);
   parse(voice_note->file_id, parser);
+  if (parser.get_error() != nullptr || !voice_note->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_voice_note(std::move(voice_note), false);
 }
 

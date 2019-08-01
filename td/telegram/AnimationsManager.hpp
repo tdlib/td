@@ -45,6 +45,9 @@ FileId AnimationsManager::parse_animation(ParserT &parser) {
   }
   parse(animation->thumbnail, parser);
   parse(animation->file_id, parser);
+  if (parser.get_error() != nullptr || !animation->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_animation(std::move(animation), false);
 }
 

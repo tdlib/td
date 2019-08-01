@@ -169,6 +169,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
 
 FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, bool replace) {
   auto file_id = new_animation->file_id;
+  CHECK(file_id.is_valid());
   auto &a = animations_[file_id];
   LOG(INFO) << (a == nullptr ? "Add" : (replace ? "Replace" : "Ignore")) << " animation " << file_id << " of size "
             << new_animation->dimensions;

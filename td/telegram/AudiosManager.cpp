@@ -44,6 +44,7 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
 
 FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
   auto file_id = new_audio->file_id;
+  CHECK(file_id.is_valid());
   LOG(INFO) << "Receive audio " << file_id;
   auto &a = audios_[file_id];
   if (a == nullptr) {

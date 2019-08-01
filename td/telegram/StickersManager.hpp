@@ -105,6 +105,9 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     parse(sticker->y_shift, parser);
     parse(sticker->scale, parser);
   }
+  if (parser.get_error() != nullptr || !sticker->file_id.is_valid()) {
+    return FileId();
+  }
   return on_get_sticker(std::move(sticker), false);  // data in the database is always outdated
 }
 

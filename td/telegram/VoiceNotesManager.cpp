@@ -43,6 +43,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
 
 FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace) {
   auto file_id = new_voice_note->file_id;
+  CHECK(file_id.is_valid());
   LOG(INFO) << "Receive voice note " << file_id;
   auto &v = voice_notes_[file_id];
   if (v == nullptr) {
