@@ -972,6 +972,9 @@ void Session::connection_open_finish(ConnectionInfo *info,
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
   LOG(INFO) << "Finished to open connection " << name;
   info->connection = make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_);
+  if (can_destroy_auth_key()) {
+    info->connection->destroy_key();
+  }
   info->connection->set_online(connection_online_flag_, is_main_);
   info->connection->set_name(name);
   Scheduler::subscribe(info->connection->get_poll_info().extract_pollable_fd(this));
@@ -1204,11 +1207,6 @@ void Session::loop() {
           // send auth.bindTempAuthKey
           connection_send_bind_key(&main_connection_);
           need_flush = true;
-        }
-      }
-      if (can_destroy_auth_key()) {
-        if (main_connection_.connection) {
-          main_connection_.connection->destroy_key();
         }
       }
       if (need_flush) {

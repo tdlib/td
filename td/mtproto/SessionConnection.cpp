@@ -283,7 +283,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::dest
 }
 
 Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyRes &destroy_auth_key) {
-  CHECK(need_destroy_auth_key_);
+  LOG_CHECK(need_destroy_auth_key_) << static_cast<int32>(mode_);
   LOG(INFO) << to_string(destroy_auth_key);
   return callback_->on_destroy_auth_key();
 }
