@@ -116,19 +116,22 @@ Status NativeFd::validate() const {
 NativeFd::NativeFd(Fd fd) : fd_(fd) {
   VLOG(fd) << *this << " create";
 #if TD_FD_DEBUG
-  get_fd_set().on_create_fd(fd);
+  get_fd_set().on_create_fd(fd_.get());
 #endif
 }
 
 NativeFd::NativeFd(Fd fd, bool nolog) : fd_(fd) {
 #if TD_FD_DEBUG
-  get_fd_set().on_create_fd(fd);
+  get_fd_set().on_create_fd(fd_.get());
 #endif
 }
 
 #if TD_PORT_WINDOWS
 NativeFd::NativeFd(Socket socket) : fd_(reinterpret_cast<Fd>(socket)), is_socket_(true) {
   VLOG(fd) << *this << " create";
+#if TD_FD_DEBUG
+  get_fd_set().on_create_fd(fd_.get());
+#endif
 }
 #endif
 
