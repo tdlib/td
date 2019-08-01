@@ -98,6 +98,18 @@ void FileLoader::start_up() {
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
   bool is_upload = file_info.is_upload;
+
+  // Two cases when FILE_UPLOAD_RESTART will happen
+  // 1. File is ready, size is final. But there are more uploaded parts, than size of a file
+  //pm.init(1, 100000, true, 10, {0, 1, 2}, false, true).ensure_error();
+  // This error is definitely ok, because we are using actual size of file on disk (mtime is checked by somebody
+  // else). And actual size could change arbitrarily.
+  //
+  // 2. size is unknown/zero, size is not final, some parts of file are already uploaded
+  // pm.init(0, 100000, false, 10, {0, 1, 2}, false, true).ensure_error();
+  // This case is more complicated
+  // It means that at some point we got inconsistent state. Like deleted local location, but left partial remote
+  // locaiton untouched. This is completely possible at this point, but probably should be fixed.
   auto status =
       parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, is_upload);
   if (status.is_error()) {
