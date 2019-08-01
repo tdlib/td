@@ -31,7 +31,7 @@ class FdSet {
       return;
     }
     std::unique_lock<std::mutex> guard(mutex_);
-    if (fds_.count(fd) > 1) {
+    if (fds_.count(fd) >= 1) {
       LOG(FATAL) << "Create duplicated fd: " << fd;
     }
     fds_.insert(fd);
@@ -42,7 +42,10 @@ class FdSet {
     if (is_stdio(fd)) {
       return;
     }
-    LOG(FATAL) << "Unexpected release of non stdio NativeFd: " << fd;
+    if (fds_.count(fd) != 1) {
+      LOG(FATAL) << "Release unknown fd: " << fd;
+    }
+    fds_.erase(fd);
   }
 
   Status validate(NativeFd::Fd fd) {
@@ -241,6 +244,9 @@ NativeFd::Fd NativeFd::release() {
   VLOG(fd) << *this << " release";
   auto res = fd_.get();
   fd_ = {};
+#if TD_FD_DEBUG
+  get_fd_set().on_release_fd(res);
+#endif
   return res;
 }
 
