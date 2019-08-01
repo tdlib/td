@@ -83,7 +83,7 @@ struct AesCtrEncryptionEvent {
   void parse(ParserT &&parser) {
     using td::parse;
     BEGIN_PARSE_FLAGS();
-    END_PARSE_FLAGS_GENERIC();
+    END_PARSE_FLAGS();
     parse(key_salt_, parser);
     parse(iv_, parser);
     parse(key_hash_, parser);

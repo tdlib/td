@@ -44,26 +44,12 @@
   flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
   bit_offset_parse++
 
-#define END_PARSE_FLAGS()                                                   \
-  CHECK(bit_offset_parse < 31);                                             \
-  LOG_CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0)            \
-      << flags_parse << " " << bit_offset_parse << " " << parser.version(); \
-  }                                                                         \
-  while (false)
-
-#define END_PARSE_FLAGS_GENERIC()                                                                           \
-  CHECK(bit_offset_parse < 31);                                                                             \
-  LOG_CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse; \
-  }                                                                                                         \
-  while (false)
-
-#define TRY_END_PARSE_FLAGS_GENERIC()                        \
-  CHECK(bit_offset_parse < 31);                              \
-  if ((flags_parse & ~((1 << bit_offset_parse) - 1)) != 0) { \
-    parser.set_error("invalid flags");                       \
-    return;                                                  \
-  }                                                          \
-  }                                                          \
+#define END_PARSE_FLAGS()                                                                                           \
+  CHECK(bit_offset_parse < 31);                                                                                     \
+  if ((flags_parse & ~((1 << bit_offset_parse) - 1)) != 0) {                                                        \
+    parser.set_error(PSTRING() << "Invalid flags " << flags_parse << " left, current bit is " << bit_offset_parse); \
+  }                                                                                                                 \
+  }                                                                                                                 \
   while (false)
 
 namespace td {

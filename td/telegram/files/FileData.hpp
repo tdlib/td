@@ -66,6 +66,7 @@ void FileData::store(StorerT &storer) const {
     }
   }
 }
+
 template <class ParserT>
 void FileData::parse(ParserT &parser, bool register_file_sources) {
   using ::td::parse;
@@ -80,7 +81,10 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
   PARSE_FLAG(encryption_key_is_secure);
   PARSE_FLAG(has_sources);
   PARSE_FLAG(has_version);
-  TRY_END_PARSE_FLAGS_GENERIC();
+  END_PARSE_FLAGS();
+  if (parser.get_error()) {
+    return;
+  }
 
   int32 version = 0;
   if (has_version) {
@@ -115,6 +119,9 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
     parse(size, parser);
     if (0 < size && size < 5) {
       for (int i = 0; i < size; i++) {
+        if (parser.get_error()) {
+          return;
+        }
         file_source_ids_.push_back(td->file_reference_manager_->parse_file_source(td, parser));
       }
     } else {

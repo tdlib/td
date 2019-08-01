@@ -209,7 +209,7 @@ class SecretChatActor : public NetQueryCallback {
         my_layer = parser.fetch_int();
         // for future usage
         BEGIN_PARSE_FLAGS();
-        END_PARSE_FLAGS_GENERIC();
+        END_PARSE_FLAGS();
       }
     }
 
