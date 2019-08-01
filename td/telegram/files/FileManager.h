@@ -421,7 +421,6 @@ class FileManager : public FileLoadManager::Callback {
                      int32 new_priority, uint64 upload_order, bool force = false);
   void cancel_upload(FileId file_id);
   bool delete_partial_remote_location(FileId file_id);
-  bool delete_remote_location(FileId file_id);
   void delete_file_reference(FileId file_id, std::string file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 

@@ -57,6 +57,7 @@ select.large { font-size: large; }
         <option>Alpine</option>
         <option>Debian 8</option>
         <option>Debian 9</option>
+        <option>Debian 10</option>
         <option>Ubuntu 14</option>
         <option>Ubuntu 16</option>
         <option>Ubuntu 18</option>
@@ -557,6 +558,7 @@ function onOptionsChanged() {
         break;
       case 'Debian 8':
       case 'Debian 9':
+      case 'Debian 10':
       case 'Ubuntu 14':
       case 'Ubuntu 16':
       case 'Ubuntu 18':
@@ -586,12 +588,15 @@ function onOptionsChanged() {
           if (linux_distro === 'Ubuntu 18') {
             packages += ' clang-6.0 libc++abi-dev';
           } else {
-            if (linux_distro === 'Ubuntu 18') {
+            if (linux_distro === 'Ubuntu 14') {
               packages += ' clang-3.9';
             } else {
               packages += ' clang';
             }
             packages += ' libc++-dev';
+            if (linux_distro === 'Debian 10') {
+              packages += ' libc++abi-dev';
+            }
           }
         } else {
           packages += ' g++';
