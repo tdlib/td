@@ -37,17 +37,6 @@ class FdSet {
     fds_.insert(fd);
   }
 
-  void on_release_fd(NativeFd::Fd fd) {
-    CHECK(is_valid(fd));
-    if (is_stdio(fd)) {
-      return;
-    }
-    if (fds_.count(fd) != 1) {
-      LOG(FATAL) << "Release unknown fd: " << fd;
-    }
-    fds_.erase(fd);
-  }
-
   Status validate(NativeFd::Fd fd) {
     if (!is_valid(fd)) {
       return Status::Error(PSLICE() << "Invalid fd: " << fd);
@@ -81,7 +70,8 @@ class FdSet {
   bool is_stdio(NativeFd::Fd fd) const {
 #if TD_PORT_WINDOWS
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
-    return fd == GetStdHandle(STD_INPUT_HANDLE) || fd == GetStdHandle(STD_OUTPUT_HANDLE) || fd == GetStdHandle(STD_ERROR_HANDLE);
+    return fd == GetStdHandle(STD_INPUT_HANDLE) || fd == GetStdHandle(STD_OUTPUT_HANDLE) ||
+           fd == GetStdHandle(STD_ERROR_HANDLE);
 #else
     return false;
 #endif
@@ -245,7 +235,7 @@ NativeFd::Fd NativeFd::release() {
   auto res = fd_.get();
   fd_ = {};
 #if TD_FD_DEBUG
-  get_fd_set().on_release_fd(res);
+  get_fd_set().on_close_fd(res);
 #endif
   return res;
 }
