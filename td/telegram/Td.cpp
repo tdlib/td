@@ -551,14 +551,13 @@ class TestQuery : public Td::ResultHandler {
 };
 
 class TestProxyRequest : public RequestOnceActor {
+  int16 dc_id_ = 2;
   Proxy proxy_;
   ActorOwn<> child_;
   Promise<> promise_;
 
-  static constexpr int16 DC_ID = 2;
-
   auto get_transport() {
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, DC_ID, proxy_.secret()};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
   }
 
   void do_run(Promise<Unit> &&promise) override {
@@ -576,7 +575,7 @@ class TestProxyRequest : public RequestOnceActor {
     auto dc_options = ConnectionCreator::get_default_dc_options(false);
     IPAddress mtproto_ip;
     for (auto &dc_option : dc_options.dc_options) {
-      if (dc_option.get_dc_id().get_raw_id() == DC_ID) {
+      if (dc_option.get_dc_id().get_raw_id() == dc_id_) {
         mtproto_ip = dc_option.get_ip_address();
         break;
       }
@@ -608,7 +607,7 @@ class TestProxyRequest : public RequestOnceActor {
      private:
       PublicRsaKeyShared public_rsa_key{DcId::empty(), false};
     };
-    auto handshake = make_unique<mtproto::AuthKeyHandshake>(DC_ID, 3600);
+    auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     auto data = r_data.move_as_ok();
     auto raw_connection = make_unique<mtproto::RawConnection>(std::move(data.socket_fd), get_transport(), nullptr);
     child_ = create_actor<mtproto::HandshakeActor>(
@@ -646,7 +645,6 @@ class TestProxyRequest : public RequestOnceActor {
       : RequestOnceActor(std::move(td), request_id), proxy_(std::move(proxy)) {
   }
 };
-constexpr int16 TestProxyRequest::DC_ID;
 
 class GetAccountTtlRequest : public RequestActor<int32> {
   int32 account_ttl_;
