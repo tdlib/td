@@ -77,7 +77,11 @@ class FdSet {
 
   bool is_stdio(NativeFd::Fd fd) const {
 #if TD_PORT_WINDOWS
-    return fd == STD_INPUT_HANDLE || fd == STD_OUTPUT_HANDLE || fd == STD_ERROR_HANDLE;
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+    return fd == GetStdHandle(STD_INPUT_HANDLE) || fd == GetStdHandle(STD_OUTPUT_HANDLE) || fd == GetStdHandle(STD_ERROR_HANDLE);
+#else
+    return false;
+#endif
 #else
     return fd >= 0 && fd <= 2;
 #endif
