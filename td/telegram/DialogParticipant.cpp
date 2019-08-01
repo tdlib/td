@@ -124,7 +124,7 @@ tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member
 
 tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_admin_rights() const {
   int32 flags = 0;
-  if (can_change_info_and_settings()) {
+  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0) {
     flags |= telegram_api::chatAdminRights::CHANGE_INFO_MASK;
   }
   if (can_post_messages()) {
@@ -136,13 +136,13 @@ tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_a
   if (can_delete_messages()) {
     flags |= telegram_api::chatAdminRights::DELETE_MESSAGES_MASK;
   }
-  if (can_invite_users()) {
+  if ((flags_ & CAN_INVITE_USERS_ADMIN) != 0) {
     flags |= telegram_api::chatAdminRights::INVITE_USERS_MASK;
   }
   if (can_restrict_members()) {
     flags |= telegram_api::chatAdminRights::BAN_USERS_MASK;
   }
-  if (can_pin_messages()) {
+  if ((flags_ & CAN_PIN_MESSAGES_ADMIN) != 0) {
     flags |= telegram_api::chatAdminRights::PIN_MESSAGES_MASK;
   }
   if (can_promote_members()) {
@@ -184,13 +184,13 @@ tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_
   if (!can_send_polls()) {
     flags |= telegram_api::chatBannedRights::SEND_POLLS_MASK;
   }
-  if (!can_change_info_and_settings()) {
+  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) == 0) {
     flags |= telegram_api::chatBannedRights::CHANGE_INFO_MASK;
   }
-  if (!can_invite_users()) {
+  if ((flags_ & CAN_INVITE_USERS_BANNED) == 0) {
     flags |= telegram_api::chatBannedRights::INVITE_USERS_MASK;
   }
-  if (!can_pin_messages()) {
+  if ((flags_ & CAN_PIN_MESSAGES_BANNED) == 0) {
     flags |= telegram_api::chatBannedRights::PIN_MESSAGES_MASK;
   }
 
