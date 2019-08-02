@@ -5219,7 +5219,8 @@ void Td::on_request(uint64 id, td_api::getStorageStatistics &request) {
       promise.set_value(result.ok().as_td_api());
     }
   });
-  send_closure(storage_manager_, &StorageManager::get_storage_stats, request.chat_limit_, std::move(query_promise));
+  send_closure(storage_manager_, &StorageManager::get_storage_stats, false /*need_all_files*/, request.chat_limit_,
+               std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
