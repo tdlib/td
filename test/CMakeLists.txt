@@ -32,7 +32,7 @@ target_link_libraries(all_tests PRIVATE tdactor tddb tdcore tdnet tdutils tdclie
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   #Tests
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
-  if (CLANG AND NOT CYGWIN AND NOT EMSCRIPTEN)
+  if (CLANG AND NOT CYGWIN AND NOT EMSCRIPTEN AND NOT (CMAKE_HOST_SYSTEM_NAME MATCHES "OpenBSD"))
     target_compile_options(run_all_tests PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fno-sanitize=vptr")
   endif()
