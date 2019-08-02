@@ -664,8 +664,8 @@ TEST(Misc, Bits) {
     ASSERT_EQ(i, count_trailing_zeroes_non_zero64(1ull << i));
   }
 
-  ASSERT_EQ(0x12345678u, bswap32(0x78563412u));
-  ASSERT_EQ(0x12345678abcdef67ull, bswap64(0x67efcdab78563412ull));
+  ASSERT_EQ(0x12345678u, td::bswap32(0x78563412u));
+  ASSERT_EQ(0x12345678abcdef67ull, td::bswap64(0x67efcdab78563412ull));
 
   ASSERT_EQ(0, count_bits32(0));
   ASSERT_EQ(0, count_bits64(0));

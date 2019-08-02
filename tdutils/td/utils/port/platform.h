@@ -47,6 +47,8 @@
   #define TD_FREEBSD 1
 #elif defined(__OpenBSD__)
   #define TD_OPENBSD 1
+#elif defined(__NetBSD__)
+  #define TD_NETBSD 1
 #elif defined(__CYGWIN__)
   #define TD_CYGWIN 1
 #elif defined(__EMSCRIPTEN__)
