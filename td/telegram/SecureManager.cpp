@@ -119,6 +119,7 @@ class SetSecureValue : public NetQueryCallback {
   void loop() override;
   void on_result(NetQueryPtr query) override;
 
+  void load_secret();
   void cancel_upload();
   void start_upload_all();
   void start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info);
@@ -164,6 +165,9 @@ GetSecureValue::GetSecureValue(ActorShared<SecureManager> parent, std::string pa
 }
 
 void GetSecureValue::on_error(Status error) {
+  if (error.message() == "SECURE_SECRET_REQUIRED") {
+    send_closure(G()->password_manager(), &PasswordManager::drop_cached_secret);
+  }
   if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
@@ -240,6 +244,9 @@ GetAllSecureValues::GetAllSecureValues(ActorShared<SecureManager> parent, std::s
 }
 
 void GetAllSecureValues::on_error(Status error) {
+  if (error.message() == "SECURE_SECRET_REQUIRED") {
+    send_closure(G()->password_manager(), &PasswordManager::drop_cached_secret);
+  }
   if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
@@ -396,10 +403,7 @@ void SetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool x) 
 }
 
 void SetSecureValue::start_up() {
-  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
-               PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
-                 send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
-               }));
+  load_secret();
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
 
   // Remove duplicate files
@@ -475,6 +479,13 @@ void SetSecureValue::start_up() {
   start_upload_all();
 }
 
+void SetSecureValue::load_secret() {
+  secret_ = {};
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
+               PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
+                 send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
+               }));
+}
 void SetSecureValue::cancel_upload() {
   upload_generation_++;
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
@@ -524,7 +535,6 @@ void SetSecureValue::start_upload_all() {
   if (selfie_) {
     start_upload(file_manager, secure_value_.selfie.file_id, selfie_.value());
   }
-  loop();
 }
 
 void SetSecureValue::start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info) {
@@ -580,9 +590,16 @@ void SetSecureValue::tear_down() {
 void SetSecureValue::on_result(NetQueryPtr query) {
   auto r_result = fetch_result<telegram_api::account_saveSecureValue>(std::move(query));
   if (r_result.is_error()) {
+    if (r_result.error().message() == "SECURE_SECRET_REQUIRED") {
+      state_ = State::WaitSecret;
+      send_closure(G()->password_manager(), &PasswordManager::drop_cached_secret);
+      load_secret();
+      return loop();
+    }
     if (r_result.error().message() == "SECURE_SECRET_INVALID") {
       state_ = State::WaitSecret;
-      return start_upload_all();
+      start_upload_all();
+      return loop();
     }
     return on_error(r_result.move_as_error());
   }

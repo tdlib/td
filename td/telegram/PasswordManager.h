@@ -83,6 +83,7 @@ class PasswordManager : public NetQueryCallback {
   void get_temp_password_state(Promise<TempState> promise) /*const*/;
   void create_temp_password(string password, int32 timeout, Promise<TempState> promise);
   void drop_temp_password();
+  void drop_cached_secret();
 
   static TempPasswordState get_temp_password_state_sync();
 
@@ -178,7 +179,6 @@ class PasswordManager : public NetQueryCallback {
   void do_get_secure_secret(bool allow_recursive, string password, Promise<secure_storage::Secret> promise);
   void do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise);
   void cache_secret(secure_storage::Secret secret);
-  void drop_cached_secret();
 
   void do_create_temp_password(string password, int32 timeout, PasswordState &&password_state,
                                Promise<TempPasswordState> promise);
