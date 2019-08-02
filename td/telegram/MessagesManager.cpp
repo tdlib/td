@@ -7402,9 +7402,8 @@ void MessagesManager::delete_dialog_messages_from_updates(DialogId dialog_id, co
       continue;
     }
 
-    if (delete_message(d, message_id, true, &need_update_dialog_pos, "updates") != nullptr) {
-      deleted_message_ids.push_back(message_id.get());
-    }
+    delete_message(d, message_id, true, &need_update_dialog_pos, "updates");
+    deleted_message_ids.push_back(message_id.get());
   }
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "delete_dialog_messages_from_updates");
@@ -19343,9 +19342,9 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
     //   on_message_changed(d, m, false, "remove_message_notifications_by_message_ids");
     // }
 
-    auto m =
+    auto message =
         delete_message(d, message_id, true, &need_update_dialog_pos, "remove_message_notifications_by_message_ids");
-    if (m == nullptr) {
+    if (message == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
       // call synchronously to remove them before ProcessPush returns
       td_->notification_manager_->remove_temporary_notification_by_message_id(
@@ -19354,7 +19353,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
           d->mention_notification_group.group_id, message_id, true, "remove_message_notifications_by_message_ids");
       continue;
     }
-    deleted_message_ids.push_back(m->message_id.get());
+    deleted_message_ids.push_back(message_id.get());
   }
 
   if (need_update_dialog_pos) {
