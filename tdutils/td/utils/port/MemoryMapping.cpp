@@ -82,9 +82,9 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
   auto fixed_begin = begin / page_size * page_size;
 
   auto data_offset = begin - fixed_begin;
-  auto data_size = end - fixed_begin;
+  auto data_size = narrow_cast<size_t>(end - fixed_begin);
 
-  void *data = mmap(nullptr, narrow_cast<size_t>(data_size), PROT_READ, MAP_PRIVATE, fd, narrow_cast<off_t>(fixed_begin));
+  void *data = mmap(nullptr, data_size, PROT_READ, MAP_PRIVATE, fd, narrow_cast<off_t>(fixed_begin));
   if (data == MAP_FAILED) {
     return OS_ERROR("mmap call failed");
   }
