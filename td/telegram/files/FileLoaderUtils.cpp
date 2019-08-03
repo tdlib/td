@@ -142,6 +142,15 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
 }
 
 Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name) {
+  auto r_old_path = search_file(get_files_dir(type), file_name, bytes.size());
+  if (r_old_path.is_ok()) {
+    auto r_old_bytes = read_file(r_old_path.ok());
+    if (r_old_bytes.is_ok() && r_old_bytes.ok().as_slice() == bytes.as_slice()) {
+      LOG(INFO) << "Found previous file with the same name " << r_old_path.ok();
+      return FullLocalFileLocation(type, r_old_path.ok(), 0);
+    }
+  }
+
   TRY_RESULT(fd_path, open_temp_file(type));
   FileFd fd = std::move(fd_path.first);
   string path = std::move(fd_path.second);
