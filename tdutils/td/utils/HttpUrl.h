@@ -36,8 +36,7 @@ class HttpUrl {
   }
 };
 
-// TODO Slice instead of MutableSlice
-Result<HttpUrl> parse_url(MutableSlice url,
+Result<HttpUrl> parse_url(Slice url,
                           HttpUrl::Protocol default_protocol = HttpUrl::Protocol::HTTP) TD_WARN_UNUSED_RESULT;
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url);

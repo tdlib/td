@@ -45,9 +45,9 @@ string HttpUrl::get_url() const {
   return result;
 }
 
-Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) {
+Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   // url == [https?://][userinfo@]host[:port]
-  Parser parser(url);
+  ConstParser parser(url);
   string protocol_str = to_lower(parser.read_till_nofail(':'));
 
   HttpUrl::Protocol protocol;
@@ -61,7 +61,7 @@ Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) 
       return Status::Error("Unsupported URL protocol");
     }
   } else {
-    parser = Parser(url);
+    parser = ConstParser(url);
     protocol = default_protocol;
   }
   Slice userinfo_host_port = parser.read_till_nofail("/?#");

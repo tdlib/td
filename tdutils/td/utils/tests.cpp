@@ -100,7 +100,7 @@ class RegressionTesterImpl : public RegressionTester {
 
   Status load_db(CSlice path) {
     TRY_RESULT(data, read_file(path));
-    Parser parser(data.as_slice());
+    ConstParser parser(data.as_slice());
     auto db_magic = parser.read_word();
     if (db_magic != magic()) {
       return Status::Error(PSLICE() << "Wrong magic " << db_magic);
