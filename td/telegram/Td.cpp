@@ -1175,6 +1175,33 @@ class GetMessageLinkRequest : public RequestActor<> {
   }
 };
 
+class GetMessageLinkInfoRequest : public RequestActor<MessagesManager::MessageLinkInfo> {
+  string url_;
+
+  MessagesManager::MessageLinkInfo message_link_info_;
+
+  void do_run(Promise<MessagesManager::MessageLinkInfo> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(message_link_info_));
+      return;
+    }
+    td->messages_manager_->get_message_link_info(url_, std::move(promise));
+  }
+
+  void do_set_result(MessagesManager::MessageLinkInfo &&result) override {
+    message_link_info_ = std::move(result);
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_link_info_object(message_link_info_));
+  }
+
+ public:
+  GetMessageLinkInfoRequest(ActorShared<Td> td, uint64 request_id, string url)
+      : RequestActor(std::move(td), request_id), url_(std::move(url)) {
+  }
+};
+
 class EditMessageTextRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
@@ -5193,6 +5220,11 @@ void Td::on_request(uint64 id, const td_api::getPublicMessageLink &request) {
 void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageLinkRequest, request.chat_id_, request.message_id_);
+}
+
+void Td::on_request(uint64 id, td_api::getMessageLinkInfo &request) {
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_REQUEST(GetMessageLinkInfoRequest, std::move(request.url_));
 }
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {

@@ -326,7 +326,7 @@ class MessagesManager : public Actor {
 
   void clear_recently_found_dialogs();
 
-  DialogId resolve_dialog_username(const string &username);
+  DialogId resolve_dialog_username(const string &username) const;
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
@@ -495,6 +495,18 @@ class MessagesManager : public Actor {
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
   string get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
+
+  struct MessageLinkInfo {
+    string username;
+    // or
+    ChannelId channel_id;
+
+    MessageId message_id;
+    bool is_single = false;
+  };
+  void get_message_link_info(Slice url, Promise<MessageLinkInfo> &&promise);
+
+  td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
@@ -1915,6 +1927,10 @@ class MessagesManager : public Actor {
   void ttl_db_loop_start(double server_now);
   void ttl_db_loop(double server_now);
   void ttl_db_on_result(Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> r_result, bool dummy);
+
+  static Result<MessageLinkInfo> get_message_link_info(Slice url);
+
+  void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, SearchMessagesFilter filter);
 

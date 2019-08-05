@@ -9528,7 +9528,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
   have_channel_force(channel_id);
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup info not found"));
+    input_channel = make_tl_object<telegram_api::inputChannel>(channel_id.get(), 0);
   }
 
   // there is no much reason to combine different requests into one request

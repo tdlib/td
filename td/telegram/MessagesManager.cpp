@@ -12061,6 +12061,7 @@ MessageId MessagesManager::get_replied_message_id(const Message *m) {
 
 void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
                                                     tl_object_ptr<telegram_api::InputMessage> input_message) {
+  LOG(INFO) << "Get " << message_id << " in " << d->dialog_id << " using " << to_string(input_message);
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
   if (m == nullptr && message_id.is_valid() && message_id.is_server()) {
     auto dialog_type = d->dialog_id.get_type();
@@ -12369,6 +12370,214 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<
   promise.set_value(Unit());
   return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "c/"
                    << dialog_id.get_channel_id().get() << "/" << message_id.get_server_message_id().get();
+}
+
+Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(Slice url) {
+  if (url.empty()) {
+    return Status::Error("URL must be non-empty");
+  }
+
+  url.truncate(url.find('#'));
+
+  string lower_cased_url = to_lower(url);
+  url = lower_cased_url;
+
+  Slice username;
+  Slice channel_id_slice;
+  Slice message_id_slice;
+  bool is_single = false;
+  if (begins_with(url, "tg:")) {
+    url = url.substr(3);
+    if (begins_with(url, "//")) {
+      url = url.substr(2);
+    }
+
+    // resolve?domain=username&post=12345&single
+    // privatepost?channel=123456789&msg_id=12345
+
+    bool is_resolve = false;
+    if (begins_with(url, "resolve")) {
+      url = url.substr(7);
+      is_resolve = true;
+    } else if (begins_with(url, "privatepost")) {
+      url = url.substr(11);
+    } else {
+      return Status::Error("Wrong message link URL");
+    }
+
+    if (begins_with(url, "/")) {
+      url = url.substr(1);
+    }
+    if (!begins_with(url, "?")) {
+      return Status::Error("Wrong message link URL");
+    }
+    url = url.substr(1);
+
+    auto args = full_split(url, '&');
+    for (auto arg : args) {
+      auto key_value = split(arg, '=');
+      if (is_resolve) {
+        if (key_value.first == "domain") {
+          username = key_value.second;
+        }
+        if (key_value.first == "post") {
+          message_id_slice = key_value.second;
+        }
+      } else {
+        if (key_value.first == "channel") {
+          channel_id_slice = key_value.second;
+        }
+        if (key_value.first == "msg_id") {
+          message_id_slice = key_value.second;
+        }
+      }
+      if (key_value.first == "single") {
+        is_single = true;
+      }
+    }
+  } else {
+    if (begins_with(url, "http://") || begins_with(url, "https://")) {
+      url = url.substr(url[4] == 's' ? 8 : 7);
+    }
+
+    // t.me/c/123456789/12345
+    // t.me/username/12345?single
+
+    vector<Slice> t_me_urls{Slice("t.me/"), Slice("telegram.me/"), Slice("telegram.dog/")};
+    string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
+    if (begins_with(cur_t_me_url, "http://") || begins_with(cur_t_me_url, "https://")) {
+      Slice t_me_url = cur_t_me_url;
+      t_me_url = t_me_url.substr(url[4] == 's' ? 8 : 7);
+      if (std::find(t_me_urls.begin(), t_me_urls.end(), t_me_url) == t_me_urls.end()) {
+        t_me_urls.push_back(t_me_url);
+      }
+    }
+
+    for (auto t_me_url : t_me_urls) {
+      if (begins_with(url, t_me_url)) {
+        url = url.substr(t_me_url.size());
+        auto username_end_pos = url.find('/');
+        if (username_end_pos == Slice::npos) {
+          return Status::Error("Wrong message link URL");
+        }
+        username = url.substr(0, username_end_pos);
+        url = url.substr(username_end_pos + 1);
+        if (username == "c") {
+          username = Slice();
+          auto channel_id_end_pos = url.find('/');
+          if (channel_id_end_pos == Slice::npos) {
+            return Status::Error("Wrong message link URL");
+          }
+          channel_id_slice = url.substr(0, channel_id_end_pos);
+          url = url.substr(channel_id_end_pos + 1);
+        }
+
+        auto query_pos = url.find('?');
+        message_id_slice = url.substr(0, query_pos);
+        is_single = query_pos != Slice::npos && url.substr(query_pos + 1) == "single";
+        break;
+      }
+    }
+  }
+
+  ChannelId channel_id;
+  if (username.empty()) {
+    auto r_channel_id = to_integer_safe<int32>(channel_id_slice);
+    if (r_channel_id.is_error() || !ChannelId(r_channel_id.ok()).is_valid()) {
+      return Status::Error("Wrong channel ID");
+    }
+    channel_id = ChannelId(r_channel_id.ok());
+  }
+
+  auto r_message_id = to_integer_safe<int32>(message_id_slice);
+  if (r_message_id.is_error() || !ServerMessageId(r_message_id.ok()).is_valid()) {
+    return Status::Error("Wrong message ID");
+  }
+
+  MessageLinkInfo info;
+  info.username = username.str();
+  info.channel_id = channel_id;
+  info.message_id = MessageId(ServerMessageId(r_message_id.ok()));
+  info.is_single = is_single;
+  LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << "/" << channel_id.get();
+  return std::move(info);
+}
+
+void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> &&promise) {
+  auto r_message_link_info = get_message_link_info(url);
+  if (r_message_link_info.is_error()) {
+    return promise.set_error(Status::Error(400, r_message_link_info.error().message()));
+  }
+
+  auto info = r_message_link_info.move_as_ok();
+  CHECK(info.username.empty() == info.channel_id.is_valid());
+
+  bool have_dialog = info.username.empty() ? td_->contacts_manager_->have_channel_force(info.channel_id)
+                                           : resolve_dialog_username(info.username).is_valid();
+  if (!have_dialog) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), info, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_value(std::move(info));
+          }
+          send_closure(actor_id, &MessagesManager::on_get_message_link_dialog, std::move(info), std::move(promise));
+        });
+    if (info.username.empty()) {
+      td_->contacts_manager_->reload_channel(info.channel_id, std::move(query_promise));
+    } else {
+      td_->create_handler<ResolveUsernameQuery>(std::move(query_promise))->send(info.username);
+    }
+    return;
+  }
+
+  return on_get_message_link_dialog(std::move(info), std::move(promise));
+}
+
+void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise) {
+  DialogId dialog_id;
+  if (info.username.empty()) {
+    if (!td_->contacts_manager_->have_channel(info.channel_id)) {
+      return promise.set_error(Status::Error(500, "Chat info not found"));
+    }
+
+    dialog_id = DialogId(info.channel_id);
+    force_create_dialog(dialog_id, "on_get_message_link_dialog");
+  } else {
+    dialog_id = resolve_dialog_username(info.username);
+  }
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(500, "Chat not found"));
+  }
+
+  get_message_force_from_server(
+      d, info.message_id,
+      PromiseCreator::lambda([info = std::move(info), promise = std::move(promise)](Result<Unit> &&result) mutable {
+        promise.set_value(std::move(info));
+      }));
+}
+
+td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_info_object(
+    const MessageLinkInfo &info) const {
+  CHECK(info.username.empty() == info.channel_id.is_valid());
+
+  bool is_public = !info.username.empty();
+  DialogId dialog_id = is_public ? resolve_dialog_username(info.username) : DialogId(info.channel_id);
+  td_api::object_ptr<td_api::message> message;
+  bool for_album = false;
+
+  const Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    dialog_id = DialogId();
+  } else {
+    const Message *m = get_message(d, info.message_id);
+    if (m != nullptr) {
+      message = get_message_object(dialog_id, m);
+      for_album = !info.is_single && m->media_album_id != 0;
+    }
+  }
+
+  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), for_album);
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {
@@ -20864,13 +21073,14 @@ void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
   }
 }
 
-DialogId MessagesManager::resolve_dialog_username(const string &username) {
-  auto it = resolved_usernames_.find(clean_username(username));
+DialogId MessagesManager::resolve_dialog_username(const string &username) const {
+  auto cleaned_username = clean_username(username);
+  auto it = resolved_usernames_.find(cleaned_username);
   if (it != resolved_usernames_.end()) {
     return it->second.dialog_id;
   }
 
-  auto it2 = inaccessible_resolved_usernames_.find(clean_username(username));
+  auto it2 = inaccessible_resolved_usernames_.find(cleaned_username);
   if (it2 != inaccessible_resolved_usernames_.end()) {
     return it2->second;
   }

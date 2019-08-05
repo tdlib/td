@@ -641,7 +641,7 @@ chatInviteLink invite_link:string = ChatInviteLink;
 //@photo Chat photo; may be null
 //@member_count Number of members
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@is_public True, if the chat is a public supergroup or channel with a username
+//@is_public True, if the chat is a public supergroup or a channel with a username
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
@@ -2005,7 +2005,7 @@ checkChatUsernameResultUsernameInvalid = CheckChatUsernameResult;
 //@description The username is occupied
 checkChatUsernameResultUsernameOccupied = CheckChatUsernameResult;
 
-//@description The user has too much public chats, one of them should be made private first
+//@description The user has too much chats with username, one of them should be made private first
 checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
 
 //@description The user can't be a member of a public supergroup
@@ -2278,8 +2278,15 @@ chatReportReasonCopyright = ChatReportReason;
 chatReportReasonCustom text:string = ChatReportReason;
 
 
-//@description Contains a public HTTPS link to a message in a public supergroup or channel @link Message link @html HTML-code for embedding the message
+//@description Contains a public HTTPS link to a message in a public supergroup or channel with a username @link Message link @html HTML-code for embedding the message
 publicMessageLink link:string html:string = PublicMessageLink;
+
+//@description Contains information about a link to a message in a chat
+//@is_public True, if the link is a public link for a message in a chat
+//@chat_id If found, identifier of the chat to which the message belongs, 0 otherwise
+//@message If found, the linked message; may be null
+//@for_album True, if the whole media album to which the message belongs is linked
+messageLinkInfo is_public:Bool chat_id:int53 message:message for_album:Bool = MessageLinkInfo;
 
 
 //@description Contains a part of a file @data File bytes
@@ -2959,7 +2966,7 @@ clearRecentlyFoundChats = Ok;
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if chat is being created @username Username to be checked
 checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 
-//@description Returns a list of public chats created by the user
+//@description Returns a list of public chats with username created by the user
 getCreatedPublicChats = Chats;
 
 
@@ -3032,7 +3039,7 @@ removeNotification notification_group_id:int32 notification_id:int32 = Ok;
 removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
-//@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels
+//@description Returns a public HTTPS link to a message. Available only for messages in supergroups and channels with username
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@for_album Pass true if a link for a whole media album should be returned
@@ -3042,6 +3049,9 @@ getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool = PublicMessa
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 getMessageLink chat_id:int53 message_id:int53 = HttpUrl;
+
+//@description Returns information about a public or private message link @url The message link in the format "https://t.me/c/...", or "tg://privatepost?...", or "https://t.me/username/...", or "tg://resolve?..."
+getMessageLinkInfo url:string = MessageLinkInfo;
 
 
 //@description Sends a message. Returns the sent message @chat_id Target chat @reply_to_message_id Identifier of the message to reply to or 0
