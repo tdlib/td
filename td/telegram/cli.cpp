@@ -3483,6 +3483,9 @@ class CliClient final : public Actor {
     } else if (op == "racm") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::readAllChatMentions>(as_chat_id(chat_id)));
+    } else if (op == "tre") {
+      send_request(td_api::make_object<td_api::testReturnError>(
+          args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));
     } else if (op == "dpp") {
       send_request(td_api::make_object<td_api::deleteProfilePhoto>(to_integer<int64>(args)));
     } else if (op == "gcnse" || op == "gcnses") {

@@ -3433,7 +3433,7 @@ bool Td::is_preinitialization_request(int32 id) {
     case td_api::getCurrentState::ID:
     case td_api::setAlarm::ID:
     case td_api::testUseUpdate::ID:
-    case td_api::testUseError::ID:
+    case td_api::testReturnError::ID:
     case td_api::testCallEmpty::ID:
     case td_api::testSquareInt::ID:
     case td_api::testCallString::ID:
@@ -7686,8 +7686,8 @@ void Td::on_request(uint64 id, td_api::testUseUpdate &request) {
   send_closure(actor_id(this), &Td::send_result, id, nullptr);
 }
 
-void Td::on_request(uint64 id, td_api::testUseError &request) {
-  send_closure(actor_id(this), &Td::send_result, id, nullptr);
+void Td::on_request(uint64 id, td_api::testReturnError &request) {
+  send_closure(actor_id(this), &Td::send_result, id, std::move(request.error_));
 }
 
 void Td::on_request(uint64 id, td_api::testCallEmpty &request) {

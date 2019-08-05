@@ -4010,5 +4010,5 @@ testProxy server:string port:int32 type:ProxyType = Ok;
 testGetDifference = Ok;
 //@description Does nothing and ensures that the Update object is used; for testing only. This is an offline method. Can be called before authorization
 testUseUpdate = Update;
-//@description Does nothing and ensures that the Error object is used; for testing only. This is an offline method. Can be called before authorization
-testUseError = Error;
+//@description Returns the specified error and ensures that the Error object is used; for testing only. This is an offline method. Can be called before authorization @error The error to be returned
+testReturnError error:error = Error;
