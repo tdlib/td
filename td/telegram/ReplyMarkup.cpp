@@ -380,7 +380,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::Url;
-      TRY_RESULT(url, check_url(static_cast<td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
+      TRY_RESULT(url, check_url(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
       current_button.data = std::move(url);
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button url must be encoded in UTF-8");

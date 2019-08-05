@@ -275,7 +275,7 @@ string get_emoji_fingerprint(uint64 num) {
   return emojis[static_cast<size_t>((num & 0x7FFFFFFFFFFFFFFF) % emojis.size())].str();
 }
 
-Result<string> check_url(MutableSlice url) {
+Result<string> check_url(Slice url) {
   bool is_tg = false;
   if (begins_with(url, "tg://")) {
     url.remove_prefix(5);

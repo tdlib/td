@@ -1872,8 +1872,7 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         break;
       }
       case telegram_api::messageEntityTextUrl::ID: {
-        // TODO const telegram_api::messageEntityTextUrl *
-        auto entity_text_url = static_cast<telegram_api::messageEntityTextUrl *>(entity.get());
+        auto entity_text_url = static_cast<const telegram_api::messageEntityTextUrl *>(entity.get());
         auto r_url = check_url(entity_text_url->url_);
         if (r_url.is_error()) {
           LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message() << " from "

@@ -2596,8 +2596,7 @@ string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
 
 Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType file_type) {
   if (persistent_id.find('.') != string::npos) {
-    string input_url = persistent_id.str();  // TODO do not copy persistent_id
-    TRY_RESULT(http_url, parse_url(input_url));
+    TRY_RESULT(http_url, parse_url(persistent_id));
     auto url = http_url.get_url();
     if (!clean_input_string(url)) {
       return Status::Error(400, "URL must be in UTF-8");

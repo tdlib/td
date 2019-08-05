@@ -1072,7 +1072,7 @@ string InlineQueriesManager::get_web_document_url(const tl_object_ptr<telegram_a
     return {};
   }
 
-  string url;
+  Slice url;
   switch (web_document_ptr->get_id()) {
     case telegram_api::webDocument::ID: {
       auto web_document = static_cast<const telegram_api::webDocument *>(web_document_ptr.get());

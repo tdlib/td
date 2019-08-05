@@ -34,8 +34,7 @@ Wget::Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::
 }
 
 Status Wget::try_init() {
-  string input_url = input_url_;
-  TRY_RESULT(url, parse_url(MutableSlice(input_url)));
+  TRY_RESULT(url, parse_url(input_url_));
   TRY_RESULT(ascii_host, idn_to_ascii(url.host_));
   url.host_ = std::move(ascii_host);
 
