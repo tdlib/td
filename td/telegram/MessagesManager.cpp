@@ -11543,21 +11543,29 @@ vector<DialogId> MessagesManager::get_dialogs(DialogDate offset, int32 limit, bo
     ++it;
   }
 
-  if (limit <= 0 || last_dialog_date_ == MAX_DIALOG_DATE || force) {
+  if (limit <= 0 || force) {
     promise.set_value(Unit());
     return result;
   }
 
-  load_dialog_list(limit, std::move(promise));
+  load_dialog_list(limit, false, std::move(promise));
   return result;
 }
 
-void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
+void MessagesManager::load_dialog_list(int32 limit, bool only_local, Promise<Unit> &&promise) {
+  if (last_dialog_date_ == MAX_DIALOG_DATE) {
+    return promise.set_value(Unit());
+  }
+
+  bool use_database =
+      G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_;
+  if (only_local && !use_database) {
+    return promise.set_value(Unit());
+  }
+
   LOG(INFO) << "Load dialog list with limit " << limit;
   auto &multipromise = load_dialog_list_multipromise_;
   multipromise.add_promise(std::move(promise));
-  bool use_database =
-      G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_;
   if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
     if (use_database && load_dialog_list_limit_max_ != 0) {
@@ -11571,15 +11579,18 @@ void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
     load_dialog_list_from_database(limit, multipromise.get_promise());
     is_query_sent = true;
   } else {
+    if (limit > MAX_GET_DIALOGS) {
+      limit = MAX_GET_DIALOGS;
+    }
+
     LOG(INFO) << "Get dialogs from " << last_server_dialog_date_;
-    auto sequence_id = get_sequence_dispatcher_id(DialogId(), MessageContentType::None);
-    send_closure(td_->create_net_actor<GetPinnedDialogsActor>(multipromise.get_promise()), &GetPinnedDialogsActor::send,
-                 sequence_id);
+    reload_pinned_dialogs(multipromise.get_promise());
     if (last_dialog_date_ == last_server_dialog_date_) {
       send_closure(td_->create_net_actor<GetDialogListActor>(multipromise.get_promise()), &GetDialogListActor::send,
                    last_server_dialog_date_.get_date(),
                    last_server_dialog_date_.get_message_id().get_next_server_message_id().get_server_message_id(),
-                   last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS}, sequence_id);
+                   last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS},
+                   get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
       is_query_sent = true;
     }
   }
@@ -11684,10 +11695,11 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
 
   if (messages_manager->last_loaded_database_dialog_date_ < messages_manager->last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
-    messages_manager->load_dialog_list(20, Auto());
+    messages_manager->load_dialog_list(20, true, Auto());
   } else if (messages_manager->last_dialog_date_ != MAX_DIALOG_DATE) {
     // otherwise load more dialogs from the server
-    messages_manager->load_dialog_list(MAX_GET_DIALOGS, PromiseCreator::lambda([messages_manager](Result<Unit> result) {
+    messages_manager->load_dialog_list(MAX_GET_DIALOGS, false,
+                                       PromiseCreator::lambda([messages_manager](Result<Unit> result) {
                                          if (result.is_ok()) {
                                            messages_manager->recalc_unread_count();
                                          }
@@ -11710,6 +11722,14 @@ vector<DialogId> MessagesManager::get_pinned_dialogs() const {
   }
 
   return result;
+}
+
+void MessagesManager::reload_pinned_dialogs(Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+  send_closure(td_->create_net_actor<GetPinnedDialogsActor>(std::move(promise)), &GetPinnedDialogsActor::send,
+               get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
@@ -13784,9 +13804,7 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     return result;
   }
 
-  if (G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_) {
-    load_dialog_list(MAX_GET_DIALOGS, Auto());
-  }
+  load_dialog_list(MAX_GET_DIALOGS, true, Auto());
 
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
   return {};
@@ -20861,10 +20879,8 @@ void MessagesManager::on_update_dialog_is_pinned(DialogId dialog_id, bool is_pin
 
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    LOG(WARNING) << "Can't apply updateDialogPinned with " << dialog_id;
-    // TODO logevent + promise
-    send_closure(td_->create_net_actor<GetPinnedDialogsActor>(Promise<>()), &GetPinnedDialogsActor::send,
-                 get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+    LOG(INFO) << "Can't apply updateDialogPinned with unknown " << dialog_id;
+    on_update_pinned_dialogs();
     return;
   }
   if (!is_pinned && d->pinned_order == DEFAULT_ORDER) {
@@ -20875,9 +20891,18 @@ void MessagesManager::on_update_dialog_is_pinned(DialogId dialog_id, bool is_pin
 }
 
 void MessagesManager::on_update_pinned_dialogs() {
-  // TODO logevent + promise
-  send_closure(td_->create_net_actor<GetPinnedDialogsActor>(Promise<>()), &GetPinnedDialogsActor::send,
-               get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+  // TODO logevent + delete_logevent_promise
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Unit /* ignore result */) {
+    send_closure(actor_id, &MessagesManager::reload_pinned_dialogs, Promise<Unit>());
+  });
+
+  // max ordinary pinned dialogs + max pinned secret chats + sponsored proxy
+  size_t needed_dialogs = 2 * get_pinned_dialogs_limit() + 1;
+  if (ordered_dialogs_.size() >= needed_dialogs) {
+    query_promise.set_value(Unit());
+  } else {
+    load_dialog_list(needed_dialogs - ordered_dialogs_.size(), true, std::move(query_promise));
+  }
 }
 
 void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {

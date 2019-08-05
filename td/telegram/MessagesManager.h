@@ -1555,7 +1555,7 @@ class MessagesManager : public Actor {
 
   void try_reuse_notification_group(NotificationGroupInfo &group_info);
 
-  void load_dialog_list(int32 limit, Promise<Unit> &&promise);
+  void load_dialog_list(int32 limit, bool only_local, Promise<Unit> &&promise);
 
   void load_dialog_list_from_database(int32 limit, Promise<Unit> &&promise);
 
@@ -1840,6 +1840,8 @@ class MessagesManager : public Actor {
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
   vector<DialogId> get_pinned_dialogs() const;
+
+  void reload_pinned_dialogs(Promise<Unit> &&promise);
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
