@@ -3422,6 +3422,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::setLogTagVerbosityLevel::ID:
     case td_api::getLogTagVerbosityLevel::ID:
     case td_api::addLogMessage::ID:
+    case td_api::testReturnError::ID:
       return true;
     default:
       return false;
@@ -3433,7 +3434,6 @@ bool Td::is_preinitialization_request(int32 id) {
     case td_api::getCurrentState::ID:
     case td_api::setAlarm::ID:
     case td_api::testUseUpdate::ID:
-    case td_api::testReturnError::ID:
     case td_api::testCallEmpty::ID:
     case td_api::testSquareInt::ID:
     case td_api::testCallString::ID:
@@ -3632,6 +3632,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::cleanFileName::ID:
       case td_api::getJsonValue::ID:
       case td_api::getJsonString::ID:
+      case td_api::testReturnError::ID:
         return true;
       default:
         return false;
@@ -7664,8 +7665,16 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::addLogMes
   return td_api::make_object<td_api::ok>();
 }
 
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::testReturnError &request) {
+  if (request.error_ == nullptr) {
+    return td_api::make_object<td_api::error>(404, "Not Found");
+  }
+
+  return std::move(request.error_);
+}
+
 // test
-void Td::on_request(uint64 id, td_api::testNetwork &request) {
+void Td::on_request(uint64 id, const td_api::testNetwork &request) {
   create_handler<TestQuery>(id)->send();
 }
 
@@ -7677,24 +7686,24 @@ void Td::on_request(uint64 id, td_api::testProxy &request) {
   CREATE_REQUEST(TestProxyRequest, r_proxy.move_as_ok());
 }
 
-void Td::on_request(uint64 id, td_api::testGetDifference &request) {
+void Td::on_request(uint64 id, const td_api::testGetDifference &request) {
   updates_manager_->get_difference("testGetDifference");
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
-void Td::on_request(uint64 id, td_api::testUseUpdate &request) {
+void Td::on_request(uint64 id, const td_api::testUseUpdate &request) {
   send_closure(actor_id(this), &Td::send_result, id, nullptr);
 }
 
-void Td::on_request(uint64 id, td_api::testReturnError &request) {
-  send_closure(actor_id(this), &Td::send_result, id, std::move(request.error_));
+void Td::on_request(uint64 id, const td_api::testReturnError &request) {
+  UNREACHABLE();
 }
 
-void Td::on_request(uint64 id, td_api::testCallEmpty &request) {
+void Td::on_request(uint64 id, const td_api::testCallEmpty &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
-void Td::on_request(uint64 id, td_api::testSquareInt &request) {
+void Td::on_request(uint64 id, const td_api::testSquareInt &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::testInt>(request.x_ * request.x_));
 }
 

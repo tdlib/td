@@ -1023,13 +1023,13 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::addLogMessage &request);
 
   // test
-  void on_request(uint64 id, td_api::testNetwork &request);
+  void on_request(uint64 id, const td_api::testNetwork &request);
   void on_request(uint64 id, td_api::testProxy &request);
-  void on_request(uint64 id, td_api::testGetDifference &request);
-  void on_request(uint64 id, td_api::testUseUpdate &request);
-  void on_request(uint64 id, td_api::testReturnError &request);
-  void on_request(uint64 id, td_api::testCallEmpty &request);
-  void on_request(uint64 id, td_api::testSquareInt &request);
+  void on_request(uint64 id, const td_api::testGetDifference &request);
+  void on_request(uint64 id, const td_api::testUseUpdate &request);
+  void on_request(uint64 id, const td_api::testReturnError &request);
+  void on_request(uint64 id, const td_api::testCallEmpty &request);
+  void on_request(uint64 id, const td_api::testSquareInt &request);
   void on_request(uint64 id, td_api::testCallString &request);
   void on_request(uint64 id, td_api::testCallBytes &request);
   void on_request(uint64 id, td_api::testCallVectorInt &request);
@@ -1058,6 +1058,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogTagVerbosityLevel &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTagVerbosityLevel &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::addLogMessage &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(td_api::testReturnError &request);
 
   static DbKey as_db_key(string key);
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;

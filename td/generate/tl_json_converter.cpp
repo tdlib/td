@@ -151,7 +151,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, Slice name, const Vec &ve
   sb << "\n  };\n";
   sb << "  auto it = m.find(str);\n";
   sb << "  if (it == m.end()) {\n"
-     << "    return Status::Error(\"Unknown class\");\n"
+     << "    return Status::Error(PSLICE() << \"Unknown class \\\"\" << str << \"\\\"\");\n"
      << "  }\n"
      << "  return it->second;\n";
   sb << "}\n";

@@ -22,11 +22,22 @@
 
 namespace td {
 
-static Result<std::pair<td_api::object_ptr<td_api::Function>, string>> to_request(Slice request) {
+static td_api::object_ptr<td_api::Function> get_return_error_function(Slice error_message) {
+  auto error = td_api::make_object<td_api::error>(400, error_message.str());
+  return td_api::make_object<td_api::testReturnError>(std::move(error));
+}
+
+static std::pair<td_api::object_ptr<td_api::Function>, string> to_request(Slice request) {
   auto request_str = request.str();
-  TRY_RESULT(json_value, json_decode(request_str));
+  auto r_json_value = json_decode(request_str);
+  if (r_json_value.is_error()) {
+    return {get_return_error_function(PSLICE()
+                                      << "Failed to parse request as JSON object: " << r_json_value.error().message()),
+            string()};
+  }
+  auto json_value = r_json_value.move_as_ok();
   if (json_value.type() != JsonValue::Type::Object) {
-    return Status::Error("Expected an Object");
+    return {get_return_error_function("Expected a JSON object"), string()};
   }
 
   string extra;
@@ -36,8 +47,13 @@ static Result<std::pair<td_api::object_ptr<td_api::Function>, string>> to_reques
   }
 
   td_api::object_ptr<td_api::Function> func;
-  TRY_STATUS(from_json(func, json_value));
-  return std::make_pair(std::move(func), extra);
+  auto status = from_json(func, json_value);
+  if (status.is_error()) {
+    return {get_return_error_function(PSLICE()
+                                      << "Failed to parse JSON object as TDLib request: " << status.error().message()),
+            std::move(extra)};
+  }
+  return std::make_pair(std::move(func), std::move(extra));
 }
 
 static std::string from_response(const td_api::Object &object, const string &extra) {
@@ -62,18 +78,13 @@ static CSlice store_string(std::string str) {
 }
 
 void ClientJson::send(Slice request) {
-  auto r_request = to_request(request);
-  if (r_request.is_error()) {
-    LOG(ERROR) << "Failed to parse " << tag("request", format::escaped(request)) << " " << r_request.error();
-    return;
-  }
-
+  auto parsed_request = to_request(request);
   std::uint64_t extra_id = extra_id_.fetch_add(1, std::memory_order_relaxed);
-  if (!r_request.ok_ref().second.empty()) {
+  if (!parsed_request.second.empty()) {
     std::lock_guard<std::mutex> guard(mutex_);
-    extra_[extra_id] = std::move(r_request.ok_ref().second);
+    extra_[extra_id] = std::move(parsed_request.second);
   }
-  client_.send(Client::Request{extra_id, std::move(r_request.ok_ref().first)});
+  client_.send(Client::Request{extra_id, std::move(parsed_request.first)});
 }
 
 CSlice ClientJson::receive(double timeout) {
@@ -95,14 +106,9 @@ CSlice ClientJson::receive(double timeout) {
 }
 
 CSlice ClientJson::execute(Slice request) {
-  auto r_request = to_request(request);
-  if (r_request.is_error()) {
-    LOG(ERROR) << "Failed to parse " << tag("request", format::escaped(request)) << " " << r_request.error();
-    return {};
-  }
-
-  return store_string(from_response(*Client::execute(Client::Request{0, std::move(r_request.ok_ref().first)}).object,
-                                    r_request.ok().second));
+  auto parsed_request = to_request(request);
+  return store_string(from_response(*Client::execute(Client::Request{0, std::move(parsed_request.first)}).object,
+                                    parsed_request.second));
 }
 
 }  // namespace td
