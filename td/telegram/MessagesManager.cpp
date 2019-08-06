@@ -4472,6 +4472,7 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
     return;
   }
 
+  LOG(INFO) << "Update message count by " << diff << " in index mask " << index_mask;
   int i = 0;
   for (auto &message_count : d->message_count_by_index) {
     if (((index_mask >> i) & 1) != 0 && message_count != -1) {
@@ -4525,6 +4526,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
       mentions_mask |= search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
     }
   }
+  LOG(INFO) << "Have index mask " << mentions_mask << " for " << m->message_id << " in " << dialog_id;
   return mentions_mask;
 }
 
@@ -9281,7 +9283,7 @@ void MessagesManager::init() {
         m->have_previous = have_previous;
         m->have_next = have_next;
 
-        bool need_update = false;
+        bool need_update = from_update;
         bool need_update_dialog_pos = false;
         if (add_message_to_dialog(dialog_id, std::move(m), from_update, &need_update, &need_update_dialog_pos,
                                   "Unknown source") == nullptr) {
@@ -10099,6 +10101,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     send_update_message_send_succeeded(d, old_message_id, new_message.get());
 
     try_add_active_live_location(dialog_id, new_message.get());
+
+    // add_message_to_dialog will not update counts, because need_update == false
+    update_message_count_by_index(d, +1, new_message.get());
 
     if (!from_update) {
       new_message->have_previous = have_previous;
