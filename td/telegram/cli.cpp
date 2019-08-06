@@ -2491,8 +2491,19 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::acceptCall>(
           as_call_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65)));
     } else if (op == "scr" || op == "SendCallRating") {
+      string call_id;
+      string rating;
+      std::tie(call_id, rating) = split(args);
+
+      vector<td_api::object_ptr<td_api::CallProblem>> problems;
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
+      problems.emplace_back(nullptr);
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemEcho>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
       send_request(
-          td_api::make_object<td_api::sendCallRating>(as_call_id(args), 5, "Wow, such good call! (TDLib test)"));
+          td_api::make_object<td_api::sendCallRating>(as_call_id(call_id), to_integer<int32>(rating), "Wow, such good call! (TDLib test)", std::move(problems)));
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "gcil") {

@@ -9,6 +9,7 @@
 #include "td/telegram/CallActor.h"
 #include "td/telegram/CallId.h"
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
@@ -32,7 +33,8 @@ class CallManager : public Actor {
   void discard_call(CallId call_id, bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
                     Promise<> promise);
   void accept_call(CallId call_id, CallProtocol &&protocol, Promise<> promise);
-  void rate_call(CallId call_id, int32 rating, string comment, Promise<> promise);
+  void rate_call(CallId call_id, int32 rating, string comment,
+                 vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<> promise);
   void send_call_debug_information(CallId call_id, string data, Promise<> promise);
 
  private:

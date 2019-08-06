@@ -81,7 +81,8 @@ class CallActor : public NetQueryCallback {
                    bool is_video, Promise<CallId> &&promise);
   void discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id, Promise<> promise);
   void accept_call(CallProtocol &&protocol, Promise<> promise);
-  void rate_call(int32 rating, string comment, Promise<> promise);
+  void rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
+                 Promise<> promise);
   void send_call_debug_information(string data, Promise<> promise);
 
   void update_call(tl_object_ptr<telegram_api::PhoneCall> call);

@@ -29,9 +29,10 @@
 #include "td/utils/Random.h"
 
 #include <tuple>
+#include <unordered_set>
 
 namespace td {
-// CallProtocol
+
 CallProtocol CallProtocol::from_telegram_api(const telegram_api::phoneCallProtocol &protocol) {
   CallProtocol res;
   res.udp_p2p = protocol.udp_p2p_;
@@ -110,7 +111,6 @@ tl_object_ptr<td_api::CallState> CallState::as_td_api() const {
   }
 }
 
-// CallActor
 CallActor::CallActor(CallId call_id, ActorShared<> parent, Promise<int64> promise)
     : parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
@@ -186,11 +186,53 @@ void CallActor::accept_call(CallProtocol &&protocol, Promise<> promise) {
   loop();
 }
 
-void CallActor::rate_call(int32 rating, string comment, Promise<> promise) {
+void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
+                          Promise<> promise) {
   if (!call_state_.need_rating) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallRating"));
   }
   promise.set_value(Unit());
+
+  if (rating == 5) {
+    comment.clear();
+  }
+
+  std::unordered_set<string> tags;
+  for (auto &problem : problems) {
+    if (problem == nullptr) {
+      continue;
+    }
+
+    const char *tag = [problem_id = problem->get_id()] {
+      switch (problem_id) {
+        case td_api::callProblemEcho::ID:
+          return "echo";
+        case td_api::callProblemNoice::ID:
+          return "noise";
+        case td_api::callProblemInterruptions::ID:
+          return "interruptions";
+        case td_api::callProblemDistortedSpeech::ID:
+          return "distorted_speech";
+        case td_api::callProblemSilentLocal::ID:
+          return "silent_local";
+        case td_api::callProblemSilentRemote::ID:
+          return "silent_remote";
+        case td_api::callProblemDropped::ID:
+          return "dropped";
+        default:
+          UNREACHABLE();
+          return "";
+      }
+    }();
+    if (tags.insert(tag).second) {
+      if (!comment.empty()) {
+        comment += ' ';
+      }
+      comment += '#';
+      comment += tag;
+    }
+  }
+
   auto tl_query = telegram_api::phone_setCallRating(0, false /*ignored*/, get_input_phone_call("rate_call"), rating,
                                                     std::move(comment));
   auto query = G()->net_query_creator().create(create_storer(tl_query));

@@ -5925,7 +5925,7 @@ void Td::on_request(uint64 id, td_api::sendCallRating &request) {
   CLEAN_INPUT_STRING(request.comment_);
   CREATE_OK_REQUEST_PROMISE();
   send_closure(G()->call_manager(), &CallManager::rate_call, CallId(request.call_id_), request.rating_,
-               std::move(request.comment_), std::move(promise));
+               std::move(request.comment_), std::move(request.problems_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {

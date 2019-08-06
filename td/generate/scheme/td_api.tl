@@ -1627,6 +1627,30 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 callStateError error:error = CallState;
 
 
+//@class CallProblem @description Describes a type of a problem that happened during a call
+
+//@description The user heard his own voice
+callProblemEcho = CallProblem;
+
+//@description The user heard background noice
+callProblemNoice = CallProblem;
+
+//@description The other side kept disappearing
+callProblemInterruptions = CallProblem;
+
+//@description The speech was distorted
+callProblemDistortedSpeech = CallProblem;
+
+//@description The user couldn't hear the other side
+callProblemSilentLocal = CallProblem;
+
+//@description The other side couldn't hear the user
+callProblemSilentRemote = CallProblem;
+
+//@description The call ended unexpectedly
+callProblemDropped = CallProblem;
+
+
 //@description Describes a call @id Call identifier, not persistent @user_id Peer user identifier @is_outgoing True, if the call is outgoing @state Call state
 call id:int32 user_id:int32 is_outgoing:Bool state:CallState = Call;
 
@@ -3415,8 +3439,8 @@ acceptCall call_id:int32 protocol:callProtocol = Ok;
 //@description Discards a call @call_id Call identifier @is_disconnected True, if the user was disconnected @duration The call duration, in seconds @connection_id Identifier of the connection used during the call
 discardCall call_id:int32 is_disconnected:Bool duration:int32 connection_id:int64 = Ok;
 
-//@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5
-sendCallRating call_id:int32 rating:int32 comment:string = Ok;
+//@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of problems with the call, specified by the user
+sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallProblem> = Ok;
 
 //@description Sends debug information for a call @call_id Call identifier @debug_information Debug information in application-specific format
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
