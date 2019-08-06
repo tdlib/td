@@ -217,7 +217,7 @@ class TQueueBinlog : public TQueue::Callback {
  public:
   struct LogEvent : public Storer {
     LogEvent() = default;
-    int32 queue_id;
+    int64 queue_id;
     int32 event_id;
     int32 expire_at;
     Slice data;
@@ -233,10 +233,11 @@ class TQueueBinlog : public TQueue::Callback {
 
     template <class ParserT>
     void parse(ParserT &&parser) {
+      using td::parse;
       parse(queue_id, parser);
       parse(event_id, parser);
       parse(expire_at, parser);
-      parse(data, parser);
+      data = parser.template fetch_string<Slice>();
     }
 
     size_t size() const override {
@@ -286,7 +287,7 @@ class TQueueBinlog : public TQueue::Callback {
 
  private:
   std::shared_ptr<BinlogT> binlog_;
-  int32 magic_{0};
+  int32 magic_{2314};
 };
 
 class MemoryStorage : public TQueue::Callback {
@@ -357,63 +358,118 @@ TEST(TQueue, hands) {
   ASSERT_EQ(1u, tqueue.get(qid, head, 0, events_span).move_as_ok());
 }
 
-TEST(TQueue, random) {
-  // Just do random ops with one queue
-  auto qid = 12;
-  EventId first_id = EventId::from_int32(EventId::MAX_ID - 100).move_as_ok();
-  //first_id = {};
+class TestTQueue {
+ public:
+  CSlice binlog_path() {
+    return "test_binlog";
+  }
+  TestTQueue() {
+    auto memory_storage = td::make_unique<MemoryStorage>();
+    memory_storage_ = memory_storage.get();
+    memory_.set_callback(std::move(memory_storage));
 
-  TQueue tqueue_memory;
-  //auto memory_storage = td::make_unique<MemoryStorage>();
-  //auto memory_storage_ptr = memory_storage.get();
-  //tqueue_memory.set_callback(std::move(memory_storage));
+    auto tqueue_binlog = make_unique<TQueueBinlog<Binlog>>();
+    Binlog::destroy(binlog_path()).ensure();
+    auto binlog = std::make_shared<Binlog>();
+    binlog->init(binlog_path().str(), [&](const BinlogEvent &event) { UNREACHABLE(); }).ensure();
+    tqueue_binlog->set_binlog(binlog);
+    binlog_.set_callback(std::move(tqueue_binlog));
+  }
 
-  TQueue tqueue_binlog;
-  auto binlog_storage = td::make_unique<MemoryStorage>();
-  auto binlog_storage_ptr = binlog_storage.get();
-  tqueue_binlog.set_callback(std::move(binlog_storage));
+  void restart(Random::Xorshift128plus &rnd) {
+    memory_.extract_callback().release();
+    auto memory_storage = unique_ptr<MemoryStorage>(memory_storage_);
+    memory_ = TQueue();
+    memory_storage->replay(memory_);
+    memory_.set_callback(std::move(memory_storage));
 
-  Random::Xorshift128plus rnd(123);
-  auto push_event = [&] {
-    auto data = PSTRING() << rnd();
-    tqueue_memory.push(qid, data, 0, first_id);
-    tqueue_binlog.push(qid, data, 0, first_id);
-  };
-  auto get_head = [&] { ASSERT_EQ(tqueue_memory.get_head(qid), tqueue_binlog.get_head(qid)); };
-  auto get_tail = [&] { ASSERT_EQ(tqueue_memory.get_tail(qid), tqueue_binlog.get_tail(qid)); };
+    if (rnd.fast(0, 100) != 0) {
+      return;
+    }
 
-  TQueue::Event events_a[100];
-  auto events_span_a = MutableSpan<TQueue::Event>(events_a, 100);
-  TQueue::Event events_b[100];
-  auto events_span_b = MutableSpan<TQueue::Event>(events_b, 100);
+    LOG(ERROR) << "RESTART BINLOG";
+    binlog_ = TQueue();
+    auto tqueue_binlog = make_unique<TQueueBinlog<Binlog>>();
+    auto binlog = std::make_shared<Binlog>();
+    binlog->init(binlog_path().str(), [&](const BinlogEvent &event) { tqueue_binlog->replay(event, binlog_); })
+        .ensure();
+    tqueue_binlog->set_binlog(binlog);
+    binlog_.set_callback(std::move(tqueue_binlog));
+  }
 
-  auto get = [&] {
-    auto a_from = tqueue_memory.get_head(qid);
-    auto b_from = tqueue_binlog.get_head(qid);
+  EventId push(TQueueId queue_id, string data, double expire_at, EventId new_id = EventId()) {
+    auto a_id = baseline_.push(queue_id, data, expire_at, new_id);
+    auto b_id = memory_.push(queue_id, data, expire_at, new_id);
+    auto c_id = binlog_.push(queue_id, data, expire_at, new_id);
+    ASSERT_EQ(a_id, b_id);
+    ASSERT_EQ(a_id, c_id);
+    return a_id;
+  }
+
+  void check_head_tail(TQueueId qid) {
+    ASSERT_EQ(baseline_.get_head(qid), memory_.get_head(qid));
+    ASSERT_EQ(baseline_.get_head(qid), binlog_.get_head(qid));
+    ASSERT_EQ(baseline_.get_tail(qid), memory_.get_tail(qid));
+    ASSERT_EQ(baseline_.get_tail(qid), binlog_.get_tail(qid));
+  }
+
+  void check_get(TQueueId qid, Random::Xorshift128plus &rnd) {
+    TQueue::Event a[10];
+    MutableSpan<TQueue::Event> a_span(a, 10);
+    TQueue::Event b[10];
+    MutableSpan<TQueue::Event> b_span(b, 10);
+    TQueue::Event c[10];
+    MutableSpan<TQueue::Event> c_span(b, 10);
+
+    auto a_from = baseline_.get_head(qid);
+    auto b_from = memory_.get_head(qid);
+    auto c_from = binlog_.get_head(qid);
     ASSERT_EQ(a_from, b_from);
+    ASSERT_EQ(a_from, c_from);
 
     auto tmp = a_from.advance(rnd.fast(-10, 10));
     if (tmp.is_ok()) {
       a_from = tmp.move_as_ok();
     }
-    auto a_size = tqueue_memory.get(qid, a_from, 0, events_span_a).move_as_ok();
-    auto b_size = tqueue_binlog.get(qid, a_from, 0, events_span_b).move_as_ok();
+    auto a_size = baseline_.get(qid, a_from, 0, a_span).move_as_ok();
+    auto b_size = memory_.get(qid, a_from, 0, b_span).move_as_ok();
+    auto c_size = binlog_.get(qid, a_from, 0, c_span).move_as_ok();
     ASSERT_EQ(a_size, b_size);
+    ASSERT_EQ(a_size, c_size);
     for (size_t i = 0; i < a_size; i++) {
-      ASSERT_EQ(events_span_a[i].id, events_span_b[i].id);
-      ASSERT_EQ(events_span_a[i].data, events_span_b[i].data);
+      ASSERT_EQ(a_span[i].id, b_span[i].id);
+      ASSERT_EQ(a_span[i].id, c_span[i].id);
+      ASSERT_EQ(a_span[i].data, b_span[i].data);
+      ASSERT_EQ(a_span[i].data, c_span[i].data);
     }
-  };
+  }
 
-  auto restart = [&] {
-    tqueue_binlog.extract_callback().release();
-    binlog_storage = unique_ptr<MemoryStorage>(binlog_storage_ptr);
-    tqueue_binlog = TQueue();
-    binlog_storage->replay(tqueue_binlog);
-    tqueue_binlog.set_callback(std::move(binlog_storage));
-  };
+ private:
+  TQueue baseline_;
+  TQueue memory_;
+  TQueue binlog_;
+  MemoryStorage *memory_storage_{nullptr};
+  //TQueue binlog_;
+};
 
-  RandomSteps steps({{push_event, 100}, {get_head, 10}, {get_tail, 10}, {get, 40}, {restart, 1}});
+TEST(TQueue, random) {
+  Random::Xorshift128plus rnd(123);
+  auto next_qid = [&] { return rnd.fast(1, 10); };
+  auto next_first_id = [&] {
+    if (rnd.fast(0, 3) == 0) {
+      return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
+    }
+    return EventId::from_int32(rnd.fast(1000000000, 1500000000)).move_as_ok();
+  };
+  TestTQueue q;
+  auto push_event = [&] {
+    auto data = PSTRING() << rnd();
+    q.push(next_qid(), data, 0, next_first_id());
+  };
+  auto check_head_tail = [&] { q.check_head_tail(next_qid()); };
+  auto restart = [&] { q.restart(rnd); };
+  auto get = [&] { q.check_get(next_qid(), rnd); };
+  RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {restart, 1}});
   for (int i = 0; i < 1000000; i++) {
     steps.step(rnd);
   }
