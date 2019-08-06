@@ -6339,7 +6339,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     save_user(u, user_id, from_binlog);
   }
 
-  if (u->cache_version != User::CACHE_VERSION && u->access_hash != -1 && !u->is_min_access_hash && !u->is_repaired &&
+  if (u->cache_version != User::CACHE_VERSION && !u->is_repaired && have_input_peer_user(u, AccessRights::Read) &&
       !G()->close_flag()) {
     u->is_repaired = true;
 
@@ -6390,7 +6390,8 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     save_chat(c, chat_id, from_binlog);
   }
 
-  if (c->cache_version != Chat::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
+  if (c->cache_version != Chat::CACHE_VERSION && !c->is_repaired && have_input_peer_chat(c, AccessRights::Read) &&
+      !G()->close_flag()) {
     c->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << chat_id;
@@ -6482,7 +6483,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   c->had_read_access = have_read_access;
   c->was_member = is_member;
 
-  if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired && !G()->close_flag()) {
+  if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired && have_input_peer_channel(c, AccessRights::Read) &&
+      !G()->close_flag()) {
     c->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << channel_id;
@@ -9532,6 +9534,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
   }
 
   // there is no much reason to combine different requests into one request
+  // requests with 0 access_hash must not be merged
   td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
 }
 
