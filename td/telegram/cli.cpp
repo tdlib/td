@@ -2502,8 +2502,8 @@ class CliClient final : public Actor {
       problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
       problems.emplace_back(td_api::make_object<td_api::callProblemEcho>());
       problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
-      send_request(
-          td_api::make_object<td_api::sendCallRating>(as_call_id(call_id), to_integer<int32>(rating), "Wow, such good call! (TDLib test)", std::move(problems)));
+      send_request(td_api::make_object<td_api::sendCallRating>(
+          as_call_id(call_id), to_integer<int32>(rating), "Wow, such good call! (TDLib test)", std::move(problems)));
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "gcil") {
