@@ -154,7 +154,13 @@ class TQueueImpl : public TQueue {
       return 0;
     }
     auto &q = it->second;
-    //TODO: sanity check for from_id
+    // Some sanity checks
+    if (from_id.value() > q.tail_id.value() + 10) {
+      return Status::Error("from_id is in future");
+    }
+    if (from_id.value() < q.tail_id.value() - narrow_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
+      return Status::Error("from_id is in past");
+    }
     confirm_read(q, from_id);
     if (q.events.empty()) {
       return 0;
