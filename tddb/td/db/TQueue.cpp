@@ -115,7 +115,7 @@ class TQueueImpl : public TQueue {
       if (event_id.next().is_ok()) {
         break;
       }
-      confirm_read(q, event_id);
+      confirm_read(q, event_id, 0);
       q.tail_id = {};
     }
 
@@ -161,7 +161,7 @@ class TQueueImpl : public TQueue {
     if (from_id.value() < q.tail_id.value() - narrow_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
       return Status::Error("from_id is in past");
     }
-    confirm_read(q, from_id);
+    confirm_read(q, from_id, now);
     if (q.events.empty()) {
       return 0;
     }
@@ -200,8 +200,9 @@ class TQueueImpl : public TQueue {
   std::unordered_map<QueueId, Queue> queues_;
   unique_ptr<Callback> callback_;
 
-  void confirm_read(Queue &q, EventId till_id) {
-    while (!q.events.empty() && q.events.front().event_id.value() < till_id.value()) {
+  void confirm_read(Queue &q, EventId till_id, double now) {
+    while (!q.events.empty() &&
+           (q.events.front().event_id.value() < till_id.value() || q.events.front().expire_at < now)) {
       if (callback_) {
         callback_->pop(q.events.front().logevent_id);
       }
@@ -256,11 +257,15 @@ struct TQueueLogEvent : public Storer {
 };
 
 template <class BinlogT>
+TQueueBinlog<BinlogT>::TQueueBinlog() {
+  diff_ = Clocks::system() - Time::now();
+}
+template <class BinlogT>
 int64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   TQueueLogEvent log_event;
   log_event.queue_id = queue_id;
   log_event.event_id = event.event_id.value();
-  log_event.expire_at = static_cast<int32>(event.expire_at);
+  log_event.expire_at = static_cast<int32>(event.expire_at + diff_);
   log_event.data = event.data;
   return binlog_->add(magic_, log_event);
 }
@@ -280,7 +285,7 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
   RawEvent raw_event;
   raw_event.logevent_id = binlog_event.id_;
   raw_event.event_id = event_id;
-  raw_event.expire_at = event.expire_at;
+  raw_event.expire_at = event.expire_at - diff_ + 1;
   raw_event.data = event.data.str();
   q.do_push(event.queue_id, std::move(raw_event));
   return Status::OK();

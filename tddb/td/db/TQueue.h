@@ -81,6 +81,7 @@ struct BinlogEvent;
 template <class BinlogT>
 class TQueueBinlog : public TQueue::Callback {
  public:
+  TQueueBinlog();
   int64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(int64 logevent_id) override;
   Status replay(const BinlogEvent &binlog_event, TQueue &q);
@@ -92,6 +93,7 @@ class TQueueBinlog : public TQueue::Callback {
  private:
   std::shared_ptr<BinlogT> binlog_;
   int32 magic_{2314};
+  double diff_{0};
 };
 
 class MemoryStorage : public TQueue::Callback {
