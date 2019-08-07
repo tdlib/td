@@ -68,7 +68,7 @@ class TQueue {
   virtual EventId get_head(QueueId queue_id) const = 0;
   virtual EventId get_tail(QueueId queue_id) const = 0;
 
-  virtual Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> events) = 0;
+  virtual Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) = 0;
 
   static unique_ptr<TQueue> create(unique_ptr<Callback> callback = {});
 };

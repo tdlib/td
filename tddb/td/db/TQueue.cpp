@@ -71,6 +71,9 @@ bool EventId::is_valid(int32 id) {
 
 class TQueueImpl : public TQueue {
  public:
+  static constexpr int32 MAX_DELAY = 7 * 86400;
+  static constexpr size_t MAX_EVENT_LEN = 65536 * 8;
+
   void set_callback(unique_ptr<Callback> callback) override {
     callback_ = std::move(callback);
   }
@@ -141,7 +144,7 @@ class TQueueImpl : public TQueue {
     return q.tail_id;
   }
 
-  Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> events) override {
+  Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) override {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       return 0;
@@ -154,7 +157,8 @@ class TQueueImpl : public TQueue {
     }
 
     auto from_events = q.events.as_span();
-    size_t res_n = 0;
+    size_t ready_n = 0;
+    size_t left_n = 0;
     for (size_t i = 0; i < from_events.size(); i++) {
       auto &from = from_events[i];
       if (from.expire_at < now) {
@@ -162,17 +166,19 @@ class TQueueImpl : public TQueue {
         continue;
       }
 
-      auto &to = events[res_n];
+      auto &to = events[ready_n];
       to.data = from.data;
       to.id = from.event_id;
       to.expire_at = from.expire_at;
 
-      res_n++;
-      if (res_n == events.size()) {
+      ready_n++;
+      if (ready_n == events.size()) {
+        left_n += from_events.size() - i - 1;
         break;
       }
     }
-    return res_n;
+    events.truncate(ready_n);
+    return ready_n + left_n;
   }
 
  private:

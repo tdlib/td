@@ -115,12 +115,12 @@ class TestTQueue {
     if (tmp.is_ok()) {
       a_from = tmp.move_as_ok();
     }
-    auto a_size = baseline_->get(qid, a_from, 0, a_span).move_as_ok();
-    auto b_size = memory_->get(qid, a_from, 0, b_span).move_as_ok();
-    auto c_size = binlog_->get(qid, a_from, 0, c_span).move_as_ok();
-    ASSERT_EQ(a_size, b_size);
-    ASSERT_EQ(a_size, c_size);
-    for (size_t i = 0; i < a_size; i++) {
+    baseline_->get(qid, a_from, 0, a_span).move_as_ok();
+    memory_->get(qid, a_from, 0, b_span).move_as_ok();
+    binlog_->get(qid, a_from, 0, c_span).move_as_ok();
+    ASSERT_EQ(a_span.size(), b_span.size());
+    ASSERT_EQ(a_span.size(), c_span.size());
+    for (size_t i = 0; i < a_span.size(); i++) {
       ASSERT_EQ(a_span[i].id, b_span[i].id);
       ASSERT_EQ(a_span[i].id, c_span[i].id);
       ASSERT_EQ(a_span[i].data, b_span[i].data);
