@@ -20898,7 +20898,7 @@ void MessagesManager::on_update_pinned_dialogs() {
   if (ordered_dialogs_.size() >= needed_dialogs) {
     query_promise.set_value(Unit());
   } else {
-    load_dialog_list(needed_dialogs - ordered_dialogs_.size(), true, std::move(query_promise));
+    load_dialog_list(narrow_cast<int32>(needed_dialogs - ordered_dialogs_.size()), true, std::move(query_promise));
   }
 }
 
