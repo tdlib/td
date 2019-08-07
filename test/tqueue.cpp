@@ -60,6 +60,8 @@ class TestTQueue {
   }
 
   void restart(Random::Xorshift128plus &rnd) {
+    baseline_->emulate_restart();
+
     memory_->extract_callback().release();
     auto memory_storage = unique_ptr<MemoryStorage>(memory_storage_);
     memory_ = TQueue::create();
@@ -67,6 +69,7 @@ class TestTQueue {
     memory_->set_callback(std::move(memory_storage));
 
     if (rnd.fast(0, 100) != 0) {
+      binlog_->emulate_restart();
       return;
     }
 

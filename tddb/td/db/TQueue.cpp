@@ -22,6 +22,10 @@ namespace td {
 
 using EventId = TQueue::EventId;
 
+static constexpr int32 MAX_DELAY = 7 * 86400;
+static constexpr size_t MAX_EVENT_LEN = 65536 * 8;
+static constexpr size_t MAX_QUEUE_EVENTS = 1000000;
+
 EventId::EventId() {
 }
 
@@ -33,7 +37,7 @@ Result<EventId> EventId::from_int32(int32 id) {
 }
 
 EventId EventId::create_random() {
-  return from_int32(Random::fast_uint32() % (MAX_ID / 2) + 10).move_as_ok();
+  return from_int32(Random::fast_uint32() % (MAX_ID / 2) + 10 + MAX_QUEUE_EVENTS).move_as_ok();
 }
 
 int32 EventId::value() const {
@@ -71,14 +75,19 @@ bool EventId::is_valid(int32 id) {
 
 class TQueueImpl : public TQueue {
  public:
-  static constexpr int32 MAX_DELAY = 7 * 86400;
-  static constexpr size_t MAX_EVENT_LEN = 65536 * 8;
-
   void set_callback(unique_ptr<Callback> callback) override {
     callback_ = std::move(callback);
   }
   unique_ptr<Callback> extract_callback() override {
     return std::move(callback_);
+  }
+
+  void emulate_restart() override {
+    for (auto &it : queues_) {
+      if (it.second.events.empty()) {
+        it.second.tail_id = {};
+      }
+    }
   }
 
   void do_push(QueueId queue_id, RawEvent &&raw_event) override {
@@ -95,7 +104,7 @@ class TQueueImpl : public TQueue {
     auto &q = queues_[queue_id];
     EventId event_id;
     while (true) {
-      if (q.events.empty()) {
+      if (q.tail_id.empty()) {
         q.tail_id = new_id.empty() ? EventId::create_random() : new_id;
       }
       event_id = q.tail_id;
@@ -104,6 +113,7 @@ class TQueueImpl : public TQueue {
         break;
       }
       confirm_read(q, event_id);
+      q.tail_id = {};
     }
 
     RawEvent raw_event;
@@ -121,7 +131,7 @@ class TQueueImpl : public TQueue {
     }
     auto &q = it->second;
     if (q.events.empty()) {
-      return EventId();
+      return q.tail_id;
     }
     return q.events.front().event_id;
   }
@@ -132,9 +142,6 @@ class TQueueImpl : public TQueue {
       return EventId();
     }
     auto &q = it->second;
-    if (q.events.empty()) {
-      return EventId();
-    }
     return q.tail_id;
   }
 

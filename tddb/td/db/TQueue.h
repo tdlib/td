@@ -61,6 +61,8 @@ class TQueue {
   virtual void set_callback(unique_ptr<Callback> callback) = 0;
   virtual unique_ptr<Callback> extract_callback() = 0;
 
+  virtual void emulate_restart() = 0;
+
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
   virtual EventId push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) = 0;
