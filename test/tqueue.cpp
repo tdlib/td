@@ -85,9 +85,9 @@ class TestTQueue {
 
   TQueue::EventId push(TQueue::QueueId queue_id, string data, double expire_at,
                        TQueue::EventId new_id = TQueue::EventId()) {
-    auto a_id = baseline_->push(queue_id, data, expire_at, new_id);
-    auto b_id = memory_->push(queue_id, data, expire_at, new_id);
-    auto c_id = binlog_->push(queue_id, data, expire_at, new_id);
+    auto a_id = baseline_->push(queue_id, data, expire_at, new_id).move_as_ok();
+    auto b_id = memory_->push(queue_id, data, expire_at, new_id).move_as_ok();
+    auto c_id = binlog_->push(queue_id, data, expire_at, new_id).move_as_ok();
     ASSERT_EQ(a_id, b_id);
     ASSERT_EQ(a_id, c_id);
     return a_id;

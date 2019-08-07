@@ -100,8 +100,11 @@ class TQueueImpl : public TQueue {
     q.events.push(std::move(raw_event));
   }
 
-  EventId push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) override {
+  Result<EventId> push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) override {
     auto &q = queues_[queue_id];
+    if (q.events.size() >= MAX_QUEUE_EVENTS) {
+      return Status::Error("Queue is full");
+    }
     EventId event_id;
     while (true) {
       if (q.tail_id.empty()) {
