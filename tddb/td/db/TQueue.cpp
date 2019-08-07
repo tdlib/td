@@ -91,12 +91,6 @@ class TQueueImpl : public TQueue {
     q.events.push(std::move(raw_event));
   }
 
-  void on_pop(int64 logevent_id) {
-    if (callback_) {
-      callback_->pop(logevent_id);
-    }
-  }
-
   EventId push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) override {
     auto &q = queues_[queue_id];
     EventId event_id;
@@ -192,7 +186,9 @@ class TQueueImpl : public TQueue {
 
   void confirm_read(Queue &q, EventId till_id) {
     while (!q.events.empty() && q.events.front().event_id.value() < till_id.value()) {
-      on_pop(q.events.front().logevent_id);
+      if (callback_) {
+        callback_->pop(q.events.front().logevent_id);
+      }
       q.events.pop();
     }
   }
