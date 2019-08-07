@@ -8393,17 +8393,9 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
-    if (unread_count < 0) {
-      if (!max_message_id.is_valid()) {
-        LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
-        return;
-      }
-    } else {
-      if (!max_message_id.is_valid() && max_message_id != MessageId()) {
-        LOG(ERROR) << "Receive read inbox history in " << dialog_id << " up to " << max_message_id << " from "
-                   << source;
-        return;
-      }
+    if (!max_message_id.is_valid() && (max_message_id != MessageId() || d->last_read_inbox_message_id != MessageId())) {
+      LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
+      return;
     }
     if (d->is_last_read_inbox_message_id_inited && max_message_id.get() <= d->last_read_inbox_message_id.get()) {
       LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
@@ -8417,7 +8409,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       return;
     }
 
-    if (unread_count > 0 && max_message_id.get() >= d->last_new_message_id.get() &&
+    if (max_message_id != MessageId() && unread_count > 0 && max_message_id.get() >= d->last_new_message_id.get() &&
         max_message_id.get() >= d->last_message_id.get() && max_message_id.get() >= d->last_database_message_id.get()) {
       LOG(INFO) << "Have unknown " << unread_count << " unread messages in " << dialog_id;
       unread_count = 0;
@@ -8460,7 +8452,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
     set_dialog_last_read_inbox_message_id(d, max_message_id, server_unread_count, local_unread_count, true, source);
 
-    if (d->is_marked_as_unread) {
+    if (d->is_marked_as_unread && max_message_id != MessageId()) {
       set_dialog_is_marked_as_unread(d, false);
     }
   } else {
