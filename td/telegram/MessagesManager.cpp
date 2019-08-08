@@ -19007,6 +19007,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     d = get_dialog(it->second);
     CHECK(d != nullptr);
   } else if (G()->parameters().use_message_db) {
+    G()->td_db()->get_dialog_db_sync()->begin_transaction().ensure();
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_notification_group(group_id);
     if (r_value.is_ok()) {
       VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
@@ -19014,6 +19015,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     } else {
       VLOG(notifications) << "Failed to load " << group_id << " from database";
     }
+    G()->td_db()->get_dialog_db_sync()->commit_transaction().ensure();
   }
 
   if (d == nullptr) {
