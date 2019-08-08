@@ -19297,6 +19297,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from "
                       << from_group_key;
 
+  G()->td_db()->get_dialog_db_sync()->begin_transaction().ensure();
   Result<vector<NotificationGroupKey>> r_notification_group_keys =
       G()->td_db()->get_dialog_db_sync()->get_notification_groups_by_last_notification_date(from_group_key, limit);
   r_notification_group_keys.ensure();
@@ -19317,6 +19318,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     VLOG(notifications) << "Loaded " << group_key << " from database";
     result.push_back(group_key);
   }
+  G()->td_db()->get_dialog_db_sync()->commit_transaction().ensure();
   return result;
 }
 
