@@ -151,6 +151,7 @@ class TQueueImpl : public TQueue {
   Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) override {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
+      events.truncate(0);
       return 0;
     }
     auto &q = it->second;
@@ -163,13 +164,15 @@ class TQueueImpl : public TQueue {
     }
     confirm_read(q, from_id, now);
     if (q.events.empty()) {
+      events.truncate(0);
       return 0;
     }
 
     auto from_events = q.events.as_span();
     size_t ready_n = 0;
-    size_t left_n = 0;
-    for (size_t i = 0; i < from_events.size(); i++) {
+    size_t left_n = from_events.size();
+    for (size_t i = 0; i < from_events.size() && ready_n < events.size(); i++) {
+      left_n--;
       auto &from = from_events[i];
       if (from.expire_at < now) {
         //TODO: pop this element
