@@ -1336,7 +1336,7 @@ class MessagesManager : public Actor {
                                bool have_previous, bool have_next, const char *source);
 
   Result<InputMessageContent> process_input_message_content(
-      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
+      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content);
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, bool disable_notification,
                                bool from_background, unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
@@ -1383,8 +1383,8 @@ class MessagesManager : public Actor {
                            const vector<MessageId> &message_ids, uint64 logevent_id);
 
   Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                    bool disable_notification, bool from_background,
-                                    bool in_game_share) TD_WARN_UNUSED_RESULT;
+                                    bool disable_notification, bool from_background, bool in_game_share, bool send_copy,
+                                    bool remove_caption) TD_WARN_UNUSED_RESULT;
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,

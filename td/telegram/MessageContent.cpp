@@ -2113,6 +2113,9 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageCont
     }
     case MessageContentType::Game: {
       auto m = static_cast<const MessageGame *>(content);
+      if (!m->game.get_bot_user_id().is_valid()) {
+        return nullptr;
+      }
       return m->game.get_input_media_game(td);
     }
     case MessageContentType::Invoice: {
@@ -2680,6 +2683,15 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
   }
 }
 
+UserId get_message_content_game_bot_user_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Game:
+      return static_cast<const MessageGame *>(content)->game.get_bot_user_id();
+    default:
+      return UserId();
+  }
+}
+
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:
@@ -3159,11 +3171,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto old_ = static_cast<const MessagePoll *>(old_content);
       auto new_ = static_cast<const MessagePoll *>(new_content);
       if (old_->poll_id != new_->poll_id) {
-        if (!PollManager::is_local_poll_id(old_->poll_id)) {
-          LOG(ERROR) << "Poll id has changed from " << old_->poll_id << " to " << new_->poll_id;
-        }
-        // polls are updated in a different way
-        is_content_changed = true;
+        need_update = true;
       }
       break;
     }

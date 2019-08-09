@@ -15840,6 +15840,9 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       if (!can_send_games) {
         return Status::Error(400, "Not enough rights to send games to the chat");
       }
+      if (!is_forward && !get_message_content_game_bot_user_id(content).is_valid()) {
+        return Status::Error(400, "Games can't be copied");
+      }
       break;
     case MessageContentType::Invoice:
       if (!is_forward) {
@@ -16196,7 +16199,8 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = static_cast<const td_api::inputMessageForwarded *>(input_message_content.get());
     return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
-                           disable_notification, from_background, input_message->in_game_share_);
+                           disable_notification, from_background, input_message->in_game_share_,
+                           input_message->send_copy_, input_message->remove_caption_);
   }
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -16239,9 +16243,45 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
 }
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const {
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
-    return Status::Error(5, "Can't send message without content");
+    return Status::Error(400, "Can't send message without content");
+  }
+
+  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+    auto input_message = static_cast<const td_api::inputMessageForwarded *>(input_message_content.get());
+    if (!input_message->send_copy_) {
+      return Status::Error(400, "Can't use forwarded message");
+    }
+
+    DialogId from_dialog_id(input_message->from_chat_id_);
+    Dialog *from_dialog = get_dialog_force(from_dialog_id);
+    if (from_dialog == nullptr) {
+      return Status::Error(400, "Chat to copy message from not found");
+    }
+    if (!have_input_peer(from_dialog_id, AccessRights::Read)) {
+      return Status::Error(400, "Can't access the chat to copy message from");
+    }
+    if (from_dialog_id.get_type() == DialogType::SecretChat) {
+      return Status::Error(400, "Can't copy message from secret chats");
+    }
+    MessageId message_id = get_persistent_message_id(from_dialog, MessageId(input_message->message_id_));
+
+    const Message *copied_message = get_message_force(from_dialog, message_id, "process_input_message_content");
+    if (copied_message == nullptr) {
+      return Status::Error(400, "Can't find message to copy");
+    }
+    if (!can_forward_message(from_dialog_id, copied_message)) {
+      return Status::Error(400, "Can't copy message");
+    }
+
+    unique_ptr<MessageContent> content =
+        dup_message_content(td_, dialog_id, copied_message->content.get(), true, input_message->remove_caption_);
+    if (content == nullptr) {
+      return Status::Error(400, "Can't copy message content");
+    }
+
+    return InputMessageContent(std::move(content), copied_message->disable_web_page_preview, false, 0, UserId());
   }
 
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
@@ -16397,6 +16437,9 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
   } else {
     auto input_media = get_input_media(content, td_, m->ttl, false);
     if (input_media == nullptr) {
+      if (content_type == MessageContentType::Game) {
+        return;
+      }
       if (content_type == MessageContentType::Photo) {
         thumbnail_file_id = FileId();
       }
@@ -18313,10 +18356,10 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 }
 
 Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                                   bool disable_notification, bool from_background,
-                                                   bool in_game_share) {
+                                                   bool disable_notification, bool from_background, bool in_game_share,
+                                                   bool send_copy, bool remove_caption) {
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, disable_notification, from_background,
-                                      in_game_share, false, false, false));
+                                      in_game_share, false, send_copy, remove_caption));
   CHECK(result.size() == 1);
   auto sent_message_id = result[0];
   if (sent_message_id == MessageId()) {
@@ -18403,13 +18446,17 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
+    auto content_type = content->get_type();
+    bool is_game = content_type == MessageContentType::Game;
     if (need_copy) {
+      if (is_game) {
+        LOG(INFO) << "Can't copy game from " << message_id;
+        continue;
+      }
       copied_messages.push_back({std::move(content), forwarded_message->disable_web_page_preview, i});
       continue;
     }
 
-    auto content_type = content->get_type();
-    bool is_game = content_type == MessageContentType::Game;
     unique_ptr<MessageForwardInfo> forward_info;
     if (!is_game && content_type != MessageContentType::Audio) {
       DialogId saved_from_dialog_id;
@@ -18696,13 +18743,6 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   LOG(INFO) << "Begin to add local message to " << dialog_id << " in reply to " << reply_to_message_id;
-  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
-    return Status::Error(5, "Can't add forwarded local message");
-  }
-  if (input_message_content->get_id() == td_api::inputMessageGame::ID) {
-    return Status::Error(5, "Can't add local game message");
-  }
-
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return Status::Error(5, "Chat not found");
@@ -18712,6 +18752,12 @@ Result<MessageId> MessagesManager::add_local_message(
     return Status::Error(400, "Can't access the chat");
   }
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
+  if (message_content.content->get_type() == MessageContentType::Poll) {
+    return Status::Error(400, "Can't add local poll message");
+  }
+  if (message_content.content->get_type() == MessageContentType::Game) {
+    return Status::Error(400, "Can't add local game message");
+  }
 
   bool is_channel_post = is_broadcast_channel(dialog_id);
   if (sender_user_id != UserId() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
@@ -25898,7 +25944,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
 
   send_update_new_message(d, result_message);
   if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "on_resend_message");
+    send_update_chat_last_message(d, "continue_send_message");
   }
 
   auto can_send_status = can_send_message(dialog_id);

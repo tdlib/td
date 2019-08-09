@@ -2924,7 +2924,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageContact>(td_api::make_object<td_api::contact>(
                                 phone_number, first_name, last_name, string(), as_user_id(user_id))));
-    } else if (op == "sf") {
+    } else if (op == "sf" || op == "scopy") {
       string chat_id;
       string from_chat_id;
       string from_message_id;
@@ -2932,7 +2932,8 @@ class CliClient final : public Actor {
       std::tie(from_chat_id, from_message_id) = split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(as_chat_id(from_chat_id),
-                                                                               as_message_id(from_message_id), true));
+                                                                               as_message_id(from_message_id), true,
+                                                                               op == "scopy", Random::fast(0, 1) == 0));
     } else if (op == "sd") {
       string chat_id;
       string document_path;
