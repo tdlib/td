@@ -72,6 +72,8 @@ class TQueue {
 
   virtual Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) = 0;
 
+  virtual void run_gc(double now) = 0;
+
   static unique_ptr<TQueue> create(unique_ptr<Callback> callback = {});
 };
 

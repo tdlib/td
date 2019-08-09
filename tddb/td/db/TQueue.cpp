@@ -83,16 +83,11 @@ class TQueueImpl : public TQueue {
   }
 
   void emulate_restart() override {
-    for (auto &it : queues_) {
-      if (it.second.events.empty()) {
-        it.second.tail_id = {};
-      }
-    }
   }
 
   void do_push(QueueId queue_id, RawEvent &&raw_event) override {
     CHECK(!raw_event.event_id.empty());
-    if (callback_ && raw_event.logevent_id == 0) {
+    if (raw_event.logevent_id == 0 && callback_) {
       raw_event.logevent_id = callback_->push(queue_id, raw_event);
     }
     auto &q = queues_[queue_id];
@@ -105,6 +100,9 @@ class TQueueImpl : public TQueue {
     if (q.events.size() >= MAX_QUEUE_EVENTS) {
       return Status::Error("Queue is full");
     }
+    if (data.empty()) {
+      return Status::Error("data is empty");
+    }
     EventId event_id;
     while (true) {
       if (q.tail_id.empty()) {
@@ -115,13 +113,16 @@ class TQueueImpl : public TQueue {
       if (event_id.next().is_ok()) {
         break;
       }
-      confirm_read(q, event_id, 0);
+      for (auto &e : q.events.as_mutable_span()) {
+        try_pop(queue_id, e, EventId{}, EventId{}, 0, true);
+      }
       q.tail_id = {};
+      q.events = {};
     }
 
     RawEvent raw_event;
     raw_event.event_id = event_id;
-    raw_event.data = data;
+    raw_event.data = std::move(data);
     raw_event.expire_at = expire_at;
     do_push(queue_id, std::move(raw_event));
     return event_id;
@@ -162,36 +163,53 @@ class TQueueImpl : public TQueue {
     if (from_id.value() < q.tail_id.value() - narrow_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
       return Status::Error("from_id is in past");
     }
-    confirm_read(q, from_id, now);
-    if (q.events.empty()) {
-      events.truncate(0);
-      return 0;
-    }
 
-    auto from_events = q.events.as_span();
+    auto from_events = q.events.as_mutable_span();
     size_t ready_n = 0;
-    size_t left_n = from_events.size();
-    for (size_t i = 0; i < from_events.size() && ready_n < events.size(); i++) {
-      left_n--;
-      auto &from = from_events[i];
-      if (from.expire_at < now) {
-        //TODO: pop this element
+    size_t i = 0;
+
+    while (true) {
+      from_events = q.events.as_mutable_span();
+      ready_n = 0;
+      i = 0;
+      for (; i < from_events.size(); i++) {
+        auto &from = from_events[i];
+        try_pop(queue_id, from, from_id, q.tail_id, now);
+        if (from.data.empty()) {
+          continue;
+        }
+
+        if (ready_n == events.size()) {
+          break;
+        }
+
+        auto &to = events[ready_n];
+        to.data = from.data;
+        to.id = from.event_id;
+        to.expire_at = from.expire_at;
+        ready_n++;
+      }
+
+      // compactify skipped events
+      if (ready_n * 2 < i) {
+        compactify(q.events, i);
         continue;
       }
 
-      auto &to = events[ready_n];
-      to.data = from.data;
-      to.id = from.event_id;
-      to.expire_at = from.expire_at;
+      break;
+    }
 
-      ready_n++;
-      if (ready_n == events.size()) {
-        left_n += from_events.size() - i - 1;
-        break;
+    events.truncate(ready_n);
+    size_t left_n = from_events.size() - i;
+    return ready_n + left_n;
+  }
+
+  void run_gc(double now) override {
+    for (auto &it : queues_) {
+      for (auto &e : it.second.events.as_mutable_span()) {
+        try_pop(it.first, e, EventId(), it.second.tail_id, now);
       }
     }
-    events.truncate(ready_n);
-    return ready_n + left_n;
   }
 
  private:
@@ -203,13 +221,35 @@ class TQueueImpl : public TQueue {
   std::unordered_map<QueueId, Queue> queues_;
   unique_ptr<Callback> callback_;
 
-  void confirm_read(Queue &q, EventId till_id, double now) {
-    while (!q.events.empty() &&
-           (q.events.front().event_id.value() < till_id.value() || q.events.front().expire_at < now)) {
-      if (callback_) {
-        callback_->pop(q.events.front().logevent_id);
+  void compactify(VectorQueue<RawEvent> &events, size_t prefix) {
+    auto processed = events.as_mutable_span().substr(0, prefix);
+    auto removed_n =
+        processed.rend() - std::remove_if(processed.rbegin(), processed.rend(), [](auto &e) { return e.data.empty(); });
+    events.pop_n(removed_n);
+  }
+
+  void try_pop(QueueId queue_id, RawEvent &event, EventId from_id, EventId tail_id, double now, bool force = false) {
+    bool should_drop = event.expire_at < now || event.event_id.value() < from_id.value() || force || event.data.empty();
+    if (!callback_ || event.logevent_id == 0) {
+      if (should_drop) {
+        event.data = {};
       }
-      q.events.pop();
+      return;
+    }
+
+    if (!should_drop) {
+      return;
+    }
+
+    if (event.event_id.value() + 1 == tail_id.value()) {
+      if (!event.data.empty()) {
+        event.data = {};
+        callback_->push(queue_id, event);
+      }
+    } else {
+      callback_->pop(event.logevent_id);
+      event.logevent_id = 0;
+      event.data = {};
     }
   }
 };
@@ -270,7 +310,12 @@ int64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   log_event.event_id = event.event_id.value();
   log_event.expire_at = static_cast<int32>(event.expire_at + diff_);
   log_event.data = event.data;
-  return binlog_->add(magic_, log_event);
+  if (event.logevent_id == 0) {
+    auto res = binlog_->add(magic_, log_event);
+    return res;
+  }
+  binlog_->rewrite(event.logevent_id, magic_, log_event);
+  return event.logevent_id;
 }
 
 template <class BinlogT>
@@ -298,7 +343,7 @@ template class TQueueBinlog<BinlogInterface>;
 template class TQueueBinlog<Binlog>;
 
 int64 MemoryStorage::push(QueueId queue_id, const RawEvent &event) {
-  auto logevent_id = next_logevent_id_++;
+  auto logevent_id = event.logevent_id == 0 ? next_logevent_id_++ : event.logevent_id;
   events_[logevent_id] = std::make_pair(queue_id, event);
 
   return logevent_id;

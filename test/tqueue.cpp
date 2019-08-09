@@ -59,14 +59,20 @@ class TestTQueue {
     binlog_->set_callback(std::move(tqueue_binlog));
   }
 
-  void restart(Random::Xorshift128plus &rnd) {
+  void restart(Random::Xorshift128plus &rnd, double now) {
     baseline_->emulate_restart();
+    if (rnd.fast(0, 10) == 0) {
+      baseline_->run_gc(now);
+    }
 
     memory_->extract_callback().release();
     auto memory_storage = unique_ptr<MemoryStorage>(memory_storage_);
     memory_ = TQueue::create();
     memory_storage->replay(*memory_);
     memory_->set_callback(std::move(memory_storage));
+    if (rnd.fast(0, 10) == 0) {
+      memory_->run_gc(now);
+    }
 
     if (rnd.fast(0, 100) != 0) {
       binlog_->emulate_restart();
@@ -81,6 +87,9 @@ class TestTQueue {
         .ensure();
     tqueue_binlog->set_binlog(binlog);
     binlog_->set_callback(std::move(tqueue_binlog));
+    if (rnd.fast(0, 10) == 0) {
+      binlog_->run_gc(now);
+    }
   }
 
   TQueue::EventId push(TQueue::QueueId queue_id, string data, double expire_at,
@@ -93,34 +102,34 @@ class TestTQueue {
     return a_id;
   }
 
-  void check_head_tail(TQueue::QueueId qid) {
-    ASSERT_EQ(baseline_->get_head(qid), memory_->get_head(qid));
-    ASSERT_EQ(baseline_->get_head(qid), binlog_->get_head(qid));
+  void check_head_tail(TQueue::QueueId qid, double now) {
+    //ASSERT_EQ(baseline_->get_head(qid), memory_->get_head(qid));
+    //ASSERT_EQ(baseline_->get_head(qid), binlog_->get_head(qid));
     ASSERT_EQ(baseline_->get_tail(qid), memory_->get_tail(qid));
     ASSERT_EQ(baseline_->get_tail(qid), binlog_->get_tail(qid));
   }
 
-  void check_get(TQueue::QueueId qid, Random::Xorshift128plus &rnd) {
+  void check_get(TQueue::QueueId qid, Random::Xorshift128plus &rnd, double now) {
     TQueue::Event a[10];
     MutableSpan<TQueue::Event> a_span(a, 10);
     TQueue::Event b[10];
     MutableSpan<TQueue::Event> b_span(b, 10);
     TQueue::Event c[10];
-    MutableSpan<TQueue::Event> c_span(b, 10);
+    MutableSpan<TQueue::Event> c_span(c, 10);
 
     auto a_from = baseline_->get_head(qid);
-    auto b_from = memory_->get_head(qid);
-    auto c_from = binlog_->get_head(qid);
-    ASSERT_EQ(a_from, b_from);
-    ASSERT_EQ(a_from, c_from);
+    //auto b_from = memory_->get_head(qid);
+    //auto c_from = binlog_->get_head(qid);
+    //ASSERT_EQ(a_from, b_from);
+    //ASSERT_EQ(a_from, c_from);
 
     auto tmp = a_from.advance(rnd.fast(-10, 10));
     if (tmp.is_ok()) {
       a_from = tmp.move_as_ok();
     }
-    baseline_->get(qid, a_from, 0, a_span).move_as_ok();
-    memory_->get(qid, a_from, 0, b_span).move_as_ok();
-    binlog_->get(qid, a_from, 0, c_span).move_as_ok();
+    baseline_->get(qid, a_from, now, a_span).move_as_ok();
+    memory_->get(qid, a_from, now, b_span).move_as_ok();
+    binlog_->get(qid, a_from, now, c_span).move_as_ok();
     ASSERT_EQ(a_span.size(), b_span.size());
     ASSERT_EQ(a_span.size(), c_span.size());
     for (size_t i = 0; i < a_span.size(); i++) {
@@ -145,15 +154,20 @@ TEST(TQueue, random) {
     return rnd.fast(1, 10);
   };
   auto next_first_id = [&] {
-    if (rnd.fast(0, 3) == 0) {
-      return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
-    }
-    return EventId::from_int32(rnd.fast(1000000000, 1500000000)).move_as_ok();
+    return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
+    //if (rnd.fast(0, 3) == 0) {
+    //return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
+    //}
+    //return EventId::from_int32(rnd.fast(1000000000, 1500000000)).move_as_ok();
   };
   TestTQueue q;
+  double now = 0;
   auto push_event = [&] {
     auto data = PSTRING() << rnd();
-    q.push(next_qid(), data, 0, next_first_id());
+    q.push(next_qid(), data, now + rnd.fast(-10, 10) * 10 + 5, next_first_id());
+  };
+  auto inc_now = [&] {
+    now += 10;
   };
   auto check_head_tail = [&] {
     q.check_head_tail(next_qid());
@@ -164,7 +178,7 @@ TEST(TQueue, random) {
   auto get = [&] {
     q.check_get(next_qid(), rnd);
   };
-  RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {restart, 1}});
+  RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
   for (int i = 0; i < 1000000; i++) {
     steps.step(rnd);
   }
