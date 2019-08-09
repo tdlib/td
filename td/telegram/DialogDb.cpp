@@ -321,10 +321,13 @@ class DialogDbAsync : public DialogDbAsyncInterface {
                     Promise<> promise) {
       add_write_query([=, promise = std::move(promise), data = std::move(data),
                        notification_groups = std::move(notification_groups)](Unit) mutable {
-        promise.set_result(sync_db_->add_dialog(dialog_id, order, std::move(data), std::move(notification_groups)));
+        this->on_write_result(std::move(promise),
+                              sync_db_->add_dialog(dialog_id, order, std::move(data), std::move(notification_groups)));
       });
     }
-
+    void on_write_result(Promise<> promise, Status status) {
+      pending_write_results_.emplace_back(std::move(promise), std::move(status));
+    }
     void get_notification_groups_by_last_notification_date(NotificationGroupKey notification_group_key, int32 limit,
                                                            Promise<vector<NotificationGroupKey>> promise) {
       add_read_query();
@@ -357,6 +360,9 @@ class DialogDbAsync : public DialogDbAsyncInterface {
 
     static constexpr size_t MAX_PENDING_QUERIES_COUNT{50};
     static constexpr double MAX_PENDING_QUERIES_DELAY{0.01};
+
+    //NB: order is important, destructor of pending_writes_ will change pending_write_results_
+    std::vector<std::pair<Promise<>, Status>> pending_write_results_;
     vector<Promise<>> pending_writes_;
     double wakeup_at_ = 0;
     template <class F>
@@ -385,6 +391,10 @@ class DialogDbAsync : public DialogDbAsyncInterface {
       }
       sync_db_->commit_transaction().ensure();
       pending_writes_.clear();
+      for (auto &p : pending_write_results_) {
+        p.first.set_result(std::move(p.second));
+      }
+      pending_write_results_.clear();
       cancel_timeout();
     }
     void timeout_expired() override {

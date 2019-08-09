@@ -947,16 +947,20 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                      NotificationId notification_id, BufferSlice data, Promise<> promise) {
       add_write_query([=, promise = std::move(promise), data = std::move(data), text = std::move(text)](Unit) mutable {
-        promise.set_result(sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id,
-                                                 ttl_expires_at, index_mask, search_id, std::move(text),
-                                                 notification_id, std::move(data)));
+        this->on_write_result(
+            std::move(promise),
+            sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at,
+                                  index_mask, search_id, std::move(text), notification_id, std::move(data)));
       });
     }
 
     void delete_message(FullMessageId full_message_id, Promise<> promise) {
       add_write_query([=, promise = std::move(promise)](Unit) mutable {
-        promise.set_result(sync_db_->delete_message(full_message_id));
+        this->on_write_result(std::move(promise), sync_db_->delete_message(full_message_id));
       });
+    }
+    void on_write_result(Promise<> promise, Status status) {
+      pending_write_results_.emplace_back(std::move(promise), std::move(status));
     }
     void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) {
       add_read_query();
@@ -1028,6 +1032,9 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
 
     static constexpr size_t MAX_PENDING_QUERIES_COUNT{50};
     static constexpr double MAX_PENDING_QUERIES_DELAY{0.01};
+
+    //NB: order is important, destructor of pending_writes_ will change pending_write_results_
+    std::vector<std::pair<Promise<>, Status>> pending_write_results_;
     std::vector<Promise<>> pending_writes_;
     double wakeup_at_ = 0;
     template <class F>
@@ -1056,6 +1063,10 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
       }
       sync_db_->commit_transaction().ensure();
       pending_writes_.clear();
+      for (auto &p : pending_write_results_) {
+        p.first.set_result(std::move(p.second));
+      }
+      pending_write_results_.clear();
       cancel_timeout();
     }
     void timeout_expired() override {
