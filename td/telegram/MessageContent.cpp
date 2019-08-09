@@ -2898,7 +2898,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           }
           new_photo->photos.push_back(old_photo->photos.back());
 
-          FileId old_file_id = get_message_content_file_id(old_content);
+          FileId old_file_id = get_message_content_upload_file_id(old_content);
           FileView old_file_view = td->file_manager_->get_file_view(old_file_id);
           FileId new_file_id = new_photo->photos[0].file_id;
           FileView new_file_view = td->file_manager_->get_file_view(new_file_id);
@@ -3903,7 +3903,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 }
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               bool for_forward) {
+                                               bool for_forward, bool remove_caption) {
   CHECK(content != nullptr);
 
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
@@ -3926,6 +3926,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
       if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
@@ -3935,6 +3938,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     }
     case MessageContentType::Audio: {
       auto result = make_unique<MessageAudio>(*static_cast<const MessageAudio *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
       if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
@@ -3946,6 +3952,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
     case MessageContentType::Document: {
       auto result = make_unique<MessageDocument>(*static_cast<const MessageDocument *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
       if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
@@ -3967,6 +3976,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return make_unique<MessageLocation>(*static_cast<const MessageLocation *>(content));
     case MessageContentType::Photo: {
       auto result = make_unique<MessagePhoto>(*static_cast<const MessagePhoto *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
 
       if (result->photo.photos.size() > 2 && !to_secret) {
         // already sent photo
@@ -4037,6 +4049,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return make_unique<MessageVenue>(*static_cast<const MessageVenue *>(content));
     case MessageContentType::Video: {
       auto result = make_unique<MessageVideo>(*static_cast<const MessageVideo *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
       if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
@@ -4056,6 +4071,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     }
     case MessageContentType::VoiceNote: {
       auto result = make_unique<MessageVoiceNote>(*static_cast<const MessageVoiceNote *>(content));
+      if (remove_caption) {
+        result->caption = FormattedText();
+      }
       result->is_listened = false;
       if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
@@ -4526,7 +4544,7 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
   }
 }
 
-FileId get_message_content_file_id(const MessageContent *content) {
+FileId get_message_content_upload_file_id(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->file_id;
@@ -4553,6 +4571,17 @@ FileId get_message_content_file_id(const MessageContent *content) {
       break;
   }
   return FileId();
+}
+
+FileId get_message_content_any_file_id(const MessageContent *content) {
+  FileId result = get_message_content_upload_file_id(content);
+  if (!result.is_valid() && content->get_type() == MessageContentType::Photo) {
+    const auto &sizes = static_cast<const MessagePhoto *>(content)->photo.photos;
+    if (!sizes.empty()) {
+      result = sizes.back().file_id;
+    }
+  }
+  return result;
 }
 
 void update_message_content_file_id_remote(MessageContent *content, FileId file_id) {
@@ -4629,7 +4658,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::VoiceNote: {
       vector<FileId> result;
       result.reserve(2);
-      FileId file_id = get_message_content_file_id(content);
+      FileId file_id = get_message_content_upload_file_id(content);
       if (file_id.is_valid()) {
         result.push_back(file_id);
       }
@@ -4945,9 +4974,9 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
 void on_sent_message_content(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return td->animations_manager_->add_saved_animation_by_id(get_message_content_file_id(content));
+      return td->animations_manager_->add_saved_animation_by_id(get_message_content_any_file_id(content));
     case MessageContentType::Sticker:
-      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_file_id(content));
+      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_any_file_id(content));
     default:
       // nothing to do
       return;

@@ -348,8 +348,8 @@ class MessagesManager : public Actor {
 
   Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                              vector<MessageId> message_ids, bool disable_notification,
-                                             bool from_background, bool in_game_share,
-                                             bool as_album) TD_WARN_UNUSED_RESULT;
+                                             bool from_background, bool in_game_share, bool as_album, bool send_copy,
+                                             bool remove_caption) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_dialog_set_ttl_message(DialogId dialog_id, int32 ttl);
 

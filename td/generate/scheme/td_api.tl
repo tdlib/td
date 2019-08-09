@@ -3102,7 +3102,9 @@ sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 disable_not
 //@chat_id Identifier of the chat to which to forward messages @from_chat_id Identifier of the chat from which to forward messages @message_ids Identifiers of the messages to forward
 //@disable_notification Pass true to disable notification for the message, doesn't work if messages are forwarded to a secret chat @from_background Pass true if the messages are sent from the background
 //@as_album True, if the messages should be grouped into an album after forwarding. For this to work, no more than 10 messages may be forwarded, and all of them must be photo or video messages
-forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> disable_notification:Bool from_background:Bool as_album:Bool = Messages;
+//@send_copy True, if content of the messages needs to be copied without links to the original messages. Always true if the messages are forwarded to a secret chat
+//@remove_caption True, if media captions of message copies needs to be removed. Ignored if send_copy is false
+forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> disable_notification:Bool from_background:Bool as_album:Bool send_copy:Bool remove_caption:Bool = Messages;
 
 //@description Changes the current TTL setting (sets a new self-destruct timer) in a secret chat and sends the corresponding message @chat_id Chat identifier @ttl New TTL value, in seconds
 sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;

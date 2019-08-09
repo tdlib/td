@@ -5821,7 +5821,8 @@ void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->forward_messages(
       dialog_id, DialogId(request.from_chat_id_), MessagesManager::get_message_ids(request.message_ids_),
-      request.disable_notification_, request.from_background_, false, request.as_album_);
+      request.disable_notification_, request.from_background_, false, request.as_album_, request.send_copy_,
+      request.remove_caption_);
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }

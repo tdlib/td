@@ -9387,7 +9387,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
     auto full_message_id = it->second;
     auto *m = get_message(full_message_id);
     if (m != nullptr) {
-      auto file_id = get_message_content_file_id(m->content.get());
+      auto file_id = get_message_content_upload_file_id(m->content.get());
       if (file_id.is_valid()) {
         if (G()->close_flag() && G()->parameters().use_message_db) {
           // do not send error, message will be re-sent
@@ -15986,7 +15986,7 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
 }
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
-  auto file_id = get_message_content_file_id(content);
+  auto file_id = get_message_content_upload_file_id(content);
   // always cancel file upload, it should be a no-op in the worst case
   if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
     cancel_upload_file(file_id);
@@ -16377,7 +16377,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
     return;
   }
 
-  FileId file_id = get_message_content_file_id(content);
+  FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
@@ -16701,7 +16701,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     reply_to_message_id = m->reply_to_message_id;
     flags = get_message_flags(m);
 
-    file_ids.push_back(get_message_content_file_id(m->content.get()));
+    file_ids.push_back(get_message_content_any_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
 
     LOG(INFO) << "Have file " << file_ids.back() << " in " << m->message_id << " with result " << request.results[i]
@@ -16716,7 +16716,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
     if (input_media == nullptr) {
       // TODO return CHECK
-      auto file_id = get_message_content_file_id(m->content.get());
+      auto file_id = get_message_content_any_file_id(m->content.get());
       auto file_view = td_->file_manager_->get_file_view(file_id);
       bool has_remote = file_view.has_remote_location();
       bool is_web = has_remote ? file_view.remote_location().is_web() : false;
@@ -18316,7 +18316,7 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
                                                    bool disable_notification, bool from_background,
                                                    bool in_game_share) {
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, disable_notification, from_background,
-                                      in_game_share, false));
+                                      in_game_share, false, false, false));
   CHECK(result.size() == 1);
   auto sent_message_id = result[0];
   if (sent_message_id == MessageId()) {
@@ -18327,7 +18327,8 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
 
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                                             vector<MessageId> message_ids, bool disable_notification,
-                                                            bool from_background, bool in_game_share, bool as_album) {
+                                                            bool from_background, bool in_game_share, bool as_album,
+                                                            bool send_copy, bool remove_caption) {
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
     return Status::Error(4, "Too much messages to forward");
   }
@@ -18359,20 +18360,19 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
   }
 
-  int64 media_album_id = 0;
-  if (as_album && message_ids.size() > 1 && message_ids.size() <= MAX_GROUPED_MESSAGES) {
-    do {
-      media_album_id = Random::secure_int64();
-    } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
-  }
-
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
 
   vector<MessageId> result(message_ids.size());
   vector<Message *> forwarded_messages;
   vector<MessageId> forwarded_message_ids;
-  vector<unique_ptr<MessageContent>> unforwarded_message_contents(message_ids.size());
-  vector<bool> unforwarded_message_disable_web_page_previews(message_ids.size());
+
+  struct CopiedMessage {
+    unique_ptr<MessageContent> content;
+    bool disable_web_page_preview;
+    size_t index;
+  };
+  vector<CopiedMessage> copied_messages;
+
   auto my_id = td_->contacts_manager_->get_my_id();
   bool need_update_dialog_pos = false;
   for (size_t i = 0; i < message_ids.size(); i++) {
@@ -18389,32 +18389,26 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    unique_ptr<MessageContent> content = dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), true);
+    bool need_copy = !message_id.is_server() || to_secret || send_copy;
+    unique_ptr<MessageContent> content =
+        dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), true, need_copy && remove_caption);
     if (content == nullptr) {
       LOG(INFO) << "Can't forward " << message_id;
       continue;
     }
 
-    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), true);
+    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
     }
 
-    if (!message_id.is_server() || to_secret) {
-      unforwarded_message_contents[i] = std::move(content);
-      unforwarded_message_disable_web_page_previews[i] = forwarded_message->disable_web_page_preview;
+    if (need_copy) {
+      copied_messages.push_back({std::move(content), forwarded_message->disable_web_page_preview, i});
       continue;
     }
 
     auto content_type = content->get_type();
-    if (media_album_id != 0 && !is_allowed_media_group_content(content_type)) {
-      media_album_id = 0;
-      for (auto m : forwarded_messages) {
-        m->media_album_id = 0;
-      }
-    }
-
     bool is_game = content_type == MessageContentType::Game;
     unique_ptr<MessageForwardInfo> forward_info;
     if (!is_game && content_type != MessageContentType::Audio) {
@@ -18457,7 +18451,6 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                      &need_update_dialog_pos, std::move(forward_info));
     m->debug_forward_from = from_dialog_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
-    m->media_album_id = media_album_id;
     m->in_game_share = in_game_share;
     if (forwarded_message->views > 0 && m->forward_info != nullptr) {
       m->views = forwarded_message->views;
@@ -18507,26 +18500,64 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     result[i] = m->message_id;
     forwarded_messages.push_back(m);
     forwarded_message_ids.push_back(message_id);
-
-    send_update_new_message(to_dialog, m);
   }
 
   if (!forwarded_messages.empty()) {
+    if (as_album && forwarded_messages.size() > 1 && forwarded_messages.size() <= MAX_GROUPED_MESSAGES) {
+      bool allow_album = true;
+      for (auto m : forwarded_messages) {
+        if (!is_allowed_media_group_content(m->content->get_type())) {
+          allow_album = false;
+          break;
+        }
+      }
+
+      if (allow_album) {
+        int64 media_album_id = 0;
+        do {
+          media_album_id = Random::secure_int64();
+        } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
+
+        for (auto m : forwarded_messages) {
+          m->media_album_id = media_album_id;
+        }
+      }
+    }
+
+    for (auto m : forwarded_messages) {
+      send_update_new_message(to_dialog, m);
+    }
+
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
   }
 
-  for (size_t i = 0; i < unforwarded_message_contents.size(); i++) {
-    if (unforwarded_message_contents[i] != nullptr) {
-      Message *m = get_message_to_send(to_dialog, MessageId(), disable_notification, from_background,
-                                       std::move(unforwarded_message_contents[i]), &need_update_dialog_pos);
-      m->disable_web_page_preview = unforwarded_message_disable_web_page_previews[i];
-      if (to_secret) {
-        m->media_album_id = media_album_id;
+  if (!copied_messages.empty()) {
+    int64 media_album_id = 0;
+    if (as_album && copied_messages.size() > 1 && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
+      bool allow_album = true;
+      for (auto &copied_message : copied_messages) {
+        if (!is_allowed_media_group_content(copied_message.content->get_type())) {
+          allow_album = false;
+          break;
+        }
       }
+
+      if (allow_album) {
+        do {
+          media_album_id = Random::secure_int64();
+        } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
+      }
+    }
+
+    for (auto &copied_message : copied_messages) {
+      Message *m = get_message_to_send(to_dialog, MessageId(), disable_notification, from_background,
+                                       std::move(copied_message.content), &need_update_dialog_pos);
+      m->disable_web_page_preview = copied_message.disable_web_page_preview;
+      m->media_album_id = media_album_id;
 
       save_send_message_logevent(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
-      result[i] = m->message_id;
+      result[copied_message.index] = m->message_id;
 
       send_update_new_message(to_dialog, m);
     }
@@ -21592,7 +21623,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
 
-  auto file_id = get_message_content_file_id(m->content.get());
+  auto file_id = get_message_content_upload_file_id(m->content.get());
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in "
                << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
@@ -24176,7 +24207,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
 
-  auto old_file_id = get_message_content_file_id(old_content.get());
+  auto old_file_id = get_message_content_any_file_id(old_content.get());
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
     need_update = true;
@@ -24185,7 +24216,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
 
     if (need_merge_files && old_file_id.is_valid()) {
-      auto new_file_id = get_message_content_file_id(new_content.get());
+      auto new_file_id = get_message_content_any_file_id(new_content.get());
       if (new_file_id.is_valid()) {
         FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
         FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
@@ -24242,7 +24273,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     }
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
-    update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));
+    update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
   }
   if (is_content_changed && !need_update) {
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";

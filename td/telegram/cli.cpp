@@ -2454,7 +2454,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids, ','),
                                                                as_bool(revoke)));
-    } else if (op == "fm" || op == "fmg") {
+    } else if (op == "fm" || op == "fmg" || op == "cm" || op == "cmg") {
       string chat_id;
       string from_chat_id;
       string message_ids;
@@ -2462,8 +2462,9 @@ class CliClient final : public Actor {
       std::tie(from_chat_id, message_ids) = split(args);
 
       auto chat = as_chat_id(chat_id);
-      send_request(td_api::make_object<td_api::forwardMessages>(
-          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), false, false, op == "fmg"));
+      send_request(td_api::make_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id),
+                                                                as_message_ids(message_ids), false, false, op[2] == 'g',
+                                                                op[0] == 'c', static_cast<bool>(Random::fast(0, 1))));
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {
