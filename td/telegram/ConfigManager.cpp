@@ -287,7 +287,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, con
 #endif
 }
 
-ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise) {
+ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
   class SessionCallback : public Session::Callback {
    public:
     SessionCallback(ActorShared<> parent, DcOption option) : parent_(std::move(parent)), option_(std::move(option)) {
@@ -402,8 +402,8 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise) {
 
   class GetConfigActor : public NetQueryCallback {
    public:
-    GetConfigActor(DcOption option, Promise<FullConfig> promise)
-        : option_(std::move(option)), promise_(std::move(promise)) {
+    GetConfigActor(DcOption option, Promise<FullConfig> promise, ActorShared<> parent)
+        : option_(std::move(option)), promise_(std::move(promise)), parent_(std::move(parent)) {
     }
 
    private:
@@ -450,9 +450,10 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise) {
     DcOption option_;
     ActorOwn<Session> session_;
     Promise<FullConfig> promise_;
+    ActorShared<> parent_;
   };
 
-  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", option, std::move(promise)));
+  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", option, std::move(promise), std::move(parent)));
 }
 
 class ConfigRecoverer : public Actor {
@@ -725,9 +726,10 @@ class ConfigRecoverer : public Actor {
       VLOG(config_recoverer) << "ASK FULL CONFIG";
       full_config_query_ =
           get_full_config(dc_options_.dc_options[dc_options_i_],
-                          PromiseCreator::lambda([actor_id = actor_shared(this)](Result<FullConfig> r_full_config) {
+                          PromiseCreator::lambda([actor_id = actor_id(this)](Result<FullConfig> r_full_config) {
                             send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
-                          }));
+                          }),
+                          actor_shared(this));
       dc_options_i_ = (dc_options_i_ + 1) % dc_options_.dc_options.size();
     }
 
