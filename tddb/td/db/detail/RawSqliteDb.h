@@ -44,9 +44,22 @@ class RawSqliteDb {
   Status last_error();
   static Status last_error(sqlite3 *db);
 
+  bool on_begin() {
+    begin_cnt_++;
+    return begin_cnt_ == 1;
+  }
+  Result<bool> on_commit() {
+    if (begin_cnt_ == 0) {
+      return Status::Error("No matching begin for commit");
+    }
+    begin_cnt_--;
+    return begin_cnt_ == 0;
+  }
+
  private:
   sqlite3 *db_;
   std::string path_;
+  size_t begin_cnt_{0};
 };
 
 }  // namespace detail

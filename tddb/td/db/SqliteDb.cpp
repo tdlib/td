@@ -136,10 +136,18 @@ Status SqliteDb::set_user_version(int32 version) {
 }
 
 Status SqliteDb::begin_transaction() {
-  return exec("BEGIN");
+  if (raw_->on_begin()) {
+    return exec("BEGIN");
+  }
+  return Status::OK();
 }
+
 Status SqliteDb::commit_transaction() {
-  return exec("COMMIT");
+  TRY_RESULT(need_commit, raw_->on_commit());
+  if (need_commit) {
+    return exec("COMMIT");
+  }
+  return Status::OK();
 }
 
 bool SqliteDb::is_encrypted() {
