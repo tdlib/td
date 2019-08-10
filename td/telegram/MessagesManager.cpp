@@ -3570,6 +3570,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_flags2 = true;
   bool has_notification_id = notification_id.is_valid();
   bool has_forward_sender_name = is_forwarded && !forward_info->sender_name.empty();
+  bool has_send_error_code = send_error_code != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3608,6 +3609,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_mention_notification_disabled);
     STORE_FLAG(had_forward_info);
     STORE_FLAG(has_forward_sender_name);
+    STORE_FLAG(has_send_error_code);
     END_STORE_FLAGS();
   }
 
@@ -3655,13 +3657,13 @@ void MessagesManager::Message::store(StorerT &storer) const {
   }
   if (has_ttl) {
     store(ttl, storer);
-    double server_time = storer.context()->server_time();
-    if (ttl_expires_at == 0) {
-      store(-1.0, storer);
-    } else {
-      double ttl_left = max(ttl_expires_at - Time::now_cached(), 0.0);
-      store(ttl_left, storer);
-      store(server_time, storer);
+    store_time(ttl_expires_at, storer);
+  }
+  if (has_send_error_code) {
+    store(send_error_code, storer);
+    store(send_error_message, storer);
+    if (send_error_code == 429) {
+      store_time(try_resend_at, storer);
     }
   }
   if (has_author_signature) {
@@ -3701,6 +3703,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_flags2;
   bool has_notification_id = false;
   bool has_forward_sender_name = false;
+  bool has_send_error_code = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3739,6 +3742,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_mention_notification_disabled);
     PARSE_FLAG(had_forward_info);
     PARSE_FLAG(has_forward_sender_name);
+    PARSE_FLAG(has_send_error_code);
     END_PARSE_FLAGS();
   }
 
@@ -3791,16 +3795,13 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_ttl) {
     parse(ttl, parser);
-    double ttl_left;
-    parse(ttl_left, parser);
-    if (ttl_left < -0.1) {
-      ttl_expires_at = 0;
-    } else {
-      double old_server_time;
-      parse(old_server_time, parser);
-      double passed_server_time = max(parser.context()->server_time() - old_server_time, 0.0);
-      ttl_left = max(ttl_left - passed_server_time, 0.0);
-      ttl_expires_at = Time::now_cached() + ttl_left;
+    parse_time(ttl_expires_at, parser);
+  }
+  if (has_send_error_code) {
+    parse(send_error_code, parser);
+    parse(send_error_message, parser);
+    if (send_error_code == 429) {
+      parse_time(try_resend_at, parser);
     }
   }
   if (has_author_signature) {
@@ -5192,7 +5193,8 @@ void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
   CHECK(d != nullptr);
   const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
-  send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), m->date,
+  auto live_location_date = m->is_failed_to_send ? 0 : m->date;
+  send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), live_location_date,
                               m->is_content_secret, "on_update_message_content");
   on_message_changed(d, m, true, "on_update_message_content");
 }
@@ -14579,6 +14581,10 @@ vector<FullMessageId> MessagesManager::get_active_live_location_messages(Promise
     CHECK(m != nullptr);
     CHECK(m->content->get_type() == MessageContentType::LiveLocation);
 
+    if (m->is_failed_to_send) {
+      continue;
+    }
+
     auto live_period = get_message_content_live_location_period(m->content.get());
     if (live_period <= G()->unix_time() - m->date) {  // bool is_expired flag?
       // live location is expired
@@ -14635,7 +14641,7 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
-  if (m->content->get_type() != MessageContentType::LiveLocation) {
+  if (m->content->get_type() != MessageContentType::LiveLocation || m->is_failed_to_send) {
     return;
   }
 
@@ -15531,7 +15537,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   // TODO get_message_sending_state_object
   tl_object_ptr<td_api::MessageSendingState> sending_state;
   if (m->is_failed_to_send) {
-    sending_state = make_tl_object<td_api::messageSendingStateFailed>();
+    sending_state = make_tl_object<td_api::messageSendingStateFailed>(
+        m->send_error_code, m->send_error_message, m->send_error_code == 429, max(m->try_resend_at - Time::now(), 0.0));
   } else if (m->message_id.is_yet_unsent()) {
     sending_state = make_tl_object<td_api::messageSendingStatePending>();
   }
@@ -15599,13 +15606,14 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
   bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
+  auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), is_outgoing, can_be_edited, can_be_forwarded, can_delete_for_self,
       can_delete_for_all_users, m->is_channel_post, contains_unread_mention, m->date, m->edit_date,
       get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
-      media_album_id, get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret),
+      media_album_id, get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
 }
 
@@ -20851,7 +20859,16 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   CHECK(message->message_id.is_valid());
   message->random_y = get_random_y(message->message_id);
   message->is_failed_to_send = true;
-
+  message->send_error_code = error_code;
+  message->send_error_message = error_message;
+  message->try_resend_at = 0.0;
+  Slice retry_after_prefix("Too Many Requests: retry after ");
+  if (error_code == 429 && begins_with(error_message, retry_after_prefix)) {
+    auto r_retry_after = to_integer_safe<int32>(error_message.substr(retry_after_prefix.size()));
+    if (r_retry_after.is_ok() && r_retry_after.ok() > 0) {
+      message->try_resend_at = Time::now() + r_retry_after.ok();
+    }
+  }
   update_failed_to_send_message_content(td_, message->content);
 
   message->have_previous = true;

@@ -4846,11 +4846,6 @@ void update_expired_message_content(unique_ptr<MessageContent> &content) {
 void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &content) {
   // do not forget about failed to send message forwards
   switch (content->get_type()) {
-    case MessageContentType::LiveLocation: {
-      MessageLiveLocation *message_live_location = static_cast<MessageLiveLocation *>(content.get());
-      message_live_location->period = 1;
-      break;
-    }
     case MessageContentType::Poll: {
       const MessagePoll *message_poll = static_cast<const MessagePoll *>(content.get());
       if (PollManager::is_local_poll_id(message_poll->poll_id)) {

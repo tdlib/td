@@ -516,8 +516,9 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 fro
 //@description The message is being sent now, but has not yet been delivered to the server
 messageSendingStatePending = MessageSendingState;
 
-//@description The message failed to be sent
-messageSendingStateFailed = MessageSendingState;
+//@description The message failed to be sent @error_code An error code; 0 if unknown @error_message Error message
+//@can_retry True, if the message can be re-sent @retry_after Time left before the message can be re-sent, in seconds. No update is sent when this field changes
+messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool retry_after:double = MessageSendingState;
 
 
 //@description Describes a message
@@ -747,8 +748,8 @@ richTextMarked text:RichText = RichText;
 richTextPhoneNumber text:RichText phone_number:string = RichText;
 
 //@description A small image inside the text @document The image represented as a document. The image can be in GIF, JPEG or PNG format
-//@width Width of a bounding box in which the image should be shown, 0 if unknown
-//@height Height of a bounding box in which the image should be shown, 0 if unknown
+//@width Width of a bounding box in which the image should be shown; 0 if unknown
+//@height Height of a bounding box in which the image should be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
 //@description A rich text anchor @text Text @name Anchor name
@@ -855,7 +856,7 @@ pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped
 //@description A page cover @cover Cover
 pageBlockCover cover:PageBlock = PageBlock;
 
-//@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width, 0 if unknown @height Block height, 0 if unknown @caption Block caption @is_full_width True, if the block should be full width @allow_scrolling True, if scrolling should be allowed
+//@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width; 0 if unknown @height Block height; 0 if unknown @caption Block caption @is_full_width True, if the block should be full width @allow_scrolling True, if scrolling should be allowed
 pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
 
 //@description An embedded post @url Web page URL @author Post author @author_photo Post author photo; may be null @date Point in time (Unix timestamp) when the post was created; 0 if unknown @page_blocks Post content @caption Post caption

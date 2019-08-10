@@ -868,7 +868,7 @@ class MessagesManager : public Actor {
 
     bool is_channel_post = false;
     bool is_outgoing = false;
-    bool is_failed_to_send = false;  // TODO replace with error_code
+    bool is_failed_to_send = false;
     bool disable_notification = false;
     bool contains_mention = false;
     bool contains_unread_mention = false;
@@ -890,6 +890,10 @@ class MessagesManager : public Actor {
     NotificationId removed_notification_id;
 
     int32 views = 0;
+
+    int32 send_error_code = 0;
+    string send_error_message;
+    double try_resend_at = 0;
 
     int32 ttl = 0;
     double ttl_expires_at = 0;
