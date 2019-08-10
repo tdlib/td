@@ -881,6 +881,7 @@ class MessagesManager : public Actor {
     bool disable_web_page_preview = false;  // for send_message
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
+    bool hide_via_bot = false;              // for resend_message
 
     bool have_previous = false;
     bool have_next = false;

@@ -3610,6 +3610,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(had_forward_info);
     STORE_FLAG(has_forward_sender_name);
     STORE_FLAG(has_send_error_code);
+    STORE_FLAG(hide_via_bot);
     END_STORE_FLAGS();
   }
 
@@ -3743,6 +3744,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(had_forward_info);
     PARSE_FLAG(has_forward_sender_name);
     PARSE_FLAG(has_send_error_code);
+    PARSE_FLAG(hide_via_bot);
     END_PARSE_FLAGS();
   }
 
@@ -5496,7 +5498,8 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->forward_info != nullptr || m->had_forward_info || m->via_bot_user_id.is_valid() || m->is_channel_post) {
+  if (m->forward_info != nullptr || m->had_forward_info || m->via_bot_user_id.is_valid() || m->hide_via_bot ||
+      m->is_channel_post) {
     return;
   }
 
@@ -17077,6 +17080,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   Message *m = get_message_to_send(
       d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
       dup_message_content(td_, dialog_id, content->message_content.get(), false), &need_update_dialog_pos);
+  m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
   }
@@ -17157,7 +17161,7 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
 
   int64 random_id = begin_send_message(dialog_id, m);
   auto flags = get_message_flags(m);
-  if (!m->via_bot_user_id.is_valid()) {
+  if (!m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(flags, dialog_id, m->reply_to_message_id,
@@ -23291,7 +23295,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     replied_by_yet_unsent_messages_[FullMessageId{dialog_id, message->reply_to_message_id}]++;
   }
 
-  if (G()->parameters().use_file_db && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid()) {
+  if (G()->parameters().use_file_db && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
+      !message->hide_via_bot) {
     auto queue_id = get_sequence_dispatcher_id(dialog_id, message_content_type);
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
@@ -24112,6 +24117,11 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                << new_message->via_bot_user_id;
     old_message->via_bot_user_id = new_message->via_bot_user_id;
     is_changed = true;
+
+    if (old_message->hide_via_bot && old_message->via_bot_user_id.is_valid()) {
+      // wrongly set hide_via_bot
+      old_message->hide_via_bot = false;
+    }
   }
   if (old_message->is_outgoing != new_message->is_outgoing && is_new_available) {
     LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
@@ -25892,7 +25902,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
 void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->via_bot_user_id.is_valid()) {
+  if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     return;
   }
   const FormattedText *text = get_message_content_text(m->content.get());
