@@ -1434,6 +1434,8 @@ class MessagesManager : public Actor {
 
   bool is_message_unload_enabled() const;
 
+  int64 generate_new_media_album_id();
+
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);

@@ -16313,6 +16313,15 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   return std::move(content);
 }
 
+int64 MessagesManager::generate_new_media_album_id() {
+  int64 media_album_id = 0;
+  do {
+    media_album_id = Random::secure_int64();
+  } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
+  pending_message_group_sends_[media_album_id];  // reserve place for the group
+  return media_album_id;
+}
+
 Result<vector<MessageId>> MessagesManager::send_message_group(
     DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification, bool from_background,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
@@ -16344,9 +16353,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
 
   int64 media_album_id = 0;
   if (message_contents.size() > 1) {
-    do {
-      media_album_id = Random::secure_int64();
-    } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
+    media_album_id = generate_new_media_album_id();
   }
 
   // there must be no errors after get_message_to_send calls
@@ -18575,11 +18582,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       }
 
       if (allow_album) {
-        int64 media_album_id = 0;
-        do {
-          media_album_id = Random::secure_int64();
-        } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
-
+        int64 media_album_id = generate_new_media_album_id();
         for (auto m : forwarded_messages) {
           m->media_album_id = media_album_id;
         }
@@ -18605,9 +18608,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       }
 
       if (allow_album) {
-        do {
-          media_album_id = Random::secure_int64();
-        } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
+        media_album_id = generate_new_media_album_id();
       }
     }
 
