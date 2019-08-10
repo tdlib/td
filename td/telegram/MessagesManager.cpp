@@ -3611,6 +3611,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_forward_sender_name);
     STORE_FLAG(has_send_error_code);
     STORE_FLAG(hide_via_bot);
+    STORE_FLAG(is_bot_start_message);
     END_STORE_FLAGS();
   }
 
@@ -3745,6 +3746,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_forward_sender_name);
     PARSE_FLAG(has_send_error_code);
     PARSE_FLAG(hide_via_bot);
+    PARSE_FLAG(is_bot_start_message);
     END_PARSE_FLAGS();
   }
 
@@ -16958,6 +16960,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   Message *m = get_message_to_send(d, MessageId(), false, false,
                                    create_text_message_content(text, std::move(text_entities), WebPageId()),
                                    &need_update_dialog_pos);
+  m->is_bot_start_message = true;
 
   send_update_new_message(d, m);
   if (need_update_dialog_pos) {
