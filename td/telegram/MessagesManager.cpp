@@ -3571,6 +3571,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_notification_id = notification_id.is_valid();
   bool has_forward_sender_name = is_forwarded && !forward_info->sender_name.empty();
   bool has_send_error_code = send_error_code != 0;
+  bool has_real_forward_from_dialog_id = real_forward_from_dialog_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3645,6 +3646,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
       store(forward_info->from_message_id, storer);
     }
   }
+  if (has_real_forward_from_dialog_id) {
+    store(real_forward_from_dialog_id, storer);
+  }
   if (is_reply) {
     store(reply_to_message_id, storer);
   }
@@ -3706,6 +3710,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_notification_id = false;
   bool has_forward_sender_name = false;
   bool has_send_error_code = false;
+  bool has_real_forward_from_dialog_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3747,6 +3752,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_send_error_code);
     PARSE_FLAG(hide_via_bot);
     PARSE_FLAG(is_bot_start_message);
+    PARSE_FLAG(has_real_forward_from_dialog_id);
     END_PARSE_FLAGS();
   }
 
@@ -3784,6 +3790,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
       parse(forward_info->from_dialog_id, parser);
       parse(forward_info->from_message_id, parser);
     }
+  }
+  if (has_real_forward_from_dialog_id) {
+    parse(real_forward_from_dialog_id, parser);
   }
   if (is_reply) {
     parse(reply_to_message_id, parser);
@@ -18518,7 +18527,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     Message *m = get_message_to_send(to_dialog, MessageId(), disable_notification, from_background, std::move(content),
                                      &need_update_dialog_pos, std::move(forward_info));
-    m->debug_forward_from = from_dialog_id;
+    m->real_forward_from_dialog_id = from_dialog_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
     if (forwarded_message->views > 0 && m->forward_info != nullptr) {
@@ -24042,8 +24051,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (old_message->forward_info == nullptr) {
     if (new_message->forward_info != nullptr) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
-                 << ", really forwarded from " << old_message->debug_forward_from << ", message content type is "
-                 << old_message->content->get_type() << '/' << new_message->content->get_type();
+                 << ", really forwarded from " << old_message->real_forward_from_dialog_id
+                 << ", message content type is " << old_message->content->get_type() << '/'
+                 << new_message->content->get_type();
       old_message->forward_info = std::move(new_message->forward_info);
       is_changed = true;
     }
@@ -24058,7 +24068,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         if (!is_forward_info_sender_hidden(new_message->forward_info.get())) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
-                     << old_message->debug_forward_from << ", message content type is "
+                     << old_message->real_forward_from_dialog_id << ", message content type is "
                      << old_message->content->get_type() << '/' << new_message->content->get_type();
         }
         old_message->forward_info = std::move(new_message->forward_info);
@@ -24067,8 +24077,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
                  << " has lost forward info " << *old_message->forward_info << ", really forwarded from "
-                 << old_message->debug_forward_from << ", message content type is " << old_message->content->get_type()
-                 << '/' << new_message->content->get_type();
+                 << old_message->real_forward_from_dialog_id << ", message content type is "
+                 << old_message->content->get_type() << '/' << new_message->content->get_type();
       old_message->forward_info = nullptr;
       is_changed = true;
     }

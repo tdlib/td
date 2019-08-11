@@ -888,6 +888,8 @@ class MessagesManager : public Actor {
     bool have_next = false;
     bool from_database = false;
 
+    DialogId real_forward_from_dialog_id;  // for resend_message
+
     NotificationId notification_id;
     NotificationId removed_notification_id;
 
@@ -919,8 +921,6 @@ class MessagesManager : public Actor {
     uint64 send_message_logevent_id = 0;
 
     NetQueryRef send_query_ref;
-
-    DialogId debug_forward_from;
 
     template <class StorerT>
     void store(StorerT &storer) const;
