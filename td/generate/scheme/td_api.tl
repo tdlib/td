@@ -3110,6 +3110,11 @@ sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 disable_not
 //@remove_caption True, if media captions of message copies needs to be removed. Ignored if send_copy is false
 forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> disable_notification:Bool from_background:Bool as_album:Bool send_copy:Bool remove_caption:Bool = Messages;
 
+//@description Resends failed to send messages. Can be called only for failed to send messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
+//-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message
+//@chat_id Identifier of the chat to send messages @message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
+resendMessages chat_id:int53 message_ids:vector<int53> = Messages;
+
 //@description Changes the current TTL setting (sets a new self-destruct timer) in a secret chat and sends the corresponding message @chat_id Chat identifier @ttl New TTL value, in seconds
 sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;
 

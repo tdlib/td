@@ -15552,7 +15552,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   tl_object_ptr<td_api::MessageSendingState> sending_state;
   if (m->is_failed_to_send) {
     sending_state = make_tl_object<td_api::messageSendingStateFailed>(
-        m->send_error_code, m->send_error_message, m->send_error_code == 429, max(m->try_resend_at - Time::now(), 0.0));
+        m->send_error_code, m->send_error_message, can_resend_message(m), max(m->try_resend_at - Time::now(), 0.0));
   } else if (m->message_id.is_yet_unsent()) {
     sending_state = make_tl_object<td_api::messageSendingStatePending>();
   }
@@ -16253,15 +16253,15 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
+  save_send_message_logevent(dialog_id, m);
+  do_send_message(dialog_id, m);
+
   send_update_new_message(d, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_message");
   }
 
-  auto message_id = m->message_id;
-  save_send_message_logevent(dialog_id, m);
-  do_send_message(dialog_id, m);
-  return message_id;
+  return m->message_id;
 }
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
@@ -16338,7 +16338,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     return Status::Error(4, "Too much messages to send as an album");
   }
   if (input_message_contents.empty()) {
-    return Status::Error(4, "There is no messages to send");
+    return Status::Error(4, "There are no messages to send");
   }
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -16394,7 +16394,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   return result;
 }
 
-void MessagesManager::save_send_message_logevent(DialogId dialog_id, Message *m) {
+void MessagesManager::save_send_message_logevent(DialogId dialog_id, const Message *m) {
   if (!G()->parameters().use_message_db) {
     return;
   }
@@ -16407,7 +16407,7 @@ void MessagesManager::save_send_message_logevent(DialogId dialog_id, Message *m)
   m->send_message_logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, storer);
 }
 
-void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int> bad_parts) {
+void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts) {
   bool is_edit = m->message_id.is_server();
   LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << FullMessageId(dialog_id, m->message_id);
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
@@ -16484,7 +16484,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
   }
 }
 
-void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
+void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Message *m,
                                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
                                                 FileId thumbnail_file_id) {
   CHECK(m != nullptr);
@@ -16563,7 +16563,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
   }
 }
 
-void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, Message *m,
+void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const Message *m,
                                                        SecretInputMedia &&secret_input_media, FileId file_id,
                                                        FileId thumbnail_file_id) {
   CHECK(m != nullptr);
@@ -17016,7 +17016,7 @@ class MessagesManager::SendBotStartMessageLogEvent {
 };
 
 void MessagesManager::save_send_bot_start_message_logevent(UserId bot_user_id, DialogId dialog_id,
-                                                           const string &parameter, Message *m) {
+                                                           const string &parameter, const Message *m) {
   if (!G()->parameters().use_message_db) {
     return;
   }
@@ -17035,7 +17035,7 @@ void MessagesManager::save_send_bot_start_message_logevent(UserId bot_user_id, D
 }
 
 void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter,
-                                                Message *m) {
+                                                const Message *m) {
   LOG(INFO) << "Do send bot start " << FullMessageId(dialog_id, m->message_id) << " to bot " << bot_user_id;
 
   int64 random_id = begin_send_message(dialog_id, m);
@@ -17118,9 +17118,8 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
 
   if (to_secret) {
     save_send_message_logevent(dialog_id, m);
-    auto message_id = m->message_id;
     do_send_message(dialog_id, m);
-    return message_id;
+    return m->message_id;
   }
 
   save_send_inline_query_result_message_logevent(dialog_id, m, query_id, result_id);
@@ -17155,8 +17154,8 @@ class MessagesManager::SendInlineQueryResultMessageLogEvent {
   }
 };
 
-void MessagesManager::save_send_inline_query_result_message_logevent(DialogId dialog_id, Message *m, int64 query_id,
-                                                                     const string &result_id) {
+void MessagesManager::save_send_inline_query_result_message_logevent(DialogId dialog_id, const Message *m,
+                                                                     int64 query_id, const string &result_id) {
   if (!G()->parameters().use_message_db) {
     return;
   }
@@ -17174,7 +17173,7 @@ void MessagesManager::save_send_inline_query_result_message_logevent(DialogId di
       binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, storer);
 }
 
-void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Message *m, int64 query_id,
+void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
                                                           const string &result_id) {
   LOG(INFO) << "Do send inline query result " << FullMessageId(dialog_id, m->message_id);
 
@@ -17335,6 +17334,33 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   }
 
   return false;
+}
+
+bool MessagesManager::can_resend_message(const Message *m) {
+  if (m->send_error_code != 429) {
+    return false;
+  }
+  if (m->is_bot_start_message) {
+    return false;
+  }
+  if (m->forward_info != nullptr || m->real_forward_from_dialog_id.is_valid()) {
+    // TODO implement resending of forwarded messages
+    return false;
+  }
+  if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
+    // via bot message
+    if (!get_message_content_game_bot_user_id(m->content.get()).is_valid()) {
+      // TODO implement resending via_bot messages other than games
+      return false;
+    }
+  }
+
+  auto content_type = m->content->get_type();
+  if (content_type == MessageContentType::ChatSetTtl || content_type == MessageContentType::ScreenshotTaken) {
+    // TODO implement resending of ChatSetTtl and ScreenshotTaken messages
+    return false;
+  }
+  return true;
 }
 
 bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
@@ -18407,7 +18433,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     return Status::Error(4, "Too much messages to forward");
   }
   if (message_ids.empty()) {
-    return Status::Error(4, "There is no messages to forward");
+    return Status::Error(4, "There are no messages to forward");
   }
 
   Dialog *from_dialog = get_dialog_force(from_dialog_id);
@@ -18480,7 +18506,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     auto content_type = content->get_type();
     bool is_game = content_type == MessageContentType::Game;
     if (need_copy) {
-      if (is_game) {
+      if (is_game && !get_message_content_game_bot_user_id(content.get()).is_valid()) {
         LOG(INFO) << "Can't copy game from " << message_id;
         continue;
       }
@@ -18637,6 +18663,118 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(to_dialog, "forward_messages");
+  }
+
+  return result;
+}
+
+Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids) {
+  if (message_ids.empty()) {
+    return Status::Error(4, "There are no messages to resend");
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+
+  TRY_STATUS(can_send_message(dialog_id));
+
+  MessageId last_message_id;
+  for (auto &message_id : message_ids) {
+    message_id = get_persistent_message_id(d, message_id);
+    const Message *m = get_message_force(d, message_id, "resend_messages");
+    if (m == nullptr) {
+      return Status::Error(400, "Message not found");
+    }
+    if (!m->is_failed_to_send) {
+      return Status::Error(400, "Message is not failed to send");
+    }
+    if (!can_resend_message(m)) {
+      return Status::Error(400, "Message can't be re-sent");
+    }
+    if (m->try_resend_at < Time::now()) {
+      return Status::Error(400, "Message can't be re-sent yet");
+    }
+    if (m->message_id.get() <= last_message_id.get()) {
+      return Status::Error(400, "Message identifiers must be in a strictly increasing order");
+    }
+    last_message_id = message_id;
+  }
+
+  vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
+  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
+  for (size_t i = 0; i < message_ids.size(); i++) {
+    MessageId message_id = message_ids[i];
+    const Message *m = get_message(d, message_id);
+    CHECK(m != nullptr);
+
+    unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, m->content.get(), false);
+    if (content == nullptr) {
+      LOG(INFO) << "Can't resend " << message_id;
+      continue;
+    }
+
+    auto can_send_status = can_send_message_content(dialog_id, content.get(), false);
+    if (can_send_status.is_error()) {
+      LOG(INFO) << "Can't resend " << message_id << ": " << can_send_status.message();
+      continue;
+    }
+
+    if (!get_message_content_game_bot_user_id(content.get()).is_valid()) {
+      // must not happen
+      LOG(ERROR) << "Can't resend game from " << message_id;
+      continue;
+    }
+
+    new_contents[i] = std::move(content);
+
+    if (m->media_album_id != 0) {
+      auto &new_media_album_id = new_media_album_ids[m->media_album_id];
+      new_media_album_id.second++;
+      if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
+        CHECK(new_media_album_id.first == 0);
+        new_media_album_id.first = generate_new_media_album_id();
+      }
+      if (new_media_album_id.second == MAX_GROUPED_MESSAGES + 1) {
+        CHECK(new_media_album_id.first != 0);
+        new_media_album_id.first = 0;  // just in case
+      }
+    }
+  }
+
+  vector<MessageId> result(message_ids.size());
+  bool need_update_dialog_pos = false;
+  for (size_t i = 0; i < message_ids.size(); i++) {
+    if (new_contents[i] == nullptr) {
+      continue;
+    }
+
+    unique_ptr<Message> message = delete_message(d, message_ids[i], true, &need_update_dialog_pos, "resend_messages");
+    CHECK(message != nullptr);
+    send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
+
+    Message *m =
+        get_message_to_send(d, get_reply_to_message_id(d, message->reply_to_message_id), message->disable_notification,
+                            message->from_background, std::move(new_contents[i]), &need_update_dialog_pos);
+    m->reply_markup = std::move(message->reply_markup);
+    m->via_bot_user_id = message->via_bot_user_id;
+    m->disable_web_page_preview = message->disable_web_page_preview;
+    m->clear_draft = false;  // never clear draft in resend
+    m->ttl = message->ttl;
+    m->is_content_secret = message->is_content_secret;
+    m->media_album_id = new_media_album_ids[message->media_album_id].first;
+
+    save_send_message_logevent(dialog_id, m);
+    do_send_message(dialog_id, m);
+
+    send_update_new_message(d, m);
+
+    result[i] = m->message_id;
+  }
+
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "resend_messages");
   }
 
   return result;

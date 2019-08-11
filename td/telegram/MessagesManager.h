@@ -351,6 +351,8 @@ class MessagesManager : public Actor {
                                              bool from_background, bool in_game_share, bool as_album, bool send_copy,
                                              bool remove_caption) TD_WARN_UNUSED_RESULT;
 
+  Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;
+
   Result<MessageId> send_dialog_set_ttl_message(DialogId dialog_id, int32 ttl);
 
   Status send_screenshot_taken_notification_message(DialogId dialog_id);
@@ -918,9 +920,9 @@ class MessagesManager : public Actor {
 
     mutable int32 last_access_date = 0;
 
-    uint64 send_message_logevent_id = 0;
+    mutable uint64 send_message_logevent_id = 0;
 
-    NetQueryRef send_query_ref;
+    mutable NetQueryRef send_query_ref;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -1355,6 +1357,8 @@ class MessagesManager : public Actor {
   Status can_send_message_content(DialogId dialog_id, const MessageContent *content,
                                   bool is_forward) const TD_WARN_UNUSED_RESULT;
 
+  static bool can_resend_message(const Message *m);
+
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
   bool can_report_dialog(DialogId dialog_id) const;
@@ -1400,12 +1404,13 @@ class MessagesManager : public Actor {
                             tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                             BufferSlice thumbnail);
 
-  void do_send_message(DialogId dialog_id, Message *m, vector<int> bad_parts = {});
+  void do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts = {});
 
-  void on_message_media_uploaded(DialogId dialog_id, Message *m, tl_object_ptr<telegram_api::InputMedia> &&input_media,
-                                 FileId file_id, FileId thumbnail_file_id);
+  void on_message_media_uploaded(DialogId dialog_id, const Message *m,
+                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
+                                 FileId thumbnail_file_id);
 
-  void on_secret_message_media_uploaded(DialogId dialog_id, Message *m, SecretInputMedia &&secret_input_media,
+  void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media,
                                         FileId file_id, FileId thumbnail_file_id);
 
   void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, Status result);
@@ -1417,14 +1422,15 @@ class MessagesManager : public Actor {
   void on_yet_unsent_media_queue_updated(DialogId dialog_id);
 
   void save_send_bot_start_message_logevent(UserId bot_user_id, DialogId dialog_id, const string &parameter,
-                                            Message *m);
+                                            const Message *m);
 
-  void do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter, Message *m);
+  void do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter, const Message *m);
 
-  void save_send_inline_query_result_message_logevent(DialogId dialog_id, Message *m, int64 query_id,
+  void save_send_inline_query_result_message_logevent(DialogId dialog_id, const Message *m, int64 query_id,
                                                       const string &result_id);
 
-  void do_send_inline_query_result_message(DialogId dialog_id, Message *m, int64 query_id, const string &result_id);
+  void do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
+                                           const string &result_id);
 
   uint64 save_send_screenshot_taken_notification_message_logevent(DialogId dialog_id, const Message *m);
 
@@ -2128,7 +2134,7 @@ class MessagesManager : public Actor {
 
   static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
 
-  void save_send_message_logevent(DialogId dialog_id, Message *m);
+  void save_send_message_logevent(DialogId dialog_id, const Message *m);
 
   uint64 save_change_dialog_report_spam_state_on_server_logevent(DialogId dialog_id, bool is_spam_dialog);
 

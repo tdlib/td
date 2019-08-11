@@ -5831,6 +5831,18 @@ void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
                messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok()));
 }
 
+void Td::on_request(uint64 id, const td_api::resendMessages &request) {
+  DialogId dialog_id(request.chat_id_);
+  auto r_message_ids =
+      messages_manager_->resend_messages(dialog_id, MessagesManager::get_message_ids(request.message_ids_));
+  if (r_message_ids.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
+  }
+
+  send_closure(actor_id(this), &Td::send_result, id,
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok()));
+}
+
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetWebPagePreviewRequest, std::move(request.text_));

@@ -612,6 +612,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::forwardMessages &request);
 
+  void on_request(uint64 id, const td_api::resendMessages &request);
+
   void on_request(uint64 id, td_api::getWebPagePreview &request);
 
   void on_request(uint64 id, td_api::getWebPageInstantView &request);
