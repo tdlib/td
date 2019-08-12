@@ -796,5 +796,8 @@ inline Slice as_slice(const BufferSlice &value) {
 inline MutableSlice as_slice(BufferSlice &value) {
   return value.as_slice();
 }
+inline MutableSlice as_mutable_slice(BufferSlice &value) {
+  return value.as_slice();
+}
 
 }  // namespace td

@@ -895,6 +895,9 @@ static void test_hash() {
   test_hash<HashT, BadValue>({BadValue{1}, BadValue{2}}).ensure_error();
   test_hash<HashT, ValueA>({ValueA{1}, ValueA{2}}).ensure();
   test_hash<HashT, ValueB>({ValueB{1}, ValueB{2}}).ensure();
+  test_hash<HashT, std::pair<int, int>>({{1, 1}, {1, 2}}).ensure();
+  // FIXME: use some better hash
+  //test_hash<HashT, std::pair<int, int>>({{1, 1}, {1, 2}, {2, 1}, {2, 2}}).ensure();
 }
 
 TEST(Misc, Hasher) {

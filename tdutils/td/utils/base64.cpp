@@ -10,6 +10,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include "td/utils/format.h"
+
 #include <algorithm>
 #include <iterator>
 
@@ -48,7 +50,7 @@ string base64_encode(Slice input) {
 
 static unsigned char char_to_value[256];
 static void init_base64_table() {
-  static bool is_inited = []() {
+  static bool is_inited = [] {
     std::fill(std::begin(char_to_value), std::end(char_to_value), static_cast<unsigned char>(64));
     for (unsigned char i = 0; i < 64; i++) {
       char_to_value[static_cast<size_t>(symbols64[i])] = i;
@@ -58,9 +60,7 @@ static void init_base64_table() {
   CHECK(is_inited);
 }
 
-Result<string> base64_decode(Slice base64) {
-  init_base64_table();
-
+Result<Slice> base64_drop_padding(Slice base64) {
   if ((base64.size() & 3) != 0) {
     return Status::Error("Wrong string length");
   }
@@ -73,9 +73,11 @@ Result<string> base64_decode(Slice base64) {
   if (padding_length >= 3) {
     return Status::Error("Wrong string padding");
   }
+  return base64;
+}
 
-  string output;
-  output.reserve(((base64.size() + 3) >> 2) * 3);
+template <class F>
+Status base64_do_decode(Slice base64, F &&append) {
   for (size_t i = 0; i < base64.size();) {
     size_t left = min(base64.size() - i, static_cast<size_t>(4));
     int c = 0;
@@ -86,23 +88,51 @@ Result<string> base64_decode(Slice base64) {
       }
       c |= value << ((3 - t) * 6);
     }
-    output += static_cast<char>(static_cast<unsigned char>(c >> 16));  // implementation-defined
+    append(static_cast<char>(static_cast<unsigned char>(c >> 16)));  // implementation-defined
     if (left == 2) {
       if ((c & ((1 << 16) - 1)) != 0) {
         return Status::Error("Wrong padding in the string");
       }
     } else {
-      output += static_cast<char>(static_cast<unsigned char>(c >> 8));  // implementation-defined
+      append(static_cast<char>(static_cast<unsigned char>(c >> 8)));  // implementation-defined
       if (left == 3) {
         if ((c & ((1 << 8) - 1)) != 0) {
           return Status::Error("Wrong padding in the string");
         }
       } else {
-        output += static_cast<char>(static_cast<unsigned char>(c));  // implementation-defined
+        append(static_cast<char>(static_cast<unsigned char>(c)));  // implementation-defined
       }
     }
   }
+  return Status::OK();
+}
+
+Result<string> base64_decode(Slice base64) {
+  init_base64_table();
+
+  TRY_RESULT(tmp, base64_drop_padding(base64));
+  base64 = tmp;
+
+  string output;
+  output.reserve(((base64.size() + 3) >> 2) * 3);
+  TRY_STATUS(base64_do_decode(base64, [&output](char c) { output += c; }));
   return output;
+}
+
+Result<SecureString> base64_decode_secure(Slice base64) {
+  init_base64_table();
+
+  TRY_RESULT(tmp, base64_drop_padding(base64));
+  base64 = tmp;
+
+  SecureString output(((base64.size() + 3) >> 2) * 3);
+  char *ptr = output.as_mutable_slice().begin();
+  TRY_STATUS(base64_do_decode(base64, [&ptr](char c) { *ptr++ = c; }));
+  size_t size = ptr - output.as_mutable_slice().begin();
+  if (size == output.size()) {
+    return std::move(output);
+  }
+  return SecureString(output.as_slice().substr(0, size));
 }
 
 static const char *const url_symbols64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -133,7 +163,7 @@ string base64url_encode(Slice input) {
 
 static unsigned char url_char_to_value[256];
 static void init_base64url_table() {
-  static bool is_inited = []() {
+  static bool is_inited = [] {
     std::fill(std::begin(url_char_to_value), std::end(url_char_to_value), static_cast<unsigned char>(64));
     for (unsigned char i = 0; i < 64; i++) {
       url_char_to_value[static_cast<size_t>(url_symbols64[i])] = i;

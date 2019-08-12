@@ -10,6 +10,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SharedSlice.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_parsers.h"
@@ -115,9 +116,18 @@ template <class StorerT>
 void store(const string &x, StorerT &storer) {
   storer.store_string(x);
 }
+template <class StorerT>
+void store(const SecureString &x, StorerT &storer) {
+  storer.store_string(x.as_slice());
+}
 template <class ParserT>
 void parse(string &x, ParserT &parser) {
   x = parser.template fetch_string<string>();
+}
+
+template <class ParserT>
+void parse(SecureString &x, ParserT &parser) {
+  x = parser.template fetch_string<SecureString>();
 }
 
 template <class T, class StorerT>
@@ -225,6 +235,21 @@ string serialize(const T &object) {
     store(object, storer);
     CHECK(storer.get_buf() == data.uend());
   }
+  return key;
+}
+
+template <class T>
+SecureString serialize_secure(const T &object) {
+  TlStorerCalcLength calc_length;
+  store(object, calc_length);
+  size_t length = calc_length.get_length();
+
+  SecureString key(length, '\0');
+  CHECK(is_aligned_pointer<4>(key.data()));
+  MutableSlice data = key.as_mutable_slice();
+  TlStorerUnsafe storer(data.ubegin());
+  store(object, storer);
+  CHECK(storer.get_buf() == data.uend());
   return key;
 }
 

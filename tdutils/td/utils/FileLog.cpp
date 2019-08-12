@@ -17,7 +17,7 @@
 
 namespace td {
 
-Status FileLog::init(string path, int64 rotate_threshold) {
+Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
   if (path == path_) {
     set_rotate_threshold(rotate_threshold);
     return Status::OK();
@@ -30,7 +30,7 @@ Status FileLog::init(string path, int64 rotate_threshold) {
 
   fd_.close();
   fd_ = std::move(fd);
-  if (!Stderr().empty()) {
+  if (!Stderr().empty() && redirect_stderr) {
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
 
@@ -43,6 +43,7 @@ Status FileLog::init(string path, int64 rotate_threshold) {
   TRY_RESULT(size, fd_.get_size());
   size_ = size;
   rotate_threshold_ = rotate_threshold;
+  redirect_stderr_ = redirect_stderr;
   return Status::OK();
 }
 
@@ -108,7 +109,7 @@ void FileLog::do_rotate() {
     process_fatal_error(PSLICE() << r_fd.error() << " in " << __FILE__ << " at " << __LINE__);
   }
   fd_ = r_fd.move_as_ok();
-  if (!Stderr().empty()) {
+  if (!Stderr().empty() && redirect_stderr_) {
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
   size_ = 0;

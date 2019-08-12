@@ -32,6 +32,10 @@ template <>
 BufferSlice create_empty<BufferSlice>(size_t size) {
   return BufferSlice{size};
 }
+template <>
+SecureString create_empty<SecureString>(size_t size) {
+  return SecureString{size};
+}
 
 template <class T>
 Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
@@ -48,7 +52,7 @@ Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
   }
   size -= offset;
   auto content = create_empty<T>(narrow_cast<size_t>(size));
-  TRY_RESULT(got_size, from_file.pread(as_slice(content), offset));
+  TRY_RESULT(got_size, from_file.pread(as_mutable_slice(content), offset));
   if (got_size != static_cast<size_t>(size)) {
     return Status::Error("Failed to read file");
   }
@@ -64,6 +68,10 @@ Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
 
 Result<string> read_file_str(CSlice path, int64 size, int64 offset) {
   return read_file_impl<string>(path, size, offset);
+}
+
+Result<SecureString> read_file_secure(CSlice path, int64 size, int64 offset) {
+  return read_file_impl<SecureString>(path, size, offset);
 }
 
 // Very straightforward function. Don't expect much of it.

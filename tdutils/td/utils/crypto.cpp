@@ -241,66 +241,74 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
   return 0;
 }
 
-static void aes_ige_xcrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
+static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
+  CHECK(aes_key.size() == 32);
+  CHECK(aes_iv.size() == 16);
   AES_KEY key;
   int err;
   if (encrypt_flag) {
-    err = AES_set_encrypt_key(aes_key.raw, 256, &key);
+    err = AES_set_encrypt_key(aes_key.ubegin(), 256, &key);
   } else {
-    err = AES_set_decrypt_key(aes_key.raw, 256, &key);
+    err = AES_set_decrypt_key(aes_key.ubegin(), 256, &key);
   }
   LOG_IF(FATAL, err != 0);
   CHECK(from.size() <= to.size());
-  AES_ige_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv->raw, encrypt_flag);
+  AES_ige_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv.ubegin(), encrypt_flag);
 }
 
-void aes_ige_encrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to) {
+void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
 }
 
-void aes_ige_decrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to) {
+void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
 }
 
-static void aes_cbc_xcrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
+static void aes_cbc_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
+  CHECK(aes_key.size() == 32);
+  CHECK(aes_iv.size() == 16);
   AES_KEY key;
   int err;
   if (encrypt_flag) {
-    err = AES_set_encrypt_key(aes_key.raw, 256, &key);
+    err = AES_set_encrypt_key(aes_key.ubegin(), 256, &key);
   } else {
-    err = AES_set_decrypt_key(aes_key.raw, 256, &key);
+    err = AES_set_decrypt_key(aes_key.ubegin(), 256, &key);
   }
   LOG_IF(FATAL, err != 0);
   CHECK(from.size() <= to.size());
-  AES_cbc_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv->raw, encrypt_flag);
+  AES_cbc_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv.ubegin(), encrypt_flag);
 }
 
-void aes_cbc_encrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, MutableSlice to) {
+void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   aes_cbc_xcrypt(aes_key, aes_iv, from, to, true);
 }
 
-void aes_cbc_decrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, MutableSlice to) {
+void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   aes_cbc_xcrypt(aes_key, aes_iv, from, to, false);
 }
 
-AesCbcState::AesCbcState(const UInt256 &key, const UInt128 &iv) : key_(key), iv_(iv) {
+AesCbcState::AesCbcState(Slice key256, Slice iv128) : key_(key256), iv_(iv128) {
+  CHECK(key_.size() == 32);
+  CHECK(iv_.size() == 16);
 }
 
 void AesCbcState::encrypt(Slice from, MutableSlice to) {
-  ::td::aes_cbc_encrypt(key_, &iv_, from, to);
+  ::td::aes_cbc_encrypt(key_.as_slice(), iv_.as_mutable_slice(), from, to);
 }
 void AesCbcState::decrypt(Slice from, MutableSlice to) {
-  ::td::aes_cbc_decrypt(key_, &iv_, from, to);
+  ::td::aes_cbc_decrypt(key_.as_slice(), iv_.as_mutable_slice(), from, to);
 }
 
 class AesCtrState::Impl {
  public:
-  Impl(const UInt256 &key, const UInt128 &iv) {
+  Impl(Slice key, Slice iv) {
+    CHECK(key.size() == 32);
+    CHECK(iv.size() == 16);
     static_assert(AES_BLOCK_SIZE == 16, "");
-    if (AES_set_encrypt_key(key.raw, 256, &aes_key) < 0) {
+    if (AES_set_encrypt_key(key.ubegin(), 256, &aes_key) < 0) {
       LOG(FATAL) << "Failed to set encrypt key";
     }
-    MutableSlice(counter, AES_BLOCK_SIZE).copy_from(as_slice(iv));
+    counter.as_mutable_slice().copy_from(as_slice(iv));
     current_pos = 0;
   }
 
@@ -308,9 +316,10 @@ class AesCtrState::Impl {
     CHECK(to.size() >= from.size());
     for (size_t i = 0; i < from.size(); i++) {
       if (current_pos == 0) {
-        AES_encrypt(counter, encrypted_counter, &aes_key);
+        AES_encrypt(counter.as_slice().ubegin(), encrypted_counter.as_mutable_slice().ubegin(), &aes_key);
+        uint8 *ptr = counter.as_mutable_slice().ubegin();
         for (int j = 15; j >= 0; j--) {
-          if (++counter[j] != 0) {
+          if (++ptr[j] != 0) {
             break;
           }
         }
@@ -322,8 +331,8 @@ class AesCtrState::Impl {
 
  private:
   AES_KEY aes_key;
-  uint8 counter[AES_BLOCK_SIZE];
-  uint8 encrypted_counter[AES_BLOCK_SIZE];
+  SecureString counter{AES_BLOCK_SIZE};
+  SecureString encrypted_counter{AES_BLOCK_SIZE};
   uint8 current_pos;
 };
 
@@ -332,7 +341,7 @@ AesCtrState::AesCtrState(AesCtrState &&from) = default;
 AesCtrState &AesCtrState::operator=(AesCtrState &&from) = default;
 AesCtrState::~AesCtrState() = default;
 
-void AesCtrState::init(const UInt256 &key, const UInt128 &iv) {
+void AesCtrState::init(Slice key, Slice iv) {
   ctx_ = make_unique<AesCtrState::Impl>(key, iv);
 }
 

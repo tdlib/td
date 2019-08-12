@@ -5,45 +5,107 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-
-#include "td/utils/common.h"
-#include "td/utils/port/thread_local.h"
+#include "td/utils/ThreadLocalStorage.h"
+#include "td/utils/StringBuilder.h"
 
 #include <array>
-#include <atomic>
+#include <mutex>
 
 namespace td {
-
-class ThreadSafeCounter {
+template <size_t N>
+class ThreadSafeMultiCounter {
  public:
-  void add(int64 diff) {
-    auto &node = thread_local_node();
-    node.count_.store(node.count_.load(std::memory_order_relaxed) + diff, std::memory_order_relaxed);
+  void add(size_t index, int64 diff) {
+    CHECK(index < N);
+    tls_.get()[index].fetch_add(diff, std::memory_order_relaxed);
   }
 
-  int64 sum() const {
-    int n = max_thread_id_.load();
+  int64 sum(size_t index) const {
+    CHECK(index < N);
     int64 res = 0;
-    for (int i = 0; i < n; i++) {
-      res += nodes_[i].count_.load();
-    }
+    tls_.for_each([&](auto &value) { res += value[index].load(); });
     return res;
   }
 
  private:
-  struct Node {
-    std::atomic<int64> count_{0};
-    char padding[128];
-  };
-  static constexpr int MAX_THREAD_ID = 128;
-  std::atomic<int> max_thread_id_{MAX_THREAD_ID};
-  std::array<Node, MAX_THREAD_ID> nodes_;
+  ThreadLocalStorage<std::array<std::atomic<int64>, N>> tls_;
+};
 
-  Node &thread_local_node() {
-    auto thread_id = get_thread_id();
-    CHECK(static_cast<size_t>(thread_id) < nodes_.size());
-    return nodes_[thread_id];
+class ThreadSafeCounter {
+ public:
+  void add(int64 diff) {
+    counter_.add(0, diff);
   }
+
+  int64 sum() const {
+    return counter_.sum(0);
+  }
+
+ private:
+  ThreadSafeMultiCounter<1> counter_;
+};
+
+class NamedThreadSafeCounter {
+  static constexpr int N = 128;
+  using Counter = ThreadSafeMultiCounter<N>;
+
+ public:
+  class CounterRef {
+   public:
+    CounterRef() = default;
+    CounterRef(size_t index, Counter *counter) : index_(index), counter_(counter) {
+    }
+    void add(int64 diff) {
+      counter_->add(index_, diff);
+    }
+    int64 sum() const {
+      return counter_->sum(index_);
+    }
+
+   private:
+    size_t index_{0};
+    Counter *counter_{nullptr};
+  };
+
+  CounterRef get_counter(Slice name) {
+    std::unique_lock<std::mutex> guard(mutex_);
+    for (size_t i = 0; i < names_.size(); i++) {
+      if (names_[i] == name) {
+        return get_counter_ref(i);
+      }
+    }
+    CHECK(names_.size() < N);
+    names_.push_back(name.str());
+    return get_counter_ref(names_.size() - 1);
+  }
+
+  CounterRef get_counter_ref(size_t index) {
+    return CounterRef(index, &counter_);
+  }
+
+  static NamedThreadSafeCounter &get_default() {
+    static NamedThreadSafeCounter res;
+    return res;
+  }
+
+  template <class F>
+  void for_each(F &&f) const {
+    std::unique_lock<std::mutex> guard(mutex_);
+    for (size_t i = 0; i < names_.size(); i++) {
+      f(names_[i], counter_.sum(i));
+    }
+  }
+
+  friend StringBuilder &operator<<(StringBuilder &sb, const NamedThreadSafeCounter &counter) {
+    counter.for_each([&sb](Slice name, int64 cnt) { sb << name << ": " << cnt << "\n"; });
+    return sb;
+  }
+
+ private:
+  mutable std::mutex mutex_;
+  std::vector<std::string> names_;
+
+  Counter counter_;
 };
 
 }  // namespace td

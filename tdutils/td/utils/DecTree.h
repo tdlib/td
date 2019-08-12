@@ -185,6 +185,9 @@ class DecTree {
   void remove(const KeyType &key) {
     root_ = remove_node(std::move(root_), key);
   }
+  void reset() {
+    root_ = nullptr;
+  }
   ValueType *get(const KeyType &key) {
     return get_node(root_, key);
   }

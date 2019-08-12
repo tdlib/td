@@ -45,18 +45,18 @@ TEST(Crypto, AesCtrState) {
     }
 
     td::AesCtrState state;
-    state.init(key, iv);
+    state.init(as_slice(key), as_slice(iv));
     td::string t(length, '\0');
     state.encrypt(s, t);
     ASSERT_EQ(answers1[i], td::crc32(t));
-    state.init(key, iv);
+    state.init(as_slice(key), as_slice(iv));
     state.decrypt(t, t);
     ASSERT_STREQ(s, t);
 
     for (auto &c : iv.raw) {
       c = 0xFF;
     }
-    state.init(key, iv);
+    state.init(as_slice(key), as_slice(iv));
     state.encrypt(s, t);
     ASSERT_EQ(answers2[i], td::crc32(t));
 

@@ -52,6 +52,9 @@ class MutableSlice {
   MutableSlice substr(size_t from, size_t size) const;
   size_t find(char c) const;
   size_t rfind(char c) const;
+  void fill(char c);
+  void fill_zero();
+  void fill_zero_secure();
 
   void copy_from(Slice from);
 

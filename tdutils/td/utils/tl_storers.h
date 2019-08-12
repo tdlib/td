@@ -62,6 +62,15 @@ class TlStorerUnsafe {
       *buf_++ = static_cast<unsigned char>(len & 255);
       *buf_++ = static_cast<unsigned char>((len >> 8) & 255);
       *buf_++ = static_cast<unsigned char>(len >> 16);
+    } else if (len < (1ull << 32)) {
+      *buf_++ = static_cast<unsigned char>(255);
+      *buf_++ = static_cast<unsigned char>(len & 255);
+      *buf_++ = static_cast<unsigned char>((len >> 8) & 255);
+      *buf_++ = static_cast<unsigned char>((len >> 16) & 255);
+      *buf_++ = static_cast<unsigned char>((len >> 24) & 255);
+      *buf_++ = static_cast<unsigned char>(0);
+      *buf_++ = static_cast<unsigned char>(0);
+      *buf_++ = static_cast<unsigned char>(0);
     } else {
       LOG(FATAL) << "String size " << len << " is too big to be stored";
     }
@@ -71,7 +80,7 @@ class TlStorerUnsafe {
     switch (len & 3) {
       case 1:
         *buf_++ = 0;
-      // fallthrough
+        // fallthrough
       case 2:
         *buf_++ = 0;
       // fallthrough
@@ -119,8 +128,10 @@ class TlStorerCalcLength {
     size_t add = str.size();
     if (add < 254) {
       add += 1;
-    } else {
+    } else if (add < (1 << 24)) {
       add += 4;
+    } else {
+      add += 8;
     }
     add = (add + 3) & -4;
     length += add;

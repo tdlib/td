@@ -90,7 +90,8 @@ class MpmcWaiter {
       return (state >> 1) == (worker + 1);
     }
   };
-  enum { RoundsTillSleepy = 32, RoundsTillAsleep = 64 };
+  //enum { RoundsTillSleepy = 32, RoundsTillAsleep = 64 };
+  enum { RoundsTillSleepy = 1, RoundsTillAsleep = 2 };
   std::atomic<uint32> state_{State::awake()};
   std::mutex mutex_;
   std::condition_variable condition_variable_;

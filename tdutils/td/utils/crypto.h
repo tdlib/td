@@ -9,8 +9,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SharedSlice.h"
 #include "td/utils/Status.h"
-#include "td/utils/UInt.h"
 
 namespace td {
 
@@ -21,11 +21,11 @@ void init_crypto();
 
 int pq_factorize(Slice pq_str, string *p_str, string *q_str);
 
-void aes_ige_encrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to);
-void aes_ige_decrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to);
+void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
+void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 
-void aes_cbc_encrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, MutableSlice to);
-void aes_cbc_decrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, MutableSlice to);
+void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
+void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 
 class AesCtrState {
  public:
@@ -36,7 +36,7 @@ class AesCtrState {
   AesCtrState &operator=(AesCtrState &&from);
   ~AesCtrState();
 
-  void init(const UInt256 &key, const UInt128 &iv);
+  void init(Slice key, Slice iv);
 
   void encrypt(Slice from, MutableSlice to);
 
@@ -49,14 +49,14 @@ class AesCtrState {
 
 class AesCbcState {
  public:
-  AesCbcState(const UInt256 &key, const UInt128 &iv);
+  AesCbcState(Slice key256, Slice iv128);
 
   void encrypt(Slice from, MutableSlice to);
   void decrypt(Slice from, MutableSlice to);
 
  private:
-  UInt256 key_;
-  UInt128 iv_;
+  SecureString key_;
+  SecureString iv_;
 };
 
 void sha1(Slice data, unsigned char output[20]);
