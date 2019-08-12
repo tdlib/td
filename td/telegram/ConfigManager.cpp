@@ -171,7 +171,7 @@ Result<SimpleConfig> decode_config(Slice input) {
   UInt128 iv;
   as_slice(key).copy_from(data_rsa_slice.substr(0, 32));
   as_slice(iv).copy_from(data_rsa_slice.substr(16, 16));
-  aes_cbc_decrypt(key, &iv, data_cbc, data_cbc);
+  aes_cbc_decrypt(as_slice(key), as_slice(iv), data_cbc, data_cbc);
 
   CHECK(data_cbc.size() == 224);
   string hash(32, ' ');

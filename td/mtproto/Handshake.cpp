@@ -148,7 +148,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   auto save_tmp_aes_iv = tmp_aes_iv;
   // encrypted_answer := AES256_ige_encrypt (answer_with_hash, tmp_aes_key, tmp_aes_iv);
   MutableSlice answer(const_cast<char *>(dh_params->encrypted_answer_.begin()), dh_params->encrypted_answer_.size());
-  aes_ige_decrypt(tmp_aes_key, &tmp_aes_iv, answer, answer);
+  aes_ige_decrypt(as_slice(tmp_aes_key), as_slice(tmp_aes_iv), answer, answer);
   tmp_aes_iv = save_tmp_aes_iv;
 
   // answer_with_hash := SHA1(answer) + answer + (0-15 random bytes)
@@ -204,7 +204,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
                        encrypted_data_size_with_pad - encrypted_data_size);
   tmp_KDF(server_nonce, new_nonce, &tmp_aes_key, &tmp_aes_iv);
-  aes_ige_encrypt(tmp_aes_key, &tmp_aes_iv, encrypted_data, encrypted_data);
+  aes_ige_encrypt(as_slice(tmp_aes_key), as_slice(tmp_aes_iv), encrypted_data, encrypted_data);
 
   mtproto_api::set_client_DH_params set_client_dh_params(nonce, server_nonce, encrypted_data);
   send(connection, create_storer(set_client_dh_params));

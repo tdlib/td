@@ -27,10 +27,10 @@ Result<ValueHash> ValueHash::create(Slice data) {
 
 static AesCbcState calc_aes_cbc_state_hash(Slice hash) {
   CHECK(hash.size() == 64);
-  UInt256 key;
-  as_slice(key).copy_from(hash.substr(0, 32));
-  UInt128 iv;
-  as_slice(iv).copy_from(hash.substr(32, 16));
+  SecureString key(32);
+  as_mutable_slice(key).copy_from(hash.substr(0, 32));
+  SecureString iv(16);
+  as_mutable_slice(iv).copy_from(hash.substr(32, 16));
   LOG(INFO) << "End AES CBC state calculation";
   return AesCbcState{key, iv};
 }
@@ -220,7 +220,7 @@ EncryptedSecret Secret::encrypt(Slice key, Slice salt, EnryptionAlgorithm algori
         return calc_aes_cbc_state_pbkdf2(key, salt);
       default:
         UNREACHABLE();
-        return AesCbcState(UInt256(), UInt128());
+        return AesCbcState(Slice(), Slice());
     }
   }();
 
@@ -250,7 +250,7 @@ Result<Secret> EncryptedSecret::decrypt(Slice key, Slice salt, EnryptionAlgorith
         return calc_aes_cbc_state_pbkdf2(key, salt);
       default:
         UNREACHABLE();
-        return AesCbcState(UInt256(), UInt128());
+        return AesCbcState(Slice(), Slice());
     }
   }();
 
@@ -333,14 +333,14 @@ Result<EncryptedValue> encrypt_value(const Secret &secret, Slice data) {
   TRY_RESULT(hash, calc_value_hash(full_view));
 
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
-  Encryptor encryptor(aes_cbc_state, full_view);
+  Encryptor encryptor(std::move(aes_cbc_state), full_view);
   TRY_RESULT(encrypted_data, encryptor.pread(0, encryptor.size()));
   return EncryptedValue{std::move(encrypted_data), std::move(hash)};
 }
 
 Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, Slice data) {
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
-  Decryptor decryptor(aes_cbc_state);
+  Decryptor decryptor(std::move(aes_cbc_state));
   TRY_RESULT(decrypted_value, decryptor.append(BufferSlice(data)));
   TRY_RESULT(got_hash, decryptor.finish());
   if (got_hash.as_slice() != hash.as_slice()) {
@@ -362,7 +362,7 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
   TRY_RESULT(hash, calc_value_hash(full_view));
 
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
-  Encryptor encryptor(aes_cbc_state, full_view);
+  Encryptor encryptor(std::move(aes_cbc_state), full_view);
   TRY_STATUS(
       data_view_for_each(encryptor, [&dest_file](BufferSlice bytes) { return dest_file.write(bytes.as_slice()); }));
   return std::move(hash);
@@ -376,7 +376,7 @@ Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src
   FileDataView src_file_view(src_file, src_file_size);
 
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
-  Decryptor decryptor(aes_cbc_state);
+  Decryptor decryptor(std::move(aes_cbc_state));
   TRY_STATUS(data_view_for_each(src_file_view, [&decryptor, &dest_file](BufferSlice bytes) {
     TRY_RESULT(decrypted_bytes, decryptor.append(std::move(bytes)));
     TRY_STATUS(dest_file.write(decrypted_bytes.as_slice()));

@@ -305,7 +305,7 @@ if (CRC32C_FOUND)
   target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 if (ABSL_FOUND)
-  target_link_libraries_system(tdutils PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
+  target_link_libraries(tdutils PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
 endif()
 
 if (WIN32 AND WINGETOPT_FOUND)

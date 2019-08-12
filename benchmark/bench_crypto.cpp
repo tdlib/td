@@ -69,7 +69,7 @@ class AESBench : public td::Benchmark {
   void run(int n) override {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i < n; i++) {
-      td::aes_ige_encrypt(key, &iv, data_slice, data_slice);
+      td::aes_ige_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
     }
   }
 };

@@ -231,7 +231,8 @@ Status FileUploader::generate_iv_map() {
     if (read_size != part_size) {
       return Status::Error("Failed to read file part (for iv_map)");
     }
-    aes_ige_encrypt(encryption_key.key(), &encryption_key.mutable_iv(), bytes.as_slice(), bytes.as_slice());
+    aes_ige_encrypt(as_slice(encryption_key.key()), as_slice(encryption_key.mutable_iv()), bytes.as_slice(),
+                    bytes.as_slice());
     iv_map_.push_back(encryption_key.mutable_iv());
   }
   generate_iv_ = encryption_key.iv_slice().str();
@@ -259,7 +260,7 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
   if (encryption_key_.is_secret()) {
     Random::secure_bytes(bytes.as_slice().substr(part.size));
     if (next_offset_ == part.offset) {
-      aes_ige_encrypt(encryption_key_.key(), &iv_, bytes.as_slice(), bytes.as_slice());
+      aes_ige_encrypt(as_slice(encryption_key_.key()), as_slice(iv_), bytes.as_slice(), bytes.as_slice());
       next_offset_ += static_cast<int64>(bytes.size());
     } else {
       if (part.id >= static_cast<int32>(iv_map_.size())) {
@@ -267,7 +268,7 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
       }
       CHECK(part.id < static_cast<int32>(iv_map_.size()) && part.id >= 0);
       auto iv = iv_map_[part.id];
-      aes_ige_encrypt(encryption_key_.key(), &iv, bytes.as_slice(), bytes.as_slice());
+      aes_ige_encrypt(as_slice(encryption_key_.key()), as_slice(iv), bytes.as_slice(), bytes.as_slice());
     }
   }
 

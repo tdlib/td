@@ -340,7 +340,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
     UInt256 key = as<UInt256>(cdn_encryption_key_.c_str());
 
     AesCtrState ctr_state;
-    ctr_state.init(key, iv);
+    ctr_state.init(as_slice(key), as_slice(iv));
     ctr_state.decrypt(bytes.as_slice(), bytes.as_slice());
   }
   if (encryption_key_.is_secret()) {
@@ -350,7 +350,8 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
     if (part.size % 16 != 0) {
       next_part_stop_ = true;
     }
-    aes_ige_decrypt(encryption_key_.key(), &encryption_key_.mutable_iv(), bytes.as_slice(), bytes.as_slice());
+    aes_ige_decrypt(as_slice(encryption_key_.key()), as_slice(encryption_key_.mutable_iv()), bytes.as_slice(),
+                    bytes.as_slice());
   }
 
   auto slice = bytes.as_slice().truncate(part.size);

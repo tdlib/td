@@ -19,7 +19,7 @@ namespace td {
 class AesCtrByteFlow : public ByteFlowInplaceBase {
  public:
   void init(const UInt256 &key, const UInt128 &iv) {
-    state_.init(key, iv);
+    state_.init(as_slice(key), as_slice(iv));
   }
   void init(AesCtrState &&state) {
     state_ = std::move(state);

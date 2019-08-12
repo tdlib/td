@@ -196,7 +196,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
 
   output_key_ = as<UInt256>(header.data() + 8);
   fix_key(output_key_);
-  output_state_.init(output_key_, as<UInt128>(header.data() + 8 + 32));
+  output_state_.init(as_slice(output_key_), Slice(header.data() + 8 + 32, 16));
   header_ = header;
   output_state_.encrypt(header_slice, header_slice);
   MutableSlice(header_).substr(56).copy_from(header_slice.substr(56));

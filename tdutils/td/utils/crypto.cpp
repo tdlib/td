@@ -243,7 +243,7 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
 
 static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
   CHECK(aes_key.size() == 32);
-  CHECK(aes_iv.size() == 16);
+  CHECK(aes_iv.size() == 32);
   AES_KEY key;
   int err;
   if (encrypt_flag) {
