@@ -10146,7 +10146,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     send_update_new_message(d, m);
   }
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (dialog_id.get_type() == DialogType::Channel && !have_input_peer(dialog_id, AccessRights::Read)) {
     auto p = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(p.get() == m);
     // CHECK(d->messages == nullptr);
