@@ -37,7 +37,7 @@ class FileLog : public LogInterface {
   string path_;
   int64 size_ = 0;
   int64 rotate_threshold_ = 0;
-  bool redirect_stderr_;
+  bool redirect_stderr_ = false;
 
   void do_rotate();
 };

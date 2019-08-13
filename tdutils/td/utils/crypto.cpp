@@ -308,7 +308,7 @@ class AesCtrState::Impl {
     if (AES_set_encrypt_key(key.ubegin(), 256, &aes_key) < 0) {
       LOG(FATAL) << "Failed to set encrypt key";
     }
-    counter.as_mutable_slice().copy_from(as_slice(iv));
+    counter.as_mutable_slice().copy_from(iv);
     current_pos = 0;
   }
 

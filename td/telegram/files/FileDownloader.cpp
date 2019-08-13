@@ -331,16 +331,15 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
 
   // Encryption
   if (need_cdn_decrypt) {
-    UInt128 iv = as<UInt128>(cdn_encryption_iv_.c_str());
     CHECK(part.offset % 16 == 0);
     auto offset = narrow_cast<uint32>(part.offset / 16);
     offset =
         ((offset & 0xff) << 24) | ((offset & 0xff00) << 8) | ((offset & 0xff0000) >> 8) | ((offset & 0xff000000) >> 24);
-    as<uint32>(iv.raw + 12) = offset;
-    UInt256 key = as<UInt256>(cdn_encryption_key_.c_str());
 
     AesCtrState ctr_state;
-    ctr_state.init(as_slice(key), as_slice(iv));
+    string iv = cdn_encryption_iv_;
+    as<uint32>(&iv[12]) = offset;
+    ctr_state.init(cdn_encryption_key_, iv);
     ctr_state.decrypt(bytes.as_slice(), bytes.as_slice());
   }
   if (encryption_key_.is_secret()) {

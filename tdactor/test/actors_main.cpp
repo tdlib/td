@@ -481,7 +481,7 @@ class XContext : public ActorContext {
   int x = 1234;
 };
 
-class WithContext : public Actor {
+class WithXContext : public Actor {
  public:
   void start_up() override {
     set_context(std::make_shared<XContext>());
@@ -491,8 +491,6 @@ class WithContext : public Actor {
   void close() {
     stop();
   }
-
- private:
 };
 
 void check_context() {
@@ -510,11 +508,11 @@ TEST(Actors, context_during_destruction) {
 
   {
     auto guard = sched.get_main_guard();
-    auto with_context = create_actor<WithContext>("WithContext").release();
-    send_closure(with_context, &WithContext::f, create_lambda_guard([] { check_context(); }));
-    send_closure_later(with_context, &WithContext::close);
-    send_closure(with_context, &WithContext::f, create_lambda_guard([] { check_context(); }));
-    send_closure(with_context, &WithContext::f, create_lambda_guard([] { Scheduler::instance()->finish(); }));
+    auto with_context = create_actor<WithXContext>("WithXContext").release();
+    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { check_context(); }));
+    send_closure_later(with_context, &WithXContext::close);
+    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { check_context(); }));
+    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { Scheduler::instance()->finish(); }));
   }
   sched.start();
   while (sched.run_main(10)) {

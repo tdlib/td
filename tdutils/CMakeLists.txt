@@ -99,17 +99,17 @@ set(TDUTILS_SOURCE
   td/utils/MpmcQueue.cpp
   td/utils/OptionsParser.cpp
   td/utils/Random.cpp
-  td/utils/Slice.cpp
   td/utils/SharedSlice.cpp
+  td/utils/Slice.cpp
   td/utils/StackAllocator.cpp
   td/utils/Status.cpp
   td/utils/StringBuilder.cpp
+  td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
-  td/utils/TsFileLog.cpp
-  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
+  td/utils/TsFileLog.cpp
   td/utils/unicode.cpp
   td/utils/utf8.cpp
 
@@ -220,6 +220,7 @@ set(TDUTILS_SOURCE
   td/utils/Random.h
   td/utils/ScopeGuard.h
   td/utils/SharedObjectPool.h
+  td/utils/SharedSlice.h
   td/utils/Slice-decl.h
   td/utils/Slice.h
   td/utils/Span.h
@@ -230,15 +231,16 @@ set(TDUTILS_SOURCE
   td/utils/StorerBase.h
   td/utils/StringBuilder.h
   td/utils/tests.h
+  td/utils/ThreadLocalStorage.h
   td/utils/ThreadSafeCounter.h
   td/utils/Time.h
   td/utils/TimedStat.h
   td/utils/Timer.h
-  td/utils/TsFileLog.h
   td/utils/tl_helpers.h
   td/utils/tl_parsers.h
   td/utils/tl_storers.h
   td/utils/translit.h
+  td/utils/TsFileLog.h
   td/utils/type_traits.h
   td/utils/UInt.h
   td/utils/uint128.h
@@ -254,6 +256,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/ConcurrentHashMap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/crypto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/Enumerator.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/EpochBasedMemoryReclamation.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/filesystem.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/gzip.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp

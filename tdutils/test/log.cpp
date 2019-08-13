@@ -4,23 +4,22 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/tests.h"
+#include "td/utils/benchmark.h"
 #include "td/utils/FileLog.h"
-#include "td/utils/TsFileLog.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
-#include "td/utils/benchmark.h"
+#include "td/utils/tests.h"
+#include "td/utils/TsFileLog.h"
 
 // Thread safe logging with tests
 //
 // LOG uses thread local LogInterface
 // void append(CSlice slice, int log_level);
-//
 
 template <class Log>
 class LogBenchmark : public td::Benchmark {
  public:
-  explicit LogBenchmark(std::string name, int threads_n, std::function<td::unique_ptr<Log>()> creator)
+  LogBenchmark(std::string name, int threads_n, std::function<td::unique_ptr<Log>()> creator)
       : name_(std::move(name)), threads_n_(threads_n), creator_(std::move(creator)) {
   }
   std::string get_description() const override {

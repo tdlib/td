@@ -6,14 +6,13 @@
 //
 #pragma once
 
-#include "td/utils/port/thread.h"
 #include "td/utils/port/thread_local.h"
-#include "td/utils/int_types.h"
 
-#include <atomic>
 #include <array>
+#include <atomic>
 
 namespace td {
+
 template <class T>
 class ThreadLocalStorage {
  public:
@@ -23,15 +22,15 @@ class ThreadLocalStorage {
 
   template <class F>
   void for_each(F&& f) {
-    int n = max_thread_id_.load();
-    for (int i = 0; i < n; i++) {
+    int32 n = max_thread_id_.load();
+    for (int32 i = 0; i < n; i++) {
       f(nodes_[i].value);
     }
   }
   template <class F>
   void for_each(F&& f) const {
-    int n = max_thread_id_.load();
-    for (int i = 0; i < n; i++) {
+    int32 n = max_thread_id_.load();
+    for (int32 i = 0; i < n; i++) {
       f(nodes_[i].value);
     }
   }
@@ -39,10 +38,10 @@ class ThreadLocalStorage {
  private:
   struct Node {
     T value{};
-    char padding[128];
+    char padding[TD_CONCURRENCY_PAD];
   };
-  static constexpr int MAX_THREAD_ID = 128;
-  std::atomic<int> max_thread_id_{MAX_THREAD_ID};
+  static constexpr int32 MAX_THREAD_ID = 128;
+  std::atomic<int32> max_thread_id_{MAX_THREAD_ID};
   std::array<Node, MAX_THREAD_ID> nodes_;
 
   Node& thread_local_node() {
@@ -51,4 +50,5 @@ class ThreadLocalStorage {
     return nodes_[thread_id];
   }
 };
+
 }  // namespace td

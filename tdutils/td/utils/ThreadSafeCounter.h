@@ -5,13 +5,15 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#include "td/utils/ThreadLocalStorage.h"
+
 #include "td/utils/StringBuilder.h"
+#include "td/utils/ThreadLocalStorage.h"
 
 #include <array>
 #include <mutex>
 
 namespace td {
+
 template <size_t N>
 class ThreadSafeMultiCounter {
  public:
@@ -23,7 +25,7 @@ class ThreadSafeMultiCounter {
   int64 sum(size_t index) const {
     CHECK(index < N);
     int64 res = 0;
-    tls_.for_each([&](auto &value) { res += value[index].load(); });
+    tls_.for_each([&](auto &value) { res += value[index].load(std::memory_order_relaxed); });
     return res;
   }
 
@@ -75,7 +77,7 @@ class NamedThreadSafeCounter {
       }
     }
     CHECK(names_.size() < N);
-    names_.push_back(name.str());
+    names_.emplase_back(name.begin(), name.size());
     return get_counter_ref(names_.size() - 1);
   }
 

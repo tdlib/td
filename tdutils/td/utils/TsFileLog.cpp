@@ -4,15 +4,21 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "TsFileLog.h"
+#include "td/utils/TsFileLog.h"
+
+#include "td/utils/logging.h"
+
+#include <array>
 
 namespace td {
+
 namespace detail {
-class TsFileLog : public LogInterface {
+
+class TsFileLogImpl : public LogInterface {
  public:
   Status init(string path) {
     path_ = std::move(path);
-    for (int i = 0; i < (int)logs_.size(); i++) {
+    for (int32 i = 0; i < static_cast<int32>(logs_.size()); i++) {
       logs_[i].id = i;
     }
     return init_info(&logs_[0]);
@@ -36,17 +42,17 @@ class TsFileLog : public LogInterface {
  private:
   struct Info {
     FileLog log;
-    bool is_inited;
-    int id;
+    bool is_inited = false;
+    int32 id;
   };
-  static constexpr int MAX_THREAD_ID = 128;
+  static constexpr int32 MAX_THREAD_ID = 128;
   std::string path_;
   std::array<Info, MAX_THREAD_ID> logs_;
 
   LogInterface *get_current_logger() {
     auto *info = get_current_info();
     if (!info->is_inited) {
-      CHECK(init_info(info).is_ok());
+      init_info(info).ensure();
     }
     return &info->log;
   }
@@ -61,18 +67,20 @@ class TsFileLog : public LogInterface {
     return Status::OK();
   }
 
-  string get_path(Info *info) {
+  string get_path(const Info *info) {
     if (info->id == 0) {
       return path_;
     }
     return PSTRING() << path_ << "." << info->id;
   }
 };
+
 }  // namespace detail
 
-Result<td::unique_ptr<LogInterface>> TsFileLog::create(string path) {
-  auto res = td::make_unique<detail::TsFileLog>();
+Result<unique_ptr<LogInterface>> TsFileLog::create(string path) {
+  auto res = make_unique<detail::TsFileLogImpl>();
   TRY_STATUS(res->init(path));
   return std::move(res);
 }
+
 }  // namespace td

@@ -7,10 +7,9 @@
 #include "td/utils/base64.h"
 
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-
-#include "td/utils/format.h"
 
 #include <algorithm>
 #include <iterator>
@@ -110,8 +109,7 @@ Status base64_do_decode(Slice base64, F &&append) {
 Result<string> base64_decode(Slice base64) {
   init_base64_table();
 
-  TRY_RESULT(tmp, base64_drop_padding(base64));
-  base64 = tmp;
+  TRY_RESULT_ASSIGN(base64, base64_drop_padding(base64));
 
   string output;
   output.reserve(((base64.size() + 3) >> 2) * 3);
@@ -122,8 +120,7 @@ Result<string> base64_decode(Slice base64) {
 Result<SecureString> base64_decode_secure(Slice base64) {
   init_base64_table();
 
-  TRY_RESULT(tmp, base64_drop_padding(base64));
-  base64 = tmp;
+  TRY_RESULT_ASSIGN(base64, base64_drop_padding(base64));
 
   SecureString output(((base64.size() + 3) >> 2) * 3);
   char *ptr = output.as_mutable_slice().begin();

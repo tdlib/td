@@ -4,66 +4,65 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/tests.h"
 #include "td/utils/SharedSlice.h"
-
-using namespace td;
+#include "td/utils/tests.h"
 
 TEST(SharedSlice, Hands) {
   {
-    SharedSlice h("hello");
+    td::SharedSlice h("hello");
     ASSERT_EQ("hello", h.as_slice());
     // auto g = h; // CE
     auto g = h.clone();
+    ASSERT_EQ("hello", h.as_slice());
     ASSERT_EQ("hello", g.as_slice());
   }
 
   {
-    SharedSlice h("hello");
-    UniqueSharedSlice g(std::move(h));
+    td::SharedSlice h("hello");
+    td::UniqueSharedSlice g(std::move(h));
     ASSERT_EQ("", h.as_slice());
     ASSERT_EQ("hello", g.as_slice());
   }
   {
-    SharedSlice h("hello");
-    SharedSlice t = h.clone();
-    UniqueSharedSlice g(std::move(h));
+    td::SharedSlice h("hello");
+    td::SharedSlice t = h.clone();
+    td::UniqueSharedSlice g(std::move(h));
     ASSERT_EQ("", h.as_slice());
     ASSERT_EQ("hello", g.as_slice());
     ASSERT_EQ("hello", t.as_slice());
   }
 
   {
-    UniqueSharedSlice g(5);
+    td::UniqueSharedSlice g(5);
     g.as_mutable_slice().copy_from("hello");
-    SharedSlice h(std::move(g));
+    td::SharedSlice h(std::move(g));
     ASSERT_EQ("hello", h);
     ASSERT_EQ("", g);
   }
 
   {
-    UniqueSlice h("hello");
-    UniqueSlice g(std::move(h));
+    td::UniqueSlice h("hello");
+    td::UniqueSlice g(std::move(h));
     ASSERT_EQ("", h.as_slice());
     ASSERT_EQ("hello", g.as_slice());
   }
 
   {
-    SecureString h("hello");
-    SecureString g(std::move(h));
+    td::SecureString h("hello");
+    td::SecureString g(std::move(h));
     ASSERT_EQ("", h.as_slice());
     ASSERT_EQ("hello", g.as_slice());
   }
 
   {
-    Stage stage;
-    SharedSlice a, b;
-    std::vector<td::thread> threads(2);
+    td::Stage stage;
+    td::SharedSlice a, b;
+    td::vector<td::thread> threads(2);
     for (int i = 0; i < 2; i++) {
       threads[i] = td::thread([i, &stage, &a, &b] {
         for (int j = 0; j < 10000; j++) {
           if (i == 0) {
-            a = SharedSlice("hello");
+            a = td::SharedSlice("hello");
             b = a.clone();
           }
           stage.wait((2 * j + 1) * 2);
@@ -71,7 +70,7 @@ TEST(SharedSlice, Hands) {
             ASSERT_EQ('h', a[0]);
             a.clear();
           } else {
-            UniqueSharedSlice c(std::move(b));
+            td::UniqueSharedSlice c(std::move(b));
             c.as_mutable_slice()[0] = '!';
           }
           stage.wait((2 * j + 2) * 2);
