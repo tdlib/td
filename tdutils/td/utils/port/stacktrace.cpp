@@ -114,4 +114,11 @@ void Stacktrace::print_to_stderr(const PrintOptions &options) {
   print_backtrace();
 }
 
+void Stacktrace::init() {
+#if __GLIBC__
+  void *buffer[1];
+  backtrace(buffer, 1);
+#endif
+}
+
 }  // namespace td

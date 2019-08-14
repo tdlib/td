@@ -306,6 +306,7 @@ static void block_stdin() {
 }
 
 static void default_failure_signal_handler(int sig) {
+  Stacktrace::init();
   signal_safe_write_signal_number(sig);
 
   Stacktrace::PrintOptions options;
