@@ -4278,6 +4278,8 @@ Status Td::init(DbKey key) {
   options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
+  G()->set_store_all_files_in_files_directory(
+      G()->shared_config().get_option_boolean("store_all_files_in_files_directory"));
 
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = make_unique<NetQueryDispatcher>([&] { return create_reference(); });
@@ -6959,8 +6961,6 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (set_boolean_option("store_all_files_in_files_directory")) {
-        bool value = static_cast<const td_api::optionValueBoolean *>(request.value_.get())->value_;
-        G()->set_store_all_files_in_files_directory(value);
         return;
       }
       break;
