@@ -263,20 +263,22 @@ void StorageManager::hangup_shared() {
 }
 
 void StorageManager::close_stats_worker() {
-  for (auto &promise : pending_storage_stats_) {
+  auto promises = std::move(pending_storage_stats_);
+  pending_storage_stats_.clear();
+  for (auto &promise : promises) {
     promise.set_error(Status::Error(500, "Request aborted"));
   }
-  pending_storage_stats_.clear();
   stats_generation_++;
   stats_worker_.reset();
   stats_cancellation_token_source_.cancel();
 }
 
 void StorageManager::close_gc_worker() {
-  for (auto &promise : pending_run_gc_) {
+  auto promises = std::move(pending_run_gc_);
+  pending_run_gc_.clear();
+  for (auto &promise : promises) {
     promise.set_error(Status::Error(500, "Request aborted"));
   }
-  pending_run_gc_.clear();
   gc_generation_++;
   gc_worker_.reset();
   gc_cancellation_token_source_.cancel();

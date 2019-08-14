@@ -16,6 +16,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
+#include <set>
+
 using namespace td;
 
 TEST(Port, files) {

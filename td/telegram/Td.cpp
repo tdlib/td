@@ -61,6 +61,7 @@
 #include "td/telegram/Payments.h"
 #include "td/telegram/PhoneNumberManager.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/RequestActor.h"

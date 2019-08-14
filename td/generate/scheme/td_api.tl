@@ -1633,7 +1633,7 @@ callStateError error:error = CallState;
 
 //@class CallProblem @description Describes a type of a problem that happened during a call
 
-//@description The user heard his own voice
+//@description The user heard their own voice
 callProblemEcho = CallProblem;
 
 //@description The user heard background noice

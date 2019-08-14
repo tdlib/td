@@ -12,9 +12,11 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 
 #include <limits>
 #include <map>
+#include <memory>
 #include <utility>
 
 using namespace td;
@@ -493,7 +495,7 @@ class WithXContext : public Actor {
   }
 };
 
-void check_context() {
+static void check_context() {
   auto ptr = static_cast<XContext *>(Scheduler::context());
   CHECK(ptr);
   ptr->validate();

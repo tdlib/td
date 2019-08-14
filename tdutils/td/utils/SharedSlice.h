@@ -6,10 +6,13 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
 #include <atomic>
 #include <memory>
+#include <new>
+#include <type_traits>
 
 namespace td {
 
@@ -134,7 +137,7 @@ class UnsafeSharedSlice {
     return reinterpret_cast<HeaderT *>(ptr_.get());
   }
 
-  struct Destructor {
+  struct SharedSliceDestructor {
     void operator()(char *ptr) {
       auto header = reinterpret_cast<HeaderT *>(ptr);
       if (header->dec()) {
@@ -146,7 +149,7 @@ class UnsafeSharedSlice {
     }
   };
 
-  std::unique_ptr<char[], Destructor> ptr_;
+  std::unique_ptr<char[], SharedSliceDestructor> ptr_;
 };
 }  // namespace detail
 

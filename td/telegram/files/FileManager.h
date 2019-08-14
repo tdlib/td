@@ -20,6 +20,7 @@
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/PhotoSizeSource.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"

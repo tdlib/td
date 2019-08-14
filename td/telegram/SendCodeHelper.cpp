@@ -6,8 +6,6 @@
 //
 #include "td/telegram/SendCodeHelper.h"
 
-#include "td/utils/utf8.h"
-
 namespace td {
 
 void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code) {

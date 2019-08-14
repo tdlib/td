@@ -6,10 +6,16 @@
 //
 #include "td/utils/benchmark.h"
 #include "td/utils/FileLog.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/thread.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 #include "td/utils/TsFileLog.h"
+
+#include <functional>
+#include <limits>
 
 // Thread safe logging with tests
 //
@@ -60,7 +66,7 @@ class LogBenchmark : public td::Benchmark {
 };
 
 template <class F>
-void bench_log(std::string name, int threads_n, F &&f) {
+static void bench_log(std::string name, int threads_n, F &&f) {
   bench(LogBenchmark<typename decltype(f())::element_type>(std::move(name), threads_n, std::move(f)));
 };
 

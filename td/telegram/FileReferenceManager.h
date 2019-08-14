@@ -19,6 +19,7 @@
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

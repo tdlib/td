@@ -9,8 +9,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
-#include <cstring>
-
 namespace td {
 
 template <size_t size>
@@ -57,8 +55,8 @@ bool operator!=(const UInt<size> &a, const UInt<size> &b) {
 }
 
 template <size_t size>
-td::UInt<size> operator^(const UInt<size> &a, const UInt<size> &b) {
-  td::UInt<size> res;
+UInt<size> operator^(const UInt<size> &a, const UInt<size> &b) {
+  UInt<size> res;
   for (size_t i = 0; i < size / 8; i++) {
     res.raw[i] = static_cast<uint8>(a.raw[i] ^ b.raw[i]);
   }
