@@ -17361,15 +17361,16 @@ bool MessagesManager::can_resend_message(const Message *m) {
     // TODO implement resending of forwarded messages
     return false;
   }
+  auto content_type = m->content->get_type();
   if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     // via bot message
-    if (!get_message_content_game_bot_user_id(m->content.get()).is_valid()) {
+    if (content_type == MessageContentType::Game &&
+        !get_message_content_game_bot_user_id(m->content.get()).is_valid()) {
       // TODO implement resending via_bot messages other than games
       return false;
     }
   }
 
-  auto content_type = m->content->get_type();
   if (content_type == MessageContentType::ChatSetTtl || content_type == MessageContentType::ScreenshotTaken) {
     // TODO implement resending of ChatSetTtl and ScreenshotTaken messages
     return false;
@@ -18707,7 +18708,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     if (!can_resend_message(m)) {
       return Status::Error(400, "Message can't be re-sent");
     }
-    if (m->try_resend_at < Time::now()) {
+    if (m->try_resend_at > Time::now()) {
       return Status::Error(400, "Message can't be re-sent yet");
     }
     if (m->message_id.get() <= last_message_id.get()) {
@@ -18735,7 +18736,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       continue;
     }
 
-    if (!get_message_content_game_bot_user_id(content.get()).is_valid()) {
+    if (content->get_type() == MessageContentType::Game &&
+        !get_message_content_game_bot_user_id(content.get()).is_valid()) {
       // must not happen
       LOG(ERROR) << "Can't resend game from " << message_id;
       continue;
