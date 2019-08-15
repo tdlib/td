@@ -3571,7 +3571,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_notification_id = notification_id.is_valid();
   bool has_forward_sender_name = is_forwarded && !forward_info->sender_name.empty();
   bool has_send_error_code = send_error_code != 0;
-  bool has_real_forward_from_dialog_id = real_forward_from_dialog_id.is_valid();
+  bool has_real_forward_from = real_forward_from_dialog_id.is_valid() && real_forward_from_message_id.is_valid();
   bool has_legacy_layer = legacy_layer != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
@@ -3614,7 +3614,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_send_error_code);
     STORE_FLAG(hide_via_bot);
     STORE_FLAG(is_bot_start_message);
-    STORE_FLAG(has_real_forward_from_dialog_id);
+    STORE_FLAG(has_real_forward_from);
     STORE_FLAG(has_legacy_layer);
     END_STORE_FLAGS();
   }
@@ -3649,8 +3649,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
       store(forward_info->from_message_id, storer);
     }
   }
-  if (has_real_forward_from_dialog_id) {
+  if (has_real_forward_from) {
     store(real_forward_from_dialog_id, storer);
+    store(real_forward_from_message_id, storer);
   }
   if (is_reply) {
     store(reply_to_message_id, storer);
@@ -3716,7 +3717,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_notification_id = false;
   bool has_forward_sender_name = false;
   bool has_send_error_code = false;
-  bool has_real_forward_from_dialog_id = false;
+  bool has_real_forward_from = false;
   bool has_legacy_layer = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
@@ -3759,7 +3760,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_send_error_code);
     PARSE_FLAG(hide_via_bot);
     PARSE_FLAG(is_bot_start_message);
-    PARSE_FLAG(has_real_forward_from_dialog_id);
+    PARSE_FLAG(has_real_forward_from);
     PARSE_FLAG(has_legacy_layer);
     END_PARSE_FLAGS();
   }
@@ -3799,8 +3800,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
       parse(forward_info->from_message_id, parser);
     }
   }
-  if (has_real_forward_from_dialog_id) {
+  if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
+    parse(real_forward_from_message_id, parser);
   }
   if (is_reply) {
     parse(reply_to_message_id, parser);
@@ -18569,6 +18571,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     Message *m = get_message_to_send(to_dialog, MessageId(), disable_notification, from_background, std::move(content),
                                      &need_update_dialog_pos, std::move(forward_info));
     m->real_forward_from_dialog_id = from_dialog_id;
+    m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
     if (forwarded_message->views > 0 && m->forward_info != nullptr) {

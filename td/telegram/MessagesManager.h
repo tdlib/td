@@ -891,7 +891,8 @@ class MessagesManager : public Actor {
     bool have_next = false;
     bool from_database = false;
 
-    DialogId real_forward_from_dialog_id;  // for resend_message
+    DialogId real_forward_from_dialog_id;    // for resend_message
+    MessageId real_forward_from_message_id;  // for resend_message
 
     NotificationId notification_id;
     NotificationId removed_notification_id;
