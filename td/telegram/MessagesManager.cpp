@@ -17353,7 +17353,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 }
 
 bool MessagesManager::can_resend_message(const Message *m) {
-  if (m->send_error_code != 429) {
+  if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically") {
     return false;
   }
   if (m->is_bot_start_message) {
