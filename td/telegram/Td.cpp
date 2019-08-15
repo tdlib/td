@@ -6964,6 +6964,11 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       break;
+    case 't':
+      if (set_boolean_option("test_flood_wait")) {
+        return;
+      }
+      break;
     case 'X':
     case 'x': {
       if (request.name_.size() > 255) {
