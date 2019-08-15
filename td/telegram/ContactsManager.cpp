@@ -5533,8 +5533,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
                   telegram_api::user::SUPPORT_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-        3337190045231018, telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(702229962, 26779),
-        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(702229962, 26781), 1);
+        3337190045231023, telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13226),
+        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13228), 1);
     if (G()->is_test_dc()) {
       profile_photo = nullptr;
       flags -= telegram_api::user::PHOTO_MASK;
@@ -5543,7 +5543,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", string(), string(), "42777",
         std::move(profile_photo), nullptr, 0, string(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
