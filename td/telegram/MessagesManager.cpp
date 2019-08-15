@@ -3572,6 +3572,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_forward_sender_name = is_forwarded && !forward_info->sender_name.empty();
   bool has_send_error_code = send_error_code != 0;
   bool has_real_forward_from_dialog_id = real_forward_from_dialog_id.is_valid();
+  bool has_legacy_layer = legacy_layer != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3613,6 +3614,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_send_error_code);
     STORE_FLAG(hide_via_bot);
     STORE_FLAG(is_bot_start_message);
+    STORE_FLAG(has_real_forward_from_dialog_id);
+    STORE_FLAG(has_legacy_layer);
     END_STORE_FLAGS();
   }
 
@@ -3681,6 +3684,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_notification_id) {
     store(notification_id, storer);
   }
+  if (has_legacy_layer) {
+    store(legacy_layer, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(*reply_markup, storer);
@@ -3711,6 +3717,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_forward_sender_name = false;
   bool has_send_error_code = false;
   bool has_real_forward_from_dialog_id = false;
+  bool has_legacy_layer = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3753,6 +3760,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(hide_via_bot);
     PARSE_FLAG(is_bot_start_message);
     PARSE_FLAG(has_real_forward_from_dialog_id);
+    PARSE_FLAG(has_legacy_layer);
     END_PARSE_FLAGS();
   }
 
@@ -3825,6 +3833,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_notification_id) {
     parse(notification_id, parser);
+  }
+  if (has_legacy_layer) {
+    parse(legacy_layer, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -9879,17 +9890,19 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   int32 flags = message_info.flags;
-  if (flags & ~(MESSAGE_FLAG_IS_OUT | MESSAGE_FLAG_IS_FORWARDED | MESSAGE_FLAG_IS_REPLY | MESSAGE_FLAG_HAS_MENTION |
-                MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_ENTITIES |
-                MESSAGE_FLAG_HAS_FROM_ID | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_VIEWS |
-                MESSAGE_FLAG_IS_SENT_VIA_BOT | MESSAGE_FLAG_IS_SILENT | MESSAGE_FLAG_IS_POST |
-                MESSAGE_FLAG_HAS_EDIT_DATE | MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE | MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID)) {
+  if (flags &
+      ~(MESSAGE_FLAG_IS_OUT | MESSAGE_FLAG_IS_FORWARDED | MESSAGE_FLAG_IS_REPLY | MESSAGE_FLAG_HAS_MENTION |
+        MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_ENTITIES |
+        MESSAGE_FLAG_HAS_FROM_ID | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_VIEWS | MESSAGE_FLAG_IS_SENT_VIA_BOT |
+        MESSAGE_FLAG_IS_SILENT | MESSAGE_FLAG_IS_POST | MESSAGE_FLAG_HAS_EDIT_DATE | MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE |
+        MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID | MESSAGE_FLAG_IS_LEGACY)) {
     LOG(ERROR) << "Unsupported message flags = " << flags << " received";
   }
 
   bool is_outgoing = (flags & MESSAGE_FLAG_IS_OUT) != 0;
   bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
+  bool is_legacy = (flags & MESSAGE_FLAG_IS_LEGACY) != 0;
 
   LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
       << "is_channel_message is true for message received in the " << dialog_id;
@@ -9987,6 +10000,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->disable_notification = is_silent;
   message->is_content_secret = is_content_secret;
   message->views = views;
+  message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_id.get_type() == DialogType::User);
@@ -23271,8 +23285,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
         auto old_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
-        bool is_changed = update_message(d, *v, std::move(message), need_update_dialog_pos);
-        if (!is_changed) {
+        bool need_send_update = update_message(d, *v, std::move(message), need_update_dialog_pos);
+        if (!need_send_update) {
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
         }
         const Message *m = v->get();
@@ -23298,14 +23312,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
           }
         }
-        if (is_changed && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
+        if (need_send_update && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
           auto &group_info = get_notification_group_info(d, m);
           if (group_info.group_id.is_valid()) {
             send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
                                group_info.group_id, m->notification_id, create_new_message_notification(m->message_id));
           }
         }
-        if (is_changed && m->message_id == d->pinned_message_id &&
+        if (need_send_update && m->message_id == d->pinned_message_id &&
             d->pinned_message_notification_message_id.is_valid() && d->mention_notification_group.group_id.is_valid()) {
           auto pinned_message = get_message_force(d, d->pinned_message_notification_message_id, "after update_message");
           if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
@@ -23664,7 +23678,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat &&
-      need_reget_message_content(m->content.get())) {
+      (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER))) {
     FullMessageId full_message_id{dialog_id, message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
     get_message_from_server(full_message_id, Auto());
@@ -24127,7 +24141,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = old_message->message_id;
-  bool is_changed = false;
+  bool need_send_update = false;
   bool is_new_available = new_message->content->get_type() != MessageContentType::ChatDeleteHistory;
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
@@ -24141,7 +24155,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       if (d->last_message_id == message_id) {
         *need_update_dialog_pos = true;
       }
-      is_changed = true;
+      need_send_update = true;
     } else {
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong date " << new_message->date
                  << ", message content type is " << old_message->content->get_type() << '/'
@@ -24156,7 +24170,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                    << new_message->edit_date;
         old_message->edit_date = new_message->edit_date;
         is_edited = true;
-        is_changed = true;
+        need_send_update = true;
       }
     } else {
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " of type " << old_message->content->get_type()
@@ -24170,7 +24184,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                << old_message->sender_user_id << "/" << new_message->sender_user_id << " from "
                << old_message->author_signature << " to " << new_message->author_signature;
     old_message->author_signature = std::move(new_message->author_signature);
-    is_changed = true;
+    need_send_update = true;
   }
   if (old_message->sender_user_id != new_message->sender_user_id) {
     // there can be race for sent signed posts
@@ -24184,7 +24198,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         << " in " << dialog_id;
     LOG(DEBUG) << "Change message sender";
     old_message->sender_user_id = new_message->sender_user_id;
-    is_changed = true;
+    need_send_update = true;
   }
   if (old_message->forward_info == nullptr) {
     if (new_message->forward_info != nullptr) {
@@ -24193,14 +24207,14 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                  << ", message content type is " << old_message->content->get_type() << '/'
                  << new_message->content->get_type();
       old_message->forward_info = std::move(new_message->forward_info);
-      is_changed = true;
+      need_send_update = true;
     }
   } else {
     if (new_message->forward_info != nullptr) {
       if (old_message->forward_info->author_signature != new_message->forward_info->author_signature) {
         old_message->forward_info->author_signature = new_message->forward_info->author_signature;
         LOG(DEBUG) << "Change message signature";
-        is_changed = true;
+        need_send_update = true;
       }
       if (*old_message->forward_info != *new_message->forward_info) {
         if (!is_forward_info_sender_hidden(new_message->forward_info.get())) {
@@ -24210,7 +24224,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                      << old_message->content->get_type() << '/' << new_message->content->get_type();
         }
         old_message->forward_info = std::move(new_message->forward_info);
-        is_changed = true;
+        need_send_update = true;
       }
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
@@ -24218,12 +24232,12 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                  << old_message->real_forward_from_dialog_id << ", message content type is "
                  << old_message->content->get_type() << '/' << new_message->content->get_type();
       old_message->forward_info = nullptr;
-      is_changed = true;
+      need_send_update = true;
     }
   }
   if (old_message->had_forward_info != new_message->had_forward_info) {
     old_message->had_forward_info = new_message->had_forward_info;
-    is_changed = true;
+    need_send_update = true;
   }
   if (old_message->notification_id != new_message->notification_id) {
     if (old_message->notification_id.is_valid()) {
@@ -24249,7 +24263,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (new_message->reply_to_message_id == MessageId()) {
       LOG(DEBUG) << "Drop message reply_to_message_id";
       old_message->reply_to_message_id = MessageId();
-      is_changed = true;
+      need_send_update = true;
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
                  << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
@@ -24268,7 +24282,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     LOG(DEBUG) << "Change message via_bot from " << old_message->via_bot_user_id << " to "
                << new_message->via_bot_user_id;
     old_message->via_bot_user_id = new_message->via_bot_user_id;
-    is_changed = true;
+    need_send_update = true;
 
     if (old_message->hide_via_bot && old_message->via_bot_user_id.is_valid()) {
       // wrongly set hide_via_bot
@@ -24280,7 +24294,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                << " to " << new_message->is_outgoing << ", message content type is " << old_message->content->get_type()
                << '/' << new_message->content->get_type();
     old_message->is_outgoing = new_message->is_outgoing;
-    is_changed = true;
+    need_send_update = true;
   }
   LOG_IF(ERROR, old_message->is_channel_post != new_message->is_channel_post)
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
@@ -24298,7 +24312,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
     // old_message->contains_mention = new_message->contains_mention;
-    // is_changed = true;
+    // need_send_update = true;
   }
   if (old_message->disable_notification != new_message->disable_notification) {
     LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available)
@@ -24308,20 +24322,23 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
     // disable_notification flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->disable_notification = new_message->disable_notification;
-    // is_changed = true;
+    // need_send_update = true;
   }
 
   if (update_message_contains_unread_mention(d, old_message.get(), new_message->contains_unread_mention,
                                              "update_message")) {
-    is_changed = true;
+    need_send_update = true;
   }
   if (update_message_views(dialog_id, old_message.get(), new_message->views)) {
-    is_changed = true;
+    need_send_update = true;
+  }
+  if (old_message->legacy_layer != new_message->legacy_layer) {
+    old_message->legacy_layer = new_message->legacy_layer;
   }
   if ((old_message->media_album_id == 0 || td_->auth_manager_->is_bot()) && new_message->media_album_id != 0) {
     old_message->media_album_id = new_message->media_album_id;
     LOG(DEBUG) << "Update message media_album_id";
-    is_changed = true;
+    need_send_update = true;
   }
 
   if (old_message->edit_date > 0) {
@@ -24337,7 +24354,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       LOG(DEBUG) << "Update message reply keyboard";
       old_message->reply_markup = std::move(new_message->reply_markup);
       is_edited = true;
-      is_changed = true;
+      need_send_update = true;
     }
     old_message->had_reply_markup = false;
   } else {
@@ -24357,7 +24374,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
 
         old_message->had_reply_markup = false;
         old_message->reply_markup = std::move(new_message->reply_markup);
-        is_changed = true;
+        need_send_update = true;
       }
     } else {
       if (new_message->reply_markup != nullptr) {
@@ -24367,7 +24384,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
           // this is needed to get correct button_id for UrlAuth buttons
           old_message->had_reply_markup = false;
           old_message->reply_markup = std::move(new_message->reply_markup);
-          is_changed = true;
+          need_send_update = true;
         } else {
           LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
               << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
@@ -24398,15 +24415,15 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (update_message_content(dialog_id, old_message.get(), std::move(new_message->content), true,
                              message_id.is_yet_unsent() && new_message->edit_date == 0,
                              get_message(d, message_id) != nullptr)) {
-    is_changed = true;
+    need_send_update = true;
   }
   // TODO update can be send only if the message has already been returned to the user
   if (is_edited && !td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, old_message.get());
   }
 
-  on_message_changed(d, old_message.get(), is_changed, "update_message");
-  return is_changed;
+  on_message_changed(d, old_message.get(), need_send_update, "update_message");
+  return need_send_update;
 }
 
 bool MessagesManager::need_message_changed_warning(const Message *old_message) {

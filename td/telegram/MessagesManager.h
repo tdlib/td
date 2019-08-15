@@ -140,6 +140,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_EDIT_DATE = 1 << 15;
   static constexpr int32 MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 16;
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID = 1 << 17;
+  static constexpr int32 MESSAGE_FLAG_IS_LEGACY = 1 << 19;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -896,6 +897,7 @@ class MessagesManager : public Actor {
     NotificationId removed_notification_id;
 
     int32 views = 0;
+    int32 legacy_layer = 0;
 
     int32 send_error_code = 0;
     string send_error_message;

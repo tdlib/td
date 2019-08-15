@@ -8,6 +8,7 @@
 
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/tl/tl_object_store.h"
 
@@ -24,12 +25,10 @@ class HeaderStorer {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
-    constexpr int32 LAYER = 98;
-
     using td::store;
     // invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
     store(static_cast<int32>(0xda9b0d0d), storer);
-    store(LAYER, storer);
+    store(MTPROTO_LAYER, storer);
     // initConnection#785188b8 {X:Type} flags:# api_id:int device_model:string system_version:string app_version:string
     // system_lang_code:string lang_pack:string lang_code:string proxy:flags.0?InputClientProxy query:!X = X;
     store(static_cast<int32>(0x785188b8), storer);
