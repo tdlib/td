@@ -7471,7 +7471,9 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         return;
       }
 
-      invalidate_chat_full(chat_id);
+      if (from_update) {
+        invalidate_chat_full(chat_id);
+      }
       break;
     }
     case telegram_api::chatParticipants::ID: {
