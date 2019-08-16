@@ -9257,6 +9257,10 @@ ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) {
 bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const {
   CHECK(c != nullptr);
   CHECK(chat_full != nullptr);
+  if (!c->is_active && chat_full->version == -1) {
+    return false;
+  }
+
   if (chat_full->version != c->version) {
     LOG(INFO) << "Have outdated ChatFull " << chat_id << " with current version "
               << (chat_full ? chat_full->version : -123456789) << " and chat version " << c->version;
