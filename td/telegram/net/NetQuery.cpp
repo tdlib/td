@@ -15,7 +15,7 @@
 
 namespace td {
 
-ListNode net_query_list_;
+TsList<NetQueryDebug> net_query_list_;
 
 int32 NetQuery::get_my_id() {
   return G()->get_my_id();
@@ -70,14 +70,16 @@ void dump_pending_network_queries() {
 
   decltype(n) i = 0;
   bool was_gap = false;
-  for (auto end = &net_query_list_, cur = end->prev; cur != end; cur = cur->prev, i++) {
+  auto guard = net_query_list_.lock();
+  for (auto end = net_query_list_.end(), cur = net_query_list_.begin(); cur != end; cur = cur->get_next(), i++) {
     if (i < 20 || i + 20 > n || i % (n / 20 + 1) == 0) {
       if (was_gap) {
         LOG(WARNING) << "...";
         was_gap = false;
       }
-      auto nq = &static_cast<NetQuery &>(*cur);
-      LOG(WARNING) << tag("id", nq->my_id_) << *nq << tag("total_flood", format::as_time(nq->total_timeout)) << " "
+      auto nq = &cur->get_data_unsafe();
+      LOG(WARNING) << tag("id", nq->my_id_) << *static_cast<NetQuery *>(cur)
+                   << /*tag("total_flood", format::as_time(nq->total_timeout_)) <<*/ " "
                    << tag("since start", format::as_time(Time::now_cached() - nq->start_timestamp_))
                    << tag("state", nq->debug_str_)
                    << tag("since state", format::as_time(Time::now_cached() - nq->debug_timestamp_))
