@@ -207,7 +207,7 @@ void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_pt
       switch (problem_id) {
         case td_api::callProblemEcho::ID:
           return "echo";
-        case td_api::callProblemNoice::ID:
+        case td_api::callProblemNoise::ID:
           return "noise";
         case td_api::callProblemInterruptions::ID:
           return "interruptions";

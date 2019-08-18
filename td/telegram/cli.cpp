@@ -2503,10 +2503,10 @@ class CliClient final : public Actor {
       std::tie(call_id, rating) = split(args);
 
       vector<td_api::object_ptr<td_api::CallProblem>> problems;
-      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
-      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
       problems.emplace_back(nullptr);
-      problems.emplace_back(td_api::make_object<td_api::callProblemNoice>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
       problems.emplace_back(td_api::make_object<td_api::callProblemEcho>());
       problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
       send_request(td_api::make_object<td_api::sendCallRating>(

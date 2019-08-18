@@ -1636,8 +1636,8 @@ callStateError error:error = CallState;
 //@description The user heard their own voice
 callProblemEcho = CallProblem;
 
-//@description The user heard background noice
-callProblemNoice = CallProblem;
+//@description The user heard background noise
+callProblemNoise = CallProblem;
 
 //@description The other side kept disappearing
 callProblemInterruptions = CallProblem;
