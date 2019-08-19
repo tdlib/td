@@ -604,9 +604,19 @@ chatTypeSupergroup supergroup_id:int32 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 
+//@class ChatListType @description Describes a list of chats a chat belongs to
+
+//@description A main list of chats. Can contain ordinary chats and other lists of chats as folders
+chatListTypeMain = ChatListType;
+
+//@description A list of chats located at the top of main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list
+chatListTypeArchive = ChatListType;
+
+
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
 //@id Chat unique identifier
 //@type Type of the chat
+//@list_type The type of a chat list the chat belongs to; may be null
 //@title Chat title
 //@photo Chat photo; may be null
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
@@ -628,7 +638,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType list_type:ChatListType title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -2594,6 +2604,9 @@ updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int
 
 //@description A new chat has been loaded/created. This update is guaranteed to come before the chat identifier is returned to the client. The chat field changes will be reported through separate updates @chat The chat
 updateNewChat chat:chat = Update;
+
+//@description The list to which the chat belongs was changed @chat_id Chat identifier @list_type The new chat list type; may be null
+updateChatListType chat_id:int53 list_type:ChatListType = Update;
 
 //@description The title of a chat was changed @chat_id Chat identifier @title The new chat title
 updateChatTitle chat_id:int53 title:string = Update;

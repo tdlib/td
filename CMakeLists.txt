@@ -550,6 +550,7 @@ set(TDLIB_SOURCE
   td/telegram/files/PartsManager.h
   td/telegram/files/ResourceManager.h
   td/telegram/files/ResourceState.h
+  td/telegram/FolderId.h
   td/telegram/Game.h
   td/telegram/Global.h
   td/telegram/HashtagHints.h

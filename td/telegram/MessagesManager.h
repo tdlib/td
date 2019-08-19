@@ -18,6 +18,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
@@ -182,10 +183,10 @@ class MessagesManager : public Actor {
   vector<tl_object_ptr<telegram_api::InputPeer>> get_input_peers(const vector<DialogId> &dialog_ids,
                                                                  AccessRights access_rights) const;
 
-  tl_object_ptr<telegram_api::inputDialogPeer> get_input_dialog_peer(DialogId dialog_id,
+  tl_object_ptr<telegram_api::InputDialogPeer> get_input_dialog_peer(DialogId dialog_id,
                                                                      AccessRights access_rights) const;
 
-  vector<tl_object_ptr<telegram_api::inputDialogPeer>> get_input_dialog_peers(const vector<DialogId> &dialog_ids,
+  vector<tl_object_ptr<telegram_api::InputDialogPeer>> get_input_dialog_peers(const vector<DialogId> &dialog_ids,
                                                                               AccessRights access_rights) const;
 
   tl_object_ptr<telegram_api::inputEncryptedChat> get_input_encrypted_chat(DialogId dialog_id,
@@ -258,7 +259,7 @@ class MessagesManager : public Actor {
 
   void on_update_message_web_page(FullMessageId full_message_id, bool have_web_page);
 
-  void on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>> &&dialogs, int32 total_count,
+  void on_get_dialogs(vector<tl_object_ptr<telegram_api::Dialog>> &&dialog_folders, int32 total_count,
                       vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise);
 
   void on_get_common_dialogs(UserId user_id, int32 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
@@ -275,6 +276,8 @@ class MessagesManager : public Actor {
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
   void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
+
+  void on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id);
 
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
@@ -982,6 +985,7 @@ class MessagesManager : public Actor {
     uint64 save_notification_settings_logevent_id_generation = 0;
     uint64 read_history_logevent_id = 0;
     uint64 read_history_logevent_id_generation = 0;
+    FolderId folder_id;
 
     MessageId
         last_read_all_mentions_message_id;  // all mentions with a message id not greater than it are implicitly read
@@ -1031,6 +1035,7 @@ class MessagesManager : public Actor {
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
     bool is_pinned_message_id_inited = false;
+    bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool is_marked_as_unread = false;
 
@@ -1306,6 +1311,7 @@ class MessagesManager : public Actor {
   static constexpr int32 DIALOG_FLAG_HAS_PTS = 1 << 0;
   static constexpr int32 DIALOG_FLAG_HAS_DRAFT = 1 << 1;
   static constexpr int32 DIALOG_FLAG_IS_PINNED = 1 << 2;
+  static constexpr int32 DIALOG_FLAG_HAS_FOLDER_ID = 1 << 4;
 
   static constexpr int32 MAX_MESSAGE_VIEW_DELAY = 1;  // seconds
   static constexpr int32 MIN_SAVE_DRAFT_DELAY = 1;    // seconds
@@ -1739,6 +1745,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
+  void send_update_chat_list_type(const Dialog *d) const;
+
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
                                                     bool for_event_log = false) const;
 
@@ -1787,6 +1795,8 @@ class MessagesManager : public Actor {
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
+
+  void set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
 
@@ -1852,9 +1862,11 @@ class MessagesManager : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
-  tl_object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
+  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
-  tl_object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
+  static td_api::object_ptr<td_api::ChatListType> get_chat_list_type_object(const Dialog *d);
+
+  td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
@@ -1902,6 +1914,8 @@ class MessagesManager : public Actor {
                                      tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value, const char *source);
+
+  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
 
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);
@@ -2441,7 +2455,7 @@ class MessagesManager : public Actor {
   std::unordered_map<string, DialogId> inaccessible_resolved_usernames_;
 
   struct PendingOnGetDialogs {
-    vector<tl_object_ptr<telegram_api::dialog>> dialogs;
+    vector<tl_object_ptr<telegram_api::Dialog>> dialogs;
     int32 total_count;
     vector<tl_object_ptr<telegram_api::Message>> messages;
     Promise<Unit> promise;

@@ -103,8 +103,20 @@ DialogId::DialogId(SecretChatId chat_id) {
   }
 }
 
-DialogId::DialogId(const tl_object_ptr<telegram_api::dialogPeer> &dialog_peer) {
-  id = get_peer_id(dialog_peer->peer_);
+DialogId::DialogId(const tl_object_ptr<telegram_api::DialogPeer> &dialog_peer) {
+  CHECK(dialog_peer != nullptr);
+  switch (dialog_peer->get_id()) {
+    case telegram_api::dialogPeer::ID:
+      id = get_peer_id(static_cast<const telegram_api::dialogPeer *>(dialog_peer.get())->peer_);
+      break;
+    case telegram_api::dialogPeerFolder::ID:
+      LOG(ERROR) << "Receive unsupported " << to_string(dialog_peer);
+      id = 0;
+      break;
+    default:
+      id = 0;
+      UNREACHABLE();
+  }
 }
 
 DialogId::DialogId(const tl_object_ptr<telegram_api::Peer> &peer) : id(get_peer_id(peer)) {

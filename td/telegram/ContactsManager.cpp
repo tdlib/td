@@ -6604,11 +6604,20 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_),
                                                            "on_get_user_full");
 
-  MessageId pinned_message_id;
-  if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-    pinned_message_id = MessageId(ServerMessageId(user_full->pinned_msg_id_));
+  {
+    MessageId pinned_message_id;
+    if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+      pinned_message_id = MessageId(ServerMessageId(user_full->pinned_msg_id_));
+    }
+    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(user_id), pinned_message_id);
   }
-  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(user_id), pinned_message_id);
+  {
+    FolderId folder_id;
+    if ((user_full->flags_ & USER_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+      folder_id = FolderId(user_full->folder_id_);
+    }
+    td_->messages_manager_->on_update_dialog_folder_id(DialogId(user_id), folder_id);
+  }
 
   UserFull *user = &users_full_[user_id];
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
@@ -6811,6 +6820,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         }
       }
     }
+    {
+      FolderId folder_id;
+      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+        folder_id = FolderId(chat_full->folder_id_);
+      }
+      td_->messages_manager_->on_update_dialog_folder_id(DialogId(chat_id), folder_id);
+    }
 
     ChatFull *chat = &chats_full_[chat_id];
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
@@ -6912,11 +6928,20 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_invite_link(channel, std::move(channel_full->exported_invite_));
 
-    MessageId pinned_message_id;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-      pinned_message_id = MessageId(ServerMessageId(channel_full->pinned_msg_id_));
+    {
+      MessageId pinned_message_id;
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+        pinned_message_id = MessageId(ServerMessageId(channel_full->pinned_msg_id_));
+      }
+      td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(channel_id), pinned_message_id);
     }
-    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(channel_id), pinned_message_id);
+    {
+      FolderId folder_id;
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+        folder_id = FolderId(channel_full->folder_id_);
+      }
+      td_->messages_manager_->on_update_dialog_folder_id(DialogId(channel_id), folder_id);
+    }
 
     if (participant_count >= 190) {
       int32 online_member_count = 0;

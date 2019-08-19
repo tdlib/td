@@ -1880,4 +1880,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, bool /*force_apply*/) {
+}
+
 }  // namespace td

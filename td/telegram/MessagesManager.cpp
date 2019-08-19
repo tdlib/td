@@ -166,7 +166,7 @@ class GetPinnedDialogsActor : public NetActorOnce {
   }
 
   NetQueryRef send(uint64 sequence_id) {
-    auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_getPinnedDialogs()));
+    auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_getPinnedDialogs(0)));
     auto result = query.get_weak();
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
@@ -410,9 +410,10 @@ class GetDialogListActor : public NetActorOnce {
       input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
     }
 
-    int32 flags = telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK;
+    int32 flags =
+        telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK | telegram_api::messages_getDialogs::FOLDER_ID_MASK;
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_getDialogs(
-        flags, false /*ignored*/, offset_date, offset_message_id.get(), std::move(input_peer), limit, 0)));
+        flags, false /*ignored*/, 0, offset_date, offset_message_id.get(), std::move(input_peer), limit, 0)));
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
   }
@@ -956,7 +957,7 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
   void send(const vector<DialogId> &dialog_ids) {
     int32 flags = telegram_api::messages_reorderPinnedDialogs::FORCE_MASK;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_reorderPinnedDialogs(
-        flags, true /*ignored*/, td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)))));
+        flags, true /*ignored*/, 0, td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3901,6 +3902,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_flags2 = true;
   bool has_max_notification_message_id =
       max_notification_message_id.is_valid() && max_notification_message_id.get() > last_new_message_id.get();
+  bool has_folder_id = folder_id != FolderId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3939,6 +3941,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_max_notification_message_id);
+    STORE_FLAG(has_folder_id);
+    STORE_FLAG(is_folder_id_inited);
     END_STORE_FLAGS();
   }
 
@@ -4015,6 +4019,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_max_notification_message_id) {
     store(max_notification_message_id, storer);
   }
+  if (has_folder_id) {
+    store(folder_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -4041,6 +4048,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_pinned_message_id;
   bool has_flags2;
   bool has_max_notification_message_id = false;
+  bool has_folder_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -4079,6 +4087,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_max_notification_message_id);
+    PARSE_FLAG(has_folder_id);
+    PARSE_FLAG(is_folder_id_inited);
     END_PARSE_FLAGS();
   }
 
@@ -4185,6 +4195,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_max_notification_message_id) {
     parse(max_notification_message_id, parser);
+  }
+  if (has_folder_id) {
+    parse(folder_id, parser);
   }
 }
 
@@ -4603,7 +4616,7 @@ vector<tl_object_ptr<telegram_api::InputPeer>> MessagesManager::get_input_peers(
   return input_peers;
 }
 
-tl_object_ptr<telegram_api::inputDialogPeer> MessagesManager::get_input_dialog_peer(DialogId dialog_id,
+tl_object_ptr<telegram_api::InputDialogPeer> MessagesManager::get_input_dialog_peer(DialogId dialog_id,
                                                                                     AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -4619,9 +4632,9 @@ tl_object_ptr<telegram_api::inputDialogPeer> MessagesManager::get_input_dialog_p
   }
 }
 
-vector<tl_object_ptr<telegram_api::inputDialogPeer>> MessagesManager::get_input_dialog_peers(
+vector<tl_object_ptr<telegram_api::InputDialogPeer>> MessagesManager::get_input_dialog_peers(
     const vector<DialogId> &dialog_ids, AccessRights access_rights) const {
-  vector<tl_object_ptr<telegram_api::inputDialogPeer>> input_dialog_peers;
+  vector<tl_object_ptr<telegram_api::InputDialogPeer>> input_dialog_peers;
   input_dialog_peers.reserve(dialog_ids.size());
   for (auto &dialog_id : dialog_ids) {
     auto input_dialog_peer = get_input_dialog_peer(dialog_id, access_rights);
@@ -10707,25 +10720,49 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
                               "on_update_message_web_page");
 }
 
-void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>> &&dialogs, int32 total_count,
+void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::Dialog>> &&dialog_folders, int32 total_count,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise) {
   if (td_->updates_manager_->running_get_difference()) {
     LOG(INFO) << "Postpone result of getDialogs";
     pending_on_get_dialogs_.push_back(
-        PendingOnGetDialogs{std::move(dialogs), total_count, std::move(messages), std::move(promise)});
+        PendingOnGetDialogs{std::move(dialog_folders), total_count, std::move(messages), std::move(promise)});
     return;
   }
   bool from_dialog_list = total_count >= 0;
   bool from_get_dialog = total_count == -1;
   bool from_pinned_dialog_list = total_count == -2;
 
-  if (from_get_dialog && dialogs.size() == 1) {
-    DialogId dialog_id(dialogs[0]->peer_);
+  if (from_get_dialog && dialog_folders.size() == 1 && dialog_folders[0]->get_id() == telegram_api::dialog::ID) {
+    DialogId dialog_id(static_cast<const telegram_api::dialog *>(dialog_folders[0].get())->peer_);
     if (running_get_channel_difference(dialog_id)) {
       LOG(INFO) << "Postpone result of channels getDialogs for " << dialog_id;
-      pending_channel_on_get_dialogs_.emplace(
-          dialog_id, PendingOnGetDialogs{std::move(dialogs), total_count, std::move(messages), std::move(promise)});
+      pending_channel_on_get_dialogs_.emplace(dialog_id, PendingOnGetDialogs{std::move(dialog_folders), total_count,
+                                                                             std::move(messages), std::move(promise)});
       return;
+    }
+  }
+
+  vector<tl_object_ptr<telegram_api::dialog>> dialogs;
+  for (auto &dialog_folder : dialog_folders) {
+    switch (dialog_folder->get_id()) {
+      case telegram_api::dialog::ID:
+        dialogs.push_back(telegram_api::move_object_as<telegram_api::dialog>(dialog_folder));
+        break;
+      case telegram_api::dialogFolder::ID: {
+        auto folder = telegram_api::move_object_as<telegram_api::dialogFolder>(dialog_folder);
+        if (from_pinned_dialog_list) {
+          // TODO updata unread_muted_peers_count:int unread_unmuted_peers_count:int unread_muted_messages_count:int unread_unmuted_messages_count:int
+          FolderId folder_id(folder->folder_->id_);
+          if (folder_id == FolderId::archive()) {
+            // archive is expected
+            break;
+          }
+        }
+        LOG(ERROR) << "Receive unexpected " << to_string(folder);
+        break;
+      }
+      default:
+        UNREACHABLE();
     }
   }
 
@@ -10843,6 +10880,8 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     }
     bool is_new = d->last_new_message_id == MessageId();
 
+    set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0 ? dialog->folder_id_ : 0));
+
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
     if (!d->notification_settings.is_synchronized) {
       LOG(ERROR) << "Failed to synchronize settings in " << dialog_id;
@@ -10873,6 +10912,10 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       // asynchronously get dialog pinned message from the server
       // TODO add pinned_message_id to telegram_api::dialog
       get_dialog_pinned_message(dialog_id, Auto());
+    }
+    if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get dialog folder message from the server
+      get_dialog_info_full(dialog_id, Auto());
     }
 
     need_update_dialog_pos |= update_dialog_draft_message(
@@ -12269,6 +12312,26 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
   return replied_message_id;
 }
 
+void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), std::move(promise));
+      return;
+    case DialogType::Chat:
+      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), std::move(promise));
+      return;
+    case DialogType::Channel:
+      td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), std::move(promise));
+      return;
+    case DialogType::SecretChat:
+      return promise.set_value(Unit());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return promise.set_error(Status::Error(500, "Wrong chat type"));
+  }
+}
+
 MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -12279,31 +12342,12 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
   LOG(INFO) << "Get pinned message in " << dialog_id << " with "
             << (d->is_pinned_message_id_inited ? "inited" : "unknown") << " pinned " << d->pinned_message_id;
 
-  Promise<Unit> empty_promise;
-  auto &get_pinned_message_id_promise = d->is_pinned_message_id_inited ? empty_promise : promise;
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), std::move(get_pinned_message_id_promise));
-      break;
-    case DialogType::Chat:
-      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), std::move(get_pinned_message_id_promise));
-      break;
-    case DialogType::Channel: {
-      td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), std::move(get_pinned_message_id_promise));
-      break;
-    }
-    case DialogType::SecretChat:
-      get_pinned_message_id_promise.set_value(Unit());
-      return MessageId();
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      get_pinned_message_id_promise.set_error(Status::Error(500, "Wrong chat type"));
-  }
   if (!d->is_pinned_message_id_inited) {
-    // promise was already consumed
+    get_dialog_info_full(dialog_id, std::move(promise));
     return MessageId();
   }
+
+  get_dialog_info_full(dialog_id, Auto());
 
   tl_object_ptr<telegram_api::InputMessage> input_message;
   if (dialog_id.get_type() == DialogType::Channel) {
@@ -13756,25 +13800,25 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
 }
 
-tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
+td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return make_tl_object<td_api::chatTypePrivate>(
+      return td_api::make_object<td_api::chatTypePrivate>(
           td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "chatTypePrivate"));
     case DialogType::Chat:
-      return make_tl_object<td_api::chatTypeBasicGroup>(
+      return td_api::make_object<td_api::chatTypeBasicGroup>(
           td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), "chatTypeBasicGroup"));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      return make_tl_object<td_api::chatTypeSupergroup>(
+      return td_api::make_object<td_api::chatTypeSupergroup>(
           td_->contacts_manager_->get_supergroup_id_object(channel_id, "chatTypeSupergroup"),
           channel_type != ChannelType::Megagroup);
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-      return make_tl_object<td_api::chatTypeSecret>(
+      return td_api::make_object<td_api::chatTypeSecret>(
           td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id, "chatTypeSecret"),
           td_->contacts_manager_->get_user_id_object(user_id, "chatTypeSecret"));
     }
@@ -13785,7 +13829,20 @@ tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId d
   }
 }
 
-tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
+td_api::object_ptr<td_api::ChatListType> MessagesManager::get_chat_list_type_object(const Dialog *d) {
+  if (d->order == DEFAULT_ORDER) {
+    return nullptr;
+  }
+  if (d->folder_id == FolderId::archive()) {
+    return td_api::make_object<td_api::chatListTypeArchive>();
+  }
+  if (d->folder_id != FolderId::main()) {
+    LOG(ERROR) << "Have " << d->dialog_id << " in unknown " << d->folder_id;
+  }
+  return td_api::make_object<td_api::chatListTypeMain>();
+}
+
+td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
 
   bool can_delete_for_self = false;
@@ -13830,8 +13887,8 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) co
   }
 
   return make_tl_object<td_api::chat>(
-      d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
-      get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
+      d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_type_object(d),
+      get_dialog_title(d->dialog_id), get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
@@ -20620,6 +20677,12 @@ void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, i
                make_tl_object<td_api::updateChatOnlineMemberCount>(dialog_id.get(), online_member_count));
 }
 
+void MessagesManager::send_update_chat_list_type(const Dialog *d) const {
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_list_type";
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatListType>(d->dialog_id.get(), get_chat_list_type_object(d)));
+}
+
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
@@ -21373,7 +21436,7 @@ void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, Mes
     LOG(INFO) << "Pinned message in " << d->dialog_id << " is still " << pinned_message_id;
     if (!d->is_pinned_message_id_inited) {
       d->is_pinned_message_id_inited = true;
-      on_dialog_updated(d->dialog_id, "set_dialog_is_pinned_message_id_inited");
+      on_dialog_updated(dialog_id, "on_update_dialog_pinned_message_id");
     }
     return;
   }
@@ -21392,6 +21455,38 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
+}
+
+void MessagesManager::on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id) {
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  set_dialog_folder_id(d, folder_id);
+}
+
+void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
+  CHECK(d != nullptr);
+
+  if (d->folder_id == folder_id) {
+    LOG(INFO) << "Folder of " << d->dialog_id << " is still " << folder_id;
+    if (!d->is_folder_id_inited) {
+      d->is_folder_id_inited = true;
+      on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
+    }
+    return;
+  }
+
+  d->folder_id = folder_id;
+  d->is_folder_id_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
+
+  LOG(INFO) << "Set " << d->dialog_id << " folder to " << folder_id;
+  if (d->order != DEFAULT_ORDER) {
+    send_update_chat_list_type(d);
+  }
 }
 
 void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
@@ -24895,6 +24990,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_last_read_outbox_message_id_inited = true;
       d->know_can_report_spam = true;
       d->is_pinned_message_id_inited = true;
+      d->is_folder_id_inited = true;
       if (!is_loaded_from_database) {
         d->can_report_spam =
             td_->contacts_manager_->default_can_report_spam_in_secret_chat(dialog_id.get_secret_chat_id());
@@ -24960,6 +25056,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
+  }
+  if (being_added_dialog_id_ != dialog_id && !d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get dialog folder id from the server
+    get_dialog_info_full(dialog_id, Auto());
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
@@ -25449,6 +25549,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   bool is_sponsored = (new_order == SPONSORED_DIALOG_ORDER);
   bool had_unread_counter = need_unread_counter(d->order);
   bool has_unread_counter = need_unread_counter(new_order);
+  bool need_update_folder = (d->order == DEFAULT_ORDER || new_order == DEFAULT_ORDER);
 
   if (!is_loaded_from_database && had_unread_counter != has_unread_counter && !td_->auth_manager_->is_bot()) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
@@ -25506,6 +25607,10 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     update_dialogs_hints(d);
   }
   update_dialogs_hints_rating(d);
+
+  if (need_update_folder) {
+    send_update_chat_list_type(d);
+  }
 
   if (was_sponsored != is_sponsored) {
     send_update_chat_is_sponsored(d);
@@ -26095,13 +26200,35 @@ void MessagesManager::on_get_channel_difference(
     case telegram_api::updates_channelDifferenceTooLong::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_channelDifferenceTooLong>(difference_ptr);
 
+      tl_object_ptr<telegram_api::dialog> dialog;
+      switch (difference->dialog_->get_id()) {
+        case telegram_api::dialog::ID:
+          dialog = telegram_api::move_object_as<telegram_api::dialog>(difference->dialog_);
+          break;
+        case telegram_api::dialogFolder::ID:
+          return after_get_channel_difference(dialog_id, false);
+        default:
+          UNREACHABLE();
+          return;
+      }
+
+      CHECK(dialog != nullptr);
+      if ((dialog->flags_ & telegram_api::dialog::PTS_MASK) == 0) {
+        LOG(ERROR) << "Receive " << dialog_id << " without pts";
+        return after_get_channel_difference(dialog_id, false);
+      }
+
       int32 flags = difference->flags_;
       is_final = (flags & CHANNEL_DIFFERENCE_FLAG_IS_FINAL) != 0;
       if (flags & CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT) {
         timeout = difference->timeout_;
       }
 
-      auto new_pts = difference->pts_;
+      // TODO
+      // pinned:flags.2?true unread_mark:flags.3?true notify_settings:PeerNotifySettings
+      // draft:flags.1?DraftMessage folder_id:flags.4?int
+
+      auto new_pts = dialog->pts_;
       if (request_pts + request_limit > new_pts) {
         LOG(ERROR) << "Receive channelDifferenceTooLong as result of getChannelDifference with pts = " << request_pts
                    << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
@@ -26114,10 +26241,9 @@ void MessagesManager::on_get_channel_difference(
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
 
-      on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(difference->top_message_)),
-                            MessageId(ServerMessageId(difference->read_inbox_max_id_)), difference->unread_count_,
-                            difference->unread_mentions_count_,
-                            MessageId(ServerMessageId(difference->read_outbox_max_id_)),
+      on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),
+                            MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,
+                            dialog->unread_mentions_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
                             std::move(difference->messages_));
       need_update_dialog_pos = true;
 

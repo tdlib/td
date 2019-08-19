@@ -776,6 +776,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_BOT_INFO = 1 << 3;
   static constexpr int32 USER_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
   static constexpr int32 USER_FULL_FLAG_CAN_PIN_MESSAGE = 1 << 7;
+  static constexpr int32 USER_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
@@ -786,6 +787,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
 
   static constexpr int32 CHAT_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
+  static constexpr int32 CHAT_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -815,6 +817,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_STICKER_SET = 1 << 8;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID = 1 << 9;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN = 1 << 10;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 12;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT = 1 << 13;
 
