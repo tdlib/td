@@ -21,6 +21,20 @@ Bitmask::Bitmask(Ones, int64 count) : data_(narrow_cast<size_t>((count + 7) / 8)
   }
 }
 
+Bitmask Bitmask::compress(int k) {
+  Bitmask res;
+  for (int64 i = 0; i * k < size(); i++) {
+    bool f = true;
+    for (int64 j = 0; j < k && f; j++) {
+      f &= get(i * k + j);
+    }
+    if (f) {
+      res.set(i);
+    }
+  }
+  return res;
+}
+
 std::string Bitmask::encode(int32 prefix_count) {
   // remove zeroes in the end to make encoding deterministic
   td::Slice data(data_);

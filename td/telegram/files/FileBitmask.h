@@ -30,6 +30,8 @@ class Bitmask {
   void set(int64 offset_part);
   int64 size() const;
 
+  Bitmask compress(int k);
+
  private:
   std::string data_;
 };

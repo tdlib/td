@@ -266,6 +266,10 @@ Result<Part> PartsManager::start_part() {
     if (unknown_size_flag_) {
       part_count_++;
       if (part_count_ > MAX_PART_COUNT) {
+        if (!is_upload_) {
+          // Caller will try to increase part size if it is possible
+          return Status::Error("FILE_DOWNLOAD_RESTART_INCREASE_PART_SIZE");
+        }
         return Status::Error("Too big file with unknown size");
       }
       part_status_.push_back(PartStatus::Empty);

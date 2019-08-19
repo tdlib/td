@@ -892,6 +892,37 @@ Status FileManager::check_local_location(FileNodePtr node) {
   return status;
 }
 
+bool FileManager::try_fix_parital_local_location(FileNodePtr node) {
+  LOG(INFO) << "Trying to fix partial local location";
+  if (node->local_.type() != LocalFileLocation::Type::Partial) {
+    LOG(INFO) << "   failed - not a partial location";
+    return false;
+  }
+  auto partial = node->local_.partial();
+  if (!partial.iv_.empty()) {
+    // can't recalc iv_
+    LOG(INFO) << "   failed - partial location has nonempty iv";
+    return false;
+  }
+  if (partial.part_size_ >= 512 * (1 << 10)) {
+    LOG(INFO) << "   failed - too big part_size already: " << partial.part_size_;
+    return false;
+  }
+  auto old_part_size = partial.part_size_;
+  int new_part_size = 512 * (1 << 10);
+  auto k = new_part_size / old_part_size;
+  Bitmask mask(Bitmask::Decode(), partial.ready_bitmask_);
+  auto new_mask = mask.compress(k);
+
+  partial.part_size_ = new_part_size;
+  partial.ready_bitmask_ = new_mask.encode();
+
+  auto ready_size = new_mask.get_total_size(partial.part_size_, node->size_);
+  node->set_local_location(LocalFileLocation(partial), ready_size, -1, -1);
+  LOG(INFO) << "   ok: increase part_size " << old_part_size << "->" << new_part_size;
+  return true;
+}
+
 FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
   LOG_CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()))
       << file_id << " " << file_id_info_.size();
@@ -3413,11 +3444,18 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->download_was_update_file_reference_ = true;
+      run_download(node);
+      return;
+    } else if (ends_with(status.message(), "INCREASE_PART_SIZE")) {
+      if (try_fix_parital_local_location(node)) {
+        run_download(node);
+        return;
+      }
     } else {
       node->can_search_locally_ = false;
+      run_download(node);
+      return;
     }
-    run_download(node);
-    return;
   }
 
   if (!was_active) {
