@@ -10496,10 +10496,8 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
     LOG(INFO) << "Set " << d->dialog_id << " is pinned to " << is_pinned;
     LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
     update_dialog_pos(d, false, "set_dialog_is_pinned", false);
-    DialogDate dialog_date(d->order, d->dialog_id);
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned,
-                                                            dialog_date <= last_dialog_date_ ? d->order : 0));
+                 make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned, get_dialog_public_order(d)));
   }
   // there is no need to call update_dialog_pos otherwise, it will be called by the caller
 }
@@ -13890,10 +13888,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_type_object(d),
       get_dialog_title(d->dialog_id), get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
-      get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
-      DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
-      d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_delete_for_self, can_delete_for_all_users,
-      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_dialog_public_order(d),
+      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_delete_for_self,
+      can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), d->pinned_message_id.get(),
@@ -20507,8 +20504,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatDraftMessage>(
-                   d->dialog_id.get(), get_draft_message_object(d->draft_message),
-                   DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0));
+                   d->dialog_id.get(), get_draft_message_object(d->draft_message), get_dialog_public_order(d)));
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
@@ -20523,7 +20519,7 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
   LOG(INFO) << "Send updateChatLastMessage in " << d->dialog_id << " to " << d->last_message_id << " from " << source;
   auto update = make_tl_object<td_api::updateChatLastMessage>(
       d->dialog_id.get(), get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
-      DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0);
+      get_dialog_public_order(d));
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
@@ -20663,9 +20659,9 @@ void MessagesManager::send_update_chat_is_sponsored(const Dialog *d) const {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_is_sponsored";
   bool is_sponsored = d->order == SPONSORED_DIALOG_ORDER;
   LOG(INFO) << "Update chat is sponsored for " << d->dialog_id;
-  auto order = DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0;
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatIsSponsored>(d->dialog_id.get(), is_sponsored, order));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateChatIsSponsored>(d->dialog_id.get(), is_sponsored, get_dialog_public_order(d)));
 }
 
 void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
@@ -25368,6 +25364,11 @@ int64 MessagesManager::get_dialog_order(MessageId message_id, int32 message_date
   return (static_cast<int64>(message_date) << 32) + narrow_cast<int32>(message_id.get() >> MessageId::SERVER_ID_SHIFT);
 }
 
+int64 MessagesManager::get_dialog_public_order(const Dialog *d) const {
+  DialogDate dialog_date(d->order, d->dialog_id);
+  return dialog_date <= last_dialog_date_ ? d->order : 0;
+}
+
 int64 MessagesManager::get_next_pinned_dialog_order() {
   if (current_pinned_dialog_order_ == DEFAULT_ORDER) {
     string res_str = G()->td_db()->get_binlog_pmc()->get("dialog_pinned_current_order");
@@ -27512,10 +27513,8 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     const Dialog *d = it.second.get();
     auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
     if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
-      DialogDate dialog_date(d->order, d->dialog_id);
       last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
-          d->dialog_id.get(), std::move(update->chat_->last_message_),
-          dialog_date <= last_dialog_date_ ? d->order : 0));
+          d->dialog_id.get(), std::move(update->chat_->last_message_), get_dialog_public_order(d)));
     }
     updates.push_back(std::move(update));
 
