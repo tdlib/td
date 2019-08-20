@@ -145,7 +145,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     is_temp = true;
   }
 
-  if (!path.empty() && path != fd_path_) {
+  if (!path.empty() && (path != fd_path_ || fd_.empty())) {
     auto res_fd = FileFd::open(path, FileFd::Read);
 
     // Race: partial location could be already deleted. Just ignore such locations
@@ -164,8 +164,6 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     fd_ = res_fd.move_as_ok();
     fd_path_ = path;
     is_temp_ = is_temp;
-  } else if (!fd_path_.empty()) {
-    TRY_STATUS(acquire_fd());
   }
   if (local_is_ready) {
     CHECK(!fd_.empty());
