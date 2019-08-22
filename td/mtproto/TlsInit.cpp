@@ -7,6 +7,7 @@
 #include "td/mtproto/TlsInit.h"
 
 #include "td/utils/as.h"
+#include "td/utils/BigNum.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
@@ -35,7 +36,7 @@ void Grease::init(MutableSlice res) {
 class TlsHello {
  public:
   struct Op {
-    enum class Type { String, Random, Zero, Domain, Grease, BeginScope, EndScope };
+    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope };
     Type type;
     int length;
     int seed;
@@ -80,6 +81,11 @@ class TlsHello {
       res.type = Type::EndScope;
       return res;
     }
+    static Op key() {
+      Op res;
+      res.type = Type::Key;
+      return res;
+    }
   };
 
   static const TlsHello &get_default() {
@@ -112,7 +118,7 @@ class TlsHello {
               "\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00\x00\x00\x33\x00\x2b\x00\x29"),
           Op::grease(4),
           Op::string("\x00\x01\x00\x00\x1d\x00\x20"),
-          Op::random(32),
+          Op::key(),
           Op::string("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a"),
           Op::grease(6),
           Op::string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x02"),
@@ -192,6 +198,9 @@ class TlsHelloCalcLength {
           return on_error(Status::Error("Invalid grease seed"));
         }
         size_ += 2;
+        break;
+      case Type::Key:
+        size_ += 32;
         break;
       case Type::BeginScope:
         size_ += 2;
@@ -280,6 +289,33 @@ class TlsHelloStore {
         dest_.remove_prefix(2);
         break;
       }
+      case Type::Key: {
+        BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+        BigNumContext big_num_context;
+        auto key = dest_.substr(0, 32);
+        while (true) {
+          Random::secure_bytes(key);
+          key[31] = static_cast<char>(key[31] & 127);
+          BigNum x = BigNum::from_le_binary(key);
+          if (!is_quadratic_residue(x)) {
+            continue;
+          }
+
+          BigNum y = x.clone();
+          BigNum coef = BigNum::from_decimal("486662").move_as_ok();
+          BigNum::mod_add(y, y, coef, mod, big_num_context);
+          BigNum::mod_mul(y, y, x, mod, big_num_context);
+          BigNum one = BigNum::from_decimal("1").move_as_ok();
+          BigNum::mod_add(y, y, one, mod, big_num_context);
+          BigNum::mod_mul(y, y, x, mod, big_num_context);
+          // y = x^3 + 486662 * x^2 + x
+          if (is_quadratic_residue(y)) {
+            break;
+          }
+        }
+        dest_.remove_prefix(32);
+        break;
+      }
       case Type::BeginScope:
         scope_offset_.push_back(get_offset());
         dest_.remove_prefix(2);
@@ -318,6 +354,19 @@ class TlsHelloStore {
   MutableSlice data_;
   MutableSlice dest_;
   std::vector<size_t> scope_offset_;
+
+  static bool is_quadratic_residue(const BigNum &a) {
+    // 2^255 - 19
+    BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+    // (mod - 1) / 2 = 2^254 - 10
+    BigNum pow = BigNum::from_hex("3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6").move_as_ok();
+
+    BigNumContext context;
+    BigNum r;
+    BigNum::mod_exp(r, a, pow, mod, context);
+
+    return r.to_decimal() == "1";
+  }
 
   size_t get_offset() const {
     return data_.size() - dest_.size();

@@ -21,6 +21,8 @@
 
 #include <map>
 
+static td::BigNumContext context;
+
 static bool is_quadratic_residue(const td::BigNum &a) {
   // 2^255 - 19
   td::BigNum mod =
@@ -29,13 +31,12 @@ static bool is_quadratic_residue(const td::BigNum &a) {
   td::BigNum pow =
       td::BigNum::from_hex("3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6").move_as_ok();
 
-  static td::BigNumContext context;
   td::BigNum r;
   td::BigNum::mod_exp(r, a, pow, mod, context);
   td::BigNum one = td::BigNum::from_decimal("1").move_as_ok();
   td::BigNum::mod_add(r, r, one, mod, context);
 
-  std::string result = r.to_decimal();
+  td::string result = r.to_decimal();
   CHECK(result == "0" || result == "1" || result == "2");
   return result == "2";
 }
@@ -64,7 +65,6 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
   };
   auto add_key = [&] {
     td::string key(32, '\0');
-    td::BigNumContext context;
     td::BigNum mod =
         td::BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
     while (true) {
