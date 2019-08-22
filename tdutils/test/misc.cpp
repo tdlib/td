@@ -458,9 +458,11 @@ TEST(BigNum, from_binary) {
   ASSERT_STREQ(BigNum::from_binary("").to_decimal(), "0");
   ASSERT_STREQ(BigNum::from_binary("a").to_decimal(), "97");
   ASSERT_STREQ(BigNum::from_binary("\x00\xff").to_decimal(), "255");
+  ASSERT_STREQ(BigNum::from_binary("\x00\x01\x00\x00").to_decimal(), "65536");
   ASSERT_STREQ(BigNum::from_le_binary("").to_decimal(), "0");
   ASSERT_STREQ(BigNum::from_le_binary("a").to_decimal(), "97");
   ASSERT_STREQ(BigNum::from_le_binary("\x00\xff").to_decimal(), "65280");
+  ASSERT_STREQ(BigNum::from_le_binary("\x00\x01\x00\x00").to_decimal(), "256");
   ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(), "\xff");
   ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_le_binary(), "\xff");
   ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(2), "\x00\xff");
@@ -469,6 +471,10 @@ TEST(BigNum, from_binary) {
   ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(), "\x00\xff");
   ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_binary(2), "\xff\x00");
   ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(2), "\x00\xff");
+  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_binary(), "\x01\x00\x00");
+  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_le_binary(), "\x00\x00\x01");
+  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_binary(4), "\x00\x01\x00\x00");
+  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_le_binary(4), "\x00\x00\x01\x00");
 }
 
 static void test_get_ipv4(uint32 ip) {
