@@ -89,8 +89,9 @@ BigNum BigNum::from_le_binary(Slice str) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
   return BigNum(make_unique<Impl>(BN_lebin2bn(str.ubegin(), narrow_cast<int>(str.size()), nullptr)));
 #else
-  LOG(FATAL) << "Unsupported from_le_binary";
-  return BigNum();
+  string str_copy = str.str();
+  std::reverse(str_copy.begin(), str_copy.end());
+  return from_binary(str_copy);
 #endif
 }
 
@@ -216,8 +217,9 @@ string BigNum::to_le_binary(int exact_size) const {
   BN_bn2lebinpad(impl_->big_num, MutableSlice(res).ubegin(), exact_size);
   return res;
 #else
-  LOG(FATAL) << "Unsupported to_le_binary";
-  return "";
+  string result = to_binary(exact_size);
+  std::reverse(result.begin(), result.end());
+  return result;
 #endif
 }
 

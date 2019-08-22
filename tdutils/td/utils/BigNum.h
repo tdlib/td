@@ -43,7 +43,6 @@ class BigNum {
 
   static BigNum from_binary(Slice str);
 
-  // Available only if OpenSSL >= 1.1.0
   static BigNum from_le_binary(Slice str);
 
   static Result<BigNum> from_decimal(CSlice str);
@@ -72,7 +71,6 @@ class BigNum {
 
   string to_binary(int exact_size = -1) const;
 
-  // Available only if OpenSSL >= 1.1.0
   string to_le_binary(int exact_size = -1) const;
 
   string to_decimal() const;

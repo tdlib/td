@@ -454,6 +454,23 @@ TEST(BigNum, from_decimal) {
   ASSERT_TRUE(BigNum::from_decimal("999999999999999999999999999999999999999999999999").is_ok());
 }
 
+TEST(BigNum, from_binary) {
+  ASSERT_STREQ(BigNum::from_binary("").to_decimal(), "0");
+  ASSERT_STREQ(BigNum::from_binary("a").to_decimal(), "97");
+  ASSERT_STREQ(BigNum::from_binary("\x00\xff").to_decimal(), "255");
+  ASSERT_STREQ(BigNum::from_le_binary("").to_decimal(), "0");
+  ASSERT_STREQ(BigNum::from_le_binary("a").to_decimal(), "97");
+  ASSERT_STREQ(BigNum::from_le_binary("\x00\xff").to_decimal(), "65280");
+  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(), "\xff");
+  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_le_binary(), "\xff");
+  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(2), "\x00\xff");
+  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_le_binary(2), "\xff\x00");
+  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_binary(), "\xff\x00");
+  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(), "\x00\xff");
+  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_binary(2), "\xff\x00");
+  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(2), "\x00\xff");
+}
+
 static void test_get_ipv4(uint32 ip) {
   td::IPAddress ip_address;
   ip_address.init_ipv4_port(td::IPAddress::ipv4_to_str(ip), 80).ensure();
