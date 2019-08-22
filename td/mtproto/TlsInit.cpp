@@ -295,12 +295,8 @@ class TlsHelloStore {
         auto key = dest_.substr(0, 32);
         while (true) {
           Random::secure_bytes(key);
-          key[31] = static_cast<char>(key[31] & 127);
-          BigNum x = BigNum::from_le_binary(key);
-          if (!is_quadratic_residue(x)) {
-            continue;
-          }
-
+          BigNum x = BigNum::from_binary(key);
+          BigNum::mod_mul(x, x, x, mod, big_num_context);
           BigNum y = x.clone();
           BigNum coef = BigNum::from_decimal("486662").move_as_ok();
           BigNum::mod_add(y, y, coef, mod, big_num_context);
@@ -310,6 +306,7 @@ class TlsHelloStore {
           BigNum::mod_mul(y, y, x, mod, big_num_context);
           // y = x^3 + 486662 * x^2 + x
           if (is_quadratic_residue(y)) {
+            key.copy_from(x.to_le_binary(32));
             break;
           }
         }
