@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/BigNum.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -19,6 +20,25 @@
 #include "td/utils/Time.h"
 
 #include <map>
+
+static bool is_quadratic_residue(const td::BigNum &a) {
+  // 2^255 - 19
+  td::BigNum mod =
+      td::BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+  // (mod - 1) / 2 = 2^254 - 10
+  td::BigNum pow =
+      td::BigNum::from_hex("3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6").move_as_ok();
+
+  static td::BigNumContext context;
+  td::BigNum r;
+  td::BigNum::mod_exp(r, a, pow, mod, context);
+  td::BigNum one = td::BigNum::from_decimal("1").move_as_ok();
+  td::BigNum::mod_add(r, r, one, mod, context);
+
+  std::string result = r.to_decimal();
+  CHECK(result == "0" || result == "1" || result == "2");
+  return result == "2";
+}
 
 struct TlsInfo {
   td::vector<size_t> extension_list;
@@ -41,6 +61,33 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
   auto add_length = [&](size_t length) {
     request += static_cast<char>(length / 256);
     request += static_cast<char>(length % 256);
+  };
+  auto add_key = [&] {
+    td::string key(32, '\0');
+    td::BigNumContext context;
+    td::BigNum mod =
+        td::BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+    while (true) {
+      td::Random::secure_bytes(key);
+      key[31] = static_cast<char>(key[31] & 127);
+      td::BigNum x = td::BigNum::from_le_binary(key);
+      if (!is_quadratic_residue(x)) {
+        continue;
+      }
+
+      td::BigNum y = x.clone();
+      td::BigNum coef = td::BigNum::from_decimal("486662").move_as_ok();
+      td::BigNum::mod_add(y, y, coef, mod, context);
+      td::BigNum::mod_mul(y, y, x, mod, context);
+      td::BigNum one = td::BigNum::from_decimal("1").move_as_ok();
+      td::BigNum::mod_add(y, y, one, mod, context);
+      td::BigNum::mod_mul(y, y, x, mod, context);
+      // y = x^3 + 486662 * x^2 + x
+      if (is_quadratic_residue(y)) {
+        break;
+      }
+    }
+    request += key;
   };
 
   const size_t MAX_GREASE = 7;
@@ -84,7 +131,7 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
       "\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00\x00\x00\x33\x00\x2b\x00\x29");
   add_grease(4);
   add_string("\x00\x01\x00\x00\x1d\x00\x20");
-  add_random(32);
+  add_key();
   add_string("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a");
   add_grease(6);
   add_string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x02");
