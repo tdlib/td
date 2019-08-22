@@ -30,7 +30,6 @@ void TcpListener::start_up() {
 }
 
 void TcpListener::tear_down() {
-  LOG(ERROR) << "TcpListener closed";
   if (!server_fd_.empty()) {
     Scheduler::unsubscribe_before_close(server_fd_.get_poll_info().get_pollable_fd_ref());
     server_fd_.close();
@@ -53,7 +52,6 @@ void TcpListener::loop() {
   }
 
   if (can_close(server_fd_)) {
-    LOG(ERROR) << "HELLO!";
     stop();
   }
 }

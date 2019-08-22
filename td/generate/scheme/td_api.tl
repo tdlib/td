@@ -604,19 +604,19 @@ chatTypeSupergroup supergroup_id:int32 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 
-//@class ChatListType @description Describes a list of chats a chat belongs to
+//@class ChatList @description Describes a list of chats
 
 //@description A main list of chats. Can contain ordinary chats and other lists of chats as folders
-chatListTypeMain = ChatListType;
+chatListMain = ChatList;
 
-//@description A list of chats located at the top of main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list
-chatListTypeArchive = ChatListType;
+//@description A list of chats usually located at the top of the main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list when a new message arrives
+chatListArchive = ChatList;
 
 
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
 //@id Chat unique identifier
 //@type Type of the chat
-//@list_type The type of a chat list the chat belongs to; may be null
+//@chat_list A chat list to which the chat belongs; may be null
 //@title Chat title
 //@photo Chat photo; may be null
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
@@ -638,7 +638,7 @@ chatListTypeArchive = ChatListType;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType list_type:ChatListType title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -2605,8 +2605,8 @@ updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int
 //@description A new chat has been loaded/created. This update is guaranteed to come before the chat identifier is returned to the client. The chat field changes will be reported through separate updates @chat The chat
 updateNewChat chat:chat = Update;
 
-//@description The list to which the chat belongs was changed @chat_id Chat identifier @list_type The new chat list type; may be null
-updateChatListType chat_id:int53 list_type:ChatListType = Update;
+//@description The list to which the chat belongs was changed. This update is guaranteed to be sent only when chat.order == 0 and the current or the new chat list is null @chat_id Chat identifier @chat_list The new chat's list; may be null
+updateChatChatList chat_id:int53 chat_list:ChatList = Update;
 
 //@description The title of a chat was changed @chat_id Chat identifier @title The new chat title
 updateChatTitle chat_id:int53 title:string = Update;
@@ -2740,13 +2740,15 @@ updateCall call:call = Update;
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
 updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRules = Update;
 
-//@description Number of unread messages has changed. This update is sent only if a message database is used @unread_count Total number of unread messages @unread_unmuted_count Total number of unread messages in unmuted chats
-updateUnreadMessageCount unread_count:int32 unread_unmuted_count:int32 = Update;
+//@description Number of unread messages in a chat list has changed. This update is sent only if a message database is used @chat_list The chat list with changed number of unread messages
+//@unread_count Total number of unread messages @unread_unmuted_count Total number of unread messages in unmuted chats
+updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 = Update;
 
 //@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if a message database is used
+//@chat_list The chat list with changed number of unread messages
 //@unread_count Total number of unread chats @unread_unmuted_count Total number of unread unmuted chats
 //@marked_as_unread_count Total number of chats marked as unread @marked_as_unread_unmuted_count Total number of unmuted chats marked as unread
-updateUnreadChatCount unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
+updateUnreadChatCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
@@ -2987,10 +2989,12 @@ getFile file_id:int32 = File;
 //@remote_file_id Remote identifier of the file to get @file_type File type, if known
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
-//@description Returns an ordered list of chats. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
-//-For optimal performance the number of returned chats is chosen by the library @offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
+//@description Returns an ordered list of chats in a chat list. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
+//-For optimal performance the number of returned chats is chosen by the library
+//@chat_list The chat list in which to return chats
+//@offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
 //@limit The maximum number of chats to be returned. It is possible that fewer chats than the limit are returned even if the end of the list is not reached
-getChats offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
+getChats chat_list:ChatList offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
 
 //@description Searches a public chat by its username. Currently only private chats, supergroups and channels can be public. Returns the chat if found; otherwise an error is returned @username Username to be resolved
 searchPublicChat username:string = Chat;
@@ -3341,7 +3345,7 @@ setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 //@description Changes the notification settings of a chat @chat_id Chat identifier @notification_settings New notification settings for the chat
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
-//@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max") non-secret chats and the same number of secret chats @chat_id Chat identifier @is_pinned New value of is_pinned
+//@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") non-secret chats and the same number of secret chats in the main/archive chat list @chat_id Chat identifier @is_pinned New value of is_pinned
 toggleChatIsPinned chat_id:int53 is_pinned:Bool = Ok;
 
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
@@ -3407,8 +3411,8 @@ setScopeNotificationSettings scope:NotificationSettingsScope notification_settin
 resetAllNotificationSettings = Ok;
 
 
-//@description Changes the order of pinned chats @chat_ids The new list of pinned chats
-setPinnedChats chat_ids:vector<int53> = Ok;
+//@description Changes the order of pinned chats @chat_list Chat list in which to change the order of pinned chats @chat_ids The new list of pinned chats
+setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates

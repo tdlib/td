@@ -1006,6 +1006,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("basic_group_size_max", config->chat_size_max_);
   shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
+  shared_config.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
   if (is_from_main_dc || !shared_config.have_option("expect_blocking")) {
     shared_config.set_option_boolean("expect_blocking",
                                      (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);

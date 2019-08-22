@@ -190,7 +190,8 @@ class DialogDbImpl : public DialogDbSyncInterface {
                                 get_last_notification_date(get_notification_group_stmt_, 1));
   }
 
-  Result<vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) override {
+  Result<vector<BufferSlice>> get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit) override {
+    // TODO use folder_id
     SCOPE_EXIT {
       get_dialogs_stmt_.reset();
     };
@@ -305,8 +306,9 @@ class DialogDbAsync : public DialogDbAsyncInterface {
   void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) override {
     send_closure_later(impl_, &Impl::get_dialog, dialog_id, std::move(promise));
   }
-  void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<vector<BufferSlice>> promise) override {
-    send_closure_later(impl_, &Impl::get_dialogs, order, dialog_id, limit, std::move(promise));
+  void get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit,
+                   Promise<vector<BufferSlice>> promise) override {
+    send_closure_later(impl_, &Impl::get_dialogs, folder_id, order, dialog_id, limit, std::move(promise));
   }
   void close(Promise<> promise) override {
     send_closure_later(impl_, &Impl::close, std::move(promise));
@@ -342,9 +344,10 @@ class DialogDbAsync : public DialogDbAsyncInterface {
       add_read_query();
       promise.set_result(sync_db_->get_dialog(dialog_id));
     }
-    void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<vector<BufferSlice>> promise) {
+    void get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit,
+                     Promise<vector<BufferSlice>> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_dialogs(order, dialog_id, limit));
+      promise.set_result(sync_db_->get_dialogs(folder_id, order, dialog_id, limit));
     }
     void close(Promise<> promise) {
       do_flush();

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
 
@@ -36,7 +37,7 @@ class DialogDbSyncInterface {
 
   virtual Result<BufferSlice> get_dialog(DialogId dialog_id) = 0;
 
-  virtual Result<vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) = 0;
+  virtual Result<vector<BufferSlice>> get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit) = 0;
 
   virtual Result<vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
       NotificationGroupKey notification_group_key, int32 limit) = 0;
@@ -69,7 +70,8 @@ class DialogDbAsyncInterface {
 
   virtual void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
 
-  virtual void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<vector<BufferSlice>> promise) = 0;
+  virtual void get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit,
+                           Promise<vector<BufferSlice>> promise) = 0;
 
   virtual void get_notification_groups_by_last_notification_date(NotificationGroupKey notification_group_key,
                                                                  int32 limit,

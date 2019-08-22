@@ -114,7 +114,7 @@ class TdExample {
           send_query(std::move(send_message), {});
         } else if (action == "c") {
           std::cerr << "Loading chat list..." << std::endl;
-          send_query(td_api::make_object<td_api::getChats>(std::numeric_limits<std::int64_t>::max(), 0, 20),
+          send_query(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<std::int64_t>::max(), 0, 20),
                      [this](Object object) {
                        if (object->get_id() == td_api::error::ID) {
                          return;

@@ -42,8 +42,8 @@ public final class Example {
     private static final ConcurrentMap<Integer, TdApi.SecretChat> secretChats = new ConcurrentHashMap<Integer, TdApi.SecretChat>();
 
     private static final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<Long, TdApi.Chat>();
-    private static final NavigableSet<OrderedChat> chatList = new TreeSet<OrderedChat>();
-    private static boolean haveFullChatList = false;
+    private static final NavigableSet<OrderedChat> mainChatList = new TreeSet<OrderedChat>();
+    private static boolean haveFullMainChatList = false;
 
     private static final ConcurrentMap<Integer, TdApi.UserFullInfo> usersFullInfo = new ConcurrentHashMap<Integer, TdApi.UserFullInfo>();
     private static final ConcurrentMap<Integer, TdApi.BasicGroupFullInfo> basicGroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.BasicGroupFullInfo>();
@@ -72,17 +72,23 @@ public final class Example {
     }
 
     private static void setChatOrder(TdApi.Chat chat, long order) {
-        synchronized (chatList) {
-            if (chat.order != 0) {
-                boolean isRemoved = chatList.remove(new OrderedChat(chat.order, chat.id));
-                assert isRemoved;
-            }
+        synchronized (mainChatList) {
+            synchronized (chat) {
+                if (chat.chatList == null || chat.chatList.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) {
+                  return;
+                }
 
-            chat.order = order;
+                if (chat.order != 0) {
+                    boolean isRemoved = mainChatList.remove(new OrderedChat(chat.order, chat.id));
+                    assert isRemoved;
+                }
 
-            if (chat.order != 0) {
-                boolean isAdded = chatList.add(new OrderedChat(chat.order, chat.id));
-                assert isAdded;
+                chat.order = order;
+
+                if (chat.order != 0) {
+                    boolean isAdded = mainChatList.add(new OrderedChat(chat.order, chat.id));
+                    assert isAdded;
+                }
             }
         }
     }
@@ -201,7 +207,7 @@ public final class Example {
                     if (commands.length > 1) {
                         limit = toInt(commands[1]);
                     }
-                    getChatList(limit);
+                    getMainChatList(limit);
                     break;
                 }
                 case "gc":
@@ -232,18 +238,18 @@ public final class Example {
         }
     }
 
-    private static void getChatList(final int limit) {
-        synchronized (chatList) {
-            if (!haveFullChatList && limit > chatList.size()) {
+    private static void getMainChatList(final int limit) {
+        synchronized (mainChatList) {
+            if (!haveFullMainChatList && limit > mainChatList.size()) {
                 // have enough chats in the chat list or chat list is too small
                 long offsetOrder = Long.MAX_VALUE;
                 long offsetChatId = 0;
-                if (!chatList.isEmpty()) {
-                    OrderedChat last = chatList.last();
+                if (!mainChatList.isEmpty()) {
+                    OrderedChat last = mainChatList.last();
                     offsetOrder = last.order;
                     offsetChatId = last.chatId;
                 }
-                client.send(new TdApi.GetChats(offsetOrder, offsetChatId, limit - chatList.size()), new Client.ResultHandler() {
+                client.send(new TdApi.GetChats(new TdApi.ChatListMain(), offsetOrder, offsetChatId, limit - mainChatList.size()), new Client.ResultHandler() {
                     @Override
                     public void onResult(TdApi.Object object) {
                         switch (object.getConstructor()) {
@@ -253,12 +259,12 @@ public final class Example {
                             case TdApi.Chats.CONSTRUCTOR:
                                 long[] chatIds = ((TdApi.Chats) object).chatIds;
                                 if (chatIds.length == 0) {
-                                    synchronized (chatList) {
-                                        haveFullChatList = true;
+                                    synchronized (mainChatList) {
+                                        haveFullMainChatList = true;
                                     }
                                 }
                                 // chats had already been received through updates, let's retry request
-                                getChatList(limit);
+                                getMainChatList(limit);
                                 break;
                             default:
                                 System.err.println("Receive wrong response from TDLib:" + newLine + object);
@@ -269,9 +275,9 @@ public final class Example {
             }
 
             // have enough chats in the chat list to answer request
-            java.util.Iterator<OrderedChat> iter = chatList.iterator();
+            java.util.Iterator<OrderedChat> iter = mainChatList.iterator();
             System.out.println();
-            System.out.println("First " + limit + " chat(s) out of " + chatList.size() + " known chat(s):");
+            System.out.println("First " + limit + " chat(s) out of " + mainChatList.size() + " known chat(s):");
             for (int i = 0; i < limit; i++) {
                 long chatId = iter.next().chatId;
                 TdApi.Chat chat = chats.get(chatId);
@@ -415,6 +421,17 @@ public final class Example {
                     TdApi.Chat chat = chats.get(updateChat.chatId);
                     synchronized (chat) {
                         chat.photo = updateChat.photo;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatChatList.CONSTRUCTOR: {
+                    TdApi.UpdateChatChatList updateChat = (TdApi.UpdateChatChatList) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (mainChatList) { // to not change Chat.chatList while mainChatList is locked
+                        synchronized (chat) {
+                            assert chat.order == 0; // guaranteed by TDLib
+                            chat.chatList = updateChat.chatList;
+                        }
                     }
                     break;
                 }

@@ -1724,12 +1724,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, bool /*force_apply*/) {
+  FolderId folder_id(update->flags_ & telegram_api::updateDialogPinned::FOLDER_ID_MASK ? update->folder_id_ : 0);
   td_->messages_manager_->on_update_dialog_is_pinned(
-      DialogId(update->peer_), (update->flags_ & telegram_api::updateDialogPinned::PINNED_MASK) != 0);
+      folder_id, DialogId(update->peer_), (update->flags_ & telegram_api::updateDialogPinned::PINNED_MASK) != 0);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, bool /*force_apply*/) {
-  td_->messages_manager_->on_update_pinned_dialogs();  // TODO use update->order_
+  FolderId folder_id(update->flags_ & telegram_api::updatePinnedDialogs::FOLDER_ID_MASK ? update->folder_id_ : 0);
+  td_->messages_manager_->on_update_pinned_dialogs(folder_id);  // TODO use update->order_
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, bool /*force_apply*/) {

@@ -34,6 +34,7 @@ enum class Version : int32 {
   SupportMinithumbnails,
   AddVideoCallsSupport,
   AddPhotoSizeSource,
+  SupportFolders,
   Next
 };
 

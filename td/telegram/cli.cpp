@@ -401,7 +401,7 @@ class CliClient final : public Actor {
       case td_api::authorizationStateWaitTdlibParameters::ID: {
         auto parameters = td_api::make_object<td_api::tdlibParameters>();
         parameters->use_test_dc_ = use_test_dc_;
-        parameters->use_message_database_ = false;
+        parameters->use_message_database_ = true;
         parameters->use_chat_info_database_ = true;
         parameters->use_secret_chats_ = true;
         parameters->api_id_ = api_id_;
@@ -861,7 +861,7 @@ class CliClient final : public Actor {
     Scheduler::subscribe(stdin_.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
 
     if (get_chat_list_) {
-      send_request(td_api::make_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 100));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 100));
     }
     if (disable_network_) {
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeNone>()));
@@ -1602,7 +1602,7 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "gc" || op == "GetChats") {
+    if (op == "gc" || op == "GetChats" || op == "gca") {
       string offset_order_string;
       string offset_chat_id;
       string limit;
@@ -1610,6 +1610,10 @@ class CliClient final : public Actor {
       std::tie(limit, args) = split(args);
       std::tie(offset_order_string, offset_chat_id) = split(args);
 
+      td_api::object_ptr<td_api::ChatList> chat_list;
+      if (op == "gca") {
+        chat_list = td_api::make_object<td_api::chatListArchive>();
+      }
       if (limit.empty()) {
         limit = "10000";
       }
@@ -1619,12 +1623,12 @@ class CliClient final : public Actor {
       } else {
         offset_order = to_integer<int64>(offset_order_string);
       }
-      send_request(
-          td_api::make_object<td_api::getChats>(offset_order, as_chat_id(offset_chat_id), to_integer<int32>(limit)));
+      send_request(td_api::make_object<td_api::getChats>(std::move(chat_list), offset_order, as_chat_id(offset_chat_id),
+                                                         to_integer<int32>(limit)));
     } else if (op == "gctest") {
-      send_request(td_api::make_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 1));
-      send_request(td_api::make_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 10));
-      send_request(td_api::make_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 5));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 1));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 10));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 5));
     } else if (op == "gcc" || op == "GetCommonChats") {
       string user_id;
       string offset_chat_id;
@@ -2648,13 +2652,17 @@ class CliClient final : public Actor {
       std::tie(chat_id, default_disable_notification) = split(args);
       send_request(td_api::make_object<td_api::toggleChatDefaultDisableNotification>(
           as_chat_id(chat_id), as_bool(default_disable_notification)));
-    } else if (op == "spchats") {
+    } else if (op == "spchats" || op == "spchatsa") {
       vector<string> chat_ids_str = full_split(args, ' ');
       vector<int64> chat_ids;
       for (auto &chat_id_str : chat_ids_str) {
         chat_ids.push_back(as_chat_id(chat_id_str));
       }
-      send_request(td_api::make_object<td_api::setPinnedChats>(std::move(chat_ids)));
+      td_api::object_ptr<td_api::ChatList> chat_list = td_api::make_object<td_api::chatListMain>();
+      if (op == "spchatsa") {
+        chat_list = td_api::make_object<td_api::chatListArchive>();
+      }
+      send_request(td_api::make_object<td_api::setPinnedChats>(std::move(chat_list), std::move(chat_ids)));
     } else if (op == "sca") {
       string chat_id;
       string action;
