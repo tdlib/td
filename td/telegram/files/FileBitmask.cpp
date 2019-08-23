@@ -21,7 +21,7 @@ Bitmask::Bitmask(Ones, int64 count) : data_(narrow_cast<size_t>((count + 7) / 8)
   }
 }
 
-Bitmask Bitmask::compress(int k) {
+Bitmask Bitmask::compress(int k) const {
   Bitmask res;
   for (int64 i = 0; i * k < size(); i++) {
     bool f = true;
