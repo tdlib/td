@@ -62,7 +62,7 @@ class TlStorerUnsafe {
       *buf_++ = static_cast<unsigned char>(len & 255);
       *buf_++ = static_cast<unsigned char>((len >> 8) & 255);
       *buf_++ = static_cast<unsigned char>(len >> 16);
-    } else if (len < (1ull << 32)) {
+    } else if (static_cast<uint64>(len) < (static_cast<uint64>(1) << 32)) {
       *buf_++ = static_cast<unsigned char>(255);
       *buf_++ = static_cast<unsigned char>(len & 255);
       *buf_++ = static_cast<unsigned char>((len >> 8) & 255);
