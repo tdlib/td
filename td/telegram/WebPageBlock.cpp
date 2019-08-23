@@ -915,9 +915,7 @@ class WebPageBlockAnimation : public WebPageBlock {
 
   void append_file_ids(vector<FileId> &file_ids) const override {
     caption.append_file_ids(file_ids);
-    if (animation_file_id.is_valid()) {
-      Document(Document::Type::Animation, animation_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
-    }
+    Document(Document::Type::Animation, animation_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -984,6 +982,7 @@ class WebPageBlockPhoto : public WebPageBlock {
   }
 
   void append_file_ids(vector<FileId> &file_ids) const override {
+    append(file_ids, photo_get_file_ids(photo));
     caption.append_file_ids(file_ids);
   }
 
@@ -1035,9 +1034,7 @@ class WebPageBlockVideo : public WebPageBlock {
 
   void append_file_ids(vector<FileId> &file_ids) const override {
     caption.append_file_ids(file_ids);
-    if (video_file_id.is_valid()) {
-      Document(Document::Type::Video, video_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
-    }
+    Document(Document::Type::Video, video_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1388,9 +1385,7 @@ class WebPageBlockAudio : public WebPageBlock {
   }
 
   void append_file_ids(vector<FileId> &file_ids) const override {
-    if (audio_file_id.is_valid()) {
-      Document(Document::Type::Audio, audio_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
-    }
+    Document(Document::Type::Audio, audio_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
     caption.append_file_ids(file_ids);
   }
 
