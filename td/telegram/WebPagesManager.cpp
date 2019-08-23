@@ -1477,7 +1477,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
 
   vector<FileId> result = photo_get_file_ids(web_page->photo);
   if (!web_page->document.empty()) {
-    append(result, web_page->document.get_file_ids(td_));
+    web_page->document.append_file_ids(td_, result);
   }
   if (!web_page->instant_view.is_empty) {
     for (auto &page_block : web_page->instant_view.page_blocks) {
