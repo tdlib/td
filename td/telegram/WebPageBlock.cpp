@@ -73,12 +73,7 @@ class RichText {
   void append_file_ids(vector<FileId> &file_ids) const {
     if (type == RichText::Type::Icon) {
       CHECK(document_file_id.is_valid());
-      file_ids.push_back(document_file_id);
-      auto thumbnail_file_id =
-          G()->td().get_actor_unsafe()->documents_manager_->get_document_thumbnail_file_id(document_file_id);
-      if (thumbnail_file_id.is_valid()) {
-        file_ids.push_back(thumbnail_file_id);
-      }
+      Document(Document::Type::General, document_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
     } else {
       for (auto &text : texts) {
         text.append_file_ids(file_ids);
@@ -921,12 +916,7 @@ class WebPageBlockAnimation : public WebPageBlock {
   void append_file_ids(vector<FileId> &file_ids) const override {
     caption.append_file_ids(file_ids);
     if (animation_file_id.is_valid()) {
-      file_ids.push_back(animation_file_id);
-      auto thumbnail_file_id =
-          G()->td().get_actor_unsafe()->animations_manager_->get_animation_thumbnail_file_id(animation_file_id);
-      if (thumbnail_file_id.is_valid()) {
-        file_ids.push_back(thumbnail_file_id);
-      }
+      Document(Document::Type::Animation, animation_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
     }
   }
 
@@ -1046,12 +1036,7 @@ class WebPageBlockVideo : public WebPageBlock {
   void append_file_ids(vector<FileId> &file_ids) const override {
     caption.append_file_ids(file_ids);
     if (video_file_id.is_valid()) {
-      file_ids.push_back(video_file_id);
-      auto thumbnail_file_id =
-          G()->td().get_actor_unsafe()->videos_manager_->get_video_thumbnail_file_id(video_file_id);
-      if (thumbnail_file_id.is_valid()) {
-        file_ids.push_back(thumbnail_file_id);
-      }
+      Document(Document::Type::Video, video_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
     }
   }
 
@@ -1404,12 +1389,7 @@ class WebPageBlockAudio : public WebPageBlock {
 
   void append_file_ids(vector<FileId> &file_ids) const override {
     if (audio_file_id.is_valid()) {
-      file_ids.push_back(audio_file_id);
-      auto thumbnail_file_id =
-          G()->td().get_actor_unsafe()->audios_manager_->get_audio_thumbnail_file_id(audio_file_id);
-      if (thumbnail_file_id.is_valid()) {
-        file_ids.push_back(thumbnail_file_id);
-      }
+      Document(Document::Type::Audio, audio_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
     }
     caption.append_file_ids(file_ids);
   }
