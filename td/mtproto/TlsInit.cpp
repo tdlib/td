@@ -295,18 +295,16 @@ class TlsHelloStore {
         auto key = dest_.substr(0, 32);
         while (true) {
           Random::secure_bytes(key);
+          key[31] = static_cast<char>(key[31] & 127);
+
           BigNum x = BigNum::from_binary(key);
-          BigNum::mod_mul(x, x, x, mod, big_num_context);
-          BigNum y = x.clone();
-          BigNum coef = BigNum::from_decimal("486662").move_as_ok();
-          BigNum::mod_add(y, y, coef, mod, big_num_context);
-          BigNum::mod_mul(y, y, x, mod, big_num_context);
-          BigNum one = BigNum::from_decimal("1").move_as_ok();
-          BigNum::mod_add(y, y, one, mod, big_num_context);
-          BigNum::mod_mul(y, y, x, mod, big_num_context);
-          // y = x^3 + 486662 * x^2 + x
+          BigNum y = get_y2(x, mod, big_num_context);
           if (is_quadratic_residue(y)) {
+            for (int i = 0; i < 3; i++) {
+              x = get_double_x(x, mod, big_num_context);
+            }
             key.copy_from(x.to_le_binary(32));
+            LOG(ERROR) << td::format::as_hex_dump<0>(td::Slice(key));
             break;
           }
         }
@@ -351,6 +349,35 @@ class TlsHelloStore {
   MutableSlice data_;
   MutableSlice dest_;
   std::vector<size_t> scope_offset_;
+
+  static BigNum get_y2(BigNum &x, const BigNum &mod, BigNumContext &big_num_context) {
+    // returns y = x^3 + 486662 * x^2 + x
+    BigNum y = x.clone();
+    BigNum coef = BigNum::from_decimal("486662").move_as_ok();
+    BigNum::mod_add(y, y, coef, mod, big_num_context);
+    BigNum::mod_mul(y, y, x, mod, big_num_context);
+    BigNum one = BigNum::from_decimal("1").move_as_ok();
+    BigNum::mod_add(y, y, one, mod, big_num_context);
+    BigNum::mod_mul(y, y, x, mod, big_num_context);
+    return y;
+  }
+
+  static BigNum get_double_x(BigNum &x, const BigNum &mod, BigNumContext &big_num_context) {
+    // returns x_2 = (x^2 - 1)^2/(4*y^2)
+    BigNum denominator = get_y2(x, mod, big_num_context);
+    BigNum coef = BigNum::from_decimal("4").move_as_ok();
+    BigNum::mod_mul(denominator, denominator, coef, mod, big_num_context);
+
+    BigNum numerator;
+    BigNum::mod_mul(numerator, x, x, mod, big_num_context);
+    BigNum one = BigNum::from_decimal("1").move_as_ok();
+    BigNum::mod_sub(numerator, numerator, one, mod, big_num_context);
+    BigNum::mod_mul(numerator, numerator, numerator, mod, big_num_context);
+
+    BigNum::mod_inverse(denominator, denominator, mod, big_num_context);
+    BigNum::mod_mul(numerator, numerator, denominator, mod, big_num_context);
+    return numerator;
+  }
 
   static bool is_quadratic_residue(const BigNum &a) {
     // 2^255 - 19
