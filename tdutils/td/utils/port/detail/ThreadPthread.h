@@ -17,7 +17,6 @@
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
-#include "td/utils/misc.h"
 
 #include <tuple>
 #include <type_traits>
@@ -46,16 +45,18 @@ class ThreadPthread {
       invoke_tuple(std::move(args));
       clear_thread_locals();
     });
-    pthread_create(&thread_, nullptr, run_thread, func.release());
+    do_pthread_create(&thread_, nullptr, run_thread, func.release());
     is_inited_ = true;
   }
-  void set_name(CSlice name);
-  void join();
-
-  void detach();
   ~ThreadPthread() {
     join();
   }
+
+  void set_name(CSlice name);
+
+  void join();
+
+  void detach();
 
   static unsigned hardware_concurrency();
 
