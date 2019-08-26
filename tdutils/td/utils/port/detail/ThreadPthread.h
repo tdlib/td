@@ -17,13 +17,13 @@
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
+#include "td/utils/misc.h"
 
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include <pthread.h>
-#include <sched.h>
+#include <sys/types.h>
 
 namespace td {
 namespace detail {
@@ -49,33 +49,15 @@ class ThreadPthread {
     pthread_create(&thread_, nullptr, run_thread, func.release());
     is_inited_ = true;
   }
-  void set_name(CSlice name) {
-#if defined(_GNU_SOURCE) && defined(__GLIBC_PREREQ)
-#if __GLIBC_PREREQ(2, 12)
-    pthread_setname_np(thread_, name.c_str());
-#endif
-#endif
-  }
-  void join() {
-    if (is_inited_.get()) {
-      is_inited_ = false;
-      pthread_join(thread_, nullptr);
-    }
-  }
+  void set_name(CSlice name);
+  void join();
 
-  void detach() {
-    if (is_inited_.get()) {
-      is_inited_ = false;
-      pthread_detach(thread_);
-    }
-  }
+  void detach();
   ~ThreadPthread() {
     join();
   }
 
-  static unsigned hardware_concurrency() {
-    return 8;
-  }
+  static unsigned hardware_concurrency();
 
   using id = pthread_t;
 
@@ -88,6 +70,8 @@ class ThreadPthread {
     return std::forward<T>(v);
   }
 
+  int do_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
+
   static void *run_thread(void *ptr) {
     ThreadIdGuard thread_id_guard;
     auto func = unique_ptr<Destructor>(static_cast<Destructor *>(ptr));
@@ -96,12 +80,8 @@ class ThreadPthread {
 };
 
 namespace this_thread_pthread {
-inline void yield() {
-  sched_yield();
-}
-inline ThreadPthread::id get_id() {
-  return pthread_self();
-}
+void yield();
+ThreadPthread::id get_id();
 }  // namespace this_thread_pthread
 }  // namespace detail
 }  // namespace td

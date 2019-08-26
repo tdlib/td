@@ -75,6 +75,7 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/Poll.cpp
   td/utils/port/detail/Select.cpp
   td/utils/port/detail/ThreadIdGuard.cpp
+  td/utils/port/detail/ThreadPthread.cpp
   td/utils/port/detail/WineventPoll.cpp
 
   ${TDMIME_AUTO}
