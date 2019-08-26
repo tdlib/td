@@ -586,13 +586,13 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
   if (total_parameters_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
     return Status::Error(413, "Request Entity Too Large: too much parameters");
   }
-  LOG(DEBUG) << "Parse json parameters: \"" << parameters << "\"";
+  LOG(DEBUG) << "Parse JSON parameters: \"" << parameters << "\"";
 
   Parser parser(parameters);
   parser.skip_whitespaces();
   parser.skip('{');
   if (parser.status().is_error()) {
-    return Status::Error(400, "Bad Request: json object expected");
+    return Status::Error(400, "Bad Request: JSON object expected");
   }
   while (true) {
     parser.skip_whitespaces();

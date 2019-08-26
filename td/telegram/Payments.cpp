@@ -145,7 +145,7 @@ static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
     string data = native_parameters->data_;
     auto r_value = json_decode(data);
     if (r_value.is_error()) {
-      LOG(ERROR) << "Can't parse json object \"" << native_parameters->data_ << "\": " << r_value.error();
+      LOG(ERROR) << "Can't parse JSON object \"" << native_parameters->data_ << "\": " << r_value.error();
       return nullptr;
     }
 
