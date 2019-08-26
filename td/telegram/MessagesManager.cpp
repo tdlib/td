@@ -4467,8 +4467,8 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   add_group_key(d->message_notification_group);
   add_group_key(d->mention_notification_group);
   G()->td_db()->get_dialog_db_async()->add_dialog(
-      dialog_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
-      PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
+      dialog_id, d->folder_id, d->is_folder_id_inited ? d->order : 0, get_dialog_database_value(d),
+      std::move(changed_group_keys), PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
         send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id,
                      can_reuse_notification_group, result.is_ok());
       }));
@@ -9187,6 +9187,11 @@ void MessagesManager::init() {
       G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
 
   if (G()->parameters().use_message_db) {
+    // erase old keys
+    G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
+    G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
+    G()->td_db()->get_binlog_pmc()->erase("unread_dialog_count");
+
     auto last_database_server_dialog_dates = G()->td_db()->get_binlog_pmc()->prefix_get("last_server_dialog_date");
     for (auto &it : last_database_server_dialog_dates) {
       auto r_folder_id = to_integer_safe<int32>(Slice(it.first).substr(Slice("last_server_dialog_date").size()));
@@ -9288,11 +9293,6 @@ void MessagesManager::init() {
     }
 
     ttl_db_loop_start(G()->server_time());
-
-    // erase old keys
-    G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
-    G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
-    G()->td_db()->get_binlog_pmc()->erase("unread_dialog_count");
   } else {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_message_count");
@@ -11879,8 +11879,8 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
       continue;
     }
     if (d->folder_id != folder_id) {
-      LOG(INFO) << "Skip " << d->dialog_id << " received from database, because it is in " << d->folder_id
-                << " instead of " << folder_id;
+      LOG(WARNING) << "Skip " << d->dialog_id << " received from database, because it is in " << d->folder_id
+                   << " instead of " << folder_id;
       dialogs_skipped++;
       continue;
     }
@@ -13199,7 +13199,7 @@ class MessagesManager::ReorderPinnedDialogsOnServerLogEvent {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    if (parser.version() >= static_cast<int32>(Version::SupportFolders)) {
+    if (parser.version() >= static_cast<int32>(Version::AddFolders)) {
       td::parse(folder_id_, parser);
     } else {
       folder_id_ = FolderId();

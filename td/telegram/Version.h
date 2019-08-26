@@ -34,7 +34,7 @@ enum class Version : int32 {
   SupportMinithumbnails,
   AddVideoCallsSupport,
   AddPhotoSizeSource,
-  SupportFolders,
+  AddFolders,
   Next
 };
 
@@ -46,6 +46,7 @@ enum class DbVersion : int32 {
   MessagesCallIndex,
   FixFileRemoteLocationKeyBug,
   AddNotificationsSupport,
+  AddFolders,
   Next
 };
 

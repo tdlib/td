@@ -32,7 +32,7 @@ class DialogDbSyncInterface {
   DialogDbSyncInterface &operator=(const DialogDbSyncInterface &) = delete;
   virtual ~DialogDbSyncInterface() = default;
 
-  virtual Status add_dialog(DialogId dialog_id, int64 order, BufferSlice data,
+  virtual Status add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
                             vector<NotificationGroupKey> notification_groups) = 0;
 
   virtual Result<BufferSlice> get_dialog(DialogId dialog_id) = 0;
@@ -65,7 +65,7 @@ class DialogDbAsyncInterface {
   DialogDbAsyncInterface &operator=(const DialogDbAsyncInterface &) = delete;
   virtual ~DialogDbAsyncInterface() = default;
 
-  virtual void add_dialog(DialogId dialog_id, int64 order, BufferSlice data,
+  virtual void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
                           vector<NotificationGroupKey> notification_groups, Promise<> promise) = 0;
 
   virtual void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) = 0;

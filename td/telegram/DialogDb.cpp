@@ -37,31 +37,44 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     TRY_STATUS(drop_dialog_db(db, version));
     version = 0;
   }
-  auto create_notification_group_table = [&]() {
+
+  auto create_notification_group_table = [&db]() {
     return db.exec(
         "CREATE TABLE IF NOT EXISTS notification_groups (notification_group_id INT4 PRIMARY KEY, dialog_id "
         "INT8, last_notification_date INT4)");
   };
 
-  auto create_last_notification_date_index = [&]() {
+  auto create_last_notification_date_index = [&db]() {
     return db.exec(
         "CREATE INDEX IF NOT EXISTS notification_group_by_last_notification_date ON notification_groups "
         "(last_notification_date, dialog_id, notification_group_id) WHERE last_notification_date IS NOT NULL");
+  };
+
+  auto add_dialogs_in_folder_index = [&db]() {
+    return db.exec(
+        "CREATE INDEX IF NOT EXISTS dialog_in_folder_by_dialog_order ON dialogs (folder_id, dialog_order, dialog_id) "
+        "WHERE folder_id IS NOT NULL");
   };
 
   if (version == 0) {
     LOG(INFO) << "Create new dialog database";
     was_created = true;
     TRY_STATUS(
-        db.exec("CREATE TABLE IF NOT EXISTS dialogs (dialog_id INT8 PRIMARY KEY, dialog_order INT8, data BLOB)"));
-    TRY_STATUS(db.exec("CREATE INDEX IF NOT EXISTS dialog_by_dialog_order ON dialogs (dialog_order, dialog_id)"));
+        db.exec("CREATE TABLE IF NOT EXISTS dialogs (dialog_id INT8 PRIMARY KEY, dialog_order INT8, data BLOB, "
+                "folder_id INT4)"));
     TRY_STATUS(create_notification_group_table());
     TRY_STATUS(create_last_notification_date_index());
+    TRY_STATUS(add_dialogs_in_folder_index());
     version = current_db_version();
   }
   if (version < static_cast<int32>(DbVersion::AddNotificationsSupport)) {
     TRY_STATUS(create_notification_group_table());
     TRY_STATUS(create_last_notification_date_index());
+  }
+  if (version < static_cast<int32>(DbVersion::AddFolders)) {
+    TRY_STATUS(db.exec("DROP INDEX IF EXISTS dialog_by_dialog_order"));
+    TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN folder_id INT4"));
+    TRY_STATUS(add_dialogs_in_folder_index());
   }
 
   return Status::OK();
@@ -89,15 +102,17 @@ class DialogDbImpl : public DialogDbSyncInterface {
   }
 
   Status init() {
-    TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3)"));
+    TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3, ?4)"));
     TRY_RESULT(add_notification_group_stmt,
                db_.get_statement("INSERT OR REPLACE INTO notification_groups VALUES(?1, ?2, ?3)"));
     TRY_RESULT(delete_notification_group_stmt,
                db_.get_statement("DELETE FROM notification_groups WHERE notification_group_id = ?1"));
     TRY_RESULT(get_dialog_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_id = ?1"));
-    TRY_RESULT(get_dialogs_stmt, db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
-                                                   "dialog_order < ?1 OR (dialog_order = ?1 AND dialog_id < ?2) ORDER "
-                                                   "BY dialog_order DESC, dialog_id DESC LIMIT ?3"));
+    TRY_RESULT(
+        get_dialogs_stmt,
+        db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
+                          "folder_id == ?1 AND (dialog_order < ?2 OR (dialog_order = ?2 AND dialog_id < ?3)) ORDER "
+                          "BY dialog_order DESC, dialog_id DESC LIMIT ?4"));
     TRY_RESULT(
         get_notification_groups_by_last_notification_date_stmt,
         db_.get_statement("SELECT notification_group_id, dialog_id, last_notification_date FROM notification_groups "
@@ -129,7 +144,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return Status::OK();
   }
 
-  Status add_dialog(DialogId dialog_id, int64 order, BufferSlice data,
+  Status add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
                     vector<NotificationGroupKey> notification_groups) override {
     SCOPE_EXIT {
       add_dialog_stmt_.reset();
@@ -137,6 +152,11 @@ class DialogDbImpl : public DialogDbSyncInterface {
     add_dialog_stmt_.bind_int64(1, dialog_id.get()).ensure();
     add_dialog_stmt_.bind_int64(2, order).ensure();
     add_dialog_stmt_.bind_blob(3, data.as_slice()).ensure();
+    if (order > 0) {
+      add_dialog_stmt_.bind_int32(4, folder_id.get()).ensure();
+    } else {
+      add_dialog_stmt_.bind_null(4).ensure();
+    }
 
     TRY_STATUS(add_dialog_stmt_.step());
 
@@ -196,9 +216,10 @@ class DialogDbImpl : public DialogDbSyncInterface {
       get_dialogs_stmt_.reset();
     };
 
-    get_dialogs_stmt_.bind_int64(1, order).ensure();
-    get_dialogs_stmt_.bind_int64(2, dialog_id.get()).ensure();
-    get_dialogs_stmt_.bind_int32(3, limit).ensure();
+    get_dialogs_stmt_.bind_int32(1, folder_id.get()).ensure();
+    get_dialogs_stmt_.bind_int64(2, order).ensure();
+    get_dialogs_stmt_.bind_int64(3, dialog_id.get()).ensure();
+    get_dialogs_stmt_.bind_int32(4, limit).ensure();
 
     vector<BufferSlice> dialogs;
     TRY_STATUS(get_dialogs_stmt_.step());
@@ -286,9 +307,9 @@ class DialogDbAsync : public DialogDbAsyncInterface {
     impl_ = create_actor_on_scheduler<Impl>("DialogDbActor", scheduler_id, std::move(sync_db));
   }
 
-  void add_dialog(DialogId dialog_id, int64 order, BufferSlice data, vector<NotificationGroupKey> notification_groups,
-                  Promise<> promise) override {
-    send_closure(impl_, &Impl::add_dialog, dialog_id, order, std::move(data), std::move(notification_groups),
+  void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
+                  vector<NotificationGroupKey> notification_groups, Promise<> promise) override {
+    send_closure(impl_, &Impl::add_dialog, dialog_id, folder_id, order, std::move(data), std::move(notification_groups),
                  std::move(promise));
   }
 
@@ -319,12 +340,12 @@ class DialogDbAsync : public DialogDbAsyncInterface {
    public:
     explicit Impl(std::shared_ptr<DialogDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }
-    void add_dialog(DialogId dialog_id, int64 order, BufferSlice data, vector<NotificationGroupKey> notification_groups,
-                    Promise<> promise) {
+    void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
+                    vector<NotificationGroupKey> notification_groups, Promise<> promise) {
       add_write_query([=, promise = std::move(promise), data = std::move(data),
                        notification_groups = std::move(notification_groups)](Unit) mutable {
-        this->on_write_result(std::move(promise),
-                              sync_db_->add_dialog(dialog_id, order, std::move(data), std::move(notification_groups)));
+        this->on_write_result(std::move(promise), sync_db_->add_dialog(dialog_id, folder_id, order, std::move(data),
+                                                                       std::move(notification_groups)));
       });
     }
     void on_write_result(Promise<> promise, Status status) {
