@@ -192,7 +192,7 @@ Result<MemStat> mem_stat() {
 
   if (KERN_SUCCESS !=
       task_info(mach_task_self(), TASK_BASIC_INFO, reinterpret_cast<task_info_t>(&t_info), &t_info_count)) {
-    return Status::Error("task_info failed");
+    return Status::Error("Call to task_info failed");
   }
   MemStat res;
   res.resident_size_ = t_info.resident_size;
@@ -296,7 +296,7 @@ Status cpu_stat_self(CpuStat &stat) {
       s++;
       pass_cnt++;
     } else {
-      return Status::Error("unexpected end of proc file");
+      return Status::Error("Unexpected end of proc file");
     }
   }
   return Status::OK();

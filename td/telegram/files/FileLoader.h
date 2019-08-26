@@ -86,14 +86,14 @@ class FileLoader : public FileLoaderActor {
   virtual Callback *get_callback() = 0;
   virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
                                                       int64 file_size) TD_WARN_UNUSED_RESULT {
-    return Status::Error("unsupported");
+    return Status::Error("Unsupported");
   }
   virtual Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) TD_WARN_UNUSED_RESULT {
     return false;
   }
 
   virtual Status process_check_query(NetQueryPtr net_query) {
-    return Status::Error("unsupported");
+    return Status::Error("Unsupported");
   }
   struct CheckInfo {
     bool need_check{false};

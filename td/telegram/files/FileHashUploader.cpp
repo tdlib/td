@@ -39,7 +39,7 @@ Status FileHashUploader::init() {
   TRY_RESULT(fd, FileFd::open(local_.path_, FileFd::Read));
   TRY_RESULT(file_size, fd.get_size());
   if (file_size != size_) {
-    return Status::Error("size mismatch");
+    return Status::Error("Size mismatch");
   }
   fd_ = BufferedFd<FileFd>(std::move(fd));
   sha256_state_.init();
@@ -94,7 +94,7 @@ Status FileHashUploader::loop_sha() {
   fd_.get_poll_info().add_flags(PollFlags::Read());
   TRY_RESULT(read_size, fd_.flush_read(static_cast<size_t>(limit)));
   if (read_size != static_cast<size_t>(limit)) {
-    return Status::Error("unexpected end of file");
+    return Status::Error("Unexpected end of file");
   }
   while (true) {
     auto ready = fd_.input_buffer().prepare_read();

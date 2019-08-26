@@ -174,7 +174,7 @@ static uint8 secret_checksum(Slice secret) {
 
 Result<Secret> Secret::create(Slice secret) {
   if (secret.size() != 32) {
-    return Status::Error("wrong secret size");
+    return Status::Error("Wrong secret size");
   }
   uint32 checksum = secret_checksum(secret);
   if (checksum != 0) {

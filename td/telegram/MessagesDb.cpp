@@ -400,7 +400,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   Result<std::pair<DialogId, BufferSlice>> get_message_by_unique_message_id(
       ServerMessageId unique_message_id) override {
     if (!unique_message_id.is_valid()) {
-      return Status::Error("unique_message_id is invalid");
+      return Status::Error("Invalid unique_message_id");
     }
     SCOPE_EXIT {
       get_message_by_unique_message_id_stmt_.reset();

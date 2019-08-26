@@ -116,7 +116,7 @@ Result<int32> HttpDate::parse_http_date(std::string slice) {
   auto gmt = p.read_word();
   TRY_STATUS(std::move(p.status()));
   if (gmt != "GMT") {
-    return Status::Error("timezone must be GMT");
+    return Status::Error("Timezone must be GMT");
   }
 
   static Slice month_names[12] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
@@ -177,7 +177,7 @@ Result<SimpleConfig> decode_config(Slice input) {
   string hash(32, ' ');
   sha256(data_cbc.substr(0, 208), MutableSlice(hash));
   if (data_cbc.substr(208) != Slice(hash).substr(0, 16)) {
-    return Status::Error("sha256 mismatch");
+    return Status::Error("SHA256 mismatch");
   }
 
   TlParser len_parser{data_cbc};
@@ -253,7 +253,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, con
           res.r_config = [&]() -> Result<SimpleConfig> {
             TRY_RESULT(json, json_decode(http_query->content_));
             if (json.type() != JsonValue::Type::Object) {
-              return Status::Error("json error");
+              return Status::Error("JSON error");
             }
             auto &answer_object = json.get_object();
             TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
@@ -261,7 +261,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, con
             vector<string> parts;
             for (auto &v : answer_array) {
               if (v.type() != JsonValue::Type::Object) {
-                return Status::Error("json error");
+                return Status::Error("JSON error");
               }
               auto &data_object = v.get_object();
               TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
