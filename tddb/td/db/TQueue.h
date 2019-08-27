@@ -27,6 +27,7 @@ class TQueue {
     bool empty() const;
 
     bool operator==(const EventId &other) const;
+    bool operator<(const EventId &other) const;
 
    private:
     int32 id_{0};
@@ -67,10 +68,13 @@ class TQueue {
 
   virtual Result<EventId> push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) = 0;
 
+  virtual void forget(QueueId queue_id, EventId event_id) = 0;
+
   virtual EventId get_head(QueueId queue_id) const = 0;
   virtual EventId get_tail(QueueId queue_id) const = 0;
 
-  virtual Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) = 0;
+  virtual Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
+                             MutableSpan<Event> &events) = 0;
 
   virtual void run_gc(double now) = 0;
 

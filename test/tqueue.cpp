@@ -34,7 +34,7 @@ TEST(TQueue, hands) {
   tqueue->push(qid, "hello", 0);
   auto head = tqueue->get_head(qid);
   ASSERT_EQ(head.next().ok(), tqueue->get_tail(qid));
-  ASSERT_EQ(1u, tqueue->get(qid, head, 0, events_span).move_as_ok());
+  ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
 }
 
 class TestTQueue {
@@ -127,9 +127,9 @@ class TestTQueue {
     if (tmp.is_ok()) {
       a_from = tmp.move_as_ok();
     }
-    baseline_->get(qid, a_from, now, a_span).move_as_ok();
-    memory_->get(qid, a_from, now, b_span).move_as_ok();
-    binlog_->get(qid, a_from, now, c_span).move_as_ok();
+    baseline_->get(qid, a_from, true, now, a_span).move_as_ok();
+    memory_->get(qid, a_from, true, now, b_span).move_as_ok();
+    binlog_->get(qid, a_from, true, now, c_span).move_as_ok();
     ASSERT_EQ(a_span.size(), b_span.size());
     ASSERT_EQ(a_span.size(), c_span.size());
     for (size_t i = 0; i < a_span.size(); i++) {

@@ -61,6 +61,10 @@ bool EventId::operator==(const EventId &other) const {
   return id_ == other.id_;
 }
 
+bool EventId::operator<(const EventId &other) const {
+  return id_ < other.id_;
+}
+
 StringBuilder &operator<<(StringBuilder &sb, const EventId id) {
   return sb << "EventId{" << id.value() << "}";
 }
@@ -86,6 +90,7 @@ class TQueueImpl : public TQueue {
   }
 
   void do_push(QueueId queue_id, RawEvent &&raw_event) override {
+    //LOG(ERROR) << "Push " << queue_id << " " << raw_event.event_id;
     CHECK(!raw_event.event_id.empty());
     if (raw_event.logevent_id == 0 && callback_) {
       raw_event.logevent_id = callback_->push(queue_id, raw_event);
@@ -149,7 +154,24 @@ class TQueueImpl : public TQueue {
     return q.tail_id;
   }
 
-  Result<size_t> get(QueueId queue_id, EventId from_id, double now, MutableSpan<Event> &events) override {
+  void forget(QueueId queue_id, EventId event_id) override {
+    auto q_it = queues_.find(queue_id);
+    if (q_it == queues_.end()) {
+      return;
+    }
+    auto &q = q_it->second;
+    auto from_events = q.events.as_mutable_span();
+    auto it = std::lower_bound(from_events.begin(), from_events.end(), event_id,
+                               [](auto &event, EventId event_id) { return event.event_id < event_id; });
+    if (it == from_events.end() || !(it->event_id == event_id)) {
+      return;
+    }
+    try_pop(queue_id, *it, {}, q.tail_id, 0, true /*force*/);
+  }
+
+  Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
+                     MutableSpan<Event> &events) override {
+    //LOG(ERROR) << "Get " << queue_id << " " << from_id;
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       events.truncate(0);
@@ -171,16 +193,28 @@ class TQueueImpl : public TQueue {
     while (true) {
       from_events = q.events.as_mutable_span();
       ready_n = 0;
-      i = 0;
-      for (; i < from_events.size(); i++) {
+      size_t first_i = 0;
+      if (!forget_previous) {
+        first_i = std::lower_bound(from_events.begin(), from_events.end(), from_id,
+                                   [](auto &event, EventId event_id) { return event.event_id < event_id; }) -
+                  from_events.begin();
+      }
+      //LOG(ERROR) << tag("first_i", first_i) << tag("size", from_events.size());
+      for (i = first_i; i < from_events.size(); i++) {
         auto &from = from_events[i];
-        try_pop(queue_id, from, from_id, q.tail_id, now);
+        try_pop(queue_id, from, forget_previous ? from_id : EventId{}, q.tail_id, now);
         if (from.data.empty()) {
           continue;
         }
 
         if (ready_n == events.size()) {
           break;
+        }
+
+        if (from.event_id < from_id) {
+          // should not happend
+          UNREACHABLE();
+          continue;
         }
 
         auto &to = events[ready_n];
@@ -191,7 +225,7 @@ class TQueueImpl : public TQueue {
       }
 
       // compactify skipped events
-      if (ready_n * 2 < i) {
+      if ((first_i + ready_n) * 2 < i) {
         compactify(q.events, i);
         continue;
       }
@@ -229,6 +263,8 @@ class TQueueImpl : public TQueue {
   }
 
   void try_pop(QueueId queue_id, RawEvent &event, EventId from_id, EventId tail_id, double now, bool force = false) {
+    //LOG(ERROR) << event.expire_at << " < " << now << " = " << (event.expire_at < now) << " "
+    //<< (event.event_id.value() < from_id.value()) << " " << force << " " << event.data.empty();
     bool should_drop = event.expire_at < now || event.event_id.value() < from_id.value() || force || event.data.empty();
     if (!callback_ || event.logevent_id == 0) {
       if (should_drop) {
@@ -241,6 +277,7 @@ class TQueueImpl : public TQueue {
       return;
     }
 
+    //LOG(ERROR) << "Drop " << queue_id << " " << event.event_id;
     if (event.event_id.value() + 1 == tail_id.value()) {
       if (!event.data.empty()) {
         event.data = {};
