@@ -3327,6 +3327,9 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
+//@description Moves a chat to a different chat list @chat_id Chat identifier @chat_list New chat list of the chat
+setChatChatList chat_id:int53 chat_list:ChatList = Ok;
+
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
 //@chat_id Chat identifier @title New title of the chat; 1-128 characters
 setChatTitle chat_id:int53 title:string = Ok;

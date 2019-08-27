@@ -3340,6 +3340,51 @@ class ReportPeerQuery : public Td::ResultHandler {
   }
 };
 
+class EditPeerFoldersQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditPeerFoldersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, FolderId folder_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    vector<telegram_api::object_ptr<telegram_api::inputFolderPeer>> input_folder_peers;
+    input_folder_peers.push_back(
+        telegram_api::make_object<telegram_api::inputFolderPeer>(std::move(input_peer), folder_id.get()));
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::folders_editPeerFolders(std::move(input_folder_peers)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::folders_editPeerFolders>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditPeerFoldersQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditPeerFoldersQuery")) {
+      LOG(INFO) << "Receive error for EditPeerFoldersQuery: " << status;
+    }
+
+    // trying to repair folder ID for this dialog
+    td->messages_manager_->get_dialog_info_full(dialog_id_, Auto());
+
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStatsUrlQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
   DialogId dialog_id_;
@@ -22414,6 +22459,95 @@ SearchMessagesFilter MessagesManager::get_search_messages_filter(
   }
 }
 
+void MessagesManager::set_dialog_folder_id(DialogId dialog_id, FolderId folder_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive setChatChatList request to change folder of " << dialog_id << " to " << folder_id;
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  if (d->order == DEFAULT_ORDER) {
+    return promise.set_error(Status::Error(400, "Chat is not in a chat list"));
+  }
+
+  if (d->folder_id == folder_id) {
+    return promise.set_value(Unit());
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(6, "Can't access the chat"));
+  }
+
+  set_dialog_folder_id(d, folder_id);
+
+  set_dialog_folder_id_on_server(dialog_id, false);
+  promise.set_value(Unit());
+}
+
+class MessagesManager::SetDialogFolderIdOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  FolderId folder_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(folder_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(folder_id_, parser);
+  }
+};
+
+void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool from_binlog) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  if (!from_binlog && G()->parameters().use_message_db) {
+    SetDialogFolderIdOnServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    logevent.folder_id_ = d->folder_id;
+    auto storer = LogEventStorerImpl<SetDialogFolderIdOnServerLogEvent>(logevent);
+    if (d->set_folder_id_logevent_id == 0) {
+      d->set_folder_id_logevent_id =
+          binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetDialogFolderIdOnServer, storer);
+    } else {
+      binlog_rewrite(G()->td_db()->get_binlog(), d->set_folder_id_logevent_id,
+                     LogEvent::HandlerType::SetDialogFolderIdOnServer, storer);
+    }
+    d->set_folder_id_logevent_id_generation++;
+  }
+
+  Promise<> promise;
+  if (d->set_folder_id_logevent_id != 0) {
+    promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                      generation = d->set_folder_id_logevent_id_generation](Result<Unit> result) {
+      if (!G()->close_flag()) {
+        send_closure(actor_id, &MessagesManager::on_updated_dialog_folder_id, dialog_id, generation);
+      }
+    });
+  }
+
+  // TODO do not send two queries simultaneously or use SequenceDispatcher
+  td_->create_handler<EditPeerFoldersQuery>(std::move(promise))->send(dialog_id, d->folder_id);
+}
+
+void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 generation) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  LOG(INFO) << "Saved folder_id of " << dialog_id << " with logevent " << d->set_folder_id_logevent_id;
+  if (d->set_folder_id_logevent_id_generation == generation) {
+    CHECK(d->set_folder_id_logevent_id != 0);
+    LOG(INFO) << "Delete set folder_id logevent " << d->set_folder_id_logevent_id;
+    binlog_erase(G()->td_db()->get_binlog(), d->set_folder_id_logevent_id);
+    d->set_folder_id_logevent_id = 0;
+  }
+}
+
 void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo,
                                        Promise<Unit> &&promise) {
   LOG(INFO) << "Receive setChatPhoto request to change photo of " << dialog_id;
@@ -22583,7 +22717,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
 
   auto new_permissions = get_restricted_rights(permissions);
 
-  // TODO this can be wrong if there was previous change title requests
+  // TODO this can be wrong if there was previous change permissions requests
   if (get_dialog_permissions(dialog_id) == new_permissions) {
     return promise.set_value(Unit());
   }
@@ -26414,10 +26548,6 @@ void MessagesManager::on_get_channel_difference(
         timeout = difference->timeout_;
       }
 
-      // TODO
-      // pinned:flags.2?true unread_mark:flags.3?true notify_settings:PeerNotifySettings
-      // draft:flags.1?DraftMessage folder_id:flags.4?int
-
       auto new_pts = dialog->pts_;
       if (request_pts + request_limit > new_pts) {
         LOG(ERROR) << "Receive channelDifferenceTooLong as result of getChannelDifference with pts = " << request_pts
@@ -26430,6 +26560,24 @@ void MessagesManager::on_get_channel_difference(
 
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
+
+      set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
+
+      on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
+
+      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+      bool was_pinned = d->pinned_order != DEFAULT_ORDER;
+      if (is_pinned != was_pinned) {
+        set_dialog_is_pinned(d, is_pinned);
+      }
+
+      bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
+      if (is_marked_as_unread != d->is_marked_as_unread) {
+        set_dialog_is_marked_as_unread(d, is_marked_as_unread);
+      }
+
+      update_dialog_draft_message(d, get_draft_message(td_->contacts_manager_.get(), std::move(dialog->draft_)), true,
+                                  false);
 
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),
                             MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,
@@ -27143,6 +27291,29 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         change_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
+        break;
+      }
+      case LogEvent::HandlerType::SetDialogFolderIdOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        SetDialogFolderIdOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        d->set_folder_id_logevent_id = event.id_;
+        d->set_folder_id_logevent_id_generation++;
+
+        set_dialog_folder_id(d, log_event.folder_id_);
+
+        set_dialog_folder_id_on_server(dialog_id, true);
         break;
       }
       case LogEvent::HandlerType::GetDialogFromServer: {

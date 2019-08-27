@@ -452,6 +452,13 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
+  static td_api::object_ptr<td_api::ChatList> as_chat_list(string chat_list) {
+    if (!chat_list.empty() && chat_list.back() == 'a') {
+      return td_api::make_object<td_api::chatListArchive>();
+    }
+    return td_api::make_object<td_api::chatListMain>();
+  }
+
   vector<int64> as_chat_ids(Slice chat_ids, char delimiter = ' ') const {
     return transform(full_split(trim(chat_ids), delimiter), [this](Slice str) { return as_chat_id(str); });
   }
@@ -1610,10 +1617,6 @@ class CliClient final : public Actor {
       std::tie(limit, args) = split(args);
       std::tie(offset_order_string, offset_chat_id) = split(args);
 
-      td_api::object_ptr<td_api::ChatList> chat_list;
-      if (op == "gca") {
-        chat_list = td_api::make_object<td_api::chatListArchive>();
-      }
       if (limit.empty()) {
         limit = "10000";
       }
@@ -1623,7 +1626,7 @@ class CliClient final : public Actor {
       } else {
         offset_order = to_integer<int64>(offset_order_string);
       }
-      send_request(td_api::make_object<td_api::getChats>(std::move(chat_list), offset_order, as_chat_id(offset_chat_id),
+      send_request(td_api::make_object<td_api::getChats>(as_chat_list(op), offset_order, as_chat_id(offset_chat_id),
                                                          to_integer<int32>(limit)));
     } else if (op == "gctest") {
       send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 1));
@@ -2658,11 +2661,7 @@ class CliClient final : public Actor {
       for (auto &chat_id_str : chat_ids_str) {
         chat_ids.push_back(as_chat_id(chat_id_str));
       }
-      td_api::object_ptr<td_api::ChatList> chat_list = td_api::make_object<td_api::chatListMain>();
-      if (op == "spchatsa") {
-        chat_list = td_api::make_object<td_api::chatListArchive>();
-      }
-      send_request(td_api::make_object<td_api::setPinnedChats>(std::move(chat_list), std::move(chat_ids)));
+      send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), std::move(chat_ids)));
     } else if (op == "sca") {
       string chat_id;
       string action;
@@ -3263,6 +3262,9 @@ class CliClient final : public Actor {
 
       std::tie(supergroup_id, force) = split(args);
       send_request(td_api::make_object<td_api::createSupergroupChat>(as_supergroup_id(supergroup_id), as_bool(force)));
+    } else if (op == "sccl" || op == "sccla") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::setChatChatList>(as_chat_id(chat_id), as_chat_list(op)));
     } else if (op == "sct") {
       string chat_id;
       string title;

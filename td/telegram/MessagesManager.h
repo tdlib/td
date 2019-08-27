@@ -415,6 +415,8 @@ class MessagesManager : public Actor {
 
   void send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise);
 
+  void set_dialog_folder_id(DialogId dialog_id, FolderId folder_id, Promise<Unit> &&promise);
+
   void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo, Promise<Unit> &&promise);
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
@@ -448,6 +450,8 @@ class MessagesManager : public Actor {
   void export_dialog_invite_link(DialogId dialog_id, Promise<Unit> &&promise);
 
   string get_dialog_invite_link(DialogId dialog_id);
+
+  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
 
   int64 get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
                              const tl_object_ptr<td_api::chatEventLogFilters> &filters, const vector<UserId> &user_ids,
@@ -988,6 +992,8 @@ class MessagesManager : public Actor {
     uint64 save_notification_settings_logevent_id_generation = 0;
     uint64 read_history_logevent_id = 0;
     uint64 read_history_logevent_id_generation = 0;
+    uint64 set_folder_id_logevent_id = 0;
+    uint64 set_folder_id_logevent_id_generation = 0;
     FolderId folder_id;
 
     MessageId
@@ -1312,6 +1318,7 @@ class MessagesManager : public Actor {
   class UpdateScopeNotificationSettingsOnServerLogEvent;
   class ResetAllNotificationSettingsOnServerLogEvent;
   class ChangeDialogReportSpamStateOnServerLogEvent;
+  class SetDialogFolderIdOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
   class SendMessageLogEvent;
@@ -1953,8 +1960,6 @@ class MessagesManager : public Actor {
 
   Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value, const char *source);
 
-  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
-
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);
 
@@ -2081,6 +2086,10 @@ class MessagesManager : public Actor {
 
   void change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 logevent_id,
                                                  Promise<Unit> &&promise);
+
+  void set_dialog_folder_id_on_server(DialogId dialog_id, bool from_binlog);
+
+  void on_updated_dialog_folder_id(DialogId dialog_id, uint64 generation);
 
   int64 get_next_pinned_dialog_order();
 

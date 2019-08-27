@@ -94,6 +94,7 @@ class LogEvent {
     GetDialogFromServer = 0x113,
     ReadHistoryInSecretChat = 0x114,
     ToggleDialogIsMarkedAsUnreadOnServer = 0x115,
+    SetDialogFolderIdOnServer = 0x116,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,

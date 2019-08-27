@@ -5975,6 +5975,12 @@ void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupCh
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::setChatChatList &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_folder_id(DialogId(request.chat_id_), FolderId(request.chat_list_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

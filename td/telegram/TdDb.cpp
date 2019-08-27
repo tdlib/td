@@ -107,6 +107,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::GetChannelDifference:
       case LogEvent::HandlerType::ReadHistoryInSecretChat:
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
+      case LogEvent::HandlerType::SetDialogFolderIdOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
