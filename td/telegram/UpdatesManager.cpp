@@ -17,6 +17,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
@@ -1195,7 +1196,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (id == telegram_api::updateNewMessage::ID || id == telegram_api::updateReadMessagesContents::ID ||
           id == telegram_api::updateEditMessage::ID || id == telegram_api::updateDeleteMessages::ID ||
           id == telegram_api::updateReadHistoryInbox::ID || id == telegram_api::updateReadHistoryOutbox::ID ||
-          id == telegram_api::updateWebPage::ID) {
+          id == telegram_api::updateWebPage::ID || id == telegram_api::updateFolderPeers::ID) {
         if (!downcast_call(*update, OnUpdate(this, update, false))) {
           LOG(ERROR) << "Can't call on some update received from " << source;
         }
@@ -1541,6 +1542,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
                                                      update->pts_count_, "on_updateChannelWebPage");
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, bool force_apply) {
+  CHECK(update != nullptr);
+  for (auto &folder_peer : update->folder_peers_) {
+    DialogId dialog_id(folder_peer->peer_);
+    FolderId folder_id(folder_peer->folder_id_);
+    td_->messages_manager_->on_update_dialog_folder_id(dialog_id, folder_id);
+  }
+
+  td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), update->pts_, update->pts_count_,
+                                             force_apply, "on_updateFolderPeers");
+}
+
 int32 UpdatesManager::get_short_update_date() const {
   int32 now = G()->unix_time();
   if (short_update_date_ > 0) {
@@ -1881,8 +1894,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, bool /*force_apply*/) {
-}
 
 }  // namespace td
