@@ -6923,8 +6923,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       td_->messages_manager_->on_update_channel_max_unavailable_message_id(
           channel_id, MessageId(ServerMessageId(channel_full->available_min_id_)));
     }
-    td_->messages_manager_->on_read_channel_inbox(
-        channel_id, MessageId(ServerMessageId(channel_full->read_inbox_max_id_)), channel_full->unread_count_);
+    td_->messages_manager_->on_read_channel_inbox(channel_id,
+                                                  MessageId(ServerMessageId(channel_full->read_inbox_max_id_)),
+                                                  channel_full->unread_count_, channel_full->pts_, "ChannelFull");
 
     on_update_channel_full_invite_link(channel, std::move(channel_full->exported_invite_));
 

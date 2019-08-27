@@ -5177,14 +5177,13 @@ void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::u
     return;
   }
 
-  DialogId dialog_id = DialogId(channel_id);
   FolderId folder_id;
   if ((update->flags_ & telegram_api::updateReadChannelInbox::FOLDER_ID_MASK) != 0) {
     folder_id = FolderId(update->folder_id_);
   }
-  on_update_dialog_folder_id(dialog_id, folder_id);
-  read_history_inbox(dialog_id, MessageId(ServerMessageId(update->max_id_)), update->still_unread_count_,
-                     "updateReadChannelInbox");
+  on_update_dialog_folder_id(DialogId(channel_id), folder_id);
+  on_read_channel_inbox(channel_id, MessageId(ServerMessageId(update->max_id_)), update->still_unread_count_,
+                        update->pts_, "updateReadChannelInbox");
 }
 
 void MessagesManager::on_update_read_channel_outbox(tl_object_ptr<telegram_api::updateReadChannelOutbox> &&update) {
@@ -5353,7 +5352,8 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
   return false;
 }
 
-void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count) {
+void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count,
+                                            int32 pts, const char *source) {
   DialogId dialog_id(channel_id);
   if (max_message_id.is_valid() || server_unread_count > 0) {
     /*
@@ -5369,7 +5369,7 @@ void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_
       }
     }
     */
-    read_history_inbox(dialog_id, max_message_id, server_unread_count, "on_read_channel_inbox");
+    read_history_inbox(dialog_id, max_message_id, server_unread_count, source);
   }
 }
 
