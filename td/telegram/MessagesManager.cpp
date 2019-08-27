@@ -23991,8 +23991,13 @@ bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId fil
 }
 
 bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) const {
+  if (m == nullptr) {
+    return false;
+  }
+
   CHECK(d != nullptr);
-  if (m == nullptr || !m->message_id.is_server()) {
+  auto dialog_type = d->dialog_id.get_type();
+  if (!m->message_id.is_server() && dialog_type != DialogType::SecretChat) {
     return false;
   }
 
@@ -24006,8 +24011,7 @@ bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) con
     }
   }
 
-  auto dialog_type = d->dialog_id.get_type();
-  return dialog_type == DialogType::User || dialog_type == DialogType::SecretChat;
+  return true;
 }
 
 void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
