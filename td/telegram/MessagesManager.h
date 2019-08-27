@@ -1056,6 +1056,9 @@ class MessagesManager : public Actor {
     int32 pts = 0;                                                     // for channels only
     std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
     int32 retry_get_difference_timeout = 1;                            // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                          // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;               // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;          // for channels only
     std::unordered_map<int64, MessageId> random_id_to_message_id;      // for secret chats only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
@@ -2117,7 +2120,7 @@ class MessagesManager : public Actor {
 
   int32 load_channel_pts(DialogId dialog_id) const;
 
-  void set_channel_pts(Dialog *d, int32 new_pts, const char *source) const;
+  void set_channel_pts(Dialog *d, int32 new_pts, const char *source);
 
   bool running_get_channel_difference(DialogId dialog_id) const;
 

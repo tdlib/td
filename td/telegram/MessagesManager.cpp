@@ -3957,6 +3957,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_max_notification_message_id =
       max_notification_message_id.is_valid() && max_notification_message_id.get() > last_new_message_id.get();
   bool has_folder_id = folder_id != FolderId();
+  bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3997,6 +3998,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_max_notification_message_id);
     STORE_FLAG(has_folder_id);
     STORE_FLAG(is_folder_id_inited);
+    STORE_FLAG(has_pending_read_channel_inbox);
     END_STORE_FLAGS();
   }
 
@@ -4076,6 +4078,11 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_folder_id) {
     store(folder_id, storer);
   }
+  if (has_pending_read_channel_inbox) {
+    store(pending_read_channel_inbox_pts, storer);
+    store(pending_read_channel_inbox_max_message_id, storer);
+    store(pending_read_channel_inbox_server_unread_count, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -4103,6 +4110,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_flags2;
   bool has_max_notification_message_id = false;
   bool has_folder_id = false;
+  bool has_pending_read_channel_inbox = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -4143,6 +4151,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_max_notification_message_id);
     PARSE_FLAG(has_folder_id);
     PARSE_FLAG(is_folder_id_inited);
+    PARSE_FLAG(has_pending_read_channel_inbox);
     END_PARSE_FLAGS();
   }
 
@@ -4252,6 +4261,11 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_folder_id) {
     parse(folder_id, parser);
+  }
+  if (has_pending_read_channel_inbox) {
+    parse(pending_read_channel_inbox_pts, parser);
+    parse(pending_read_channel_inbox_max_message_id, parser);
+    parse(pending_read_channel_inbox_server_unread_count, parser);
   }
 }
 
@@ -5354,22 +5368,41 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 
 void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count,
                                             int32 pts, const char *source) {
-  DialogId dialog_id(channel_id);
-  if (max_message_id.is_valid() || server_unread_count > 0) {
-    /*
-    // dropping unread count can make things worse, so don't drop it
-    if (server_unread_count > 0 && G()->parameters().use_message_db) {
-      const Dialog *d = get_dialog_force(dialog_id);
-      if (d == nullptr) {
-        return;
-      }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
 
-      if (d->is_last_read_inbox_message_id_inited) {
-        server_unread_count = -1;
-      }
-    }
-    */
+  if (!max_message_id.is_valid() && server_unread_count <= 0) {
+    return;
+  }
+
+  DialogId dialog_id(channel_id);
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(INFO) << "Receive read inbox in unknown " << dialog_id << " from " << source;
+    return;
+  }
+
+  /*
+  // dropping unread count can make things worse, so don't drop it
+  if (server_unread_count > 0 && G()->parameters().use_message_db && d->is_last_read_inbox_message_id_inited) {
+    server_unread_count = -1;
+  }
+  */
+
+  if (d->pts == pts) {
     read_history_inbox(dialog_id, max_message_id, server_unread_count, source);
+  } else if (d->pts > pts) {
+    // outdated update, need to repair server_unread_count from the server
+    repair_channel_server_unread_count(d);
+  } else {
+    // update from the future, keep it until it can be applied
+    if (pts >= d->pending_read_channel_inbox_pts) {
+      d->pending_read_channel_inbox_pts = pts;
+      d->pending_read_channel_inbox_max_message_id = max_message_id;
+      d->pending_read_channel_inbox_server_unread_count = server_unread_count;
+      on_dialog_updated(dialog_id, "on_read_channel_inbox");
+    }
   }
 }
 
@@ -8554,6 +8587,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
+  // TODO logevent?
   td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
 }
 
@@ -26150,7 +26184,7 @@ int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {
   return pts;
 }
 
-void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *source) const {
+void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *source) {
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
@@ -26166,6 +26200,9 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
     LOG(ERROR) << "Update " << d->dialog_id << " pts to -1";
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(d->dialog_id));
     d->pts = std::numeric_limits<int32>::max();
+    if (d->pending_read_channel_inbox_pts != 0) {
+      d->pending_read_channel_inbox_pts = 0;
+    }
     return;
   }
   if (new_pts > d->pts || (0 < new_pts && new_pts < d->pts - 99999)) {  // pts can only go up or drop cardinally
@@ -26176,6 +26213,17 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
     }
 
     d->pts = new_pts;
+    if (d->pending_read_channel_inbox_pts != 0 && d->pending_read_channel_inbox_pts <= d->pts) {
+      auto pts = d->pending_read_channel_inbox_pts;
+      d->pending_read_channel_inbox_pts = 0;
+      on_dialog_updated(d->dialog_id, "set_channel_pts");
+      if (d->pts == pts) {
+        read_history_inbox(d->dialog_id, d->pending_read_channel_inbox_max_message_id,
+                           d->pending_read_channel_inbox_server_unread_count, "set_channel_pts");
+      } else if (d->pts > pts) {
+        repair_channel_server_unread_count(d);
+      }
+    }
     if (!G()->ignore_backgrond_updates()) {
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
