@@ -5178,6 +5178,11 @@ void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::u
   }
 
   DialogId dialog_id = DialogId(channel_id);
+  FolderId folder_id;
+  if ((update->flags_ & telegram_api::updateReadChannelInbox::FOLDER_ID_MASK) != 0) {
+    folder_id = FolderId(update->folder_id_);
+  }
+  on_update_dialog_folder_id(dialog_id, folder_id);
   read_history_inbox(dialog_id, MessageId(ServerMessageId(update->max_id_)), -1, "updateReadChannelInbox");
 }
 
@@ -5802,8 +5807,13 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
     case telegram_api::updateReadHistoryInbox::ID: {
       auto read_update = move_tl_object_as<telegram_api::updateReadHistoryInbox>(update);
       LOG(INFO) << "Process updateReadHistoryInbox";
-      read_history_inbox(DialogId(read_update->peer_), MessageId(ServerMessageId(read_update->max_id_)), -1,
-                         "updateReadHistoryInbox");
+      DialogId dialog_id(read_update->peer_);
+      FolderId folder_id;
+      if ((read_update->flags_ & telegram_api::updateReadHistoryInbox::FOLDER_ID_MASK) != 0) {
+        folder_id = FolderId(read_update->folder_id_);
+      }
+      on_update_dialog_folder_id(dialog_id, folder_id);
+      read_history_inbox(dialog_id, MessageId(ServerMessageId(read_update->max_id_)), -1, "updateReadHistoryInbox");
       break;
     }
     case telegram_api::updateReadHistoryOutbox::ID: {
