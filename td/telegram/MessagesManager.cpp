@@ -15785,8 +15785,8 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
   return Status::OK();
 }
 
-Status MessagesManager::can_send_message_content(DialogId dialog_id, const MessageContent *content,
-                                                 bool is_forward) const {
+Status MessagesManager::can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
+                                                 bool is_via_bot) const {
   auto dialog_type = dialog_id.get_type();
   int32 secret_chat_layer = std::numeric_limits<int32>::max();
   if (dialog_type == DialogType::SecretChat) {
@@ -15878,7 +15878,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       if (!can_send_games) {
         return Status::Error(400, "Not enough rights to send games to the chat");
       }
-      if (!is_forward && !get_message_content_game_bot_user_id(content).is_valid()) {
+      if (!is_forward && !is_via_bot && !get_message_content_game_bot_user_id(content).is_valid()) {
         return Status::Error(400, "Games can't be copied");
       }
       break;
@@ -17109,7 +17109,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
     return Status::Error(5, "Inline query result not found");
   }
 
-  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
+  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true));
 
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
