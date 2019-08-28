@@ -16,7 +16,7 @@
 namespace td {
 class BufferedReader {
  public:
-  explciit BufferedReader(FileFd &file, size_t buff_size = 8152)
+  explicit BufferedReader(FileFd &file, size_t buff_size = 8152)
       : file_(file), buff_(buff_size), begin_pos_(0), end_pos_(0) {
   }
 
