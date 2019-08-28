@@ -16343,7 +16343,6 @@ int64 MessagesManager::generate_new_media_album_id() {
   do {
     media_album_id = Random::secure_int64();
   } while (media_album_id >= 0 || pending_message_group_sends_.count(media_album_id) != 0);
-  pending_message_group_sends_[media_album_id];  // reserve place for the group
   return media_album_id;
 }
 
