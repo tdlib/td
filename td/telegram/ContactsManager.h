@@ -1104,6 +1104,8 @@ class ContactsManager : public Actor {
 
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
+  void on_user_online_timeout(UserId user_id);
+
   template <class StorerT>
   static void store_link_state(const LinkState &link_state, StorerT &storer);
 

@@ -2353,16 +2353,23 @@ void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr
   }
 
   auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
-  UserId user_id(narrow_cast<int32>(user_id_long));
-  auto u = contacts_manager->get_user(user_id);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_user_online_timeout,
+                     UserId(narrow_cast<int32>(user_id_long)));
+}
+
+void ContactsManager::on_user_online_timeout(UserId user_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto u = get_user(user_id);
   CHECK(u != nullptr);
 
   LOG(INFO) << "Update " << user_id << " online status to offline";
-  send_closure_later(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateUserStatus>(user_id.get(), contacts_manager->get_user_status_object(user_id, u)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(user_id, u)));
 
-  contacts_manager->update_user_online_member_count(u);
+  update_user_online_member_count(u);
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
