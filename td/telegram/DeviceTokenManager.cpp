@@ -317,7 +317,10 @@ void DeviceTokenManager::start_up() {
       }
       token.token = serialized.substr(1);
     }
-    LOG(INFO) << "GET device token " << token_type << "--->" << tokens_[token_type];
+    LOG(INFO) << "GET device token " << token_type << "--->" << token;
+    if (token.state == TokenInfo::State::Sync) {
+      token.state = TokenInfo::State::Register;
+    }
   }
   loop();
 }
