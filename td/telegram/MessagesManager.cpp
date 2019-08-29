@@ -4294,11 +4294,8 @@ void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  DialogId dialog_id(dialog_id_int);
-  CHECK(dialog_id.get_type() == DialogType::Channel);
-  auto d = messages_manager->get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  messages_manager->get_channel_difference(dialog_id, d->pts, true, "on_channel_get_difference_timeout_callback");
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_channel_get_difference_timeout,
+                     DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_message_views_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4307,28 +4304,8 @@ void MessagesManager::on_pending_message_views_timeout_callback(void *messages_m
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  DialogId dialog_id(dialog_id_int);
-  auto d = messages_manager->get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  CHECK(!d->pending_viewed_message_ids.empty());
-
-  const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
-  vector<MessageId> message_ids;
-  message_ids.reserve(min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
-  for (auto message_id : d->pending_viewed_message_ids) {
-    message_ids.push_back(message_id);
-    if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
-      messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids),
-                                                                           d->increment_view_counter);
-      message_ids.clear();
-    }
-  }
-  if (!message_ids.empty()) {
-    messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids),
-                                                                         d->increment_view_counter);
-  }
-  d->pending_viewed_message_ids.clear();
-  d->increment_view_counter = false;
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_pending_message_views_timeout,
+                     DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_draft_message_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4337,8 +4314,8 @@ void MessagesManager::on_pending_draft_message_timeout_callback(void *messages_m
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  DialogId dialog_id(dialog_id_int);
-  messages_manager->save_dialog_draft_message_on_server(dialog_id);
+  send_closure_later(messages_manager->actor_id(messages_manager),
+                     &MessagesManager::save_dialog_draft_message_on_server, DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_read_history_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4347,14 +4324,15 @@ void MessagesManager::on_pending_read_history_timeout_callback(void *messages_ma
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  DialogId dialog_id(dialog_id_int);
-  messages_manager->read_history_on_server_impl(dialog_id, MessageId());
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::read_history_on_server_impl,
+                     DialogId(dialog_id_int), MessageId());
 }
 
 void MessagesManager::on_pending_updated_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   // TODO it is unsafe to save dialog to database before binlog is flushed
-  messages_manager->save_dialog_to_database(DialogId(dialog_id_int));
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::save_dialog_to_database,
+                     DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_unload_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4363,7 +4341,8 @@ void MessagesManager::on_pending_unload_dialog_timeout_callback(void *messages_m
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  messages_manager->unload_dialog(DialogId(dialog_id_int));
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::unload_dialog,
+                     DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_dialog_unmute_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4426,6 +4405,10 @@ BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
 }
 
 void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(G()->parameters().use_message_db);
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -5199,6 +5182,31 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
   if (update_message_views(full_message_id.get_dialog_id(), m, views)) {
     on_message_changed(d, m, true, "on_update_message_views");
   }
+}
+
+void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
+  vector<MessageId> message_ids;
+  message_ids.reserve(min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
+  for (auto message_id : d->pending_viewed_message_ids) {
+    message_ids.push_back(message_id);
+    if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
+      td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), d->increment_view_counter);
+      message_ids.clear();
+    }
+  }
+  if (!message_ids.empty()) {
+    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), d->increment_view_counter);
+  }
+  d->pending_viewed_message_ids.clear();
+  d->increment_view_counter = false;
 }
 
 bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32 views) {
@@ -8033,6 +8041,10 @@ int32 MessagesManager::get_unload_dialog_delay() const {
 }
 
 void MessagesManager::unload_dialog(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -12743,6 +12755,10 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
 }
 
 void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -14256,6 +14272,10 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
 }
 
 void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -25599,6 +25619,17 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
 bool MessagesManager::running_get_channel_difference(DialogId dialog_id) const {
   return active_get_channel_differencies_.count(dialog_id) > 0;
+}
+
+void MessagesManager::on_channel_get_difference_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  get_channel_difference(dialog_id, d->pts, true, "on_channel_get_difference_timeout");
 }
 
 class MessagesManager::GetChannelDifferenceLogEvent {

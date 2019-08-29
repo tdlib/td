@@ -1493,6 +1493,8 @@ class MessagesManager : public Actor {
   void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const unique_ptr<Message> &m,
                                 vector<MessageId> &message_ids, int32 &left_to_unload) const;
 
+  void on_pending_message_views_timeout(DialogId dialog_id);
+
   bool update_message_views(DialogId dialog_id, Message *m, int32 views);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
@@ -2040,6 +2042,8 @@ class MessagesManager : public Actor {
   void set_channel_pts(Dialog *d, int32 new_pts, const char *source) const;
 
   bool running_get_channel_difference(DialogId dialog_id) const;
+
+  void on_channel_get_difference_timeout(DialogId dialog_id);
 
   void get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source);
 
