@@ -6907,7 +6907,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
 
     // be aware that in some cases an empty answer may be returned, because of the race of getHistory and deleteMessages
-    // and not because there is no more messages
+    // and not because there are no more messages
     return;
   }
 
@@ -7239,24 +7239,34 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     // anyway pretend that there is no more messages
     first_added_message_id = MessageId::min();
   }
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
   for (auto &message : messages) {
     auto new_message = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
                                       false, "SearchMessagesQuery");
-    if (new_message != FullMessageId()) {
-      if (new_message.get_dialog_id() != dialog_id) {
-        LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
-        continue;
-      }
-
-      // TODO check that messages are returned in decreasing message_id order
-      auto message_id = new_message.get_message_id();
-      if (message_id.get() < first_added_message_id.get() || !first_added_message_id.is_valid()) {
-        first_added_message_id = message_id;
-      }
-      result.push_back(message_id);
-    } else {
+    if (new_message == FullMessageId()) {
       total_count--;
+      continue;
     }
+
+    if (new_message.get_dialog_id() != dialog_id) {
+      LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
+      total_count--;
+      continue;
+    }
+
+    auto message_id = new_message.get_message_id();
+    if (filter == SearchMessagesFilter::UnreadMention &&
+        message_id.get() <= d->last_read_all_mentions_message_id.get()) {
+      total_count--;
+      continue;
+    }
+
+    // TODO check that messages are returned in decreasing message_id order
+    if (message_id.get() < first_added_message_id.get() || !first_added_message_id.is_valid()) {
+      first_added_message_id = message_id;
+    }
+    result.push_back(message_id);
   }
   if (total_count < static_cast<int32>(result.size())) {
     LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
@@ -7265,8 +7275,6 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   }
   if (query.empty() && !sender_user_id.is_valid() && filter != SearchMessagesFilter::Empty &&
       G()->parameters().use_message_db) {
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
     bool update_dialog = false;
 
     auto &old_message_count = d->message_count_by_index[search_messages_filter_index(filter)];
@@ -8196,7 +8204,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
 
   if (d->last_new_message_id.get() > d->last_read_all_mentions_message_id.get()) {
     d->last_read_all_mentions_message_id = d->last_new_message_id;
-    on_dialog_updated(dialog_id, "read_all_mentions");
+    on_dialog_updated(dialog_id, "read_all_dialog_mentions");
   }
 
   vector<MessageId> message_ids;
@@ -8215,7 +8223,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
     is_update_sent = true;
-    on_message_changed(d, m, true, "read_all_mentions");
+    on_message_changed(d, m, true, "read_all_dialog_mentions");
   }
 
   if (d->unread_mention_count != 0) {
@@ -8225,7 +8233,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
       send_update_chat_unread_mention_count(d);
     } else {
       LOG(INFO) << "Update unread mention message count in " << dialog_id << " to " << d->unread_mention_count;
-      on_dialog_updated(dialog_id, "read_all_mentions");
+      on_dialog_updated(dialog_id, "read_all_dialog_mentions");
     }
   }
   remove_message_dialog_notifications(d, MessageId::max(), d->mention_notification_group, "read_all_dialog_mentions");
@@ -14816,15 +14824,20 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, message, "on_search_dialog_messages_db_result");
     if (m != nullptr && first_db_message_id.get() <= m->message_id.get()) {
-      res.push_back(m->message_id);
+      if (filter_type == SearchMessagesFilter::UnreadMention && !m->contains_unread_mention) {
+        // skip already read by d->last_read_all_mentions_message_id mentions
+      } else {
+        res.push_back(m->message_id);
+      }
     }
   }
 
   auto &message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
   int32 result_size = narrow_cast<int32>(res.size());
-  if ((message_count < result_size) ||
-      (from_message_id == MessageId::max() && first_db_message_id == MessageId::min() && message_count > result_size &&
-       result_size < limit + offset)) {
+  bool from_the_end =
+      from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0].get() < from_message_id.get()));
+  if (message_count < result_size || (message_count > result_size && from_the_end &&
+                                      first_db_message_id == MessageId::min() && result_size < limit + offset)) {
     LOG(INFO) << "Fix found message count in " << dialog_id << " from " << message_count << " to " << result_size;
     message_count = result_size;
     if (filter_type == SearchMessagesFilter::UnreadMention) {
@@ -23375,6 +23388,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
     message->contains_unread_mention = false;
+    if (message->from_database) {
+      on_message_changed(d, message.get(), false, "add already read mention message to dialog");
+    }
   }
 
   if (*need_update && may_need_message_notification(d, message.get())) {
