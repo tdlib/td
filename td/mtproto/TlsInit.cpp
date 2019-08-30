@@ -304,7 +304,6 @@ class TlsHelloStore {
               x = get_double_x(x, mod, big_num_context);
             }
             key.copy_from(x.to_le_binary(32));
-            LOG(ERROR) << td::format::as_hex_dump<0>(td::Slice(key));
             break;
           }
         }

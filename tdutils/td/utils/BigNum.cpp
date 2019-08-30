@@ -16,6 +16,8 @@ char disable_linker_warning_about_empty_file_bignum_cpp TD_UNUSED;
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 
+#include <algorithm>
+
 namespace td {
 
 class BigNumContext::Impl {

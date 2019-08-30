@@ -295,6 +295,7 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 }
 
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
+  CHECK(!close_flag_);
   if (proxy_id == 0) {
     auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
     bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");

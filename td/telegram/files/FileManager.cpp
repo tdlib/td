@@ -892,7 +892,7 @@ Status FileManager::check_local_location(FileNodePtr node) {
   return status;
 }
 
-bool FileManager::try_fix_parital_local_location(FileNodePtr node) {
+bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
   LOG(INFO) << "Trying to fix partial local location";
   if (node->local_.type() != LocalFileLocation::Type::Partial) {
     LOG(INFO) << "   failed - not a partial location";
@@ -3447,7 +3447,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
       run_download(node);
       return;
     } else if (ends_with(status.message(), "INCREASE_PART_SIZE")) {
-      if (try_fix_parital_local_location(node)) {
+      if (try_fix_partial_local_location(node)) {
         run_download(node);
         return;
       }
