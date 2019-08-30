@@ -414,7 +414,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.state = TokenInfo::State::Sync;
       info.token.clear();
     }
-    if (r_flag.is_error()) {
+    if (r_flag.is_error() && !G()->close_flag()) {
       LOG(ERROR) << r_flag.error();
     }
   }
