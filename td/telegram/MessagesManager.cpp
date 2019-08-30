@@ -12772,6 +12772,7 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
 
   Promise<> promise;
   if (d->save_draft_message_logevent_id != 0) {
+    d->save_draft_message_logevent_id_generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
                                       generation = d->save_draft_message_logevent_id_generation](Result<Unit> result) {
       if (!G()->close_flag()) {
@@ -13133,6 +13134,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
 
   Promise<> promise;
   if (d->save_notification_settings_logevent_id != 0) {
+    d->save_notification_settings_logevent_id_generation++;
     promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id,
          generation = d->save_notification_settings_logevent_id_generation](Result<Unit> result) {
@@ -14297,6 +14299,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
 
   Promise<> promise;
   if (d->read_history_logevent_id != 0) {
+    d->read_history_logevent_id_generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
                                       generation = d->read_history_logevent_id_generation](Result<Unit> result) {
       if (!G()->close_flag()) {
@@ -26514,7 +26517,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_id);
         }
         d->read_history_logevent_id = event.id_;
-        d->read_history_logevent_id_generation++;
 
         read_history_on_server_impl(dialog_id, log_event.max_message_id_);
         break;
@@ -26541,7 +26543,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_id);
         }
         d->read_history_logevent_id = event.id_;
-        d->read_history_logevent_id_generation++;
         d->last_read_inbox_message_date = log_event.max_date_;
 
         read_history_on_server_impl(dialog_id, MessageId());
@@ -26663,7 +26664,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         d->save_draft_message_logevent_id = event.id_;
-        d->save_draft_message_logevent_id_generation++;
 
         save_dialog_draft_message_on_server(dialog_id);
         break;
@@ -26684,7 +26684,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         d->save_notification_settings_logevent_id = event.id_;
-        d->save_notification_settings_logevent_id_generation++;
 
         update_dialog_notification_settings_on_server(dialog_id, true);
         break;
