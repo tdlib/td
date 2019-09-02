@@ -31,30 +31,21 @@ Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_na
   table_name_ = std::move(table_name);
   TRY_STATUS(init(db_, table_name_));
 
-  TRY_RESULT(set_stmt, db_.get_statement(PSLICE() << "REPLACE INTO " << table_name_ << " (k, v) VALUES (?1, ?2)"));
-  set_stmt_ = std::move(set_stmt);
-  TRY_RESULT(get_stmt, db_.get_statement(PSLICE() << "SELECT v FROM " << table_name_ << " WHERE k = ?1"));
-  get_stmt_ = std::move(get_stmt);
-  TRY_RESULT(erase_stmt, db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE k = ?1"));
-  erase_stmt_ = std::move(erase_stmt);
-  TRY_RESULT(get_all_stmt, db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_));
-  get_all_stmt_ = std::move(get_all_stmt);
+  TRY_RESULT_ASSIGN(set_stmt_,
+                    db_.get_statement(PSLICE() << "REPLACE INTO " << table_name_ << " (k, v) VALUES (?1, ?2)"));
+  TRY_RESULT_ASSIGN(get_stmt_, db_.get_statement(PSLICE() << "SELECT v FROM " << table_name_ << " WHERE k = ?1"));
+  TRY_RESULT_ASSIGN(erase_stmt_, db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE k = ?1"));
+  TRY_RESULT_ASSIGN(get_all_stmt_, db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_));
 
-  TRY_RESULT(erase_by_prefix_stmt,
-             db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE ?1 <= k AND k < ?2"));
-  erase_by_prefix_stmt_ = std::move(erase_by_prefix_stmt);
+  TRY_RESULT_ASSIGN(erase_by_prefix_stmt_,
+                    db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE ?1 <= k AND k < ?2"));
+  TRY_RESULT_ASSIGN(erase_by_prefix_rare_stmt_,
+                    db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE ?1 <= k"));
 
-  TRY_RESULT(erase_by_prefix_rare_stmt,
-             db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE ?1 <= k"));
-  erase_by_prefix_rare_stmt_ = std::move(erase_by_prefix_rare_stmt);
-
-  TRY_RESULT(get_by_prefix_stmt,
-             db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << " WHERE ?1 <= k AND k < ?2"));
-  get_by_prefix_stmt_ = std::move(get_by_prefix_stmt);
-
-  TRY_RESULT(get_by_prefix_rare_stmt,
-             db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << " WHERE ?1 <= k"));
-  get_by_prefix_rare_stmt_ = std::move(get_by_prefix_rare_stmt);
+  TRY_RESULT_ASSIGN(get_by_prefix_stmt_,
+                    db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << " WHERE ?1 <= k AND k < ?2"));
+  TRY_RESULT_ASSIGN(get_by_prefix_rare_stmt_,
+                    db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << " WHERE ?1 <= k"));
 
   init_guard.dismiss();
   return Status::OK();

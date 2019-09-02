@@ -166,86 +166,68 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Status init() {
-    TRY_RESULT(
-        add_message_stmt,
+    TRY_RESULT_ASSIGN(
+        add_message_stmt_,
         db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"));
-    TRY_RESULT(delete_message_stmt, db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
-    TRY_RESULT(delete_all_dialog_messages_stmt,
-               db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id <= ?2"));
-    TRY_RESULT(delete_dialog_messages_from_user_stmt,
-               db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id == ?2"));
+    TRY_RESULT_ASSIGN(delete_message_stmt_,
+                      db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
+    TRY_RESULT_ASSIGN(delete_all_dialog_messages_stmt_,
+                      db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id <= ?2"));
+    TRY_RESULT_ASSIGN(delete_dialog_messages_from_user_stmt_,
+                      db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id == ?2"));
 
-    TRY_RESULT(get_message_stmt,
-               db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
-    TRY_RESULT(get_message_by_random_id_stmt,
-               db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND random_id = ?2"));
-    TRY_RESULT(get_message_by_unique_message_id_stmt,
-               db_.get_statement("SELECT dialog_id, data FROM messages WHERE unique_message_id = ?1"));
+    TRY_RESULT_ASSIGN(get_message_stmt_,
+                      db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
+    TRY_RESULT_ASSIGN(get_message_by_random_id_stmt_,
+                      db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND random_id = ?2"));
+    TRY_RESULT_ASSIGN(get_message_by_unique_message_id_stmt_,
+                      db_.get_statement("SELECT dialog_id, data FROM messages WHERE unique_message_id = ?1"));
 
-    TRY_RESULT(get_expiring_messages_stmt,
-               db_.get_statement("SELECT dialog_id, data FROM messages WHERE ?1 < ttl_expires_at AND ttl_expires_at <= "
-                                 "?2"));
-    TRY_RESULT(get_expiring_messages_helper_stmt,
-               db_.get_statement("SELECT MAX(ttl_expires_at), COUNT(*) FROM (SELECT ttl_expires_at FROM messages WHERE "
-                                 "?1 < ttl_expires_at LIMIT ?2) AS T"));
+    TRY_RESULT_ASSIGN(
+        get_expiring_messages_stmt_,
+        db_.get_statement("SELECT dialog_id, data FROM messages WHERE ?1 < ttl_expires_at AND ttl_expires_at <= ?2"));
+    TRY_RESULT_ASSIGN(get_expiring_messages_helper_stmt_,
+                      db_.get_statement("SELECT MAX(ttl_expires_at), COUNT(*) FROM (SELECT ttl_expires_at FROM "
+                                        "messages WHERE ?1 < ttl_expires_at LIMIT ?2) AS T"));
 
-    TRY_RESULT(get_messages_asc_stmt,
-               db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND "
-                                 "message_id > ?2 ORDER BY message_id ASC LIMIT ?3"));
-    TRY_RESULT(get_messages_desc_stmt, db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                                         "AND message_id < ?2 ORDER BY message_id DESC LIMIT ?3"));
-    TRY_RESULT(get_messages_from_notification_id_stmt,
-               db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                 "AND notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
-    TRY_RESULT(
-        get_messages_fts_stmt,
-        db_.get_statement("SELECT dialog_id, data, search_id FROM messages WHERE search_id IN (SELECT rowid FROM "
-                          "messages_fts WHERE messages_fts MATCH ?1 AND rowid < ?2 ORDER BY rowid DESC LIMIT "
-                          "?3) ORDER BY search_id DESC"));
+    TRY_RESULT_ASSIGN(get_messages_stmt_.asc_stmt_,
+                      db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id > "
+                                        "?2 ORDER BY message_id ASC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(get_messages_stmt_.desc_stmt_,
+                      db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id < "
+                                        "?2 ORDER BY message_id DESC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(get_messages_from_notification_id_stmt_,
+                      db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND "
+                                        "notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(
+        get_messages_fts_stmt_,
+        db_.get_statement(
+            "SELECT dialog_id, data, search_id FROM messages WHERE search_id IN (SELECT rowid FROM messages_fts WHERE "
+            "messages_fts MATCH ?1 AND rowid < ?2 ORDER BY rowid DESC LIMIT ?3) ORDER BY search_id DESC"));
 
     for (int32 i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
-      TRY_RESULT(get_messages_from_index_desc_stmt,
-                 db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                               "AND message_id < ?2 AND (index_mask & "
-                                            << (1 << i) << ") != 0 ORDER BY message_id DESC LIMIT ?3"));
-      get_messages_from_index_stmts_[i].desc_stmt_ = std::move(get_messages_from_index_desc_stmt);
+      TRY_RESULT_ASSIGN(get_messages_from_index_stmts_[i].desc_stmt_,
+                        db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
+                                                      "AND message_id < ?2 AND (index_mask & "
+                                                   << (1 << i) << ") != 0 ORDER BY message_id DESC LIMIT ?3"));
 
-      TRY_RESULT(get_messages_from_index_asc_stmt,
-                 db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                               "AND message_id > ?2 AND (index_mask & "
-                                            << (1 << i) << ") != 0 ORDER BY message_id ASC LIMIT ?3"));
-      get_messages_from_index_stmts_[i].asc_stmt_ = std::move(get_messages_from_index_asc_stmt);
+      TRY_RESULT_ASSIGN(get_messages_from_index_stmts_[i].asc_stmt_,
+                        db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
+                                                      "AND message_id > ?2 AND (index_mask & "
+                                                   << (1 << i) << ") != 0 ORDER BY message_id ASC LIMIT ?3"));
 
-      // LOG(ERROR) << get_messages_from_index_stmts_[i].explain().ok();
+      // LOG(ERROR) << get_messages_from_index_stmts_[i].desc_stmt_.explain().ok();
+      // LOG(ERROR) << get_messages_from_index_stmts_[i].asc_stmt_.explain().ok();
     }
 
     for (int i = static_cast<int>(SearchMessagesFilter::Call) - 1, pos = 0;
          i < static_cast<int>(SearchMessagesFilter::MissedCall); i++, pos++) {
-      TRY_RESULT(get_messages_from_index_stmt,
-                 db_.get_statement(PSLICE() << "SELECT dialog_id, data FROM messages "
-                                               "WHERE unique_message_id < ?1 AND (index_mask & "
-                                            << (1 << i) << ") != 0 ORDER BY unique_message_id DESC LIMIT ?2"));
-      get_calls_stmts_[pos] = std::move(get_messages_from_index_stmt);
-      // LOG(ERROR) << get_messages_from_index_stmts_[i].explain().ok();
+      TRY_RESULT_ASSIGN(
+          get_calls_stmts_[pos],
+          db_.get_statement(
+              PSLICE() << "SELECT dialog_id, data FROM messages WHERE unique_message_id < ?1 AND (index_mask & "
+                       << (1 << i) << ") != 0 ORDER BY unique_message_id DESC LIMIT ?2"));
     }
-
-    add_message_stmt_ = std::move(add_message_stmt);
-    delete_message_stmt_ = std::move(delete_message_stmt);
-    delete_all_dialog_messages_stmt_ = std::move(delete_all_dialog_messages_stmt);
-    delete_dialog_messages_from_user_stmt_ = std::move(delete_dialog_messages_from_user_stmt);
-
-    get_message_stmt_ = std::move(get_message_stmt);
-    get_message_by_random_id_stmt_ = std::move(get_message_by_random_id_stmt);
-    get_message_by_unique_message_id_stmt_ = std::move(get_message_by_unique_message_id_stmt);
-
-    get_expiring_messages_stmt_ = std::move(get_expiring_messages_stmt);
-    get_expiring_messages_helper_stmt_ = std::move(get_expiring_messages_helper_stmt);
-
-    get_messages_stmt_.asc_stmt_ = std::move(get_messages_asc_stmt);
-    get_messages_stmt_.desc_stmt_ = std::move(get_messages_desc_stmt);
-    get_messages_from_notification_id_stmt_ = std::move(get_messages_from_notification_id_stmt);
-
-    get_messages_fts_stmt_ = std::move(get_messages_fts_stmt);
 
     // LOG(ERROR) << get_message_stmt_.explain().ok();
     // LOG(ERROR) << get_messages_from_notification_id_stmt.explain().ok();
@@ -255,8 +237,6 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     // LOG(ERROR) << get_expiring_messages_stmt_.explain().ok();
     // LOG(ERROR) << get_expiring_messages_helper_stmt_.explain().ok();
 
-    // LOG(ERROR) << get_messages_asc_stmt_.explain().ok();
-    // LOG(ERROR) << get_messages_desc_stmt_.explain().ok();
     // LOG(FATAL) << "EXPLAINED";
 
     return Status::OK();

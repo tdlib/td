@@ -102,38 +102,29 @@ class DialogDbImpl : public DialogDbSyncInterface {
   }
 
   Status init() {
-    TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3, ?4)"));
-    TRY_RESULT(add_notification_group_stmt,
-               db_.get_statement("INSERT OR REPLACE INTO notification_groups VALUES(?1, ?2, ?3)"));
-    TRY_RESULT(delete_notification_group_stmt,
-               db_.get_statement("DELETE FROM notification_groups WHERE notification_group_id = ?1"));
-    TRY_RESULT(get_dialog_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_id = ?1"));
-    TRY_RESULT(
-        get_dialogs_stmt,
+    TRY_RESULT_ASSIGN(add_dialog_stmt_, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3, ?4)"));
+    TRY_RESULT_ASSIGN(add_notification_group_stmt_,
+                      db_.get_statement("INSERT OR REPLACE INTO notification_groups VALUES(?1, ?2, ?3)"));
+    TRY_RESULT_ASSIGN(delete_notification_group_stmt_,
+                      db_.get_statement("DELETE FROM notification_groups WHERE notification_group_id = ?1"));
+    TRY_RESULT_ASSIGN(get_dialog_stmt_, db_.get_statement("SELECT data FROM dialogs WHERE dialog_id = ?1"));
+    TRY_RESULT_ASSIGN(
+        get_dialogs_stmt_,
         db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
                           "folder_id == ?1 AND (dialog_order < ?2 OR (dialog_order = ?2 AND dialog_id < ?3)) ORDER "
                           "BY dialog_order DESC, dialog_id DESC LIMIT ?4"));
-    TRY_RESULT(
-        get_notification_groups_by_last_notification_date_stmt,
+    TRY_RESULT_ASSIGN(
+        get_notification_groups_by_last_notification_date_stmt_,
         db_.get_statement("SELECT notification_group_id, dialog_id, last_notification_date FROM notification_groups "
                           "WHERE last_notification_date < ?1 OR (last_notification_date = ?1 "
                           "AND (dialog_id < ?2 OR (dialog_id = ?2 AND notification_group_id < ?3))) ORDER BY "
                           "last_notification_date DESC, dialog_id DESC LIMIT ?4"));
     //                          "WHERE (last_notification_date, dialog_id, notification_group_id) < (?1, ?2, ?3) ORDER BY "
     //                          "last_notification_date DESC, dialog_id DESC, notification_group_id DESC LIMIT ?4"));
-    TRY_RESULT(
-        get_notification_group_stmt,
+    TRY_RESULT_ASSIGN(
+        get_notification_group_stmt_,
         db_.get_statement(
             "SELECT dialog_id, last_notification_date FROM notification_groups WHERE notification_group_id = ?1"));
-
-    add_dialog_stmt_ = std::move(add_dialog_stmt);
-    add_notification_group_stmt_ = std::move(add_notification_group_stmt);
-    delete_notification_group_stmt_ = std::move(delete_notification_group_stmt);
-    get_dialog_stmt_ = std::move(get_dialog_stmt);
-    get_dialogs_stmt_ = std::move(get_dialogs_stmt);
-    get_notification_groups_by_last_notification_date_stmt_ =
-        std::move(get_notification_groups_by_last_notification_date_stmt);
-    get_notification_group_stmt_ = std::move(get_notification_group_stmt);
 
     // LOG(ERROR) << get_dialog_stmt_.explain().ok();
     // LOG(ERROR) << get_dialogs_stmt_.explain().ok();
