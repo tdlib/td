@@ -21753,6 +21753,10 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
     return promise.set_error(can_send_status.move_as_error());
   }
 
+  if (is_broadcast_channel(dialog_id)) {
+    return promise.set_value(Unit());
+  }
+
   if (dialog_id.get_type() == DialogType::SecretChat) {
     tl_object_ptr<secret_api::SendMessageAction> send_action;
     switch (action->get_id()) {
