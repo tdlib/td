@@ -9476,7 +9476,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 
       new_file_id = td_->file_manager_->register_remote(
           FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_), ""),
-          FileLocationSource::FromServer, owner_dialog_id, 0, 0, "");
+          FileLocationSource::FromServer, owner_dialog_id, 0, file->size_, to_string(static_cast<uint64>(file->id_)));
     }
   }
 
