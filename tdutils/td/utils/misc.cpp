@@ -98,21 +98,32 @@ Result<string> hex_decode(Slice hex) {
   return std::move(result);
 }
 
+string hex_encode(Slice data) {
+  const char *hex = "0123456789abcdef";
+  string res;
+  res.reserve(2 * data.size());
+  for (unsigned char c : data) {
+    res.push_back(hex[c >> 4]);
+    res.push_back(hex[c & 15]);
+  }
+  return res;
+}
+
 static bool is_url_char(char c) {
   return is_alnum(c) || c == '-' || c == '.' || c == '_' || c == '~';
 }
 
-string url_encode(Slice str) {
-  size_t length = 3 * str.size();
-  for (auto c : str) {
+string url_encode(Slice data) {
+  size_t length = 3 * data.size();
+  for (auto c : data) {
     length -= 2 * is_url_char(c);
   }
-  if (length == str.size()) {
-    return str.str();
+  if (length == data.size()) {
+    return data.str();
   }
   string result;
   result.reserve(length);
-  for (auto c : str) {
+  for (auto c : data) {
     if (is_url_char(c)) {
       result += c;
     } else {
@@ -124,6 +135,17 @@ string url_encode(Slice str) {
   }
   CHECK(result.size() == length);
   return result;
+}
+
+string buffer_to_hex(Slice buffer) {
+  const char *hex = "0123456789ABCDEF";
+  string res(2 * buffer.size(), '\0');
+  for (std::size_t i = 0; i < buffer.size(); i++) {
+    auto c = buffer.ubegin()[i];
+    res[2 * i] = hex[c & 15];
+    res[2 * i + 1] = hex[c >> 4];
+  }
+  return res;
 }
 
 namespace {
@@ -168,17 +190,6 @@ bool is_zero_or_one(unsigned char c) {
 }
 
 }  // namespace
-
-string buffer_to_hex(Slice buffer) {
-  const char *hex = "0123456789ABCDEF";
-  string res(2 * buffer.size(), '\0');
-  for (std::size_t i = 0; i < buffer.size(); i++) {
-    auto c = buffer.ubegin()[i];
-    res[2 * i] = hex[c & 15];
-    res[2 * i + 1] = hex[c >> 4];
-  }
-  return res;
-}
 
 std::string zero_encode(Slice data) {
   return x_encode(data, is_zero);

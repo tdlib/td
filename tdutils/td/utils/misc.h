@@ -303,7 +303,9 @@ T clamp(T value, T min_value, T max_value) {
 
 Result<string> hex_decode(Slice hex);
 
-string url_encode(Slice str);
+string hex_encode(Slice data);
+
+string url_encode(Slice data);
 
 // run-time checked narrowing cast (type conversion):
 
