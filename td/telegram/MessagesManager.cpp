@@ -21750,7 +21750,10 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
 
   auto can_send_status = can_send_message(dialog_id);
   if (can_send_status.is_error()) {
-    return promise.set_error(can_send_status.move_as_error());
+    if (td_->auth_manager_->is_bot()) {
+      return promise.set_error(can_send_status.move_as_error());
+    }
+    return promise.set_value(Unit());
   }
 
   if (is_broadcast_channel(dialog_id)) {
