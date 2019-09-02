@@ -6299,11 +6299,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       user_online_timeout_.cancel_timeout(user_id.get());
     }
   }
+  if (u->is_default_permissions_changed) {
+    td_->messages_manager_->on_dialog_permissions_updated(DialogId(user_id));
+  }
 
   u->is_name_changed = false;
   u->is_username_changed = false;
   u->is_photo_changed = false;
   u->is_outbound_link_changed = false;
+  u->is_default_permissions_changed = false;
 
   if (u->is_deleted) {
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());

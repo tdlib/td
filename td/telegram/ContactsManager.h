@@ -519,6 +519,7 @@ class ContactsManager : public Actor {
     bool is_username_changed = true;
     bool is_photo_changed = true;
     bool is_outbound_link_changed = true;
+    bool is_default_permissions_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
     bool is_status_changed = true;
