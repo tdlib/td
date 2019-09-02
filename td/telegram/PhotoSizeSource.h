@@ -12,6 +12,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/Variant.h"
 
 namespace td {
@@ -130,5 +131,7 @@ struct PhotoSizeSource {
 
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
 bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSizeSource &source);
 
 }  // namespace td

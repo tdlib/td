@@ -135,4 +135,5 @@ class PrivacyManager : public NetQueryCallback {
 
   void hangup() override;
 };
+
 }  // namespace td

@@ -39,6 +39,7 @@
 #include "td/telegram/Payments.hpp"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
@@ -1560,9 +1561,19 @@ static Result<InputMessageContent> create_input_message_content(
         message_photo->photo.id = file_view.remote_location().get_id();
       }
       message_photo->photo.date = G()->unix_time();
+      int32 type = 'i';
+      if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+        auto photo_size_source = file_view.remote_location().get_source();
+        if (photo_size_source.get_type() == PhotoSizeSource::Type::Thumbnail) {
+          auto old_type = photo_size_source.thumbnail().thumbnail_type;
+          if (old_type != 't') {
+            type = old_type;
+          }
+        }
+      }
 
       PhotoSize s;
-      s.type = 'i';
+      s.type = type;
       s.dimensions = get_dimensions(input_photo->width_, input_photo->height_);
       s.size = static_cast<int32>(file_view.size());
       s.file_id = file_id;
@@ -4002,13 +4013,13 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
         result->caption = FormattedText();
       }
 
-      if (result->photo.photos.size() > 2 && !to_secret) {
+      CHECK(!result->photo.photos.empty());
+      if ((result->photo.photos.size() > 2 || result->photo.photos.back().type != 'i') && !to_secret) {
         // already sent photo
         return std::move(result);
       }
 
       // Find 'i' or largest
-      CHECK(!result->photo.photos.empty());
       PhotoSize photo;
       for (const auto &size : result->photo.photos) {
         if (size.type == 'i') {

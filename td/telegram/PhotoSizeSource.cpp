@@ -80,4 +80,24 @@ bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
   return !(lhs == rhs);
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSizeSource &source) {
+  switch (source.get_type()) {
+    case PhotoSizeSource::Type::Thumbnail:
+      return string_builder << "PhotoSizeSourceThumbnail[" << source.thumbnail().file_type
+                            << ", type = " << source.thumbnail().thumbnail_type << ']';
+    case PhotoSizeSource::Type::DialogPhotoSmall:
+      return string_builder << "PhotoSizeSourceChatPhotoSmall[" << source.dialog_photo().dialog_id << ']';
+    case PhotoSizeSource::Type::DialogPhotoBig:
+      return string_builder << "PhotoSizeSourceChatPhotoBig[" << source.dialog_photo().dialog_id << ']';
+    case PhotoSizeSource::Type::StickerSetThumbnail:
+      return string_builder << "PhotoSizeSourceStickerSetThumbnail[" << source.sticker_set_thumbnail().sticker_set_id
+                            << ']';
+    case PhotoSizeSource::Type::Legacy:
+      return string_builder << "PhotoSizeSourceLegacy[]";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 }  // namespace td
