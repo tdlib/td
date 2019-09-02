@@ -56,7 +56,7 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
     case Type::ChangePhone:
       return process_send_code_result(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
     case Type::VerifyPhone:
-      return process_send_code_result(query_id, send_code_helper_.send_confirm_phone_code(phone_number, settings));
+      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(phone_number, settings));
     case Type::ConfirmPhone:
     default:
       UNREACHABLE();
@@ -74,7 +74,8 @@ void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash,
 
   switch (type_) {
     case Type::ConfirmPhone:
-      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(hash, phone_number, settings));
+      return process_send_code_result(query_id,
+                                      send_code_helper_.send_confirm_phone_code(hash, phone_number, settings));
     case Type::ChangePhone:
     case Type::VerifyPhone:
     default:

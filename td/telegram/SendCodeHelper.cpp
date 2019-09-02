@@ -71,17 +71,17 @@ Result<telegram_api::account_sendChangePhoneCode> SendCodeHelper::send_change_ph
   return telegram_api::account_sendChangePhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(const string &hash,
-                                                                                         Slice phone_number,
+Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(Slice phone_number,
                                                                                          const Settings &settings) {
   phone_number_ = phone_number.str();
-  return telegram_api::account_sendVerifyPhoneCode(hash, get_input_code_settings(settings));
+  return telegram_api::account_sendVerifyPhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(Slice phone_number,
+Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(const string &hash,
+                                                                                           Slice phone_number,
                                                                                            const Settings &settings) {
   phone_number_ = phone_number.str();
-  return telegram_api::account_sendConfirmPhoneCode(phone_number_, get_input_code_settings(settings));
+  return telegram_api::account_sendConfirmPhoneCode(hash, get_input_code_settings(settings));
 }
 
 SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_info(
