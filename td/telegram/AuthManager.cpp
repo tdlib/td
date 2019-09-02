@@ -381,6 +381,10 @@ void AuthManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_q
 void AuthManager::on_send_code_result(NetQueryPtr &result) {
   auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(result->ok());
   if (r_sent_code.is_error()) {
+    if (r_sent_code.error().message() == CSlice("PHONE_NUMBER_BANNED")) {
+      LOG(PLAIN) << "Your phone number was banned for suspicious activity. If you think that this is a mistake, please "
+                    "write to recover@telegram.org your phone number and other details to recover the account.";
+    }
     return on_query_error(r_sent_code.move_as_error());
   }
   auto sent_code = r_sent_code.move_as_ok();

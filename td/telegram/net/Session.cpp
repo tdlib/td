@@ -660,16 +660,20 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
 
 void Session::on_message_result_error(uint64 id, int error_code, BufferSlice message) {
   // UNAUTHORIZED
-  // TODO: some errors shouldn't cause loss of authorizations. Especially when PFS will be used
   if (error_code == 401 && message.as_slice() != CSlice("SESSION_PASSWORD_NEEDED")) {
     if (auth_data_.use_pfs() && message.as_slice() == CSlice("AUTH_KEY_PERM_EMPTY")) {
-      LOG(ERROR) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
-                 << auth_data_.get_tmp_auth_key().id();
+      LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
+                << auth_data_.get_tmp_auth_key().id();
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      LOG(WARNING) << "Lost authorization due to " << tag("msg", message.as_slice());
+      if (message.as_slice() == CSlice("USER_DEACTIVATED_BAN")) {
+        LOG(PLAIN) << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
+                      "write to recover@telegram.org your phone number and other details to recover the account.";
+      } else {
+        LOG(WARNING) << "Lost authorization due to " << tag("msg", message.as_slice());
+      }
       auth_data_.set_auth_flag(false);
       shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
       on_session_failed(Status::OK());
