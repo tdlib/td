@@ -39,7 +39,7 @@ string ProxySecret::get_encoded_secret() const {
   if (emulate_tls()) {
     return base64url_encode(secret_);
   }
-  return buffer_to_hex(secret_);
+  return hex_encode(secret_);
 }
 
 }  // namespace mtproto
