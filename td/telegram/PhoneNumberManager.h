@@ -52,7 +52,7 @@ class PhoneNumberManager : public NetActor {
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
   template <class T>
-  void process_send_code_result(uint64 query_id, T r_send_code);
+  void process_send_code_result(uint64 query_id, const T &send_code);
 
   template <class T>
   void send_new_check_code_query(const T &query);

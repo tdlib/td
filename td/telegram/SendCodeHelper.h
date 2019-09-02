@@ -28,14 +28,12 @@ class SendCodeHelper {
   Result<telegram_api::auth_sendCode> send_code(Slice phone_number, const Settings &settings, int32 api_id,
                                                 const string &api_hash);
 
-  Result<telegram_api::account_sendChangePhoneCode> send_change_phone_code(Slice phone_number,
-                                                                           const Settings &settings);
+  telegram_api::account_sendChangePhoneCode send_change_phone_code(Slice phone_number, const Settings &settings);
 
-  Result<telegram_api::account_sendVerifyPhoneCode> send_verify_phone_code(Slice phone_number,
-                                                                           const Settings &settings);
+  telegram_api::account_sendVerifyPhoneCode send_verify_phone_code(Slice phone_number, const Settings &settings);
 
-  Result<telegram_api::account_sendConfirmPhoneCode> send_confirm_phone_code(const string &hash, Slice phone_number,
-                                                                             const Settings &settings);
+  telegram_api::account_sendConfirmPhoneCode send_confirm_phone_code(const string &hash, Slice phone_number,
+                                                                     const Settings &settings);
 
   Slice phone_number() const {
     return phone_number_;

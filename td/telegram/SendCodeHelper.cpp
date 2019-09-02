@@ -65,21 +65,21 @@ Result<telegram_api::auth_sendCode> SendCodeHelper::send_code(Slice phone_number
   return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendChangePhoneCode> SendCodeHelper::send_change_phone_code(Slice phone_number,
-                                                                                         const Settings &settings) {
+telegram_api::account_sendChangePhoneCode SendCodeHelper::send_change_phone_code(Slice phone_number,
+                                                                                 const Settings &settings) {
   phone_number_ = phone_number.str();
   return telegram_api::account_sendChangePhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(Slice phone_number,
-                                                                                         const Settings &settings) {
+telegram_api::account_sendVerifyPhoneCode SendCodeHelper::send_verify_phone_code(Slice phone_number,
+                                                                                 const Settings &settings) {
   phone_number_ = phone_number.str();
   return telegram_api::account_sendVerifyPhoneCode(phone_number_, get_input_code_settings(settings));
 }
 
-Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(const string &hash,
-                                                                                           Slice phone_number,
-                                                                                           const Settings &settings) {
+telegram_api::account_sendConfirmPhoneCode SendCodeHelper::send_confirm_phone_code(const string &hash,
+                                                                                   Slice phone_number,
+                                                                                   const Settings &settings) {
   phone_number_ = phone_number.str();
   return telegram_api::account_sendConfirmPhoneCode(hash, get_input_code_settings(settings));
 }

@@ -37,14 +37,9 @@ PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShare
 }
 
 template <class T>
-void PhoneNumberManager::process_send_code_result(uint64 query_id, T r_send_code) {
-  if (r_send_code.is_error()) {
-    return on_query_error(query_id, r_send_code.move_as_error());
-  }
-
+void PhoneNumberManager::process_send_code_result(uint64 query_id, const T &send_code) {
   on_new_query(query_id);
-
-  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(r_send_code.move_as_ok())));
+  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(send_code)));
 }
 
 void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, Settings settings) {
