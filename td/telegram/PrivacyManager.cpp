@@ -48,6 +48,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyProfilePhoto::ID:
       type_ = Type::UserProfilePhoto;
       break;
+    case telegram_api::privacyKeyPhoneNumber::ID:
+      type_ = Type::UserPhoneNumber;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;
@@ -68,6 +71,8 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
       return make_tl_object<td_api::userPrivacySettingShowLinkInForwardedMessages>();
     case Type::UserProfilePhoto:
       return make_tl_object<td_api::userPrivacySettingShowProfilePhoto>();
+    case Type::UserPhoneNumber:
+      return make_tl_object<td_api::userPrivacySettingShowPhoneNumber>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -87,6 +92,8 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
       return make_tl_object<telegram_api::inputPrivacyKeyForwards>();
     case Type::UserProfilePhoto:
       return make_tl_object<telegram_api::inputPrivacyKeyProfilePhoto>();
+    case Type::UserPhoneNumber:
+      return make_tl_object<telegram_api::inputPrivacyKeyPhoneNumber>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -112,6 +119,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingShowProfilePhoto::ID:
       type_ = Type::UserProfilePhoto;
+      break;
+    case td_api::userPrivacySettingShowPhoneNumber::ID:
+      type_ = Type::UserPhoneNumber;
       break;
     default:
       UNREACHABLE();
@@ -244,6 +254,7 @@ vector<int32> PrivacyManager::UserPrivacySettingRule::user_ids_as_td_api() const
 Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_telegram_api(
     tl_object_ptr<telegram_api::account_privacyRules> rules) {
   G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
+  G()->td().get_actor_unsafe()->contacts_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
   return from_telegram_api(std::move(rules->rules_));
 }
 

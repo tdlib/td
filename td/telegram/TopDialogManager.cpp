@@ -50,6 +50,10 @@ static CSlice top_dialog_category_name(TopDialogCategory category) {
       return CSlice("channel");
     case TopDialogCategory::Call:
       return CSlice("call");
+    case TopDialogCategory::ForwardUsers:
+      return CSlice("forward_users");
+    case TopDialogCategory::ForwardChats:
+      return CSlice("forward_chats");
     default:
       UNREACHABLE();
   }
@@ -69,6 +73,10 @@ static TopDialogCategory top_dialog_category_from_telegram_api(const telegram_ap
       return TopDialogCategory::Channel;
     case telegram_api::topPeerCategoryPhoneCalls::ID:
       return TopDialogCategory::Call;
+    case telegram_api::topPeerCategoryForwardUsers::ID:
+      return TopDialogCategory::ForwardUsers;
+    case telegram_api::topPeerCategoryForwardChats::ID:
+      return TopDialogCategory::ForwardChats;
     default:
       UNREACHABLE();
   }
@@ -88,6 +96,10 @@ static tl_object_ptr<telegram_api::TopPeerCategory> top_dialog_category_as_teleg
       return make_tl_object<telegram_api::topPeerCategoryChannels>();
     case TopDialogCategory::Call:
       return make_tl_object<telegram_api::topPeerCategoryPhoneCalls>();
+    case TopDialogCategory::ForwardUsers:
+      return make_tl_object<telegram_api::topPeerCategoryForwardUsers>();
+    case TopDialogCategory::ForwardChats:
+      return make_tl_object<telegram_api::topPeerCategoryForwardChats>();
     default:
       UNREACHABLE();
   }
@@ -173,6 +185,11 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
                                      tl_object_ptr<telegram_api::InputPeer> input_peer) {
   if (!is_active_ || !is_enabled_) {
     return;
+  }
+  CHECK(dialog_id.is_valid());
+
+  if (category == TopDialogCategory::ForwardUsers && dialog_id.get_type() != DialogType::User) {
+    category = TopDialogCategory::ForwardChats;
   }
 
   auto pos = static_cast<size_t>(category);
@@ -276,13 +293,28 @@ void TopDialogManager::normalize_rating() {
 }
 
 void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
-  auto pos = static_cast<size_t>(query.category);
-  CHECK(pos < by_category_.size());
-  auto &top_dialogs = by_category_[pos];
+  vector<DialogId> dialog_ids;
+  if (query.category != TopDialogCategory::ForwardUsers) {
+    auto pos = static_cast<size_t>(query.category);
+    CHECK(pos < by_category_.size());
+    dialog_ids = transform(by_category_[pos].dialogs, [](const auto &x) { return x.dialog_id; });
+  } else {
+    // merge ForwardUsers and ForwardChats
+    auto &users = by_category_[static_cast<size_t>(TopDialogCategory::ForwardUsers)];
+    auto &chats = by_category_[static_cast<size_t>(TopDialogCategory::ForwardChats)];
+    size_t users_pos = 0;
+    size_t chats_pos = 0;
+    while (users_pos < users.dialogs.size() || chats_pos < chats.dialogs.size()) {
+      if (chats_pos == chats.dialogs.size() ||
+          (users_pos < users.dialogs.size() && users.dialogs[users_pos] < chats.dialogs[chats_pos])) {
+        dialog_ids.push_back(users.dialogs[users_pos++].dialog_id);
+      } else {
+        dialog_ids.push_back(chats.dialogs[chats_pos++].dialog_id);
+      }
+    }
+  }
 
-  auto limit = std::min({query.limit, MAX_TOP_DIALOGS_LIMIT, top_dialogs.dialogs.size()});
-
-  vector<DialogId> dialog_ids = transform(top_dialogs.dialogs, [](const auto &x) { return x.dialog_id; });
+  auto limit = std::min({query.limit, MAX_TOP_DIALOGS_LIMIT, dialog_ids.size()});
 
   auto promise = PromiseCreator::lambda([query = std::move(query), dialog_ids, limit](Result<Unit>) mutable {
     vector<DialogId> result;
@@ -351,11 +383,21 @@ void TopDialogManager::do_get_top_peers() {
 
   int32 flags = contacts_getTopPeers::CORRESPONDENTS_MASK | contacts_getTopPeers::BOTS_PM_MASK |
                 contacts_getTopPeers::BOTS_INLINE_MASK | contacts_getTopPeers::GROUPS_MASK |
-                contacts_getTopPeers::CHANNELS_MASK | contacts_getTopPeers::PHONE_CALLS_MASK;
+                contacts_getTopPeers::CHANNELS_MASK | contacts_getTopPeers::PHONE_CALLS_MASK |
+                contacts_getTopPeers::FORWARD_USERS_MASK | contacts_getTopPeers::FORWARD_CHATS_MASK;
 
-  contacts_getTopPeers query{
-      flags,           true /*correspondents*/, true /*bot_pm*/, true /*bot_inline */, true /*phone_calls*/,
-      true /*groups*/, true /*channels*/,       0 /*offset*/,    100 /*limit*/,        hash};
+  contacts_getTopPeers query{flags,
+                             true /*correspondents*/,
+                             true /*bot_pm*/,
+                             true /*bot_inline */,
+                             true /*phone_calls*/,
+                             true /*groups*/,
+                             true /*channels*/,
+                             true /*forward_users*/,
+                             true /*forward_chats*/,
+                             0 /*offset*/,
+                             100 /*limit*/,
+                             hash};
   auto net_query = G()->net_query_creator().create(create_storer(query));
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }

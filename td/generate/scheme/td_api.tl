@@ -2260,6 +2260,9 @@ userPrivacySettingShowProfilePhoto = UserPrivacySetting;
 //@description A privacy setting for managing whether a link to the user's account is included in forwarded messages
 userPrivacySettingShowLinkInForwardedMessages = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user's phone number is visible
+userPrivacySettingShowPhoneNumber = UserPrivacySetting;
+
 //@description A privacy setting for managing whether the user can be invited to chats
 userPrivacySettingAllowChatInvites = UserPrivacySetting;
 
@@ -2499,6 +2502,9 @@ topChatCategoryInlineBots = TopChatCategory;
 
 //@description A category containing frequently used chats used for calls
 topChatCategoryCalls = TopChatCategory;
+
+//@description A category containing frequently used chats used to forward messages
+topChatCategoryForwardChats = TopChatCategory;
 
 
 //@class TMeUrlType @description Describes the type of a URL linking to an internal Telegram entity

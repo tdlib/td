@@ -5448,7 +5448,8 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
     }
   });
   send_closure(top_dialog_manager_, &TopDialogManager::get_top_dialogs,
-               top_dialog_category_from_td_api(*request.category_), request.limit_, std::move(query_promise));
+               top_dialog_category_from_td_api(*request.category_), narrow_cast<size_t>(request.limit_),
+               std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
@@ -5457,10 +5458,14 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
     return send_error_raw(id, 400, "Top chat category should not be empty");
   }
 
+  DialogId dialog_id(request.chat_id_);
+  if (!dialog_id.is_valid()) {
+    return send_error_raw(id, 400, "Invalid chat identifier");
+  }
   send_closure(top_dialog_manager_, &TopDialogManager::remove_dialog,
-               top_dialog_category_from_td_api(*request.category_), DialogId(request.chat_id_),
-               messages_manager_->get_input_peer(DialogId(request.chat_id_), AccessRights::Read));
-  send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+               top_dialog_category_from_td_api(*request.category_), dialog_id,
+               messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, const td_api::getChats &request) {

@@ -45,6 +45,7 @@ class PrivacyManager : public NetQueryCallback {
       PeerToPeerCall,
       LinkInForwardedMessages,
       UserProfilePhoto,
+      UserPhoneNumber,
       Size
     };
 

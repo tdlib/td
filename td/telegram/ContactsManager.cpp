@@ -7314,8 +7314,6 @@ ContactsManager::LinkState ContactsManager::get_link_state(tl_object_ptr<telegra
       return LinkState::Unknown;
     case telegram_api::contactLinkNone::ID:
       return LinkState::None;
-    case telegram_api::contactLinkHasPhone::ID:
-      return LinkState::KnowsPhoneNumber;
     case telegram_api::contactLinkContact::ID:
       return LinkState::Contact;
     default:

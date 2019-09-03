@@ -24305,6 +24305,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
                    DialogId(m->via_bot_user_id), m->date);
     }
+    if (m->forward_info != nullptr && d->last_outgoing_forwarded_message_date < m->date) {
+      TopDialogCategory category =
+          dialog_id.get_type() == DialogType::User ? TopDialogCategory::ForwardUsers : TopDialogCategory::ForwardChats;
+      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
+      d->last_outgoing_forwarded_message_date = m->date;
+    }
 
     TopDialogCategory category = TopDialogCategory::Size;
     switch (dialog_id.get_type()) {
