@@ -2182,8 +2182,8 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       const Sticker *rhs_s = get_sticker(rhs);
       return lhs_s->is_animated && !rhs_s->is_animated;
     };
-    std::stable_sort(prepend_sticker_ids.begin(), prepend_sticker_ids.begin() + recent_sticker_ids_[0].size(),
-                     prefer_animated);
+    // std::stable_sort(prepend_sticker_ids.begin(), prepend_sticker_ids.begin() + recent_sticker_ids_[0].size(),
+    //                  prefer_animated);
     std::stable_sort(prepend_sticker_ids.begin() + recent_sticker_ids_[0].size(), prepend_sticker_ids.end(),
                      prefer_animated);
 
