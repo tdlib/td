@@ -944,6 +944,9 @@ class CliClient final : public Actor {
     if (setting == "photo") {
       return td_api::make_object<td_api::userPrivacySettingShowProfilePhoto>();
     }
+    if (setting == "phone_number") {
+      return td_api::make_object<td_api::userPrivacySettingShowPhoneNumber>();
+    }
     return nullptr;
   }
 
@@ -1044,6 +1047,8 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::topChatCategoryInlineBots>();
     } else if (category == "call") {
       return td_api::make_object<td_api::topChatCategoryCalls>();
+    } else if (category == "forward") {
+      return td_api::make_object<td_api::topChatCategoryForwardChats>();
     } else {
       return td_api::make_object<td_api::topChatCategoryUsers>();
     }
@@ -1557,11 +1562,17 @@ class CliClient final : public Actor {
     } else if (op == "spr") {
       string setting;
       string allow;
-      std::tie(setting, allow) = split(args);
+      string ids;
+      std::tie(setting, args) = split(args);
+      std::tie(allow, ids) = split(args);
 
       std::vector<tl_object_ptr<td_api::UserPrivacySettingRule>> rules;
       if (allow == "c" || allow == "contacts") {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
+      } else if (allow == "users") {
+        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(as_user_ids(ids)));
+      } else if (allow == "chats") {
+        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(as_chat_ids(ids)));
       } else if (as_bool(allow)) {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
       } else {

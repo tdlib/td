@@ -2234,8 +2234,11 @@ userPrivacySettingRuleAllowAll = UserPrivacySettingRule;
 //@description A rule to allow all of a user's contacts to do something
 userPrivacySettingRuleAllowContacts = UserPrivacySettingRule;
 
-//@description A rule to allow certain specified users to do something @user_ids The user identifiers
+//@description A rule to allow certain specified users to do something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleAllowUsers user_ids:vector<int32> = UserPrivacySettingRule;
+
+//@description A rule to allow all members of certain specified basic groups and supergroups to doing something @chat_ids The chat identifiers, total number of chats in all rules must not exceed 20
+userPrivacySettingRuleAllowChatMembers chat_ids:vector<int53> = UserPrivacySettingRule;
 
 //@description A rule to restrict all users from doing something
 userPrivacySettingRuleRestrictAll = UserPrivacySettingRule;
@@ -2243,8 +2246,11 @@ userPrivacySettingRuleRestrictAll = UserPrivacySettingRule;
 //@description A rule to restrict all contacts of a user from doing something
 userPrivacySettingRuleRestrictContacts = UserPrivacySettingRule;
 
-//@description A rule to restrict all specified users from doing something @user_ids The user identifiers
+//@description A rule to restrict all specified users from doing something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleRestrictUsers user_ids:vector<int32> = UserPrivacySettingRule;
+
+//@description A rule to restrict all members of specified basic groups and supergroups from doing something @chat_ids The chat identifiers, total number of chats in all rules must not exceed 20
+userPrivacySettingRuleRestrictChatMembers chat_ids:vector<int53> = UserPrivacySettingRule;
 
 //@description A list of privacy rules. Rules are matched in the specified order. The first matched rule defines the privacy setting for a given user. If no rule matches, the action is not allowed @rules A list of rules
 userPrivacySettingRules rules:vector<UserPrivacySettingRule> = UserPrivacySettingRules;
