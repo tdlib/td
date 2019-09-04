@@ -9485,15 +9485,32 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
                                              Promise<> promise) {
-  LOG(INFO) << "Delete messages with random_ids " << random_ids << " in " << secret_chat_id;
-  promise.set_value(Unit());  // TODO: set after event is saved
+  LOG(DEBUG) << "On delete messages in " << secret_chat_id << " with random_ids " << random_ids;
+  CHECK(secret_chat_id.is_valid());
+
   DialogId dialog_id(secret_chat_id);
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
+  if (!have_dialog_force(dialog_id)) {
     LOG(ERROR) << "Ignore delete secret messages in unknown " << dialog_id;
+    promise.set_value(Unit());
     return;
   }
 
+  auto pending_secret_message = make_unique<PendingSecretMessage>();
+  pending_secret_message->success_promise = std::move(promise);
+  pending_secret_message->type = PendingSecretMessage::Type::DeleteMessages;
+  pending_secret_message->dialog_id = dialog_id;
+  pending_secret_message->random_ids = std::move(random_ids);
+
+  add_secret_message(std::move(pending_secret_message));
+}
+
+void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids,
+                                                    Promise<> promise) {
+  LOG(INFO) << "Delete messages with random_ids " << random_ids << " in " << dialog_id;
+  promise.set_value(Unit());  // TODO: set after event is saved
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
   vector<MessageId> to_delete_message_ids;
   for (auto &random_id : random_ids) {
     auto message_id = get_message_id_by_random_id(d, random_id, "delete_secret_messages");
@@ -9514,13 +9531,31 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, MessageId last_message_id,
                                                  Promise<> promise) {
-  promise.set_value(Unit());  // TODO: set after event is saved
-  auto dialog_id = DialogId(secret_chat_id);
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    LOG(ERROR) << "Ignore delete secret chat history in unknown " << dialog_id;
+  LOG(DEBUG) << "On delete history in " << secret_chat_id << " up to " << last_message_id;
+  CHECK(secret_chat_id.is_valid());
+
+  DialogId dialog_id(secret_chat_id);
+  if (!have_dialog_force(dialog_id)) {
+    LOG(ERROR) << "Ignore delete history in unknown " << dialog_id;
+    promise.set_value(Unit());
     return;
   }
+
+  auto pending_secret_message = make_unique<PendingSecretMessage>();
+  pending_secret_message->success_promise = std::move(promise);
+  pending_secret_message->type = PendingSecretMessage::Type::DeleteHistory;
+  pending_secret_message->dialog_id = dialog_id;
+  pending_secret_message->last_message_id = last_message_id;
+
+  add_secret_message(std::move(pending_secret_message));
+}
+
+void MessagesManager::finish_delete_secret_chat_history(DialogId dialog_id, MessageId last_message_id,
+                                                        Promise<> promise) {
+  LOG(DEBUG) << "Delete history in " << dialog_id << " up to " << last_message_id;
+  promise.set_value(Unit());  // TODO: set after event is saved
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
 
   // TODO: probably last_message_id is not needed
   delete_all_dialog_messages(d, false, true);
@@ -9773,6 +9808,16 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
 void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message) {
   if (G()->close_flag()) {
     return;
+  }
+
+  if (pending_secret_message->type == PendingSecretMessage::Type::DeleteMessages) {
+    return finish_delete_secret_messages(pending_secret_message->dialog_id,
+                                         std::move(pending_secret_message->random_ids),
+                                         std::move(pending_secret_message->success_promise));
+  }
+  if (pending_secret_message->type == PendingSecretMessage::Type::DeleteHistory) {
+    return finish_delete_secret_chat_history(pending_secret_message->dialog_id, pending_secret_message->last_message_id,
+                                             std::move(pending_secret_message->success_promise));
   }
 
   auto d = get_dialog(pending_secret_message->message_info.dialog_id);

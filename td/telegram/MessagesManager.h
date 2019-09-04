@@ -1244,8 +1244,18 @@ class MessagesManager : public Actor {
   };
 
   struct PendingSecretMessage {
+    enum class Type { NewMessage, DeleteMessages, DeleteHistory };
+    Type type = Type::NewMessage;
+
+    // for NewMessage
     MessageInfo message_info;
     MultiPromiseActor load_data_multipromise{"LoadPendingSecretMessageDataMultiPromiseActor"};
+
+    // for DeleteMessages/DeleteHistory
+    DialogId dialog_id;
+    vector<int64> random_ids;
+    MessageId last_message_id;
+
     Promise<> success_promise;
   };
 
@@ -1336,6 +1346,10 @@ class MessagesManager : public Actor {
   void add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message, Promise<Unit> lock_promise = Auto());
 
   void finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message);
+
+  void finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids, Promise<> promise);
+
+  void finish_delete_secret_chat_history(DialogId dialog_id, MessageId last_message_id, Promise<> promise);
 
   void fix_message_info_dialog_id(MessageInfo &message_info) const;
 
