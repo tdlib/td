@@ -9485,6 +9485,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
                                              Promise<> promise) {
+  LOG(INFO) << "Delete messages with random_ids " << random_ids << " in " << secret_chat_id;
   promise.set_value(Unit());  // TODO: set after event is saved
   DialogId dialog_id(secret_chat_id);
   Dialog *d = get_dialog_force(dialog_id);
@@ -9497,12 +9498,15 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
   for (auto &random_id : random_ids) {
     auto message_id = get_message_id_by_random_id(d, random_id, "delete_secret_messages");
     if (!message_id.is_valid()) {
+      LOG(INFO) << "Can't find message with random_id " << random_id;
       continue;
     }
     const Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
     if (!is_service_message_content(m->content->get_type())) {
       to_delete_message_ids.push_back(message_id);
+    } else {
+      LOG(INFO) << "Skip deletion of service " << message_id;
     }
   }
   delete_dialog_messages_from_updates(dialog_id, to_delete_message_ids);

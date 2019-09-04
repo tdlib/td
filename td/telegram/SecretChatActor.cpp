@@ -1322,14 +1322,14 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
       case secret_api::decryptedMessageActionDeleteMessages::ID:
         // Corresponding logevent won't be deleted before promise returned by add_changes is set.
         context_->on_delete_messages(
-            std::move(static_cast<secret_api::decryptedMessageActionDeleteMessages &>(*action).random_ids_),
+            static_cast<const secret_api::decryptedMessageActionDeleteMessages &>(*action).random_ids_,
             std::move(save_message_finish));
         break;
       case secret_api::decryptedMessageActionFlushHistory::ID:
         context_->on_flush_history(MessageId(ServerMessageId(message->message_id)), std::move(save_message_finish));
         break;
       case secret_api::decryptedMessageActionReadMessages::ID: {
-        auto &random_ids = static_cast<secret_api::decryptedMessageActionReadMessages &>(*action).random_ids_;
+        const auto &random_ids = static_cast<const secret_api::decryptedMessageActionReadMessages &>(*action).random_ids_;
         if (random_ids.size() == 1) {
           context_->on_read_message(random_ids[0], std::move(save_message_finish));
         } else {  // probably never happens
@@ -1349,7 +1349,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
         break;
       case secret_api::decryptedMessageActionSetMessageTTL::ID:
         context_->on_set_ttl(get_user_id(), MessageId(ServerMessageId(message->message_id)), message->date,
-                             static_cast<secret_api::decryptedMessageActionSetMessageTTL &>(*action).ttl_seconds_,
+                             static_cast<const secret_api::decryptedMessageActionSetMessageTTL &>(*action).ttl_seconds_,
                              decrypted_message_service->random_id_, std::move(save_message_finish));
         break;
       default:
