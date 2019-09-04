@@ -1082,7 +1082,7 @@ void SecretChatActor::do_outbound_message_impl(unique_ptr<logevent::OutboundSecr
       send_closure(actor_id, &SecretChatActor::on_outbound_send_message_start, state_id);
     } else {
       send_closure(actor_id, &SecretChatActor::on_promise_error, result.move_as_error(),
-                   "on_oubound_send_message_start");
+                   "on_outbound_send_message_start");
     }
   });
 
@@ -1329,7 +1329,8 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
         context_->on_flush_history(MessageId(ServerMessageId(message->message_id)), std::move(save_message_finish));
         break;
       case secret_api::decryptedMessageActionReadMessages::ID: {
-        const auto &random_ids = static_cast<const secret_api::decryptedMessageActionReadMessages &>(*action).random_ids_;
+        const auto &random_ids =
+            static_cast<const secret_api::decryptedMessageActionReadMessages &>(*action).random_ids_;
         if (random_ids.size() == 1) {
           context_->on_read_message(random_ids[0], std::move(save_message_finish));
         } else {  // probably never happens
@@ -1525,7 +1526,7 @@ void SecretChatActor::outbound_resend(uint64 state_id) {
   state->message->is_sent = false;
   state->net_query_id = 0;
   state->net_query_ref = NetQueryRef();
-  LOG(INFO) << "Oubound message [resend] " << tag("logevent_id", state->message->logevent_id())
+  LOG(INFO) << "Outbound message [resend] " << tag("logevent_id", state->message->logevent_id())
             << tag("state_id", state_id);
 
   binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,

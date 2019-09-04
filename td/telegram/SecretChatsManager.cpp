@@ -357,7 +357,7 @@ void SecretChatsManager::replay_create_chat(unique_ptr<logevent::CreateSecretCha
 }
 
 void SecretChatsManager::replay_outbound_message(unique_ptr<logevent::OutboundSecretMessage> message) {
-  LOG(INFO) << "Replay oubound secret message in chat " << message->chat_id;
+  LOG(INFO) << "Replay outbound secret message in chat " << message->chat_id;
 
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_outbound_message, std::move(message));
