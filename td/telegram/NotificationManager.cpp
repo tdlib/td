@@ -2740,6 +2740,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_DOC") {
         return "MESSAGE_DOCUMENT";
       }
+      if (loc_key == "ENCRYPTED_MESSAGE") {
+        return "MESSAGE";
+      }
       break;
     case 'E':
       if (loc_key == "PINNED_GEO") {
