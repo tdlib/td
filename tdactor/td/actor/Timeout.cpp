@@ -16,7 +16,7 @@ bool MultiTimeout::has_timeout(int64 key) const {
 }
 
 void MultiTimeout::set_timeout_at(int64 key, double timeout) {
-  LOG(DEBUG) << "Set timeout for " << key << " in " << timeout - Time::now();
+  LOG(DEBUG) << "Set " << get_name() << " for " << key << " in " << timeout - Time::now();
   auto item = items_.emplace(key);
   auto heap_node = static_cast<HeapNode *>(const_cast<Item *>(&*item.first));
   if (heap_node->in_heap()) {
@@ -36,7 +36,7 @@ void MultiTimeout::set_timeout_at(int64 key, double timeout) {
 }
 
 void MultiTimeout::add_timeout_at(int64 key, double timeout) {
-  LOG(DEBUG) << "Add timeout for " << key << " in " << timeout - Time::now();
+  LOG(DEBUG) << "Add " << get_name() << " for " << key << " in " << timeout - Time::now();
   auto item = items_.emplace(key);
   auto heap_node = static_cast<HeapNode *>(const_cast<Item *>(&*item.first));
   if (heap_node->in_heap()) {
@@ -51,7 +51,7 @@ void MultiTimeout::add_timeout_at(int64 key, double timeout) {
 }
 
 void MultiTimeout::cancel_timeout(int64 key) {
-  LOG(DEBUG) << "Cancel timeout for " << key;
+  LOG(DEBUG) << "Cancel " << get_name() << " for " << key;
   auto item = items_.find(Item(key));
   if (item != items_.end()) {
     auto heap_node = static_cast<HeapNode *>(const_cast<Item *>(&*item));
@@ -68,12 +68,12 @@ void MultiTimeout::cancel_timeout(int64 key) {
 
 void MultiTimeout::update_timeout() {
   if (items_.empty()) {
-    LOG(DEBUG) << "Cancel timeout";
+    LOG(DEBUG) << "Cancel timeout of " << get_name();
     CHECK(timeout_queue_.empty());
     CHECK(Actor::has_timeout());
     Actor::cancel_timeout();
   } else {
-    LOG(DEBUG) << "Set timeout in " << timeout_queue_.top_key() - Time::now_cached();
+    LOG(DEBUG) << "Set timeout of " << get_name() << " in " << timeout_queue_.top_key() - Time::now_cached();
     Actor::set_timeout_at(timeout_queue_.top_key());
   }
 }
