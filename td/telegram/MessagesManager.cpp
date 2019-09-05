@@ -4329,10 +4329,13 @@ void MessagesManager::on_pending_read_history_timeout_callback(void *messages_ma
 }
 
 void MessagesManager::on_pending_updated_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  // no check for G()->close_flag() to save dialogs even while closing
+
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   // TODO it is unsafe to save dialog to database before binlog is flushed
-  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::save_dialog_to_database,
-                     DialogId(dialog_id_int));
+
+  // no send_closure_later, because messages_manager can be not an actor while closing
+  messages_manager->save_dialog_to_database(DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_unload_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -4405,10 +4408,6 @@ BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
 }
 
 void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
-  if (G()->close_flag()) {
-    return;
-  }
-
   CHECK(G()->parameters().use_message_db);
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
