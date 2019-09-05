@@ -486,7 +486,7 @@ class XContext : public ActorContext {
 class WithXContext : public Actor {
  public:
   void start_up() override {
-    set_context(std::make_shared<XContext>());
+    auto old_context = set_context(std::make_shared<XContext>());
   }
   void f(unique_ptr<Guard> guard) {
   }

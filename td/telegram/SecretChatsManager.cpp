@@ -506,6 +506,7 @@ ActorId<SecretChatActor> SecretChatsManager::create_chat_actor_impl(int32 id, bo
     return it_flag.first->second.get();
   }
 }
+
 void SecretChatsManager::on_qts_ack(PtsManager::PtsId qts_ack_token) {
   auto old_qts = qts_manager_.db_pts();
   auto new_qts = qts_manager_.finish(qts_ack_token);

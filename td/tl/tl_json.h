@@ -88,7 +88,7 @@ inline Status from_json(int32 &to, JsonValue &from) {
 
 inline Status from_json(bool &to, JsonValue &from) {
   if (from.type() != JsonValue::Type::Boolean) {
-    int32 x;
+    int32 x = 0;
     auto status = from_json(x, from);
     if (status.is_ok()) {
       to = x != 0;

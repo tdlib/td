@@ -156,7 +156,8 @@ class TlParser {
       data += sizeof(int32);
     } else {
       check_len(sizeof(int32));
-      auto result_len_uint64 = data[1] + (data[2] << 8) + (data[3] << 16) + (data[4] << 24) +
+      auto result_len_uint64 = static_cast<uint64>(data[1]) + (static_cast<uint64>(data[2]) << 8) +
+                               (static_cast<uint64>(data[3]) << 16) + (static_cast<uint64>(data[4]) << 24) +
                                (static_cast<uint64>(data[5]) << 32) + (static_cast<uint64>(data[6]) << 40) +
                                (static_cast<uint64>(data[7]) << 48);
       if (result_len_uint64 > std::numeric_limits<size_t>::max() - 3) {

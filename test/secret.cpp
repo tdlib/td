@@ -757,7 +757,7 @@ class Master : public Actor {
     return get_by_id(3 - get_link_token());
   }
   void start_up() override {
-    set_context(std::make_shared<Global>());
+    auto old_context = set_context(std::make_shared<Global>());
     alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
     send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::create_chat, 2, 0, 123,

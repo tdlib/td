@@ -142,7 +142,7 @@ class TestClient : public Actor {
 
   void start_up() override {
     rmrf(name_).ignore();
-    set_context(std::make_shared<td::ActorContext>());
+    auto old_context = set_context(std::make_shared<td::ActorContext>());
     set_tag(name_);
     LOG(INFO) << "START UP!";
 
