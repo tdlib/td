@@ -3394,7 +3394,6 @@ class GetStatsUrlQuery : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, const string &parameters, bool is_dark) {
-    // TODO use parameters and is_dark
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
@@ -3418,6 +3417,120 @@ class GetStatsUrlQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStatsUrlQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class RequestUrlAuthQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::LoginUrlInfo>> promise_;
+  string url_;
+  DialogId dialog_id_;
+
+ public:
+  explicit RequestUrlAuthQuery(Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(string url, DialogId dialog_id, MessageId message_id, int32 button_id) {
+    url_ = std::move(url);
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_requestUrlAuth(
+        std::move(input_peer), message_id.get_server_message_id().get(), button_id))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_requestUrlAuth>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive " << to_string(result);
+    switch (result->get_id()) {
+      case telegram_api::urlAuthResultRequest::ID: {
+        auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
+        UserId bot_user_id = ContactsManager::get_user_id(request->bot_);
+        if (!bot_user_id.is_valid()) {
+          return on_error(id, Status::Error(500, "Receive invalid bot_user_id"));
+        }
+        td->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
+        bool request_write_access =
+            (request->flags_ & telegram_api::urlAuthResultRequest::REQUEST_WRITE_ACCESS_MASK) != 0;
+        promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
+            url_, request->domain_, td->contacts_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
+            request_write_access));
+        break;
+      }
+      case telegram_api::urlAuthResultAccepted::ID: {
+        auto accepted = telegram_api::move_object_as<telegram_api::urlAuthResultAccepted>(result);
+        promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(accepted->url_, true));
+        break;
+      }
+      case telegram_api::urlAuthResultDefault::ID:
+        promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
+        break;
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
+      LOG(INFO) << "RequestUrlAuthQuery returned " << status;
+    }
+    promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
+  }
+};
+
+class AcceptUrlAuthQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
+  string url_;
+  DialogId dialog_id_;
+
+ public:
+  explicit AcceptUrlAuthQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(string url, DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access) {
+    url_ = std::move(url);
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (allow_write_access) {
+      flags |= telegram_api::messages_acceptUrlAuth::WRITE_ALLOWED_MASK;
+    }
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_acceptUrlAuth(
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), button_id))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_acceptUrlAuth>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive " << to_string(result);
+    switch (result->get_id()) {
+      case telegram_api::urlAuthResultRequest::ID:
+        LOG(ERROR) << "Receive unexpected " << to_string(result);
+        return on_error(id, Status::Error(500, "Receive unexpected urlAuthResultRequest"));
+      case telegram_api::urlAuthResultAccepted::ID: {
+        auto accepted = telegram_api::move_object_as<telegram_api::urlAuthResultAccepted>(result);
+        promise_.set_value(td_api::make_object<td_api::httpUrl>(accepted->url_));
+        break;
+      }
+      case telegram_api::urlAuthResultDefault::ID:
+        promise_.set_value(td_api::make_object<td_api::httpUrl>(url_));
+        break;
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
+      LOG(INFO) << "AcceptUrlAuthQuery returned " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -6521,6 +6634,64 @@ void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string
   }
 
   td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
+}
+
+Result<string> MessagesManager::get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(3, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(3, "Can't access the chat");
+  }
+
+  auto m = get_message_force(d, message_id, "get_login_button_url");
+  if (m == nullptr) {
+    return Status::Error(5, "Message not found");
+  }
+  if (m->reply_markup == nullptr || m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
+    return Status::Error(5, "Message has no inline keyboard");
+  }
+  if (!message_id.is_server()) {
+    // it shouldn't have UrlAuth buttons anyway
+    return Status::Error(5, "Message is not server");
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    // secret chat messages can't have reply markup, so this shouldn't happen now
+    return Status::Error(5, "Message is in a secret chat");
+  }
+
+  for (auto &row : m->reply_markup->inline_keyboard) {
+    for (auto &button : row) {
+      if (button.type == InlineKeyboardButton::Type::UrlAuth && button.id == button_id) {
+        return button.data;
+      }
+    }
+  }
+
+  return Status::Error(5, "Button not found");
+}
+
+void MessagesManager::get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
+                                         Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
+  auto r_url = get_login_button_url(dialog_id, message_id, button_id);
+  if (r_url.is_error()) {
+    return promise.set_error(r_url.move_as_error());
+  }
+
+  td_->create_handler<RequestUrlAuthQuery>(std::move(promise))
+      ->send(r_url.move_as_ok(), dialog_id, message_id, button_id);
+}
+
+void MessagesManager::get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
+                                    Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
+  auto r_url = get_login_button_url(dialog_id, message_id, button_id);
+  if (r_url.is_error()) {
+    return promise.set_error(r_url.move_as_error());
+  }
+
+  td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
+      ->send(r_url.move_as_ok(), dialog_id, message_id, button_id, allow_write_access);
 }
 
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {

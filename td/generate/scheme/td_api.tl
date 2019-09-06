@@ -349,7 +349,7 @@ chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
 //@can_invite_users True, if the administrator can invite new users to the chat
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
 //@can_pin_messages True, if the administrator can pin messages; applicable to groups only
-//@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by him
+//@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
 chatMemberStatusAdministrator can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat, without any additional privileges or restrictions
@@ -679,7 +679,7 @@ keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 //@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 
-//@description A button that opens a specified URL and automatically logs in in current user if they allowed to do that @url HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
+//@description A button that opens a specified URL and automatically logs in in current user if they allowed to do that @url An HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int32 forward_text:string = InlineKeyboardButtonType;
 
 //@description A button that sends a special callback query to a bot @data Data to be sent to the bot via a callback query
@@ -719,6 +719,16 @@ replyMarkupShowKeyboard rows:vector<vector<keyboardButton>> resize_keyboard:Bool
 //@description Contains an inline keyboard layout
 //@rows A list of rows of inline keyboard buttons
 replyMarkupInlineKeyboard rows:vector<vector<inlineKeyboardButton>> = ReplyMarkup;
+
+
+//@class LoginUrlInfo @description Contains information about an inline button of type inlineKeyboardButtonTypeLoginUrl returned by the method getLoginUrlInfo
+
+//@description An HTTP url needs to be open @url The URL to open @skip_confirm True, if there is no need to show an ordinary open URL confirm
+loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
+
+//@description An authorization confirmation dialog needs to be shown to the user @url An HTTP URL to be opened @domain A domain of the URL
+//@bot_user_id User identifier of a bot linked with the website @request_write_access True, if the user needs to be requested to give the permission to the bot to send them messages
+loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int32 request_write_access:Bool = LoginUrlInfo;
 
 
 //@class RichText @description Describes a text object inside an instant-view web page
@@ -2122,7 +2132,7 @@ pushMessageContentVoiceNote voice_note:voiceNote is_pinned:Bool = PushMessageCon
 pushMessageContentBasicGroupChatCreate = PushMessageContent;
 
 //@description New chat members were invited to a group @member_name Name of the added member @is_current_user True, if the current user was added to the group
-//@is_returned True, if the user has returned to the group himself
+//@is_returned True, if the user has returned to the group themself
 pushMessageContentChatAddMembers member_name:string is_current_user:Bool is_returned:Bool = PushMessageContent;
 
 //@description A chat photo was edited
@@ -2132,7 +2142,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group
-//@is_left True, if the user has left the group himself
+//@is_left True, if the user has left the group themself
 pushMessageContentChatDeleteMember member_name:string is_current_user:Bool is_left:Bool = PushMessageContent;
 
 //@description A new member joined the chat by invite link
@@ -3246,6 +3256,17 @@ setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 //@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set
 //@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll @reply_markup The new message reply markup; for bots only
 stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
+
+
+//@description Returns information about a button of type inlineKeyboardButtonTypeLoginUrl. The method needs to be called when the user presses the button
+//@chat_id Chat identifier of the message with the button @message_id Message identifier of the message with the button @button_id Button identifier
+getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int32 = LoginUrlInfo;
+
+//@description Returns an HTTP URL which can be used to automatically authorize the user on a website after clicking an inline button of type inlineKeyboardButtonTypeLoginUrl.
+//-Use the method getLoginUrlInfo to find whether a prior user confirmation is needed. If an error is returned, then the button must be handled as an ordinary URL button
+//@chat_id Chat identifier of the message with the button @message_id Message identifier of the message with the button @button_id Button identifier
+//@allow_write_access True, if the user allowed the bot to send them messages
+getLoginUrl chat_id:int53 message_id:int53 button_id:int32 allow_write_access:Bool = HttpUrl;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot

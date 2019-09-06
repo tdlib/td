@@ -475,6 +475,10 @@ class CliClient final : public Actor {
     return transform(full_split(trim(message_ids), delimiter), as_message_id);
   }
 
+  static int32 as_button_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
   int32 as_user_id(Slice str) const {
     str = trim(str);
     if (str[0] == '@') {
@@ -3637,6 +3641,20 @@ class CliClient final : public Actor {
       std::tie(parameters, is_dark) = split(args);
 
       send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(args), parameters, as_bool(is_dark)));
+    } else if (op == "glui" || op == "glu" || op == "glua") {
+      string chat_id;
+      string message_id;
+      string button_id;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, button_id) = split(args);
+
+      if (op == "glui") {
+        send_request(td_api::make_object<td_api::getLoginUrlInfo>(as_chat_id(chat_id), as_message_id(message_id),
+                                                                  as_button_id(button_id)));
+      } else {
+        send_request(td_api::make_object<td_api::getLoginUrl>(as_chat_id(chat_id), as_message_id(message_id),
+                                                              as_button_id(button_id), op == "glua"));
+      }
     } else if (op == "rsgs" || op == "rchs") {
       string supergroup_id;
       string user_id;

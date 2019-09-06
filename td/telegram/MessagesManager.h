@@ -665,10 +665,16 @@ class MessagesManager : public Actor {
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
                      const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
+  void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings);
+
   void get_dialog_statistics_url(DialogId dialog_id, const string &parameters, bool is_dark,
                                  Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
-  void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings);
+  void get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
+                          Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
+
+  void get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
+                     Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
   void before_get_difference();
 
@@ -2262,6 +2268,8 @@ class MessagesManager : public Actor {
   void suffix_load_add_query(Dialog *d, std::pair<Promise<>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<> promise);
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise);
+
+  Result<string> get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id);
 
   Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
