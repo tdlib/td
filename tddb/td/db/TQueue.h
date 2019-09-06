@@ -38,12 +38,14 @@ class TQueue {
   struct Event {
     EventId id;
     Slice data;
+    int64 extra{0};
     double expire_at;
   };
   struct RawEvent {
     int64 logevent_id{0};
     EventId event_id;
     string data;
+    int64 extra{0};
     double expire_at{0};
   };
   class Callback {
@@ -66,7 +68,8 @@ class TQueue {
 
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
-  virtual Result<EventId> push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId()) = 0;
+  virtual Result<EventId> push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId(),
+                               int64 extra = 0) = 0;
 
   virtual void forget(QueueId queue_id, EventId event_id) = 0;
 

@@ -170,13 +170,13 @@ TEST(TQueue, random) {
     now += 10;
   };
   auto check_head_tail = [&] {
-    q.check_head_tail(next_qid());
+    q.check_head_tail(next_qid(), now);
   };
   auto restart = [&] {
-    q.restart(rnd);
+    q.restart(rnd, now);
   };
   auto get = [&] {
-    q.check_get(next_qid(), rnd);
+    q.check_get(next_qid(), rnd, now);
   };
   RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
   for (int i = 0; i < 1000000; i++) {
