@@ -682,8 +682,12 @@ function onOptionsChanged() {
     if (!use_msvc) {
       options.push('-DCMAKE_BUILD_TYPE=' + (is_debug_build ? 'Debug' : 'Release'));
     }
-    if (build_64bit && use_msvc) {
-      options.push('-A x64');
+    if (use_msvc) {
+      if (build_64bit) {
+        options.push('-A x64');
+      } else {
+        options.push('-A Win32');
+      }
     }
     return options;
   }

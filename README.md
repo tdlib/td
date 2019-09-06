@@ -118,7 +118,7 @@ cd <path to vcpkg>
 cmake -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>\scripts\buildsystems\vcpkg.cmake ..
 ```
 
-To build 64-bit `TDLib` using MSVC, you will need to additionally specify parameter `-A x64` to CMake.
+To build 32-bit/64-bit `TDLib` using MSVC, you will need to additionally specify parameter `-A Win32`/`-A x64` to CMake.
 To build `TDLib` in Release mode using MSVC, you will need to additionally specify parameter `--config Release` to the `cmake --build .` command.
 
 <a name="linux"></a>
