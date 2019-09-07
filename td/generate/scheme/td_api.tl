@@ -173,7 +173,7 @@ inputFileGenerated original_path:string conversion:string expected_size:int32 = 
 //@description Photo description @type Thumbnail type (see https://core.telegram.org/constructor/photoSize) @photo Information about the photo file @width Photo width @height Photo height
 photoSize type:string photo:file width:int32 height:int32 = PhotoSize;
 
-//@description A very poor quality and low resolution image thumbnail @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
+//@description Thumbnail image of a very poor quality and low resolution @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
 minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;
 
 
@@ -1631,7 +1631,7 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 callStateError error:error = CallState;
 
 
-//@class CallProblem @description Describes a type of a problem that happened during a call
+//@class CallProblem @description Describes the exact type of a problem with a call
 
 //@description The user heard their own voice
 callProblemEcho = CallProblem;
@@ -2234,7 +2234,7 @@ userPrivacySettingShowStatus = UserPrivacySetting;
 //@description A privacy setting for managing whether the user's profile photo is visible
 userPrivacySettingShowProfilePhoto = UserPrivacySetting;
 
-//@description A privacy setting for managing whether the user account can be linked in forwarded messages
+//@description A privacy setting for managing whether a link to the user's account is included in forwarded messages
 userPrivacySettingShowLinkInForwardedMessages = UserPrivacySetting;
 
 //@description A privacy setting for managing whether the user can be invited to chats
@@ -2432,7 +2432,7 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
 autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int32 max_other_file_size:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
 
-//@description Contains preset auto-download settings for the user
+//@description Contains auto-download settings presets for the user
 //@low Preset with lowest settings; supposed to be used by default when roaming
 //@medium Preset with medium settings; supposed to be used by default when using mobile data
 //@high Preset with highest settings; supposed to be used by default when connected on Wi-Fi
@@ -2561,7 +2561,7 @@ updateMessageSendAcknowledged chat_id:int53 message_id:int53 = Update;
 updateMessageSendSucceeded message:message old_message_id:int53 = Update;
 
 //@description A message failed to send. Be aware that some messages being sent can be irrecoverably deleted, in which case updateDeleteMessages will be received instead of this update
-//@message Contains information about the message that failed to send @old_message_id The previous temporary message identifier @error_code An error code @error_message Error message
+//@message Contains information about the message which failed to send @old_message_id The previous temporary message identifier @error_code An error code @error_message Error message
 updateMessageSendFailed message:message old_message_id:int53 error_code:int32 error_message:string = Update;
 
 //@description The message content has changed @chat_id Chat identifier @message_id Message identifier @new_content New message content
@@ -3110,7 +3110,7 @@ sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 disable_not
 //@remove_caption True, if media captions of message copies needs to be removed. Ignored if send_copy is false
 forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> disable_notification:Bool from_background:Bool as_album:Bool send_copy:Bool remove_caption:Bool = Messages;
 
-//@description Resends failed to send messages. Can be called only for failed to send messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
+//@description Resends messages which failed to send. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message
 //@chat_id Identifier of the chat to send messages @message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
 resendMessages chat_id:int53 message_ids:vector<int53> = Messages;
@@ -3450,7 +3450,7 @@ acceptCall call_id:int32 protocol:callProtocol = Ok;
 //@description Discards a call @call_id Call identifier @is_disconnected True, if the user was disconnected @duration The call duration, in seconds @connection_id Identifier of the connection used during the call
 discardCall call_id:int32 is_disconnected:Bool duration:int32 connection_id:int64 = Ok;
 
-//@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of problems with the call, specified by the user
+//@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of the exact types of problems with the call, specified by the user
 sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallProblem> = Ok;
 
 //@description Sends debug information for a call @call_id Call identifier @debug_information Debug information in application-specific format
@@ -3560,10 +3560,10 @@ removeFavoriteSticker sticker:InputFile = Ok;
 //@description Returns emoji corresponding to a sticker. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object @sticker Sticker file identifier
 getStickerEmojis sticker:InputFile = Emojis;
 
-//@description Searches for emojis by a short text. Supported only if the file database is enabled @text Text to search for @exact_match True, if only emojis, which exactly match text needs to be returned
+//@description Searches for emojis by keywords. Supported only if the file database is enabled @text Text to search for @exact_match True, if only emojis, which exactly match text needs to be returned
 searchEmojis text:string exact_match:Bool = Emojis;
 
-//@description Returns an HTTP URL which can be used to automatically log in into translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation @language_code Language code for which the emoji replacements will be suggested
+//@description Returns an HTTP URL which can be used to automatically log in to the translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation @language_code Language code for which the emoji replacements will be suggested
 getEmojiSuggestionsUrl language_code:string = HttpUrl;
 
 
@@ -3711,7 +3711,7 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 //@description Searches for a background by its name @name The name of the background
 searchBackground name:string = Background;
 
-//@description Changes selected by the user background; adds background to the list of installed backgrounds
+//@description Changes the background selected by the user; adds background to the list of installed backgrounds
 //@background The input background to use, null for solid backgrounds
 //@type Background type; null for default background. The method will return error 404 if type is null
 //@for_dark_theme True, if the background is chosen for dark theme
