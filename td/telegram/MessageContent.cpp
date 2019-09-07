@@ -2560,7 +2560,23 @@ bool update_opened_message_content(MessageContent *content) {
   }
 }
 
-int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret, bool is_outgoing) {
+static int32 get_message_content_text_index_mask(const MessageContent *content) {
+  const FormattedText *text = get_message_content_text(content);
+  if (text == nullptr || content->get_type() == MessageContentType::Game) {
+    return 0;
+  }
+
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress ||
+        entity.type == MessageEntity::Type::TextUrl) {
+      return search_messages_filter_index_mask(SearchMessagesFilter::Url);
+    }
+  }
+  return 0;
+}
+
+static int32 get_message_content_media_index_mask(const MessageContent *content, const Td *td, bool is_secret,
+                                                  bool is_outgoing) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return search_messages_filter_index_mask(SearchMessagesFilter::Animation);
@@ -2575,14 +2591,6 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
     case MessageContentType::Photo:
       return search_messages_filter_index_mask(SearchMessagesFilter::Photo) |
              search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo);
-    case MessageContentType::Text:
-      for (auto &entity : static_cast<const MessageText *>(content)->text.entities) {
-        if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress ||
-            entity.type == MessageEntity::Type::TextUrl) {
-          return search_messages_filter_index_mask(SearchMessagesFilter::Url);
-        }
-      }
-      return 0;
     case MessageContentType::Video: {
       auto message_video = static_cast<const MessageVideo *>(content);
       auto duration = td->videos_manager_->get_video_duration(message_video->file_id);
@@ -2611,6 +2619,7 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
       }
       return index_mask;
     }
+    case MessageContentType::Text:
     case MessageContentType::Contact:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
@@ -2648,6 +2657,11 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
       return 0;
   }
   return 0;
+}
+
+int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret, bool is_outgoing) {
+  return get_message_content_text_index_mask(content) |
+         get_message_content_media_index_mask(content, td, is_secret, is_outgoing);
 }
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content) {
