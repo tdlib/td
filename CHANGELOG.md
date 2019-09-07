@@ -1,3 +1,109 @@
+Changes in 1.5.0:
+
+* Changed authorization workflow:
+  - Added the state `authorizationStateWaitRegistration`, which will be received after `authorizationStateWaitCode` for
+    users who are not registered yet.
+  - Added the method `registerUser`, which must be used in the `authorizationStateWaitRegistration` state to finish
+    registration of the user.
+  - Removed the fields `is_registered` and `terms_of_service` from the class `authorizationStateWaitCode`.
+  - Removed the parameters `first_name` and `last_name` from the method `checkAuthenticationCode`.
+* Added support for messages with an unknown sender (zero `sender_user_id`) in private chats, basic groups and
+  supergroups. Currently, the sender is unknown for posts in channels and for channel posts automatically forwarded to
+  the discussion group.
+* Added support for the new permission system for non-administrator users in groups:
+  - Added the class `chatPermissions` containing all supported permissions, including new permissions `can_send_polls`,
+    `can_change_info`, `can_invite_users` and `can_pin_messages`.
+  - Added the field `permissions` to the class `chat`, describing actions that non-administrator chat members are
+    allowed to take in the chat.
+  - Added the update `updateChatPermissions`.
+  - Added the method `setChatPermissions` for changing chat permissions.
+  - Added the class `chatEventPermissionsChanged` representing a change of chat permissions in the chat event log.
+  - Replaced the fields `can_send_messages`, `can_send_media_messages`, `can_send_other_messages`,
+    `can_add_web_page_previews` in the class `chatMemberStatusRestricted` with the field `permissions` of
+    the type `chatPermissions`.
+  - Removed the field `everyone_is_administrator` from the `basicGroup` class in favor of the field `permissions` of
+    the class `chat`.
+  - Removed the field `anyone_can_invite` from the `supergroup` class in favor of the field `permissions` of
+    the class `chat`.
+  - Removed the method `toggleBasicGroupAdministrators` in favor of `setChatPermissions`.
+  - Removed the method `toggleSupergroupInvites` in favor of `setChatPermissions`.
+  - Renamed the field `anyone_can_invite` to `can_invite_users` in the class `chatEventInvitesToggled`.
+  - The permissions `can_send_other_messages` and `can_add_web_page_previews` now imply only `can_send_messages`
+    instead of `can_send_media_messages`.
+  - Allowed administrators in basic groups to use the method `generateChatInviteLink`.
+* Added out of the box `OpenBSD` and `NetBSD` operating systems support.
+* Added possibility to use `LibreSSL` instead of `OpenSSL` to build TDLib.
+* Added instructions for building TDLib on `Debian 10`, `OpenBSD` and `NetBSD` to
+  the [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
+* Added support for Backgrounds 2.0:
+  - Added the classes `BackgroundType`, `background`, `backgrounds` and `InputBackground`.
+  - Added the method `getBackground` returning the list of backgrounds installed by the user.
+  - Added the method `setBackground` for changing the background selected by the user.
+  - Added the update `updateSelectedBackground`, which is sent right after a successful initialization and whenever
+    the selected background changes.
+  - Added the method `removeBackground` for removing a background from the list of installed backgrounds.
+  - Added the method `resetBackgrounds` for restoring the default list of installed backgrounds.
+  - Added the method `searchBackground` returning a background by its name.
+  - Added the method `getBackgroundUrl` returning a persistent URL for a background.
+  - Removed the `getWallpapers` method.
+  - Removed the `wallpaper` and the `wallpapers` classes.
+  - The class `fileTypeWallpaper` can be used for remote file identifiers of both old wallpapers and new backgrounds.
+* Added support for descriptions in basic groups:
+  - Added the field `description` to the class `basicGroupFullInfo`.
+  - Replaced the method `setSupergroupDescription` with `setChatDescription` which can be used for any chat type.
+* Added support for emoji suggestions:
+  - Added the method `searchEmojis` for searching emojis by keywords.
+  - Added the method `getEmojiSuggestionsUrl`, which can be used to automatically log in to the translation platform
+    and suggest new emoji replacements.
+  - Renamed the class `stickerEmojis` to `emojis`.
+* Changed type of the fields `old_photo` and `new_photo` in the class `chatEventPhotoChanged` from `chatPhoto` to
+  `photo`.
+* Changed recommended size for `inputThumbnail` from 90x90 to 320x320.
+* Combined all supported settings for phone number authentication:
+  - Added the class `phoneNumberAuthenticationSettings` which contains all the settings.
+  - Replaced the parameters `is_current_phone_number` and `allow_flash_call` in the methods
+    `setAuthenticationPhoneNumber`, `sendPhoneNumberConfirmationCode`, `sendPhoneNumberVerificationCode` and
+    `changePhoneNumber` with the parameter `settings` of the type `phoneNumberAuthenticationSettings`.
+  - Added support for automatic SMS code verification for official applications via the new field `allow_app_hash` in
+    the class `phoneNumberAuthenticationSettings`.
+* Added support for auto-download settings presets.
+  - Added the classes `autoDownloadSettings` and `autoDownloadSettingsPresets`.
+  - Added the method `getAutoDownloadSettingsPresets` for getting the settings.
+  - Added the method `setAutoDownloadSettings`, which needs to be called whenever the user changes the settings.
+* Added support for minithumbnails - thumbnail images of a very poor quality and low resolution:
+  - Added the class `minithumbnail`.
+  - Added the field `minithumbnail` to `animation`, `document`, `photo`, `video` and `videoNote` classes.
+  - Added the field `audio_cover_minithumbnail` to the class `audio`.
+* Added support for resending messages which failed to send:
+  - Added the fields `error_code`, `error_message`, `can_retry` and `retry_after` to
+    the `messageSendingStateFailed` object.
+  - Added the method `resendMessages`.
+* Added the field `is_animated` to the `sticker`, `stickerSet` and `stickerSetInfo` classes.
+  Animated stickers can be received anywhere where non-animated stickers can appear.
+* Added the parameters `send_copy` and `remove_caption` to the `forwardMessages` method to allow forwarding of
+  messages without links to the originals.
+* Added the fields `send_copy` and `remove_caption` to `inputMessageForwarded` method to allow forwarding of
+  a message without link to the original message.
+* Added the method `getMessageLinkInfo` for getting information about a link to a message in a chat.
+* Added the class `userPrivacySettingShowProfilePhoto` for managing visibility of the user's profile photo.
+* Added the class `userPrivacySettingShowLinkInForwardedMessages` for managing whether a link to the user's account is
+  included with forwarded messages.
+* Added the field `thumbnail` to the classes `stickerSet` and `stickerSetInfo`, containing a thumbnail for
+  the sticker set.
+* Added the field `is_scam` to the classes `user` and `supergroup`.
+* Added a new kind of inline keyboard button `inlineKeyboardButtonTypeLoginUrl`, which for the moment must be processed
+  in the same way as an `inlineKeyboardButtonTypeUrl`.
+* Added the new class `supergroupMembersFilterContacts`, allowing to only search for contacts
+  in `getSupergroupMembers`.
+* Added the new class `chatMembersFilterContacts`, allowing to only search for contacts in `searchChatMembers`.
+* Added the class `chatEventPollStopped` representing the closing of a poll in a message in the chat event log.
+* Added ability to specify the exact types of problems with a call in the method `sendCallRating` and
+  the new class `CallProblem`.
+* Changes in [tdweb](https://github.com/tdlib/td/blob/master/example/web/):
+  - Supported non-zero `offset` and `limit` in `readFilePart`.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.4.0:
 
 * Added a [TDLib build instructions generator](https://tdlib.github.io/td/build.html), covering in details
