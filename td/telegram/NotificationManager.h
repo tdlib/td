@@ -188,6 +188,14 @@ class NotificationManager : public Actor {
     }
   };
 
+  struct ActiveNotificationsUpdate {
+    const td_api::updateActiveNotifications *update;
+  };
+
+  struct NotificationUpdate {
+    const td_api::Update *update;
+  };
+
   enum class SyncState : int32 { NotSynced, Pending, Completed };
 
   using NotificationGroups = std::map<NotificationGroupKey, NotificationGroup>;
@@ -320,6 +328,14 @@ class NotificationManager : public Actor {
   void on_contact_registered_notifications_sync(bool is_disabled, Result<Unit> result);
 
   void save_announcement_ids();
+
+  static ActiveNotificationsUpdate as_active_notifications_update(const td_api::updateActiveNotifications *update);
+
+  static NotificationUpdate as_notification_update(const td_api::Update *update);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const ActiveNotificationsUpdate &update);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const NotificationUpdate &update);
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;

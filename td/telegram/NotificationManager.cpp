@@ -166,13 +166,7 @@ bool NotificationManager::is_disabled() const {
   return !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag();
 }
 
-namespace {
-
-struct ActiveNotificationsUpdate {
-  const td_api::updateActiveNotifications *update;
-};
-
-StringBuilder &operator<<(StringBuilder &string_builder, const ActiveNotificationsUpdate &update) {
+StringBuilder &operator<<(StringBuilder &string_builder, const NotificationManager::ActiveNotificationsUpdate &update) {
   if (update.update == nullptr) {
     return string_builder << "null";
   }
@@ -190,11 +184,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ActiveNotificatio
   return string_builder << ']';
 }
 
-ActiveNotificationsUpdate as_active_notifications_update(const td_api::updateActiveNotifications *update) {
+NotificationManager::ActiveNotificationsUpdate NotificationManager::as_active_notifications_update(
+    const td_api::updateActiveNotifications *update) {
   return ActiveNotificationsUpdate{update};
 }
-
-}  // namespace
 
 string NotificationManager::get_is_contact_registered_notifications_synchronized_key() {
   return "notifications_contact_registered_sync_state";
@@ -915,13 +908,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   group.pending_notifications.push_back(std::move(notification));
 }
 
-namespace {
-
-struct NotificationUpdate {
-  const td_api::Update *update;
-};
-
-StringBuilder &operator<<(StringBuilder &string_builder, const NotificationUpdate &update) {
+StringBuilder &operator<<(StringBuilder &string_builder, const NotificationManager::NotificationUpdate &update) {
   if (update.update == nullptr) {
     return string_builder << "null";
   }
@@ -950,11 +937,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const NotificationUpdat
   }
 }
 
-NotificationUpdate as_notification_update(const td_api::Update *update) {
+NotificationManager::NotificationUpdate NotificationManager::as_notification_update(const td_api::Update *update) {
   return NotificationUpdate{update};
 }
-
-}  // namespace
 
 void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::Update> update) {
   if (!is_binlog_processed_ || !is_inited_) {
