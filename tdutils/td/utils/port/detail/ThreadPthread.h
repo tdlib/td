@@ -31,7 +31,10 @@ class ThreadPthread {
   ThreadPthread() = default;
   ThreadPthread(const ThreadPthread &other) = delete;
   ThreadPthread &operator=(const ThreadPthread &other) = delete;
-  ThreadPthread(ThreadPthread &&) = default;
+  ThreadPthread(ThreadPthread &&other) noexcept
+      : is_inited_(std::move(other.is_inited_))
+      , thread_(other.thread_) {
+  }
   ThreadPthread &operator=(ThreadPthread &&other) {
     join();
     is_inited_ = std::move(other.is_inited_);
