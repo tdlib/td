@@ -39,6 +39,7 @@ Convenient Python wrappers already exist for our JSON interface.
 
 If you use modern Python >= 3.6, take a look at [python-telegram](https://github.com/alexander-akhmetov/python-telegram).
 The wrapper uses the full power of asyncio, has a good documentation and has several examples. It can be installed through pip or used in a Docker container.
+You can also try a fork [python-telegram](https://github.com/iTeam-co/python-telegram) of this library.
 
 For older Python versions you can use [demo-pytdlib](https://github.com/i-Naji/demo-pytdlib) or [python-tdlib](https://github.com/andrew-ld/python-tdlib).
 These wrappers contain generators for TDLib API classes and basic classes for interaction with TDLib.
