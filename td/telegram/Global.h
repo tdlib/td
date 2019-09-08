@@ -78,6 +78,7 @@ class Global : public ActorContext {
     LOG_CHECK(td_db_) << close_flag() << " " << file << " " << line;
     return td_db_.get();
   }
+
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 
@@ -425,10 +426,12 @@ class Global : public ActorContext {
   void do_close(Promise<> on_finish, bool destroy_flag);
 };
 
-inline Global *G() {
+#define G() G_impl(__FILE__, __LINE__)
+
+inline Global *G_impl(const char *file, int line) {
   ActorContext *context = Scheduler::context();
   CHECK(context);
-  CHECK(context->get_id() == Global::ID);
+  LOG_CHECK(context->get_id() == Global::ID) << "In " << file << " at " << line;
   return static_cast<Global *>(context);
 }
 

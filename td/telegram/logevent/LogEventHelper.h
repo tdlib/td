@@ -22,7 +22,7 @@ namespace td {
 
 #define get_erase_logevent_promise(...) get_erase_logevent_promise_impl(__FILE__, __LINE__, __VA_ARGS__)
 
-inline Promise<Unit> get_erase_logevent_promise_impl(const char *file, int32 line, uint64 logevent_id,
+inline Promise<Unit> get_erase_logevent_promise_impl(const char *file, int line, uint64 logevent_id,
                                                      Promise<Unit> promise = Promise<Unit>()) {
   if (logevent_id == 0) {
     return promise;

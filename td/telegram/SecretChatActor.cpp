@@ -39,7 +39,8 @@
 #include <tuple>
 #include <type_traits>
 
-#define G GLOBAL_SHOULD_NOT_BE_USED_HERE
+//#define G GLOBAL_SHOULD_NOT_BE_USED_HERE
+#undef G
 
 namespace td {
 
