@@ -11676,10 +11676,6 @@ void MessagesManager::load_dialog_list(int32 limit, bool only_local, Promise<Uni
     load_dialog_list_from_database(limit, multipromise.get_promise());
     is_query_sent = true;
   } else {
-    if (limit > MAX_GET_DIALOGS) {
-      limit = MAX_GET_DIALOGS;
-    }
-
     LOG(INFO) << "Get dialogs from " << last_server_dialog_date_;
     reload_pinned_dialogs(multipromise.get_promise());
     if (last_dialog_date_ == last_server_dialog_date_) {
