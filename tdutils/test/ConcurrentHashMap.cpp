@@ -193,7 +193,7 @@ class HashMapBenchmark : public td::Benchmark {
   explicit HashMapBenchmark(size_t threads_n) : threads_n(threads_n) {
   }
   std::string get_description() const override {
-    return hash_map->get_name();
+    return HashMap::get_name();
   }
   void start_up_n(int n) override {
     n *= (int)threads_n;
