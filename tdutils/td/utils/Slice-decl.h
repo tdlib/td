@@ -61,7 +61,7 @@ class MutableSlice {
   char &back();
   char &operator[](size_t i);
 
-  static const size_t npos = string::npos;
+  static const size_t npos = static_cast<size_t>(-1);
 };
 
 class Slice {
@@ -126,7 +126,7 @@ class Slice {
   char back() const;
   char operator[](size_t i) const;
 
-  static const size_t npos = string::npos;
+  static const size_t npos = static_cast<size_t>(-1);
 };
 
 bool operator==(const Slice &a, const Slice &b);
