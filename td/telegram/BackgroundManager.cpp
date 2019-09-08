@@ -320,7 +320,7 @@ class BackgroundManager::BackgroundLogEvent {
 
 void BackgroundManager::start_up() {
   for (int i = 0; i < 2; i++) {
-    bool for_dark_theme = static_cast<bool>(i);
+    bool for_dark_theme = i != 0;
     auto logevent_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key(for_dark_theme));
     if (!logevent_string.empty()) {
       BackgroundLogEvent logevent;

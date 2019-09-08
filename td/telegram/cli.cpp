@@ -2464,7 +2464,7 @@ class CliClient final : public Actor {
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id),
                                                                 as_message_ids(message_ids), false, false, op[2] == 'g',
-                                                                op[0] == 'c', static_cast<bool>(Random::fast(0, 1))));
+                                                                op[0] == 'c', Random::fast(0, 1) == 1));
     } else if (op == "resend") {
       string chat_id;
       string message_ids;

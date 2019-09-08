@@ -48,7 +48,7 @@ class RestrictedRights {
   }
 
   bool can_invite_users() const {
-    return (flags_ & CAN_INVITE_USERS);
+    return (flags_ & CAN_INVITE_USERS) != 0;
   }
 
   bool can_pin_messages() const {
