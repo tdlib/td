@@ -1244,7 +1244,7 @@ class MessagesManager : public Actor {
   };
 
   struct PendingSecretMessage {
-    enum class Type { NewMessage, DeleteMessages, DeleteHistory };
+    enum class Type : int32 { NewMessage, DeleteMessages, DeleteHistory };
     Type type = Type::NewMessage;
 
     // for NewMessage
