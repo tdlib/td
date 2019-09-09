@@ -31,7 +31,7 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 
 <a name="usage"></a>
 ## Examples and documentation
-Take a look at our [examples](https://github.com/tdlib/td/blob/master/example/README.md).
+Take a look at our [examples](https://github.com/tdlib/td/blob/master/example/README.md#tdlib-usage-and-build-examples).
 
 See our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
