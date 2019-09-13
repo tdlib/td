@@ -638,9 +638,10 @@ class ContactsManager : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 1;
+    static constexpr uint32 CACHE_VERSION = 2;
     uint32 cache_version = 0;
 
+    bool has_linked_channel = false;
     bool sign_messages = false;
 
     bool is_megagroup = false;
@@ -679,6 +680,8 @@ class ContactsManager : public Actor {
     string invite_link;
 
     int64 sticker_set_id = 0;  // do not forget to store along with access hash
+
+    ChannelId linked_channel_id;
 
     MessageId migrated_from_max_message_id;
     ChatId migrated_from_chat_id;
@@ -805,6 +808,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_UNBAN_DATE = 1 << 16;
   static constexpr int32 CHANNEL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 17;
   static constexpr int32 CHANNEL_FLAG_IS_SCAM = 1 << 19;
+  static constexpr int32 CHANNEL_FLAG_HAS_LINKED_CHAT = 1 << 20;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
@@ -820,6 +824,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 12;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT = 1 << 13;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 13;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
@@ -942,6 +947,8 @@ class ContactsManager : public Actor {
 
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
+  void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
+                                                ChannelId linked_channel_id);
 
   static bool speculative_add_count(int32 &count, int32 new_count);
 

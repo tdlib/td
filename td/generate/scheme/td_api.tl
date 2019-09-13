@@ -440,13 +440,14 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel
 //@member_count Member count; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was found through SearchPublicChats
+//@has_linked_chat True, if the channel has a discussion supergroup, or the supergroup is a discussion supergroup for a channel
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains the reason why access to this supergroup or channel must be restricted. Format of the string is "{type}: {description}".
 //-{type} Contains the type of the restriction and at least one of the suffixes "-all", "-ios", "-android", or "-wp", which describe the platforms on which access should be restricted. (For example, "terms-ios-android". {description} contains a human-readable description of the restriction, which can be shown to the user)
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 sign_messages:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool sign_messages:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@param_description Supergroup or channel description
@@ -454,6 +455,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
+//@linked_chat_id Chat identifier of a discussion supergroup for the channel, or a channel, for which the supergroup is a discussion supergroup; 0 if none
 //@can_get_members True, if members of the chat can be retrieved
 //@can_set_username True, if the chat can be made public
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
@@ -463,7 +465,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state

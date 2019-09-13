@@ -2686,6 +2686,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(have_default_permissions);
   STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
+  STORE_FLAG(has_linked_channel);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -2746,6 +2747,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(have_default_permissions);
   PARSE_FLAG(is_scam);
   PARSE_FLAG(has_cache_version);
+  PARSE_FLAG(has_linked_channel);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -6570,6 +6572,9 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
 void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId channel_id) {
   CHECK(channel_full != nullptr);
   if (channel_full->is_changed) {
+    if (channel_full->linked_channel_id.is_valid()) {
+      td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full");
+    }
     if (channel_full->participant_count < channel_full->administrator_count) {
       channel_full->administrator_count = channel_full->participant_count;
     }
@@ -6863,7 +6868,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     // Ignoring channel_full->photo
 
-    if (!have_channel(channel_id)) {
+    auto c = get_channel(channel_id);
+    if (c == nullptr) {
       LOG(ERROR) << channel_id << " not found";
       return;
     }
@@ -6907,13 +6913,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
       channel->is_changed = true;
 
-      if (participant_count != 0) {
-        auto c = get_channel(channel_id);
-        if (c != nullptr && c->participant_count != participant_count) {
-          c->participant_count = participant_count;
-          c->need_send_update = true;
-          update_channel(c, channel_id);
-        }
+      if (participant_count != 0 && c->participant_count != participant_count) {
+        c->participant_count = participant_count;
+        c->need_send_update = true;
+        update_channel(c, channel_id);
       }
     }
 
@@ -6955,6 +6958,18 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));
     }
+
+    ChannelId linked_channel_id;
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
+      linked_channel_id = ChannelId(channel_full->linked_chat_id_);
+      auto linked_channel = get_channel_force(linked_channel_id);
+      if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
+          channel_id == linked_channel_id) {
+        LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
+        linked_channel_id = ChannelId();
+      }
+    }
+    on_update_channel_full_linked_channel_id(channel, channel_id, linked_channel_id);
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
@@ -8057,6 +8072,55 @@ void ContactsManager::on_update_channel_full_invite_link(
   CHECK(channel_full != nullptr);
   if (update_invite_link(channel_full->invite_link, std::move(invite_link_ptr))) {
     channel_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
+                                                               ChannelId linked_channel_id) {
+  CHECK(channel_full != nullptr);
+  if (channel_full->linked_channel_id != linked_channel_id) {
+    if (channel_full->linked_channel_id.is_valid()) {
+      // remove link from a previously linked channel_full
+      auto linked_channel = get_channel_force(channel_full->linked_channel_id);
+      if (linked_channel != nullptr && linked_channel->has_linked_channel) {
+        linked_channel->has_linked_channel = false;
+        update_channel(linked_channel, channel_full->linked_channel_id);
+        reload_channel(channel_full->linked_channel_id, Auto());
+      }
+      auto linked_channel_full = get_channel_full(channel_full->linked_channel_id);
+      if (linked_channel_full != nullptr && linked_channel_full->linked_channel_id == channel_id) {
+        linked_channel_full->linked_channel_id = ChannelId();
+        linked_channel_full->is_changed = true;
+        update_channel_full(linked_channel_full, channel_full->linked_channel_id);
+      }
+    }
+
+    channel_full->linked_channel_id = linked_channel_id;
+    channel_full->is_changed = true;
+
+    if (channel_full->linked_channel_id.is_valid()) {
+      // add link from a newly linked channel_full
+      auto linked_channel = get_channel_force(channel_full->linked_channel_id);
+      if (linked_channel != nullptr && !linked_channel->has_linked_channel) {
+        linked_channel->has_linked_channel = true;
+        update_channel(linked_channel, channel_full->linked_channel_id);
+        reload_channel(channel_full->linked_channel_id, Auto());
+      }
+      auto linked_channel_full = get_channel_full(channel_full->linked_channel_id);
+      if (linked_channel_full != nullptr && linked_channel_full->linked_channel_id != channel_id) {
+        linked_channel_full->linked_channel_id = channel_id;
+        linked_channel_full->is_changed = true;
+        update_channel_full(linked_channel_full, channel_full->linked_channel_id);
+      }
+    }
+  }
+
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (linked_channel_id.is_valid() != c->has_linked_channel) {
+    c->has_linked_channel = linked_channel_id.is_valid();
+    c->need_send_update = true;
+    update_channel(c, channel_id);
   }
 }
 
@@ -10244,6 +10308,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_access_hash = (channel.flags_ & CHANNEL_FLAG_HAS_ACCESS_HASH) != 0;
   auto access_hash = has_access_hash ? channel.access_hash_ : 0;
 
+  bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
@@ -10335,8 +10400,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->need_send_update = true;
   }
 
-  if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
+  if (c->has_linked_channel != has_linked_channel || c->sign_messages != sign_messages ||
+      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
+      c->is_scam != is_scam) {
+    c->has_linked_channel = has_linked_channel;
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -10391,6 +10458,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
+  bool has_linked_channel = false;
   bool sign_messages = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = false;
@@ -10413,8 +10481,10 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->need_send_update = true;
   }
 
-  if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
+  if (c->has_linked_channel != has_linked_channel || c->sign_messages != sign_messages ||
+      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
+      c->is_scam != is_scam) {
+    c->has_linked_channel = has_linked_channel;
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -10617,7 +10687,7 @@ int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
                      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, true, false, "", false)));
+                     0, false, false, true, false, "", false)));
   }
   return channel_id.get();
 }
@@ -10631,10 +10701,10 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   if (channel == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::supergroup>(channel_id.get(), channel->username, channel->date,
-                                            get_channel_status(channel).get_chat_member_status_object(),
-                                            channel->participant_count, channel->sign_messages, !channel->is_megagroup,
-                                            channel->is_verified, channel->restriction_reason, channel->is_scam);
+  return make_tl_object<td_api::supergroup>(
+      channel_id.get(), channel->username, channel->date, get_channel_status(channel).get_chat_member_status_object(),
+      channel->participant_count, channel->has_linked_channel, channel->sign_messages, !channel->is_megagroup,
+      channel->is_verified, channel->restriction_reason, channel->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
@@ -10646,9 +10716,10 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
   CHECK(channel_full != nullptr);
   return make_tl_object<td_api::supergroupFullInfo>(
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
-      channel_full->restricted_count, channel_full->banned_count, channel_full->can_get_participants,
-      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->sticker_set_id, channel_full->invite_link,
+      channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
+      channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
+      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id,
+      channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
