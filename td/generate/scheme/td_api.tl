@@ -455,12 +455,12 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
-//@linked_chat_id Chat identifier of a discussion supergroup for the channel, or a channel, for which the supergroup is a discussion supergroup; 0 if none
+//@linked_chat_id Chat identifier of a discussion supergroup for the channel, or a channel, for which the supergroup is a discussion supergroup; 0 if none or unknown
 //@can_get_members True, if members of the chat can be retrieved
 //@can_set_username True, if the chat can be made public
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
-//@is_all_history_available True, if new chat members will have access to old messages. In public supergroups and both public and private channels, old messages are always available, so this option affects only private supergroups. The value of this field is only available for chat administrators
+//@is_all_history_available True, if new chat members will have access to old messages. In public or discussion supergroups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
