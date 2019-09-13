@@ -2951,20 +2951,21 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_chat(Chat
 
 bool ContactsManager::have_input_peer_channel(ChannelId channel_id, AccessRights access_rights) const {
   const Channel *c = get_channel(channel_id);
-  return have_input_peer_channel(c, access_rights);
+  return have_input_peer_channel(c, channel_id, access_rights);
 }
 
 tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(ChannelId channel_id,
                                                                                AccessRights access_rights) const {
   const Channel *c = get_channel(channel_id);
-  if (!have_input_peer_channel(c, access_rights)) {
+  if (!have_input_peer_channel(c, channel_id, access_rights)) {
     return nullptr;
   }
 
   return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), c->access_hash);
 }
 
-bool ContactsManager::have_input_peer_channel(const Channel *c, AccessRights access_rights) {
+bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channel_id, AccessRights access_rights,
+                                              bool from_linked) const {
   if (c == nullptr) {
     return false;
   }
@@ -2974,8 +2975,17 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, AccessRights acc
   if (c->status.is_banned()) {
     return false;
   }
-  if (!c->username.empty() && access_rights == AccessRights::Read) {
-    return true;
+  if (access_rights == AccessRights::Read) {
+    if (!c->username.empty()) {
+      return true;
+    }
+    if (!from_linked && c->has_linked_channel) {
+      auto channel_full = get_channel_full(channel_id);
+      if (channel_full == nullptr || have_input_peer_channel(get_channel(channel_full->linked_channel_id),
+                                                             channel_full->linked_channel_id, access_rights, true)) {
+        return true;
+      }
+    }
   }
   if (!c->status.is_member()) {
     return false;
@@ -6476,7 +6486,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     save_channel(c, channel_id, from_binlog);
   }
 
-  bool have_read_access = have_input_peer_channel(c, AccessRights::Read);
+  bool have_read_access = have_input_peer_channel(c, channel_id, AccessRights::Read);
   bool is_member = c->status.is_member();
   if (c->had_read_access && !have_read_access) {
     send_closure_later(G()->messages_manager(), &MessagesManager::delete_dialog, DialogId(channel_id));
@@ -6488,8 +6498,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   c->had_read_access = have_read_access;
   c->was_member = is_member;
 
-  if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired && have_input_peer_channel(c, AccessRights::Read) &&
-      !G()->close_flag()) {
+  if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired &&
+      have_input_peer_channel(c, channel_id, AccessRights::Read) && !G()->close_flag()) {
     c->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << channel_id;
@@ -6965,7 +6975,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       auto linked_channel = get_channel_force(linked_channel_id);
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
           channel_id == linked_channel_id) {
-        if (linked_channel_id.is_valid()) { // TODO remove after CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID fix
+        if (linked_channel_id.is_valid()) {  // TODO remove after CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID fix
           LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
         }
         linked_channel_id = ChannelId();
@@ -7718,7 +7728,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       on_update_channel_username(c, channel_id, "");
       update_channel(c, channel_id);
     }
-    LOG_IF(ERROR, have_input_peer_channel(c, AccessRights::Read))
+    LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
         << "Have read access to channel after receiving CHANNEL_PRIVATE. Channel state: "
         << oneline(to_string(get_supergroup_object(channel_id, c)))
         << ". Previous channel state: " << debug_channel_object;

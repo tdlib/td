@@ -26307,6 +26307,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
     return old_d;
   }
 
+  LOG(INFO) << "Add new " << dialog_id << " from database";
   return add_new_dialog(parse_dialog(dialog_id, value), true);
 }
 

@@ -843,7 +843,8 @@ class ContactsManager : public Actor {
 
   static bool have_input_peer_user(const User *u, AccessRights access_rights);
   static bool have_input_peer_chat(const Chat *c, AccessRights access_rights);
-  static bool have_input_peer_channel(const Channel *c, AccessRights access_rights);
+  bool have_input_peer_channel(const Channel *c, ChannelId channel_id, AccessRights access_rights,
+                               bool from_linked = false) const;
   static bool have_input_encrypted_peer(const SecretChat *secret_chat, AccessRights access_rights);
 
   const User *get_user(UserId user_id) const;
