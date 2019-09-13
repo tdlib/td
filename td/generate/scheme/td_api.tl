@@ -1908,6 +1908,9 @@ chatEventPhotoChanged old_photo:photo new_photo:photo = ChatEventAction;
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
 chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 
+//@description The linked_chat_id of a supergroup was changed @old_linked_chat_id Previous supergroup linked chat identifier @new_linked_chat_id New supergroup linked chat identifier
+chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = ChatEventAction;
+
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 

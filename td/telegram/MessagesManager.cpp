@@ -23566,6 +23566,28 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);
       return make_tl_object<td_api::chatEventIsAllHistoryAvailableToggled>(!action->new_value_);
     }
+    case telegram_api::channelAdminLogEventActionChangeLinkedChat::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLinkedChat>(action_ptr);
+
+      auto get_dialog_from_channel_id = [this](int32 channel_id_int) {
+        ChannelId channel_id(channel_id_int);
+        if (!channel_id.is_valid()) {
+          return DialogId();
+        }
+
+        DialogId dialog_id(channel_id);
+        force_create_dialog(dialog_id, "get_dialog_from_channel_id");
+        return dialog_id;
+      };
+
+      auto old_linked_dialog_id = get_dialog_from_channel_id(action->prev_value_);
+      auto new_linked_dialog_id = get_dialog_from_channel_id(action->new_value_);
+      if (old_linked_dialog_id == new_linked_dialog_id) {
+        LOG(ERROR) << "Receive the same linked " << new_linked_dialog_id;
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventLinkedChatChanged>(old_linked_dialog_id.get(), new_linked_dialog_id.get());
+    }
     default:
       UNREACHABLE();
       return nullptr;
