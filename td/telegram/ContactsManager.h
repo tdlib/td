@@ -602,6 +602,7 @@ class ContactsManager : public Actor {
     bool is_title_changed = true;
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
+    bool is_is_active_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
 
@@ -1104,6 +1105,8 @@ class ContactsManager : public Actor {
   vector<ChannelId> get_channel_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 
   vector<DialogId> get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
+
+  void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise);
 

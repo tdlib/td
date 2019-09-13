@@ -4924,6 +4924,26 @@ void ContactsManager::on_get_dialogs_for_discussion(vector<tl_object_ptr<telegra
   dialogs_for_discussion_ = get_dialog_ids(std::move(chats), "on_get_dialogs_for_discussion");
 }
 
+void ContactsManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable) {
+  if (!dialogs_for_discussion_inited_) {
+    return;
+  }
+
+  auto it = std::find(dialogs_for_discussion_.begin(), dialogs_for_discussion_.end(), dialog_id);
+  bool is_found = it != dialogs_for_discussion_.end();
+  if (is_suitable == is_found) {
+    return;
+  }
+
+  if (is_suitable) {
+    LOG(DEBUG) << "Add " << dialog_id << " to list of suitable discussion chats";
+    dialogs_for_discussion_.insert(dialogs_for_discussion_.begin(), dialog_id);
+  } else {
+    LOG(DEBUG) << "Remove " << dialog_id << " from list of suitable discussion chats";
+    dialogs_for_discussion_.erase(it);
+  }
+}
+
 void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
                                            vector<int32> unimported_contact_invites) {
   LOG(INFO) << "Contacts import with random_id " << random_id
@@ -6446,9 +6466,13 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(chat_id));
   }
+  if (c->is_is_active_changed) {
+    update_dialogs_for_discussion(DialogId(chat_id), c->is_active && c->status.is_creator());
+  }
   c->is_photo_changed = false;
   c->is_title_changed = false;
   c->is_default_permissions_changed = false;
+  c->is_is_active_changed = false;
 
   LOG(DEBUG) << "Update " << chat_id << ": is_changed = " << c->is_changed
              << ", need_send_update = " << c->need_send_update;
@@ -6506,6 +6530,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       channel_unban_timeout_.set_timeout_in(channel_id.get(), left_time);
     } else {
       channel_unban_timeout_.cancel_timeout(channel_id.get());
+    }
+
+    if (c->is_megagroup) {
+      update_dialogs_for_discussion(DialogId(channel_id), c->status.is_administrator() && c->status.can_pin_messages());
     }
   }
   if (c->is_username_changed) {
@@ -8732,6 +8760,7 @@ void ContactsManager::on_update_chat_title(Chat *c, ChatId chat_id, string &&tit
 void ContactsManager::on_update_chat_active(Chat *c, ChatId chat_id, bool is_active) {
   if (c->is_active != is_active) {
     c->is_active = is_active;
+    c->is_is_active_changed = true;
     c->need_send_update = true;
   }
 }
