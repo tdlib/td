@@ -4235,7 +4235,10 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
     return promise.set_error(Status::Error(6, "Not enough rights to toggle all supergroup history availability"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(6, "Message history can be hidden in the supergroups only"));
+    return promise.set_error(Status::Error(6, "Message history can be hidden in supergroups only"));
+  }
+  if (c->has_linked_channel) {
+    return promise.set_error(Status::Error(6, "Message history can't be hidden in discussion supergroups"));
   }
 
   td_->create_handler<ToggleChannelIsAllHistoryAvailableQuery>(std::move(promise))
