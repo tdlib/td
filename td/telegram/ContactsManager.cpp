@@ -6965,7 +6965,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       auto linked_channel = get_channel_force(linked_channel_id);
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
           channel_id == linked_channel_id) {
-        LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
+        if (linked_channel_id.is_valid()) { // TODO remove after CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID fix
+          LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
+        }
         linked_channel_id = ChannelId();
       }
     }
