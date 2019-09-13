@@ -212,6 +212,8 @@ class ContactsManager : public Actor {
 
   void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
+
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
@@ -337,6 +339,8 @@ class ContactsManager : public Actor {
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
   vector<DialogId> get_created_public_dialogs(Promise<Unit> &&promise);
+
+  vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id) const;
 
@@ -1097,6 +1101,10 @@ class ContactsManager : public Actor {
   tl_object_ptr<td_api::secretChat> get_secret_chat_object_const(SecretChatId secret_chat_id,
                                                                  const SecretChat *secret_chat) const;
 
+  vector<ChannelId> get_channel_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
+
+  vector<DialogId> get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
+
   void delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise);
 
   void change_channel_participant_status_impl(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
@@ -1161,6 +1169,9 @@ class ContactsManager : public Actor {
 
   bool created_public_channels_inited_ = false;
   vector<ChannelId> created_public_channels_;
+
+  bool dialogs_for_discussion_inited_ = false;
+  vector<DialogId> dialogs_for_discussion_;
 
   std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;

@@ -1771,6 +1771,50 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
   }
 };
 
+class GetGroupsForDiscussionQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetGroupsForDiscussionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getGroupsForDiscussion())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_getGroupsForDiscussion>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto chats_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGroupsForDiscussionQuery " << to_string(chats_ptr);
+    int32 constructor_id = chats_ptr->get_id();
+    switch (constructor_id) {
+      case telegram_api::messages_chats::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
+        td->contacts_manager_->on_get_dialogs_for_discussion(std::move(chats->chats_));
+        break;
+      }
+      case telegram_api::messages_chatsSlice::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
+        LOG(ERROR) << "Receive chatsSlice in result of GetCreatedPublicChannelsQuery";
+        td->contacts_manager_->on_get_dialogs_for_discussion(std::move(chats->chats_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUsersQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4808,6 +4852,41 @@ ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Uni
   return ChannelId();
 }
 
+vector<ChannelId> ContactsManager::get_channel_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats,
+                                                   const char *source) {
+  vector<ChannelId> channel_ids;
+  for (auto &chat : chats) {
+    auto channel_id = get_channel_id(chat);
+    if (!channel_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << " in " << to_string(chat);
+    } else {
+      channel_ids.push_back(channel_id);
+    }
+    on_get_chat(std::move(chat), source);
+  }
+  return channel_ids;
+}
+
+vector<DialogId> ContactsManager::get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats,
+                                                 const char *source) {
+  vector<DialogId> dialog_ids;
+  for (auto &chat : chats) {
+    auto channel_id = get_channel_id(chat);
+    if (!channel_id.is_valid()) {
+      auto chat_id = get_chat_id(chat);
+      if (!chat_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid chat from " << source << " in " << to_string(chat);
+      } else {
+        dialog_ids.push_back(DialogId(chat_id));
+      }
+    } else {
+      dialog_ids.push_back(DialogId(channel_id));
+    }
+    on_get_chat(std::move(chat), source);
+  }
+  return dialog_ids;
+}
+
 vector<DialogId> ContactsManager::get_created_public_dialogs(Promise<Unit> &&promise) {
   if (created_public_channels_inited_) {
     promise.set_value(Unit());
@@ -4824,44 +4903,25 @@ vector<DialogId> ContactsManager::get_created_public_dialogs(Promise<Unit> &&pro
 
 void ContactsManager::on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
   created_public_channels_inited_ = true;
-  created_public_channels_.clear();
+  created_public_channels_ = get_channel_ids(std::move(chats), "on_get_created_public_channels");
+}
 
-  for (auto &chat : chats) {
-    switch (chat->get_id()) {
-      case telegram_api::chatEmpty::ID:
-        LOG(ERROR) << "Receive chatEmpty as created public channel";
-        break;
-      case telegram_api::chat::ID:
-        LOG(ERROR) << "Receive chat as created public channel";
-        break;
-      case telegram_api::chatForbidden::ID:
-        LOG(ERROR) << "Receive chatForbidden as created public channel";
-        break;
-      case telegram_api::channel::ID: {
-        auto c = static_cast<const telegram_api::channel *>(chat.get());
-        ChannelId channel_id(c->id_);
-        if (!channel_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << channel_id;
-          continue;
-        }
-        created_public_channels_.push_back(channel_id);
-        break;
-      }
-      case telegram_api::channelForbidden::ID: {
-        auto c = static_cast<const telegram_api::channelForbidden *>(chat.get());
-        ChannelId channel_id(c->id_);
-        if (!channel_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << channel_id;
-          continue;
-        }
-        created_public_channels_.push_back(channel_id);
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-    on_get_chat(std::move(chat), "on_get_created_public_channels");
+vector<DialogId> ContactsManager::get_dialogs_for_discussion(Promise<Unit> &&promise) {
+  if (dialogs_for_discussion_inited_) {
+    promise.set_value(Unit());
+    return transform(dialogs_for_discussion_, [&](DialogId dialog_id) {
+      td_->messages_manager_->force_create_dialog(dialog_id, "get_dialogs_for_discussion");
+      return dialog_id;
+    });
   }
+
+  td_->create_handler<GetGroupsForDiscussionQuery>(std::move(promise))->send();
+  return {};
+}
+
+void ContactsManager::on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
+  dialogs_for_discussion_inited_ = true;
+  dialogs_for_discussion_ = get_dialog_ids(std::move(chats), "on_get_dialogs_for_discussion");
 }
 
 void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
