@@ -440,7 +440,7 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel
 //@member_count Member count; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was found through SearchPublicChats
-//@has_linked_chat True, if the channel has a discussion supergroup, or the supergroup is a discussion supergroup for a channel
+//@has_linked_chat True, if the channel has a discussion group, or the supergroup is a discussion group for a channel
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
@@ -455,12 +455,12 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
-//@linked_chat_id Chat identifier of a discussion supergroup for the channel, or a channel, for which the supergroup is a discussion supergroup; 0 if none or unknown
+//@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is a discussion group; 0 if none or unknown
 //@can_get_members True, if members of the chat can be retrieved
 //@can_set_username True, if the chat can be made public
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
-//@is_all_history_available True, if new chat members will have access to old messages. In public or discussion supergroups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
+//@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
@@ -510,8 +510,8 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
-//@from_chat_id For messages forwarded to the chat with the current user (saved messages) or to the channel discussion supergroup, the identifier of the chat from which the message was forwarded last time; 0 if unknown
-//@from_message_id For messages forwarded to the chat with the current user (saved messages) or to the channel discussion supergroup, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
+//@from_chat_id For messages forwarded to the chat with the current user (saved messages) or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
+//@from_message_id For messages forwarded to the chat with the current user (saved messages) or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 
@@ -3403,6 +3403,10 @@ setChatClientData chat_id:int53 client_data:string = Ok;
 
 //@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info rights @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
 setChatDescription chat_id:int53 description:string = Ok;
+
+//@description Changes the discussion group of a channel chat; requires can_change_info rights @chat_id Identifier of the channel chat @discussion_chat_id Identifier of a new channel's discussion group. Use 0 to remove the discussion group.
+//-If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable needs to be used first to change that
+setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
 //@description Pins a message in a chat; requires can_pin_messages rights @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;

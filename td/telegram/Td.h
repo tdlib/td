@@ -668,6 +668,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setChatDescription &request);
 
+  void on_request(uint64 id, const td_api::setChatDiscussionGroup &request);
+
   void on_request(uint64 id, const td_api::pinChatMessage &request);
 
   void on_request(uint64 id, const td_api::unpinChatMessage &request);

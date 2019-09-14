@@ -1192,6 +1192,45 @@ class EditChatAboutQuery : public Td::ResultHandler {
   }
 };
 
+class SetDiscussionGroupQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId broadcast_channel_id_;
+  ChannelId group_channel_id_;
+
+ public:
+  explicit SetDiscussionGroupQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId broadcast_channel_id,
+            telegram_api::object_ptr<telegram_api::InputChannel> broadcast_input_channel, ChannelId group_channel_id,
+            telegram_api::object_ptr<telegram_api::InputChannel> group_input_channel) {
+    broadcast_channel_id_ = broadcast_channel_id;
+    group_channel_id_ = group_channel_id;
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_setDiscussionGroup(
+        std::move(broadcast_input_channel), std::move(group_input_channel)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_setDiscussionGroup>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(INFO, !result) << "Set discussion group has failed";
+
+    td->contacts_manager_->on_update_channel_linked_channel_id(broadcast_channel_id_, group_channel_id_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "LINK_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ReportChannelSpamQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -4301,6 +4340,76 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   }
 
   td_->create_handler<EditChatAboutQuery>(std::move(promise))->send(DialogId(channel_id), new_description);
+}
+
+void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id,
+                                                   Promise<Unit> &&promise) {
+  if (!dialog_id.is_valid() && !discussion_dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifiers specified"));
+  }
+
+  ChannelId broadcast_channel_id;
+  telegram_api::object_ptr<telegram_api::InputChannel> broadcast_input_channel;
+  if (dialog_id.is_valid()) {
+    if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+      return promise.set_error(Status::Error(400, "Chat not found"));
+    }
+
+    if (dialog_id.get_type() != DialogType::Channel) {
+      return promise.set_error(Status::Error(400, "Chat is not a channel"));
+    }
+
+    broadcast_channel_id = dialog_id.get_channel_id();
+    const Channel *c = get_channel(broadcast_channel_id);
+    if (c == nullptr) {
+      return promise.set_error(Status::Error(400, "Chat info not found"));
+    }
+
+    if (c->is_megagroup) {
+      return promise.set_error(Status::Error(400, "Chat is not a channel"));
+    }
+    if (!c->status.is_administrator() || !c->status.can_change_info_and_settings()) {
+      return promise.set_error(Status::Error(400, "Have not enough rights in the channel"));
+    }
+
+    broadcast_input_channel = td_->contacts_manager_->get_input_channel(broadcast_channel_id);
+    CHECK(broadcast_input_channel != nullptr);
+  } else {
+    broadcast_input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
+  }
+
+  ChannelId group_channel_id;
+  telegram_api::object_ptr<telegram_api::InputChannel> group_input_channel;
+  if (discussion_dialog_id.is_valid()) {
+    if (!td_->messages_manager_->have_dialog_force(discussion_dialog_id)) {
+      return promise.set_error(Status::Error(400, "Discussion chat not found"));
+    }
+    if (discussion_dialog_id.get_type() != DialogType::Channel) {
+      return promise.set_error(Status::Error(400, "Discussion chat is not a supergroup"));
+    }
+
+    group_channel_id = discussion_dialog_id.get_channel_id();
+    const Channel *c = get_channel(group_channel_id);
+    if (c == nullptr) {
+      return promise.set_error(Status::Error(400, "Discussion chat info not found"));
+    }
+
+    if (!c->is_megagroup) {
+      return promise.set_error(Status::Error(400, "Discussion chat is not a supergroup"));
+    }
+    if (!c->status.is_administrator() || !c->status.can_pin_messages()) {
+      return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+    }
+
+    group_input_channel = td_->contacts_manager_->get_input_channel(group_channel_id);
+    CHECK(group_input_channel != nullptr);
+  } else {
+    group_input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
+  }
+
+  td_->create_handler<SetDiscussionGroupQuery>(std::move(promise))
+      ->send(broadcast_channel_id, std::move(broadcast_input_channel), group_channel_id,
+             std::move(group_input_channel));
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
@@ -8180,13 +8289,13 @@ void ContactsManager::on_update_channel_full_invite_link(
 
 void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                                ChannelId linked_channel_id) {
-  CHECK(channel_full != nullptr);
-  if (channel_full->linked_channel_id != linked_channel_id) {
+  if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id) {
     if (channel_full->linked_channel_id.is_valid()) {
       // remove link from a previously linked channel_full
       auto linked_channel = get_channel_force(channel_full->linked_channel_id);
       if (linked_channel != nullptr && linked_channel->has_linked_channel) {
         linked_channel->has_linked_channel = false;
+        linked_channel->need_send_update = true;
         update_channel(linked_channel, channel_full->linked_channel_id);
         reload_channel(channel_full->linked_channel_id, Auto());
       }
@@ -8206,6 +8315,7 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
       auto linked_channel = get_channel_force(channel_full->linked_channel_id);
       if (linked_channel != nullptr && !linked_channel->has_linked_channel) {
         linked_channel->has_linked_channel = true;
+        linked_channel->need_send_update = true;
         update_channel(linked_channel, channel_full->linked_channel_id);
         reload_channel(channel_full->linked_channel_id, Auto());
       }
@@ -8969,6 +9079,23 @@ void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, int64 
     channel_full->sticker_set_id = sticker_set_id;
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id) {
+  if (channel_id.is_valid()) {
+    auto channel_full = get_channel_full(channel_id);
+    on_update_channel_full_linked_channel_id(channel_full, channel_id, group_channel_id);
+    if (channel_full != nullptr) {
+      update_channel_full(channel_full, channel_id);
+    }
+  }
+  if (group_channel_id.is_valid()) {
+    auto channel_full = get_channel_full(group_channel_id);
+    on_update_channel_full_linked_channel_id(channel_full, group_channel_id, channel_id);
+    if (channel_full != nullptr) {
+      update_channel_full(channel_full, group_channel_id);
+    }
   }
 }
 

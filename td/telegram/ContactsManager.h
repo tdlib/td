@@ -177,6 +177,7 @@ class ContactsManager : public Actor {
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id);
+  void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
 
@@ -305,6 +306,8 @@ class ContactsManager : public Actor {
                                                Promise<Unit> &&promise);
 
   void set_channel_description(ChannelId channel_id, const string &description, Promise<Unit> &&promise);
+
+  void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);
 
   void report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                            Promise<Unit> &&promise);

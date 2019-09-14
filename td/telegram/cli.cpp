@@ -3473,6 +3473,12 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, description) = split(args);
       send_request(td_api::make_object<td_api::setChatDescription>(as_chat_id(chat_id), description));
+    } else if (op == "scdg") {
+      string chat_id;
+      string group_chat_id;
+
+      std::tie(chat_id, group_chat_id) = split(args);
+      send_request(td_api::make_object<td_api::setChatDiscussionGroup>(as_chat_id(chat_id), as_chat_id(group_chat_id)));
     } else if (op == "pcm" || op == "pcms") {
       string chat_id;
       string message_id;
