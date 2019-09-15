@@ -14,6 +14,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogDate.h"
+#include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
@@ -1930,7 +1931,7 @@ class MessagesManager : public Actor {
 
   Dialog *on_load_dialog_from_database(DialogId dialog_id, const BufferSlice &value);
 
-  void on_get_dialogs_from_database(FolderId folder_id, int32 limit, vector<BufferSlice> &&dialogs,
+  void on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                     Promise<Unit> &&promise);
 
   void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id = 0);

@@ -12114,27 +12114,26 @@ void MessagesManager::load_dialog_list_from_database(FolderId folder_id, int32 l
       folder_id, list.last_loaded_database_dialog_date_.get_order(),
       list.last_loaded_database_dialog_date_.get_dialog_id(), limit,
       PromiseCreator::lambda([actor_id = actor_id(this), folder_id, limit,
-                              promise = std::move(promise)](vector<BufferSlice> result) mutable {
+                              promise = std::move(promise)](DialogDbGetDialogsResult result) mutable {
         send_closure(actor_id, &MessagesManager::on_get_dialogs_from_database, folder_id, limit, std::move(result),
                      std::move(promise));
       }));
 }
 
-void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 limit, vector<BufferSlice> &&dialogs,
+void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                                    Promise<Unit> &&promise) {
   auto &list = get_dialog_list(folder_id);
-  LOG(INFO) << "Receive " << dialogs.size() << " from expected " << limit << " chats in " << folder_id
-            << " in from database";
+  LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
+            << " in from database with next order " << dialogs.next_order << " and next " << dialogs.next_dialog_id;
   int32 new_get_dialogs_limit = 0;
-  int32 have_more_dialogs_in_database = (limit == static_cast<int32>(dialogs.size()));
+  int32 have_more_dialogs_in_database = (limit == static_cast<int32>(dialogs.dialogs.size()));
   if (have_more_dialogs_in_database && limit < list.load_dialog_list_limit_max_) {
     new_get_dialogs_limit = list.load_dialog_list_limit_max_ - limit;
   }
   list.load_dialog_list_limit_max_ = 0;
 
-  DialogDate max_dialog_date = MIN_DIALOG_DATE;
   size_t dialogs_skipped = 0;
-  for (auto &dialog : dialogs) {
+  for (auto &dialog : dialogs.dialogs) {
     Dialog *d = on_load_dialog_from_database(DialogId(), std::move(dialog));
     if (d == nullptr) {
       dialogs_skipped++;
@@ -12147,13 +12146,10 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
       continue;
     }
 
-    DialogDate dialog_date(d->order, d->dialog_id);
-    if (max_dialog_date < dialog_date) {
-      max_dialog_date = dialog_date;
-    }
-    LOG(INFO) << "Chat " << dialog_date << " is loaded from database";
+    LOG(INFO) << "Chat " << d->dialog_id << " with order " << d->order << " is loaded from database";
   }
 
+  DialogDate max_dialog_date(dialogs.next_order, dialogs.next_dialog_id);
   if (!have_more_dialogs_in_database) {
     list.last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
     LOG(INFO) << "Set last loaded database dialog date to " << list.last_loaded_database_dialog_date_;
@@ -12168,7 +12164,7 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
     update_last_dialog_date(folder_id);
   } else {
     LOG(ERROR) << "Last loaded database dialog date didn't increased, skipped " << dialogs_skipped << " chats out of "
-               << dialogs.size();
+               << dialogs.dialogs.size();
   }
 
   if (!(list.last_loaded_database_dialog_date_ < list.last_database_server_dialog_date_)) {
