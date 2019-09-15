@@ -24,7 +24,7 @@ void HttpProxy::send_connect() {
   string proxy_authorization;
   if (!username_.empty() || !password_.empty()) {
     auto userinfo = PSTRING() << username_ << ':' << password_;
-    proxy_authorization = PSTRING() << "Proxy-Authorization: basic " << td::base64_encode(userinfo) << "\r\n";
+    proxy_authorization = PSTRING() << "Proxy-Authorization: basic " << base64_encode(userinfo) << "\r\n";
   }
   fd_.output_buffer().append(PSLICE() << "CONNECT " << host << " HTTP/1.1\r\n"
                                       << "Host: " << host << "\r\n"

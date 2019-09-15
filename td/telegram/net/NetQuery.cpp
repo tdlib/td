@@ -77,10 +77,10 @@ void dump_pending_network_queries() {
         was_gap = false;
       }
       auto nq = &static_cast<NetQuery &>(*cur);
-      LOG(WARNING) << tag("id", nq->my_id_) << *nq << tag("total_flood", td::format::as_time(nq->total_timeout)) << " "
-                   << tag("since start", td::format::as_time(td::Time::now_cached() - nq->start_timestamp_))
+      LOG(WARNING) << tag("id", nq->my_id_) << *nq << tag("total_flood", format::as_time(nq->total_timeout)) << " "
+                   << tag("since start", format::as_time(Time::now_cached() - nq->start_timestamp_))
                    << tag("state", nq->debug_str_)
-                   << tag("since state", td::format::as_time(td::Time::now_cached() - nq->debug_timestamp_))
+                   << tag("since state", format::as_time(Time::now_cached() - nq->debug_timestamp_))
                    << tag("resend_cnt", nq->debug_resend_cnt_) << tag("fail_cnt", nq->debug_send_failed_cnt_)
                    << tag("ack", nq->debug_ack) << tag("unknown", nq->debug_unknown);
     } else {

@@ -663,7 +663,7 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
     CHECK(info.option != nullptr);
     string proxy_authorization;
     if (!proxy.user().empty() || !proxy.password().empty()) {
-      proxy_authorization = "|basic " + td::base64_encode(PSLICE() << proxy.user() << ':' << proxy.password());
+      proxy_authorization = "|basic " + base64_encode(PSLICE() << proxy.user() << ':' << proxy.password());
     }
     return mtproto::TransportType{
         mtproto::TransportType::Http, 0,

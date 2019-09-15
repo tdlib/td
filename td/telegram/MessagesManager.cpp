@@ -6117,7 +6117,7 @@ void MessagesManager::on_update_dialog_notify_settings(
     return;
   }
 
-  const DialogNotificationSettings notification_settings = td::get_dialog_notification_settings(
+  const DialogNotificationSettings notification_settings = ::td::get_dialog_notification_settings(
       std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notifications,
       current_settings->disable_pinned_message_notifications,
       current_settings->use_default_disable_mention_notifications, current_settings->disable_mention_notifications);
@@ -6137,7 +6137,7 @@ void MessagesManager::on_update_scope_notify_settings(
   auto old_notification_settings = get_scope_notification_settings(scope);
   CHECK(old_notification_settings != nullptr);
 
-  const ScopeNotificationSettings notification_settings = td::get_scope_notification_settings(
+  const ScopeNotificationSettings notification_settings = ::td::get_scope_notification_settings(
       std::move(peer_notify_settings), old_notification_settings->disable_pinned_message_notifications,
       old_notification_settings->disable_mention_notifications);
   if (!notification_settings.is_synchronized) {
@@ -27150,7 +27150,7 @@ void MessagesManager::get_payment_form(FullMessageId full_message_id,
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  td::get_payment_form(r_message_id.ok(), std::move(promise));
+  ::td::get_payment_form(r_message_id.ok(), std::move(promise));
 }
 
 void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
@@ -27161,7 +27161,7 @@ void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_obje
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  td::validate_order_info(r_message_id.ok(), std::move(order_info), allow_save, std::move(promise));
+  ::td::validate_order_info(r_message_id.ok(), std::move(order_info), allow_save, std::move(promise));
 }
 
 void MessagesManager::send_payment_form(FullMessageId full_message_id, const string &order_info_id,
@@ -27173,7 +27173,7 @@ void MessagesManager::send_payment_form(FullMessageId full_message_id, const str
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  td::send_payment_form(r_message_id.ok(), order_info_id, shipping_option_id, credentials, std::move(promise));
+  ::td::send_payment_form(r_message_id.ok(), order_info_id, shipping_option_id, credentials, std::move(promise));
 }
 
 void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
@@ -27190,7 +27190,7 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Wrong message identifier"));
   }
 
-  td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
+  ::td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
 }
 
 void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,

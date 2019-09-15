@@ -106,34 +106,34 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       continue;
     }
     auto files_dir = get_files_dir(file_type);
-    td::walk_path(files_dir,
-                  [&](CSlice path, WalkPath::Type type) {
-                    if (token) {
-                      return WalkPath::Action::Abort;
-                    }
-                    if (type != WalkPath::Type::NotDir) {
-                      return WalkPath::Action::Continue;
-                    }
-                    auto r_stat = stat(path);
-                    if (r_stat.is_error()) {
-                      LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
-                      return WalkPath::Action::Continue;
-                    }
-                    auto stat = r_stat.move_as_ok();
-                    if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
-                      // skip .nomedia file
-                      return WalkPath::Action::Continue;
-                    }
+    walk_path(files_dir,
+              [&](CSlice path, WalkPath::Type type) {
+                if (token) {
+                  return WalkPath::Action::Abort;
+                }
+                if (type != WalkPath::Type::NotDir) {
+                  return WalkPath::Action::Continue;
+                }
+                auto r_stat = stat(path);
+                if (r_stat.is_error()) {
+                  LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
+                  return WalkPath::Action::Continue;
+                }
+                auto stat = r_stat.move_as_ok();
+                if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
+                  // skip .nomedia file
+                  return WalkPath::Action::Continue;
+                }
 
-                    FsFileInfo info;
-                    info.path = path.str();
-                    info.size = stat.size_;
-                    info.file_type = file_type;
-                    info.atime_nsec = stat.atime_nsec_;
-                    info.mtime_nsec = stat.mtime_nsec_;
-                    callback(info);
-                    return WalkPath::Action::Continue;
-                  })
+                FsFileInfo info;
+                info.path = path.str();
+                info.size = stat.size_;
+                info.file_type = file_type;
+                info.atime_nsec = stat.atime_nsec_;
+                info.mtime_nsec = stat.mtime_nsec_;
+                callback(info);
+                return WalkPath::Action::Continue;
+              })
         .ignore();
   }
 }

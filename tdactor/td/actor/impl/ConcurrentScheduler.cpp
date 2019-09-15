@@ -80,7 +80,7 @@ void ConcurrentScheduler::start() {
     auto &sched = schedulers_[i];
     threads_.push_back(td::thread([&]() {
 #if TD_PORT_WINDOWS
-      td::detail::Iocp::Guard iocp_guard(iocp_.get());
+      detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
       while (!is_finished()) {
         sched->run(Timestamp::in(10));
@@ -105,7 +105,7 @@ bool ConcurrentScheduler::run_main(Timestamp timeout) {
   auto &main_sched = schedulers_[0];
   if (!is_finished()) {
 #if TD_PORT_WINDOWS
-    td::detail::Iocp::Guard iocp_guard(iocp_.get());
+    detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
     main_sched->run(timeout);
   }
@@ -137,7 +137,7 @@ void ConcurrentScheduler::finish() {
   SCOPE_EXIT {
     iocp_->clear();
   };
-  td::detail::Iocp::Guard iocp_guard(iocp_.get());
+  detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED

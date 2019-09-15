@@ -77,14 +77,14 @@ static void dump_memory_usage() {
     int cnt = 0;
     for (auto &info : v) {
       if (cnt++ < 50) {
-        LOG(WARNING) << td::format::as_size(info.size) << td::format::as_array(info.backtrace);
+        LOG(WARNING) << format::as_size(info.size) << format::as_array(info.backtrace);
       } else {
         other_size += info.size;
       }
       total_size += info.size;
     }
-    LOG(WARNING) << tag("other", td::format::as_size(other_size));
-    LOG(WARNING) << tag("total", td::format::as_size(total_size));
+    LOG(WARNING) << tag("other", format::as_size(other_size));
+    LOG(WARNING) << tag("total", format::as_size(total_size));
     LOG(WARNING) << tag("total traces", get_ht_size());
     LOG(WARNING) << tag("fast_backtrace_success_rate", get_fast_backtrace_success_rate());
   }
@@ -301,7 +301,7 @@ class CliClient final : public Actor {
       for (auto &m : messages.messages_) {
         // LOG(PLAIN) << to_string(m);
         if (m->content_->get_id() == td_api::messageText::ID) {
-          LOG(PLAIN) << td::oneline(static_cast<const td_api::messageText *>(m->content_.get())->text_->text_) << "\n";
+          LOG(PLAIN) << oneline(static_cast<const td_api::messageText *>(m->content_.get())->text_->text_) << "\n";
         }
         last_message_id = m->id_;
       }
@@ -3674,11 +3674,11 @@ class CliClient final : public Actor {
       fd.seek(size).ignore();
       fd.truncate_to_current_position(size).ignore();
     } else if (op == "SetVerbosity" || op == "SV") {
-      td::Log::set_verbosity_level(to_integer<int>(args));
+      Log::set_verbosity_level(to_integer<int>(args));
     } else if (op[0] == 'v' && op[1] == 'v') {
-      td::Log::set_verbosity_level(static_cast<int>(op.size()));
+      Log::set_verbosity_level(static_cast<int>(op.size()));
     } else if (op[0] == 'v' && ('0' <= op[1] && op[1] <= '9')) {
-      td::Log::set_verbosity_level(to_integer<int>(op.substr(1)));
+      Log::set_verbosity_level(to_integer<int>(op.substr(1)));
     } else if (op == "slse") {
       execute(td_api::make_object<td_api::setLogStream>(td_api::make_object<td_api::logStreamEmpty>()));
     } else if (op == "slsd") {
@@ -3884,7 +3884,7 @@ void main(int argc, char **argv) {
   ignore_signal(SignalType::Pipe).ensure();
   set_signal_handler(SignalType::Error, fail_signal).ensure();
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
-  td::Log::set_fatal_error_callback(on_fatal_error);
+  Log::set_fatal_error_callback(on_fatal_error);
 
   const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "" : "fr-FR");
   std::locale new_locale(locale_name);
@@ -3898,8 +3898,8 @@ void main(int argc, char **argv) {
   CliLog cli_log;
   log_interface = &cli_log;
 
-  td::FileLog file_log;
-  td::TsLog ts_log(&file_log);
+  FileLog file_log;
+  TsLog ts_log(&file_log);
 
   int new_verbosity_level = VERBOSITY_NAME(INFO);
   bool use_test_dc = false;
@@ -3907,7 +3907,7 @@ void main(int argc, char **argv) {
   bool disable_network = false;
   auto api_id = [](auto x) -> int32 {
     if (x) {
-      return td::to_integer<int32>(Slice(x));
+      return to_integer<int32>(Slice(x));
     }
     return 0;
   }(std::getenv("TD_API_ID"));
@@ -3951,7 +3951,7 @@ void main(int argc, char **argv) {
       if (i + 1 >= argc) {
         return usage();
       }
-      api_id = td::to_integer<int32>(Slice(argv[++i]));
+      api_id = to_integer<int32>(Slice(argv[++i]));
     } else if (!std::strcmp(argv[i], "--api_hash") || !std::strcmp(argv[i], "--api-hash")) {
       if (i + 1 >= argc) {
         return usage();
@@ -4005,7 +4005,7 @@ void main(int argc, char **argv) {
         .release();
 
     scheduler.start();
-    while (scheduler.run_main(td::Timestamp::in(100))) {
+    while (scheduler.run_main(Timestamp::in(100))) {
     }
     scheduler.finish();
   }

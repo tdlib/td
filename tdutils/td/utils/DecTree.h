@@ -180,7 +180,7 @@ class DecTree {
     }
   }
   void insert(KeyType key, ValueType value) {
-    root_ = insert_node(std::move(root_), std::move(key), std::move(value), td::Random::fast_uint32());
+    root_ = insert_node(std::move(root_), std::move(key), std::move(value), Random::fast_uint32());
   }
   void remove(const KeyType &key) {
     root_ = remove_node(std::move(root_), key);
@@ -195,7 +195,7 @@ class DecTree {
     if (size() == 0) {
       return nullptr;
     } else {
-      return get_node_by_idx(root_, td::Random::fast_uint32() % size());
+      return get_node_by_idx(root_, Random::fast_uint32() % size());
     }
   }
   const ValueType *get(const KeyType &key) const {
@@ -205,7 +205,7 @@ class DecTree {
     if (size() == 0) {
       return nullptr;
     } else {
-      return get_node_by_idx(root_, td::Random::fast_uint32() % size());
+      return get_node_by_idx(root_, Random::fast_uint32() % size());
     }
   }
   bool exists(const KeyType &key) const {

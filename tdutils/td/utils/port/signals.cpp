@@ -289,7 +289,7 @@ void signal_safe_write_pointer(void *p, bool add_header) {
   char *ptr = end;
   *--ptr = '\n';
   do {
-    *--ptr = td::format::hex_digit(addr % 16);
+    *--ptr = format::hex_digit(addr % 16);
     addr /= 16;
   } while (addr != 0);
   *--ptr = 'x';

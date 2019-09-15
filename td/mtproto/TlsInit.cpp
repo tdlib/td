@@ -456,7 +456,7 @@ Status TlsInit::wait_hello_response() {
   std::string hash_dest(32, '\0');
   hmac_sha256(password_, PSLICE() << hello_rand_ << response.as_slice(), hash_dest);
   if (hash_dest != response_rand) {
-    return td::Status::Error("Response hash mismatch");
+    return Status::Error("Response hash mismatch");
   }
 
   stop();

@@ -2620,7 +2620,7 @@ string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
   auto binary = serialize(location_copy);
 
   binary = zero_encode(binary);
-  binary.push_back(static_cast<char>(narrow_cast<td::uint8>(Version::Next) - 1));
+  binary.push_back(static_cast<char>(narrow_cast<uint8>(Version::Next) - 1));
   binary.push_back(PERSISTENT_ID_VERSION);
   return base64url_encode(binary);
 }

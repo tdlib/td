@@ -55,7 +55,7 @@ class ValueHash {
   }
   static Result<ValueHash> create(Slice data);
   Slice as_slice() const {
-    return td::as_slice(hash_);
+    return ::td::as_slice(hash_);
   }
 
  private:

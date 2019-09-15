@@ -485,7 +485,7 @@ void TdDb::with_db_path(std::function<void(CSlice)> callback) {
 }
 
 Result<string> TdDb::get_stats() {
-  auto sb = td::StringBuilder({}, true);
+  auto sb = StringBuilder({}, true);
   auto &sql = sql_connection_->get();
   auto run_query = [&](CSlice query, Slice desc) -> Status {
     TRY_RESULT(stmt, sql.get_statement(query));
