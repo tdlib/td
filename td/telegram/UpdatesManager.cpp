@@ -1440,8 +1440,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelTooLong>
   td_->messages_manager_->on_update_channel_too_long(std::move(update), force_apply);
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannel> update, bool /*force_apply*/) {
-  // nothing to do
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannel> update, bool force_apply) {
+  if (!force_apply) {
+    td_->contacts_manager_->invalidate_channel_full(ChannelId(update->channel_id_), false);
+  }
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/) {
