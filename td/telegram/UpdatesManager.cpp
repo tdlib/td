@@ -946,6 +946,11 @@ void UpdatesManager::process_get_difference_updates(
       CHECK(!running_get_difference_);
     }
 
+    if (constructor_id == telegram_api::updateFolderPeers::ID) {
+      on_update(move_tl_object_as<telegram_api::updateFolderPeers>(update), true);
+      CHECK(!running_get_difference_);
+    }
+
     /*
         // TODO can't apply it here, because dialog may not be created yet
         // process updateReadHistoryInbox before new messages
@@ -1185,8 +1190,13 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         }
         processed_updates++;
         update = nullptr;
-        CHECK(!running_get_difference_);
       }
+      if (id == telegram_api::updateFolderPeers::ID) {
+        on_update(move_tl_object_as<telegram_api::updateFolderPeers>(update), false);
+        processed_updates++;
+        update = nullptr;
+      }
+      CHECK(!running_get_difference_);
     }
   }
 
@@ -1196,7 +1206,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (id == telegram_api::updateNewMessage::ID || id == telegram_api::updateReadMessagesContents::ID ||
           id == telegram_api::updateEditMessage::ID || id == telegram_api::updateDeleteMessages::ID ||
           id == telegram_api::updateReadHistoryInbox::ID || id == telegram_api::updateReadHistoryOutbox::ID ||
-          id == telegram_api::updateWebPage::ID || id == telegram_api::updateFolderPeers::ID) {
+          id == telegram_api::updateWebPage::ID) {
         if (!downcast_call(*update, OnUpdate(this, update, false))) {
           LOG(ERROR) << "Can't call on some update received from " << source;
         }
