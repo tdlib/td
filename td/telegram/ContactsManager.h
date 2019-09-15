@@ -866,7 +866,7 @@ class ContactsManager : public Actor {
   UserFull *get_user_full(UserId user_id);
 
   void send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
-                                Promise<Unit> &&promise);
+                                Promise<Unit> &&promise, const char *source);
 
   const Chat *get_chat(ChatId chat_id) const;
   Chat *get_chat(ChatId chat_id);
@@ -877,7 +877,7 @@ class ContactsManager : public Actor {
   const ChatFull *get_chat_full(ChatId chat_id) const;
   ChatFull *get_chat_full(ChatId chat_id);
 
-  void send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise);
+  void send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source);
 
   const Channel *get_channel(ChannelId channel_id) const;
   Channel *get_channel(ChannelId channel_id);
@@ -889,7 +889,7 @@ class ContactsManager : public Actor {
   ChannelFull *get_channel_full(ChannelId channel_id);
 
   void send_get_channel_full_query(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
-                                   Promise<Unit> &&promise);
+                                   Promise<Unit> &&promise, const char *source);
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;
   SecretChat *get_secret_chat(SecretChatId secret_chat_id);
