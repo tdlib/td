@@ -418,6 +418,9 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
   VLOG(td_init) << "Finish to init database";
   if (init_sqlite_status.is_error()) {
     LOG(ERROR) << "Destroy bad SQLite database because of " << init_sqlite_status;
+    if (sql_connection_ != nullptr) {
+      sql_connection_->get().close();
+    }
     SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
     TRY_STATUS(init_sqlite(scheduler_id, parameters, new_sqlite_key, old_sqlite_key, *binlog_pmc));
   }
