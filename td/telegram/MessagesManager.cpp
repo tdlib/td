@@ -22694,7 +22694,9 @@ void MessagesManager::set_dialog_folder_id(DialogId dialog_id, FolderId folder_i
 
   set_dialog_folder_id(d, folder_id);
 
-  set_dialog_folder_id_on_server(dialog_id, false);
+  if (dialog_id.get_type() != DialogType::SecretChat) {
+    set_dialog_folder_id_on_server(dialog_id, false);
+  }
   promise.set_value(Unit());
 }
 
