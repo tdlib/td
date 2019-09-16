@@ -29,8 +29,8 @@ class RawSqliteDb {
   static void with_db_path(Slice main_path, F &&f) {
     f(PSLICE() << main_path);
     f(PSLICE() << main_path << "-journal");
-    f(PSLICE() << main_path << "-shm");
     f(PSLICE() << main_path << "-wal");
+    f(PSLICE() << main_path << "-shm");
   }
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
