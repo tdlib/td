@@ -24922,6 +24922,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   MessageId message_id = old_message->message_id;
   bool need_send_update = false;
   bool is_new_available = new_message->content->get_type() != MessageContentType::ChatDeleteHistory;
+  bool replace_legacy = (old_message->legacy_layer != 0 &&
+                         (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer));
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
       LOG_IF(ERROR, !new_message->is_outgoing && dialog_id != get_my_dialog_id())
@@ -24981,10 +24983,12 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
   if (old_message->forward_info == nullptr) {
     if (new_message->forward_info != nullptr) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
-                 << ", really forwarded from " << old_message->real_forward_from_dialog_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+      if (!replace_legacy) {
+        LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
+                   << ", really forwarded from " << old_message->real_forward_from_dialog_id
+                   << ", message content type is " << old_message->content->get_type() << '/'
+                   << new_message->content->get_type();
+      }
       old_message->forward_info = std::move(new_message->forward_info);
       need_send_update = true;
     }
@@ -24996,7 +25000,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         need_send_update = true;
       }
       if (*old_message->forward_info != *new_message->forward_info) {
-        if (!is_forward_info_sender_hidden(new_message->forward_info.get())) {
+        if (!is_forward_info_sender_hidden(new_message->forward_info.get()) && !replace_legacy) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
                      << old_message->real_forward_from_dialog_id << ", message content type is "
@@ -25039,7 +25043,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
     // Can't check "&& get_message_force(d, old_message->reply_to_message_id, "update_message") == nullptr", because it
     // can change message tree and invalidate reference to old_message
-    if (new_message->reply_to_message_id == MessageId()) {
+    if (new_message->reply_to_message_id == MessageId() || replace_legacy) {
       LOG(DEBUG) << "Drop message reply_to_message_id";
       old_message->reply_to_message_id = MessageId();
       need_send_update = true;
@@ -25052,7 +25056,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     }
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
-    if ((!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) && is_new_available) {
+    if ((!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) && is_new_available &&
+        !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
                  << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id
                  << ", message content type is " << old_message->content->get_type() << '/'
@@ -25069,9 +25074,11 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     }
   }
   if (old_message->is_outgoing != new_message->is_outgoing && is_new_available) {
-    LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
-               << " to " << new_message->is_outgoing << ", message content type is " << old_message->content->get_type()
-               << '/' << new_message->content->get_type();
+    if (!replace_legacy) {
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
+                 << " to " << new_message->is_outgoing << ", message content type is "
+                 << old_message->content->get_type() << '/' << new_message->content->get_type();
+    }
     old_message->is_outgoing = new_message->is_outgoing;
     need_send_update = true;
   }
@@ -25082,7 +25089,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (old_message->contains_mention != new_message->contains_mention) {
     auto old_type = old_message->content->get_type();
     if (old_message->edit_date == 0 && is_new_available && old_type != MessageContentType::PinMessage &&
-        old_type != MessageContentType::ExpiredPhoto && old_type != MessageContentType::ExpiredVideo) {
+        old_type != MessageContentType::ExpiredPhoto && old_type != MessageContentType::ExpiredVideo &&
+        !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
                  << old_message->contains_mention << " to " << new_message->contains_mention
                  << ", is_outgoing = " << old_message->is_outgoing << ", message content type is " << old_type << '/'
@@ -25094,7 +25102,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     // need_send_update = true;
   }
   if (old_message->disable_notification != new_message->disable_notification) {
-    LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available)
+    LOG_IF(ERROR, old_message->edit_date == 0 && is_new_available && !replace_legacy)
         << "Disable_notification has changed from " << old_message->disable_notification << " to "
         << new_message->disable_notification
         << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
@@ -25157,8 +25165,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       }
     } else {
       if (new_message->reply_markup != nullptr) {
-        if (message_id.is_yet_unsent() && old_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard &&
-            new_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard) {
+        if (replace_legacy ||
+            (message_id.is_yet_unsent() && old_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard &&
+             new_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard)) {
           // allow the server to update inline keyboard for sent messages
           // this is needed to get correct button_id for UrlAuth buttons
           old_message->had_reply_markup = false;
@@ -25196,7 +25205,7 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                              get_message(d, message_id) != nullptr)) {
     need_send_update = true;
   }
-  // TODO update can be send only if the message has already been returned to the user
+
   if (is_edited && !td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, old_message.get());
   }
