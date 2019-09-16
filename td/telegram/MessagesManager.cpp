@@ -8894,7 +8894,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
   }
 
   auto &list = get_dialog_list(folder_id);
-  if (list.need_unread_count_recalc_) {
+  if (!list.need_unread_count_recalc_) {
     return;
   }
   LOG(INFO) << "Recalculate unread counts";
