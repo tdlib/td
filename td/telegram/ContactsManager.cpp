@@ -8529,7 +8529,7 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
   }
 
   if (c->participant_count != participant_count) {
-    if (version == c->version) {
+    if (version == c->version && participant_count != 0) {
       // version is not changed when deleted user is removed from the chat
       LOG_IF(ERROR, c->participant_count != participant_count + 1)
           << "Member count of " << chat_id << " has changed from " << c->participant_count << " to "
