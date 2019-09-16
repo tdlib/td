@@ -75,6 +75,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     TRY_STATUS(db.exec("DROP INDEX IF EXISTS dialog_by_dialog_order"));
     TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN folder_id INT4"));
     TRY_STATUS(add_dialogs_in_folder_index());
+    TRY_STATUS(db.exec("UPDATE dialogs SET folder_id = 0 WHERE dialog_id < -1500000000000 && dialog_order != 0"));
   }
 
   return Status::OK();
