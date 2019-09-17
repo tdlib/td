@@ -354,6 +354,22 @@ struct DialogParticipant {
   DialogParticipant(UserId user_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status)
       : user_id(user_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(status) {
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(user_id, storer);
+    td::store(inviter_user_id, storer);
+    td::store(joined_date, storer);
+    td::store(status, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(user_id, parser);
+    td::parse(inviter_user_id, parser);
+    td::parse(joined_date, parser);
+    td::parse(status, parser);
+  }
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant);

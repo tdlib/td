@@ -550,9 +550,16 @@ class ContactsManager : public Actor {
     string description;
     vector<std::pair<string, string>> commands;
 
+    BotInfo() = default;
     BotInfo(int32 version, string description, vector<std::pair<string, string>> &&commands)
         : version(version), description(std::move(description)), commands(std::move(commands)) {
     }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   // do not forget to update invalidate_user_full and on_get_user_full
@@ -581,6 +588,12 @@ class ContactsManager : public Actor {
 
     bool is_bot_info_expired(int32 bot_info_version) const;
     bool is_expired() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Chat {
@@ -632,6 +645,12 @@ class ContactsManager : public Actor {
     string invite_link;
 
     bool is_changed = true;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Channel {
@@ -704,6 +723,12 @@ class ContactsManager : public Actor {
 
     double expires_at = 0.0;
     bool is_expired() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct SecretChat {
@@ -1020,15 +1045,27 @@ class ContactsManager : public Actor {
   void load_secret_chat_from_database_impl(SecretChatId secret_chat_id, Promise<Unit> promise);
   void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value);
 
+  void save_user_full(UserFull *user_full, UserId user_id);
+  static string get_user_full_database_key(UserId user_id);
+  static string get_user_full_database_value(const UserFull *user_full);
+
+  void save_chat_full(ChatFull *chat_full, ChatId chat_id);
+  static string get_chat_full_database_key(ChatId chat_id);
+  static string get_chat_full_database_value(const ChatFull *chat_full);
+
+  void save_channel_full(ChannelFull *channel_full, ChannelId channel_id);
+  static string get_channel_full_database_key(ChannelId channel_id);
+  static string get_channel_full_database_value(const ChannelFull *channel_full);
+
   void update_user(User *u, UserId user_id, bool from_binlog = false, bool from_database = false);
   void update_chat(Chat *c, ChatId chat_id, bool from_binlog = false, bool from_database = false);
   void update_channel(Channel *c, ChannelId channel_id, bool from_binlog = false, bool from_database = false);
   void update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog = false,
                           bool from_database = false);
 
-  void update_user_full(UserFull *user_full, UserId user_id);
-  void update_chat_full(ChatFull *chat_full, ChatId chat_id);
-  void update_channel_full(ChannelFull *channel_full, ChannelId channel_id);
+  void update_user_full(UserFull *user_full, UserId user_id, bool from_database = false);
+  void update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database = false);
+  void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const;
 

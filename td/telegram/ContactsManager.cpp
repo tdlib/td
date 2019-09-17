@@ -19,6 +19,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
@@ -27,6 +28,7 @@
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
@@ -2494,6 +2496,42 @@ void ContactsManager::parse_link_state(LinkState &link_state, ParserT &parser) {
 }
 
 template <class StorerT>
+void ContactsManager::BotInfo::store(StorerT &storer) const {
+  using td::store;
+  bool has_description = !description.empty();
+  bool has_commands = !commands.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_description);
+  STORE_FLAG(has_commands);
+  END_STORE_FLAGS();
+  store(version, storer);
+  if (has_description) {
+    store(description, storer);
+  }
+  if (has_commands) {
+    store(commands, storer);
+  }
+}
+
+template <class ParserT>
+void ContactsManager::BotInfo::parse(ParserT &parser) {
+  using td::parse;
+  bool has_description;
+  bool has_commands;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_description);
+  PARSE_FLAG(has_commands);
+  END_PARSE_FLAGS();
+  parse(version, parser);
+  if (has_description) {
+    parse(description, parser);
+  }
+  if (has_commands) {
+    parse(commands, parser);
+  }
+}
+
+template <class StorerT>
 void ContactsManager::User::store(StorerT &storer) const {
   using td::store;
   bool has_last_name = !last_name.empty();
@@ -2628,6 +2666,53 @@ void ContactsManager::User::parse(ParserT &parser) {
 }
 
 template <class StorerT>
+void ContactsManager::UserFull::store(StorerT &storer) const {
+  using td::store;
+  CHECK(is_inited);
+  bool has_bot_info = bot_info != nullptr;
+  bool has_about = !about.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_bot_info);
+  STORE_FLAG(has_about);
+  STORE_FLAG(is_blocked);
+  STORE_FLAG(can_be_called);
+  STORE_FLAG(has_private_calls);
+  END_STORE_FLAGS();
+  if (has_bot_info) {
+    store(*bot_info, storer);
+  }
+  if (has_about) {
+    store(about, storer);
+  }
+  store(common_chat_count, storer);
+  store_time(expires_at, storer);
+}
+
+template <class ParserT>
+void ContactsManager::UserFull::parse(ParserT &parser) {
+  using td::parse;
+  is_inited = true;
+  bool has_bot_info;
+  bool has_about;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_bot_info);
+  PARSE_FLAG(has_about);
+  PARSE_FLAG(is_blocked);
+  PARSE_FLAG(can_be_called);
+  PARSE_FLAG(has_private_calls);
+  END_PARSE_FLAGS();
+  if (has_bot_info) {
+    bot_info = make_unique<BotInfo>();
+    parse(*bot_info, parser);
+  }
+  if (has_about) {
+    parse(about, parser);
+  }
+  parse(common_chat_count, parser);
+  parse_time(expires_at, parser);
+}
+
+template <class StorerT>
 void ContactsManager::Chat::store(StorerT &storer) const {
   using td::store;
   bool has_photo = photo.small_file_id.is_valid();
@@ -2738,6 +2823,46 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   }
   if (has_cache_version) {
     parse(cache_version, parser);
+  }
+}
+
+template <class StorerT>
+void ContactsManager::ChatFull::store(StorerT &storer) const {
+  using td::store;
+  bool has_description = !description.empty();
+  bool has_invite_link = !invite_link.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_description);
+  STORE_FLAG(has_invite_link);
+  END_STORE_FLAGS();
+  store(version, storer);
+  store(creator_user_id, storer);
+  store(participants, storer);
+  if (has_description) {
+    store(description, storer);
+  }
+  if (has_invite_link) {
+    store(invite_link, storer);
+  }
+}
+
+template <class ParserT>
+void ContactsManager::ChatFull::parse(ParserT &parser) {
+  using td::parse;
+  bool has_description;
+  bool has_invite_link;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_description);
+  PARSE_FLAG(has_invite_link);
+  END_PARSE_FLAGS();
+  parse(version, parser);
+  parse(creator_user_id, parser);
+  parse(participants, parser);
+  if (has_description) {
+    parse(description, parser);
+  }
+  if (has_invite_link) {
+    parse(invite_link, parser);
   }
 }
 
@@ -2874,6 +2999,124 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (has_cache_version) {
     parse(cache_version, parser);
   }
+}
+
+template <class StorerT>
+void ContactsManager::ChannelFull::store(StorerT &storer) const {
+  using td::store;
+  bool has_description = !description.empty();
+  bool has_administrator_count = administrator_count != 0;
+  bool has_restricted_count = restricted_count != 0;
+  bool has_banned_count = banned_count != 0;
+  bool has_invite_link = !invite_link.empty();
+  bool has_sticker_set = sticker_set_id != 0;
+  bool has_linked_channel_id = linked_channel_id.is_valid();
+  bool has_migrated_from_max_message_id = migrated_from_max_message_id.is_valid();
+  bool has_migrated_from_chat_id = migrated_from_chat_id.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_description);
+  STORE_FLAG(has_administrator_count);
+  STORE_FLAG(has_restricted_count);
+  STORE_FLAG(has_banned_count);
+  STORE_FLAG(has_invite_link);
+  STORE_FLAG(has_sticker_set);
+  STORE_FLAG(has_linked_channel_id);
+  STORE_FLAG(has_migrated_from_max_message_id);
+  STORE_FLAG(has_migrated_from_chat_id);
+  STORE_FLAG(can_get_participants);
+  STORE_FLAG(can_set_username);
+  STORE_FLAG(can_set_sticker_set);
+  STORE_FLAG(can_view_statistics);
+  STORE_FLAG(is_all_history_available);
+  END_STORE_FLAGS();
+  if (has_description) {
+    store(description, storer);
+  }
+  store(participant_count, storer);
+  if (has_administrator_count) {
+    store(administrator_count, storer);
+  }
+  if (has_restricted_count) {
+    store(restricted_count, storer);
+  }
+  if (has_banned_count) {
+    store(banned_count, storer);
+  }
+  if (has_invite_link) {
+    store(invite_link, storer);
+  }
+  if (has_sticker_set) {
+    storer.context()->td().get_actor_unsafe()->stickers_manager_->store_sticker_set_id(sticker_set_id, storer);
+  }
+  if (has_linked_channel_id) {
+    store(linked_channel_id, storer);
+  }
+  if (has_migrated_from_max_message_id) {
+    store(migrated_from_max_message_id, storer);
+  }
+  if (has_migrated_from_chat_id) {
+    store(migrated_from_chat_id, storer);
+  }
+  store_time(expires_at, storer);
+}
+
+template <class ParserT>
+void ContactsManager::ChannelFull::parse(ParserT &parser) {
+  using td::parse;
+  bool has_description;
+  bool has_administrator_count;
+  bool has_restricted_count;
+  bool has_banned_count;
+  bool has_invite_link;
+  bool has_sticker_set;
+  bool has_linked_channel_id;
+  bool has_migrated_from_max_message_id;
+  bool has_migrated_from_chat_id;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_description);
+  PARSE_FLAG(has_administrator_count);
+  PARSE_FLAG(has_restricted_count);
+  PARSE_FLAG(has_banned_count);
+  PARSE_FLAG(has_invite_link);
+  PARSE_FLAG(has_sticker_set);
+  PARSE_FLAG(has_linked_channel_id);
+  PARSE_FLAG(has_migrated_from_max_message_id);
+  PARSE_FLAG(has_migrated_from_chat_id);
+  PARSE_FLAG(can_get_participants);
+  PARSE_FLAG(can_set_username);
+  PARSE_FLAG(can_set_sticker_set);
+  PARSE_FLAG(can_view_statistics);
+  PARSE_FLAG(is_all_history_available);
+  END_PARSE_FLAGS();
+  if (has_description) {
+    parse(description, parser);
+  }
+  parse(participant_count, parser);
+  if (has_administrator_count) {
+    parse(administrator_count, parser);
+  }
+  if (has_restricted_count) {
+    parse(restricted_count, parser);
+  }
+  if (has_banned_count) {
+    parse(banned_count, parser);
+  }
+  if (has_invite_link) {
+    parse(invite_link, parser);
+  }
+  if (has_sticker_set) {
+    parser.context()->td().get_actor_unsafe()->stickers_manager_->parse_sticker_set_id(sticker_set_id, parser);
+  }
+  if (has_linked_channel_id) {
+    parse(linked_channel_id, parser);
+  }
+  if (has_migrated_from_max_message_id) {
+    parse(migrated_from_max_message_id, parser);
+  }
+  if (has_migrated_from_chat_id) {
+    parse(migrated_from_chat_id, parser);
+  }
+  parse_time(expires_at, parser);
 }
 
 template <class StorerT>
@@ -6448,6 +6691,63 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
   return get_secret_chat(secret_chat_id);
 }
 
+void ContactsManager::save_user_full(UserFull *user_full, UserId user_id) {
+  if (!G()->parameters().use_chat_info_db) {
+    return;
+  }
+
+  LOG(INFO) << "Trying to save to database full " << user_id;
+  CHECK(user_full != nullptr);
+  G()->td_db()->get_sqlite_pmc()->set(get_user_full_database_key(user_id), get_user_full_database_value(user_full),
+                                      Auto());
+}
+
+string ContactsManager::get_user_full_database_key(UserId user_id) {
+  return PSTRING() << "usf" << user_id.get();
+}
+
+string ContactsManager::get_user_full_database_value(const UserFull *user_full) {
+  return log_event_store(*user_full).as_slice().str();
+}
+
+void ContactsManager::save_chat_full(ChatFull *chat_full, ChatId chat_id) {
+  if (!G()->parameters().use_chat_info_db) {
+    return;
+  }
+
+  LOG(INFO) << "Trying to save to database full " << chat_id;
+  CHECK(chat_full != nullptr);
+  G()->td_db()->get_sqlite_pmc()->set(get_chat_full_database_key(chat_id), get_chat_full_database_value(chat_full),
+                                      Auto());
+}
+
+string ContactsManager::get_chat_full_database_key(ChatId chat_id) {
+  return PSTRING() << "grf" << chat_id.get();
+}
+
+string ContactsManager::get_chat_full_database_value(const ChatFull *chat_full) {
+  return log_event_store(*chat_full).as_slice().str();
+}
+
+void ContactsManager::save_channel_full(ChannelFull *channel_full, ChannelId channel_id) {
+  if (!G()->parameters().use_chat_info_db) {
+    return;
+  }
+
+  LOG(INFO) << "Trying to save to database full " << channel_id;
+  CHECK(channel_full != nullptr);
+  G()->td_db()->get_sqlite_pmc()->set(get_channel_full_database_key(channel_id),
+                                      get_channel_full_database_value(channel_full), Auto());
+}
+
+string ContactsManager::get_channel_full_database_key(ChannelId channel_id) {
+  return PSTRING() << "chf" << channel_id.get();
+}
+
+string ContactsManager::get_channel_full_database_value(const ChannelFull *channel_full) {
+  return log_event_store(*channel_full).as_slice().str();
+}
+
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
   if (u->is_name_changed || u->is_username_changed || u->is_outbound_link_changed) {
@@ -6738,7 +7038,7 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
   }
 }
 
-void ContactsManager::update_user_full(UserFull *user_full, UserId user_id) {
+void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool from_database) {
   CHECK(user_full != nullptr);
   if (user_full->is_common_chat_count_changed) {
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
@@ -6750,11 +7050,15 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                               get_user_full_info_object(user_id, user_full)));
+
+      if (!from_database) {
+        save_user_full(user_full, user_id);
+      }
     }
   }
 }
 
-void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
+void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database) {
   CHECK(chat_full != nullptr);
   if (chat_full->is_changed) {
     vector<UserId> administrator_user_ids;
@@ -6776,10 +7080,14 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id, "update_chat_full"),
                                                          get_basic_group_full_info_object(chat_full)));
+
+    if (!from_database) {
+      save_chat_full(chat_full, chat_id);
+    }
   }
 }
 
-void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId channel_id) {
+void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database) {
   CHECK(channel_full != nullptr);
   if (channel_full->is_changed) {
     if (channel_full->linked_channel_id.is_valid()) {
@@ -6793,6 +7101,10 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
                                                          get_supergroup_full_info_object(channel_full)));
+
+    if (!from_database) {
+      save_channel_full(channel_full, channel_id);
+    }
   }
 }
 

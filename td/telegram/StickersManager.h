@@ -245,6 +245,12 @@ class StickersManager : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
+  template <class StorerT>
+  void store_sticker_set_id(int64 sticker_set_id, StorerT &storer) const;
+
+  template <class ParserT>
+  void parse_sticker_set_id(int64 &sticker_set_id, ParserT &parser);
+
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
 
@@ -447,12 +453,6 @@ class StickersManager : public Actor {
 
   template <class ParserT>
   void parse_sticker_set(StickerSet *sticker_set, ParserT &parser);
-
-  template <class StorerT>
-  void store_sticker_set_id(int64 sticker_set_id, StorerT &storer) const;
-
-  template <class ParserT>
-  void parse_sticker_set_id(int64 &sticker_set_id, ParserT &parser);
 
   Result<std::tuple<FileId, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
 

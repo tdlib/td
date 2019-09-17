@@ -19,6 +19,7 @@
 
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 
 #define BEGIN_STORE_FLAGS() \
   do {                      \
@@ -170,6 +171,17 @@ void parse(std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, ParserT &parse
     parse(val, parser);
     s.insert(std::move(val));
   }
+}
+
+template <class U, class V, class StorerT>
+void store(const std::pair<U, V> &pair, StorerT &storer) {
+  store(pair.first, storer);
+  store(pair.second, storer);
+}
+template <class U, class V, class ParserT>
+void parse(std::pair<U, V> &pair, ParserT &parser) {
+  parse(pair.first, parser);
+  parse(pair.second, parser);
 }
 
 template <class T, class StorerT>
