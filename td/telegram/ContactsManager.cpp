@@ -10750,7 +10750,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
       case telegram_api::inputChannel::ID: {
         auto input_channel = move_tl_object_as<telegram_api::inputChannel>(chat.migrated_to_);
         migrated_to_channel_id = ChannelId(input_channel->channel_id_);
-        if (!have_channel(migrated_to_channel_id)) {
+        if (!have_channel_force(migrated_to_channel_id)) {
           if (!migrated_to_channel_id.is_valid()) {
             LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << debug_str;
           } else {
