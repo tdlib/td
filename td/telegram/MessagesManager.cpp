@@ -3858,7 +3858,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
-    store(*reply_markup, storer);
+    store(reply_markup, storer);
   }
 }
 
@@ -4009,8 +4009,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
-    reply_markup = make_unique<ReplyMarkup>();
-    parse(*reply_markup, parser);
+    parse(reply_markup, parser);
   }
   is_content_secret |=
       is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
@@ -4125,7 +4124,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   store(reply_markup_message_id, storer);
   store(notification_settings, storer);
   if (has_draft_message) {
-    store(*draft_message, storer);
+    store(draft_message, storer);
   }
   store(last_clear_history_date, storer);
   store(order, storer);
@@ -4284,14 +4283,12 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   parse(reply_markup_message_id, parser);
   parse(notification_settings, parser);
   if (has_draft_message) {
-    draft_message = make_unique<DraftMessage>();
-    parse(*draft_message, parser);
+    parse(draft_message, parser);
   }
   parse(last_clear_history_date, parser);
   parse(order, parser);
   if (has_last_database_message) {
-    messages = make_unique<Message>();
-    parse(*messages, parser);
+    parse(messages, parser);
   }
   if (has_first_database_message_id) {
     parse(first_database_message_id, parser);
@@ -16779,9 +16776,7 @@ class MessagesManager::SendMessageLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(dialog_id, parser);
-    CHECK(m_out == nullptr);
-    m_out = make_unique<Message>();
-    td::parse(*m_out, parser);
+    td::parse(m_out, parser);
   }
 };
 
@@ -17586,9 +17581,7 @@ class MessagesManager::SendBotStartMessageLogEvent {
     td::parse(bot_user_id, parser);
     td::parse(dialog_id, parser);
     td::parse(parameter, parser);
-    CHECK(m_out == nullptr);
-    m_out = make_unique<Message>();
-    td::parse(*m_out, parser);
+    td::parse(m_out, parser);
   }
 };
 
@@ -17725,9 +17718,7 @@ class MessagesManager::SendInlineQueryResultMessageLogEvent {
     td::parse(dialog_id, parser);
     td::parse(query_id, parser);
     td::parse(result_id, parser);
-    CHECK(m_out == nullptr);
-    m_out = make_unique<Message>();
-    td::parse(*m_out, parser);
+    td::parse(m_out, parser);
   }
 };
 
@@ -18943,8 +18934,7 @@ class MessagesManager::ForwardMessagesLogEvent {
     int32 size = parser.fetch_int();
     messages_out.resize(size);
     for (auto &m_out : messages_out) {
-      m_out = make_unique<Message>();
-      td::parse(*m_out, parser);
+      td::parse(m_out, parser);
     }
   }
 };
@@ -19445,9 +19435,7 @@ class MessagesManager::SendScreenshotTakenNotificationMessageLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(dialog_id, parser);
-    CHECK(m_out == nullptr);
-    m_out = make_unique<Message>();
-    td::parse(*m_out, parser);
+    td::parse(m_out, parser);
   }
 };
 

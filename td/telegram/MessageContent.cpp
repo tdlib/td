@@ -942,7 +942,7 @@ static void store(const MessageContent *content, StorerT &storer) {
         store(m->invoice_payload, storer);
       }
       if (has_order_info) {
-        store(*m->order_info, storer);
+        store(m->order_info, storer);
       }
       if (has_telegram_payment_charge_id) {
         store(m->telegram_payment_charge_id, storer);
@@ -1274,8 +1274,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
         parse(m->invoice_payload, parser);
       }
       if (has_order_info) {
-        m->order_info = make_unique<OrderInfo>();
-        parse(*m->order_info, parser);
+        parse(m->order_info, parser);
       }
       if (has_telegram_payment_charge_id) {
         parse(m->telegram_payment_charge_id, parser);

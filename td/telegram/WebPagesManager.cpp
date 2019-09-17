@@ -1299,9 +1299,7 @@ class WebPagesManager::WebPageLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(web_page_id, parser);
-    CHECK(web_page_out == nullptr);
-    web_page_out = make_unique<WebPage>();
-    td::parse(*web_page_out, parser);
+    td::parse(web_page_out, parser);
   }
 };
 

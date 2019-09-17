@@ -2679,7 +2679,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_private_calls);
   END_STORE_FLAGS();
   if (has_bot_info) {
-    store(*bot_info, storer);
+    store(bot_info, storer);
   }
   if (has_about) {
     store(about, storer);
@@ -2702,8 +2702,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_private_calls);
   END_PARSE_FLAGS();
   if (has_bot_info) {
-    bot_info = make_unique<BotInfo>();
-    parse(*bot_info, parser);
+    parse(bot_info, parser);
   }
   if (has_about) {
     parse(about, parser);

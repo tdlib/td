@@ -100,7 +100,7 @@ void store(const OrderInfo &order_info, StorerT &storer) {
     store(order_info.email_address, storer);
   }
   if (has_shipping_address) {
-    store(*order_info.shipping_address, storer);
+    store(order_info.shipping_address, storer);
   }
 }
 
@@ -126,8 +126,7 @@ void parse(OrderInfo &order_info, ParserT &parser) {
     parse(order_info.email_address, parser);
   }
   if (has_shipping_address) {
-    order_info.shipping_address = make_unique<Address>();
-    parse(*order_info.shipping_address, parser);
+    parse(order_info.shipping_address, parser);
   }
 }
 

@@ -151,6 +151,18 @@ void parse(vector<T> &vec, ParserT &parser) {
   }
 }
 
+template <class T, class StorerT>
+void store(const unique_ptr<T> &ptr, StorerT &storer) {
+  CHECK(ptr != nullptr);
+  store(*ptr, storer);
+}
+template <class T, class ParserT>
+void parse(unique_ptr<T> &ptr, ParserT &parser) {
+  CHECK(ptr == nullptr);
+  ptr = make_unique<T>();
+  parse(*ptr, parser);
+}
+
 template <class Key, class Hash, class KeyEqual, class Allocator, class StorerT>
 void store(const std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, StorerT &storer) {
   storer.store_binary(narrow_cast<int32>(s.size()));
