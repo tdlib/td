@@ -5738,7 +5738,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_deleted = is_deleted;
 
     if (u->is_deleted) {
-      invalidate_user_full(user_id);
+      drop_user_full(user_id);
     }
 
     LOG(DEBUG) << "User.is_deleted has changed for " << user_id;
@@ -7917,7 +7917,7 @@ void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState ou
   }
 }
 
-void ContactsManager::invalidate_user_full(UserId user_id) {
+void ContactsManager::drop_user_full(UserId user_id) {
   auto user_full = get_user_full(user_id);
   if (user_full == nullptr) {
     return;
@@ -8038,7 +8038,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
       }
 
       if (from_update) {
-        invalidate_chat_full(chat_id);
+        drop_chat_full(chat_id);
       }
       break;
     }
@@ -9000,7 +9000,7 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
       c->default_permissions_version = -1;
       c->pinned_message_version = -1;
 
-      invalidate_chat_full(chat_id);
+      drop_chat_full(chat_id);
     }
     if (drop_invite_link) {
       auto it = chat_invite_links_.find(chat_id);
@@ -9263,7 +9263,7 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
   update_chat_online_member_count(chat_full, chat_id, true);
 }
 
-void ContactsManager::invalidate_chat_full(ChatId chat_id) {
+void ContactsManager::drop_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full(chat_id);
   if (chat_full == nullptr) {
     auto it = chat_invite_links_.find(chat_id);

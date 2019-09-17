@@ -562,7 +562,7 @@ class ContactsManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  // do not forget to update invalidate_user_full and on_get_user_full
+  // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
     vector<Photo> photos;
     int32 photo_count = -1;
@@ -955,7 +955,7 @@ class ContactsManager : public Actor {
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
-  void invalidate_user_full(UserId user_id);
+  void drop_user_full(UserId user_id);
 
   void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
   void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions, int32 version);
@@ -991,7 +991,7 @@ class ContactsManager : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus new_status,
                                     DialogParticipantStatus old_status);
 
-  void invalidate_chat_full(ChatId chat_id);
+  void drop_chat_full(ChatId chat_id);
 
   void update_user_online_member_count(User *u);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
