@@ -15,6 +15,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/StickerSetId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -252,6 +253,6 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
 
 void on_sent_message_content(Td *td, const MessageContent *content);
 
-int64 add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set);
+StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set);
 
 }  // namespace td

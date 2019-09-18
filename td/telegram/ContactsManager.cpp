@@ -27,8 +27,8 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatActor.h"
+#include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.h"
-#include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
@@ -997,13 +997,13 @@ class UpdateChannelUsernameQuery : public Td::ResultHandler {
 class SetChannelStickerSetQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
-  int64 sticker_set_id_;
+  StickerSetId sticker_set_id_;
 
  public:
   explicit SetChannelStickerSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, int64 sticker_set_id,
+  void send(ChannelId channel_id, StickerSetId sticker_set_id,
             telegram_api::object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
     channel_id_ = channel_id;
     sticker_set_id_ = sticker_set_id;
@@ -3008,7 +3008,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_restricted_count = restricted_count != 0;
   bool has_banned_count = banned_count != 0;
   bool has_invite_link = !invite_link.empty();
-  bool has_sticker_set = sticker_set_id != 0;
+  bool has_sticker_set = sticker_set_id.is_valid();
   bool has_linked_channel_id = linked_channel_id.is_valid();
   bool has_migrated_from_max_message_id = migrated_from_max_message_id.is_valid();
   bool has_migrated_from_chat_id = migrated_from_chat_id.is_valid();
@@ -3045,7 +3045,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
     store(invite_link, storer);
   }
   if (has_sticker_set) {
-    storer.context()->td().get_actor_unsafe()->stickers_manager_->store_sticker_set_id(sticker_set_id, storer);
+    store(sticker_set_id, storer);
   }
   if (has_linked_channel_id) {
     store(linked_channel_id, storer);
@@ -3104,7 +3104,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
     parse(invite_link, parser);
   }
   if (has_sticker_set) {
-    parser.context()->td().get_actor_unsafe()->stickers_manager_->parse_sticker_set_id(sticker_set_id, parser);
+    parse(sticker_set_id, parser);
   }
   if (has_linked_channel_id) {
     parse(linked_channel_id, parser);
@@ -4504,7 +4504,8 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
   td_->create_handler<UpdateChannelUsernameQuery>(std::move(promise))->send(channel_id, username);
 }
 
-void ContactsManager::set_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id, Promise<Unit> &&promise) {
+void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,
+                                              Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Supergroup not found"));
@@ -4517,7 +4518,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, int64 sticke
   }
 
   telegram_api::object_ptr<telegram_api::InputStickerSet> input_sticker_set;
-  if (sticker_set_id == 0) {
+  if (!sticker_set_id.is_valid()) {
     input_sticker_set = telegram_api::make_object<telegram_api::inputStickerSetEmpty>();
   } else {
     input_sticker_set = td_->stickers_manager_->get_input_sticker_set(sticker_set_id);
@@ -7408,9 +7409,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKERS) != 0;
     auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
-    int64 sticker_set_id = channel_full->stickerset_ == nullptr
-                               ? 0
-                               : td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true);
+    StickerSetId sticker_set_id;
+    if (channel_full->stickerset_ != nullptr) {
+      sticker_set_id = td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true);
+    }
 
     ChannelFull *channel = &channels_full_[channel_id];
     channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -9376,7 +9378,7 @@ void ContactsManager::on_update_channel_description(ChannelId channel_id, string
   }
 }
 
-void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id) {
+void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id) {
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
     return;
@@ -11264,7 +11266,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
-      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id,
+      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
       channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());

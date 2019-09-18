@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -354,7 +355,7 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
       break;
     case PhotoSizeSource::Type::StickerSetThumbnail:
       send_closure(G()->stickers_manager(), &StickersManager::reload_sticker_set,
-                   source.sticker_set_thumbnail().sticker_set_id,
+                   StickerSetId(source.sticker_set_thumbnail().sticker_set_id),
                    source.sticker_set_thumbnail().sticker_set_access_hash, std::move(promise));
       break;
     default:

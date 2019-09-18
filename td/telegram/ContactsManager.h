@@ -21,6 +21,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/StickerSetId.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
@@ -176,7 +177,7 @@ class ContactsManager : public Actor {
 
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
-  void on_update_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id);
+  void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
@@ -298,7 +299,7 @@ class ContactsManager : public Actor {
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
 
-  void set_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id, Promise<Unit> &&promise);
+  void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 
   void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise);
 
@@ -706,7 +707,7 @@ class ContactsManager : public Actor {
     int32 banned_count = 0;
     string invite_link;
 
-    int64 sticker_set_id = 0;  // do not forget to store along with access hash
+    StickerSetId sticker_set_id;
 
     ChannelId linked_channel_id;
 

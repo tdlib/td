@@ -41,6 +41,7 @@
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SequenceDispatcher.h"
+#include "td/telegram/StickerSetId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
@@ -23546,7 +23547,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeStickerSet>(action_ptr);
       auto old_sticker_set_id = add_sticker_set(td_, std::move(action->prev_stickerset_));
       auto new_sticker_set_id = add_sticker_set(td_, std::move(action->new_stickerset_));
-      return make_tl_object<td_api::chatEventStickerSetChanged>(old_sticker_set_id, new_sticker_set_id);
+      return make_tl_object<td_api::chatEventStickerSetChanged>(old_sticker_set_id.get(), new_sticker_set_id.get());
     }
     case telegram_api::channelAdminLogEventActionTogglePreHistoryHidden::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);

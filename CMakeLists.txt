@@ -623,6 +623,7 @@ set(TDLIB_SOURCE
   td/telegram/SequenceDispatcher.h
   td/telegram/SetWithPosition.h
   td/telegram/StateManager.h
+  td/telegram/StickerSetId.h
   td/telegram/StickersManager.h
   td/telegram/StorageManager.h
   td/telegram/Td.h
@@ -666,6 +667,7 @@ set(TDLIB_SOURCE
   td/telegram/ReplyMarkup.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp
+  td/telegram/StickerSetId.hpp
   td/telegram/StickersManager.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

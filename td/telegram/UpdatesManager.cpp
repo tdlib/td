@@ -1822,7 +1822,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePrivacy> update
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, bool /*force_apply*/) {
-  td_->stickers_manager_->on_get_messages_sticker_set(0, std::move(update->stickerset_), true);
+  td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), std::move(update->stickerset_), true);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> update, bool /*force_apply*/) {
@@ -1831,7 +1831,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> up
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, bool /*force_apply*/) {
   bool is_masks = (update->flags_ & telegram_api::updateStickerSetsOrder::MASKS_MASK) != 0;
-  td_->stickers_manager_->on_update_sticker_sets_order(is_masks, update->order_);
+  td_->stickers_manager_->on_update_sticker_sets_order(is_masks,
+                                                       StickersManager::convert_sticker_set_ids(update->order_));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update, bool /*force_apply*/) {

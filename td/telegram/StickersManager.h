@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/StickerSetId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -38,18 +39,22 @@ class StickersManager : public Actor {
  public:
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
 
+  static vector<StickerSetId> convert_sticker_set_ids(const vector<int64> &sticker_set_ids);
+  static vector<int64> convert_sticker_set_ids(const vector<StickerSetId> &sticker_set_ids);
+
   StickersManager(Td *td, ActorShared<> parent);
 
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id) const;
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
-  tl_object_ptr<td_api::stickerSet> get_sticker_set_object(int64 sticker_set_id) const;
+  tl_object_ptr<td_api::stickerSet> get_sticker_set_object(StickerSetId sticker_set_id) const;
 
-  tl_object_ptr<td_api::stickerSets> get_sticker_sets_object(int32 total_count, const vector<int64> &sticker_set_ids,
+  tl_object_ptr<td_api::stickerSets> get_sticker_sets_object(int32 total_count,
+                                                             const vector<StickerSetId> &sticker_set_ids,
                                                              size_t covers_limit) const;
 
-  tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(int64 sticker_set_id) const;
+  tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
   void create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
@@ -69,68 +74,69 @@ class StickersManager : public Actor {
 
   vector<FileId> search_stickers(string emoji, int32 limit, Promise<Unit> &&promise);
 
-  vector<int64> get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
+  vector<StickerSetId> get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
 
   bool has_webp_thumbnail(const tl_object_ptr<telegram_api::documentAttributeSticker> &sticker);
 
-  int64 get_sticker_set_id(const tl_object_ptr<telegram_api::InputStickerSet> &set_ptr);
+  StickerSetId get_sticker_set_id(const tl_object_ptr<telegram_api::InputStickerSet> &set_ptr);
 
-  int64 add_sticker_set(tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr);
+  StickerSetId add_sticker_set(tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr);
 
-  int64 get_sticker_set(int64 set_id, Promise<Unit> &&promise);
+  StickerSetId get_sticker_set(StickerSetId set_id, Promise<Unit> &&promise);
 
-  int64 search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
+  StickerSetId search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<int64>> search_installed_sticker_sets(bool is_masks, const string &query, int32 limit,
-                                                                Promise<Unit> &&promise);
+  std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(bool is_masks, const string &query, int32 limit,
+                                                                       Promise<Unit> &&promise);
 
-  vector<int64> search_sticker_sets(const string &query, Promise<Unit> &&promise);
+  vector<StickerSetId> search_sticker_sets(const string &query, Promise<Unit> &&promise);
 
-  void change_sticker_set(int64 set_id, bool is_installed, bool is_archived, Promise<Unit> &&promise);
+  void change_sticker_set(StickerSetId set_id, bool is_installed, bool is_archived, Promise<Unit> &&promise);
 
-  void view_featured_sticker_sets(const vector<int64> &sticker_set_ids);
+  void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
   void on_get_installed_sticker_sets(bool is_masks, tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
 
   void on_get_installed_sticker_sets_failed(bool is_masks, Status error);
 
-  void on_get_messages_sticker_set(int64 sticker_set_id, tl_object_ptr<telegram_api::messages_stickerSet> &&set,
+  void on_get_messages_sticker_set(StickerSetId sticker_set_id, tl_object_ptr<telegram_api::messages_stickerSet> &&set,
                                    bool is_changed);
 
-  int64 on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet> &&set, bool is_changed);
+  StickerSetId on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet> &&set, bool is_changed);
 
-  int64 on_get_sticker_set_covered(tl_object_ptr<telegram_api::StickerSetCovered> &&set_ptr, bool is_changed);
+  StickerSetId on_get_sticker_set_covered(tl_object_ptr<telegram_api::StickerSetCovered> &&set_ptr, bool is_changed);
 
-  void on_load_sticker_set_fail(int64 sticker_set_id, const Status &error);
+  void on_load_sticker_set_fail(StickerSetId sticker_set_id, const Status &error);
 
-  void on_install_sticker_set(int64 set_id, bool is_archived,
+  void on_install_sticker_set(StickerSetId set_id, bool is_archived,
                               tl_object_ptr<telegram_api::messages_StickerSetInstallResult> &&result);
 
-  void on_uninstall_sticker_set(int64 set_id);
+  void on_uninstall_sticker_set(StickerSetId set_id);
 
   void on_update_sticker_sets();
 
-  void on_update_sticker_sets_order(bool is_masks, const vector<int64> &sticker_set_ids);
+  void on_update_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
 
-  std::pair<int32, vector<int64>> get_archived_sticker_sets(bool is_masks, int64 offset_sticker_set_id, int32 limit,
-                                                            bool force, Promise<Unit> &&promise);
+  std::pair<int32, vector<StickerSetId>> get_archived_sticker_sets(bool is_masks, StickerSetId offset_sticker_set_id,
+                                                                   int32 limit, bool force, Promise<Unit> &&promise);
 
-  void on_get_archived_sticker_sets(bool is_masks, int64 offset_sticker_set_id,
+  void on_get_archived_sticker_sets(bool is_masks, StickerSetId offset_sticker_set_id,
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 
-  vector<int64> get_featured_sticker_sets(Promise<Unit> &&promise);
+  vector<StickerSetId> get_featured_sticker_sets(Promise<Unit> &&promise);
 
   void on_get_featured_sticker_sets(tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr);
 
   void on_get_featured_sticker_sets_failed(Status error);
 
-  vector<int64> get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise);
+  vector<StickerSetId> get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise);
 
   void on_get_attached_sticker_sets(FileId file_id,
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets);
 
-  void reorder_installed_sticker_sets(bool is_masks, const vector<int64> &sticker_set_ids, Promise<Unit> &&promise);
+  void reorder_installed_sticker_sets(bool is_masks, const vector<StickerSetId> &sticker_set_ids,
+                                      Promise<Unit> &&promise);
 
   FileId upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
 
@@ -201,7 +207,7 @@ class StickersManager : public Actor {
 
   td_api::object_ptr<td_api::httpUrl> get_emoji_suggestions_url_result(int64 random_id);
 
-  void reload_sticker_set(int64 sticker_set_id, int64 access_hash, Promise<Unit> &&promise);
+  void reload_sticker_set(StickerSetId sticker_set_id, int64 access_hash, Promise<Unit> &&promise);
 
   void reload_installed_sticker_sets(bool is_masks, bool force);
 
@@ -246,10 +252,10 @@ class StickersManager : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
   template <class StorerT>
-  void store_sticker_set_id(int64 sticker_set_id, StorerT &storer) const;
+  void store_sticker_set_id(StickerSetId sticker_set_id, StorerT &storer) const;
 
   template <class ParserT>
-  void parse_sticker_set_id(int64 &sticker_set_id, ParserT &parser);
+  void parse_sticker_set_id(StickerSetId &sticker_set_id, ParserT &parser);
 
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
@@ -263,7 +269,7 @@ class StickersManager : public Actor {
 
   class Sticker {
    public:
-    int64 set_id = 0;
+    StickerSetId set_id;
     string alt;
     Dimensions dimensions;
     PhotoSize s_thumbnail;
@@ -285,7 +291,7 @@ class StickersManager : public Actor {
     bool was_loaded = false;
     bool is_loaded = false;
 
-    int64 id = 0;
+    StickerSetId id;
     int64 access_hash = 0;
     string title;
     string short_name;
@@ -337,56 +343,58 @@ class StickersManager : public Actor {
 
   static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
-  tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(int64 sticker_set_id, size_t covers_limit) const;
+  tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(StickerSetId sticker_set_id,
+                                                                    size_t covers_limit) const;
 
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
 
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
-  StickerSet *get_sticker_set(int64 sticker_set_id);
-  const StickerSet *get_sticker_set(int64 sticker_set_id) const;
+  StickerSet *get_sticker_set(StickerSetId sticker_set_id);
+  const StickerSet *get_sticker_set(StickerSetId sticker_set_id) const;
 
-  StickerSet *add_sticker_set(int64 sticker_set_id, int64 access_hash);
+  StickerSet *add_sticker_set(StickerSetId sticker_set_id, int64 access_hash);
 
   std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr);
 
   static tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(const StickerSet *set);
 
-  int64 on_get_input_sticker_set(FileId sticker_file_id, tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr,
-                                 MultiPromiseActor *load_data_multipromise_ptr = nullptr);
+  StickerSetId on_get_input_sticker_set(FileId sticker_file_id, tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr,
+                                        MultiPromiseActor *load_data_multipromise_ptr = nullptr);
 
   void on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name);
 
-  int apply_installed_sticker_sets_order(bool is_masks, const vector<int64> &sticker_set_ids);
+  int apply_installed_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
 
   void on_update_sticker_set(StickerSet *sticker_set, bool is_installed, bool is_archived, bool is_changed,
                              bool from_database = false);
 
-  static string get_sticker_set_database_key(int64 set_id);
+  static string get_sticker_set_database_key(StickerSetId set_id);
 
-  static string get_full_sticker_set_database_key(int64 set_id);
+  static string get_full_sticker_set_database_key(StickerSetId set_id);
 
   string get_sticker_set_database_value(const StickerSet *s, bool with_stickers);
 
   void update_sticker_set(StickerSet *sticker_set);
 
-  void load_sticker_sets(vector<int64> &&sticker_set_ids, Promise<Unit> &&promise);
+  void load_sticker_sets(vector<StickerSetId> &&sticker_set_ids, Promise<Unit> &&promise);
 
-  void load_sticker_sets_without_stickers(vector<int64> &&sticker_set_ids, Promise<Unit> &&promise);
+  void load_sticker_sets_without_stickers(vector<StickerSetId> &&sticker_set_ids, Promise<Unit> &&promise);
 
-  void on_load_sticker_set_from_database(int64 sticker_set_id, bool with_stickers, string value);
+  void on_load_sticker_set_from_database(StickerSetId sticker_set_id, bool with_stickers, string value);
 
   void update_load_requests(StickerSet *sticker_set, bool with_stickers, const Status &status);
 
   void update_load_request(uint32 load_request_id, const Status &status);
 
-  void do_reload_sticker_set(int64 sticker_set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
+  void do_reload_sticker_set(StickerSetId sticker_set_id,
+                             tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
                              Promise<Unit> &&promise) const;
 
   static void read_featured_sticker_sets(void *td_void);
 
-  int32 get_sticker_sets_hash(const vector<int64> &sticker_set_ids) const;
+  int32 get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const;
 
   int32 get_featured_sticker_sets_hash() const;
 
@@ -400,12 +408,12 @@ class StickersManager : public Actor {
 
   void on_load_installed_sticker_sets_from_database(bool is_masks, string value);
 
-  void on_load_installed_sticker_sets_finished(bool is_masks, vector<int64> &&installed_sticker_set_ids,
+  void on_load_installed_sticker_sets_finished(bool is_masks, vector<StickerSetId> &&installed_sticker_set_ids,
                                                bool from_database = false);
 
   void on_load_featured_sticker_sets_from_database(string value);
 
-  void on_load_featured_sticker_sets_finished(vector<int64> &&featured_sticker_set_ids);
+  void on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids);
 
   void on_load_recent_stickers_from_database(bool is_attached, string value);
 
@@ -520,12 +528,12 @@ class StickersManager : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-  std::unordered_map<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;  // file_id -> Sticker
-  std::unordered_map<int64, unique_ptr<StickerSet>> sticker_sets_;        // id -> StickerSet
-  std::unordered_map<string, int64> short_name_to_sticker_set_id_;
+  std::unordered_map<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
+  std::unordered_map<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
+  std::unordered_map<string, StickerSetId> short_name_to_sticker_set_id_;
 
-  vector<int64> installed_sticker_set_ids_[2];
-  vector<int64> featured_sticker_set_ids_;
+  vector<StickerSetId> installed_sticker_set_ids_[2];
+  vector<StickerSetId> featured_sticker_set_ids_;
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
@@ -559,20 +567,20 @@ class StickersManager : public Actor {
   vector<FileId> favorite_sticker_file_ids_;
   FileSourceId favorite_stickers_file_source_id_;
 
-  vector<int64> archived_sticker_set_ids_[2];
+  vector<StickerSetId> archived_sticker_set_ids_[2];
   int32 total_archived_sticker_set_count_[2] = {-1, -1};
 
-  std::unordered_map<FileId, vector<int64>, FileIdHash> attached_sticker_sets_;
+  std::unordered_map<FileId, vector<StickerSetId>, FileIdHash> attached_sticker_sets_;
 
   Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
 
   std::unordered_map<string, vector<FileId>> found_stickers_;
   std::unordered_map<string, vector<Promise<Unit>>> search_stickers_queries_;
 
-  std::unordered_map<string, vector<int64>> found_sticker_sets_;
+  std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
   std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
 
-  std::unordered_set<int64> pending_viewed_featured_sticker_set_ids_;
+  std::unordered_set<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
 
   int32 recent_stickers_limit_ = 200;
