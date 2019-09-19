@@ -9,6 +9,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/tests.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 
@@ -701,5 +702,22 @@ TEST(MessageEntities, fix_formatted_text) {
         }
       }
     }
+  }
+
+  for (auto text : {" \n ➡️ ➡️ ➡️ ➡️  \n ", "\n\n\nab cd ef gh        "}) {
+    str = text;
+    vector<MessageEntity> entities;
+    vector<MessageEntity> fixed_entities;
+
+    for (int i = 0; i < 10; i++) {
+      entities.emplace_back(MessageEntity::Type::Bold, (i + 1) * 3, 2);
+      entities.emplace_back(MessageEntity::Type::Italic, (i + 1) * 3 + 2, 1);
+
+      if (i < 4) {
+        fixed_entities.emplace_back(MessageEntity::Type::Bold, i * 3, 2);
+      }
+    }
+
+    check_fix_formatted_text(str, entities, utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false, false);
   }
 }
