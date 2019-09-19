@@ -4452,7 +4452,7 @@ void ContactsManager::on_update_profile_success(int32 flags, const string &first
       << "Wrong last name \"" << u->last_name << "\", expected \"" << last_name << '"';
 
   if ((flags & ACCOUNT_UPDATE_ABOUT) != 0) {
-    UserFull *user_full = get_user_full(my_user_id);
+    UserFull *user_full = get_user_full_force(my_user_id);
     if (user_full != nullptr && user_full->is_inited) {
       user_full->about = about;
       user_full->is_changed = true;
@@ -6710,6 +6710,56 @@ string ContactsManager::get_user_full_database_value(const UserFull *user_full) 
   return log_event_store(*user_full).as_slice().str();
 }
 
+void ContactsManager::on_load_user_full_from_database(UserId user_id, string value) {
+  LOG(INFO) << "Successfully loaded full " << user_id << " of size " << value.size() << " from database";
+  //  G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
+  //  return;
+
+  if (get_user_full(user_id) != nullptr || value.empty()) {
+    return;
+  }
+
+  UserFull *user_full = &users_full_[user_id];
+  auto status = log_event_parse(*user_full, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken
+    LOG(ERROR) << "Repair broken full " << user_id << ' ' << format::as_hex_dump<4>(Slice(value));
+
+    // just clean all known data about the user and pretend that there was nothing in the database
+    users_full_.erase(user_id);
+    G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
+    return;
+  }
+
+  Dependencies dependencies;
+  dependencies.user_ids.insert(user_id);
+  td_->messages_manager_->resolve_dependencies_force(dependencies);
+
+  update_user_full(user_full, user_id, true);
+}
+
+ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) {
+  if (!user_id.is_valid()) {
+    return nullptr;
+  }
+
+  UserFull *c = get_user_full(user_id);
+  if (c != nullptr) {
+    return c;
+  }
+  if (!G()->parameters().use_chat_info_db) {
+    return nullptr;
+  }
+  if (!unavailable_user_fulls_.insert(user_id).second) {
+    return nullptr;
+  }
+
+  LOG(INFO) << "Trying to load full " << user_id << " from database";
+  on_load_user_full_from_database(user_id,
+                                  G()->td_db()->get_sqlite_sync_pmc()->get(get_user_full_database_key(user_id)));
+  return get_user_full(user_id);
+}
+
 void ContactsManager::save_chat_full(ChatFull *chat_full, ChatId chat_id) {
   if (!G()->parameters().use_chat_info_db) {
     return;
@@ -7147,6 +7197,7 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
 
 void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool from_database) {
   CHECK(user_full != nullptr);
+  unavailable_user_fulls_.erase(user_id);  // don't needed anymore
   if (user_full->is_common_chat_count_changed) {
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
@@ -7893,7 +7944,7 @@ void ContactsManager::on_update_user_blocked(UserId user_id, bool is_blocked) {
     return;
   }
 
-  UserFull *user_full = get_user_full(user_id);
+  UserFull *user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
     return;
   }
@@ -7916,7 +7967,7 @@ void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 com
     return;
   }
 
-  UserFull *user_full = get_user_full(user_id);
+  UserFull *user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
     return;
   }
@@ -8028,7 +8079,7 @@ void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState ou
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
-  auto user_full = get_user_full(user_id);
+  auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
     return;
   }
@@ -9766,7 +9817,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
     return false;
   }
 
-  auto user_full = get_user_full(user_id);
+  auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr || !user_full->is_inited) {
     auto input_user = get_input_user(user_id);
     if (input_user == nullptr) {
@@ -10559,7 +10610,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   if (!td_->auth_manager_->is_bot() && is_user_bot(user_id)) {
     // get BotInfo through UserFull
     auto user = get_user(user_id);
-    auto user_full = get_user_full(user_id);
+    auto user_full = get_user_full_force(user_id);
     if (user_full == nullptr || user_full->is_bot_info_expired(user->bot_info_version)) {
       if (force) {
         LOG(ERROR) << "Can't find cached UserFull";

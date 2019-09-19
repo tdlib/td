@@ -890,6 +890,7 @@ class ContactsManager : public Actor {
 
   const UserFull *get_user_full(UserId user_id) const;
   UserFull *get_user_full(UserId user_id);
+  UserFull *get_user_full_force(UserId user_id);
 
   void send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                 Promise<Unit> &&promise, const char *source);
@@ -1051,6 +1052,7 @@ class ContactsManager : public Actor {
   void save_user_full(UserFull *user_full, UserId user_id);
   static string get_user_full_database_key(UserId user_id);
   static string get_user_full_database_value(const UserFull *user_full);
+  void on_load_user_full_from_database(UserId user_id, string value);
 
   void save_chat_full(ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);
@@ -1223,6 +1225,7 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;
+  std::unordered_set<UserId, UserIdHash> unavailable_user_fulls_;
 
   std::unordered_map<ChatId, vector<Promise<Unit>>, ChatIdHash> load_chat_from_database_queries_;
   std::unordered_set<ChatId, ChatIdHash> loaded_from_database_chats_;
