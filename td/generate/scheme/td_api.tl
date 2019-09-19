@@ -488,7 +488,7 @@ secretChatStateClosed = SecretChatState;
 //@ttl Current message Time To Live setting (self-destruct timer) for the chat, in seconds
 //@key_hash Hash of the currently used key for comparison with the hash of the chat partner's key. This is a string of 36 bytes, which must be used to make a 12x12 square image with a color depth of 4. The first 16 bytes should be used to make a central 8x8 square, while the remaining 20 bytes should be used to construct a 2-pixel-wide border around that square.
 //-Alternatively, the first 32 bytes of the hash can be converted to the hexadecimal format and printed as 32 2-digit hex numbers
-//@layer Secret chat layer; determines features supported by the other client. Video notes are supported if the layer >= 66
+//@layer Secret chat layer; determines features supported by the other client. Video notes are supported if the layer >= 66; nested text entities and underline and strikethrough entities are supported if the layer >= 101
 secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int32 key_hash:bytes layer:int32 = SecretChat;
 
 
@@ -1397,6 +1397,15 @@ textEntityTypeBold = TextEntityType;
 
 //@description An italic text
 textEntityTypeItalic = TextEntityType;
+
+//@description An underlined text
+textEntityTypeUnderline = TextEntityType;
+
+//@description A strike-through text
+textEntityTypeStrikethrough = TextEntityType;
+
+//@description A block quote; this entity can't be sent for now
+textEntityTypeBlockQuote = TextEntityType;
 
 //@description Text that must be formatted as if inside a code HTML tag
 textEntityTypeCode = TextEntityType;

@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/SecretChatActor.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -46,6 +47,15 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
       break;
     case MessageEntity::Type::Italic:
       string_builder << "Italic";
+      break;
+    case MessageEntity::Type::Underline:
+      string_builder << "Underline";
+      break;
+    case MessageEntity::Type::Strikethrough:
+      string_builder << "Strikethrough";
+      break;
+    case MessageEntity::Type::BlockQuote:
+      string_builder << "BlockQuote";
       break;
     case MessageEntity::Type::Code:
       string_builder << "Code";
@@ -103,6 +113,12 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeBold>();
     case MessageEntity::Type::Italic:
       return make_tl_object<td_api::textEntityTypeItalic>();
+    case MessageEntity::Type::Underline:
+      return make_tl_object<td_api::textEntityTypeUnderline>();
+    case MessageEntity::Type::Strikethrough:
+      return make_tl_object<td_api::textEntityTypeStrikethrough>();
+    case MessageEntity::Type::BlockQuote:
+      return make_tl_object<td_api::textEntityTypeBlockQuote>();
     case MessageEntity::Type::Code:
       return make_tl_object<td_api::textEntityTypeCode>();
     case MessageEntity::Type::Pre:
@@ -1192,6 +1208,12 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::Italic:
         break;
+      case MessageEntity::Type::Underline:
+        break;
+      case MessageEntity::Type::Strikethrough:
+        break;
+      case MessageEntity::Type::BlockQuote:
+        break;
       case MessageEntity::Type::Code:
         break;
       case MessageEntity::Type::Pre:
@@ -1646,6 +1668,15 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
       case MessageEntity::Type::Italic:
         result.push_back(make_tl_object<telegram_api::messageEntityItalic>(entity.offset, entity.length));
         break;
+      case MessageEntity::Type::Underline:
+        result.push_back(make_tl_object<telegram_api::messageEntityUnderline>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Strikethrough:
+        result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::BlockQuote:
+        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
+        break;
       case MessageEntity::Type::Code:
         result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));
         break;
@@ -1684,7 +1715,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
 }
 
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
-    const vector<MessageEntity> &entities) {
+    const vector<MessageEntity> &entities, int32 layer) {
   vector<tl_object_ptr<secret_api::MessageEntity>> result;
   for (auto &entity : entities) {
     switch (entity.type) {
@@ -1709,6 +1740,21 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::Italic:
         result.push_back(make_tl_object<secret_api::messageEntityItalic>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Underline:
+        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+          result.push_back(make_tl_object<secret_api::messageEntityUnderline>(entity.offset, entity.length));
+        }
+        break;
+      case MessageEntity::Type::Strikethrough:
+        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+          result.push_back(make_tl_object<secret_api::messageEntityStrike>(entity.offset, entity.length));
+        }
+        break;
+      case MessageEntity::Type::BlockQuote:
+        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+          result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(entity.offset, entity.length));
+        }
         break;
       case MessageEntity::Type::Code:
         result.push_back(make_tl_object<secret_api::messageEntityCode>(entity.offset, entity.length));
@@ -1757,6 +1803,15 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         break;
       case td_api::textEntityTypeItalic::ID:
         entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypeUnderline::ID:
+        entities.emplace_back(MessageEntity::Type::Underline, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypeStrikethrough::ID:
+        entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypeBlockQuote::ID:
+        // entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeCode::ID:
         entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
@@ -1856,6 +1911,21 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Italic, entity_italic->offset_, entity_italic->length_);
         break;
       }
+      case telegram_api::messageEntityUnderline::ID: {
+        auto entity_bold = static_cast<const telegram_api::messageEntityUnderline *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::Underline, entity_bold->offset_, entity_bold->length_);
+        break;
+      }
+      case telegram_api::messageEntityStrike::ID: {
+        auto entity_bold = static_cast<const telegram_api::messageEntityStrike *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::Strikethrough, entity_bold->offset_, entity_bold->length_);
+        break;
+      }
+      case telegram_api::messageEntityBlockquote::ID: {
+        auto entity_bold = static_cast<const telegram_api::messageEntityBlockquote *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_bold->offset_, entity_bold->length_);
+        break;
+      }
       case telegram_api::messageEntityCode::ID: {
         auto entity_code = static_cast<const telegram_api::messageEntityCode *>(entity.get());
         entities.emplace_back(MessageEntity::Type::Code, entity_code->offset_, entity_code->length_);
@@ -1950,6 +2020,21 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
       case secret_api::messageEntityItalic::ID: {
         auto entity_italic = static_cast<const secret_api::messageEntityItalic *>(entity.get());
         entities.emplace_back(MessageEntity::Type::Italic, entity_italic->offset_, entity_italic->length_);
+        break;
+      }
+      case secret_api::messageEntityUnderline::ID: {
+        auto entity_bold = static_cast<const secret_api::messageEntityUnderline *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::Underline, entity_bold->offset_, entity_bold->length_);
+        break;
+      }
+      case secret_api::messageEntityStrike::ID: {
+        auto entity_bold = static_cast<const secret_api::messageEntityStrike *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::Strikethrough, entity_bold->offset_, entity_bold->length_);
+        break;
+      }
+      case secret_api::messageEntityBlockquote::ID: {
+        auto entity_bold = static_cast<const secret_api::messageEntityBlockquote *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_bold->offset_, entity_bold->length_);
         break;
       }
       case secret_api::messageEntityCode::ID: {

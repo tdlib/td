@@ -110,6 +110,12 @@ documentAttributeVideo66#ef02ce6 flags:# round_message:flags.0?true duration:int
 
 decryptedMessage#91cc4674 flags:# random_id:long ttl:int message:string media:flags.9?DecryptedMessageMedia entities:flags.7?Vector<MessageEntity> via_bot_name:flags.11?string reply_to_random_id:flags.3?long grouped_id:flags.17?long = DecryptedMessage;
 
+// layer 101
+
+messageEntityUnderline#9c4e7e8b offset:int length:int = MessageEntity;
+messageEntityStrike#bf0693d4 offset:int length:int = MessageEntity;
+messageEntityBlockquote#20df5d0 offset:int length:int = MessageEntity;
+
 ---functions---
 
 test.dummyFunction = Bool;

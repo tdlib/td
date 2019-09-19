@@ -45,7 +45,10 @@ class MessageEntity {
     TextUrl,
     MentionName,
     Cashtag,
-    PhoneNumber
+    PhoneNumber,
+    Underline,
+    Strikethrough,
+    BlockQuote
   };
   Type type;
   int32 offset;
@@ -138,7 +141,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                               const char *source);
 
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
-    const vector<MessageEntity> &entities);
+    const vector<MessageEntity> &entities, int32 layer);
 
 vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
                                            vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,

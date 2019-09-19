@@ -11082,7 +11082,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       case telegram_api::dialogFolder::ID: {
         auto folder = telegram_api::move_object_as<telegram_api::dialogFolder>(dialog_folder);
         if (from_pinned_dialog_list) {
-          // TODO updata unread_muted_peers_count:int unread_unmuted_peers_count:int unread_muted_messages_count:int unread_unmuted_messages_count:int
+          // TODO update unread_muted_peers_count:int unread_unmuted_peers_count:int
+          // unread_muted_messages_count:int unread_unmuted_messages_count:int
           FolderId folder_folder_id(folder->folder_->id_);
           if (folder_folder_id == FolderId::archive()) {
             // archive is expected in pinned dialogs list
@@ -17005,8 +17006,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
                    m->reply_to_random_id, m->ttl, message_text->text,
                    get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
-                   get_input_secret_message_entities(message_text->entities), m->via_bot_user_id, m->media_album_id,
-                   random_id);
+                   get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
+                   m->media_album_id, random_id);
     } else {
       send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
                    m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
