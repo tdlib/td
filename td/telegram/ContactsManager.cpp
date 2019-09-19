@@ -2835,6 +2835,7 @@ void ContactsManager::ChatFull::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_invite_link);
+  STORE_FLAG(can_set_username);
   END_STORE_FLAGS();
   store(version, storer);
   store(creator_user_id, storer);
@@ -2855,6 +2856,7 @@ void ContactsManager::ChatFull::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_invite_link);
+  PARSE_FLAG(can_set_username);
   END_PARSE_FLAGS();
   parse(version, parser);
   parse(creator_user_id, parser);
@@ -7539,6 +7541,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     if (chat->description != chat_full->about_) {
       chat->description = std::move(chat_full->about_);
+      chat->is_changed = true;
+    }
+    if (chat->can_set_username != chat_full->can_set_username_) {
+      chat->can_set_username = chat_full->can_set_username_;
       chat->is_changed = true;
     }
 

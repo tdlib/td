@@ -646,6 +646,8 @@ class ContactsManager : public Actor {
 
     string invite_link;
 
+    bool can_set_username = false;
+
     bool is_changed = true;
 
     template <class StorerT>
