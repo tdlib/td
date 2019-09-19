@@ -2081,27 +2081,16 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
   return entities;
 }
 
-Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool for_draft) {
-  if (!check_utf8(text)) {
-    return Status::Error(400, "Strings must be encoded in UTF-8");
-  }
-
-  fix_entities(entities);
-
+// like clean_input_string but also fixes entities
+static Result<string> clean_input_string_with_entities(const string &text, vector<MessageEntity> &entities) {
   bool in_entity = false;
-  bool have_space_in_entity = false;
-  bool have_non_whitespace_in_entity = false;
   size_t current_entity = 0;
   int32 skipped_before_current_entity = 0;
-  size_t left_entities = 0;  // will remove entities containing whitespaces only
 
   int32 utf16_offset = 0;
   int32 utf16_skipped = 0;
 
   size_t text_size = text.size();
-  size_t last_non_whitespace_pos = text_size + 1;
-  int32 last_non_whitespace_utf16_offset = 0;
 
   string result;
   result.reserve(text_size);
@@ -2120,17 +2109,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           entities[current_entity].offset -= skipped_before_current_entity;
           entities[current_entity].length -= utf16_skipped - skipped_before_current_entity;
           in_entity = false;
-
-          auto entity_type = entities[current_entity].type;
-          auto have_hidden_data =
-              entity_type == MessageEntity::Type::TextUrl || entity_type == MessageEntity::Type::MentionName;
-          if (have_non_whitespace_in_entity || (have_space_in_entity && have_hidden_data)) {
-            // TODO check entities for validness, for example, that mentions, hashtags, cashtags and URLs are valid
-            if (current_entity != left_entities) {
-              entities[left_entities] = std::move(entities[current_entity]);
-            }
-            left_entities++;
-          }
           current_entity++;
         }
       }
@@ -2140,8 +2118,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           return Status::Error(16, PSLICE() << "Entity begins in a middle of a UTF-16 symbol at byte offset " << pos);
         }
         in_entity = true;
-        have_space_in_entity = false;
-        have_non_whitespace_in_entity = false;
         skipped_before_current_entity = utf16_skipped;
       }
     }
@@ -2184,7 +2160,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       case 30:
       case 31:
       case 32:
-        have_space_in_entity = true;
         result.push_back(' ');
         utf16_offset++;
         break;
@@ -2219,18 +2194,87 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
         }
 
         result.push_back(text[pos]);
-
-        if (c != '\n') {
-          have_non_whitespace_in_entity = true;
-          last_non_whitespace_pos = result.size();
-          last_non_whitespace_utf16_offset = utf16_offset - utf16_skipped;
-        }
         break;
     }
   }
+
+  entities.resize(current_entity);
+
+  return result;
+}
+
+// removes entities containing whitespaces only
+static std::pair<size_t, int32> remove_invalid_entities(const string &text, vector<MessageEntity> &entities) {
+  size_t left_entities = 0;
+  size_t current_entity = 0;
+
+  size_t text_size = text.size();
+  size_t last_non_whitespace_pos = text_size;
+
+  int32 utf16_offset = 0;
+  int32 last_space_utf16_offset = -1;
+  int32 last_non_whitespace_utf16_offset = -1;
+
+  for (size_t pos = 0; pos <= text.size(); pos++) {
+    if (current_entity < entities.size() &&
+        utf16_offset == entities[current_entity].offset + entities[current_entity].length) {
+      auto entity_offset = entities[current_entity].offset;
+      auto entity_type = entities[current_entity].type;
+      auto have_hidden_data =
+          entity_type == MessageEntity::Type::TextUrl || entity_type == MessageEntity::Type::MentionName;
+      if (last_non_whitespace_utf16_offset >= entity_offset ||
+          (last_space_utf16_offset >= entity_offset && have_hidden_data)) {
+        // TODO check entities for validness, for example, that mentions, hashtags, cashtags and URLs are valid
+        if (current_entity != left_entities) {
+          entities[left_entities] = std::move(entities[current_entity]);
+        }
+        left_entities++;
+      }
+      current_entity++;
+    }
+
+    if (pos == text_size) {
+      break;
+    }
+
+    auto c = static_cast<unsigned char>(text[pos]);
+    switch (c) {
+      case '\n':
+        break;
+      case 32:
+        last_space_utf16_offset = utf16_offset;
+        break;
+      default:
+        while (pos + 1 < text_size && !is_utf8_character_first_code_unit(static_cast<unsigned char>(text[pos + 1]))) {
+          pos++;
+        }
+        utf16_offset += (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        last_non_whitespace_pos = pos;
+        last_non_whitespace_utf16_offset = utf16_offset;
+        break;
+    }
+
+    utf16_offset++;
+  }
   entities.erase(entities.begin() + left_entities, entities.end());
 
-  if (last_non_whitespace_pos == text_size + 1) {
+  return {last_non_whitespace_pos, last_non_whitespace_utf16_offset};
+}
+
+Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
+                          bool skip_bot_commands, bool for_draft) {
+  if (!check_utf8(text)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
+
+  fix_entities(entities);
+
+  TRY_RESULT(result, clean_input_string_with_entities(text, entities));
+
+  size_t last_non_whitespace_pos;
+  int32 last_non_whitespace_utf16_offset;
+  std::tie(last_non_whitespace_pos, last_non_whitespace_utf16_offset) = remove_invalid_entities(result, entities);
+  if (last_non_whitespace_utf16_offset == -1) {
     if (allow_empty) {
       text.clear();
       entities.clear();
@@ -2243,15 +2287,16 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     text = std::move(result);
   } else {
     // rtrim
-    result.resize(last_non_whitespace_pos);
-    while (!entities.empty() && entities.back().offset >= last_non_whitespace_utf16_offset) {
+    CHECK(last_non_whitespace_pos < result.size());
+    result.resize(last_non_whitespace_pos + 1);
+    while (!entities.empty() && entities.back().offset > last_non_whitespace_utf16_offset) {
       CHECK(entities.back().type == MessageEntity::Type::TextUrl ||
             entities.back().type == MessageEntity::Type::MentionName);
       entities.pop_back();
     }
     for (auto &entity : entities) {
-      if (entity.offset + entity.length > last_non_whitespace_utf16_offset) {
-        entity.length = last_non_whitespace_utf16_offset - entity.offset;
+      if (entity.offset + entity.length > last_non_whitespace_utf16_offset + 1) {
+        entity.length = last_non_whitespace_utf16_offset + 1 - entity.offset;
         CHECK(entity.length > 0);
       }
     }
