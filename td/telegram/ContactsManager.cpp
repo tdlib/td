@@ -6729,6 +6729,61 @@ string ContactsManager::get_chat_full_database_value(const ChatFull *chat_full) 
   return log_event_store(*chat_full).as_slice().str();
 }
 
+void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string value) {
+  LOG(INFO) << "Successfully loaded full " << chat_id << " of size " << value.size() << " from database";
+  //  G()->td_db()->get_sqlite_pmc()->erase(get_chat_full_database_key(chat_id), Auto());
+  //  return;
+
+  if (get_chat_full(chat_id) != nullptr || value.empty()) {
+    return;
+  }
+
+  ChatFull *chat_full = &chats_full_[chat_id];
+  auto status = log_event_parse(*chat_full, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken
+    LOG(ERROR) << "Repair broken full " << chat_id << ' ' << format::as_hex_dump<4>(Slice(value));
+
+    // just clean all known data about the chat and pretend that there was nothing in the database
+    chats_full_.erase(chat_id);
+    G()->td_db()->get_sqlite_pmc()->erase(get_chat_full_database_key(chat_id), Auto());
+    return;
+  }
+
+  Dependencies dependencies;
+  dependencies.chat_ids.insert(chat_id);
+  dependencies.user_ids.insert(chat_full->creator_user_id);
+  for (auto &participant : chat_full->participants) {
+    dependencies.user_ids.insert(participant.user_id);
+    dependencies.user_ids.insert(participant.inviter_user_id);
+  }
+  td_->messages_manager_->resolve_dependencies_force(dependencies);
+
+  update_chat_full(chat_full, chat_id, true);
+}
+
+ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id) {
+  if (!chat_id.is_valid()) {
+    return nullptr;
+  }
+
+  ChatFull *c = get_chat_full(chat_id);
+  if (c != nullptr) {
+    return c;
+  }
+  if (!G()->parameters().use_chat_info_db) {
+    return nullptr;
+  }
+  if (!unavailable_chat_fulls_.insert(chat_id).second) {
+    return nullptr;
+  }
+
+  LOG(INFO) << "Trying to load full " << chat_id << " from database";
+  on_load_chat_full_from_database(chat_id,
+                                  G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_full_database_key(chat_id)));
+  return get_chat_full(chat_id);
+}
+
 void ContactsManager::save_channel_full(ChannelFull *channel_full, ChannelId channel_id) {
   if (!G()->parameters().use_chat_info_db) {
     return;
@@ -7112,6 +7167,7 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
 
 void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database) {
   CHECK(chat_full != nullptr);
+  unavailable_chat_fulls_.erase(chat_id);  // don't needed anymore
   if (chat_full->is_changed) {
     vector<UserId> administrator_user_ids;
     vector<UserId> bot_user_ids;
@@ -8110,7 +8166,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         return;
       }
 
-      ChatFull *chat_full = get_chat_full(chat_id);
+      ChatFull *chat_full = get_chat_full_force(chat_id);
       if (chat_full == nullptr) {
         LOG(INFO) << "Ignore update of members for unknown full " << chat_id;
         return;
@@ -8586,7 +8642,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
 }
 
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link) {
-  LOG(INFO) << "Invalidate channel full for " << channel_id;
+  LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   // drop channel full cache
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full != nullptr) {
@@ -8606,12 +8662,12 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
 void ContactsManager::on_get_chat_invite_link(ChatId chat_id,
                                               tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
   CHECK(chat_id.is_valid());
-  if (!have_chat(chat_id)) {
+  if (!have_chat_force(chat_id)) {
     LOG(ERROR) << chat_id << " not found";
     return;
   }
 
-  auto chat_full = get_chat_full(chat_id);
+  auto chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     update_invite_link(chat_invite_links_[chat_id], std::move(invite_link_ptr));
     return;
@@ -8863,7 +8919,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
   LOG(INFO) << "Receive updateChatParticipantAdd to " << chat_id << " with " << user_id << " invited by "
             << inviter_user_id << " at " << date << " with version " << version;
 
-  ChatFull *chat_full = get_chat_full(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     LOG(INFO) << "Ignoring update about members of " << chat_id;
     return;
@@ -8968,7 +9024,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     update_chat(c, chat_id);
   }
 
-  ChatFull *chat_full = get_chat_full(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full != nullptr) {
     if (chat_full->version + 1 == version) {
       for (auto &participant : chat_full->participants) {
@@ -8998,7 +9054,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
   LOG(INFO) << "Receive updateChatParticipantDelete from " << chat_id << " with " << user_id << " and version "
             << version;
 
-  ChatFull *chat_full = get_chat_full(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     LOG(INFO) << "Ignoring update about members of " << chat_id;
     return;
@@ -9257,7 +9313,7 @@ void ContactsManager::on_update_chat_description(ChatId chat_id, string &&descri
     return;
   }
 
-  auto chat_full = get_chat_full(chat_id);
+  auto chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     return;
   }
@@ -9318,7 +9374,7 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
 }
 
 void ContactsManager::drop_chat_full(ChatId chat_id) {
-  ChatFull *chat_full = get_chat_full(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     auto it = chat_invite_links_.find(chat_id);
     if (it != chat_invite_links_.end()) {
@@ -9327,7 +9383,7 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
     return;
   }
 
-  LOG(INFO) << "Invalidate groupFull of " << chat_id;
+  LOG(INFO) << "Drop basicGroupFullInfo of " << chat_id;
   //chat_full->creator_user_id = UserId();
   chat_full->participants.clear();
   chat_full->version = -1;
@@ -9975,7 +10031,7 @@ bool ContactsManager::get_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
     return false;
   }
 
-  auto chat_full = get_chat_full(chat_id);
+  auto chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     LOG(INFO) << "Full " << chat_id << " not found";
     send_get_chat_full_query(chat_id, std::move(promise), "get_chat_full");

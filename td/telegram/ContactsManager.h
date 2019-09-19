@@ -902,6 +902,7 @@ class ContactsManager : public Actor {
 
   const ChatFull *get_chat_full(ChatId chat_id) const;
   ChatFull *get_chat_full(ChatId chat_id);
+  ChatFull *get_chat_full_force(ChatId chat_id);
 
   void send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source);
 
@@ -1054,6 +1055,7 @@ class ContactsManager : public Actor {
   void save_chat_full(ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);
   static string get_chat_full_database_value(const ChatFull *chat_full);
+  void on_load_chat_full_from_database(ChatId chat_id, string value);
 
   void save_channel_full(ChannelFull *channel_full, ChannelId channel_id);
   static string get_channel_full_database_key(ChannelId channel_id);
@@ -1224,6 +1226,7 @@ class ContactsManager : public Actor {
 
   std::unordered_map<ChatId, vector<Promise<Unit>>, ChatIdHash> load_chat_from_database_queries_;
   std::unordered_set<ChatId, ChatIdHash> loaded_from_database_chats_;
+  std::unordered_set<ChatId, ChatIdHash> unavailable_chat_fulls_;
 
   std::unordered_map<ChannelId, vector<Promise<Unit>>, ChannelIdHash> load_channel_from_database_queries_;
   std::unordered_set<ChannelId, ChannelIdHash> loaded_from_database_channels_;
