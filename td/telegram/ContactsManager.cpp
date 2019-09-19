@@ -2677,6 +2677,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(is_blocked);
   STORE_FLAG(can_be_called);
   STORE_FLAG(has_private_calls);
+  STORE_FLAG(can_pin_messages);
   END_STORE_FLAGS();
   if (has_bot_info) {
     store(bot_info, storer);
@@ -2700,6 +2701,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(is_blocked);
   PARSE_FLAG(can_be_called);
   PARSE_FLAG(has_private_calls);
+  PARSE_FLAG(can_pin_messages);
   END_PARSE_FLAGS();
   if (has_bot_info) {
     parse(bot_info, parser);
@@ -7308,10 +7310,19 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   UserFull *user = &users_full_[user_id];
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
+  if (!user->is_inited) {
+    user->can_pin_messages = (user_id == get_my_id());
+  }
   user->is_inited = true;
 
   on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
   on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
+
+  bool can_pin_messages = user_full->can_pin_message_;
+  if (user->can_pin_messages != can_pin_messages) {
+    user->can_pin_messages = can_pin_messages;
+    user->is_changed = true;
+  }
 
   bool can_be_called = user_full->phone_calls_available_ && !user_full->phone_calls_private_;
   bool has_private_calls = user_full->phone_calls_private_;

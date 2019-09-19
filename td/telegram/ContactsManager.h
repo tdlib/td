@@ -581,6 +581,7 @@ class ContactsManager : public Actor {
     bool is_blocked = false;
     bool can_be_called = false;
     bool has_private_calls = false;
+    bool can_pin_messages = false;
 
     bool is_common_chat_count_changed = true;
     bool is_changed = true;
