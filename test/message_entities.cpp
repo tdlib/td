@@ -15,17 +15,15 @@
 
 REGISTER_TESTS(message_entities);
 
-using namespace td;
-
-static void check_mention(string str, std::vector<string> expected) {
-  auto result_slice = find_mentions(str);
-  std::vector<string> result;
+static void check_mention(td::string str, td::vector<td::string> expected) {
+  auto result_slice = td::find_mentions(str);
+  td::vector<td::string> result;
   for (auto &it : result_slice) {
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
-               << tag("expected", format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
   }
 }
 
@@ -46,15 +44,15 @@ TEST(MessageEntities, mention) {
                 {"@gif", "@wiki", "@vid", "@bing", "@pic", "@bold", "@imdb", "@coub", "@like", "@vote", "@bingg"});
 };
 
-static void check_bot_command(string str, std::vector<string> expected) {
-  auto result_slice = find_bot_commands(str);
-  std::vector<string> result;
+static void check_bot_command(td::string str, td::vector<td::string> expected) {
+  auto result_slice = td::find_bot_commands(str);
+  td::vector<td::string> result;
   for (auto &it : result_slice) {
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
-               << tag("expected", format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
   }
 }
 
@@ -70,15 +68,15 @@ TEST(MessageEntities, bot_command) {
   check_bot_command("/test/", {});
 }
 
-static void check_hashtag(string str, std::vector<string> expected) {
-  auto result_slice = find_hashtags(str);
-  std::vector<string> result;
+static void check_hashtag(td::string str, td::vector<td::string> expected) {
+  auto result_slice = td::find_hashtags(str);
+  td::vector<td::string> result;
   for (auto &it : result_slice) {
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
-               << tag("expected", format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
   }
 }
 
@@ -97,29 +95,29 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(" #123a ", {"#123a"});
   check_hashtag(" #a123 ", {"#a123"});
   check_hashtag(" #123a# ", {});
-  check_hashtag(" #" + string(300, '1'), {});
-  check_hashtag(" #" + string(256, '1'), {});
-  check_hashtag(" #" + string(256, '1') + "a ", {});
-  check_hashtag(" #" + string(255, '1') + "a", {"#" + string(255, '1') + "a"});
-  check_hashtag(" #" + string(255, '1') + "Я", {"#" + string(255, '1') + "Я"});
-  check_hashtag(" #" + string(255, '1') + "a" + string(255, 'b') + "# ", {});
+  check_hashtag(" #" + td::string(300, '1'), {});
+  check_hashtag(" #" + td::string(256, '1'), {});
+  check_hashtag(" #" + td::string(256, '1') + "a ", {});
+  check_hashtag(" #" + td::string(255, '1') + "a", {"#" + td::string(255, '1') + "a"});
+  check_hashtag(" #" + td::string(255, '1') + "Я", {"#" + td::string(255, '1') + "Я"});
+  check_hashtag(" #" + td::string(255, '1') + "a" + td::string(255, 'b') + "# ", {});
   check_hashtag("#a#b #c #d", {"#c", "#d"});
   check_hashtag("#test", {"#test"});
-  check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + string(200, '1') +
-                    "ООО" + string(200, '2'),
-                {"#" + string(200, '1') + "ООО" + string(53, '2')});
+  check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
+                    "ООО" + td::string(200, '2'),
+                {"#" + td::string(200, '1') + "ООО" + td::string(53, '2')});
   check_hashtag(u8"#a\u2122", {"#a"});
 }
 
-static void check_cashtag(string str, std::vector<string> expected) {
-  auto result_slice = find_cashtags(str);
-  std::vector<string> result;
+static void check_cashtag(td::string str, td::vector<td::string> expected) {
+  auto result_slice = td::find_cashtags(str);
+  td::vector<td::string> result;
   for (auto &it : result_slice) {
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
-               << tag("expected", format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
   }
 }
 
@@ -163,8 +161,8 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
 }
 
-static void check_is_email_address(string str, bool expected) {
-  bool result = is_email_address(str);
+static void check_is_email_address(td::string str, bool expected) {
+  bool result = td::is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";
 }
 
@@ -185,79 +183,79 @@ TEST(MessageEntities, is_email_address) {
   check_is_email_address("a.ab", false);
   check_is_email_address("a.bc@d.ef", true);
 
-  vector<string> bad_userdatas = {"",
-                                  "a.a.a.a.a.a.a.a.a.a.a.a",
-                                  "+.+.+.+.+.+",
-                                  "*.a.a",
-                                  "a.*.a",
-                                  "a.a.*",
-                                  "a.a.",
-                                  "a.a.abcdefghijklmnopqrstuvwxyz0123456789",
-                                  "a.abcdefghijklmnopqrstuvwxyz0.a",
-                                  "abcdefghijklmnopqrstuvwxyz0.a.a"};
-  vector<string> good_userdatas = {"a.a.a.a.a.a.a.a.a.a.a",
-                                   "a+a+a+a+a+a+a+a+a+a+a",
-                                   "+.+.+.+.+._",
-                                   "aozAQZ0-5-9_+-aozAQZ0-5-9_.aozAQZ0-5-9_.-._.+-",
-                                   "a.a.a",
-                                   "a.a.abcdefghijklmnopqrstuvwxyz012345678",
-                                   "a.abcdefghijklmnopqrstuvwxyz.a",
-                                   "a..a",
-                                   "abcdefghijklmnopqrstuvwxyz.a.a",
-                                   ".a.a"};
+  td::vector<td::string> bad_userdatas = {"",
+                                          "a.a.a.a.a.a.a.a.a.a.a.a",
+                                          "+.+.+.+.+.+",
+                                          "*.a.a",
+                                          "a.*.a",
+                                          "a.a.*",
+                                          "a.a.",
+                                          "a.a.abcdefghijklmnopqrstuvwxyz0123456789",
+                                          "a.abcdefghijklmnopqrstuvwxyz0.a",
+                                          "abcdefghijklmnopqrstuvwxyz0.a.a"};
+  td::vector<td::string> good_userdatas = {"a.a.a.a.a.a.a.a.a.a.a",
+                                           "a+a+a+a+a+a+a+a+a+a+a",
+                                           "+.+.+.+.+._",
+                                           "aozAQZ0-5-9_+-aozAQZ0-5-9_.aozAQZ0-5-9_.-._.+-",
+                                           "a.a.a",
+                                           "a.a.abcdefghijklmnopqrstuvwxyz012345678",
+                                           "a.abcdefghijklmnopqrstuvwxyz.a",
+                                           "a..a",
+                                           "abcdefghijklmnopqrstuvwxyz.a.a",
+                                           ".a.a"};
 
-  vector<string> bad_domains = {"",
-                                ".",
-                                "abc",
-                                "localhost",
-                                "a.a.a.a.a.a.a.ab",
-                                ".......",
-                                "a.a.a.a.a.a+ab",
-                                "a+a.a.a.a.a.ab",
-                                "a.a.a.a.a.a.a",
-                                "a.a.a.a.a.a.abcdefg",
-                                "a.a.a.a.a.a.ab0yz",
-                                "a.a.a.a.a.a.ab9yz",
-                                "a.a.a.a.a.a.ab-yz",
-                                "a.a.a.a.a.a.ab_yz",
-                                "a.a.a.a.a.a.ab*yz",
-                                ".ab",
-                                ".a.ab",
-                                "a..ab",
-                                "a.a.a..a.ab",
-                                ".a.a.a.a.ab",
-                                "abcdefghijklmnopqrstuvwxyz01234.ab",
-                                "ab0cd.abd.aA*sd.0.9.0-9.ABOYZ",
-                                "ab*cd.abd.aAasd.0.9.0-9.ABOYZ",
-                                "ab0cd.abd.aAasd.0.9.0*9.ABOYZ",
-                                "*b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0c*.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.0-*.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.*-9.ABOYZ",
-                                "-b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0c-.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.-.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.--9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.0--.ABOYZ",
-                                "_b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0c_.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd._.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9._-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.0-_.ABOYZ",
-                                "-.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.-.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9.-.ABOYZ",
-                                "_.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d._.0.9.0-9.ABOYZ",
-                                "ab0cd.ab_d.aA-sd.0.9._.ABOYZ"};
-  vector<string> good_domains = {"a.a.a.a.a.a.ab",
-                                 "a.a.a.a.a.a.abcdef",
-                                 "a.a.a.a.a.a.aboyz",
-                                 "a.a.a.a.a.a.ABOYZ",
-                                 "a.a.a.a.a.a.AbOyZ",
-                                 "abcdefghijklmnopqrstuvwxyz0123.ab",
-                                 "ab0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
-                                 "A.Z.aA-sd.a.z.0-9.ABOYZ"};
+  td::vector<td::string> bad_domains = {"",
+                                        ".",
+                                        "abc",
+                                        "localhost",
+                                        "a.a.a.a.a.a.a.ab",
+                                        ".......",
+                                        "a.a.a.a.a.a+ab",
+                                        "a+a.a.a.a.a.ab",
+                                        "a.a.a.a.a.a.a",
+                                        "a.a.a.a.a.a.abcdefg",
+                                        "a.a.a.a.a.a.ab0yz",
+                                        "a.a.a.a.a.a.ab9yz",
+                                        "a.a.a.a.a.a.ab-yz",
+                                        "a.a.a.a.a.a.ab_yz",
+                                        "a.a.a.a.a.a.ab*yz",
+                                        ".ab",
+                                        ".a.ab",
+                                        "a..ab",
+                                        "a.a.a..a.ab",
+                                        ".a.a.a.a.ab",
+                                        "abcdefghijklmnopqrstuvwxyz01234.ab",
+                                        "ab0cd.abd.aA*sd.0.9.0-9.ABOYZ",
+                                        "ab*cd.abd.aAasd.0.9.0-9.ABOYZ",
+                                        "ab0cd.abd.aAasd.0.9.0*9.ABOYZ",
+                                        "*b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0c*.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.0-*.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.*-9.ABOYZ",
+                                        "-b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0c-.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.-.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.--9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.0--.ABOYZ",
+                                        "_b0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0c_.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd._.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9._-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.0-_.ABOYZ",
+                                        "-.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.-.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9.-.ABOYZ",
+                                        "_.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d._.0.9.0-9.ABOYZ",
+                                        "ab0cd.ab_d.aA-sd.0.9._.ABOYZ"};
+  td::vector<td::string> good_domains = {"a.a.a.a.a.a.ab",
+                                         "a.a.a.a.a.a.abcdef",
+                                         "a.a.a.a.a.a.aboyz",
+                                         "a.a.a.a.a.a.ABOYZ",
+                                         "a.a.a.a.a.a.AbOyZ",
+                                         "abcdefghijklmnopqrstuvwxyz0123.ab",
+                                         "ab0cd.ab_d.aA-sd.0.9.0-9.ABOYZ",
+                                         "A.Z.aA-sd.a.z.0-9.ABOYZ"};
 
   for (auto &userdata : bad_userdatas) {
     for (auto &domain : bad_domains) {
@@ -281,11 +279,11 @@ TEST(MessageEntities, is_email_address) {
   }
 }
 
-static void check_url(string str, std::vector<string> expected_urls,
-                      std::vector<string> expected_email_addresses = {}) {
-  auto result_slice = find_urls(str);
-  std::vector<string> result_urls;
-  std::vector<string> result_email_addresses;
+static void check_url(td::string str, td::vector<td::string> expected_urls,
+                      td::vector<td::string> expected_email_addresses = {}) {
+  auto result_slice = td::find_urls(str);
+  td::vector<td::string> result_urls;
+  td::vector<td::string> result_email_addresses;
   for (auto &it : result_slice) {
     if (!it.second) {
       result_urls.push_back(it.first.str());
@@ -294,12 +292,12 @@ static void check_url(string str, std::vector<string> expected_urls,
     }
   }
   if (result_urls != expected_urls) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result_urls))
-               << tag("expected", format::as_array(expected_urls));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result_urls))
+               << td::tag("expected", td::format::as_array(expected_urls));
   }
   if (result_email_addresses != expected_email_addresses) {
-    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result_email_addresses))
-               << tag("expected", format::as_array(expected_email_addresses));
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result_email_addresses))
+               << td::tag("expected", td::format::as_array(expected_email_addresses));
   }
 }
 
@@ -532,23 +530,24 @@ TEST(MessageEntities, url) {
   check_url("...👉http://ab.com/cdefgh-1IJ", {});  // TODO
 }
 
-static void check_fix_formatted_text(string str, vector<MessageEntity> entities, string expected_str,
-                                     vector<MessageEntity> expected_entities, bool allow_empty, bool skip_new_entities,
-                                     bool skip_bot_commands, bool for_draft) {
-  ASSERT_TRUE(fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_ok());
+static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities, td::string expected_str,
+                                     td::vector<td::MessageEntity> expected_entities, bool allow_empty,
+                                     bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
+  ASSERT_TRUE(
+      td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_ok());
   ASSERT_STREQ(expected_str, str);
   ASSERT_EQ(expected_entities, entities);
 }
 
-static void check_fix_formatted_text(string str, vector<MessageEntity> entities, bool allow_empty,
+static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities, bool allow_empty,
                                      bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
   ASSERT_TRUE(
       fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_error());
 }
 
 TEST(MessageEntities, fix_formatted_text) {
-  string str;
-  string fixed_str;
+  td::string str;
+  td::string fixed_str;
   for (auto i = 0; i <= 32; i++) {
     str += static_cast<char>(i);
     if (i != 13) {
@@ -571,18 +570,18 @@ TEST(MessageEntities, fix_formatted_text) {
   str += "a  \r\n  ";
   fixed_str += "a  \n  ";
 
-  for (int32 i = 33; i <= 35; i++) {
-    vector<MessageEntity> entities;
-    entities.emplace_back(MessageEntity::Type::Bold, 0, i);
+  for (td::int32 i = 33; i <= 35; i++) {
+    td::vector<td::MessageEntity> entities;
+    entities.emplace_back(td::MessageEntity::Type::Bold, 0, i);
 
-    vector<MessageEntity> fixed_entities;
+    td::vector<td::MessageEntity> fixed_entities;
     if (i != 33) {
       fixed_entities = entities;
       fixed_entities.back().length = i - 1;
     }
     check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, true);
 
-    string expected_str;
+    td::string expected_str;
     if (i != 33) {
       fixed_entities = entities;
       fixed_entities.back().length = 33;
@@ -596,8 +595,8 @@ TEST(MessageEntities, fix_formatted_text) {
 
   str = "👉 👉";
   for (int i = 0; i < 10; i++) {
-    vector<MessageEntity> entities;
-    entities.emplace_back(MessageEntity::Type::Bold, i, 1);
+    td::vector<td::MessageEntity> entities;
+    entities.emplace_back(td::MessageEntity::Type::Bold, i, 1);
     if (i == 0 || i == 1 || i == 3 || i == 4) {
       check_fix_formatted_text(str, entities, true, true, true, true);
       check_fix_formatted_text(str, entities, false, false, false, false);
@@ -609,20 +608,20 @@ TEST(MessageEntities, fix_formatted_text) {
 
   str = "  /test @abaca #ORD $ABC  telegram.org ";
   for (auto for_draft : {false, true}) {
-    int32 shift = for_draft ? 2 : 0;
-    string expected_str = for_draft ? str : str.substr(2, str.size() - 3);
+    td::int32 shift = for_draft ? 2 : 0;
+    td::string expected_str = for_draft ? str : str.substr(2, str.size() - 3);
 
     for (auto skip_new_entities : {false, true}) {
       for (auto skip_bot_commands : {false, true}) {
-        vector<MessageEntity> entities;
+        td::vector<td::MessageEntity> entities;
         if (!skip_new_entities) {
           if (!skip_bot_commands) {
-            entities.emplace_back(MessageEntity::Type::BotCommand, shift, 5);
+            entities.emplace_back(td::MessageEntity::Type::BotCommand, shift, 5);
           }
-          entities.emplace_back(MessageEntity::Type::Mention, shift + 6, 6);
-          entities.emplace_back(MessageEntity::Type::Hashtag, shift + 13, 4);
-          entities.emplace_back(MessageEntity::Type::Cashtag, shift + 18, 4);
-          entities.emplace_back(MessageEntity::Type::Url, shift + 24, 12);
+          entities.emplace_back(td::MessageEntity::Type::Mention, shift + 6, 6);
+          entities.emplace_back(td::MessageEntity::Type::Hashtag, shift + 13, 4);
+          entities.emplace_back(td::MessageEntity::Type::Cashtag, shift + 18, 4);
+          entities.emplace_back(td::MessageEntity::Type::Url, shift + 24, 12);
         }
 
         check_fix_formatted_text(str, {}, expected_str, entities, true, skip_new_entities, skip_bot_commands,
@@ -634,10 +633,10 @@ TEST(MessageEntities, fix_formatted_text) {
   }
 
   str = "aba \r\n caba ";
-  for (int32 length = 1; length <= 3; length++) {
-    for (int32 offset = 0; static_cast<size_t>(offset + length) <= str.size(); offset++) {
-      for (auto type : {MessageEntity::Type::Bold, MessageEntity::Type::Url, MessageEntity::Type::TextUrl,
-                        MessageEntity::Type::MentionName}) {
+  for (td::int32 length = 1; length <= 3; length++) {
+    for (td::int32 offset = 0; static_cast<size_t>(offset + length) <= str.size(); offset++) {
+      for (auto type : {td::MessageEntity::Type::Bold, td::MessageEntity::Type::Url, td::MessageEntity::Type::TextUrl,
+                        td::MessageEntity::Type::MentionName}) {
         for (auto for_draft : {false, true}) {
           fixed_str = for_draft ? "aba \n caba " : "aba \n caba";
           auto fixed_length = offset <= 4 && offset + length >= 5 ? length - 1 : length;
@@ -649,14 +648,14 @@ TEST(MessageEntities, fix_formatted_text) {
             fixed_length--;
           }
 
-          vector<MessageEntity> entities;
+          td::vector<td::MessageEntity> entities;
           entities.emplace_back(type, offset, length);
-          vector<MessageEntity> fixed_entities;
+          td::vector<td::MessageEntity> fixed_entities;
           if (fixed_length > 0) {
             for (auto i = 0; i < length; i++) {
               if (str[offset + i] != '\r' && str[offset + i] != '\n' &&
-                  (str[offset + i] != ' ' || type == MessageEntity::Type::TextUrl ||
-                   type == MessageEntity::Type::MentionName)) {
+                  (str[offset + i] != ' ' || type == td::MessageEntity::Type::TextUrl ||
+                   type == td::MessageEntity::Type::MentionName)) {
                 fixed_entities.emplace_back(type, fixed_offset, fixed_length);
                 break;
               }
@@ -669,14 +668,14 @@ TEST(MessageEntities, fix_formatted_text) {
   }
 
   str = "aba caba";
-  for (int32 length = -10; length <= 10; length++) {
-    for (int32 offset = -10; offset <= 10; offset++) {
-      vector<MessageEntity> entities;
-      entities.emplace_back(MessageEntity::Type::Bold, offset, length);
-      vector<MessageEntity> fixed_entities;
+  for (td::int32 length = -10; length <= 10; length++) {
+    for (td::int32 offset = -10; offset <= 10; offset++) {
+      td::vector<td::MessageEntity> entities;
+      entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
+      td::vector<td::MessageEntity> fixed_entities;
       if (length > 0 && offset >= 0 && static_cast<size_t>(length + offset) <= str.size() &&
           (length >= 2 || offset != 3)) {
-        fixed_entities.emplace_back(MessageEntity::Type::Bold, offset, length);
+        fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       }
       check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);
       check_fix_formatted_text(str, entities, str, fixed_entities, false, false, false, true);
@@ -684,15 +683,15 @@ TEST(MessageEntities, fix_formatted_text) {
   }
 
   str = "aba caba";
-  for (int32 length = 1; length <= 7; length++) {
-    for (int32 offset = 0; offset <= 8 - length; offset++) {
-      for (int32 length2 = 1; length2 <= 7; length2++) {
-        for (int32 offset2 = 0; offset2 <= 8 - length2; offset2++) {
+  for (td::int32 length = 1; length <= 7; length++) {
+    for (td::int32 offset = 0; offset <= 8 - length; offset++) {
+      for (td::int32 length2 = 1; length2 <= 7; length2++) {
+        for (td::int32 offset2 = 0; offset2 <= 8 - length2; offset2++) {
           if (offset != offset2) {
-            vector<MessageEntity> entities;
-            entities.emplace_back(MessageEntity::Type::TextUrl, offset, length);
-            entities.emplace_back(MessageEntity::Type::TextUrl, offset2, length2);
-            vector<MessageEntity> fixed_entities = entities;
+            td::vector<td::MessageEntity> entities;
+            entities.emplace_back(td::MessageEntity::Type::TextUrl, offset, length);
+            entities.emplace_back(td::MessageEntity::Type::TextUrl, offset2, length2);
+            td::vector<td::MessageEntity> fixed_entities = entities;
             std::sort(fixed_entities.begin(), fixed_entities.end());
             if (fixed_entities[0].offset + fixed_entities[0].length > fixed_entities[1].offset) {
               fixed_entities.pop_back();
@@ -706,18 +705,19 @@ TEST(MessageEntities, fix_formatted_text) {
 
   for (auto text : {" \n ➡️ ➡️ ➡️ ➡️  \n ", "\n\n\nab cd ef gh        "}) {
     str = text;
-    vector<MessageEntity> entities;
-    vector<MessageEntity> fixed_entities;
+    td::vector<td::MessageEntity> entities;
+    td::vector<td::MessageEntity> fixed_entities;
 
     for (int i = 0; i < 10; i++) {
-      entities.emplace_back(MessageEntity::Type::Bold, (i + 1) * 3, 2);
-      entities.emplace_back(MessageEntity::Type::Italic, (i + 1) * 3 + 2, 1);
+      entities.emplace_back(td::MessageEntity::Type::Bold, (i + 1) * 3, 2);
+      entities.emplace_back(td::MessageEntity::Type::Italic, (i + 1) * 3 + 2, 1);
 
       if (i < 4) {
-        fixed_entities.emplace_back(MessageEntity::Type::Bold, i * 3, 2);
+        fixed_entities.emplace_back(td::MessageEntity::Type::Bold, i * 3, 2);
       }
     }
 
-    check_fix_formatted_text(str, entities, utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false, false);
+    check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false,
+                             false);
   }
 }
