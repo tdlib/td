@@ -13,6 +13,7 @@ Choose your preferred programming language to see examples of usage and a detail
 - [JavaScript](#javascript)
 - [Go](#go)
 - [Java](#java)
+- [Kotlin](#kotlin)
 - [C#](#csharp)
 - [C++](#cxx)
 - [Swift](#swift)
@@ -85,6 +86,13 @@ See [example/java](https://github.com/tdlib/td/tree/master/example/java) for an 
 To use TDLib to create Android Java applications, use our [prebuilt library for Android](https://core.telegram.org/tdlib/tdlib.zip).
 
 You can also see [JTDLib](https://github.com/ErnyTech/JTDLib) for another example of Java wrapper for TDLib.
+
+<a name="kotlin"></a>
+## Using TDLib in Kotlin projects
+
+TDLib can be used from the Kotlin/JVM programming language through same way as in [JAVA](#java).
+
+You can also use [ktd](https://github.com/whyoleg/ktd) library with kotlin specific bindings.
 
 <a name="csharp"></a>
 ## Using TDLib in C# projects
