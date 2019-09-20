@@ -23,6 +23,7 @@ select.large { font-size: large; }
         <option>JavaScript</option>
         <option>Go</option>
         <option>Java</option>
+        <option>Kotlin</option>
         <option>C#</option>
         <option>C++</option>
         <option>Swift</option>
@@ -165,6 +166,7 @@ function getSupportedOs(language) {
     case 'JavaScript':
       return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'OpenBSD (Node.js)', 'NetBSD (Node.js)', 'Browser'];
     case 'Java':
+    case 'Kotlin':
       return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD', 'Android'];
     case 'C#':
       return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.Net Core)', 'Linux (.Net Core)', 'macOS (.Net Core)', 'FreeBSD (.Net Core)'];
@@ -182,6 +184,7 @@ function getExampleAnchor(language) {
     case 'JavaScript':
     case 'Go':
     case 'Java':
+    case 'Kotlin':
     case 'Swift':
     case 'Objective-C':
     case 'Rust':
@@ -272,6 +275,7 @@ function getTarget(language, os) {
     case 'C++':
       return 'tdclient';
     case 'Java':
+    case 'Kotlin':
       return 'JNI';
     default:
       return 'tdjson';
