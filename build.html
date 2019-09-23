@@ -28,6 +28,7 @@ select.large { font-size: large; }
         <option>C++</option>
         <option>Swift</option>
         <option>Objective-C</option>
+        <option>Dart</option>
         <option>Rust</option>
         <option>Erlang</option>
         <option>PHP</option>
@@ -167,9 +168,11 @@ function getSupportedOs(language) {
       return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'OpenBSD (Node.js)', 'NetBSD (Node.js)', 'Browser'];
     case 'Java':
     case 'Kotlin':
-      return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD', 'Android'];
+      return ['Android', 'Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD'];
     case 'C#':
       return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.Net Core)', 'Linux (.Net Core)', 'macOS (.Net Core)', 'FreeBSD (.Net Core)'];
+    case 'Dart':
+      return ['Android', 'iOS', 'Windows', 'Linux', 'macOS', 'tvOS', 'watchOS'];
     case 'Swift':
     case 'Objective-C':
       return ['Windows', 'Linux', 'macOS', 'iOS', 'tvOS', 'watchOS'];
@@ -187,6 +190,7 @@ function getExampleAnchor(language) {
     case 'Kotlin':
     case 'Swift':
     case 'Objective-C':
+    case 'Dart':
     case 'Rust':
     case 'Erlang':
     case 'PHP':
