@@ -8,6 +8,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
@@ -23,6 +24,7 @@ static void usage() {
   td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
   td::TsCerr() << "  -h/--help\tDisplay this information\n";
   td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter, to which try to connect (default is 2)\n";
+  td::TsCerr() << "  -l/--proxy-list\tName of a file with proxies to check; one proxy per line\n";
   td::TsCerr() << "  -t/--timeout\tMaximum overall timeout for the request (default is 10 seconds)\n";
   std::exit(2);
 }
@@ -33,6 +35,10 @@ int main(int argc, char **argv) {
   td::vector<std::pair<td::string, td::td_api::object_ptr<td::td_api::testProxy>>> requests;
 
   auto add_proxy = [&requests](const td::string &arg) {
+    if (arg.empty()) {
+      return;
+    }
+
     auto secret_pos = arg.rfind(':');
     if (secret_pos == td::string::npos) {
       td::TsCerr() << "Error: failed to find proxy port and secret in \"" << arg << "\"\n";
@@ -80,7 +86,7 @@ int main(int argc, char **argv) {
         }
       }
       if (!is_optional) {
-        td::TsCerr() << "Value is required after " << arg << "\n";
+        td::TsCerr() << "Error: value is required after " << arg << "\n";
         usage();
       }
       return td::string();
@@ -99,8 +105,17 @@ int main(int argc, char **argv) {
       new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
     } else if (td::begins_with(arg, "-t") || arg == "--timeout") {
       timeout = td::to_double(get_next_arg());
-    } else if (td::begins_with(arg, "-d") || arg == "--dc_id") {
+    } else if (td::begins_with(arg, "-d") || arg == "--dc-id") {
       dc_id = td::to_integer<td::int32>(get_next_arg());
+    } else if (td::begins_with(arg, "-l") || arg == "--proxy-list") {
+      auto r_proxies = td::read_file_str(get_next_arg());
+      if (r_proxies.is_error()) {
+        td::TsCerr() << "Error: wrong file name specified\n";
+        usage();
+      }
+      for (auto &proxy : td::full_split(r_proxies.ok(), '\n')) {
+        add_proxy(td::trim(proxy));
+      }
     } else if (arg[0] == '-') {
       usage();
     } else {
