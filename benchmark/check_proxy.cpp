@@ -12,11 +12,13 @@
 #include "td/utils/misc.h"
 
 #include <cstdlib>
+#include <iostream>
+#include <utility>
 
 static void usage() {
-  td::TsCerr() << "Tests specified MTProto-proxy; exits with code 0 on success.\n";
-  td::TsCerr() << "Usage:\n";
-  td::TsCerr() << "check_proxy [-v<N>] [-h] server:port:secret\n";
+  td::TsCerr() << "Tests specified MTProto-proxies, outputs working proxies to stdout; exits with code 0 if a working proxy was found.\n";
+  td::TsCerr() << "Usage: check_proxy [options] server:port:secret [server2:port2:secret2 ...]\n";
+  td::TsCerr() << "Options:\n";
   td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
   td::TsCerr() << "  -h/--help\tDisplay this information\n";
   td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter, to which try to connect (default is 2)\n";
@@ -26,9 +28,38 @@ static void usage() {
 
 int main(int argc, char **argv) {
   int new_verbosity_level = VERBOSITY_NAME(FATAL);
-  td::string server;
-  td::int32 port = 0;
-  td::string secret;
+
+  td::vector<std::pair<td::string, td::td_api::object_ptr<td::td_api::testProxy>>> requests;
+
+  auto add_proxy = [&requests](const td::string &arg) {
+    auto secret_pos = arg.rfind(':');
+    if (secret_pos == td::string::npos) {
+      td::TsCerr() << "Error: failed to find proxy port and secret in \"" << arg << "\"\n";
+      usage();
+    }
+    auto secret = arg.substr(secret_pos + 1);
+    auto port_pos = arg.substr(0, secret_pos).rfind(':');
+    if (port_pos == td::string::npos) {
+      td::TsCerr() << "Error: failed to find proxy secret in \"" << arg << "\"\n";
+      usage();
+    }
+    auto r_port = td::to_integer_safe<td::int32>(arg.substr(port_pos + 1, secret_pos - port_pos - 1));
+    if (r_port.is_error()) {
+      td::TsCerr() << "Error: failed to parse proxy port in \"" << arg << "\"\n";
+      usage();
+    }
+    auto port = r_port.move_as_ok();
+    auto server = arg.substr(0, port_pos);
+
+    if (server.empty() || port <= 0 || port > 65536 || secret.empty()) {
+      td::TsCerr() << "Error: proxy address to check is in wrong format: \"" << arg << "\"\n";
+      usage();
+    }
+
+    requests.emplace_back(arg,
+                          td::td_api::make_object<td::td_api::testProxy>(
+                              server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret), -1, -1));
+  };
 
   td::int32 dc_id = 2;
   double timeout = 10.0;
@@ -55,38 +86,21 @@ int main(int argc, char **argv) {
         td::TsCerr() << "Value is required after " << arg;
         usage();
       }
-      timeout = td::to_double(std::string(argv[++i]));
+      timeout = td::to_double(td::string(argv[++i]));
     } else if (arg == "-d" || arg == "--dc_id") {
       if (i + 1 == argc) {
         td::TsCerr() << "Value is required after " << arg;
         usage();
       }
-      dc_id = td::to_integer<td::int32>(std::string(argv[++i]));
+      dc_id = td::to_integer<td::int32>(td::string(argv[++i]));
     } else if (arg[0] == '-') {
       usage();
     } else {
-      auto secret_pos = arg.rfind(':');
-      if (secret_pos == td::string::npos) {
-        td::TsCerr() << (PSLICE() << "Error: failed to find proxy port and secret in \"" << arg << "\"\n");
-        usage();
-      }
-      secret = arg.substr(secret_pos + 1);
-      auto port_pos = arg.substr(0, secret_pos).rfind(':');
-      if (port_pos == td::string::npos) {
-        td::TsCerr() << (PSLICE() << "Error: failed to find proxy secret in \"" << arg << "\"\n");
-        usage();
-      }
-      auto r_port = td::to_integer_safe<td::int32>(arg.substr(port_pos + 1, secret_pos - port_pos - 1));
-      if (r_port.is_error()) {
-        td::TsCerr() << (PSLICE() << "Error: failed to parse proxy port in \"" << arg << "\"\n");
-        usage();
-      }
-      port = r_port.move_as_ok();
-      server = arg.substr(0, port_pos);
+      add_proxy(arg);
     }
   }
 
-  if (server.empty() || port <= 0 || port > 65536 || secret.empty()) {
+  if (requests.empty()) {
     td::TsCerr() << "Error: proxy address to check is not specified\n";
     usage();
   }
@@ -94,18 +108,30 @@ int main(int argc, char **argv) {
   SET_VERBOSITY_LEVEL(new_verbosity_level);
 
   td::Client client;
-  client.send({1, td::td_api::make_object<td::td_api::testProxy>(
-                      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret), dc_id, timeout)});
-  while (true) {
+  for (size_t i = 0; i < requests.size(); i++) {
+    auto &request = requests[i].second;
+    request->dc_id_ = dc_id;
+    request->timeout_ = timeout;
+    client.send({i + 1, std::move(request)});
+  }
+  size_t successful_requests = 0;
+  size_t failed_requests = 0;
+
+  while (successful_requests + failed_requests != requests.size()) {
     auto response = client.receive(100.0);
-    if (response.id == 1) {
+    if (1 <= response.id && response.id <= requests.size()) {
+      auto &proxy = requests[static_cast<size_t>(response.id - 1)].first;
       if (response.object->get_id() == td::td_api::error::ID) {
-        LOG(ERROR) << to_string(response.object);
-        return 1;
+        LOG(ERROR) << proxy << ": " << to_string(response.object);
+        failed_requests++;
       } else {
-        LOG(ERROR) << "Success!";
-        return 0;
+        std::cout << proxy << std::endl;
+        successful_requests++;
       }
     }
+  }
+
+  if (successful_requests == 0) {
+    return 1;
   }
 }
