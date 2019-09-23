@@ -3646,7 +3646,7 @@ class CliClient final : public Actor {
         send_request(
             td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), server, port_int, enable, std::move(type)));
       } else if (op == "tproxy") {
-        send_request(td_api::make_object<td_api::testProxy>(server, port_int, std::move(type)));
+        send_request(td_api::make_object<td_api::testProxy>(server, port_int, std::move(type), 2, 10.0));
       } else {
         send_request(td_api::make_object<td_api::addProxy>(server, port_int, enable, std::move(type)));
       }

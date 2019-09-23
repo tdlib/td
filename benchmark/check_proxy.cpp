@@ -17,6 +17,10 @@ static void usage() {
   td::TsCerr() << "Tests specified MTProto-proxy; exits with code 0 on success.\n";
   td::TsCerr() << "Usage:\n";
   td::TsCerr() << "check_proxy [-v<N>] [-h] server:port:secret\n";
+  td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
+  td::TsCerr() << "  -h/--help\tDisplay this information\n";
+  td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter, to which try to connect (default is 2)\n";
+  td::TsCerr() << "  -t/--timeout\tMaximum overall timeout for the request (default is 10 seconds)\n";
   std::exit(2);
 }
 
@@ -26,10 +30,13 @@ int main(int argc, char **argv) {
   td::int32 port = 0;
   td::string secret;
 
+  td::int32 dc_id = 2;
+  double timeout = 10.0;
+
   for (int i = 1; i < argc; i++) {
     td::string arg(argv[i]);
     if (arg.substr(0, 2) == "-v") {
-      if (arg.size() == 2 && i + 1 < argc) {
+      if (arg.size() == 2 && i + 1 < argc && argv[i + 1][0] != '-') {
         arg = argv[++i];
       } else {
         arg = arg.substr(2);
@@ -43,7 +50,19 @@ int main(int argc, char **argv) {
         new_verbosity += td::to_integer<int>(arg) - (new_verbosity == 1);
       }
       new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
-    } else if (arg == "-h" || arg == "--help") {
+    } else if (arg == "-t" || arg == "--timeout") {
+      if (i + 1 == argc) {
+        td::TsCerr() << "Value is required after " << arg;
+        usage();
+      }
+      timeout = td::to_double(std::string(argv[++i]));
+    } else if (arg == "-d" || arg == "--dc_id") {
+      if (i + 1 == argc) {
+        td::TsCerr() << "Value is required after " << arg;
+        usage();
+      }
+      dc_id = td::to_integer<td::int32>(std::string(argv[++i]));
+    } else if (arg[0] == '-') {
       usage();
     } else {
       auto secret_pos = arg.rfind(':');
@@ -76,7 +95,7 @@ int main(int argc, char **argv) {
 
   td::Client client;
   client.send({1, td::td_api::make_object<td::td_api::testProxy>(
-                      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret))});
+                      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret), dc_id, timeout)});
   while (true) {
     auto response = client.receive(100.0);
     if (response.id == 1) {

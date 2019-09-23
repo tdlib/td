@@ -552,7 +552,8 @@ class TestQuery : public Td::ResultHandler {
 };
 
 class TestProxyRequest : public RequestOnceActor {
-  int16 dc_id_ = 2;
+  int16 dc_id_;
+  double timeout_;
   Proxy proxy_;
   ActorOwn<> child_;
   Promise<> promise_;
@@ -562,6 +563,8 @@ class TestProxyRequest : public RequestOnceActor {
   }
 
   void do_run(Promise<Unit> &&promise) override {
+    set_timeout_in(timeout_);
+
     promise_ = std::move(promise);
     IPAddress ip;
     auto status = ip.init_host_port(proxy_.server(), proxy_.port());
@@ -641,9 +644,17 @@ class TestProxyRequest : public RequestOnceActor {
     promise_.set_value(Unit());
   }
 
+  void timeout_expired() override {
+    send_error(Status::Error(400, "Timeout expired"));
+    stop();
+  }
+
  public:
-  TestProxyRequest(ActorShared<Td> td, uint64 request_id, Proxy proxy)
-      : RequestOnceActor(std::move(td), request_id), proxy_(std::move(proxy)) {
+  TestProxyRequest(ActorShared<Td> td, uint64 request_id, Proxy proxy, int32 dc_id, double timeout)
+      : RequestOnceActor(std::move(td), request_id)
+      , proxy_(std::move(proxy))
+      , dc_id_(static_cast<int16>(dc_id))
+      , timeout_(timeout) {
   }
 };
 
@@ -7707,7 +7718,7 @@ void Td::on_request(uint64 id, td_api::testProxy &request) {
   if (r_proxy.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_proxy.move_as_error());
   }
-  CREATE_REQUEST(TestProxyRequest, r_proxy.move_as_ok());
+  CREATE_REQUEST(TestProxyRequest, r_proxy.move_as_ok(), request.dc_id_, request.timeout_);
 }
 
 void Td::on_request(uint64 id, const td_api::testGetDifference &request) {
