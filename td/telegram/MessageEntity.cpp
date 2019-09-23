@@ -23,6 +23,11 @@
 
 namespace td {
 
+int MessageEntity::get_type_priority(Type type) {
+  static const int types[] = {5, 5, 5, 5, 5, 9, 9, 2, 1, 1, 5, 5, 5, 5, 9, 9, 0};
+  return types[static_cast<int32>(type)];
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity) {
   bool has_argument = false;
   string_builder << '[';

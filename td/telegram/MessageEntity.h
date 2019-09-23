@@ -19,7 +19,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include <tuple>
 #include <unordered_set>
 #include <utility>
 
@@ -28,8 +27,6 @@ namespace td {
 class ContactsManager;
 
 class MessageEntity {
-  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object() const;
-
  public:
   enum class Type : int32 {
     Mention,
@@ -73,7 +70,15 @@ class MessageEntity {
   }
 
   bool operator<(const MessageEntity &other) const {
-    return std::tie(offset, length, type) < std::tie(other.offset, other.length, other.type);
+    if (offset != other.offset) {
+      return offset < other.offset;
+    }
+    if (length != other.length) {
+      return length > other.length;
+    }
+    auto priority = get_type_priority(type);
+    auto other_priority = get_type_priority(other.type);
+    return priority < other_priority;
   }
 
   bool operator!=(const MessageEntity &rhs) const {
@@ -85,6 +90,11 @@ class MessageEntity {
 
   template <class ParserT>
   void parse(ParserT &parser);
+
+ private:
+  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object() const;
+
+  static int get_type_priority(Type type);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity);
