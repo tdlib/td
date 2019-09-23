@@ -16,7 +16,8 @@
 #include <utility>
 
 static void usage() {
-  td::TsCerr() << "Tests specified MTProto-proxies, outputs working proxies to stdout; exits with code 0 if a working proxy was found.\n";
+  td::TsCerr() << "Tests specified MTProto-proxies, outputs working proxies to stdout; exits with code 0 if a working "
+                  "proxy was found.\n";
   td::TsCerr() << "Usage: check_proxy [options] server:port:secret [server2:port2:secret2 ...]\n";
   td::TsCerr() << "Options:\n";
   td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
@@ -66,12 +67,27 @@ int main(int argc, char **argv) {
 
   for (int i = 1; i < argc; i++) {
     td::string arg(argv[i]);
-    if (arg.substr(0, 2) == "-v") {
-      if (arg.size() == 2 && i + 1 < argc && argv[i + 1][0] != '-') {
-        arg = argv[++i];
+
+    auto get_next_arg = [&i, &arg, argc, argv](bool is_optional = false) {
+      CHECK(arg.size() >= 2);
+      if (arg.size() == 2 || arg[1] == '-') {
+        if (i + 1 < argc && argv[i + 1][0] != '-') {
+          return td::string(argv[++i]);
+        }
       } else {
-        arg = arg.substr(2);
+        if (arg.size() > 2) {
+          return arg.substr(2);
+        }
       }
+      if (!is_optional) {
+        td::TsCerr() << "Value is required after " << arg << "\n";
+        usage();
+      }
+      return td::string();
+    };
+
+    if (td::begins_with(arg, "-v")) {
+      arg = get_next_arg(true);
       int new_verbosity = 1;
       while (arg[0] == 'v') {
         new_verbosity++;
@@ -81,18 +97,10 @@ int main(int argc, char **argv) {
         new_verbosity += td::to_integer<int>(arg) - (new_verbosity == 1);
       }
       new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
-    } else if (arg == "-t" || arg == "--timeout") {
-      if (i + 1 == argc) {
-        td::TsCerr() << "Value is required after " << arg;
-        usage();
-      }
-      timeout = td::to_double(td::string(argv[++i]));
-    } else if (arg == "-d" || arg == "--dc_id") {
-      if (i + 1 == argc) {
-        td::TsCerr() << "Value is required after " << arg;
-        usage();
-      }
-      dc_id = td::to_integer<td::int32>(td::string(argv[++i]));
+    } else if (td::begins_with(arg, "-t") || arg == "--timeout") {
+      timeout = td::to_double(get_next_arg());
+    } else if (td::begins_with(arg, "-d") || arg == "--dc_id") {
+      dc_id = td::to_integer<td::int32>(get_next_arg());
     } else if (arg[0] == '-') {
       usage();
     } else {
