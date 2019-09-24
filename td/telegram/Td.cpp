@@ -552,9 +552,9 @@ class TestQuery : public Td::ResultHandler {
 };
 
 class TestProxyRequest : public RequestOnceActor {
+  Proxy proxy_;
   int16 dc_id_;
   double timeout_;
-  Proxy proxy_;
   ActorOwn<> child_;
   Promise<> promise_;
 
