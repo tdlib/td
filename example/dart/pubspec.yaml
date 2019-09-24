@@ -1,0 +1,4 @@
+name: tdlib_eg
+
+dependencies:
+  ffi: ^0.1.1
