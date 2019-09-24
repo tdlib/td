@@ -140,7 +140,7 @@ See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an ex
 
 TDLib can be used from the Dart programming language through the [JSON](https://github.com/tdlib/td#using-json) interface and a Dart Native Extension or Dart FFI.
 
-See [dart_tdlib](https://github.com/periodicaidan/dart_tdlib) or [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/566/commits/cbe26809aa674bf71aa17bb781d5bf6a6e6fbd38) for an example of a TDLib Dart bindings through FFI.
+See [dart_tdlib](https://github.com/periodicaidan/dart_tdlib) or [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/708/commits/237060abd4c205768153180e9f814298d1aa9d49) for an example of a TDLib Dart bindings through FFI.
 
 See [project.scarlet](https://github.com/aaugmentum/project.scarlet) or [tdlib-dart](https://github.com/triedcatched/tdlib-dart) for an example of using TDLib from Dart.
 
