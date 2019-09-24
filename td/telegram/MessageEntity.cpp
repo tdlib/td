@@ -1339,11 +1339,11 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       }
     }
 
-    int32 utf16_entity_length = 0;
+    int32 entity_offset = utf16_offset;
     while (i < size && (text[i] != end_character || (is_pre && !(text[i + 1] == '`' && text[i + 2] == '`')))) {
       auto cur_ch = static_cast<unsigned char>(text[i]);
       if (is_utf8_character_first_code_unit(cur_ch)) {
-        utf16_entity_length += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
       }
       result.push_back(text[i++]);
     }
@@ -1351,13 +1351,14 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       return Status::Error(400, PSLICE() << "Can't find end of the entity starting at byte offset " << begin_pos);
     }
 
-    if (utf16_entity_length > 0) {
+    if (entity_offset != utf16_offset) {
+      auto entity_length = utf16_offset - entity_offset;
       switch (c) {
         case '_':
-          entities.emplace_back(MessageEntity::Type::Italic, utf16_offset, utf16_entity_length);
+          entities.emplace_back(MessageEntity::Type::Italic, entity_offset, entity_length);
           break;
         case '*':
-          entities.emplace_back(MessageEntity::Type::Bold, utf16_offset, utf16_entity_length);
+          entities.emplace_back(MessageEntity::Type::Bold, entity_offset, entity_length);
           break;
         case '[': {
           string url;
@@ -1372,12 +1373,11 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
           }
           auto user_id = get_link_user_id(url);
           if (user_id.is_valid()) {
-            entities.emplace_back(utf16_offset, utf16_entity_length, user_id);
+            entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
             auto r_url = check_url(url);
             if (r_url.is_ok()) {
-              entities.emplace_back(MessageEntity::Type::TextUrl, utf16_offset, utf16_entity_length,
-                                    r_url.move_as_ok());
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
             }
           }
           break;
@@ -1385,18 +1385,17 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
         case '`':
           if (is_pre) {
             if (language.empty()) {
-              entities.emplace_back(MessageEntity::Type::Pre, utf16_offset, utf16_entity_length);
+              entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
             } else {
-              entities.emplace_back(MessageEntity::Type::PreCode, utf16_offset, utf16_entity_length, language);
+              entities.emplace_back(MessageEntity::Type::PreCode, entity_offset, entity_length, language);
             }
           } else {
-            entities.emplace_back(MessageEntity::Type::Code, utf16_offset, utf16_entity_length);
+            entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length);
           }
           break;
         default:
           UNREACHABLE();
       }
-      utf16_offset += utf16_entity_length;
     }
     if (is_pre) {
       i += 2;
@@ -1572,20 +1571,20 @@ static Result<vector<MessageEntity>> do_parse_html(Slice text, string &result) {
     }
     i++;
 
-    int32 utf16_entity_length = 0;
+    int32 entity_offset = utf16_offset;
     size_t entity_begin_pos = result.size();
     while (text[i] != 0 && text[i] != '<') {
       auto cur_ch = static_cast<unsigned char>(text[i]);
       if (cur_ch == '&') {
         auto ch = decode_html_entity(text, i);
         if (ch != 0) {
-          utf16_entity_length += 1 + (ch > 0xffff);
+          utf16_offset += 1 + (ch > 0xffff);
           append_utf8_character(result, ch);
           continue;
         }
       }
       if (is_utf8_character_first_code_unit(cur_ch)) {
-        utf16_entity_length += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
       }
       result.push_back(text[i++]);
     }
@@ -1613,30 +1612,30 @@ static Result<vector<MessageEntity>> do_parse_html(Slice text, string &result) {
                                          << ", expected \"</" << tag_name << ">\", found\"</" << end_tag_name << ">\"");
     }
 
-    if (utf16_entity_length > 0) {
+    if (utf16_offset > entity_offset) {
+      auto entity_length = utf16_offset - entity_offset;
       if (tag_name == "i" || tag_name == "em") {
-        entities.emplace_back(MessageEntity::Type::Italic, utf16_offset, utf16_entity_length);
+        entities.emplace_back(MessageEntity::Type::Italic, entity_offset, entity_length);
       } else if (tag_name == "b" || tag_name == "strong") {
-        entities.emplace_back(MessageEntity::Type::Bold, utf16_offset, utf16_entity_length);
+        entities.emplace_back(MessageEntity::Type::Bold, entity_offset, entity_length);
       } else if (tag_name == "a") {
         if (url.empty()) {
           url = result.substr(entity_begin_pos);
         }
         auto user_id = get_link_user_id(url);
         if (user_id.is_valid()) {
-          entities.emplace_back(utf16_offset, utf16_entity_length, user_id);
+          entities.emplace_back(entity_offset, entity_length, user_id);
         } else {
           auto r_url = check_url(url);
           if (r_url.is_ok()) {
-            entities.emplace_back(MessageEntity::Type::TextUrl, utf16_offset, utf16_entity_length, r_url.move_as_ok());
+            entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
           }
         }
       } else if (tag_name == "pre") {
-        entities.emplace_back(MessageEntity::Type::Pre, utf16_offset, utf16_entity_length);
+        entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
       } else if (tag_name == "code") {
-        entities.emplace_back(MessageEntity::Type::Code, utf16_offset, utf16_entity_length);
+        entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length);
       }
-      utf16_offset += utf16_entity_length;
     }
   }
   return entities;
