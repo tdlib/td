@@ -1824,6 +1824,13 @@ gameHighScore position:int32 user_id:int32 score:int32 = GameHighScore;
 gameHighScores scores:vector<gameHighScore> = GameHighScores;
 
 
+//@description Contains the response of a request to TON lite server @response The response
+tonLiteServerResponse response:bytes = TonLiteServerResponse;
+
+//@description Contains the salt to be used with locally stored password to access a local TON-based wallet @salt The salt
+tonWalletPasswordSalt salt:bytes = TonWalletPasswordSalt;
+
+
 //@class ChatEventAction @description Represents a chat event
 
 //@description A message was edited @old_message The original message before the edit @new_message The message after it was edited
@@ -3945,6 +3952,13 @@ sendCustomRequest method:string parameters:string = CustomRequestResult;
 
 //@description Answers a custom query; for bots only @custom_query_id Identifier of a custom query @data JSON-serialized answer to the query
 answerCustomQuery custom_query_id:int64 data:string = Ok;
+
+
+//@description Sends a request to TON lite server through Telegram servers @request The request
+sendTonLiteServerRequest request:bytes = TonLiteServerResponse;
+
+//@description Returns a salt to be used with locally stored password to access a local TON-based wallet
+getTonWalletPasswordSalt = TonWalletPasswordSalt;
 
 
 //@description Succeeds after a specified amount of time has passed. Can be called before authorization. Can be called before initialization @seconds Number of seconds before the function returns

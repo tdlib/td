@@ -7127,6 +7127,18 @@ void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   delete_saved_credentials(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::sendTonLiteServerRequest &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  send_ton_lite_server_request(request.request_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getTonWalletPasswordSalt &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  send_closure(password_manager_, &PasswordManager::get_ton_wallet_password_salt, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);

@@ -898,6 +898,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
+  void on_request(uint64 id, const td_api::sendTonLiteServerRequest &request);
+
+  void on_request(uint64 id, const td_api::getTonWalletPasswordSalt &request);
+
   void on_request(uint64 id, td_api::getPassportElement &request);
 
   void on_request(uint64 id, td_api::getAllPassportElements &request);

@@ -1011,6 +1011,10 @@ emojiURL#a575739d url:string = EmojiURL;
 
 emojiLanguage#b3fb5361 lang_code:string = EmojiLanguage;
 
+wallet.liteResponse#764386d7 response:bytes = wallet.LiteResponse;
+
+wallet.secretSalt#dd484d64 salt:bytes = wallet.KeySecretSalt;
+
 fileLocationToBeDeprecated#bc7fc6cd volume_id:long local_id:int = FileLocation;
 
 ---functions---
@@ -1325,3 +1329,6 @@ langpack.getStrings#efea3803 lang_pack:string lang_code:string keys:Vector<strin
 langpack.getDifference#cd984aa5 lang_pack:string lang_code:string from_version:int = LangPackDifference;
 langpack.getLanguages#42c6978f lang_pack:string = Vector<LangPackLanguage>;
 langpack.getLanguage#6a596502 lang_pack:string lang_code:string = LangPackLanguage;
+
+wallet.sendLiteRequest#e2c9d33e body:bytes = wallet.LiteResponse;
+wallet.getKeySecretSalt#b57f346 revoke:Bool = wallet.KeySecretSalt;
