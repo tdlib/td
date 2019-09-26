@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.5.0 LANGUAGES CXX C)
+project(TDLib VERSION 1.5.1 LANGUAGES CXX C)
 
 if (POLICY CMP0054)
   # do not expand quoted arguments
