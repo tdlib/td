@@ -24,7 +24,7 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int types[] = {5, 5, 5, 5, 5, 9, 9, 2, 1, 1, 5, 5, 5, 5, 9, 9, 0};
+  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0};
   return types[static_cast<int32>(type)];
 }
 
@@ -1461,6 +1461,22 @@ static uint32 decode_html_entity(Slice text, size_t &pos) {
 static Result<vector<MessageEntity>> do_parse_html(Slice text, string &result) {
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
+
+  struct EntityInfo {
+    string tag_name;
+    string url;
+    int32 entity_offset;
+    size_t entity_begin_pos;
+
+    EntityInfo(string tag_name, string url, int32 entity_offset, size_t entity_begin_pos)
+        : tag_name(std::move(tag_name))
+        , url(std::move(url))
+        , entity_offset(entity_offset)
+        , entity_begin_pos(entity_begin_pos) {
+    }
+  };
+  std::vector<EntityInfo> nested_entities;
+
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '&') {
@@ -1480,164 +1496,158 @@ static Result<vector<MessageEntity>> do_parse_html(Slice text, string &result) {
       continue;
     }
 
-    // we are at begin of the entity
-    size_t begin_pos = i++;
-    if (text[i] == '/') {
-      return Status::Error(400, PSLICE() << "Unexpected end tag at byte offset " << begin_pos);
-    }
-    while (!is_space(text[i]) && text[i] != '>') {
-      i++;
-    }
-    if (text[i] == 0) {
-      return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
-    }
-
-    string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
-    if (tag_name != "em" && tag_name != "strong" && tag_name != "a" && tag_name != "b" && tag_name != "i" &&
-        tag_name != "pre" && tag_name != "code") {
-      return Status::Error(400,
-                           PSLICE() << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
-    }
-
-    string url;
-    // string language; TODO PreCode support
-    while (text[i] != '>') {
-      while (text[i] != 0 && is_space(text[i])) {
-        i++;
-      }
-      if (text[i] == '>') {
-        break;
-      }
-      auto attribute_begin_pos = i;
-      while (!is_space(text[i]) && text[i] != '=') {
-        i++;
-      }
-      Slice attribute_name = text.substr(attribute_begin_pos, i - attribute_begin_pos);
-      if (attribute_name.empty()) {
-        return Status::Error(400, PSLICE() << "Expected equal sign in declaration of attribute of the tag \""
-                                           << tag_name << "\" at byte offset " << begin_pos);
-      }
-      while (text[i] != 0 && is_space(text[i])) {
-        i++;
-      }
-      if (text[i] != '=') {
-        return Status::Error(400, PSLICE() << "Expected equal sign in declaration of attribute of the tag \""
-                                           << tag_name << "\" at byte offset " << begin_pos);
-      }
-      i++;
-      while (text[i] != 0 && is_space(text[i])) {
+    auto begin_pos = i++;
+    if (text[i] != '/') {
+      // begin of an entity
+      while (!is_space(text[i]) && text[i] != '>') {
         i++;
       }
       if (text[i] == 0) {
         return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
       }
 
-      string attribute_value;
-      if (text[i] != '\'' && text[i] != '"') {
-        // A name token (a sequence of letters, digits, periods, or hyphens). Name tokens are not case sensitive.
-        auto token_begin_pos = i;
-        while (is_alnum(text[i]) || text[i] == '.' || text[i] == '-') {
+      string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
+      if (tag_name != "em" && tag_name != "strong" && tag_name != "a" && tag_name != "b" && tag_name != "i" &&
+          tag_name != "pre" && tag_name != "code") {
+        return Status::Error(400, PSLICE()
+                                      << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
+      }
+
+      string url;
+      // string language; TODO PreCode support
+      while (text[i] != '>') {
+        while (text[i] != 0 && is_space(text[i])) {
           i++;
         }
-        attribute_value = to_lower(text.substr(token_begin_pos, i - token_begin_pos));
-
-        if (!is_space(text[i]) && text[i] != '>') {
-          return Status::Error(400, PSLICE() << "Unexpected end of name token at byte offset " << token_begin_pos);
+        if (text[i] == '>') {
+          break;
         }
-      } else {
-        // A string literal
-        char end_character = text[i++];
-        while (text[i] != end_character && text[i] != 0) {
-          if (text[i] == '&') {
-            auto ch = decode_html_entity(text, i);
-            if (ch != 0) {
-              append_utf8_character(attribute_value, ch);
-              continue;
+        auto attribute_begin_pos = i;
+        while (!is_space(text[i]) && text[i] != '=') {
+          i++;
+        }
+        Slice attribute_name = text.substr(attribute_begin_pos, i - attribute_begin_pos);
+        if (attribute_name.empty()) {
+          return Status::Error(
+              400, PSLICE() << "Empty attribute name in the tag \"" << tag_name << "\" at byte offset " << begin_pos);
+        }
+        while (text[i] != 0 && is_space(text[i])) {
+          i++;
+        }
+        if (text[i] != '=') {
+          return Status::Error(400, PSLICE() << "Expected equal sign in declaration of an attribute of the tag \""
+                                             << tag_name << "\" at byte offset " << begin_pos);
+        }
+        i++;
+        while (text[i] != 0 && is_space(text[i])) {
+          i++;
+        }
+        if (text[i] == 0) {
+          return Status::Error(400, PSLICE()
+                                        << "Unclosed start tag \"" << tag_name << "\" at byte offset " << begin_pos);
+        }
+
+        string attribute_value;
+        if (text[i] != '\'' && text[i] != '"') {
+          // A name token (a sequence of letters, digits, periods, or hyphens). Name tokens are not case sensitive.
+          auto token_begin_pos = i;
+          while (is_alnum(text[i]) || text[i] == '.' || text[i] == '-') {
+            i++;
+          }
+          attribute_value = to_lower(text.substr(token_begin_pos, i - token_begin_pos));
+
+          if (!is_space(text[i]) && text[i] != '>') {
+            return Status::Error(400, PSLICE() << "Unexpected end of name token at byte offset " << token_begin_pos);
+          }
+        } else {
+          // A string literal
+          char end_character = text[i++];
+          while (text[i] != end_character && text[i] != 0) {
+            if (text[i] == '&') {
+              auto ch = decode_html_entity(text, i);
+              if (ch != 0) {
+                append_utf8_character(attribute_value, ch);
+                continue;
+              }
+            }
+            attribute_value.push_back(text[i++]);
+          }
+          if (text[i] == end_character) {
+            i++;
+          }
+        }
+        if (text[i] == 0) {
+          return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
+        }
+
+        if (tag_name == "a" && attribute_name == Slice("href")) {
+          url = std::move(attribute_value);
+        }
+      }
+
+      nested_entities.emplace_back(std::move(tag_name), std::move(url), utf16_offset, result.size());
+    } else {
+      // end of an entity
+      if (nested_entities.empty()) {
+        return Status::Error(400, PSLICE() << "Unexpected end tag at byte offset " << begin_pos);
+      }
+
+      while (!is_space(text[i]) && text[i] != '>') {
+        i++;
+      }
+      Slice end_tag_name = text.substr(begin_pos + 2, i - begin_pos - 2);
+      while (is_space(text[i]) && text[i] != 0) {
+        i++;
+      }
+      if (text[i] != '>') {
+        return Status::Error(400, PSLICE() << "Unclosed end tag at byte offset " << begin_pos);
+      }
+
+      string tag_name = std::move(nested_entities.back().tag_name);
+      if (!end_tag_name.empty() && end_tag_name != tag_name) {
+        return Status::Error(400, PSLICE() << "Unmatched end tag at byte offset " << begin_pos << ", expected \"</"
+                                           << tag_name << ">\", found \"</" << end_tag_name << ">\"");
+      }
+
+      if (utf16_offset > nested_entities.back().entity_offset) {
+        auto entity_offset = nested_entities.back().entity_offset;
+        auto entity_length = utf16_offset - entity_offset;
+        if (tag_name == "i" || tag_name == "em") {
+          entities.emplace_back(MessageEntity::Type::Italic, entity_offset, entity_length);
+        } else if (tag_name == "b" || tag_name == "strong") {
+          entities.emplace_back(MessageEntity::Type::Bold, entity_offset, entity_length);
+        } else if (tag_name == "a") {
+          auto url = std::move(nested_entities.back().url);
+          if (url.empty()) {
+            url = result.substr(nested_entities.back().entity_begin_pos);
+          }
+          auto user_id = get_link_user_id(url);
+          if (user_id.is_valid()) {
+            entities.emplace_back(entity_offset, entity_length, user_id);
+          } else {
+            auto r_url = check_url(url);
+            if (r_url.is_ok()) {
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
             }
           }
-          attribute_value.push_back(text[i++]);
-        }
-        if (text[i] == end_character) {
-          i++;
-        }
-      }
-      if (text[i] == 0) {
-        return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
-      }
-
-      if (tag_name == "a" && attribute_name == Slice("href")) {
-        url = std::move(attribute_value);
-      }
-    }
-    i++;
-
-    int32 entity_offset = utf16_offset;
-    size_t entity_begin_pos = result.size();
-    while (text[i] != 0 && text[i] != '<') {
-      auto cur_ch = static_cast<unsigned char>(text[i]);
-      if (cur_ch == '&') {
-        auto ch = decode_html_entity(text, i);
-        if (ch != 0) {
-          utf16_offset += 1 + (ch > 0xffff);
-          append_utf8_character(result, ch);
-          continue;
-        }
-      }
-      if (is_utf8_character_first_code_unit(cur_ch)) {
-        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
-      }
-      result.push_back(text[i++]);
-    }
-    if (text[i] == 0) {
-      return Status::Error(400,
-                           PSLICE() << "Can't find end tag corresponding to start tag at byte offset " << begin_pos);
-    }
-
-    auto end_tag_begin_pos = i++;
-    if (text[i] != '/') {
-      return Status::Error(400, PSLICE() << "Expected end tag at byte offset " << end_tag_begin_pos);
-    }
-    while (!is_space(text[i]) && text[i] != '>') {
-      i++;
-    }
-    Slice end_tag_name = text.substr(end_tag_begin_pos + 2, i - end_tag_begin_pos - 2);
-    while (is_space(text[i]) && text[i] != 0) {
-      i++;
-    }
-    if (text[i] != '>') {
-      return Status::Error(400, PSLICE() << "Unclosed end tag at byte offset " << end_tag_begin_pos);
-    }
-    if (!end_tag_name.empty() && end_tag_name != tag_name) {
-      return Status::Error(400, PSLICE() << "Unmatched end tag at byte offset " << end_tag_begin_pos
-                                         << ", expected \"</" << tag_name << ">\", found\"</" << end_tag_name << ">\"");
-    }
-
-    if (utf16_offset > entity_offset) {
-      auto entity_length = utf16_offset - entity_offset;
-      if (tag_name == "i" || tag_name == "em") {
-        entities.emplace_back(MessageEntity::Type::Italic, entity_offset, entity_length);
-      } else if (tag_name == "b" || tag_name == "strong") {
-        entities.emplace_back(MessageEntity::Type::Bold, entity_offset, entity_length);
-      } else if (tag_name == "a") {
-        if (url.empty()) {
-          url = result.substr(entity_begin_pos);
-        }
-        auto user_id = get_link_user_id(url);
-        if (user_id.is_valid()) {
-          entities.emplace_back(entity_offset, entity_length, user_id);
+        } else if (tag_name == "pre") {
+          entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
+        } else if (tag_name == "code") {
+          entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length);
         } else {
-          auto r_url = check_url(url);
-          if (r_url.is_ok()) {
-            entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
-          }
+          UNREACHABLE();
         }
-      } else if (tag_name == "pre") {
-        entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
-      } else if (tag_name == "code") {
-        entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length);
       }
+      nested_entities.pop_back();
     }
   }
+  if (!nested_entities.empty()) {
+    return Status::Error(
+        400, PSLICE() << "Can't find end tag corresponding to start tag " << nested_entities.back().tag_name);
+  }
+
+  std::sort(entities.begin(), entities.end());
+
   return entities;
 }
 

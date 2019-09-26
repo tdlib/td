@@ -15,7 +15,7 @@
 
 REGISTER_TESTS(message_entities);
 
-static void check_mention(td::string str, td::vector<td::string> expected) {
+static void check_mention(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_mentions(str);
   td::vector<td::string> result;
   for (auto &it : result_slice) {
@@ -44,7 +44,7 @@ TEST(MessageEntities, mention) {
                 {"@gif", "@wiki", "@vid", "@bing", "@pic", "@bold", "@imdb", "@coub", "@like", "@vote", "@bingg"});
 };
 
-static void check_bot_command(td::string str, td::vector<td::string> expected) {
+static void check_bot_command(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_bot_commands(str);
   td::vector<td::string> result;
   for (auto &it : result_slice) {
@@ -68,7 +68,7 @@ TEST(MessageEntities, bot_command) {
   check_bot_command("/test/", {});
 }
 
-static void check_hashtag(td::string str, td::vector<td::string> expected) {
+static void check_hashtag(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_hashtags(str);
   td::vector<td::string> result;
   for (auto &it : result_slice) {
@@ -109,7 +109,7 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(u8"#a\u2122", {"#a"});
 }
 
-static void check_cashtag(td::string str, td::vector<td::string> expected) {
+static void check_cashtag(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_cashtags(str);
   td::vector<td::string> result;
   for (auto &it : result_slice) {
@@ -161,7 +161,7 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
 }
 
-static void check_is_email_address(td::string str, bool expected) {
+static void check_is_email_address(const td::string &str, bool expected) {
   bool result = td::is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";
 }
@@ -279,7 +279,7 @@ TEST(MessageEntities, is_email_address) {
   }
 }
 
-static void check_url(td::string str, td::vector<td::string> expected_urls,
+static void check_url(const td::string &str, const td::vector<td::string> &expected_urls,
                       td::vector<td::string> expected_email_addresses = {}) {
   auto result_slice = td::find_urls(str);
   td::vector<td::string> result_urls;
@@ -530,8 +530,9 @@ TEST(MessageEntities, url) {
   check_url("...👉http://ab.com/cdefgh-1IJ", {});  // TODO
 }
 
-static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities, td::string expected_str,
-                                     td::vector<td::MessageEntity> expected_entities, bool allow_empty,
+static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,
+                                     const td::string &expected_str,
+                                     const td::vector<td::MessageEntity> &expected_entities, bool allow_empty,
                                      bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
   ASSERT_TRUE(
       td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_ok());
@@ -720,4 +721,88 @@ TEST(MessageEntities, fix_formatted_text) {
     check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false,
                              false);
   }
+}
+
+static void check_parse_html(td::string text, const td::string &result, const td::vector<td::MessageEntity> &entities) {
+  auto r_entities = td::parse_html(text);
+  ASSERT_TRUE(r_entities.is_ok());
+  ASSERT_EQ(entities, r_entities.ok());
+  ASSERT_STREQ(result, text);
+}
+
+static void check_parse_html(td::string text, const td::string &error_message) {
+  auto r_entities = td::parse_html(text);
+  ASSERT_TRUE(r_entities.is_error());
+  ASSERT_EQ(400, r_entities.error().code());
+  ASSERT_STREQ(error_message, r_entities.error().message());
+}
+
+TEST(MessageEntities, parse_html) {
+  td::string invalid_surrogate_pair_error_message =
+      "Text contains invalid Unicode characters after decoding HTML entities, check for unmatched surrogate code units";
+  check_parse_html("&#57311;", invalid_surrogate_pair_error_message);
+  check_parse_html("&#xDFDF;", invalid_surrogate_pair_error_message);
+  check_parse_html("&#xDFDF", invalid_surrogate_pair_error_message);
+  check_parse_html("🏟 🏟&lt;<abacaba", "Unclosed start tag at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<abac aba>", "Unsupported start tag \"abac\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<abac>", "Unsupported start tag \"abac\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i   =aba>", "Empty attribute name in the tag \"i\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba>",
+                   "Expected equal sign in declaration of an attribute of the tag \"i\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba  =  ", "Unclosed start tag \"i\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.,", "Unexpected end of name token at byte offset 27");
+  check_parse_html("🏟 🏟&lt;<i    aba  =  \"&lt;&gt;&quot;>", "Unclosed start tag at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba  =  \'&lt;&gt;&quot;>", "Unclosed start tag at byte offset 13");
+  check_parse_html("🏟 🏟&lt;</", "Unexpected end tag at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<b></b></", "Unexpected end tag at byte offset 20");
+  check_parse_html("🏟 🏟&lt;<i>a</i   ", "Unclosed end tag at byte offset 17");
+  check_parse_html("🏟 🏟&lt;<i>a</em   >",
+                   "Unmatched end tag at byte offset 17, expected \"</i>\", found \"</em>\"");
+
+  check_parse_html("", "", {});
+  check_parse_html("➡️ ➡️", "➡️ ➡️", {});
+  check_parse_html("&lt;&gt;&amp;&quot;&laquo;&raquo;&#12345678;", "<>&\"&laquo;&raquo;&#12345678;", {});
+  check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("🏟 🏟<i>🏟 &lt🏟</i>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
+  check_parse_html("🏟 🏟<i>🏟 &gt;<b aba   =   caba>&lt🏟</b></i>", "🏟 🏟🏟 ><🏟",
+                   {{td::MessageEntity::Type::Italic, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.   >a</i>", "🏟 🏟<a",
+                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.>a</i>", "🏟 🏟<a",
+                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  \"&lt;&gt;&quot;\">a</i>", "🏟 🏟<a",
+                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  '&lt;&gt;&quot;'>a</i>", "🏟 🏟<a",
+                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  '&lt;&gt;&quot;'>a</>", "🏟 🏟<a",
+                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i>a</    >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i>a</i   >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<b></b>", "🏟 🏟<", {});
+  check_parse_html("<code><i><b> </b></i></code><i><b><code> </code></b></i>", "  ",
+                   {{td::MessageEntity::Type::Code, 0, 1},
+                    {td::MessageEntity::Type::Bold, 0, 1},
+                    {td::MessageEntity::Type::Italic, 0, 1},
+                    {td::MessageEntity::Type::Code, 1, 1},
+                    {td::MessageEntity::Type::Bold, 1, 1},
+                    {td::MessageEntity::Type::Italic, 1, 1}});
+  check_parse_html("<i><b> </b> <code> </code></i>", "   ",
+                   {{td::MessageEntity::Type::Italic, 0, 3},
+                    {td::MessageEntity::Type::Bold, 0, 1},
+                    {td::MessageEntity::Type::Code, 2, 1}});
+  check_parse_html("<a href=telegram.org> </a>", " ",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_html("<a href  =\"telegram.org\"   > </a>", " ",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_html("<a   href=  'telegram.org'   > </a>", " ",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_html("<a   href=  'telegram.org?&lt;'   > </a>", " ",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/?<"}});
+  check_parse_html("<a> </a>", " ", {});
+  check_parse_html("<a>telegram.org </a>", "telegram.org ", {});
+  check_parse_html("<a>telegram.org</a>", "telegram.org",
+                   {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
+  check_parse_html("<a>https://telegram.org/asdsa?asdasdwe#12e3we</a>", "https://telegram.org/asdsa?asdasdwe#12e3we",
+                   {{td::MessageEntity::Type::TextUrl, 0, 42, "https://telegram.org/asdsa?asdasdwe#12e3we"}});
 }
