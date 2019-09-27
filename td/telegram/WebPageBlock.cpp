@@ -236,8 +236,9 @@ class WebPageBlockTableCell {
       UNREACHABLE();
       return nullptr;
     }();
-    return td_api::make_object<td_api::pageBlockTableCell>(text.empty() ? null : text.get_rich_text_object(), is_header,
-                                                           colspan, rowspan, std::move(align), std::move(valign));
+    return td_api::make_object<td_api::pageBlockTableCell>(text.empty() ? nullptr : text.get_rich_text_object(),
+                                                           is_header, colspan, rowspan, std::move(align),
+                                                           std::move(valign));
   }
 
   template <class StorerT>
