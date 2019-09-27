@@ -25,6 +25,8 @@
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VideosManager.hpp"
+#include "td/telegram/VoiceNotesManager.h"
+#include "td/telegram/VoiceNotesManager.hpp"
 #include "td/telegram/WebPageId.h"
 
 #include "td/utils/common.h"
@@ -1401,8 +1403,10 @@ class WebPageBlockAudio : public WebPageBlock {
     using ::td::store;
 
     bool has_empty_audio = !audio_file_id.is_valid();
+    bool is_voice_note_repaired = true;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_empty_audio);
+    STORE_FLAG(is_voice_note_repaired);
     END_STORE_FLAGS();
 
     if (!has_empty_audio) {
@@ -1416,17 +1420,23 @@ class WebPageBlockAudio : public WebPageBlock {
     using ::td::parse;
 
     bool has_empty_audio;
+    bool is_voice_note_repaired;
     if (parser.version() >= static_cast<int32>(Version::FixPageBlockAudioEmptyFile)) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_empty_audio);
+      PARSE_FLAG(is_voice_note_repaired);
       END_PARSE_FLAGS();
     } else {
       has_empty_audio = false;
+      is_voice_note_repaired = false;
     }
 
     if (!has_empty_audio) {
       audio_file_id = parser.context()->td().get_actor_unsafe()->audios_manager_->parse_audio(parser);
     } else {
+      if (!is_voice_note_repaired) {
+        parser.set_error("Trying to repair WebPageBlockVoiceNote");
+      }
       audio_file_id = FileId();
     }
     parse(caption, parser);
@@ -1631,6 +1641,64 @@ class WebPageBlockMap : public WebPageBlock {
   }
 };
 
+class WebPageBlockVoiceNote : public WebPageBlock {
+  FileId voice_note_file_id;
+  WebPageBlockCaption caption;
+
+ public:
+  WebPageBlockVoiceNote() = default;
+  WebPageBlockVoiceNote(FileId voice_note_file_id, WebPageBlockCaption &&caption)
+      : voice_note_file_id(voice_note_file_id), caption(std::move(caption)) {
+  }
+
+  Type get_type() const override {
+    return Type::VoiceNote;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    Document(Document::Type::VoiceNote, voice_note_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
+    caption.append_file_ids(file_ids);
+  }
+
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    return make_tl_object<td_api::pageBlockVoiceNote>(
+        G()->td().get_actor_unsafe()->voice_notes_manager_->get_voice_note_object(voice_note_file_id),
+        caption.get_page_block_caption_object());
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using ::td::store;
+
+    bool has_empty_voice_note = !voice_note_file_id.is_valid();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_empty_voice_note);
+    END_STORE_FLAGS();
+
+    if (!has_empty_voice_note) {
+      storer.context()->td().get_actor_unsafe()->voice_notes_manager_->store_voice_note(voice_note_file_id, storer);
+    }
+    store(caption, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using ::td::parse;
+
+    bool has_empty_voice_note;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_empty_voice_note);
+    END_PARSE_FLAGS();
+
+    if (!has_empty_voice_note) {
+      voice_note_file_id = parser.context()->td().get_actor_unsafe()->voice_notes_manager_->parse_voice_note(parser);
+    } else {
+      voice_note_file_id = FileId();
+    }
+    parse(caption, parser);
+  }
+};
+
 vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
                                 const std::unordered_map<int64, FileId> &documents);
 
@@ -1770,7 +1838,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                             const std::unordered_map<int64, FileId> &audios,
                                             const std::unordered_map<int64, FileId> &documents,
                                             const std::unordered_map<int64, Photo> &photos,
-                                            const std::unordered_map<int64, FileId> &videos) {
+                                            const std::unordered_map<int64, FileId> &videos,
+                                            const std::unordered_map<int64, FileId> &voice_notes) {
   CHECK(page_block_ptr != nullptr);
   switch (page_block_ptr->get_id()) {
     case telegram_api::pageBlockUnsupported::ID:
@@ -1833,8 +1902,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           }
           case telegram_api::pageListItemBlocks::ID: {
             auto list_item = telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
-            item.page_blocks =
-                get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+            item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
+                                                   photos, videos, voice_notes);
             break;
           }
         }
@@ -1861,8 +1930,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           case telegram_api::pageListOrderedItemBlocks::ID: {
             auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemBlocks>(list_item_ptr);
             item.label = std::move(list_item->num_);
-            item.page_blocks =
-                get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+            item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
+                                                   photos, videos, voice_notes);
             break;
           }
         }
@@ -1928,7 +1997,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockCover::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCover>(page_block_ptr);
-      auto cover = get_web_page_block(td, std::move(page_block->cover_), animations, audios, documents, photos, videos);
+      auto cover = get_web_page_block(td, std::move(page_block->cover_), animations, audios, documents, photos, videos,
+                                      voice_notes);
       if (cover == nullptr) {
         return nullptr;
       }
@@ -1967,20 +2037,21 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       }
       return td::make_unique<WebPageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
-          get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos),
+          get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos,
+                              voice_notes),
           get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockCollage::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCollage>(page_block_ptr);
-      return td::make_unique<WebPageBlockCollage>(
-          get_web_page_blocks(td, std::move(page_block->items_), animations, audios, documents, photos, videos),
-          get_page_block_caption(std::move(page_block->caption_), documents));
+      return td::make_unique<WebPageBlockCollage>(get_web_page_blocks(td, std::move(page_block->items_), animations,
+                                                                      audios, documents, photos, videos, voice_notes),
+                                                  get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockSlideshow::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockSlideshow>(page_block_ptr);
-      return td::make_unique<WebPageBlockSlideshow>(
-          get_web_page_blocks(td, std::move(page_block->items_), animations, audios, documents, photos, videos),
-          get_page_block_caption(std::move(page_block->caption_), documents));
+      return td::make_unique<WebPageBlockSlideshow>(get_web_page_blocks(td, std::move(page_block->items_), animations,
+                                                                        audios, documents, photos, videos, voice_notes),
+                                                    get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockChannel::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockChannel>(page_block_ptr);
@@ -2014,6 +2085,12 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockAudio::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockAudio>(page_block_ptr);
+      auto voice_note_it = voice_notes.find(page_block->audio_id_);
+      if (voice_note_it != voice_notes.end()) {
+        return make_unique<WebPageBlockVoiceNote>(voice_note_it->second,
+                                                  get_page_block_caption(std::move(page_block->caption_), documents));
+      }
+
       auto it = audios.find(page_block->audio_id_);
       FileId audio_file_id;
       if (it != audios.end()) {
@@ -2063,10 +2140,10 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     case telegram_api::pageBlockDetails::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockDetails>(page_block_ptr);
       auto is_open = (page_block->flags_ & telegram_api::pageBlockDetails::OPEN_MASK) != 0;
-      return td::make_unique<WebPageBlockDetails>(
-          get_rich_text(std::move(page_block->title_), documents),
-          get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos),
-          is_open);
+      return td::make_unique<WebPageBlockDetails>(get_rich_text(std::move(page_block->title_), documents),
+                                                  get_web_page_blocks(td, std::move(page_block->blocks_), animations,
+                                                                      audios, documents, photos, videos, voice_notes),
+                                                  is_open);
     }
     case telegram_api::pageBlockRelatedArticles::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockRelatedArticles>(page_block_ptr);
@@ -2181,6 +2258,8 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockRelatedArticles *>(ptr));
     case Type::Map:
       return f(static_cast<const WebPageBlockMap *>(ptr));
+    case Type::VoiceNote:
+      return f(static_cast<const WebPageBlockVoiceNote *>(ptr));
     default:
       UNREACHABLE();
   }
@@ -2233,17 +2312,16 @@ void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser) {
   parse_web_page_block(block, parser);
 }
 
-vector<unique_ptr<WebPageBlock>> get_web_page_blocks(Td *td,
-                                                     vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
-                                                     const std::unordered_map<int64, FileId> &animations,
-                                                     const std::unordered_map<int64, FileId> &audios,
-                                                     const std::unordered_map<int64, FileId> &documents,
-                                                     const std::unordered_map<int64, Photo> &photos,
-                                                     const std::unordered_map<int64, FileId> &videos) {
+vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
+    Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
+    const std::unordered_map<int64, FileId> &animations, const std::unordered_map<int64, FileId> &audios,
+    const std::unordered_map<int64, FileId> &documents, const std::unordered_map<int64, Photo> &photos,
+    const std::unordered_map<int64, FileId> &videos, const std::unordered_map<int64, FileId> &voice_notes) {
   vector<unique_ptr<WebPageBlock>> result;
   result.reserve(page_block_ptrs.size());
   for (auto &page_block_ptr : page_block_ptrs) {
-    auto page_block = get_web_page_block(td, std::move(page_block_ptr), animations, audios, documents, photos, videos);
+    auto page_block =
+        get_web_page_block(td, std::move(page_block_ptr), animations, audios, documents, photos, videos, voice_notes);
     if (page_block != nullptr) {
       result.push_back(std::move(page_block));
     }

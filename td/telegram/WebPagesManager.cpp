@@ -834,10 +834,11 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
   WebPageInstantView result;
   if (!value.empty()) {
-    if (log_event_parse(result, value).is_error()) {
+    auto status = log_event_parse(result, value);
+    if (status.is_error()) {
       result = WebPageInstantView();
 
-      LOG(ERROR) << "Erase instant view in " << web_page_id << " from database";
+      LOG(ERROR) << "Erase instant view in " << web_page_id << " from database because of " << status.message();
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
     }
   }
@@ -1199,6 +1200,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   std::unordered_map<int64, FileId> audios;
   std::unordered_map<int64, FileId> documents;
   std::unordered_map<int64, FileId> videos;
+  std::unordered_map<int64, FileId> voice_notes;
   for (auto &document_ptr : page->documents_) {
     if (document_ptr->get_id() == telegram_api::document::ID) {
       auto document = move_tl_object_as<telegram_api::document>(document_ptr);
@@ -1212,6 +1214,8 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
         documents.emplace(document_id, parsed_document.file_id);
       } else if (parsed_document.type == Document::Type::Video) {
         videos.emplace(document_id, parsed_document.file_id);
+      } else if (parsed_document.type == Document::Type::VoiceNote) {
+        voice_notes.emplace(document_id, parsed_document.file_id);
       } else {
         LOG(ERROR) << "Receive document of the wrong type: " << parsed_document;
       }
@@ -1249,12 +1253,20 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       LOG(ERROR) << "Video has no remote location";
     }
   }
+  if (web_page->document.type == Document::Type::VoiceNote) {
+    auto file_view = td_->file_manager_->get_file_view(web_page->document.file_id);
+    if (file_view.has_remote_location()) {
+      voice_notes.emplace(file_view.remote_location().get_id(), web_page->document.file_id);
+    } else {
+      LOG(ERROR) << "Voice note has no remote location";
+    }
+  }
 
   LOG(INFO) << "Receive a web page instant view with " << page->blocks_.size() << " blocks, " << animations.size()
             << " animations, " << audios.size() << " audios, " << documents.size() << " documents, " << photos.size()
-            << " photos and " << videos.size() << " videos";
+            << " photos, " << videos.size() << " videos and " << voice_notes.size() << " voice notes";
   web_page->instant_view.page_blocks =
-      get_web_page_blocks(td_, std::move(page->blocks_), animations, audios, documents, photos, videos);
+      get_web_page_blocks(td_, std::move(page->blocks_), animations, audios, documents, photos, videos, voice_notes);
   web_page->instant_view.is_v2 = (page->flags_ & telegram_api::page::V2_MASK) != 0;
   web_page->instant_view.is_rtl = (page->flags_ & telegram_api::page::RTL_MASK) != 0;
   web_page->instant_view.hash = hash;
