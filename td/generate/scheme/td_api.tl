@@ -787,7 +787,7 @@ pageBlockVerticalAlignmentMiddle = PageBlockVerticalAlignment;
 //@description The content should be bottom-aligned
 pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
 
-//@description Represents a cell of a table @text Cell text @is_header True, if it is a header cell
+//@description Represents a cell of a table @text Cell text; may be null. If the text is null, then the cell should be invisible @is_header True, if it is a header cell
 //@colspan The number of columns the cell should span @rowspan The number of rows the cell should span
 //@align Horizontal cell content alignment @valign Vertical cell content alignment
 pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
