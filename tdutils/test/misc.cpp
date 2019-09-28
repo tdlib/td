@@ -153,7 +153,8 @@ TEST(Misc, get_last_argument) {
 }
 
 TEST(Misc, call_n_arguments) {
-  auto f = [](int, int) {};
+  auto f = [](int, int) {
+  };
   call_n_arguments<2>(f, 1, 3, 4);
 }
 
@@ -757,8 +758,12 @@ TEST(Misc, uint128) {
                                      static_cast<int64>(std::numeric_limits<int32>::min()) - 1};
 
 #if TD_HAVE_INT128
-  auto to_intrinsic = [](uint128_emulated num) { return uint128_intrinsic(num.hi(), num.lo()); };
-  auto eq = [](uint128_emulated a, uint128_intrinsic b) { return a.hi() == b.hi() && a.lo() == b.lo(); };
+  auto to_intrinsic = [](uint128_emulated num) {
+    return uint128_intrinsic(num.hi(), num.lo());
+  };
+  auto eq = [](uint128_emulated a, uint128_intrinsic b) {
+    return a.hi() == b.hi() && a.lo() == b.lo();
+  };
   auto ensure_eq = [&](uint128_emulated a, uint128_intrinsic b) {
     if (!eq(a, b)) {
       LOG(FATAL) << "[" << a.hi() << ";" << a.lo() << "] vs [" << b.hi() << ";" << b.lo() << "]";

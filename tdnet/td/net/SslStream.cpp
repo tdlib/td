@@ -224,7 +224,9 @@ class SslStreamImpl {
     if (ssl_ctx == nullptr) {
       return create_openssl_error(-7, "Failed to create an SSL context");
     }
-    auto ssl_ctx_guard = ScopeExit() + [&]() { SSL_CTX_free(ssl_ctx); };
+    auto ssl_ctx_guard = ScopeExit() + [&]() {
+      SSL_CTX_free(ssl_ctx);
+    };
     long options = 0;
 #ifdef SSL_OP_NO_SSLv2
     options |= SSL_OP_NO_SSLv2;

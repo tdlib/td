@@ -228,7 +228,9 @@ bool PartsManager::is_part_in_streaming_limit(int part_i) const {
     return true;
   }
 
-  auto is_intersect_with = [&](int64 begin, int64 end) { return max(begin, offset_begin) < min(end, offset_end); };
+  auto is_intersect_with = [&](int64 begin, int64 end) {
+    return max(begin, offset_begin) < min(end, offset_end);
+  };
 
   auto streaming_begin = streaming_offset_;
   auto streaming_end = streaming_offset_ + streaming_limit_;

@@ -222,15 +222,13 @@ class CreateFileBench : public Benchmark {
     }
   }
   void tear_down() override {
-    td::walk_path("A/",
-                  [&](CSlice path, auto type) {
-                    if (type == td::WalkPath::Type::ExitDir) {
-                      rmdir(path).ignore();
-                    } else if (type == td::WalkPath::Type::NotDir) {
-                      unlink(path).ignore();
-                    }
-                  })
-        .ignore();
+    td::walk_path("A/", [&](CSlice path, auto type) {
+      if (type == td::WalkPath::Type::ExitDir) {
+        rmdir(path).ignore();
+      } else if (type == td::WalkPath::Type::NotDir) {
+        unlink(path).ignore();
+      }
+    }).ignore();
   }
 };
 
@@ -246,26 +244,22 @@ class WalkPathBench : public Benchmark {
   }
   void run(int n) override {
     int cnt = 0;
-    td::walk_path("A/",
-                  [&](CSlice path, auto type) {
-                    if (type == td::WalkPath::Type::EnterDir) {
-                      return;
-                    }
-                    stat(path).ok();
-                    cnt++;
-                  })
-        .ignore();
+    td::walk_path("A/", [&](CSlice path, auto type) {
+      if (type == td::WalkPath::Type::EnterDir) {
+        return;
+      }
+      stat(path).ok();
+      cnt++;
+    }).ignore();
   }
   void tear_down() override {
-    td::walk_path("A/",
-                  [&](CSlice path, auto type) {
-                    if (type == td::WalkPath::Type::ExitDir) {
-                      rmdir(path).ignore();
-                    } else if (type == td::WalkPath::Type::NotDir) {
-                      unlink(path).ignore();
-                    }
-                  })
-        .ignore();
+    td::walk_path("A/", [&](CSlice path, auto type) {
+      if (type == td::WalkPath::Type::ExitDir) {
+        rmdir(path).ignore();
+      } else if (type == td::WalkPath::Type::NotDir) {
+        unlink(path).ignore();
+      }
+    }).ignore();
   }
 };
 

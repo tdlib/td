@@ -1662,7 +1662,9 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
                               [&](telegram_api::encryptedFileEmpty &) {
                                 state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(
                                     telegram_api::inputEncryptedFileEmpty());
-                                get_file = [] { return telegram_api::make_object<telegram_api::encryptedFileEmpty>(); };
+                                get_file = [] {
+                                  return telegram_api::make_object<telegram_api::encryptedFileEmpty>();
+                                };
                               },
                               [&](telegram_api::encryptedFile &file) {
                                 state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(

@@ -135,11 +135,9 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
                                   << tag("prefer_ipv6", prefer_ipv6));
   }
 
-  auto last_error_at = std::min_element(options.begin(), options.end(),
-                                        [](const auto &a_option, const auto &b_option) {
-                                          return a_option.stat->error_at > b_option.stat->error_at;
-                                        })
-                           ->stat->error_at;
+  auto last_error_at = std::min_element(options.begin(), options.end(), [](const auto &a_option, const auto &b_option) {
+                         return a_option.stat->error_at > b_option.stat->error_at;
+                       })->stat->error_at;
 
   auto result = *std::min_element(options.begin(), options.end(), [](const auto &a_option, const auto &b_option) {
     auto &a = *a_option.stat;

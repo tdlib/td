@@ -1551,7 +1551,9 @@ int32 UpdatesManager::get_short_update_date() const {
 
 tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
     tl_object_ptr<telegram_api::SendMessageAction> action) {
-  auto fix_progress = [](int32 progress) { return progress <= 0 || progress > 100 ? 0 : progress; };
+  auto fix_progress = [](int32 progress) {
+    return progress <= 0 || progress > 100 ? 0 : progress;
+  };
 
   switch (action->get_id()) {
     case telegram_api::sendMessageCancelAction::ID:

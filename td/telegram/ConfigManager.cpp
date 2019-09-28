@@ -987,7 +987,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     shared_config.set_option_string("photo_search_bot_username", config->img_search_username_);
   }
 
-  auto fix_timeout_ms = [](int32 timeout_ms) { return clamp(timeout_ms, 1000, 86400 * 1000); };
+  auto fix_timeout_ms = [](int32 timeout_ms) {
+    return clamp(timeout_ms, 1000, 86400 * 1000);
+  };
 
   shared_config.set_option_integer("online_update_period_ms", fix_timeout_ms(config->online_update_period_ms_));
 

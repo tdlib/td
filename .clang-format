@@ -3,16 +3,20 @@ Language:        Cpp
 # BasedOnStyle:  Google
 AccessModifierOffset: -1
 AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
 AlignOperands:   true
 AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None # All
-AllowShortIfStatementsOnASingleLine: false # true
+AllowShortIfStatementsOnASingleLine: Never # WithoutElse
+AllowShortLambdasOnASingleLine: Inline # All
 AllowShortLoopsOnASingleLine: false # true
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
@@ -21,6 +25,7 @@ AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
+  AfterCaseLabel:  false
   AfterClass:      false
   AfterControlStatement: false
   AfterEnum:       false
@@ -60,6 +65,7 @@ ForEachMacros:
   - Q_FOREACH_THIS_LIST_MUST_BE_NON_EMPTY
 IncludeBlocks:   Preserve
 IndentCaseLabels: true
+IndentGotoLabels: true
 IndentPPDirectives: None
 IndentWidth:     2
 IndentWrappedFunctionNames: false
@@ -87,6 +93,7 @@ ReflowComments:  false # true
 SortIncludes: false # disabled, because we need case insensitive sort
 SortUsingDeclarations: false # true
 SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: false
@@ -94,6 +101,7 @@ SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyBlock: false
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 2
 SpacesInAngles:  false

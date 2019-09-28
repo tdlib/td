@@ -77,13 +77,14 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     }
 
     binlog_ = std::make_shared<BinlogT>();
-    TRY_STATUS(binlog_->init(name,
-                             [&](const BinlogEvent &binlog_event) {
-                               Event event;
-                               event.parse(TlParser(binlog_event.data_));
-                               map_.emplace(event.key.str(), std::make_pair(event.value.str(), binlog_event.id_));
-                             },
-                             std::move(db_key), DbKey::empty(), scheduler_id));
+    TRY_STATUS(binlog_->init(
+        name,
+        [&](const BinlogEvent &binlog_event) {
+          Event event;
+          event.parse(TlParser(binlog_event.data_));
+          map_.emplace(event.key.str(), std::make_pair(event.value.str(), binlog_event.id_));
+        },
+        std::move(db_key), DbKey::empty(), scheduler_id));
     return Status::OK();
   }
 

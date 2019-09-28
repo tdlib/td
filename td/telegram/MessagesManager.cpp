@@ -27065,13 +27065,17 @@ void MessagesManager::suffix_load_add_query(Dialog *d,
 
 void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<> promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till date " << date;
-  auto condition = [date](const Message *m) { return m != nullptr && m->date < date; };
+  auto condition = [date](const Message *m) {
+    return m != nullptr && m->date < date;
+  };
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
 void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till " << message_id;
-  auto condition = [message_id](const Message *m) { return m != nullptr && m->message_id.get() < message_id.get(); };
+  auto condition = [message_id](const Message *m) {
+    return m != nullptr && m->message_id.get() < message_id.get();
+  };
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 

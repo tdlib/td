@@ -56,7 +56,9 @@ class SqliteStatement {
   void reset();
 
   auto guard() {
-    return ScopeExit{} + [this] { this->reset(); };
+    return ScopeExit{} + [this] {
+      this->reset();
+    };
   }
 
   // TODO get row

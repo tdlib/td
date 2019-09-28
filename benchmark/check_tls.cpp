@@ -53,7 +53,9 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
 
   td::string request;
 
-  auto add_string = [&](td::Slice data) { request.append(data.data(), data.size()); };
+  auto add_string = [&](td::Slice data) {
+    request.append(data.data(), data.size());
+  };
   auto add_random = [&](size_t length) {
     while (length-- > 0) {
       request += static_cast<char>(td::Random::secure_int32());

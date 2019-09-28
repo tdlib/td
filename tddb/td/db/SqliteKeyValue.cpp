@@ -24,7 +24,9 @@ Result<bool> SqliteKeyValue::init(string path) {
 }
 
 Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_name) {
-  auto init_guard = ScopeExit() + [&]() { close(); };
+  auto init_guard = ScopeExit() + [&]() {
+    close();
+  };
   db_ = std::move(connection);
   table_name_ = std::move(table_name);
   TRY_STATUS(init(db_, table_name_));

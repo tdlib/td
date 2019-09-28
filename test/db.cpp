@@ -47,11 +47,17 @@ TEST(DB, binlog_encryption_bug) {
   auto empty = DbKey::empty();
   {
     Binlog binlog;
-    binlog.init(binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber).ensure();
+    binlog
+        .init(
+            binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber)
+        .ensure();
   }
   {
     Binlog binlog;
-    binlog.init(binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber).ensure();
+    binlog
+        .init(
+            binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber)
+        .ensure();
   }
 }
 
@@ -92,7 +98,10 @@ TEST(DB, binlog_encryption) {
     std::vector<string> v;
     LOG(INFO) << "RESTART";
     Binlog binlog;
-    binlog.init(binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, hello).ensure();
+    binlog
+        .init(
+            binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, hello)
+        .ensure();
     CHECK(v == std::vector<string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
 
@@ -102,7 +111,8 @@ TEST(DB, binlog_encryption) {
     std::vector<string> v;
     LOG(INFO) << "RESTART";
     Binlog binlog;
-    auto status = binlog.init(binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber);
+    auto status = binlog.init(
+        binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber);
     CHECK(status.is_error());
   }
 
@@ -112,8 +122,8 @@ TEST(DB, binlog_encryption) {
     std::vector<string> v;
     LOG(INFO) << "RESTART";
     Binlog binlog;
-    auto status =
-        binlog.init(binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
+    auto status = binlog.init(
+        binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
     CHECK(v == std::vector<string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
 };
