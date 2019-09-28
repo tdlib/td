@@ -1324,11 +1324,11 @@ phone.discardCall#b2cbc1c0 flags:# video:flags.0?true peer:InputPhoneCall durati
 phone.setCallRating#59ead627 flags:# user_initiative:flags.0?true peer:InputPhoneCall rating:int comment:string = Updates;
 phone.saveCallDebug#277add7e peer:InputPhoneCall debug:DataJSON = Bool;
 
+wallet.sendLiteRequest#e2c9d33e body:bytes = wallet.LiteResponse;
+wallet.getKeySecretSalt#b57f346 revoke:Bool = wallet.KeySecretSalt;
+
 langpack.getLangPack#f2f2330a lang_pack:string lang_code:string = LangPackDifference;
 langpack.getStrings#efea3803 lang_pack:string lang_code:string keys:Vector<string> = Vector<LangPackString>;
 langpack.getDifference#cd984aa5 lang_pack:string lang_code:string from_version:int = LangPackDifference;
 langpack.getLanguages#42c6978f lang_pack:string = Vector<LangPackLanguage>;
 langpack.getLanguage#6a596502 lang_pack:string lang_code:string = LangPackLanguage;
-
-wallet.sendLiteRequest#e2c9d33e body:bytes = wallet.LiteResponse;
-wallet.getKeySecretSalt#b57f346 revoke:Bool = wallet.KeySecretSalt;
