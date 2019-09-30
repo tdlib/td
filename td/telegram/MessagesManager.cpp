@@ -6501,10 +6501,15 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
     content = m->content.get();
   }
 
-  on_message_media_uploaded(dialog_id, m,
-                            get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                            thumbnail_file_id, m->ttl),
-                            file_id, thumbnail_file_id);
+  bool have_input_file = input_file != nullptr;
+  bool have_input_thumbnail = input_thumbnail != nullptr;
+  auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
+                                     thumbnail_file_id, m->ttl);
+  LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m)) << ' ' << have_input_file << ' '
+                                    << have_input_thumbnail << ' ' << file_id << ' ' << thumbnail_file_id << ' '
+                                    << m->ttl;
+
+  on_message_media_uploaded(dialog_id, m, std::move(input_media), file_id, thumbnail_file_id);
 }
 
 void MessagesManager::do_send_secret_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
