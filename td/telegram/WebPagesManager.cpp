@@ -1417,9 +1417,11 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
       auto result = make_unique<WebPage>();
       auto status = log_event_parse(*result, value);
       if (status.is_error()) {
-        LOG(FATAL) << status << ": " << format::as_hex_dump<4>(Slice(value));
+        LOG(ERROR) << "Failed to parse web page loaded from database: " << status
+                   << ", value = " << format::as_hex_dump<4>(Slice(value));
+      } else {
+        update_web_page(std::move(result), web_page_id, true, true);
       }
-      update_web_page(std::move(result), web_page_id, true, true);
     }
   } else {
     // web page has already been loaded from the server
