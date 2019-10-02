@@ -28,71 +28,52 @@ int MessageEntity::get_type_priority(Type type) {
   return types[static_cast<int32>(type)];
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity) {
-  bool has_argument = false;
-  string_builder << '[';
-  switch (message_entity.type) {
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Type &message_entity_type) {
+  switch (message_entity_type) {
     case MessageEntity::Type::Mention:
-      string_builder << "Mention";
-      break;
+      return string_builder << "Mention";
     case MessageEntity::Type::Hashtag:
-      string_builder << "Hashtag";
-      break;
+      return string_builder << "Hashtag";
     case MessageEntity::Type::BotCommand:
-      string_builder << "BotCommand";
-      break;
+      return string_builder << "BotCommand";
     case MessageEntity::Type::Url:
-      string_builder << "Url";
-      break;
+      return string_builder << "Url";
     case MessageEntity::Type::EmailAddress:
-      string_builder << "EmailAddress";
-      break;
+      return string_builder << "EmailAddress";
     case MessageEntity::Type::Bold:
-      string_builder << "Bold";
-      break;
+      return string_builder << "Bold";
     case MessageEntity::Type::Italic:
-      string_builder << "Italic";
-      break;
+      return string_builder << "Italic";
     case MessageEntity::Type::Underline:
-      string_builder << "Underline";
-      break;
+      return string_builder << "Underline";
     case MessageEntity::Type::Strikethrough:
-      string_builder << "Strikethrough";
-      break;
+      return string_builder << "Strikethrough";
     case MessageEntity::Type::BlockQuote:
-      string_builder << "BlockQuote";
-      break;
+      return string_builder << "BlockQuote";
     case MessageEntity::Type::Code:
-      string_builder << "Code";
-      break;
+      return string_builder << "Code";
     case MessageEntity::Type::Pre:
-      string_builder << "Pre";
-      break;
+      return string_builder << "Pre";
     case MessageEntity::Type::PreCode:
-      string_builder << "PreCode";
-      has_argument = true;
-      break;
+      return string_builder << "PreCode";
     case MessageEntity::Type::TextUrl:
-      string_builder << "TextUrl";
-      has_argument = true;
-      break;
+      return string_builder << "TextUrl";
     case MessageEntity::Type::MentionName:
-      string_builder << "MentionName";
-      break;
+      return string_builder << "MentionName";
     case MessageEntity::Type::Cashtag:
-      string_builder << "Cashtag";
-      break;
+      return string_builder << "Cashtag";
     case MessageEntity::Type::PhoneNumber:
-      string_builder << "PhoneNumber";
-      break;
+      return string_builder << "PhoneNumber";
     default:
       UNREACHABLE();
-      string_builder << "Impossible";
-      break;
+      return string_builder << "Impossible";
   }
+}
 
-  string_builder << ", offset = " << message_entity.offset << ", length = " << message_entity.length;
-  if (has_argument) {
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity) {
+  string_builder << '[' << message_entity.type << ", offset = " << message_entity.offset
+                 << ", length = " << message_entity.length;
+  if (!message_entity.argument.empty()) {
     string_builder << ", argument = \"" << message_entity.argument << "\"";
   }
   if (message_entity.user_id.is_valid()) {
@@ -1322,7 +1303,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       i += 2;
       is_pre = true;
       size_t language_end = i;
-      while (language_end < size && !is_space(text[language_end]) && text[language_end] != '`') {
+      while (!is_space(text[language_end]) && text[language_end] != '`') {
         language_end++;
       }
       if (i != language_end && language_end < size && text[language_end] != '`') {
@@ -1405,7 +1386,224 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
   return entities;
 }
 
-static uint32 decode_html_entity(Slice text, size_t &pos) {
+static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &result) {
+  vector<MessageEntity> entities;
+  int32 utf16_offset = 0;
+
+  struct EntityInfo {
+    MessageEntity::Type type;
+    string argument;
+    int32 entity_offset;
+    size_t entity_byte_offset;
+    size_t entity_begin_pos;
+
+    EntityInfo(MessageEntity::Type type, string argument, int32 entity_offset, size_t entity_byte_offset,
+               size_t entity_begin_pos)
+        : type(type)
+        , argument(std::move(argument))
+        , entity_offset(entity_offset)
+        , entity_byte_offset(entity_byte_offset)
+        , entity_begin_pos(entity_begin_pos) {
+    }
+  };
+  std::vector<EntityInfo> nested_entities;
+
+  for (size_t i = 0; i < text.size(); i++) {
+    auto c = static_cast<unsigned char>(text[i]);
+    if (c == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
+      i++;
+      utf16_offset += 1;
+      result += text[i];
+      continue;
+    }
+
+    Slice reserved_characters("_*[]()~`>#+=|{}.!");
+    if (!nested_entities.empty()) {
+      switch (nested_entities.back().type) {
+        case MessageEntity::Type::Code:
+        case MessageEntity::Type::Pre:
+        case MessageEntity::Type::PreCode:
+          reserved_characters = Slice("`");
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (reserved_characters.find(text[i]) == Slice::npos) {
+      if (is_utf8_character_first_code_unit(c)) {
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      }
+      result.push_back(text[i]);
+      continue;
+    }
+
+    bool is_end_of_an_entity = false;
+    if (!nested_entities.empty()) {
+      is_end_of_an_entity = [&] {
+        switch (nested_entities.back().type) {
+          case MessageEntity::Type::Bold:
+            return c == '*';
+          case MessageEntity::Type::Italic:
+            return c == '_' && text[i + 1] != '_';
+          case MessageEntity::Type::Code:
+            return c == '`';
+          case MessageEntity::Type::Pre:
+          case MessageEntity::Type::PreCode:
+            return c == '`' && text[i + 1] == '`' && text[i + 2] == '`';
+          case MessageEntity::Type::TextUrl:
+            return c == ']';
+          case MessageEntity::Type::Underline:
+            return c == '_' && text[i + 1] == '_';
+          case MessageEntity::Type::Strikethrough:
+            return c == '~';
+          default:
+            UNREACHABLE();
+            return false;
+        }
+      }();
+    }
+
+    if (!is_end_of_an_entity) {
+      // begin of an entity
+      MessageEntity::Type type;
+      string argument;
+      int32 entity_byte_offset = i;
+      switch (c) {
+        case '_':
+          if (text[i + 1] == '_') {
+            type = MessageEntity::Type::Underline;
+            i++;
+          } else {
+            type = MessageEntity::Type::Italic;
+          }
+          break;
+        case '*':
+          type = MessageEntity::Type::Bold;
+          break;
+        case '~':
+          type = MessageEntity::Type::Strikethrough;
+          break;
+        case '[':
+          type = MessageEntity::Type::TextUrl;
+          break;
+        case '`':
+          if (text[i + 1] == '`' && text[i + 2] == '`') {
+            i += 3;
+            type = MessageEntity::Type::Pre;
+            size_t language_end = i;
+            while (!is_space(text[language_end]) && text[language_end] != '`') {
+              language_end++;
+            }
+            if (i != language_end && language_end < text.size() && text[language_end] != '`') {
+              type = MessageEntity::Type::PreCode;
+              argument = text.substr(i, language_end - i).str();
+              i = language_end;
+            }
+            // skip one new line in the beginning of the text
+            if (text[i] == '\n' || text[i] == '\r') {
+              if ((text[i + 1] == '\n' || text[i + 1] == '\r') && text[i] != text[i + 1]) {
+                i += 2;
+              } else {
+                i++;
+              }
+            }
+
+            i--;
+          } else {
+            type = MessageEntity::Type::Code;
+          }
+          break;
+        default:
+          return Status::Error(
+              400, PSLICE() << "Character '" << text[i] << "' is reserved and must be escaped with the preceding '\\'");
+      }
+      nested_entities.emplace_back(type, std::move(argument), utf16_offset, entity_byte_offset, result.size());
+    } else {
+      // end of an entity
+      auto type = nested_entities.back().type;
+      auto argument = std::move(nested_entities.back().argument);
+      UserId user_id;
+      bool skip_entity = utf16_offset == nested_entities.back().entity_offset;
+      switch (type) {
+        case MessageEntity::Type::Bold:
+        case MessageEntity::Type::Italic:
+        case MessageEntity::Type::Code:
+        case MessageEntity::Type::Strikethrough:
+          break;
+        case MessageEntity::Type::Underline:
+          i++;
+          break;
+        case MessageEntity::Type::Pre:
+        case MessageEntity::Type::PreCode:
+          i += 2;
+          break;
+        case MessageEntity::Type::TextUrl: {
+          string url;
+          if (text[i + 1] != '(') {
+            // use text as a url
+            url = result.substr(nested_entities.back().entity_begin_pos);
+          } else {
+            i += 2;
+            auto url_begin_pos = i;
+            while (i < text.size() && text[i] != ')') {
+              if (text[i] == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
+                url += text[i + 1];
+                i += 2;
+                continue;
+              }
+              url += text[i++];
+            }
+            if (text[i] != ')') {
+              return Status::Error(400, PSLICE() << "Can't find end of a URL at byte offset " << url_begin_pos);
+            }
+          }
+          user_id = get_link_user_id(url);
+          if (!user_id.is_valid()) {
+            auto r_url = check_url(url);
+            if (r_url.is_error()) {
+              skip_entity = true;
+            } else {
+              argument = r_url.move_as_ok();
+            }
+          }
+          break;
+        }
+        default:
+          UNREACHABLE();
+          return false;
+      }
+
+      if (!skip_entity) {
+        auto entity_offset = nested_entities.back().entity_offset;
+        auto entity_length = utf16_offset - entity_offset;
+        if (user_id.is_valid()) {
+          entities.emplace_back(entity_offset, entity_length, user_id);
+        } else {
+          entities.emplace_back(type, entity_offset, entity_length, std::move(argument));
+        }
+      }
+      nested_entities.pop_back();
+    }
+  }
+  if (!nested_entities.empty()) {
+    return Status::Error(400, PSLICE() << "Can't find end of " << nested_entities.back().type
+                                       << " entity at byte offset " << nested_entities.back().entity_byte_offset);
+  }
+
+  std::sort(entities.begin(), entities.end());
+
+  return entities;
+}
+
+Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
+  string result;
+  TRY_RESULT(entities, do_parse_markdown_v2(text, result));
+  text = result;
+  return entities;
+}
+
+static uint32 decode_html_entity(CSlice text, size_t &pos) {
   auto c = static_cast<unsigned char>(text[pos]);
   if (c != '&') {
     return 0;
@@ -1458,7 +1656,7 @@ static uint32 decode_html_entity(Slice text, size_t &pos) {
   return res;
 }
 
-static Result<vector<MessageEntity>> do_parse_html(Slice text, string &result) {
+static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) {
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
 

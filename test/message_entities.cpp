@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageEntity.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/tests.h"
@@ -730,7 +731,7 @@ static void check_parse_html(td::string text, const td::string &result, const td
   ASSERT_STREQ(result, text);
 }
 
-static void check_parse_html(td::string text, const td::string &error_message) {
+static void check_parse_html(td::string text, td::Slice error_message) {
   auto r_entities = td::parse_html(text);
   ASSERT_TRUE(r_entities.is_error());
   ASSERT_EQ(400, r_entities.error().code());
@@ -764,6 +765,8 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("&lt;&gt;&amp;&quot;&laquo;&raquo;&#12345678;", "<>&\"&laquo;&raquo;&#12345678;", {});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("➡️ ➡️<i>➡️ ➡️</i><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<i>🏟 &lt🏟</i>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
   check_parse_html("🏟 🏟<i>🏟 &gt;<b aba   =   caba>&lt🏟</b></i>", "🏟 🏟🏟 ><🏟",
                    {{td::MessageEntity::Type::Italic, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
@@ -777,6 +780,8 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i    aba  =  '&lt;&gt;&quot;'>a</>", "🏟 🏟<a",
                    {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i>🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::Italic, 6, 6}});
   check_parse_html("🏟 🏟&lt;<i>a</    >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i>a</i   >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<b></b>", "🏟 🏟<", {});
@@ -805,4 +810,127 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
   check_parse_html("<a>https://telegram.org/asdsa?asdasdwe#12e3we</a>", "https://telegram.org/asdsa?asdasdwe#12e3we",
                    {{td::MessageEntity::Type::TextUrl, 0, 42, "https://telegram.org/asdsa?asdasdwe#12e3we"}});
+}
+
+static void check_parse_markdown(td::string text, const td::string &result,
+                                 const td::vector<td::MessageEntity> &entities) {
+  auto r_entities = td::parse_markdown_v2(text);
+  ASSERT_TRUE(r_entities.is_ok());
+  ASSERT_EQ(entities, r_entities.ok());
+  ASSERT_STREQ(result, text);
+}
+
+static void check_parse_markdown(td::string text, td::Slice error_message) {
+  auto r_entities = td::parse_markdown_v2(text);
+  ASSERT_TRUE(r_entities.is_error());
+  ASSERT_EQ(400, r_entities.error().code());
+  ASSERT_STREQ(error_message, r_entities.error().message());
+}
+
+TEST(MessageEntities, parse_markdown) {
+  td::Slice reserved_characters("]()>#+=|{}.!");
+  td::Slice begin_characters("_*[~`");
+  for (char c = 1; c < 126; c++) {
+    if (begin_characters.find(c) != td::Slice::npos) {
+      continue;
+    }
+
+    td::string text(1, c);
+    if (reserved_characters.find(c) == td::Slice::npos) {
+      check_parse_markdown(text, text, {});
+    } else {
+      check_parse_markdown(
+          text, PSLICE() << "Character '" << c << "' is reserved and must be escaped with the preceding '\\'");
+
+      td::string escaped_text = "\\" + text;
+      check_parse_markdown(escaped_text, text, {});
+    }
+  }
+
+  check_parse_markdown("🏟 🏟_abacaba", "Can't find end of Italic entity at byte offset 9");
+  check_parse_markdown("🏟 🏟_abac * asd ", "Can't find end of Bold entity at byte offset 15");
+  check_parse_markdown("🏟 🏟_abac * asd _", "Can't find end of Italic entity at byte offset 21");
+  check_parse_markdown("🏟 🏟`", "Can't find end of Code entity at byte offset 9");
+  check_parse_markdown("🏟 🏟```", "Can't find end of Pre entity at byte offset 9");
+  check_parse_markdown("🏟 🏟```a", "Can't find end of Pre entity at byte offset 9");
+  check_parse_markdown("🏟 🏟```a ", "Can't find end of PreCode entity at byte offset 9");
+  check_parse_markdown("🏟 🏟__🏟 🏟_", "Can't find end of Italic entity at byte offset 20");
+  check_parse_markdown("🏟 🏟_🏟 🏟__", "Can't find end of Underline entity at byte offset 19");
+  check_parse_markdown("🏟 🏟```🏟 🏟`", "Can't find end of Code entity at byte offset 21");
+  check_parse_markdown("🏟 🏟```🏟 🏟_", "Can't find end of PreCode entity at byte offset 9");
+  check_parse_markdown("🏟 🏟```🏟 🏟\\`", "Can't find end of PreCode entity at byte offset 9");
+  check_parse_markdown("[telegram\\.org](asd\\)", "Can't find end of a URL at byte offset 16");
+  check_parse_markdown("[telegram\\.org](", "Can't find end of a URL at byte offset 16");
+  check_parse_markdown("[telegram\\.org](asd", "Can't find end of a URL at byte offset 16");
+  check_parse_markdown("🏟 🏟__🏟 _🏟___", "Can't find end of Italic entity at byte offset 23");
+  check_parse_markdown("🏟 🏟__", "Can't find end of Underline entity at byte offset 9");
+
+  check_parse_markdown("", "", {});
+  check_parse_markdown("\\\\", "\\", {});
+  check_parse_markdown("\\\\\\", "\\\\", {});
+  check_parse_markdown("\\\\\\\\\\_\\*\\`", "\\\\_*`", {});
+  check_parse_markdown("➡️ ➡️", "➡️ ➡️", {});
+  check_parse_markdown("🏟 🏟``", "🏟 🏟", {});
+  check_parse_markdown("🏟 🏟_abac \\* asd _", "🏟 🏟abac * asd ", {{td::MessageEntity::Type::Italic, 5, 11}});
+  check_parse_markdown("🏟 \\.🏟_🏟\\. 🏟_", "🏟 .🏟🏟. 🏟", {{td::MessageEntity::Type::Italic, 6, 6}});
+  check_parse_markdown("\\\\\\a\\b\\c\\d\\e\\f\\1\\2\\3\\4\\➡️\\", "\\abcdef1234\\➡️\\", {});
+  check_parse_markdown("➡️ ➡️_➡️ ➡️_", "➡️ ➡️➡️ ➡️",
+                       {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_markdown("➡️ ➡️_➡️ ➡️_*➡️ ➡️*", "➡️ ➡️➡️ ➡️➡️ ➡️",
+                       {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
+  check_parse_markdown("🏟 🏟_🏟 \\.🏟_", "🏟 🏟🏟 .🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
+  check_parse_markdown("🏟 🏟_🏟 *🏟*_", "🏟 🏟🏟 🏟",
+                       {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 8, 2}});
+  check_parse_markdown("🏟 🏟_🏟 __🏟___", "🏟 🏟🏟 🏟",
+                       {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Underline, 8, 2}});
+  check_parse_markdown("🏟 🏟__🏟 _🏟_ __", "🏟 🏟🏟 🏟 ",
+                       {{td::MessageEntity::Type::Underline, 5, 6}, {td::MessageEntity::Type::Italic, 8, 2}});
+  check_parse_markdown("🏟 🏟__🏟 _🏟_\\___", "🏟 🏟🏟 🏟_",
+                       {{td::MessageEntity::Type::Underline, 5, 6}, {td::MessageEntity::Type::Italic, 8, 2}});
+  check_parse_markdown("🏟 🏟`🏟 🏟```", "🏟 🏟🏟 🏟", {{td::MessageEntity::Type::Code, 5, 5}});
+  check_parse_markdown("🏟 🏟```🏟 🏟```", "🏟 🏟 🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n🏟```", "🏟 🏟🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r🏟```", "🏟 🏟🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n\r🏟```", "🏟 🏟🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r\n🏟```", "🏟 🏟🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n\n🏟```", "🏟 🏟\n🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r\r🏟```", "🏟 🏟\r🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟 \\\\\\`🏟```", "🏟 🏟 \\`🏟",
+                       {{td::MessageEntity::Type::PreCode, 5, 5, "🏟"}});
+  check_parse_markdown("🏟 🏟**", "🏟 🏟", {});
+  check_parse_markdown("🏟 🏟``", "🏟 🏟", {});
+  check_parse_markdown("🏟 🏟``````", "🏟 🏟", {});
+  check_parse_markdown("🏟 🏟____", "🏟 🏟", {});
+  check_parse_markdown("`_* *_`__*` `*__", "_* *_ ",
+                       {{td::MessageEntity::Type::Code, 0, 5},
+                        {td::MessageEntity::Type::Code, 5, 1},
+                        {td::MessageEntity::Type::Bold, 5, 1},
+                        {td::MessageEntity::Type::Underline, 5, 1}});
+  check_parse_markdown("_* * ` `_", "   ",
+                       {{td::MessageEntity::Type::Italic, 0, 3},
+                        {td::MessageEntity::Type::Bold, 0, 1},
+                        {td::MessageEntity::Type::Code, 2, 1}});
+  check_parse_markdown("[](telegram.org)", "", {});
+  check_parse_markdown("[ ](telegram.org)", " ", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_markdown("[ ](as)", " ", {});
+  check_parse_markdown("[telegram\\.org]", "telegram.org",
+                       {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
+  check_parse_markdown("[telegram\\.org]a", "telegram.orga",
+                       {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
+  check_parse_markdown("[telegram\\.org](telegram.dog)", "telegram.org",
+                       {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.dog/"}});
+  check_parse_markdown("[telegram\\.org](https://telegram.dog?)", "telegram.org",
+                       {{td::MessageEntity::Type::TextUrl, 0, 12, "https://telegram.dog/?"}});
+  check_parse_markdown("[telegram\\.org](https://telegram.dog?\\\\\\()", "telegram.org",
+                       {{td::MessageEntity::Type::TextUrl, 0, 12, "https://telegram.dog/?\\("}});
+  check_parse_markdown("[telegram\\.org]()", "telegram.org", {});
+  check_parse_markdown("[telegram\\.org](asdasd)", "telegram.org", {});
+  check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org", {{0, 12, td::UserId(123456)}});
 }

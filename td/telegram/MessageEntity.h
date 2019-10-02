@@ -97,6 +97,8 @@ class MessageEntity {
   static int get_type_priority(Type type);
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Type &message_entity_type);
+
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity);
 
 struct FormattedText {
@@ -139,6 +141,8 @@ vector<std::pair<Slice, bool>> find_urls(Slice str);  // slice + is_email_addres
 string get_first_url(Slice text, const vector<MessageEntity> &entities);
 
 Result<vector<MessageEntity>> parse_markdown(string &text);
+
+Result<vector<MessageEntity>> parse_markdown_v2(string &text);
 
 Result<vector<MessageEntity>> parse_html(string &text);
 
