@@ -2575,7 +2575,8 @@ deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
 //@class TextParseMode @description Describes the way the text should be parsed for TextEntities
 
 //@description The text should be parsed in markdown-style
-textParseModeMarkdown = TextParseMode;
+//@version Version of the parser, 0 - Bot API 1.0 parser, 1 - Bot API 4.5 rules with underline, strikethrough and nested entities support
+textParseModeMarkdown version:int32 = TextParseMode;
 
 //@description The text should be parsed in HTML-style
 textParseModeHTML = TextParseMode;

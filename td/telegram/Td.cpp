@@ -7656,8 +7656,16 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
     switch (request.parse_mode_->get_id()) {
       case td_api::textParseModeHTML::ID:
         return parse_html(request.text_);
-      case td_api::textParseModeMarkdown::ID:
-        return parse_markdown(request.text_);
+      case td_api::textParseModeMarkdown::ID: {
+        auto version = static_cast<const td_api::textParseModeMarkdown *>(request.parse_mode_.get())->version_;
+        if (version == 0) {
+          return parse_markdown(request.text_);
+        }
+        if (version == 1) {
+          return parse_markdown_v2(request.text_);
+        }
+        return Status::Error("Wrong Markdown version specified");
+      }
       default:
         UNREACHABLE();
         return Status::Error(500, "Unknown parse mode");

@@ -901,7 +901,7 @@ class CliClient final : public Actor {
       string text, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
     if (entities.empty() && !text.empty()) {
       auto parsed_text = execute(
-          td_api::make_object<td_api::parseTextEntities>(text, td_api::make_object<td_api::textParseModeMarkdown>()));
+          td_api::make_object<td_api::parseTextEntities>(text, td_api::make_object<td_api::textParseModeMarkdown>(1)));
       if (parsed_text->get_id() == td_api::formattedText::ID) {
         return td_api::move_object_as<td_api::formattedText>(parsed_text);
       }
@@ -2563,13 +2563,13 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getTextEntities>(args));
     } else if (op == "pte") {
       send_request(
-          td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>()));
+          td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>(1)));
     } else if (op == "pteh") {
       send_request(
           td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeHTML>()));
     } else if (op == "ptes") {
       execute(
-          td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>()));
+          td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>(1)));
     } else if (op == "ptehs") {
       execute(td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeHTML>()));
     } else if (op == "gfmt") {
