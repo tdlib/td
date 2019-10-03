@@ -7194,7 +7194,7 @@ void ContactsManager::on_update_user_local_was_online(UserId user_id, int32 loca
 
 void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online) {
   CHECK(u != nullptr);
-  if (u->is_deleted || u->is_bot || user_id == get_my_id()) {
+  if (u->is_deleted || u->is_bot || u->is_support || user_id == get_my_id()) {
     return;
   }
   if (u->was_online > G()->unix_time_cached()) {
