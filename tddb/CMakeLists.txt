@@ -8,17 +8,18 @@ set(TDDB_SOURCE
   td/db/binlog/detail/BinlogEventsBuffer.cpp
   td/db/binlog/detail/BinlogEventsProcessor.cpp
 
+  td/db/SqliteConnectionSafe.cpp
   td/db/SqliteDb.cpp
-  td/db/SqliteStatement.cpp
   td/db/SqliteKeyValue.cpp
   td/db/SqliteKeyValueAsync.cpp
+  td/db/SqliteStatement.cpp
 
   td/db/detail/RawSqliteDb.cpp
 
   td/db/binlog/Binlog.h
-  td/db/binlog/BinlogInterface.h
   td/db/binlog/BinlogEvent.h
   td/db/binlog/BinlogHelper.h
+  td/db/binlog/BinlogInterface.h
   td/db/binlog/ConcurrentBinlog.h
   td/db/binlog/detail/BinlogEventsBuffer.h
   td/db/binlog/detail/BinlogEventsProcessor.h

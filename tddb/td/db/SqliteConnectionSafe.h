@@ -8,50 +8,27 @@
 
 #include "td/actor/SchedulerLocalStorage.h"
 
+#include "td/db/DbKey.h"
 #include "td/db/SqliteDb.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
-#include "td/utils/logging.h"
 
 namespace td {
 
 class SqliteConnectionSafe {
  public:
   SqliteConnectionSafe() = default;
-  explicit SqliteConnectionSafe(string name, DbKey key = DbKey::empty())
-      : lsls_connection_([name = name, key = std::move(key)] {
-        auto r_db = SqliteDb::open_with_key(name, key);
-        if (r_db.is_error()) {
-          LOG(FATAL) << "Can't open database " << name << ": " << r_db.error();
-        }
-        auto db = r_db.move_as_ok();
-        db.exec("PRAGMA synchronous=NORMAL").ensure();
-        db.exec("PRAGMA temp_store=MEMORY").ensure();
-        db.exec("PRAGMA secure_delete=1").ensure();
-        db.exec("PRAGMA recursive_triggers=1").ensure();
-        return db;
-      })
-      , name_(std::move(name)) {
-  }
+  explicit SqliteConnectionSafe(string name, DbKey key = DbKey::empty());
 
-  SqliteDb &get() {
-    return lsls_connection_.get();
-  }
+  SqliteDb &get();
 
-  void close() {
-    LOG(INFO) << "Close SQLite database " << tag("path", name_);
-    lsls_connection_.clear_values();
-  }
-  void close_and_destroy() {
-    close();
-    LOG(INFO) << "Destroy SQLite database " << tag("path", name_);
-    SqliteDb::destroy(name_).ignore();
-  }
+  void close();
+
+  void close_and_destroy();
 
  private:
-  LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
   string name_;
+  LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
 };
 
 }  // namespace td
