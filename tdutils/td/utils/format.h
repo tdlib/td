@@ -227,6 +227,19 @@ StringBuilder &operator<<(StringBuilder &stream, const Array<ArrayT> &array) {
   return stream << Slice("}");
 }
 
+inline StringBuilder &operator<<(StringBuilder &stream, const Array<vector<bool>> &array) {
+  bool first = true;
+  stream << Slice("{");
+  for (bool x : array.ref) {
+    if (!first) {
+      stream << Slice(", ");
+    }
+    stream << x;
+    first = false;
+  }
+  return stream << Slice("}");
+}
+
 template <class ArrayT>
 Array<ArrayT> as_array(const ArrayT &array) {
   return Array<ArrayT>{array};
