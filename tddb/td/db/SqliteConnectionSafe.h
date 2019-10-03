@@ -18,7 +18,7 @@ namespace td {
 class SqliteConnectionSafe {
  public:
   SqliteConnectionSafe() = default;
-  explicit SqliteConnectionSafe(string name, DbKey key = DbKey::empty());
+  explicit SqliteConnectionSafe(string path, DbKey key = DbKey::empty());
 
   SqliteDb &get();
 
@@ -27,7 +27,7 @@ class SqliteConnectionSafe {
   void close_and_destroy();
 
  private:
-  string name_;
+  string path_;
   LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
 };
 

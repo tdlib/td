@@ -283,20 +283,20 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   CHECK(!parameters.use_message_db || parameters.use_chat_info_db);
   CHECK(!parameters.use_chat_info_db || parameters.use_file_db);
 
-  const string sql_db_name = get_sqlite_path(parameters);
+  const string sql_database_path = get_sqlite_path(parameters);
 
   bool use_sqlite = parameters.use_file_db;
   bool use_file_db = parameters.use_file_db;
   bool use_dialog_db = parameters.use_message_db;
   bool use_message_db = parameters.use_message_db;
   if (!use_sqlite) {
-    unlink(sql_db_name).ignore();
+    unlink(sql_database_path).ignore();
     return Status::OK();
   }
 
-  sqlite_path_ = sql_db_name;
+  sqlite_path_ = sql_database_path;
   TRY_STATUS(SqliteDb::change_key(sqlite_path_, key, old_key));
-  sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_db_name, key);
+  sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_database_path, key);
   auto &db = sql_connection_->get();
 
   TRY_STATUS(init_db(db));

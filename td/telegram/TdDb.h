@@ -126,4 +126,5 @@ class TdDb {
 
   void do_close(Promise<> on_finished, bool destroy_flag);
 };
+
 }  // namespace td
