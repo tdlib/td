@@ -720,12 +720,13 @@ class ConfigRecoverer : public Actor {
           });
       auto get_simple_config = [&]() {
         switch (simple_config_turn_ % 3) {
-          case 1:
+          case 2:
             return get_simple_config_azure;
           case 0:
-          case 2:
-          default:
             return get_simple_config_google_dns;
+          case 1:
+          default:
+            return get_simple_config_mozilla_dns;
         }
       }();
       simple_config_query_ =
