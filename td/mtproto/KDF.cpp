@@ -9,12 +9,13 @@
 #include "td/utils/as.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/logging.h"
 
 namespace td {
 namespace mtproto {
 
 void KDF(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt256 *aes_iv) {
-  CHECK(auth_key.size() == 2048 / 8);
+  LOG_CHECK(auth_key.size() == 2048 / 8) << auth_key.size();
   const char *auth_key_raw = auth_key.data();
   uint8 buf[48];
   as<UInt128>(buf) = msg_key;
