@@ -2165,8 +2165,9 @@ notificationGroupTypeSecretChat = NotificationGroupType;
 notificationGroupTypeCalls = NotificationGroupType;
 
 
-//@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date @type Notification type
-notification id:int32 date:int32 type:NotificationType = Notification;
+//@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date
+//@is_silent True, if the notification was initially silent @type Notification type
+notification id:int32 date:int32 is_silent:Bool type:NotificationType = Notification;
 
 //@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @type Type of the group
 //@chat_id Identifier of a chat to which all notifications in the group belong

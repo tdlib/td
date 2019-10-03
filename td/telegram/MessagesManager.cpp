@@ -19412,7 +19412,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     result.type = NotificationGroupType::SecretChat;
     result.notifications.emplace_back(d->new_secret_chat_notification_id,
                                       td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id()),
-                                      create_new_secret_chat_notification());
+                                      false, create_new_secret_chat_notification());
   } else {
     result.type = from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages;
     result.notifications = get_message_notifications_from_database_force(
@@ -19476,7 +19476,8 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
       }
 
       auto pos = res.size();
-      res.emplace_back(m->notification_id, m->date, create_new_message_notification(message_id));
+      res.emplace_back(m->notification_id, m->date, m->disable_notification,
+                       create_new_message_notification(message_id));
       while (pos > 0 && res[pos - 1].type->get_message_id().get() < message_id.get()) {
         std::swap(res[pos - 1], res[pos]);
         pos--;
@@ -19590,7 +19591,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       if (is_correct) {
         // skip mention messages returned among unread messages
-        res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+        res.emplace_back(m->notification_id, m->date, m->disable_notification,
+                         create_new_message_notification(m->message_id));
       } else {
         remove_message_notification_id(d, m, true, false);
         on_message_changed(d, m, false, "get_message_notifications_from_database_force");
@@ -19694,7 +19696,7 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
     vector<Notification> notifications;
     if (!from_mentions && d->new_secret_chat_notification_id.get() < from_notification_id.get()) {
       notifications.emplace_back(d->new_secret_chat_notification_id,
-                                 td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id()),
+                                 td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id()), false,
                                  create_new_secret_chat_notification());
     }
     return promise.set_value(std::move(notifications));
@@ -19833,7 +19835,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     if (is_correct) {
       // skip mention messages returned among unread messages
-      res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+      res.emplace_back(m->notification_id, m->date, m->disable_notification,
+                       create_new_message_notification(m->message_id));
     } else {
       remove_message_notification_id(d, m, true, false);
       on_message_changed(d, m, false, "on_get_message_notifications_from_database");
@@ -20262,7 +20265,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool is_silent = m->disable_notification || m->message_id.get() <= d->max_notification_message_id.get();
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
-                     m->date, settings_dialog_id, is_silent, min_delay_ms, m->notification_id,
+                     m->date, settings_dialog_id, m->disable_notification, is_silent, min_delay_ms, m->notification_id,
                      create_new_message_notification(m->message_id), "add_new_message_notification");
   return true;
 }
@@ -24750,8 +24753,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
               VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification(),
-                                 "add_new_secret_chat_notification");
+                                 false, false, 0, d->new_secret_chat_notification_id,
+                                 create_new_secret_chat_notification(), "add_new_secret_chat_notification");
             }
           }
         }

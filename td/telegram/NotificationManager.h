@@ -65,8 +65,9 @@ class NotificationManager : public Actor {
   void load_group_force(NotificationGroupId group_id);
 
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
-                        DialogId notification_settings_dialog_id, bool is_silent, int32 min_delay_ms,
-                        NotificationId notification_id, unique_ptr<NotificationType> type, const char *source);
+                        DialogId notification_settings_dialog_id, bool initial_is_silent, bool is_silent,
+                        int32 min_delay_ms, NotificationId notification_id, unique_ptr<NotificationType> type,
+                        const char *source);
 
   void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                          unique_ptr<NotificationType> type);
@@ -154,6 +155,7 @@ class NotificationManager : public Actor {
   struct PendingNotification {
     int32 date = 0;
     DialogId settings_dialog_id;
+    bool initial_is_silent = false;
     bool is_silent = false;
     NotificationId notification_id;
     unique_ptr<NotificationType> type;
@@ -303,8 +305,8 @@ class NotificationManager : public Actor {
   Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
-                                     string sender_name, int32 date, bool contains_mention, bool is_silent,
-                                     string loc_key, string arg, Photo photo, Document document,
+                                     string sender_name, int32 date, bool contains_mention, bool initial_is_silent,
+                                     bool is_silent, string loc_key, string arg, Photo photo, Document document,
                                      NotificationId notification_id, uint64 logevent_id, Promise<Unit> promise);
 
   void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
