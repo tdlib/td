@@ -16806,7 +16806,9 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
   auto &request = it->second;
   CHECK(request.dialog_id == dialog_id);
   auto message_it = std::find(request.message_ids.begin(), request.message_ids.end(), message_id);
-  CHECK(message_it != request.message_ids.end());
+  LOG_CHECK(message_it != request.message_ids.end())
+      << dialog_id << ' ' << request.message_ids << ' ' << message_id << ' ' << request.finished_count << ' '
+      << request.is_finished << ' ' << request.results;
   auto pos = static_cast<size_t>(message_it - request.message_ids.begin());
 
   if (request.is_finished[pos]) {
@@ -16893,7 +16895,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
       bool has_remote = file_view.has_remote_location();
       bool is_web = has_remote ? file_view.remote_location().is_web() : false;
       LOG(FATAL) << request.dialog_id << " " << request.finished_count << " " << i << " " << request.message_ids << " "
-                 << request.results << " " << m->ttl << " " << has_remote << " "
+                 << request.is_finished << " " << request.results << " " << m->ttl << " " << has_remote << " "
                  << file_view.has_alive_remote_location() << " " << file_view.has_active_upload_remote_location() << " "
                  << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
                  << " " << file_view.has_url() << " "
