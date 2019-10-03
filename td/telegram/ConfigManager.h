@@ -41,6 +41,9 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
                                         bool is_test, int32 scheduler_id);
 
+ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+                                         bool is_test, int32 scheduler_id);
+
 class HttpDate {
   static bool is_leap(int32 year) {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);

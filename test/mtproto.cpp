@@ -166,8 +166,10 @@ TEST(Mtproto, config) {
 
     run(get_simple_config_azure, false);
     run(get_simple_config_google_dns, false);
+    run(get_simple_config_mozilla_dns, false);
     run(get_simple_config_azure, true);
     run(get_simple_config_google_dns, true);
+    run(get_simple_config_mozilla_dns, true);
   }
   cnt--;
   sched.start();
