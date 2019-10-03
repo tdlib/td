@@ -67,7 +67,7 @@ void StorageManager::get_storage_stats(bool need_all_files, int32 dialog_limit, 
     //TODO group same queries
     close_stats_worker();
   }
-  if (pending_run_gc_.size() != 0) {
+  if (!pending_run_gc_.empty()) {
     close_gc_worker();
   }
   stats_dialog_limit_ = dialog_limit;
@@ -106,20 +106,21 @@ void StorageManager::run_gc(FileGcParameters parameters, Promise<FileStats> prom
     promise.set_error(Status::Error(500, "Request aborted"));
     return;
   }
-  if (pending_run_gc_.size() != 0) {
+  if (!pending_run_gc_.empty()) {
     close_gc_worker();
   }
 
-  get_storage_stats(true /*need_all_file*/,
-                    !gc_parameters_.owner_dialog_ids.empty() || !gc_parameters_.exclude_owner_dialog_ids.empty() ||
-                        gc_parameters_.dialog_limit != 0 /*split_by_owner_dialog_id*/,
-                    PromiseCreator::lambda([actor_id = actor_id(this)](Result<FileStats> file_stats) {
-                      send_closure(actor_id, &StorageManager::on_all_files, std::move(file_stats), false);
-                    }));
+  bool split_by_owner_dialog_id = !parameters.owner_dialog_ids.empty() ||
+                                  !parameters.exclude_owner_dialog_ids.empty() || parameters.dialog_limit != 0;
+  get_storage_stats(true /*need_all_files*/, split_by_owner_dialog_id,
+                    PromiseCreator::lambda(
+                        [actor_id = actor_id(this), parameters = std::move(parameters)](Result<FileStats> file_stats) {
+                          send_closure(actor_id, &StorageManager::on_all_files, std::move(parameters),
+                                       std::move(file_stats), false);
+                        }));
 
-  //NB: get_storage stats will cancel all gc queries
+  //NB: get_storage_stats will cancel all gc queries, so promise needs to be added after the call
   pending_run_gc_.emplace_back(std::move(promise));
-  gc_parameters_ = std::move(parameters);
 }
 
 void StorageManager::on_file_stats(Result<FileStats> r_file_stats, uint32 generation) {
@@ -146,19 +147,20 @@ void StorageManager::create_stats_worker() {
   }
 }
 
-void StorageManager::on_all_files(Result<FileStats> r_file_stats, bool dummy) {
+void StorageManager::on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats, bool dummy) {
+  int32 dialog_limit = gc_parameters.dialog_limit;
   if (is_closed_ && r_file_stats.is_ok()) {
     r_file_stats = Status::Error(500, "Request aborted");
   }
   if (r_file_stats.is_error()) {
-    return on_gc_finished(std::move(r_file_stats), false);
+    return on_gc_finished(dialog_limit, std::move(r_file_stats), false);
   }
 
   create_gc_worker();
 
-  send_closure(gc_worker_, &FileGcWorker::run_gc, gc_parameters_, r_file_stats.move_as_ok().all_files,
-               PromiseCreator::lambda([actor_id = actor_id(this)](Result<FileStats> r_file_stats) {
-                 send_closure(actor_id, &StorageManager::on_gc_finished, std::move(r_file_stats), false);
+  send_closure(gc_worker_, &FileGcWorker::run_gc, std::move(gc_parameters), r_file_stats.move_as_ok().all_files,
+               PromiseCreator::lambda([actor_id = actor_id(this), dialog_limit](Result<FileStats> r_file_stats) {
+                 send_closure(actor_id, &StorageManager::on_gc_finished, dialog_limit, std::move(r_file_stats), false);
                }));
 }
 
@@ -204,7 +206,7 @@ void StorageManager::create_gc_worker() {
   }
 }
 
-void StorageManager::on_gc_finished(Result<FileStats> r_file_stats, bool dummy) {
+void StorageManager::on_gc_finished(int32 dialog_limit, Result<FileStats> r_file_stats, bool dummy) {
   if (r_file_stats.is_error()) {
     if (r_file_stats.error().code() != 500) {
       LOG(ERROR) << "GC failed: " << r_file_stats.error();
@@ -216,7 +218,7 @@ void StorageManager::on_gc_finished(Result<FileStats> r_file_stats, bool dummy) 
     return;
   }
 
-  send_stats(r_file_stats.move_as_ok(), gc_parameters_.dialog_limit, std::move(pending_run_gc_));
+  send_stats(r_file_stats.move_as_ok(), dialog_limit, std::move(pending_run_gc_));
 }
 
 void StorageManager::save_fast_stat() {
@@ -279,7 +281,6 @@ void StorageManager::close_gc_worker() {
   for (auto &promise : promises) {
     promise.set_error(Status::Error(500, "Request aborted"));
   }
-  gc_generation_++;
   gc_worker_.reset();
   gc_cancellation_token_source_.cancel();
 }
