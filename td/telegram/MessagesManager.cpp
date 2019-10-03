@@ -9005,7 +9005,12 @@ void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *
 
   TtlNode ttl_node(dialog_id, m->message_id);
   auto it = ttl_nodes_.find(ttl_node);
-  LOG_CHECK(it != ttl_nodes_.end()) << dialog_id << " " << m->message_id << " " << source << " " << G()->close_flag();
+
+  // expect m->ttl == 0, but m->ttl_expires_at > 0 from binlog
+  LOG_CHECK(it != ttl_nodes_.end()) << dialog_id << " " << m->message_id << " " << source << " " << G()->close_flag()
+                                    << " " << m->ttl << " " << m->ttl_expires_at << " " << Time::now() << " "
+                                    << m->from_database;
+
   auto *heap_node = it->as_heap_node();
   if (heap_node->in_heap()) {
     ttl_heap_.erase(heap_node);
@@ -11484,12 +11489,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     update_message_count_by_index(d, -1, result.get());
   }
 
-  on_message_deleted(d, result.get());
+  on_message_deleted(d, result.get(), source);
 
   return result;
 }
 
-void MessagesManager::on_message_deleted(Dialog *d, Message *m) {
+void MessagesManager::on_message_deleted(Dialog *d, Message *m, const char *source) {
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -11505,7 +11510,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m) {
     default:
       UNREACHABLE();
   }
-  ttl_unregister_message(d->dialog_id, m, Time::now(), "on_message_deleted");
+  ttl_unregister_message(d->dialog_id, m, Time::now(), source);
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id});
   if (m->notification_id.is_valid()) {
     delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
@@ -11539,7 +11544,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
     cancel_edit_message_media(d->dialog_id, m.get(), "Message was deleted");
   }
 
-  on_message_deleted(d, m.get());
+  on_message_deleted(d, m.get(), "do_delete_all_dialog_messages");
 
   m = nullptr;
 }
