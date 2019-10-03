@@ -1662,13 +1662,13 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
   struct EntityInfo {
     string tag_name;
-    string url;
+    string argument;
     int32 entity_offset;
     size_t entity_begin_pos;
 
-    EntityInfo(string tag_name, string url, int32 entity_offset, size_t entity_begin_pos)
+    EntityInfo(string tag_name, string argument, int32 entity_offset, size_t entity_begin_pos)
         : tag_name(std::move(tag_name))
-        , url(std::move(url))
+        , argument(std::move(argument))
         , entity_offset(entity_offset)
         , entity_begin_pos(entity_begin_pos) {
     }
@@ -1711,8 +1711,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
                                       << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
       }
 
-      string url;
-      // string language; TODO PreCode support
+      string argument;
       while (text[i] != '>') {
         while (text[i] != 0 && is_space(text[i])) {
           i++;
@@ -1779,11 +1778,14 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         }
 
         if (tag_name == "a" && attribute_name == Slice("href")) {
-          url = std::move(attribute_value);
+          argument = std::move(attribute_value);
+        }
+        if (tag_name == "code" && attribute_name == Slice("class") && begins_with(attribute_value, "language-")) {
+          argument = attribute_value.substr(9);
         }
       }
 
-      nested_entities.emplace_back(std::move(tag_name), std::move(url), utf16_offset, result.size());
+      nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, result.size());
     } else {
       // end of an entity
       if (nested_entities.empty()) {
@@ -1815,7 +1817,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         } else if (tag_name == "b" || tag_name == "strong") {
           entities.emplace_back(MessageEntity::Type::Bold, entity_offset, entity_length);
         } else if (tag_name == "a") {
-          auto url = std::move(nested_entities.back().url);
+          auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
             url = result.substr(nested_entities.back().entity_begin_pos);
           }
@@ -1829,9 +1831,23 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
             }
           }
         } else if (tag_name == "pre") {
-          entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
+          if (!entities.empty() && entities.back().type == MessageEntity::Type::Code &&
+              entities.back().offset == entity_offset && entities.back().length == entity_length &&
+              !entities.back().argument.empty()) {
+            entities.back().type = MessageEntity::Type::PreCode;
+          } else {
+            entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
+          }
         } else if (tag_name == "code") {
-          entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length);
+          if (!entities.empty() && entities.back().type == MessageEntity::Type::Pre &&
+              entities.back().offset == entity_offset && entities.back().length == entity_length &&
+              !nested_entities.back().argument.empty()) {
+            entities.back().type = MessageEntity::Type::PreCode;
+            entities.back().argument = std::move(nested_entities.back().argument);
+          } else {
+            entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length,
+                                  nested_entities.back().argument);
+          }
         } else {
           UNREACHABLE();
         }
@@ -1842,6 +1858,12 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
   if (!nested_entities.empty()) {
     return Status::Error(
         400, PSLICE() << "Can't find end tag corresponding to start tag " << nested_entities.back().tag_name);
+  }
+
+  for (auto &entity : entities) {
+    if (entity.type == MessageEntity::Type::Code && !entity.argument.empty()) {
+      entity.argument.clear();
+    }
   }
 
   std::sort(entities.begin(), entities.end());

@@ -810,6 +810,22 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
   check_parse_html("<a>https://telegram.org/asdsa?asdasdwe#12e3we</a>", "https://telegram.org/asdsa?asdasdwe#12e3we",
                    {{td::MessageEntity::Type::TextUrl, 0, 42, "https://telegram.org/asdsa?asdasdwe#12e3we"}});
+  check_parse_html("🏟 🏟&lt;<pre  >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::Pre, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<code >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::Code, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<pre><code>🏟 🏟&lt;</code></>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::Pre, 6, 6}, {td::MessageEntity::Type::Code, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<pre><code class=\"language-\">🏟 🏟&lt;</code></>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::Pre, 6, 6}, {td::MessageEntity::Type::Code, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<pre><code class=\"language-fift\">🏟 🏟&lt;</></>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::PreCode, 6, 6, "fift"}});
+  check_parse_html("🏟 🏟&lt;<code class=\"language-fift\"><pre>🏟 🏟&lt;</></>", "🏟 🏟<🏟 🏟<",
+                   {{td::MessageEntity::Type::PreCode, 6, 6, "fift"}});
+  check_parse_html("🏟 🏟&lt;<pre><code class=\"language-fift\">🏟 🏟&lt;</> </>", "🏟 🏟<🏟 🏟< ",
+                   {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<pre> <code class=\"language-fift\">🏟 🏟&lt;</></>", "🏟 🏟< 🏟 🏟<",
+                   {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 7, 6}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,
