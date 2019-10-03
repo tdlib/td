@@ -99,7 +99,7 @@ class RichText {
       case RichText::Type::Fixed:
         return make_tl_object<td_api::richTextFixed>(texts[0].get_rich_text_object());
       case RichText::Type::Url:
-        return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(), content);
+        return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(), content, web_page_id.is_valid());
       case RichText::Type::EmailAddress:
         return make_tl_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(), content);
       case RichText::Type::Concatenation:

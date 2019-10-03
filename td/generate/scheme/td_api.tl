@@ -729,8 +729,8 @@ richTextStrikethrough text:RichText = RichText;
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
 
-//@description A rich text URL link @text Text @url URL
-richTextUrl text:RichText url:string = RichText;
+//@description A rich text URL link @text Text @url URL @is_cached True, if the URL has cached instant view server-side
+richTextUrl text:RichText url:string is_cached:Bool = RichText;
 
 //@description A rich text email link @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
