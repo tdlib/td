@@ -262,6 +262,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       if (parser.get_error() != nullptr) {
         return;
       }
+      if (!sticker_id.is_valid()) {
+        return parser.set_error("Receive invalid sticker in a sticker set");
+      }
       sticker_set->sticker_ids.push_back(sticker_id);
 
       Sticker *sticker = get_sticker(sticker_id);
