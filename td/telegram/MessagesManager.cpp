@@ -8725,7 +8725,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
                      << " from " << source << ", but last new message id is " << d->last_new_message_id;
         }
         max_unavailable_message_id = d->last_new_message_id;
-      } else if (max_unavailable_message_id.is_server()) {
+      } else if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_server()) {
         set_dialog_last_new_message_id(d, max_unavailable_message_id, source);
       }
     }
@@ -18586,6 +18586,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       LOG(INFO) << "Can't find " << message_id << " to forward";
       continue;
     }
+    CHECK(message_id.is_valid());
 
     if (!can_forward_message(from_dialog_id, forwarded_message)) {
       LOG(INFO) << "Can't forward " << message_id;
