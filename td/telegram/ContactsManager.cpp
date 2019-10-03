@@ -4025,7 +4025,7 @@ void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &
   CHECK(!file_view.is_encrypted());
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(file_id, file_view.remote_location().as_input_photo());
+        ->send(td_->file_manager_->dup_file_id(file_id), file_view.remote_location().as_input_photo());
     return;
   }
 
