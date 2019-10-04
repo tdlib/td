@@ -13,6 +13,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/StickersManager.h"
@@ -336,6 +337,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     LOG(ERROR) << "Wrong dc_id = " << dc_id;
     return {};
   }
+
+  file_name = strip_empty_characters(file_name, 255, true);
 
   auto suggested_file_name = file_name;
   if (suggested_file_name.empty()) {

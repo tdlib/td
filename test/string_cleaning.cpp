@@ -69,8 +69,8 @@ TEST(StringCleaning, clean_input_string) {
   check_clean_input_string("\xcc\xb3\xcc\xbf\xcc\x8a", "", true);
 }
 
-static void check_strip_empty_characters(string str, size_t max_length, string expected) {
-  ASSERT_EQ(expected, strip_empty_characters(str, max_length));
+static void check_strip_empty_characters(string str, size_t max_length, string expected, bool strip_rtlo = false) {
+  ASSERT_EQ(expected, strip_empty_characters(str, max_length, strip_rtlo));
 }
 
 TEST(StringCleaning, strip_empty_characters) {
@@ -82,9 +82,14 @@ TEST(StringCleaning, strip_empty_characters) {
       u8"\u1680\u180E\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u200B\u202F\u205F\u3000\uFEFF"
       u8"\uFFFC\uFFFC";
   string spaces_replace = "                    ";
+  string rtlo = u8"\u202E";
   string empty = "\xE2\x80\x8C\xE2\x80\x8D\xE2\x80\xAE\xC2\xA0\xC2\xA0";
 
   check_strip_empty_characters(spaces, 1000000, "");
+  check_strip_empty_characters(spaces + rtlo, 1000000, "");
+  check_strip_empty_characters(spaces + rtlo, 1000000, "", true);
+  check_strip_empty_characters(spaces + rtlo + "a", 1000000, rtlo + "a");
+  check_strip_empty_characters(spaces + rtlo + "a", 1000000, "a", true);
   check_strip_empty_characters(empty, 1000000, "");
   check_strip_empty_characters(empty + "a", 1000000, empty + "a");
   check_strip_empty_characters(spaces + empty + spaces + "abc" + spaces, 1000000, empty + spaces_replace + "abc");

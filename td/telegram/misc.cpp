@@ -136,11 +136,11 @@ bool clean_input_string(string &str) {
   return true;
 }
 
-string strip_empty_characters(string str, size_t max_length) {
+string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
   static const char *space_characters[] = {u8"\u1680", u8"\u180E", u8"\u2000", u8"\u2001", u8"\u2002",
                                            u8"\u2003", u8"\u2004", u8"\u2005", u8"\u2006", u8"\u2007",
-                                           u8"\u2008", u8"\u2009", u8"\u200A", u8"\u200B", u8"\u202F",
-                                           u8"\u205F", u8"\u3000", u8"\uFEFF", u8"\uFFFC"};
+                                           u8"\u2008", u8"\u2009", u8"\u200A", u8"\u200B", u8"\u202E",
+                                           u8"\u202F", u8"\u205F", u8"\u3000", u8"\uFEFF", u8"\uFFFC"};
   static bool can_be_first[std::numeric_limits<unsigned char>::max() + 1];
   static bool can_be_first_inited = [&] {
     for (auto space_ch : space_characters) {
@@ -162,7 +162,10 @@ string strip_empty_characters(string str, size_t max_length) {
       bool found = false;
       for (auto space_ch : space_characters) {
         if (space_ch[0] == str[i] && space_ch[1] == str[i + 1] && space_ch[2] == str[i + 2]) {
-          found = true;
+          if (static_cast<unsigned char>(str[i + 2]) != 0xAE || static_cast<unsigned char>(str[i + 1]) != 0x80 ||
+              static_cast<unsigned char>(str[i]) != 0xE2 || strip_rtlo) {
+            found = true;
+          }
           break;
         }
       }

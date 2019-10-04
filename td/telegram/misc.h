@@ -22,7 +22,7 @@ string clean_username(string str) TD_WARN_UNUSED_RESULT;
 bool clean_input_string(string &str) TD_WARN_UNUSED_RESULT;
 
 // strips empty characters and ensures that string length is no more than max_length
-string strip_empty_characters(string str, size_t max_length) TD_WARN_UNUSED_RESULT;
+string strip_empty_characters(string str, size_t max_length, bool strip_rtlo = false) TD_WARN_UNUSED_RESULT;
 
 // checks if string is empty after strip_empty_characters
 bool is_empty_string(const string &str) TD_WARN_UNUSED_RESULT;
