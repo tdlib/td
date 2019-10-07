@@ -69,7 +69,8 @@ textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 //@description Contains a list of text entities @entities List of text entities
 textEntities entities:vector<textEntity> = TextEntities;
 
-//@description A text with some entities @text The text @entities Entities contained in the text
+//@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect each other.
+//-Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline, Strikethrough and BlockQuote entities can contain and to be contained in any other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
@@ -1392,6 +1393,9 @@ textEntityTypeUrl = TextEntityType;
 //@description An email address
 textEntityTypeEmailAddress = TextEntityType;
 
+//@description A phone number
+textEntityTypePhoneNumber = TextEntityType;
+
 //@description A bold text
 textEntityTypeBold = TextEntityType;
 
@@ -1421,9 +1425,6 @@ textEntityTypeTextUrl url:string = TextEntityType;
 
 //@description A text shows instead of a raw mention of the user (e.g., when the user has no username) @user_id Identifier of the mentioned user
 textEntityTypeMentionName user_id:int32 = TextEntityType;
-
-//@description A phone number
-textEntityTypePhoneNumber = TextEntityType;
 
 
 //@description A thumbnail to be sent along with a file; should be in JPEG or WEBP format for stickers, and less than 200 kB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
