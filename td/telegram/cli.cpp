@@ -3047,7 +3047,7 @@ class CliClient final : public Actor {
       auto options = full_split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options)));
-    } else if (op == "sp" || op == "spcaption") {
+    } else if (op == "sp" || op == "spcaption" || op == "spttl") {
       string chat_id;
       string photo_path;
       string sticker_file_ids_str;
@@ -3062,14 +3062,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0,
-                                as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), 0));
-    } else if (op == "spttl") {
-      string chat_id;
-      string photo_path;
-      std::tie(chat_id, photo_path) = split(args);
-
-      send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo_path), nullptr, Auto(),
-                                                                           0, 0, as_caption(""), 10));
+                                as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), op == "spttl" ? 10 : 0));
     } else if (op == "spg") {
       string chat_id;
       string photo_path;
@@ -3149,7 +3142,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, file_id) = split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(as_input_file_id(file_id), nullptr, 0, 0));
-    } else if (op == "sv") {
+    } else if (op == "sv" || op == "svttl") {
       string chat_id;
       string video_path;
       string sticker_file_ids_str;
@@ -3164,7 +3157,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(as_input_file(video_path), nullptr,
                                                                            std::move(sticker_file_ids), 1, 2, 3, true,
-                                                                           as_caption(""), 0));
+                                                                           as_caption(""), op == "svttl" ? 10 : 0));
     } else if (op == "svn") {
       string chat_id;
       string video_path;
