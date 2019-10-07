@@ -599,8 +599,8 @@ class CreateChannelQuery : public Td::ResultHandler {
     }
 
     random_id_ = random_id;
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, title, about))));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_createChannel(
+        flags, false /*ignored*/, false /*ignored*/, title, about, nullptr, string()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1459,8 +1459,9 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
       input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
     }
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_searchGlobal(
-        query, offset_date_, std::move(input_peer), offset_message_id.get_server_message_id().get(), limit))));
+    send_query(G()->net_query_creator().create(create_storer(
+        telegram_api::messages_searchGlobal(0, false /*ignored*/, query, offset_date_, std::move(input_peer),
+                                            offset_message_id.get_server_message_id().get(), limit))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3228,22 +3229,24 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
       send_query(
           G()->net_query_creator().create(create_storer(telegram_api::messages_reportSpam(std::move(input_peer)))));
     } else {
-      send_query(
-          G()->net_query_creator().create(create_storer(telegram_api::messages_hideReportSpam(std::move(input_peer)))));
+      send_query(G()->net_query_creator().create(
+          create_storer(telegram_api::messages_hidePeerSettingsBar(std::move(input_peer)))));
     }
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
     static_assert(std::is_same<telegram_api::messages_reportSpam::ReturnType,
-                               telegram_api::messages_hideReportSpam::ReturnType>::value,
+                               telegram_api::messages_hidePeerSettingsBar::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::messages_reportSpam>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->messages_manager_->on_get_peer_settings(dialog_id_,
-                                                make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/));
+    td->messages_manager_->on_get_peer_settings(
+        dialog_id_,
+        make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/));
 
     promise_.set_value(Unit());
   }
@@ -3280,8 +3283,10 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->messages_manager_->on_get_peer_settings(dialog_id_,
-                                                make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/));
+    td->messages_manager_->on_get_peer_settings(
+        dialog_id_,
+        make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/));
 
     promise_.set_value(Unit());
   }

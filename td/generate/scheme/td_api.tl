@@ -264,18 +264,6 @@ profilePhoto id:int64 small:file big:file = ProfilePhoto;
 chatPhoto small:file big:file = ChatPhoto;
 
 
-//@class LinkState @description Represents the relationship between user A and user B. For incoming_link, user A is the current user; for outgoing_link, user B is the current user
-
-//@description The phone number of user A is not known to user B
-linkStateNone = LinkState;
-
-//@description The phone number of user A is known but that number has not been saved to the contact list of user B
-linkStateKnowsPhoneNumber = LinkState;
-
-//@description The phone number of user A has been saved to the contact list of user B
-linkStateIsContact = LinkState;
-
-
 //@class UserType @description Represents the type of the user. The following types are possible: regular users, deleted users and bots
 
 //@description A regular user
@@ -302,13 +290,14 @@ botInfo description:string commands:vector<botCommand> = BotInfo;
 
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
 //@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
-//@outgoing_link Relationship from the current user to the other user @incoming_link Relationship from the other user to the current user
+//@is_contact The user is a contact of the current user
+//@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
 //@is_verified True, if the user is verified @is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains the reason why access to this user must be restricted. The format of the string is "{type}: {description}".
 //-{type} contains the type of the restriction and at least one of the suffixes "-all", "-ios", "-android", or "-wp", which describe the platforms on which access should be restricted. (For example, "terms-ios-android". {description} contains a human-readable description of the restriction, which can be shown to the user)
 //@is_scam True, if many users reported this user as a scam
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser @type Type of the user @language_code IETF language tag of the user's language; only available to bots
-user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto outgoing_link:LinkState incoming_link:LinkState is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool have_access:Bool type:UserType language_code:string = User;
+user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool have_access:Bool type:UserType language_code:string = User;
 
 //@description Contains full information about a user (except the full list of profile photos) @is_blocked True, if the user is blacklisted by the current user @can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null

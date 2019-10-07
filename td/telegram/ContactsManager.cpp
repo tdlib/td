@@ -588,14 +588,12 @@ class ImportContactsQuery : public Td::ResultHandler {
 
 class DeleteContactsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
-  vector<UserId> user_ids_;
 
  public:
   explicit DeleteContactsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(vector<UserId> &&user_ids, vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
-    user_ids_ = std::move(user_ids);
     send_query(
         G()->net_query_creator().create(create_storer(telegram_api::contacts_deleteContacts(std::move(input_users)))));
   }
@@ -606,12 +604,10 @@ class DeleteContactsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(id, Status::Error(500, "Some contacts can't be deleted"));
-    }
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteContactsQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
 
-    td->contacts_manager_->on_deleted_contacts(user_ids_);
     promise_.set_value(Unit());
   }
 
@@ -2327,24 +2323,6 @@ class GetSupportUserQuery : public Td::ResultHandler {
   }
 };
 
-StringBuilder &operator<<(StringBuilder &string_builder, ContactsManager::LinkState link_state) {
-  switch (link_state) {
-    case ContactsManager::LinkState::Unknown:
-      string_builder << "unknown";
-      break;
-    case ContactsManager::LinkState::None:
-      string_builder << "none";
-      break;
-    case ContactsManager::LinkState::KnowsPhoneNumber:
-      string_builder << "knows phone number";
-      break;
-    case ContactsManager::LinkState::Contact:
-      string_builder << "contact";
-      break;
-  }
-  return string_builder;
-}
-
 bool ContactsManager::UserFull::is_bot_info_expired(int32 bot_info_version) const {
   return bot_info_version != -1 && (bot_info == nullptr || bot_info->version != bot_info_version);
 }
@@ -2484,18 +2462,6 @@ void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
 }
 
 template <class StorerT>
-void ContactsManager::store_link_state(const LinkState &link_state, StorerT &storer) {
-  store(static_cast<uint32>(link_state), storer);
-}
-
-template <class ParserT>
-void ContactsManager::parse_link_state(LinkState &link_state, ParserT &parser) {
-  uint32 link_state_uint32;
-  parse(link_state_uint32, parser);
-  link_state = static_cast<LinkState>(static_cast<uint8>(link_state_uint32));
-}
-
-template <class StorerT>
 void ContactsManager::BotInfo::store(StorerT &storer) const {
   using td::store;
   bool has_description = !description.empty();
@@ -2541,6 +2507,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_language_code = !language_code.empty();
   bool have_access_hash = access_hash != -1;
   bool has_cache_version = cache_version != 0;
+  bool has_is_contact = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -2560,6 +2527,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_min_access_hash);
   STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
+  STORE_FLAG(has_is_contact);
+  STORE_FLAG(is_contact);
+  STORE_FLAG(is_mutual_contact);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -2575,8 +2545,6 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_photo) {
     store(photo, storer);
   }
-  store_link_state(inbound, storer);
-  store_link_state(outbound, storer);
   store(was_online, storer);
   if (is_restricted) {
     store(restriction_reason, storer);
@@ -2605,6 +2573,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_language_code;
   bool have_access_hash;
   bool has_cache_version;
+  bool has_is_contact;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -2624,6 +2593,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_min_access_hash);
   PARSE_FLAG(is_scam);
   PARSE_FLAG(has_cache_version);
+  PARSE_FLAG(has_is_contact);
+  PARSE_FLAG(is_contact);
+  PARSE_FLAG(is_mutual_contact);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -2642,8 +2614,17 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_photo) {
     parse(photo, parser);
   }
-  parse_link_state(inbound, parser);
-  parse_link_state(outbound, parser);
+  if (!has_is_contact) {
+    // enum class LinkState : uint8 { Unknown, None, KnowsPhoneNumber, Contact };
+
+    uint32 link_state_inbound;
+    uint32 link_state_outbound;
+    parse(link_state_inbound, parser);
+    parse(link_state_outbound, parser);
+
+    is_contact = link_state_outbound == 3;
+    is_mutual_contact = is_contact && link_state_inbound == 3;
+  }
   parse(was_online, parser);
   if (is_restricted) {
     parse(restriction_reason, parser);
@@ -3485,7 +3466,7 @@ bool ContactsManager::default_can_report_spam_in_secret_chat(SecretChatId secret
   if (u == nullptr) {
     return true;
   }
-  if (u->outbound == LinkState::Contact) {
+  if (u->is_contact) {
     return false;
   }
   return true;
@@ -3939,7 +3920,7 @@ int32 ContactsManager::get_contacts_hash() {
   CHECK(std::is_sorted(user_ids.begin(), user_ids.end()));
   auto my_id = get_my_id();
   const User *u = get_user_force(my_id);
-  if (u != nullptr && u->outbound == LinkState::Contact) {
+  if (u != nullptr && u->is_contact) {
     user_ids.insert(std::upper_bound(user_ids.begin(), user_ids.end(), my_id.get()), my_id.get());
   }
 
@@ -4010,7 +3991,7 @@ void ContactsManager::remove_contacts(vector<UserId> user_ids, Promise<Unit> &&p
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   for (auto &user_id : user_ids) {
     const User *u = get_user(user_id);
-    if (u != nullptr && u->outbound == LinkState::Contact) {
+    if (u != nullptr && u->is_contact) {
       auto input_user = get_input_user(user_id);
       if (input_user != nullptr) {
         to_delete_user_ids.push_back(user_id);
@@ -4281,15 +4262,14 @@ void ContactsManager::on_update_contacts_reset() {
   for (auto &p : users_) {
     UserId user_id = p.first;
     User u = &p.second;
-    bool is_contact = u->outbound == LinkState::Contact;
-    if (is_contact) {
+    if (u->is_contact) {
       LOG(INFO) << "Drop contact with " << user_id;
       if (user_id != my_id) {
         CHECK(contacts_hints_.has_key(user_id.get()));
       }
-      on_update_user_links(u, user_id, LinkState::KnowsPhoneNumber, u->inbound);
+      on_update_user_is_contact(u, user_id, false, false);
       update_user(u, user_id);
-      CHECK(u->outbound != LinkState::Contact);
+      CHECK(!u->is_contact);
       if (user_id != my_id) {
         CHECK(!contacts_hints_.has_key(user_id.get()));
       }
@@ -5366,9 +5346,9 @@ void ContactsManager::on_deleted_contacts(const vector<UserId> &deleted_contact_
     LOG(INFO) << "Drop contact with " << user_id;
     auto u = get_user(user_id);
     CHECK(u != nullptr);
-    on_update_user_links(u, user_id, LinkState::KnowsPhoneNumber, u->inbound);
+    on_update_user_is_contact(u, user_id, false, false);
     update_user(u, user_id);
-    CHECK(u->outbound != LinkState::Contact);
+    CHECK(!u->is_contact);
     CHECK(!contacts_hints_.has_key(user_id.get()));
   }
 }
@@ -5409,18 +5389,17 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
   for (auto &p : users_) {
     UserId user_id = p.first;
     User *u = &p.second;
-    bool is_contact = u->outbound == LinkState::Contact;
     bool should_be_contact = contact_user_ids.count(user_id) == 1;
-    if (is_contact != should_be_contact) {
-      if (is_contact) {
+    if (u->is_contact != should_be_contact) {
+      if (u->is_contact) {
         LOG(INFO) << "Drop contact with " << user_id;
         if (user_id != my_id) {
           LOG_CHECK(contacts_hints_.has_key(user_id.get()))
               << my_id << " " << user_id << " " << to_string(get_user_object(user_id, u));
         }
-        on_update_user_links(u, user_id, LinkState::KnowsPhoneNumber, u->inbound);
+        on_update_user_is_contact(u, user_id, false, false);
         update_user(u, user_id);
-        CHECK(u->outbound != LinkState::Contact);
+        CHECK(!u->is_contact);
         if (user_id != my_id) {
           CHECK(!contacts_hints_.has_key(user_id.get()));
         }
@@ -5520,12 +5499,6 @@ void ContactsManager::on_get_contacts_statuses(vector<tl_object_ptr<telegram_api
 
 void ContactsManager::on_update_online_status_privacy() {
   td_->create_handler<GetContactsStatusesQuery>()->send();
-}
-
-void ContactsManager::on_get_contacts_link(tl_object_ptr<telegram_api::contacts_link> &&link) {
-  UserId user_id = get_user_id(link->user_);
-  on_get_user(std::move(link->user_), "on_get_contacts_link");
-  on_update_user_links(user_id, std::move(link->my_link_), std::move(link->foreign_link_));
 }
 
 UserId ContactsManager::get_user_id(const tl_object_ptr<telegram_api::User> &user) {
@@ -5643,21 +5616,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
 
-    LinkState out, in;
-    if (flags & USER_FLAG_IS_MUTUAL_CONTACT) {
-      out = LinkState::Contact;
-      in = LinkState::Contact;
-    } else if (flags & USER_FLAG_IS_CONTACT) {
-      out = LinkState::Contact;
-      in = LinkState::Unknown;
-    } else if (flags & USER_FLAG_HAS_PHONE_NUMBER) {
-      out = LinkState::KnowsPhoneNumber;
-      in = LinkState::Unknown;
-    } else {
-      out = LinkState::None;
-      in = LinkState::Unknown;
-    }
-    on_update_user_links(u, user_id, out, in);
+    auto is_contact = (flags & USER_FLAG_IS_CONTACT) != 0;
+    auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
+    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact);
   }
 
   if (is_received || !u->is_received) {
@@ -5875,7 +5836,7 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
                                << u->is_deleted << " " << u->is_bot << " " << u->is_changed << " "
                                << u->need_send_update << " " << u->is_status_changed << " " << u->is_name_changed << " "
                                << u->is_username_changed << " " << u->is_photo_changed << " "
-                               << u->is_outbound_link_changed;
+                               << u->is_is_contact_changed;
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
   u->is_being_saved = false;
 
@@ -6911,7 +6872,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
 
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
-  if (u->is_name_changed || u->is_username_changed || u->is_outbound_link_changed) {
+  if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
     update_contacts_hints(u, user_id, from_database);
   }
   if (u->is_name_changed) {
@@ -6963,7 +6924,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   u->is_name_changed = false;
   u->is_username_changed = false;
   u->is_photo_changed = false;
-  u->is_outbound_link_changed = false;
+  u->is_is_contact_changed = false;
   u->is_default_permissions_changed = false;
 
   if (u->is_deleted) {
@@ -7291,7 +7252,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     return;
   }
 
-  on_update_user_links(user_id, std::move(user_full->link_->my_link_), std::move(user_full->link_->foreign_link_));
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_),
                                                            "on_get_user_full");
 
@@ -7695,7 +7655,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 bool ContactsManager::is_update_about_username_change_received(UserId user_id) const {
   const User *u = get_user(user_id);
   if (u != nullptr) {
-    return u->inbound == LinkState::Contact;
+    return u->is_contact;
   } else {
     return false;
   }
@@ -7827,6 +7787,26 @@ void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id,
     for (auto &file_id : photo_file_ids) {
       td_->file_manager_->add_file_source(file_id, file_source_id);
     }
+  }
+}
+
+void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact) {
+  UserId my_id = get_my_id();
+  if (user_id == my_id) {
+    is_mutual_contact = is_contact;
+  }
+  if (!is_contact && is_mutual_contact) {
+    LOG(ERROR) << "Receive is_mutual_contact == true for non-contact " << user_id;
+    is_mutual_contact = false;
+  }
+
+  if (u->is_contact != is_contact || u->is_mutual_contact != is_mutual_contact) {
+    LOG(DEBUG) << "Update " << user_id << " is_contact from (" << u->is_contact << ", " << u->is_mutual_contact
+               << ") to (" << is_contact << ", " << is_mutual_contact << ")";
+    u->is_is_contact_changed |= (u->is_contact != is_contact);
+    u->is_contact = is_contact;
+    u->is_mutual_contact = is_mutual_contact;
+    u->need_send_update = true;
   }
 }
 
@@ -8022,77 +8002,6 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   }
 
   reload_user(my_id, std::move(promise));
-}
-
-ContactsManager::LinkState ContactsManager::get_link_state(tl_object_ptr<telegram_api::ContactLink> &&link) {
-  int32 id = link->get_id();
-  switch (id) {
-    case telegram_api::contactLinkUnknown::ID:
-      return LinkState::Unknown;
-    case telegram_api::contactLinkNone::ID:
-      return LinkState::None;
-    case telegram_api::contactLinkContact::ID:
-      return LinkState::Contact;
-    default:
-      UNREACHABLE();
-  }
-  return LinkState::Unknown;
-}
-
-void ContactsManager::on_update_user_links(UserId user_id, tl_object_ptr<telegram_api::ContactLink> &&outbound,
-                                           tl_object_ptr<telegram_api::ContactLink> &&inbound) {
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
-  User *u = get_user_force(user_id);
-  if (u != nullptr) {
-    on_update_user_links(u, user_id, get_link_state(std::move(outbound)), get_link_state(std::move(inbound)));
-    update_user(u, user_id);
-  } else {
-    LOG(INFO) << "Ignore update user links about unknown " << user_id;
-  }
-}
-
-void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound) {
-  UserId my_id = get_my_id();
-  if (user_id == my_id) {
-    if (outbound == LinkState::None && !td_->auth_manager_->is_bot()) {
-      outbound = LinkState::KnowsPhoneNumber;
-    }
-    inbound = outbound;
-  }
-  if (!u->phone_number.empty() && outbound == LinkState::None) {
-    outbound = LinkState::KnowsPhoneNumber;
-  }
-
-  LOG(DEBUG) << "Update " << user_id << " links from (" << u->outbound << ", " << u->inbound << ") to (" << outbound
-             << ", " << inbound << ")";
-  bool need_send_update = false;
-  if (outbound != u->outbound && outbound != LinkState::Unknown) {
-    need_send_update |= outbound != LinkState::None || u->outbound != LinkState::Unknown;
-    LOG(DEBUG) << "Set outbound link to " << outbound << ", need_send_update = " << need_send_update;
-    u->outbound = outbound;
-    u->is_outbound_link_changed = true;
-    u->is_changed = true;
-  }
-  if (inbound != u->inbound && inbound != LinkState::Unknown) {
-    need_send_update |= inbound != LinkState::None || u->inbound != LinkState::Unknown;
-    LOG(DEBUG) << "Set inbound link to " << inbound << ", need_send_update = " << need_send_update;
-    u->inbound = inbound;
-    u->is_changed = true;
-  }
-  if (u->inbound == LinkState::Contact && u->outbound != LinkState::Contact) {
-    u->inbound = LinkState::KnowsPhoneNumber;
-    u->is_changed = true;
-    need_send_update = true;
-  }
-
-  if (need_send_update) {
-    LOG(DEBUG) << "Links have changed for " << user_id;
-    u->need_send_update = true;
-  }
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
@@ -8433,7 +8342,7 @@ bool ContactsManager::is_user_contact(UserId user_id) const {
 }
 
 bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
-  return u != nullptr && u->outbound == LinkState::Contact && user_id != get_my_id();
+  return u != nullptr && u->is_contact && user_id != get_my_id();
 }
 
 void ContactsManager::on_get_channel_participants_success(
@@ -11301,9 +11210,8 @@ int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) co
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
                      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
-                     get_profile_photo_object(td_->file_manager_.get(), nullptr),
-                     get_link_state_object(LinkState::Unknown), get_link_state_object(LinkState::Unknown), false, false,
-                     "", false, false, td_api::make_object<td_api::userTypeUnknown>(), "")));
+                     get_profile_photo_object(td_->file_manager_.get(), nullptr), false, false, false, false, "", false,
+                     false, td_api::make_object<td_api::userTypeUnknown>(), "")));
   }
   return user_id.get();
 }
@@ -11326,11 +11234,11 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  return make_tl_object<td_api::user>(
-      user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), &u->photo), get_link_state_object(u->outbound),
-      get_link_state_object(u->inbound), u->is_verified, u->is_support, u->restriction_reason, u->is_scam,
-      u->is_received, std::move(type), u->language_code);
+  return make_tl_object<td_api::user>(user_id.get(), u->first_name, u->last_name, u->username, u->phone_number,
+                                      get_user_status_object(user_id, u),
+                                      get_profile_photo_object(td_->file_manager_.get(), &u->photo), u->is_contact,
+                                      u->is_mutual_contact, u->is_verified, u->is_support, u->restriction_reason,
+                                      u->is_scam, u->is_received, std::move(type), u->language_code);
 }
 
 vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {
@@ -11496,21 +11404,6 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object_const(
       secret_chat_id.get(), get_user_id_object(secret_chat->user_id, "secretChat"),
       get_secret_chat_state_object(secret_chat->state), secret_chat->is_outbound, secret_chat->ttl,
       secret_chat->key_hash, secret_chat->layer);
-}
-
-tl_object_ptr<td_api::LinkState> ContactsManager::get_link_state_object(LinkState link) {
-  switch (link) {
-    case LinkState::Unknown:
-    case LinkState::None:
-      return make_tl_object<td_api::linkStateNone>();
-    case LinkState::KnowsPhoneNumber:
-      return make_tl_object<td_api::linkStateKnowsPhoneNumber>();
-    case LinkState::Contact:
-      return make_tl_object<td_api::linkStateIsContact>();
-    default:
-      UNREACHABLE();
-  }
-  return make_tl_object<td_api::linkStateNone>();
 }
 
 tl_object_ptr<td_api::botInfo> ContactsManager::get_bot_info_object(const BotInfo *bot_info) {

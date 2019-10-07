@@ -132,8 +132,6 @@ class ContactsManager : public Actor {
 
   void reload_contacts(bool force);
 
-  void on_get_contacts_link(tl_object_ptr<telegram_api::contacts_link> &&link);
-
   void on_get_user(tl_object_ptr<telegram_api::User> &&user, const char *source, bool is_me = false,
                    bool expect_support = false);
   void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source);
@@ -160,8 +158,6 @@ class ContactsManager : public Actor {
   void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
-  void on_update_user_links(UserId user_id, tl_object_ptr<telegram_api::ContactLink> &&outbound,
-                            tl_object_ptr<telegram_api::ContactLink> &&inbound);
   void on_update_user_blocked(UserId user_id, bool is_blocked);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
 
@@ -475,10 +471,6 @@ class ContactsManager : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  enum class LinkState : uint8 { Unknown, None, KnowsPhoneNumber, Contact };
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, LinkState link_state);
-
   struct User {
     string first_name;
     string last_name;
@@ -496,9 +488,6 @@ class ContactsManager : public Actor {
     int32 local_was_online = 0;
 
     string language_code;
-
-    LinkState outbound = LinkState::Unknown;
-    LinkState inbound = LinkState::Unknown;
 
     std::unordered_set<int64> photo_ids;
 
@@ -518,6 +507,8 @@ class ContactsManager : public Actor {
     bool is_inline_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;
+    bool is_contact = false;
+    bool is_mutual_contact = false;
 
     bool is_photo_inited = false;
 
@@ -526,7 +517,7 @@ class ContactsManager : public Actor {
     bool is_name_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
-    bool is_outbound_link_changed = true;
+    bool is_is_contact_changed = true;
     bool is_default_permissions_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
@@ -939,8 +930,6 @@ class ContactsManager : public Actor {
 
   void set_my_id(UserId my_id);
 
-  static LinkState get_link_state(tl_object_ptr<telegram_api::ContactLink> &&link);
-
   static bool is_valid_username(const string &username);
 
   bool on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&bot_info);
@@ -949,9 +938,9 @@ class ContactsManager : public Actor {
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
+  void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact);
   void on_update_user_online(User *u, UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online);
-  void on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound);
 
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
@@ -1127,8 +1116,6 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
 
-  static tl_object_ptr<td_api::LinkState> get_link_state_object(LinkState link);
-
   static tl_object_ptr<td_api::botInfo> get_bot_info_object(const BotInfo *bot_info);
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id, const User *u) const;
@@ -1174,12 +1161,6 @@ class ContactsManager : public Actor {
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   void on_user_online_timeout(UserId user_id);
-
-  template <class StorerT>
-  static void store_link_state(const LinkState &link_state, StorerT &storer);
-
-  template <class ParserT>
-  static void parse_link_state(LinkState &link_state, ParserT &parser);
 
   void tear_down() override;
 

@@ -2663,13 +2663,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     entities = merge_entities(std::move(entities), find_entities(text, skip_bot_commands));
   }
 
-  for (auto it = entities.begin(); it != entities.end(); ++it) {
-    CHECK(it->length > 0);
-    if (it + 1 != entities.end()) {
-      CHECK(it->offset + it->length <= (it + 1)->offset);
-    }
-  }
-
   // TODO MAX_MESSAGE_LENGTH and MAX_CAPTION_LENGTH
 
   return Status::OK();

@@ -110,11 +110,11 @@ userStatusLastMonth#77ebc742 = UserStatus;
 chatEmpty#9ba2d800 id:int = Chat;
 chat#3bda1bde flags:# creator:flags.0?true kicked:flags.1?true left:flags.2?true deactivated:flags.5?true id:int title:string photo:ChatPhoto participants_count:int date:int version:int migrated_to:flags.6?InputChannel admin_rights:flags.14?ChatAdminRights default_banned_rights:flags.18?ChatBannedRights = Chat;
 chatForbidden#7328bdb id:int title:string = Chat;
-channel#4df30834 flags:# creator:flags.0?true left:flags.2?true broadcast:flags.5?true verified:flags.7?true megagroup:flags.8?true restricted:flags.9?true signatures:flags.11?true min:flags.12?true scam:flags.19?true has_link:flags.20?true id:int access_hash:flags.13?long title:string username:flags.6?string photo:ChatPhoto date:int version:int restriction_reason:flags.9?string admin_rights:flags.14?ChatAdminRights banned_rights:flags.15?ChatBannedRights default_banned_rights:flags.18?ChatBannedRights participants_count:flags.17?int = Chat;
+channel#4df30834 flags:# creator:flags.0?true left:flags.2?true broadcast:flags.5?true verified:flags.7?true megagroup:flags.8?true restricted:flags.9?true signatures:flags.11?true min:flags.12?true scam:flags.19?true has_link:flags.20?true has_geo:flags.21?true id:int access_hash:flags.13?long title:string username:flags.6?string photo:ChatPhoto date:int version:int restriction_reason:flags.9?string admin_rights:flags.14?ChatAdminRights banned_rights:flags.15?ChatBannedRights default_banned_rights:flags.18?ChatBannedRights participants_count:flags.17?int = Chat;
 channelForbidden#289da732 flags:# broadcast:flags.5?true megagroup:flags.8?true id:int access_hash:long title:string until_date:flags.16?int = Chat;
 
 chatFull#1b7c9db3 flags:# can_set_username:flags.7?true id:int about:string participants:ChatParticipants chat_photo:flags.2?Photo notify_settings:PeerNotifySettings exported_invite:ExportedChatInvite bot_info:flags.3?Vector<BotInfo> pinned_msg_id:flags.6?int folder_id:flags.11?int = ChatFull;
-channelFull#9882e516 flags:# can_view_participants:flags.3?true can_set_username:flags.6?true can_set_stickers:flags.7?true hidden_prehistory:flags.10?true can_view_stats:flags.12?true id:int about:string participants_count:flags.0?int admins_count:flags.1?int kicked_count:flags.2?int banned_count:flags.2?int online_count:flags.13?int read_inbox_max_id:int read_outbox_max_id:int unread_count:int chat_photo:Photo notify_settings:PeerNotifySettings exported_invite:ExportedChatInvite bot_info:Vector<BotInfo> migrated_from_chat_id:flags.4?int migrated_from_max_id:flags.4?int pinned_msg_id:flags.5?int stickerset:flags.8?StickerSet available_min_id:flags.9?int folder_id:flags.11?int linked_chat_id:flags.13?int pts:int = ChatFull;
+channelFull#10916653 flags:# can_view_participants:flags.3?true can_set_username:flags.6?true can_set_stickers:flags.7?true hidden_prehistory:flags.10?true can_view_stats:flags.12?true can_set_location:flags.16?true id:int about:string participants_count:flags.0?int admins_count:flags.1?int kicked_count:flags.2?int banned_count:flags.2?int online_count:flags.13?int read_inbox_max_id:int read_outbox_max_id:int unread_count:int chat_photo:Photo notify_settings:PeerNotifySettings exported_invite:ExportedChatInvite bot_info:Vector<BotInfo> migrated_from_chat_id:flags.4?int migrated_from_max_id:flags.4?int pinned_msg_id:flags.5?int stickerset:flags.8?StickerSet available_min_id:flags.9?int folder_id:flags.11?int linked_chat_id:flags.14?int location:flags.15?ChannelLocation pts:int = ChatFull;
 
 chatParticipant#c8d7493e user_id:int inviter_id:int date:int = ChatParticipant;
 chatParticipantCreator#da13538a user_id:int = ChatParticipant;
@@ -196,7 +196,7 @@ inputPeerNotifySettings#9c3d198e flags:# show_previews:flags.0?Bool silent:flags
 
 peerNotifySettings#af509d20 flags:# show_previews:flags.0?Bool silent:flags.1?Bool mute_until:flags.2?int sound:flags.3?string = PeerNotifySettings;
 
-peerSettings#818426cd flags:# report_spam:flags.0?true = PeerSettings;
+peerSettings#818426cd flags:# report_spam:flags.0?true add_contact:flags.1?true block_contact:flags.2?true share_contact:flags.3?true need_contacts_exception:flags.4?true report_geo:flags.5?true = PeerSettings;
 
 wallPaper#a437c3ed id:long flags:# creator:flags.0?true default:flags.1?true pattern:flags.3?true dark:flags.4?true access_hash:long slug:string document:Document settings:flags.2?WallPaperSettings = WallPaper;
 
@@ -206,8 +206,9 @@ inputReportReasonPornography#2e59d922 = ReportReason;
 inputReportReasonChildAbuse#adf44ee3 = ReportReason;
 inputReportReasonOther#e1746d0a text:string = ReportReason;
 inputReportReasonCopyright#9b89f93a = ReportReason;
+inputReportReasonGeoIrrelevant#dbd4feed = ReportReason;
 
-userFull#745559cc flags:# blocked:flags.0?true phone_calls_available:flags.4?true phone_calls_private:flags.5?true can_pin_message:flags.7?true user:User about:flags.1?string link:contacts.Link profile_photo:flags.2?Photo notify_settings:PeerNotifySettings bot_info:flags.3?BotInfo pinned_msg_id:flags.6?int common_chats_count:int folder_id:flags.11?int = UserFull;
+userFull#edf17c12 flags:# blocked:flags.0?true phone_calls_available:flags.4?true phone_calls_private:flags.5?true can_pin_message:flags.7?true user:User about:flags.1?string settings:PeerSettings profile_photo:flags.2?Photo notify_settings:PeerNotifySettings bot_info:flags.3?BotInfo pinned_msg_id:flags.6?int common_chats_count:int folder_id:flags.11?int = UserFull;
 
 contact#f911c994 user_id:int mutual:Bool = Contact;
 
@@ -216,8 +217,6 @@ importedContact#d0028438 user_id:int client_id:long = ImportedContact;
 contactBlocked#561bc879 user_id:int date:int = ContactBlocked;
 
 contactStatus#d3680c61 user_id:int status:UserStatus = ContactStatus;
-
-contacts.link#3ace484c my_link:ContactLink foreign_link:ContactLink user:User = contacts.Link;
 
 contacts.contactsNotModified#b74ba9d2 = contacts.Contacts;
 contacts.contacts#eae87e42 contacts:Vector<Contact> saved_count:int users:Vector<User> = contacts.Contacts;
@@ -269,7 +268,6 @@ updateChatParticipants#7761198 participants:ChatParticipants = Update;
 updateUserStatus#1bfbd823 user_id:int status:UserStatus = Update;
 updateUserName#a7332b73 user_id:int first_name:string last_name:string username:string = Update;
 updateUserPhoto#95313b0c user_id:int date:int photo:UserProfilePhoto previous:Bool = Update;
-updateContactLink#9d2e67c5 user_id:int my_link:ContactLink foreign_link:ContactLink = Update;
 updateNewEncryptedMessage#12bcbd9a message:EncryptedMessage qts:int = Update;
 updateEncryptedChatTyping#1710f156 chat_id:int = Update;
 updateEncryption#b4a2e88d chat:EncryptedChat date:int = Update;
@@ -330,6 +328,8 @@ updateChatPinnedMessage#e10db349 chat_id:int id:int version:int = Update;
 updateMessagePoll#aca1657b flags:# poll_id:long poll:flags.0?Poll results:PollResults = Update;
 updateChatDefaultBannedRights#54c01850 peer:Peer default_banned_rights:ChatBannedRights version:int = Update;
 updateFolderPeers#19360dc0 folder_peers:Vector<FolderPeer> pts:int pts_count:int = Update;
+updatePeerSettings#6a7e7366 peer:Peer settings:PeerSettings = Update;
+updatePeerLocated#b4afcfb0 peers:Vector<PeerLocated> = Update;
 
 updates.state#a56c2a3e pts:int qts:int date:int seq:int unread_count:int = updates.State;
 
@@ -474,10 +474,6 @@ messages.allStickersNotModified#e86602c3 = messages.AllStickers;
 messages.allStickers#edfd405f hash:int sets:Vector<StickerSet> = messages.AllStickers;
 
 messages.affectedMessages#84d19185 pts:int pts_count:int = messages.AffectedMessages;
-
-contactLinkUnknown#5f4f9247 = ContactLink;
-contactLinkNone#feedd3ad = ContactLink;
-contactLinkContact#d502c2d0 = ContactLink;
 
 webPageEmpty#eb1477e8 id:long = WebPage;
 webPagePending#c586da1c id:long date:int = WebPage;
@@ -838,6 +834,7 @@ channelAdminLogEventActionTogglePreHistoryHidden#5f5c95f1 new_value:Bool = Chann
 channelAdminLogEventActionDefaultBannedRights#2df5fc0a prev_banned_rights:ChatBannedRights new_banned_rights:ChatBannedRights = ChannelAdminLogEventAction;
 channelAdminLogEventActionStopPoll#8f079643 message:Message = ChannelAdminLogEventAction;
 channelAdminLogEventActionChangeLinkedChat#a26f881b prev_value:int new_value:int = ChannelAdminLogEventAction;
+channelAdminLogEventActionChangeLocation#e6b76ae prev_value:ChannelLocation new_value:ChannelLocation = ChannelAdminLogEventAction;
 
 channelAdminLogEvent#3b5a3e40 id:long date:int user_id:int action:ChannelAdminLogEventAction = ChannelAdminLogEvent;
 
@@ -1048,6 +1045,11 @@ urlAuthResultRequest#92d33a0e flags:# request_write_access:flags.0?true bot:User
 urlAuthResultAccepted#8f8c0e4e url:string = UrlAuthResult;
 urlAuthResultDefault#a9d6db1f = UrlAuthResult;
 
+channelLocationEmpty#bfb5ad8b = ChannelLocation;
+channelLocation#209b82db geo_point:GeoPoint address:string = ChannelLocation;
+
+peerLocated#ca461b5d peer:Peer expires:int distance:int = PeerLocated;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -1138,8 +1140,7 @@ contacts.getContactIDs#2caa4a42 hash:int = Vector<int>;
 contacts.getStatuses#c4a353ee = Vector<ContactStatus>;
 contacts.getContacts#c023849f hash:int = contacts.Contacts;
 contacts.importContacts#2c800be5 contacts:Vector<InputContact> = contacts.ImportedContacts;
-contacts.deleteContact#8e953744 id:InputUser = contacts.Link;
-contacts.deleteContacts#59ab389e id:Vector<InputUser> = Bool;
+contacts.deleteContacts#96a0e00 id:Vector<InputUser> = Updates;
 contacts.deleteByPhones#1013fd9e phones:Vector<string> = Bool;
 contacts.block#332b49fc id:InputUser = Bool;
 contacts.unblock#e54100bd id:InputUser = Bool;
@@ -1151,6 +1152,8 @@ contacts.resetTopPeerRating#1ae373ac category:TopPeerCategory peer:InputPeer = B
 contacts.resetSaved#879537f1 = Bool;
 contacts.getSaved#82f1e39f = Vector<SavedContact>;
 contacts.toggleTopPeers#8514bdda enabled:Bool = Bool;
+contacts.addContact#e8f463d0 flags:# add_phone_privacy_exception:flags.0?true id:InputUser first_name:string last_name:string phone:string = Updates;
+contacts.getLocated#a356056 geo_point:InputGeoPoint = Updates;
 
 messages.getMessages#63c66506 id:Vector<InputMessage> = messages.Messages;
 messages.getDialogs#a0ee3b73 flags:# exclude_pinned:flags.0?true folder_id:flags.1?int offset_date:int offset_id:int offset_peer:InputPeer limit:int hash:int = messages.Dialogs;
@@ -1165,7 +1168,6 @@ messages.sendMessage#fa88427a flags:# no_webpage:flags.1?true silent:flags.5?tru
 messages.sendMedia#b8d1262b flags:# silent:flags.5?true background:flags.6?true clear_draft:flags.7?true peer:InputPeer reply_to_msg_id:flags.0?int media:InputMedia message:string random_id:long reply_markup:flags.2?ReplyMarkup entities:flags.3?Vector<MessageEntity> = Updates;
 messages.forwardMessages#708e0195 flags:# silent:flags.5?true background:flags.6?true with_my_score:flags.8?true grouped:flags.9?true from_peer:InputPeer id:Vector<int> random_id:Vector<long> to_peer:InputPeer = Updates;
 messages.reportSpam#cf1592db peer:InputPeer = Bool;
-messages.hideReportSpam#a8f1709b peer:InputPeer = Bool;
 messages.getPeerSettings#3672e09c peer:InputPeer = PeerSettings;
 messages.report#bd82b658 peer:InputPeer id:Vector<int> reason:ReportReason = Bool;
 messages.getChats#3c6aa187 id:Vector<int> = messages.Chats;
@@ -1200,7 +1202,7 @@ messages.startBot#e6df7378 bot:InputUser peer:InputPeer random_id:long start_par
 messages.getMessagesViews#c4c8a55d peer:InputPeer id:Vector<int> increment:Bool = Vector<int>;
 messages.editChatAdmin#a9e69f2e chat_id:int user_id:InputUser is_admin:Bool = Bool;
 messages.migrateChat#15a3b8e3 chat_id:int = Updates;
-messages.searchGlobal#f79c611 q:string offset_rate:int offset_peer:InputPeer offset_id:int limit:int = messages.Messages;
+messages.searchGlobal#bf7225a4 flags:# folder_id:flags.0?int q:string offset_rate:int offset_peer:InputPeer offset_id:int limit:int = messages.Messages;
 messages.reorderStickerSets#78337739 flags:# masks:flags.0?true order:Vector<long> = Bool;
 messages.getDocumentByHash#338e2464 sha256:bytes size:int mime_type:string = Document;
 messages.searchGifs#bf9a776b q:string offset:int = messages.FoundGifs;
@@ -1265,6 +1267,7 @@ messages.getEmojiURL#d5b10c26 lang_code:string = EmojiURL;
 messages.getSearchCounters#732eef00 peer:InputPeer filters:Vector<MessagesFilter> = Vector<messages.SearchCounter>;
 messages.requestUrlAuth#e33f5613 peer:InputPeer msg_id:int button_id:int = UrlAuthResult;
 messages.acceptUrlAuth#f729ea98 flags:# write_allowed:flags.0?true peer:InputPeer msg_id:int button_id:int = UrlAuthResult;
+messages.hidePeerSettingsBar#4facb138 peer:InputPeer = Bool;
 
 updates.getState#edd4882a = updates.State;
 updates.getDifference#25939651 flags:# pts:int pts_total_limit:flags.0?int date:int qts:int = updates.Difference;
@@ -1313,7 +1316,7 @@ channels.getParticipants#123e05e9 channel:InputChannel filter:ChannelParticipant
 channels.getParticipant#546dd7a6 channel:InputChannel user_id:InputUser = channels.ChannelParticipant;
 channels.getChannels#a7f6bbb id:Vector<InputChannel> = messages.Chats;
 channels.getFullChannel#8736a09 channel:InputChannel = messages.ChatFull;
-channels.createChannel#f4893d7f flags:# broadcast:flags.0?true megagroup:flags.1?true title:string about:string = Updates;
+channels.createChannel#3d5fb10f flags:# broadcast:flags.0?true megagroup:flags.1?true title:string about:string geo_point:flags.2?InputGeoPoint address:flags.2?string = Updates;
 channels.editAdmin#70f893ba channel:InputChannel user_id:InputUser admin_rights:ChatAdminRights = Updates;
 channels.editTitle#566decd0 channel:InputChannel title:string = Updates;
 channels.editPhoto#f12e57c9 channel:InputChannel photo:InputChatPhoto = Updates;
@@ -1325,7 +1328,7 @@ channels.inviteToChannel#199f3a6c channel:InputChannel users:Vector<InputUser> =
 channels.deleteChannel#c0111fe3 channel:InputChannel = Updates;
 channels.exportMessageLink#ceb77163 channel:InputChannel id:int grouped:Bool = ExportedMessageLink;
 channels.toggleSignatures#1f69b606 channel:InputChannel enabled:Bool = Updates;
-channels.getAdminedPublicChannels#8d8d82d7 = messages.Chats;
+channels.getAdminedPublicChannels#f8b036af flags:# by_location:flags.0?true check_limit:flags.1?true = messages.Chats;
 channels.editBanned#72796912 channel:InputChannel user_id:InputUser banned_rights:ChatBannedRights = Updates;
 channels.getAdminLog#33ddf480 flags:# channel:InputChannel q:string events_filter:flags.0?ChannelAdminLogEventsFilter admins:flags.1?Vector<InputUser> max_id:long min_id:long limit:int = channels.AdminLogResults;
 channels.setStickers#ea8ca4f9 channel:InputChannel stickerset:InputStickerSet = Bool;
@@ -1335,6 +1338,8 @@ channels.togglePreHistoryHidden#eabbb94c channel:InputChannel enabled:Bool = Upd
 channels.getLeftChannels#8341ecc0 offset:int = messages.Chats;
 channels.getGroupsForDiscussion#f5dad378 = messages.Chats;
 channels.setDiscussionGroup#40582bb2 broadcast:InputChannel group:InputChannel = Bool;
+channels.editCreator#8f38cd1f channel:InputChannel user_id:InputUser password:InputCheckPasswordSRP = Updates;
+channels.editLocation#58e63f6d channel:InputChannel geo_point:InputGeoPoint address:string = Bool;
 
 bots.sendCustomRequest#aa2769ed custom_method:string params:DataJSON = DataJSON;
 bots.answerWebhookJSONQuery#e6213f4d query_id:long data:DataJSON = Bool;

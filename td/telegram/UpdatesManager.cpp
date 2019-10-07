@@ -1697,11 +1697,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserBlocked> up
   td_->contacts_manager_->on_update_user_blocked(UserId(update->user_id_), update->blocked_);
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactLink> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_update_user_links(UserId(update->user_id_), std::move(update->my_link_),
-                                               std::move(update->foreign_link_));
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/) {
   td_->contacts_manager_->on_get_chat_participants(std::move(update->participants_), true);
 }
@@ -1905,5 +1900,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/) {
+}
 
 }  // namespace td
