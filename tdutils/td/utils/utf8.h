@@ -28,6 +28,15 @@ inline size_t utf8_length(Slice str) {
   return result;
 }
 
+/// returns length of UTF-8 string in UTF-16 code units
+inline size_t utf8_utf16_length(Slice str) {
+  size_t result = 0;
+  for (auto c : str) {
+    result += is_utf8_character_first_code_unit(c) + ((c & 0xf8) == 0xf0);
+  }
+  return result;
+}
+
 /// appends a Unicode character using UTF-8 encoding
 void append_utf8_character(string &str, uint32 ch);
 
