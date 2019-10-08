@@ -18,12 +18,12 @@
 namespace td {
 
 Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
+  if (path.empty()) {
+    return Status::Error("Log file path can't be empty");
+  }
   if (path == path_) {
     set_rotate_threshold(rotate_threshold);
     return Status::OK();
-  }
-  if (path.empty()) {
-    return Status::Error("Log file path can't be empty");
   }
 
   TRY_RESULT(fd, FileFd::open(path, FileFd::Create | FileFd::Write | FileFd::Append));
