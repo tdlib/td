@@ -3548,7 +3548,11 @@ unblockUser user_id:int32 = Ok;
 getBlockedUsers offset:int32 limit:int32 = Users;
 
 
-//@description Adds new contacts or edits existing contacts; contacts' user identifiers are ignored @contacts The list of contacts to import or edit, contact's vCard are ignored and are not imported
+//@description Adds a user to the contacts list or edits an existing contact by their user_id @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
+//@share_phone_number True, if the user needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed
+addContact contact:contact share_phone_number:Bool = Ok;
+
+//@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
 importContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Returns all user contacts

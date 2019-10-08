@@ -6331,6 +6331,18 @@ void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {
   CREATE_REQUEST(GetBlockedUsersRequest, request.offset_, request.limit_);
 }
 
+void Td::on_request(uint64 id, td_api::addContact &request) {
+  CHECK_IS_USER();
+  if (request.contact_ == nullptr) {
+    return send_error_raw(id, 5, "Contact must not be empty");
+  }
+  CLEAN_INPUT_STRING(request.contact_->phone_number_);
+  CLEAN_INPUT_STRING(request.contact_->first_name_);
+  CLEAN_INPUT_STRING(request.contact_->last_name_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->add_contact(std::move(request.contact_), request.share_phone_number_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::importContacts &request) {
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {

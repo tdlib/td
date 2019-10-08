@@ -726,6 +726,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getBlockedUsers &request);
 
+  void on_request(uint64 id, td_api::addContact &request);
+
   void on_request(uint64 id, td_api::importContacts &request);
 
   void on_request(uint64 id, const td_api::getContacts &request);

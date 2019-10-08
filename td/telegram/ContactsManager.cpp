@@ -488,6 +488,42 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
   }
 };
 
+class AddContactQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit AddContactQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &first_name, const string &last_name,
+            const string &phone_number, bool share_phone_number) {
+    int32 flags = 0;
+    if (share_phone_number) {
+      flags |= telegram_api::contacts_addContact::ADD_PHONE_PRIVACY_EXCEPTION_MASK;
+    }
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_addContact(
+        flags, false /*ignored*/, std::move(input_user), first_name, last_name, phone_number))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_addContact>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AddContactQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+    td->contacts_manager_->reload_contacts(true);
+  }
+};
+
 class ImportContactsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<Contact> input_contacts_;
@@ -593,7 +629,7 @@ class DeleteContactsQuery : public Td::ResultHandler {
   explicit DeleteContactsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<UserId> &&user_ids, vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
+  void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
     send_query(
         G()->net_query_creator().create(create_storer(telegram_api::contacts_deleteContacts(std::move(input_users)))));
   }
@@ -3941,6 +3977,37 @@ void ContactsManager::reload_contacts(bool force) {
   }
 }
 
+void ContactsManager::add_contact(td_api::object_ptr<td_api::contact> &&contact, bool share_phone_number,
+                                  Promise<Unit> &&promise) {
+  if (contact == nullptr) {
+    return promise.set_error(Status::Error(400, "Added contact must be non-empty"));
+  }
+
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  if (!are_contacts_loaded_) {
+    load_contacts(PromiseCreator::lambda([actor_id = actor_id(this), contact = std::move(contact), share_phone_number,
+                                          promise = std::move(promise)](Result<Unit> &&) mutable {
+      send_closure(actor_id, &ContactsManager::add_contact, std::move(contact), share_phone_number, std::move(promise));
+    }));
+    return;
+  }
+
+  LOG(INFO) << "Add " << oneline(to_string(contact)) << " with share_phone_number = " << share_phone_number;
+
+  UserId user_id{contact->user_id_};
+  auto input_user = get_input_user(user_id);
+  if (input_user == nullptr) {
+    return promise.set_error(Status::Error(3, "User not found"));
+  }
+
+  td_->create_handler<AddContactQuery>(std::move(promise))
+      ->send(std::move(input_user), contact->first_name_, contact->last_name_, contact->phone_number_,
+             share_phone_number);
+}
+
 std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
     const vector<tl_object_ptr<td_api::contact>> &contacts, int64 &random_id, Promise<Unit> &&promise) {
   if (!are_contacts_loaded_) {
@@ -3961,7 +4028,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
   }
   for (auto &contact : contacts) {
     if (contact == nullptr) {
-      promise.set_error(Status::Error(400, "Imported contacts should not be empty"));
+      promise.set_error(Status::Error(400, "Imported contacts must be non-empty"));
       return {};
     }
   }
@@ -4004,8 +4071,7 @@ void ContactsManager::remove_contacts(vector<UserId> user_ids, Promise<Unit> &&p
     return promise.set_value(Unit());
   }
 
-  td_->create_handler<DeleteContactsQuery>(std::move(promise))
-      ->send(std::move(to_delete_user_ids), std::move(input_users));
+  td_->create_handler<DeleteContactsQuery>(std::move(promise))->send(std::move(input_users));
 }
 
 void ContactsManager::remove_contacts_by_phone_number(vector<string> user_phone_numbers, vector<UserId> user_ids,

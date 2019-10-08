@@ -260,6 +260,8 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::users> get_blocked_users_object(int64 random_id);
 
+  void add_contact(td_api::object_ptr<td_api::contact> &&contact, bool share_phone_number, Promise<Unit> &&promise);
+
   std::pair<vector<UserId>, vector<int32>> import_contacts(const vector<tl_object_ptr<td_api::contact>> &contacts,
                                                            int64 &random_id, Promise<Unit> &&promise);
 
