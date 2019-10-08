@@ -206,7 +206,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
 }
 
 void FileReferenceManager::send_query(Destination dest, FileSourceId file_source_id) {
-  VLOG(file_references) << "Send file references repair query for file " << dest.node_id << " with generation "
+  VLOG(file_references) << "Send file reference repair query for file " << dest.node_id << " with generation "
                         << dest.generation << " from " << file_source_id;
   auto &node = nodes_[dest.node_id];
   node.query->active_queries++;
@@ -288,7 +288,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 
 FileReferenceManager::Destination FileReferenceManager::on_query_result(Destination dest, FileSourceId file_source_id,
                                                                         Status status, int32 sub) {
-  VLOG(file_references) << "Receive result of file references repair query for file " << dest.node_id
+  VLOG(file_references) << "Receive result of file reference repair query for file " << dest.node_id
                         << " with generation " << dest.generation << " from " << file_source_id << ": " << status << " "
                         << sub;
   auto &node = nodes_[dest.node_id];

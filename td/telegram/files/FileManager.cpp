@@ -463,6 +463,7 @@ const FullLocalFileLocation &FileView::local_location() const {
 bool FileView::has_remote_location() const {
   return static_cast<bool>(node_->remote_.full);
 }
+
 bool FileView::has_alive_remote_location() const {
   return node_->remote_.is_full_alive;
 }

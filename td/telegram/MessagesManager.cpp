@@ -6497,6 +6497,12 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
                                     tl_object_ptr<telegram_api::InputFile> input_thumbnail) {
   CHECK(m != nullptr);
 
+  bool have_input_file = input_file != nullptr;
+  bool have_input_thumbnail = input_thumbnail != nullptr;
+  LOG(INFO) << "Do send media file " << file_id << " with thumbnail " << thumbnail_file_id
+            << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail
+            << ", ttl = " << m->ttl;
+
   MessageContent *content = nullptr;
   if (m->message_id.is_server()) {
     content = m->edited_content.get();
@@ -6508,10 +6514,8 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
     content = m->content.get();
   }
 
-  bool have_input_file = input_file != nullptr;
-  bool have_input_thumbnail = input_thumbnail != nullptr;
   auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                     thumbnail_file_id, m->ttl);
+                                     thumbnail_file_id, m->ttl, true);
   LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m)) << ' ' << have_input_file << ' '
                                     << have_input_thumbnail << ' ' << file_id << ' ' << thumbnail_file_id << ' '
                                     << m->ttl;
@@ -6525,6 +6529,11 @@ void MessagesManager::do_send_secret_media(DialogId dialog_id, Message *m, FileI
   CHECK(dialog_id.get_type() == DialogType::SecretChat);
   CHECK(m != nullptr);
   CHECK(m->message_id.is_yet_unsent());
+
+  bool have_input_file = input_encrypted_file != nullptr;
+  LOG(INFO) << "Do send secret media file " << file_id << " with thumbnail " << thumbnail_file_id
+            << ", have_input_file = " << have_input_file;
+
   auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
   on_secret_message_media_uploaded(
       dialog_id, m,

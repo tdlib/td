@@ -147,7 +147,8 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
                                                         tl_object_ptr<telegram_api::InputFile> input_file,
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl);
+                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl,
+                                                        bool force);
 
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force);
 

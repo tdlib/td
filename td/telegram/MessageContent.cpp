@@ -2102,10 +2102,9 @@ static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(co
       message_invoice->start_parameter);
 }
 
-static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                               tl_object_ptr<telegram_api::InputFile> input_file,
-                                                               tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                               int32 ttl) {
+static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
+    const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
@@ -2208,10 +2207,11 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageCont
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
                                                         tl_object_ptr<telegram_api::InputFile> input_file,
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl) {
+                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl,
+                                                        bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
-  auto input_media = get_input_media(content, td, std::move(input_file), std::move(input_thumbnail), ttl);
+  auto input_media = get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl);
   auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
     if (!was_uploaded) {
@@ -2229,7 +2229,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   }
   if (!was_uploaded) {
     auto file_reference = FileManager::extract_file_reference(input_media);
-    if (file_reference == FileReferenceView::invalid_file_reference()) {
+    if (file_reference == FileReferenceView::invalid_file_reference() && !force) {
       return nullptr;
     }
   }
@@ -2237,7 +2237,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 }
 
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force) {
-  auto input_media = get_input_media(content, td, nullptr, nullptr, ttl);
+  auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl);
   auto file_reference = FileManager::extract_file_reference(input_media);
   if (file_reference == FileReferenceView::invalid_file_reference() && !force) {
     return nullptr;
