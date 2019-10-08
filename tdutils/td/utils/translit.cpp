@@ -47,9 +47,9 @@ static const std::vector<std::pair<string, string>> &get_ru_to_en_complex_rules(
   return rules;
 }
 
-void add_word_transliterations(vector<string> &result, Slice word, bool allow_partial,
-                               const std::unordered_map<uint32, string> &simple_rules,
-                               const std::vector<std::pair<string, string>> &complex_rules) {
+static void add_word_transliterations(vector<string> &result, Slice word, bool allow_partial,
+                                      const std::unordered_map<uint32, string> &simple_rules,
+                                      const std::vector<std::pair<string, string>> &complex_rules) {
   string s;
   auto pos = word.ubegin();
   auto end = word.uend();
