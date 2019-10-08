@@ -452,7 +452,7 @@ class CliClient final : public Actor {
   }
 
   vector<int64> as_chat_ids(Slice chat_ids, char delimiter = ' ') const {
-    return transform(full_split(chat_ids, delimiter), [this](Slice str) { return as_chat_id(str); });
+    return transform(full_split(trim(chat_ids), delimiter), [this](Slice str) { return as_chat_id(str); });
   }
 
   static int64 as_message_id(Slice str) {
@@ -464,7 +464,7 @@ class CliClient final : public Actor {
   }
 
   static vector<int64> as_message_ids(Slice message_ids, char delimiter = ' ') {
-    return transform(full_split(message_ids, delimiter), as_message_id);
+    return transform(full_split(trim(message_ids), delimiter), as_message_id);
   }
 
   int32 as_user_id(Slice str) const {
@@ -516,11 +516,11 @@ class CliClient final : public Actor {
     return static_cast<int32>(result);
   }
 
-  static int32 as_file_id(string str) {
-    return to_integer<int32>(trim(std::move(str)));
+  static int32 as_file_id(Slice str) {
+    return to_integer<int32>(trim(str));
   }
 
-  static td_api::object_ptr<td_api::InputFile> as_input_file_id(string str) {
+  static td_api::object_ptr<td_api::InputFile> as_input_file_id(Slice str) {
     return td_api::make_object<td_api::inputFileId>(as_file_id(str));
   }
 
@@ -538,10 +538,11 @@ class CliClient final : public Actor {
   }
 
   static tl_object_ptr<td_api::InputFile> as_input_file(string str) {
+    str = trim(str);
     if ((str.size() >= 20 && is_base64url(str)) || begins_with(str, "http")) {
       return as_remote_file(str);
     }
-    auto r_id = to_integer_safe<int32>(trim(str));
+    auto r_id = to_integer_safe<int32>(str);
     if (r_id.is_ok()) {
       return as_input_file_id(str);
     }
@@ -573,7 +574,7 @@ class CliClient final : public Actor {
   }
 
   static bool as_bool(string str) {
-    str = to_lower(str);
+    str = to_lower(trim(str));
     return str == "true" || str == "1";
   }
 
