@@ -6630,9 +6630,10 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            tl_object_ptr<telegram_api::peerSettings> &&peer_settings) {
   CHECK(peer_settings != nullptr);
   if (dialog_id.get_type() == DialogType::User) {
-    // auto need_phone_number_privacy_exception =
-    //    (peer_settings->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0;
-    // TODO use need_phone_number_privacy_exception
+    auto need_phone_number_privacy_exception =
+        (peer_settings->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0;
+    td_->contacts_manager_->on_update_user_need_phone_number_privacy_exception(dialog_id.get_user_id(),
+                                                                               need_phone_number_privacy_exception);
   }
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -25718,6 +25719,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   loaded_dialogs_.erase(dialog_id);
 
   Dialog *dialog = dialog_it->second.get();
+
+  fix_dialog_action_bar(dialog);
+
   send_update_new_chat(dialog);
 
   fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,

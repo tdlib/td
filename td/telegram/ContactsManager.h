@@ -160,6 +160,7 @@ class ContactsManager : public Actor {
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
   void on_update_user_blocked(UserId user_id, bool is_blocked);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
+  void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
@@ -577,6 +578,7 @@ class ContactsManager : public Actor {
     bool can_be_called = false;
     bool has_private_calls = false;
     bool can_pin_messages = false;
+    bool need_phone_number_privacy_exception = false;
 
     bool is_common_chat_count_changed = true;
     bool is_changed = true;
@@ -953,6 +955,8 @@ class ContactsManager : public Actor {
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
+  void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
+                                                               bool need_phone_number_privacy_exception);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
   void drop_user_full(UserId user_id);

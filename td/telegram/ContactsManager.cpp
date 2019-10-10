@@ -2695,6 +2695,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(can_be_called);
   STORE_FLAG(has_private_calls);
   STORE_FLAG(can_pin_messages);
+  STORE_FLAG(need_phone_number_privacy_exception);
   END_STORE_FLAGS();
   if (has_bot_info) {
     store(bot_info, storer);
@@ -2719,6 +2720,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(can_be_called);
   PARSE_FLAG(has_private_calls);
   PARSE_FLAG(can_pin_messages);
+  PARSE_FLAG(need_phone_number_privacy_exception);
   END_PARSE_FLAGS();
   if (has_bot_info) {
     parse(bot_info, parser);
@@ -6766,6 +6768,10 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   dependencies.user_ids.insert(user_id);
   td_->messages_manager_->resolve_dependencies_force(dependencies);
 
+  if (user_full->need_phone_number_privacy_exception && is_user_contact(user_id)) {
+    user_full->need_phone_number_privacy_exception = false;
+  }
+
   update_user_full(user_full, user_id, true);
 }
 
@@ -6940,6 +6946,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   CHECK(u != nullptr);
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
     update_contacts_hints(u, user_id, from_database);
+  }
+  if (u->is_is_contact_changed) {
+    if (u->is_contact) {
+      auto user_full = get_user_full(user_id);
+      if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
+        on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, false);
+        update_user_full(user_full, user_id);
+      }
+    }
   }
   if (u->is_name_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(user_id));
@@ -7321,8 +7336,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_),
                                                            "on_get_user_full");
 
-  td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user_full->settings_));
-
   {
     MessageId pinned_message_id;
     if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
@@ -7347,6 +7360,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
   on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
+  on_update_user_full_need_phone_number_privacy_exception(
+      user, user_id, (user_full->settings_->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0);
 
   bool can_pin_messages = user_full->can_pin_message_;
   if (user->can_pin_messages != can_pin_messages) {
@@ -7375,6 +7390,9 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     on_update_user_full_bot_info(user, user_id, u->bot_info_version, std::move(user_full->bot_info_));
   }
   update_user_full(user, user_id);
+
+  // update peer settings after UserFull is created and updated to not update twice need_phone_number_privacy_exception
+  td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user_full->settings_));
 }
 
 void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
@@ -8054,6 +8072,32 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
   }
 }
 
+void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId user_id,
+                                                                         bool need_phone_number_privacy_exception) {
+  LOG(INFO) << "Receive " << need_phone_number_privacy_exception << " need phone number privacy exception with "
+            << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id);
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, need_phone_number_privacy_exception);
+  update_user_full(user_full, user_id);
+}
+
+void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
+    UserFull *user_full, UserId user_id, bool need_phone_number_privacy_exception) {
+  CHECK(user_full != nullptr);
+  if (user_full->is_inited && user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
+    user_full->need_phone_number_privacy_exception = need_phone_number_privacy_exception;
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   UserId my_id = get_my_id();
 
@@ -8087,6 +8131,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->has_private_calls = false;
+  user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
   user_full->common_chat_count = 0;
   user_full->bot_info = nullptr;
@@ -11334,10 +11379,11 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
                                                                                const UserFull *user_full) const {
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
-  return make_tl_object<td_api::userFullInfo>(user_full->is_blocked, user_full->can_be_called,
-                                              user_full->has_private_calls, is_bot ? string() : user_full->about,
-                                              is_bot ? user_full->about : string(), user_full->common_chat_count,
-                                              get_bot_info_object(user_full->bot_info.get()));
+  return make_tl_object<td_api::userFullInfo>(
+      user_full->is_blocked, user_full->can_be_called, user_full->has_private_calls,
+      user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
+      is_bot ? user_full->about : string(), user_full->common_chat_count,
+      get_bot_info_object(user_full->bot_info.get()));
 }
 
 int32 ContactsManager::get_basic_group_id_object(ChatId chat_id, const char *source) const {
