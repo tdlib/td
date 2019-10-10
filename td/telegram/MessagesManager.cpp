@@ -6440,15 +6440,29 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
   return true;
 }
 
+void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), Auto());
+      return;
+    case DialogType::Chat:
+    case DialogType::Channel:
+      if (!have_input_peer(dialog_id, AccessRights::Read)) {
+        return;
+      }
+
+      return td_->create_handler<GetPeerSettingsQuery>(Promise<Unit>())->send(dialog_id);
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 bool MessagesManager::get_dialog_report_spam_state(DialogId dialog_id, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     promise.set_error(Status::Error(3, "Chat not found"));
-    return false;
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(3, "Can't access the chat"));
     return false;
   }
 
@@ -22181,7 +22195,9 @@ void MessagesManager::on_dialog_is_blocked_updated(DialogId dialog_id, bool is_b
         }
       } else {
         d->know_action_bar = false;
-        // TODO repair_dialog_action_bar(d);
+        if (have_input_peer(dialog_id, AccessRights::Read)) {
+          repair_dialog_action_bar(dialog_id);
+        }
         // there is no need to change action bar
         on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated");
       }
@@ -25783,6 +25799,16 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       order != DEFAULT_ORDER) {
     // asynchronously get dialog folder id from the server
     get_dialog_info_full(dialog_id, Auto());
+  }
+  if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_id != get_my_dialog_id() &&
+      have_input_peer(dialog_id, AccessRights::Read)) {
+    // asynchronously get action bar from the server
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
+    } else {
+      repair_dialog_action_bar(dialog_id);
+    }
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&

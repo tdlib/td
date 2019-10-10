@@ -1629,6 +1629,8 @@ class MessagesManager : public Actor {
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);
 
+  void repair_dialog_action_bar(DialogId dialog_id);
+
   static int32 get_random_y(MessageId message_id);
 
   bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) const;
