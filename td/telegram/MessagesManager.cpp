@@ -25782,16 +25782,16 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                                      MessageId last_clear_history_message_id, bool is_loaded_from_database) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
+  auto dialog_type = dialog_id.get_type();
 
   if (being_added_dialog_id_ != dialog_id && !td_->auth_manager_->is_bot() && !is_dialog_inited(d) &&
-      dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
+      dialog_type != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get dialog from the server
     send_get_dialog_query(dialog_id, Auto());
   }
 
   if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited &&
-      (d->dialog_id == get_my_dialog_id() || d->dialog_id.get_type() != DialogType::User) &&
-      !td_->auth_manager_->is_bot()) {
+      (dialog_id == get_my_dialog_id() || dialog_type != DialogType::User) && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
   }
@@ -25803,7 +25803,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_id != get_my_dialog_id() &&
       have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get action bar from the server
-    if (dialog_id.get_type() == DialogType::SecretChat) {
+    if (dialog_type == DialogType::SecretChat) {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
     } else {
@@ -25814,7 +25814,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
       have_input_peer(dialog_id, AccessRights::Read) && !td_->auth_manager_->is_bot()) {
     LOG(INFO) << "Reget notification settings of " << dialog_id;
-    if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    if (dialog_type == DialogType::SecretChat) {
       if (d->notification_settings.mute_until == 0 && users_notification_settings_.mute_until == 0) {
         d->notification_settings.use_default_mute_until = true;
       }
@@ -25825,7 +25825,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         d->notification_settings.use_default_show_preview = true;
       }
       d->notification_settings.is_use_default_fixed = true;
-      on_dialog_updated(d->dialog_id, "reget notification settings");
+      on_dialog_updated(dialog_id, "reget notification settings");
     } else {
       send_get_dialog_notification_settings_query(dialog_id, Promise<>());
     }
@@ -25841,7 +25841,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       LOG(ERROR) << "Have pinned message notification in " << pinned_message_id << " in " << dialog_id
                  << ", but there is no mention notification group";
       d->pinned_message_notification_message_id = MessageId();
-      on_dialog_updated(d->dialog_id, "fix pinned message notification");
+      on_dialog_updated(dialog_id, "fix pinned message notification");
     } else if (is_dialog_pinned_message_notifications_disabled(d) ||
                pinned_message_id.get() <= d->last_read_inbox_message_id.get() ||
                pinned_message_id.get() <= d->mention_notification_group.max_removed_message_id.get()) {
@@ -25851,7 +25851,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                          d->mention_notification_group.group_id, pinned_message_id, true,
                          "fix pinned message notification");
       d->pinned_message_notification_message_id = MessageId();
-      on_dialog_updated(d->dialog_id, "fix pinned message notification 2");
+      on_dialog_updated(dialog_id, "fix pinned message notification 2");
     }
   }
   if (d->new_secret_chat_notification_id.is_valid()) {
@@ -25861,7 +25861,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       VLOG(notifications) << "Fix removing new secret chat " << d->new_secret_chat_notification_id << " in "
                           << dialog_id;
       d->new_secret_chat_notification_id = NotificationId();
-      on_dialog_updated(d->dialog_id, "fix new secret chat notification id");
+      on_dialog_updated(dialog_id, "fix new secret chat notification id");
     }
   }
 
@@ -25886,7 +25886,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
 
-  if (dialog_id.get_type() != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
+  if (dialog_type != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
       !d->last_new_message_id.is_server()) {
     // fix wrong last_new_message_id
     d->last_new_message_id = MessageId(d->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
@@ -25915,8 +25915,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     set_dialog_last_new_message_id(d, d->max_unavailable_message_id, "fix_new_dialog 11");
   }
   if (last_message_id.is_valid()) {
-    if ((last_message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
-        !d->last_new_message_id.is_valid()) {
+    if ((last_message_id.is_server() || dialog_type == DialogType::SecretChat) && !d->last_new_message_id.is_valid()) {
       LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << last_message_id << " in " << dialog_id;
       // must be called before set_dialog_first_database_message_id and set_dialog_last_database_message_id
       set_dialog_last_new_message_id(d, last_message_id, "fix_new_dialog 1");
@@ -25975,7 +25974,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     }
   }
 
-  switch (dialog_id.get_type()) {
+  switch (dialog_type) {
     case DialogType::User:
       break;
     case DialogType::Chat:
@@ -26018,7 +26017,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   if (d->need_repair_server_unread_count && have_input_peer(dialog_id, AccessRights::Read)) {
-    CHECK(dialog_id.get_type() != DialogType::SecretChat);
+    CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
