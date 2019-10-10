@@ -626,11 +626,12 @@ chatListArchive = ChatList;
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
+//@action_bar Describes actions which should be possible to do through a chat action bar
 //@pinned_message_id Identifier of the pinned message in the chat; 0 if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings action_bar:ChatActionBar pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -648,6 +649,24 @@ chatInviteLink invite_link:string = ChatInviteLink;
 //@member_user_ids User identifiers of some chat members that may be known to the current user
 //@is_public True, if the chat is a public supergroup or a channel with a username
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
+
+
+//@class ChatActionBar @description Describes actions which should be possible to do through a chat action bar
+
+//@description The chat can be reported as spam using the method reportChat with the reason chatReportReasonSpam
+chatActionBarReportSpam = ChatActionBar;
+
+//@description The chat is a supergroup with a location, which can be reported as unrelated to the group using the method reportChat with the reason chatReportReasonUnrelatedLocation
+chatActionBarReportUnrelatedLocation = ChatActionBar;
+
+//@description The chat is a private or a secret chat, which can be reported using the method reportChat, or the other user can be added to the contact list using the method addContact, or the other user can be blocked using the method blockUser
+chatActionBarReportAddBlock = ChatActionBar;
+
+//@description The chat is a private or a secret chat and the other user can be added to the contact list using the method addContact
+chatActionBarAddContact = ChatActionBar;
+
+//@description The chat is a private or a secret chat and the phone number can be shared with the other user using the method sharePhoneNumber
+chatActionBarSharePhoneNumber = ChatActionBar;
 
 
 //@class KeyboardButtonType @description Describes a keyboard button type

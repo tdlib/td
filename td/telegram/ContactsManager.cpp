@@ -8413,6 +8413,11 @@ bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
   return u != nullptr && u->is_contact && user_id != get_my_id();
 }
 
+bool ContactsManager::is_user_blocked(UserId user_id) {
+  const UserFull *user_full = get_user_full_force(user_id);
+  return user_full != nullptr && user_full->is_inited && user_full->is_blocked;
+}
+
 void ContactsManager::on_get_channel_participants_success(
     ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit, int64 random_id,
     int32 total_count, vector<tl_object_ptr<telegram_api::ChannelParticipant>> &&participants) {

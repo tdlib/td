@@ -346,6 +346,8 @@ class ContactsManager : public Actor {
 
   bool is_user_contact(UserId user_id) const;
 
+  bool is_user_blocked(UserId user_id);
+
   bool is_user_deleted(UserId user_id) const;
 
   bool is_user_bot(UserId user_id) const;

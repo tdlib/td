@@ -4117,6 +4117,11 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_folder_id);
     STORE_FLAG(is_folder_id_inited);
     STORE_FLAG(has_pending_read_channel_inbox);
+    STORE_FLAG(know_action_bar);
+    STORE_FLAG(can_add_contact);
+    STORE_FLAG(can_block_user);
+    STORE_FLAG(can_share_phone_number);
+    STORE_FLAG(can_report_location);
     END_STORE_FLAGS();
   }
 
@@ -4270,7 +4275,19 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_folder_id);
     PARSE_FLAG(is_folder_id_inited);
     PARSE_FLAG(has_pending_read_channel_inbox);
+    PARSE_FLAG(know_action_bar);
+    PARSE_FLAG(can_add_contact);
+    PARSE_FLAG(can_block_user);
+    PARSE_FLAG(can_share_phone_number);
+    PARSE_FLAG(can_report_location);
     END_PARSE_FLAGS();
+  } else {
+    is_folder_id_inited = false;
+    know_action_bar = false;
+    can_add_contact = false;
+    can_block_user = false;
+    can_share_phone_number = false;
+    can_report_location = false;
   }
 
   parse(last_new_message_id, parser);
@@ -6612,14 +6629,116 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            tl_object_ptr<telegram_api::peerSettings> &&peer_settings) {
   CHECK(peer_settings != nullptr);
+  if (dialog_id.get_type() == DialogType::User) {
+    // auto need_phone_number_privacy_exception =
+    //    (peer_settings->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0;
+    // TODO use need_phone_number_privacy_exception
+  }
+
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return;
   }
 
+  auto can_report_spam = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_SPAM_MASK) != 0;
+  auto can_add_contact = (peer_settings->flags_ & telegram_api::peerSettings::ADD_CONTACT_MASK) != 0;
+  auto can_block_user = (peer_settings->flags_ & telegram_api::peerSettings::BLOCK_CONTACT_MASK) != 0;
+  auto can_share_phone_number = (peer_settings->flags_ & telegram_api::peerSettings::SHARE_CONTACT_MASK) != 0;
+  auto can_report_location = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_GEO_MASK) != 0;
+  if (d->can_report_spam == can_report_spam && d->can_add_contact == can_add_contact &&
+      d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
+      d->can_report_location == can_report_location) {
+    return;
+  }
+
   d->know_can_report_spam = true;
-  d->can_report_spam = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_SPAM_MASK) != 0;
-  on_dialog_updated(dialog_id, "can_report_spam");
+  d->know_action_bar = true;
+  d->can_report_spam = can_report_spam;
+  d->can_add_contact = can_add_contact;
+  d->can_block_user = can_block_user;
+  d->can_share_phone_number = can_share_phone_number;
+  d->can_report_location = can_report_location;
+
+  fix_dialog_action_bar(d);
+
+  on_dialog_updated(dialog_id, "on_get_peer_settings");
+}
+
+void MessagesManager::fix_dialog_action_bar(Dialog *d) {
+  CHECK(d != nullptr);
+  if (!d->know_action_bar) {
+    return;
+  }
+
+  if (d->can_report_location) {
+    if (d->dialog_id.get_type() != DialogType::Channel) {
+      LOG(ERROR) << "Receive can_report_location in " << d->dialog_id;
+      d->can_report_location = false;
+    } else if (d->can_report_spam || d->can_add_contact || d->can_block_user || d->can_share_phone_number) {
+      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/" << d->can_block_user
+                 << "/" << d->can_share_phone_number << "/" << d->can_report_location;
+      d->can_report_spam = false;
+      d->can_add_contact = false;
+      d->can_block_user = false;
+      d->can_share_phone_number = false;
+    }
+  }
+  if (d->dialog_id.get_type() == DialogType::User) {
+    auto user_id = d->dialog_id.get_user_id();
+    bool is_me = user_id == td_->contacts_manager_->get_my_id();
+    bool is_contact = td_->contacts_manager_->is_user_contact(user_id);
+    bool is_blocked = td_->contacts_manager_->is_user_blocked(user_id);
+    bool is_deleted = td_->contacts_manager_->is_user_deleted(user_id);
+    if (is_me || is_blocked) {
+      d->can_report_spam = false;
+    }
+    if (is_me || is_blocked || is_deleted) {
+      d->can_share_phone_number = false;
+    }
+    if (is_me || is_blocked || is_deleted || is_contact) {
+      d->can_block_user = false;
+      d->can_add_contact = false;
+    }
+  }
+  if (d->can_share_phone_number) {
+    CHECK(!d->can_report_location);
+    if (d->dialog_id.get_type() != DialogType::User) {
+      LOG(ERROR) << "Receive can_share_phone_number in " << d->dialog_id;
+      d->can_share_phone_number = false;
+    } else if (d->can_report_spam || d->can_add_contact || d->can_block_user) {
+      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/" << d->can_block_user
+                 << "/" << d->can_share_phone_number;
+      d->can_report_spam = false;
+      d->can_add_contact = false;
+      d->can_block_user = false;
+    }
+  }
+  if (d->can_block_user) {
+    CHECK(!d->can_report_location);
+    CHECK(!d->can_share_phone_number);
+    if (d->dialog_id.get_type() != DialogType::User) {
+      LOG(ERROR) << "Receive can_block_user in " << d->dialog_id;
+      d->can_block_user = false;
+    } else if (!d->can_report_spam || !d->can_add_contact) {
+      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/"
+                 << d->can_block_user;
+      d->can_report_spam = true;
+      d->can_add_contact = true;
+    }
+  }
+  if (d->can_add_contact) {
+    CHECK(!d->can_report_location);
+    CHECK(!d->can_share_phone_number);
+    if (d->dialog_id.get_type() != DialogType::User) {
+      LOG(ERROR) << "Receive can_add_contact in " << d->dialog_id;
+      d->can_add_contact = false;
+    } else if (d->can_report_spam != d->can_block_user) {
+      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/"
+                 << d->can_block_user;
+      d->can_report_spam = false;
+      d->can_block_user = false;
+    }
+  }
 }
 
 void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters, bool is_dark,
@@ -14211,6 +14330,40 @@ td_api::object_ptr<td_api::ChatList> MessagesManager::get_chat_list_object(Folde
   return td_api::make_object<td_api::chatListMain>();
 }
 
+td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) {
+  if (!d->know_action_bar) {
+    if (d->know_can_report_spam && d->dialog_id.get_type() != DialogType::SecretChat && d->can_report_spam) {
+      return td_api::make_object<td_api::chatActionBarReportSpam>();
+    }
+    return nullptr;
+  }
+
+  if (d->can_report_location) {
+    CHECK(d->dialog_id.get_type() == DialogType::Channel);
+    CHECK(!d->can_share_phone_number && !d->can_block_user && !d->can_add_contact && !d->can_report_spam);
+    return td_api::make_object<td_api::chatActionBarReportUnrelatedLocation>();
+  }
+  if (d->can_share_phone_number) {
+    CHECK(d->dialog_id.get_type() == DialogType::User);
+    CHECK(!d->can_block_user && !d->can_add_contact && !d->can_report_spam);
+    return td_api::make_object<td_api::chatActionBarSharePhoneNumber>();
+  }
+  if (d->can_block_user) {
+    CHECK(d->dialog_id.get_type() == DialogType::User);
+    CHECK(d->can_report_spam && d->can_add_contact);
+    return td_api::make_object<td_api::chatActionBarReportAddBlock>();
+  }
+  if (d->can_add_contact) {
+    CHECK(d->dialog_id.get_type() == DialogType::User);
+    CHECK(!d->can_report_spam);
+    return td_api::make_object<td_api::chatActionBarAddContact>();
+  }
+  if (d->can_report_spam) {
+    return td_api::make_object<td_api::chatActionBarReportSpam>();
+  }
+  return nullptr;
+}
+
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
 
@@ -14264,8 +14417,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      get_chat_notification_settings_object(&d->notification_settings), d->pinned_message_id.get(),
-      d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message), d->client_data);
+      get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
+      d->pinned_message_id.get(), d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message),
+      d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -25526,13 +25680,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->need_restore_reply_markup = false;
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
-      d->know_can_report_spam = true;
       d->is_pinned_message_id_inited = true;
       d->is_folder_id_inited = true;
-      if (!is_loaded_from_database) {
-        d->can_report_spam =
-            td_->contacts_manager_->default_can_report_spam_in_secret_chat(dialog_id.get_secret_chat_id());
-      }
       break;
     case DialogType::None:
     default:

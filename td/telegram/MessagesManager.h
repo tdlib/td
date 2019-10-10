@@ -1042,6 +1042,11 @@ class MessagesManager : public Actor {
 
     bool know_can_report_spam = false;
     bool can_report_spam = false;
+    bool know_action_bar = false;
+    bool can_add_contact = false;
+    bool can_block_user = false;
+    bool can_share_phone_number = false;
+    bool can_report_location = false;
 
     bool is_opened = false;
 
@@ -1913,11 +1918,15 @@ class MessagesManager : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
+  void fix_dialog_action_bar(Dialog *d);
+
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
   static td_api::object_ptr<td_api::ChatList> get_chat_list_object(const Dialog *d);
 
   static td_api::object_ptr<td_api::ChatList> get_chat_list_object(FolderId folder_id);
+
+  static td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d);
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
