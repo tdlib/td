@@ -7321,6 +7321,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_),
                                                            "on_get_user_full");
 
+  td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user_full->settings_));
+
   {
     MessageId pinned_message_id;
     if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
