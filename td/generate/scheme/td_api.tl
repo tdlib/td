@@ -2698,6 +2698,9 @@ updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificat
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
+//@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
+updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
+
 //@description The chat pinned message was changed @chat_id Chat identifier @pinned_message_id The new identifier of the pinned message; 0 if there is no pinned message in the chat
 updateChatPinnedMessage chat_id:int53 pinned_message_id:int53 = Update;
 

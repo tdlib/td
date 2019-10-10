@@ -6662,7 +6662,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
 
   fix_dialog_action_bar(d);
 
-  on_dialog_updated(dialog_id, "on_get_peer_settings");
+  send_update_chat_action_bar(d);
 }
 
 void MessagesManager::fix_dialog_action_bar(Dialog *d) {
@@ -21233,6 +21233,14 @@ void MessagesManager::send_update_chat_chat_list(const Dialog *d) const {
                make_tl_object<td_api::updateChatChatList>(d->dialog_id.get(), get_chat_list_object(d)));
 }
 
+void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_action_bar";
+  on_dialog_updated(d->dialog_id, "send_update_chat_action_bar");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
+}
+
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
@@ -22169,13 +22177,13 @@ void MessagesManager::on_dialog_is_blocked_updated(DialogId dialog_id, bool is_b
           d->can_share_phone_number = false;
           d->can_block_user = false;
           d->can_add_contact = false;
-          // TODO send_update_chat_action_bar(d);
-          on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated 1");
+          send_update_chat_action_bar(d);
         }
       } else {
         d->know_action_bar = false;
         // TODO repair_dialog_action_bar(d);
-        on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated 2");
+        // there is no need to change action bar
+        on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated");
       }
     }
   }
