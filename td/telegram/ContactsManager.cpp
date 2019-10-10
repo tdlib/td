@@ -6948,6 +6948,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     update_contacts_hints(u, user_id, from_database);
   }
   if (u->is_is_contact_changed) {
+    td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
     if (u->is_contact) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -7249,7 +7250,7 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
     user_full->is_common_chat_count_changed = false;
   }
   if (user_full->is_is_blocked_changed) {
-    td_->messages_manager_->on_dialog_is_blocked_updated(DialogId(user_id), user_full->is_blocked);
+    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), user_full->is_blocked);
     user_full->is_is_blocked_changed = false;
   }
 
@@ -8034,7 +8035,7 @@ void ContactsManager::on_update_user_blocked(UserId user_id, bool is_blocked) {
 
   UserFull *user_full = get_user_full_force(user_id);
   if (user_full == nullptr || !user_full->is_inited) {
-    td_->messages_manager_->on_dialog_is_blocked_updated(DialogId(user_id), is_blocked);
+    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), is_blocked);
   }
   if (user_full == nullptr) {
     return;

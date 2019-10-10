@@ -22180,7 +22180,30 @@ void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::on_dialog_is_blocked_updated(DialogId dialog_id, bool is_blocked) {
+void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact) {
+  CHECK(dialog_id.get_type() == DialogType::User);
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    if (d->know_action_bar) {
+      if (is_contact) {
+        if (d->can_block_user || d->can_add_contact) {
+          d->can_block_user = false;
+          d->can_add_contact = false;
+          send_update_chat_action_bar(d);
+        }
+      } else {
+        d->know_action_bar = false;
+        if (have_input_peer(dialog_id, AccessRights::Read)) {
+          repair_dialog_action_bar(dialog_id);
+        }
+        // there is no need to change action bar
+        on_dialog_updated(dialog_id, "on_dialog_user_is_contact_updated");
+      }
+    }
+  }
+}
+
+void MessagesManager::on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked) {
   CHECK(dialog_id.get_type() == DialogType::User);
   auto d = get_dialog(dialog_id);  // called from update_user_full, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
@@ -22199,7 +22222,7 @@ void MessagesManager::on_dialog_is_blocked_updated(DialogId dialog_id, bool is_b
           repair_dialog_action_bar(dialog_id);
         }
         // there is no need to change action bar
-        on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated");
+        on_dialog_updated(dialog_id, "on_dialog_user_is_blocked_updated");
       }
     }
   }

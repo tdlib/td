@@ -642,7 +642,9 @@ class MessagesManager : public Actor {
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_username_updated(DialogId dialog_id, const string &old_username, const string &new_username);
   void on_dialog_permissions_updated(DialogId dialog_id);
-  void on_dialog_is_blocked_updated(DialogId dialog_id, bool is_blocked);
+
+  void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
+  void on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked);
 
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
