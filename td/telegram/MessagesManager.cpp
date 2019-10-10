@@ -22158,6 +22158,29 @@ void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::on_dialog_is_blocked_updated(DialogId dialog_id, bool is_blocked) {
+  CHECK(dialog_id.get_type() == DialogType::User);
+  auto d = get_dialog(dialog_id);  // called from update_user_full, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    if (d->know_action_bar) {
+      if (is_blocked) {
+        if (d->can_report_spam || d->can_share_phone_number || d->can_block_user || d->can_add_contact) {
+          d->can_report_spam = false;
+          d->can_share_phone_number = false;
+          d->can_block_user = false;
+          d->can_add_contact = false;
+          // TODO send_update_chat_action_bar(d);
+          on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated 1");
+        }
+      } else {
+        d->know_action_bar = false;
+        // TODO repair_dialog_action_bar(d);
+        on_dialog_updated(dialog_id, "on_dialog_is_blocked_updated 2");
+      }
+    }
+  }
+}
+
 DialogId MessagesManager::resolve_dialog_username(const string &username) const {
   auto cleaned_username = clean_username(username);
   auto it = resolved_usernames_.find(cleaned_username);

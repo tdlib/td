@@ -580,6 +580,7 @@ class ContactsManager : public Actor {
     bool can_pin_messages = false;
     bool need_phone_number_privacy_exception = false;
 
+    bool is_is_blocked_changed = true;
     bool is_common_chat_count_changed = true;
     bool is_changed = true;
 

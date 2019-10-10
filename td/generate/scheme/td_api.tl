@@ -628,7 +628,7 @@ chatListArchive = ChatList;
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
-//@action_bar Describes actions which should be possible to do through a chat action bar
+//@action_bar Describes actions which should be possible to do through a chat action bar; may be null
 //@pinned_message_id Identifier of the pinned message in the chat; 0 if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
