@@ -1532,6 +1532,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
   }
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_get_peer_settings(DialogId(update->peer_), std::move(update->settings_));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebPage> update, bool force_apply) {
   CHECK(update != nullptr);
   td_->web_pages_manager_->on_get_web_page(std::move(update->webpage_), DialogId());
@@ -1902,9 +1906,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/) {
 }
 
 }  // namespace td

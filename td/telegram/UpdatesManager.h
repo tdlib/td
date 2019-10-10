@@ -189,6 +189,7 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateWebPage> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelWebPage> update, bool force_apply);
@@ -281,8 +282,6 @@ class UpdatesManager : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, bool /*force_apply*/);
-
-  void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/);
 };
 
 }  // namespace td
