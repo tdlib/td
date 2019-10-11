@@ -5770,11 +5770,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_deleted != u->is_deleted) {
     u->is_deleted = is_deleted;
 
-    if (u->is_deleted) {
-      drop_user_full(user_id);
-    }
-
     LOG(DEBUG) << "User.is_deleted has changed for " << user_id;
+    u->is_is_deleted_changed = true;
     u->need_send_update = true;
   }
 
@@ -5904,7 +5901,7 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
                                << u->is_deleted << " " << u->is_bot << " " << u->is_changed << " "
                                << u->need_send_update << " " << u->is_status_changed << " " << u->is_name_changed << " "
                                << u->is_username_changed << " " << u->is_photo_changed << " "
-                               << u->is_is_contact_changed;
+                               << u->is_is_contact_changed << " " << u->is_is_deleted_changed;
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
   u->is_being_saved = false;
 
@@ -6773,6 +6770,10 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
 
   update_user_full(user_full, user_id, true);
+
+  if (is_user_deleted(user_id)) {
+    drop_user_full(user_id);
+  }
 }
 
 ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) {
@@ -6957,6 +6958,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       }
     }
   }
+  if (u->is_is_deleted_changed) {
+    td_->messages_manager_->on_dialog_user_is_deleted_updated(DialogId(user_id), u->is_deleted);
+    if (u->is_deleted) {
+      auto user_full = get_user_full(user_id);  // must not load user_full from database before sending updateUser
+      if (user_full != nullptr) {
+        drop_user_full(user_id);
+      }
+    }
+  }
   if (u->is_name_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(user_id));
     auto it = secret_chats_with_user_.find(user_id);
@@ -7007,6 +7017,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   u->is_username_changed = false;
   u->is_photo_changed = false;
   u->is_is_contact_changed = false;
+  u->is_is_deleted_changed = false;
   u->is_default_permissions_changed = false;
 
   if (u->is_deleted) {

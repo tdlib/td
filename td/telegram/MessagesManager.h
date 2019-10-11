@@ -645,6 +645,7 @@ class MessagesManager : public Actor {
 
   void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
   void on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked);
+  void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
 
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);

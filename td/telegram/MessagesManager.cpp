@@ -22228,6 +22228,30 @@ void MessagesManager::on_dialog_user_is_blocked_updated(DialogId dialog_id, bool
   }
 }
 
+void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted) {
+  CHECK(dialog_id.get_type() == DialogType::User);
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    if (d->know_action_bar) {
+      if (is_deleted) {
+        if (d->can_share_phone_number || d->can_block_user || d->can_add_contact) {
+          d->can_share_phone_number = false;
+          d->can_block_user = false;
+          d->can_add_contact = false;
+          send_update_chat_action_bar(d);
+        }
+      } else {
+        d->know_action_bar = false;
+        if (have_input_peer(dialog_id, AccessRights::Read)) {
+          repair_dialog_action_bar(dialog_id);
+        }
+        // there is no need to change action bar
+        on_dialog_updated(dialog_id, "on_dialog_user_is_deleted_updated");
+      }
+    }
+  }
+}
+
 DialogId MessagesManager::resolve_dialog_username(const string &username) const {
   auto cleaned_username = clean_username(username);
   auto it = resolved_usernames_.find(cleaned_username);
