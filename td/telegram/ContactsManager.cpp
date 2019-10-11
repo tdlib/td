@@ -335,8 +335,11 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
 };
 
 class BlockUserQuery : public Td::ResultHandler {
+  UserId user_id_;
+
  public:
-  void send(tl_object_ptr<telegram_api::InputUser> &&user) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user) {
+    user_id_ = user_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_block(std::move(user)))));
   }
 
@@ -347,20 +350,24 @@ class BlockUserQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Block user has failed";
+    LOG_IF(WARNING, !result) << "Block " << user_id_ << " has failed";
   }
 
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
       LOG(WARNING) << "Receive error for blockUser: " << status;
+      td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
     }
     status.ignore();
   }
 };
 
 class UnblockUserQuery : public Td::ResultHandler {
+  UserId user_id_;
+
  public:
-  void send(tl_object_ptr<telegram_api::InputUser> &&user) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user) {
+    user_id_ = user_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_unblock(std::move(user)))));
   }
 
@@ -371,12 +378,13 @@ class UnblockUserQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Unblock user has failed";
+    LOG_IF(WARNING, !result) << "Unblock " << user_id_ << " has failed";
   }
 
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
       LOG(WARNING) << "Receive error for unblockUser: " << status;
+      td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
     }
     status.ignore();
   }
@@ -3816,7 +3824,7 @@ Status ContactsManager::block_user(UserId user_id) {
     return Status::Error(5, "User not found");
   }
 
-  td_->create_handler<BlockUserQuery>()->send(std::move(user));
+  td_->create_handler<BlockUserQuery>()->send(user_id, std::move(user));
 
   on_update_user_blocked(user_id, true);
   return Status::OK();
@@ -3832,7 +3840,7 @@ Status ContactsManager::unblock_user(UserId user_id) {
     return Status::Error(5, "User not found");
   }
 
-  td_->create_handler<UnblockUserQuery>()->send(std::move(user));
+  td_->create_handler<UnblockUserQuery>()->send(user_id, std::move(user));
 
   on_update_user_blocked(user_id, false);
   return Status::OK();
