@@ -336,9 +336,13 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
 };
 
 class SetUserIsBlockedQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
   UserId user_id_;
 
  public:
+  explicit SetUserIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user, bool is_blocked) {
     user_id_ = user_id;
     if (is_blocked) {
@@ -358,15 +362,12 @@ class SetUserIsBlockedQuery : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     LOG_IF(WARNING, !result) << "Block/Unblock " << user_id_ << " has failed";
+
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
-      LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << status;
-      td->contacts_manager_->reload_user_full(user_id_);
-      td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
-    }
-    status.ignore();
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -3804,10 +3805,23 @@ Status ContactsManager::set_user_is_blocked(UserId user_id, bool is_blocked) {
     return Status::Error(5, "User not found");
   }
 
-  td_->create_handler<SetUserIsBlockedQuery>()->send(user_id, std::move(user), is_blocked);
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id, is_blocked](Result<Unit> result) {
+    if (!G()->close_flag() && result.is_error()) {
+      send_closure(actor_id, &ContactsManager::on_set_user_is_blocked_failed, user_id, is_blocked,
+                   result.move_as_error());
+    }
+  });
+  td_->create_handler<SetUserIsBlockedQuery>(std::move(query_promise))->send(user_id, std::move(user), is_blocked);
 
   on_update_user_is_blocked(user_id, is_blocked);
   return Status::OK();
+}
+
+void ContactsManager::on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error) {
+  LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << error;
+  on_update_user_is_blocked(user_id, !is_blocked);
+  reload_user_full(user_id);
+  td_->messages_manager_->repair_dialog_action_bar(DialogId(user_id));
 }
 
 bool ContactsManager::is_valid_username(const string &username) {

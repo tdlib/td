@@ -962,6 +962,8 @@ class ContactsManager : public Actor {
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
   void drop_user_full(UserId user_id);
 
+  void on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error);
+
   void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
   void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
