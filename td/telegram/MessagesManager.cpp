@@ -6442,7 +6442,7 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
 void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), Auto());
+      td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
       return;
     case DialogType::Chat:
     case DialogType::Channel:
@@ -14264,8 +14264,8 @@ void MessagesManager::open_dialog(Dialog *d) {
       break;
     case DialogType::SecretChat:
       // to repair dialog action bar
-      td_->contacts_manager_->get_user_full(
-          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()), Auto());
+      td_->contacts_manager_->reload_user_full(
+          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
       break;
     case DialogType::None:
     default:

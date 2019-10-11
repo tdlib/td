@@ -363,6 +363,7 @@ class SetUserIsBlockedQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
       LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << status;
+      td->contacts_manager_->reload_user_full(user_id_);
       td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
     }
     status.ignore();
@@ -9890,8 +9891,8 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
 }
 
 bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
-  auto user = get_user(user_id);
-  if (user == nullptr) {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
     return false;
   }
@@ -9907,7 +9908,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
     send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get_user_full");
     return false;
   }
-  if (user_full->is_expired() || user_full->is_bot_info_expired(user->bot_info_version)) {
+  if (user_full->is_expired() || user_full->is_bot_info_expired(u->bot_info_version)) {
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
     if (td_->auth_manager_->is_bot()) {
@@ -9920,6 +9921,13 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
 
   promise.set_value(Unit());
   return true;
+}
+
+void ContactsManager::reload_user_full(UserId user_id) {
+  auto input_user = get_input_user(user_id);
+  if (input_user != nullptr) {
+    send_get_user_full_query(user_id, std::move(input_user), Auto(), "reload_user_full");
+  }
 }
 
 void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
