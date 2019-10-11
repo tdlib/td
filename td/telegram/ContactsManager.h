@@ -117,8 +117,6 @@ class ContactsManager : public Actor {
   SecretChatState get_secret_chat_state(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_layer(SecretChatId secret_chat_id) const;
 
-  bool default_can_report_spam_in_secret_chat(SecretChatId secret_chat_id) const;
-
   void on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
                             vector<int32> unimported_contact_invites);
 

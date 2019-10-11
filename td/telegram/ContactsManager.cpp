@@ -3492,24 +3492,6 @@ int32 ContactsManager::get_secret_chat_ttl(SecretChatId secret_chat_id) const {
   return c->ttl;
 }
 
-bool ContactsManager::default_can_report_spam_in_secret_chat(SecretChatId secret_chat_id) const {
-  auto c = get_secret_chat(secret_chat_id);
-  if (c == nullptr) {
-    return true;
-  }
-  if (c->is_outbound) {
-    return false;
-  }
-  auto u = get_user(c->user_id);
-  if (u == nullptr) {
-    return true;
-  }
-  if (u->is_contact) {
-    return false;
-  }
-  return true;
-}
-
 string ContactsManager::get_user_username(UserId user_id) const {
   if (!user_id.is_valid()) {
     return string();
