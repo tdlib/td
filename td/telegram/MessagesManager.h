@@ -663,10 +663,6 @@ class MessagesManager : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
-  bool get_dialog_report_spam_state(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void change_dialog_report_spam_state(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise);
-
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
 
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,

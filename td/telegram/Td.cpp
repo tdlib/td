@@ -2325,25 +2325,6 @@ class GetScopeNotificationSettingsRequest : public RequestActor<> {
   }
 };
 
-class GetChatReportSpamStateRequest : public RequestActor<> {
-  DialogId dialog_id_;
-
-  bool can_report_spam_ = false;
-
-  void do_run(Promise<Unit> &&promise) override {
-    can_report_spam_ = td->messages_manager_->get_dialog_report_spam_state(dialog_id_, std::move(promise));
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::chatReportSpamState>(can_report_spam_));
-  }
-
- public:
-  GetChatReportSpamStateRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
 class GetStickersRequest : public RequestActor<> {
   string emoji_;
   int32 limit_;
@@ -6674,18 +6655,6 @@ void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &reque
     return send_error_raw(id, 400, "Scope must not be empty");
   }
   CREATE_REQUEST(GetScopeNotificationSettingsRequest, get_notification_settings_scope(request.scope_));
-}
-
-void Td::on_request(uint64 id, const td_api::getChatReportSpamState &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST(GetChatReportSpamStateRequest, request.chat_id_);
-}
-
-void Td::on_request(uint64 id, const td_api::changeChatReportSpamState &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->change_dialog_report_spam_state(DialogId(request.chat_id_), request.is_spam_chat_,
-                                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeChatActionBar &request) {

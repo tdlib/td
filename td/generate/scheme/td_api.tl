@@ -2349,9 +2349,6 @@ connectedWebsite id:int64 domain_name:string bot_user_id:int32 browser:string pl
 connectedWebsites websites:vector<connectedWebsite> = ConnectedWebsites;
 
 
-//@description Contains information about the availability of the "Report spam" action for a chat @can_report_spam True, if a prompt with the "Report spam" action should be shown to the user
-chatReportSpamState can_report_spam:Bool = ChatReportSpamState;
-
 //@class ChatReportReason @description Describes the reason why a chat is reported
 
 //@description The chat contains spam messages
@@ -3900,12 +3897,6 @@ getAccountTtl = AccountTtl;
 //@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account. Can be called before authorization when the current authorization state is authorizationStateWaitPassword @reason The reason why the account was deleted; optional
 deleteAccount reason:string = Ok;
 
-
-//@description Returns information on whether the current chat can be reported as spam @chat_id Chat identifier
-getChatReportSpamState chat_id:int53 = ChatReportSpamState;
-
-//@description Reports to the server whether a chat is a spam chat or not. Can be used only if ChatReportSpamState.can_report_spam is true. After this request, ChatReportSpamState.can_report_spam becomes false forever @chat_id Chat identifier @is_spam_chat If true, the chat will be reported as spam; otherwise it will be marked as not spam
-changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;

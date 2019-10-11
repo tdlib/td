@@ -3618,14 +3618,6 @@ class CliClient final : public Actor {
       std::tie(group_id, max_notification_id) = split(args);
       send_request(td_api::make_object<td_api::removeNotificationGroup>(to_integer<int32>(group_id),
                                                                         to_integer<int32>(max_notification_id)));
-    } else if (op == "gcrss") {
-      send_request(td_api::make_object<td_api::getChatReportSpamState>(as_chat_id(args)));
-    } else if (op == "ccrss") {
-      string chat_id;
-      string is_spam_chat;
-      std::tie(chat_id, is_spam_chat) = split(args);
-
-      send_request(td_api::make_object<td_api::changeChatReportSpamState>(as_chat_id(chat_id), as_bool(is_spam_chat)));
     } else if (op == "rcab") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::removeChatActionBar>(as_chat_id(chat_id)));

@@ -3176,13 +3176,9 @@ class ResetNotifySettingsQuery : public Td::ResultHandler {
 };
 
 class GetPeerSettingsQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetPeerSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
 
@@ -3200,14 +3196,11 @@ class GetPeerSettingsQuery : public Td::ResultHandler {
     }
 
     td->messages_manager_->on_get_peer_settings(dialog_id_, result_ptr.move_as_ok());
-
-    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for get peer settings: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerSettingsQuery");
-    promise_.set_error(std::move(status));
   }
 };
 
@@ -6453,61 +6446,12 @@ void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
         return;
       }
 
-      return td_->create_handler<GetPeerSettingsQuery>(Promise<Unit>())->send(dialog_id);
+      return td_->create_handler<GetPeerSettingsQuery>()->send(dialog_id);
     case DialogType::SecretChat:
     case DialogType::None:
     default:
       UNREACHABLE();
   }
-}
-
-bool MessagesManager::get_dialog_report_spam_state(DialogId dialog_id, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    promise.set_error(Status::Error(3, "Chat not found"));
-    return false;
-  }
-
-  if (d->know_can_report_spam) {
-    promise.set_value(Unit());
-    return d->can_report_spam;
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::Channel:
-      td_->create_handler<GetPeerSettingsQuery>(std::move(promise))->send(dialog_id);
-      return false;
-    case DialogType::SecretChat:
-      promise.set_value(Unit());
-      return false;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
-void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool is_spam_dialog,
-                                                      Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(3, "Can't access the chat"));
-  }
-
-  if (!d->know_can_report_spam || !d->can_report_spam) {
-    return promise.set_error(Status::Error(3, "Can't update chat report spam state"));
-  }
-
-  d->can_report_spam = false;
-  on_dialog_updated(dialog_id, "change_dialog_report_spam_state");
-
-  change_dialog_report_spam_state_on_server(dialog_id, is_spam_dialog, 0, std::move(promise));
 }
 
 void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise) {

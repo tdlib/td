@@ -844,10 +844,6 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::resetAllNotificationSettings &request);
 
-  void on_request(uint64 id, const td_api::getChatReportSpamState &request);
-
-  void on_request(uint64 id, const td_api::changeChatReportSpamState &request);
-
   void on_request(uint64 id, const td_api::removeChatActionBar &request);
 
   void on_request(uint64 id, td_api::reportChat &request);
