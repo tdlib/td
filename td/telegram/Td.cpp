@@ -6688,6 +6688,12 @@ void Td::on_request(uint64 id, const td_api::changeChatReportSpamState &request)
                                                      std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::removeChatActionBar &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->remove_dialog_action_bar(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -3223,7 +3223,9 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
+    if (input_peer == nullptr) {
+      return promise_.set_value(Unit());
+    }
 
     if (is_spam_dialog) {
       send_query(
@@ -6508,6 +6510,35 @@ void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool i
   change_dialog_report_spam_state_on_server(dialog_id, is_spam_dialog, 0, std::move(promise));
 }
 
+void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+
+  if (!d->know_can_report_spam) {
+    return promise.set_error(Status::Error(3, "Can't update chat action bar"));
+  }
+
+  if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
+      !d->can_report_location) {
+    return promise.set_value(Unit());
+  }
+
+  d->can_report_spam = false;
+  d->can_add_contact = false;
+  d->can_block_user = false;
+  d->can_share_phone_number = false;
+  d->can_report_location = false;
+  on_dialog_updated(dialog_id, "remove_dialog_action_bar");
+
+  change_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
+}
+
 class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
  public:
   DialogId dialog_id_;
@@ -6551,8 +6582,8 @@ void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_
       if (is_spam_dialog) {
         return td_->create_handler<ReportEncryptedSpamQuery>(std::move(promise))->send(dialog_id);
       } else {
-        promise.set_value(Unit());
-        return;
+        auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+        return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(DialogId(user_id), false);
       }
     case DialogType::None:
     default:

@@ -3626,6 +3626,9 @@ class CliClient final : public Actor {
       std::tie(chat_id, is_spam_chat) = split(args);
 
       send_request(td_api::make_object<td_api::changeChatReportSpamState>(as_chat_id(chat_id), as_bool(is_spam_chat)));
+    } else if (op == "rcab") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::removeChatActionBar>(as_chat_id(chat_id)));
     } else if (op == "rc") {
       string chat_id;
       string reason_str;
