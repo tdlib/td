@@ -56,6 +56,7 @@
 #include <algorithm>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace td {
@@ -334,56 +335,34 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class BlockUserQuery : public Td::ResultHandler {
+class SetUserIsBlockedQuery : public Td::ResultHandler {
   UserId user_id_;
 
  public:
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user, bool is_blocked) {
     user_id_ = user_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_block(std::move(user)))));
+    if (is_blocked) {
+      send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_block(std::move(user)))));
+    } else {
+      send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_unblock(std::move(user)))));
+    }
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
+    static_assert(
+        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
     auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Block " << user_id_ << " has failed";
+    LOG_IF(WARNING, !result) << "Block/Unblock " << user_id_ << " has failed";
   }
 
   void on_error(uint64 id, Status status) override {
     if (!G()->close_flag()) {
-      LOG(WARNING) << "Receive error for blockUser: " << status;
-      td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
-    }
-    status.ignore();
-  }
-};
-
-class UnblockUserQuery : public Td::ResultHandler {
-  UserId user_id_;
-
- public:
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&user) {
-    user_id_ = user_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_unblock(std::move(user)))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::contacts_unblock>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Unblock " << user_id_ << " has failed";
-  }
-
-  void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
-      LOG(WARNING) << "Receive error for unblockUser: " << status;
+      LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << status;
       td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
     }
     status.ignore();
@@ -3814,9 +3793,9 @@ void ContactsManager::disconnect_all_websites(Promise<Unit> &&promise) const {
   td_->create_handler<ResetWebAuthorizationsQuery>(std::move(promise))->send();
 }
 
-Status ContactsManager::block_user(UserId user_id) {
+Status ContactsManager::set_user_is_blocked(UserId user_id, bool is_blocked) {
   if (user_id == get_my_id()) {
-    return Status::Error(5, "Can't block self");
+    return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
   }
 
   auto user = get_input_user(user_id);
@@ -3824,25 +3803,9 @@ Status ContactsManager::block_user(UserId user_id) {
     return Status::Error(5, "User not found");
   }
 
-  td_->create_handler<BlockUserQuery>()->send(user_id, std::move(user));
+  td_->create_handler<SetUserIsBlockedQuery>()->send(user_id, std::move(user), is_blocked);
 
-  on_update_user_blocked(user_id, true);
-  return Status::OK();
-}
-
-Status ContactsManager::unblock_user(UserId user_id) {
-  if (user_id == get_my_id()) {
-    return Status::Error(5, "Can't unblock self");
-  }
-
-  auto user = get_input_user(user_id);
-  if (user == nullptr) {
-    return Status::Error(5, "User not found");
-  }
-
-  td_->create_handler<UnblockUserQuery>()->send(user_id, std::move(user));
-
-  on_update_user_blocked(user_id, false);
+  on_update_user_is_blocked(user_id, is_blocked);
   return Status::OK();
 }
 
@@ -8088,8 +8051,8 @@ void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, i
   }
 }
 
-void ContactsManager::on_update_user_blocked(UserId user_id, bool is_blocked) {
-  LOG(INFO) << "Receive update user blocked with " << user_id << " and is_blocked = " << is_blocked;
+void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked) {
+  LOG(INFO) << "Receive update user is blocked with " << user_id << " and is_blocked = " << is_blocked;
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;

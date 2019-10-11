@@ -6299,12 +6299,12 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
 
 void Td::on_request(uint64 id, const td_api::blockUser &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, contacts_manager_->block_user(UserId(request.user_id_)));
+  answer_ok_query(id, contacts_manager_->set_user_is_blocked(UserId(request.user_id_), true));
 }
 
 void Td::on_request(uint64 id, const td_api::unblockUser &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, contacts_manager_->unblock_user(UserId(request.user_id_)));
+  answer_ok_query(id, contacts_manager_->set_user_is_blocked(UserId(request.user_id_), false));
 }
 
 void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {

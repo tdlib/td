@@ -1698,7 +1698,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhoto> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserBlocked> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_update_user_blocked(UserId(update->user_id_), update->blocked_);
+  td_->contacts_manager_->on_update_user_is_blocked(UserId(update->user_id_), update->blocked_);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/) {
