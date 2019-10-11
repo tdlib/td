@@ -3639,6 +3639,8 @@ class CliClient final : public Actor {
         reason = td_api::make_object<td_api::chatReportReasonChildAbuse>();
       } else if (reason_str == "copyright") {
         reason = td_api::make_object<td_api::chatReportReasonCopyright>();
+      } else if (reason_str == "geo" || reason_str == "location") {
+        reason = td_api::make_object<td_api::chatReportReasonUnrelatedLocation>();
       } else {
         reason = td_api::make_object<td_api::chatReportReasonCustom>(reason_str);
       }

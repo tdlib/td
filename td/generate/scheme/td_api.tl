@@ -2366,6 +2366,9 @@ chatReportReasonChildAbuse = ChatReportReason;
 //@description The chat contains copyrighted content
 chatReportReasonCopyright = ChatReportReason;
 
+//@description The chat has unrelated location
+chatReportReasonUnrelatedLocation = ChatReportReason;
+
 //@description A custom reason provided by the user @text Report text
 chatReportReasonCustom text:string = ChatReportReason;
 

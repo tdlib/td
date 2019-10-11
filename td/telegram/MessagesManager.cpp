@@ -6644,6 +6644,12 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
     case td_api::chatReportReasonCopyright::ID:
       report_reason = make_tl_object<telegram_api::inputReportReasonCopyright>();
       break;
+    case td_api::chatReportReasonUnrelatedLocation::ID:
+      report_reason = make_tl_object<telegram_api::inputReportReasonGeoIrrelevant>();
+      if (dialog_id.get_type() == DialogType::Channel) {
+        hide_dialog_action_bar(d);
+      }
+      break;
     case td_api::chatReportReasonCustom::ID: {
       auto other_reason = static_cast<const td_api::chatReportReasonCustom *>(reason.get());
       auto text = other_reason->text_;
