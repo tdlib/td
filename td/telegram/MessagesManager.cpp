@@ -14226,6 +14226,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       break;
     case DialogType::Chat:
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
+      repair_dialog_action_bar(dialog_id);
       break;
     case DialogType::Channel:
       if (!is_broadcast_channel(dialog_id)) {
@@ -14238,8 +14239,12 @@ void MessagesManager::open_dialog(Dialog *d) {
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
+      repair_dialog_action_bar(dialog_id);
       break;
     case DialogType::SecretChat:
+      // to repair dialog action bar
+      td_->contacts_manager_->get_user_full(
+          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()), Auto());
       break;
     case DialogType::None:
     default:
