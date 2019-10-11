@@ -6454,6 +6454,21 @@ void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::hide_dialog_action_bar(Dialog *d) {
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
+  if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
+      !d->can_report_location) {
+    return;
+  }
+
+  d->can_report_spam = false;
+  d->can_add_contact = false;
+  d->can_block_user = false;
+  d->can_share_phone_number = false;
+  d->can_report_location = false;
+  send_update_chat_action_bar(d);
+}
+
 void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -6462,6 +6477,17 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+    d = get_dialog_force(dialog_id);
+    if (d == nullptr) {
+      return promise.set_error(Status::Error(3, "Chat with the user not found"));
+    }
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(3, "Can't access the chat"));
+    }
   }
 
   if (!d->know_can_report_spam) {
@@ -6473,12 +6499,7 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
     return promise.set_value(Unit());
   }
 
-  d->can_report_spam = false;
-  d->can_add_contact = false;
-  d->can_block_user = false;
-  d->can_share_phone_number = false;
-  d->can_report_location = false;
-  on_dialog_updated(dialog_id, "remove_dialog_action_bar");
+  hide_dialog_action_bar(d);
 
   change_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
 }
@@ -6568,7 +6589,34 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
     return promise.set_error(Status::Error(3, "Reason shouldn't be empty"));
   }
 
+  Dialog *user_d = d;
+  bool is_dialog_spam_report = false;
+  bool can_report_spam = d->can_report_spam;
+  if (reason->get_id() == td_api::chatReportReasonSpam::ID && message_ids.empty()) {
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      auto user_dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      user_d = get_dialog_force(user_dialog_id);
+      if (user_d == nullptr) {
+        return promise.set_error(Status::Error(3, "Chat with the user not found"));
+      }
+
+      is_dialog_spam_report = user_d->know_can_report_spam;
+      can_report_spam = user_d->can_report_spam;
+    } else {
+      is_dialog_spam_report = d->know_can_report_spam;
+    }
+  }
+
+  if (is_dialog_spam_report && can_report_spam) {
+    hide_dialog_action_bar(user_d);
+    return change_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
+  }
+
   if (!can_report_dialog(dialog_id)) {
+    if (is_dialog_spam_report) {
+      return promise.set_value(Unit());
+    }
+
     return promise.set_error(Status::Error(3, "Chat can't be reported"));
   }
 

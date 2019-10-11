@@ -1809,6 +1809,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_action_bar(const Dialog *d);
 
+  void hide_dialog_action_bar(Dialog *d);
+
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
                                                     bool for_event_log = false) const;
 
