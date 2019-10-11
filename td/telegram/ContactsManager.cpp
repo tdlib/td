@@ -490,13 +490,15 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
 
 class AddContactQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId user_id_;
 
  public:
   explicit AddContactQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &first_name, const string &last_name,
-            const string &phone_number, bool share_phone_number) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, const string &first_name,
+            const string &last_name, const string &phone_number, bool share_phone_number) {
+    user_id_ = user_id;
     int32 flags = 0;
     if (share_phone_number) {
       flags |= telegram_api::contacts_addContact::ADD_PHONE_PRIVACY_EXCEPTION_MASK;
@@ -521,6 +523,41 @@ class AddContactQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
     td->contacts_manager_->reload_contacts(true);
+    td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
+  }
+};
+
+class AcceptContactQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit AcceptContactQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
+    user_id_ = user_id;
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::contacts_acceptContact(std::move(input_user)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_acceptContact>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AcceptContactQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+    td->contacts_manager_->reload_contacts(true);
+    td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_));
   }
 };
 
@@ -3988,7 +4025,7 @@ void ContactsManager::add_contact(td_api::object_ptr<td_api::contact> &&contact,
   }
 
   td_->create_handler<AddContactQuery>(std::move(promise))
-      ->send(std::move(input_user), contact->first_name_, contact->last_name_, contact->phone_number_,
+      ->send(user_id, std::move(input_user), contact->first_name_, contact->last_name_, contact->phone_number_,
              share_phone_number);
 }
 
@@ -4382,6 +4419,30 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
 
   promise.set_value(Unit());
   return {narrow_cast<int32>(result.first), std::move(user_ids)};
+}
+
+void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  if (!are_contacts_loaded_) {
+    load_contacts(PromiseCreator::lambda(
+        [actor_id = actor_id(this), user_id, promise = std::move(promise)](Result<Unit> &&) mutable {
+          send_closure(actor_id, &ContactsManager::share_phone_number, user_id, std::move(promise));
+        }));
+    return;
+  }
+
+  LOG(INFO) << "Share phone number with " << user_id;
+  auto input_user = get_input_user(user_id);
+  if (input_user == nullptr) {
+    return promise.set_error(Status::Error(3, "User not found"));
+  }
+
+  td_->messages_manager_->hide_dialog_action_bar(DialogId(user_id));
+
+  td_->create_handler<AcceptContactQuery>(std::move(promise))->send(user_id, std::move(input_user));
 }
 
 void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise) {

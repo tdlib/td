@@ -1153,6 +1153,7 @@ contacts.resetSaved#879537f1 = Bool;
 contacts.getSaved#82f1e39f = Vector<SavedContact>;
 contacts.toggleTopPeers#8514bdda enabled:Bool = Bool;
 contacts.addContact#e8f463d0 flags:# add_phone_privacy_exception:flags.0?true id:InputUser first_name:string last_name:string phone:string = Updates;
+contacts.acceptContact#f831a20f id:InputUser = Updates;
 contacts.getLocated#a356056 geo_point:InputGeoPoint = Updates;
 
 messages.getMessages#63c66506 id:Vector<InputMessage> = messages.Messages;

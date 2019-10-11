@@ -742,6 +742,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::clearImportedContacts &request);
 
+  void on_request(uint64 id, const td_api::sharePhoneNumber &request);
+
   void on_request(uint64 id, const td_api::getRecentInlineBots &request);
 
   void on_request(uint64 id, td_api::setName &request);

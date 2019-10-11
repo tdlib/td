@@ -6377,6 +6377,12 @@ void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
   contacts_manager_->clear_imported_contacts(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::sharePhoneNumber &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->share_phone_number(UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getRecentInlineBots &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetRecentInlineBotsRequest);

@@ -523,7 +523,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
 //@is_outgoing True, if the message is outgoing
-//@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows, whether editMessageLiveLocation or stopPoll can be used with this message by the client
+//@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message by the client
 //@can_be_forwarded True, if the message can be forwarded
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
@@ -667,7 +667,7 @@ chatActionBarReportAddBlock = ChatActionBar;
 //@description The chat is a private or a secret chat and the other user can be added to the contact list using the method addContact
 chatActionBarAddContact = ChatActionBar;
 
-//@description The chat is a private or a secret chat and the phone number can be shared with the other user using the method sharePhoneNumber
+//@description The chat is a private or a secret chat with a mutual contact and the user's phone number can be shared with the other user using the method sharePhoneNumber
 chatActionBarSharePhoneNumber = ChatActionBar;
 
 
@@ -2730,7 +2730,7 @@ updateNotificationGroup notification_group_id:int32 type:NotificationGroupType c
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
 
-//@description Describes, whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifications
+//@description Describes whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifications
 //@have_delayed_notifications True, if there are some delayed notification updates, which will be sent soon
 //@have_unreceived_notifications True, if there can be some yet unreceived notifications, which are being fetched from the server
 updateHavePendingNotifications have_delayed_notifications:Bool have_unreceived_notifications:Bool = Update;
@@ -2837,7 +2837,7 @@ updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location query:
 //@description The user has chosen a result of an inline query; for bots only @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @result_id Identifier of the chosen result @inline_message_id Identifier of the sent inline message, if known
 updateNewChosenInlineResult sender_user_id:int32 user_location:location query:string result_id:string inline_message_id:string = Update;
 
-//@description A new incoming callback query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @chat_id Identifier of the chat, in which the query was sent
+//@description A new incoming callback query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @chat_id Identifier of the chat where the query was sent
 //@message_id Identifier of the message, from which the query originated @chat_instance Identifier that uniquely corresponds to the chat to which the message was sent @payload Query payload
 updateNewCallbackQuery id:int64 sender_user_id:int32 chat_id:int53 message_id:int53 chat_instance:int64 payload:CallbackQueryPayload = Update;
 
@@ -3302,7 +3302,7 @@ getLoginUrl chat_id:int53 message_id:int53 button_id:int32 allow_write_access:Bo
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot
-//@chat_id Identifier of the chat, where the query was sent @user_location Location of the user, only if needed @query Text of the query @offset Offset of the first entry to return
+//@chat_id Identifier of the chat where the query was sent @user_location Location of the user, only if needed @query Text of the query @offset Offset of the first entry to return
 getInlineQueryResults bot_user_id:int32 chat_id:int53 user_location:location query:string offset:string = InlineQueryResults;
 
 //@description Sets the result of an inline query; for bots only @inline_query_id Identifier of the inline query @is_personal True, if the result of the query can be cached for the specified user
@@ -3597,6 +3597,10 @@ changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Clears all imported contacts, contact list remains unchanged
 clearImportedContacts = Ok;
+
+
+//@description Shares a phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber @user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
+sharePhoneNumber user_id:int32 = Ok;
 
 
 //@description Returns the profile photos of a user. The result of this query may be outdated: some photos might have been deleted already @user_id User identifier @offset The number of photos to skip; must be non-negative @limit Maximum number of photos to be returned; up to 100

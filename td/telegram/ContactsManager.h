@@ -280,6 +280,8 @@ class ContactsManager : public Actor {
 
   void on_update_contacts_reset();
 
+  void share_phone_number(UserId user_id, Promise<Unit> &&promise);
+
   void set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise);
 
   void delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise);

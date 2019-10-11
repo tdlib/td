@@ -663,7 +663,11 @@ class MessagesManager : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  void hide_dialog_action_bar(DialogId dialog_id);
+
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
+
+  void repair_dialog_action_bar(DialogId dialog_id);
 
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
                      const vector<MessageId> &message_ids, Promise<Unit> &&promise);
@@ -1629,8 +1633,6 @@ class MessagesManager : public Actor {
 
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);
-
-  void repair_dialog_action_bar(DialogId dialog_id);
 
   static int32 get_random_y(MessageId message_id);
 

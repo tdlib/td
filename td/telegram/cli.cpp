@@ -1606,6 +1606,10 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::addContact>(
           td_api::make_object<td_api::contact>(string(), first_name, last_name, string(), as_user_id(user_id)), false));
+    } else if (op == "spn") {
+      string user_id = args;
+
+      send_request(td_api::make_object<td_api::sharePhoneNumber>(as_user_id(user_id)));
     } else if (op == "ImportContacts" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
       vector<tl_object_ptr<td_api::contact>> contacts;

@@ -3249,6 +3249,7 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for update peer settings: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
+    td->messages_manager_->repair_dialog_action_bar(dialog_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -3289,6 +3290,8 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for report encrypted spam: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportEncryptedSpamQuery");
+    td->messages_manager_->repair_dialog_action_bar(
+        DialogId(td->contacts_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())));
     promise_.set_error(std::move(status));
   }
 };
@@ -3337,6 +3340,7 @@ class ReportPeerQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for report peer: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
+    td->messages_manager_->repair_dialog_action_bar(dialog_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -6454,8 +6458,19 @@ void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::hide_dialog_action_bar(DialogId dialog_id) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+  hide_dialog_action_bar(d);
+}
+
 void MessagesManager::hide_dialog_action_bar(Dialog *d) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
+  if (!d->know_can_report_spam) {
+    return;
+  }
   if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
       !d->can_report_location) {
     return;
