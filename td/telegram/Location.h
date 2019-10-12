@@ -8,7 +8,6 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/Version.h"
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
@@ -112,79 +111,7 @@ bool operator!=(const Location &lhs, const Location &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-class Venue {
-  Location location_;
-  string title_;
-  string address_;
-  string provider_;
-  string id_;
-  string type_;
-
-  friend bool operator==(const Venue &lhs, const Venue &rhs);
-  friend bool operator!=(const Venue &lhs, const Venue &rhs);
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue);
-
- public:
-  Venue() = default;
-
-  Venue(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address, string provider,
-        string id, string type);
-
-  Venue(Location location, string title, string address, string provider, string id, string type);
-
-  explicit Venue(const tl_object_ptr<td_api::venue> &venue);
-
-  bool empty() const;
-
-  Location &location();
-
-  const Location &location() const;
-
-  tl_object_ptr<td_api::venue> get_venue_object() const;
-
-  tl_object_ptr<telegram_api::inputMediaVenue> get_input_media_venue() const;
-
-  SecretInputMedia get_secret_input_media_venue() const;
-
-  // TODO very strange function
-  tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> get_input_bot_inline_message_media_venue(
-      int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(location_, storer);
-    store(title_, storer);
-    store(address_, storer);
-    store(provider_, storer);
-    store(id_, storer);
-    store(type_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(location_, parser);
-    parse(title_, parser);
-    parse(address_, parser);
-    parse(provider_, parser);
-    parse(id_, parser);
-    if (parser.version() >= static_cast<int32>(Version::AddVenueType)) {
-      parse(type_, parser);
-    }
-  }
-};
-
-bool operator==(const Venue &lhs, const Venue &rhs);
-bool operator!=(const Venue &lhs, const Venue &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue);
-
 Result<std::pair<Location, int32>> process_input_message_location(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
-
-Result<Venue> process_input_message_venue(td_api::object_ptr<td_api::InputMessageContent> &&input_message_content)
-    TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

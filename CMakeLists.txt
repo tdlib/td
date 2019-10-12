@@ -459,6 +459,7 @@ set(TDLIB_SOURCE
   td/telegram/TermsOfService.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/UpdatesManager.cpp
+  td/telegram/Venue.cpp
   td/telegram/VideoNotesManager.cpp
   td/telegram/VideosManager.cpp
   td/telegram/VoiceNotesManager.cpp
@@ -637,6 +638,7 @@ set(TDLIB_SOURCE
   td/telegram/UniqueId.h
   td/telegram/UpdatesManager.h
   td/telegram/UserId.h
+  td/telegram/Venue.h
   td/telegram/Version.h
   td/telegram/VideoNotesManager.h
   td/telegram/VideosManager.h

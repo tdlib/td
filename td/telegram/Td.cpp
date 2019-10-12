@@ -38,6 +38,7 @@
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/Location.h"
 #include "td/telegram/Logging.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"

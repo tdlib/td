@@ -50,6 +50,7 @@
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/Venue.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideoNotesManager.hpp"
