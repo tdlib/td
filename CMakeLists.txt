@@ -375,6 +375,7 @@ set(TDLIB_SOURCE
   td/telegram/DhCache.cpp
   td/telegram/DialogDb.cpp
   td/telegram/DialogId.cpp
+  td/telegram/DialogLocation.cpp
   td/telegram/DialogParticipant.cpp
   td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
@@ -519,6 +520,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h
   td/telegram/DialogId.h
+  td/telegram/DialogLocation.h
   td/telegram/DialogParticipant.h
   td/telegram/Document.h
   td/telegram/DocumentsManager.h

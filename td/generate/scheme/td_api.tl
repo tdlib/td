@@ -288,6 +288,10 @@ botCommand command:string description:string = BotCommand;
 botInfo description:string commands:vector<botCommand> = BotInfo;
 
 
+//@description Represents a location of a chat @location The location @address Location address; as defined by the chat creator
+chatLocation location:location address:string = ChatLocation;
+
+
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
 //@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
 //@is_contact The user is a contact of the current user
@@ -1936,6 +1940,9 @@ chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
 //@description The supergroup sticker set was changed @old_sticker_set_id Previous identifier of the chat sticker set; 0 if none @new_sticker_set_id New identifier of the chat sticker set; 0 if none
 chatEventStickerSetChanged old_sticker_set_id:int64 new_sticker_set_id:int64 = ChatEventAction;
+
+//@description The supergroup location was changed @old_location Previous location; may be null @new_location New location; may be null
+chatEventLocationChanged old_location:chatLocation new_location:chatLocation = ChatEventAction;
 
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;

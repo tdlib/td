@@ -11,6 +11,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogDb.h"
+#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
 #include "td/telegram/FileReferenceManager.h"
@@ -23878,6 +23879,13 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventLinkedChatChanged>(old_linked_dialog_id.get(), new_linked_dialog_id.get());
+    }
+    case telegram_api::channelAdminLogEventActionChangeLocation::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLocation>(action_ptr);
+      auto old_location = DialogLocation(std::move(action->prev_value_));
+      auto new_location = DialogLocation(std::move(action->new_value_));
+      return make_tl_object<td_api::chatEventLocationChanged>(old_location.get_chat_location_object(),
+                                                              new_location.get_chat_location_object());
     }
     default:
       UNREACHABLE();
