@@ -456,13 +456,15 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@can_get_members True, if members of the chat can be retrieved
 //@can_set_username True, if the chat can have username
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
+//@can_set_location True, if the supergroup location can be changed
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
+//@location Location of the supergroup; may be null
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state

@@ -14,6 +14,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -715,12 +716,15 @@ class ContactsManager : public Actor {
 
     ChannelId linked_channel_id;
 
+    DialogLocation location;
+
     MessageId migrated_from_max_message_id;
     ChatId migrated_from_chat_id;
 
     bool can_get_participants = false;
     bool can_set_username = false;
     bool can_set_sticker_set = false;
+    bool can_set_location = false;
     bool can_view_statistics = false;
     bool is_all_history_available = true;
 
@@ -856,14 +860,16 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_MIGRATED_FROM = 1 << 4;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 5;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_USERNAME = 1 << 6;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_STICKERS = 1 << 7;
+  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET = 1 << 7;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_STICKER_SET = 1 << 8;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID = 1 << 9;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN = 1 << 10;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 12;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT = 1 << 13;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 13;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 14;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LOCATION = 1 << 15;
+  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_LOCATION = 1 << 16;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;

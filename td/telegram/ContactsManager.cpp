@@ -3063,6 +3063,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_linked_channel_id = linked_channel_id.is_valid();
   bool has_migrated_from_max_message_id = migrated_from_max_message_id.is_valid();
   bool has_migrated_from_chat_id = migrated_from_chat_id.is_valid();
+  bool has_location = !location.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3078,6 +3079,8 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(can_set_sticker_set);
   STORE_FLAG(can_view_statistics);
   STORE_FLAG(is_all_history_available);
+  STORE_FLAG(can_set_location);
+  STORE_FLAG(has_location);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3101,6 +3104,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_linked_channel_id) {
     store(linked_channel_id, storer);
   }
+  if (has_location) {
+    store(location, storer);
+  }
   if (has_migrated_from_max_message_id) {
     store(migrated_from_max_message_id, storer);
   }
@@ -3122,6 +3128,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_linked_channel_id;
   bool has_migrated_from_max_message_id;
   bool has_migrated_from_chat_id;
+  bool has_location;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3137,6 +3144,8 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(can_set_sticker_set);
   PARSE_FLAG(can_view_statistics);
   PARSE_FLAG(is_all_history_available);
+  PARSE_FLAG(can_set_location);
+  PARSE_FLAG(has_location);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3159,6 +3168,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_linked_channel_id) {
     parse(linked_channel_id, parser);
+  }
+  if (has_location) {
+    parse(location, parser);
   }
   if (has_migrated_from_max_message_id) {
     parse(migrated_from_max_message_id, parser);
@@ -7678,13 +7690,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel_full->kicked_count_ : 0;
     auto can_get_participants = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS) != 0;
     auto can_set_username = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
-    auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKERS) != 0;
+    auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
+    auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id = td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true);
     }
+    auto location = DialogLocation(std::move(channel_full->location_));
 
     ChannelFull *channel = &channels_full_[channel_id];
     channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -7692,8 +7706,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->administrator_count != administrator_count || channel->restricted_count != restricted_count ||
         channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
-        channel->can_view_statistics != can_view_statistics || channel->sticker_set_id != sticker_set_id ||
-        channel->is_all_history_available != is_all_history_available) {
+        channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
+        channel->sticker_set_id != sticker_set_id || channel->location != location || channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -7702,9 +7716,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->can_get_participants = can_get_participants;
       channel->can_set_username = can_set_username;
       channel->can_set_sticker_set = can_set_sticker_set;
+      channel->can_set_location = can_set_location;
       channel->can_view_statistics = can_view_statistics;
-      channel->sticker_set_id = sticker_set_id;
       channel->is_all_history_available = is_all_history_available;
+      channel->sticker_set_id = sticker_set_id;
+      channel->location = std::move(location);
 
       channel->is_changed = true;
 
@@ -7760,9 +7776,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       auto linked_channel = get_channel_force(linked_channel_id);
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
           channel_id == linked_channel_id) {
-        if (linked_channel_id.is_valid()) {  // TODO remove after CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID fix
-          LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
-        }
+        LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
         linked_channel_id = ChannelId();
       }
     }
@@ -11548,8 +11562,8 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
-      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
-      channel_full->invite_link,
+      channel_full->can_set_location, channel_full->can_view_statistics, channel_full->is_all_history_available,
+      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
