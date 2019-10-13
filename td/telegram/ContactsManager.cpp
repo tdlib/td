@@ -2943,6 +2943,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
   STORE_FLAG(has_linked_channel);
+  STORE_FLAG(has_location);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -3004,6 +3005,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_scam);
   PARSE_FLAG(has_cache_version);
   PARSE_FLAG(has_linked_channel);
+  PARSE_FLAG(has_location);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -3350,7 +3352,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
     return false;
   }
   if (access_rights == AccessRights::Read) {
-    if (!c->username.empty()) {
+    if (!c->username.empty() || c->has_location) {
       return true;
     }
     if (!from_linked && c->has_linked_channel) {
@@ -4644,9 +4646,10 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   if (get_channel_type(c) != ChannelType::Megagroup) {
     return promise.set_error(Status::Error(6, "Message history can be hidden in supergroups only"));
   }
-  if (c->has_linked_channel) {
+  if (c->has_linked_channel && !is_all_history_available) {
     return promise.set_error(Status::Error(6, "Message history can't be hidden in discussion supergroups"));
   }
+  // it can be toggled in public chats, but will not affect them
 
   td_->create_handler<ToggleChannelIsAllHistoryAvailableQuery>(std::move(promise))
       ->send(channel_id, is_all_history_available);
@@ -8485,11 +8488,19 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       telegram_api::channelForbidden update(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
                                             c->access_hash, c->title, 0);
       on_chat_update(update, "CHANNEL_PRIVATE");
-    } else if (!c->username.empty()) {
-      LOG(INFO) << "Drop username of " << channel_id;
-      on_update_channel_username(c, channel_id, "");
-      update_channel(c, channel_id);
+    } else {
+      if (!c->username.empty()) {
+        LOG(INFO) << "Drop username of " << channel_id;
+        on_update_channel_username(c, channel_id, "");
+        update_channel(c, channel_id);
+      }
+      if (c->has_location) {
+        LOG(INFO) << "Drop location of " << channel_id;
+        c->has_location = false;
+        update_channel(c, channel_id);
+      }
     }
+    invalidate_channel_full(channel_id, false);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
         << "Have read access to channel after receiving CHANNEL_PRIVATE. Channel state: "
         << oneline(to_string(get_supergroup_object(channel_id, c)))
@@ -10270,6 +10281,14 @@ FileSourceId ContactsManager::get_chat_photo_file_source_id(ChatId chat_id) {
   return source_id;
 }
 
+bool ContactsManager::is_channel_public(ChannelId channel_id) const {
+  return is_channel_public(get_channel(channel_id));
+}
+
+bool ContactsManager::is_channel_public(const Channel *c) {
+  return c != nullptr && (!c->username.empty() || c->has_location);
+}
+
 ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -11118,6 +11137,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   auto access_hash = has_access_hash ? channel.access_hash_ : 0;
 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
+  bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
@@ -11209,10 +11229,11 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->need_send_update = true;
   }
 
-  if (c->has_linked_channel != has_linked_channel || c->sign_messages != sign_messages ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
-      c->is_scam != is_scam) {
+  if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
+      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
+    c->has_location = has_location;
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -11268,6 +11289,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
   bool has_linked_channel = false;
+  bool has_location = false;
   bool sign_messages = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = false;
@@ -11290,10 +11312,11 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->need_send_update = true;
   }
 
-  if (c->has_linked_channel != has_linked_channel || c->sign_messages != sign_messages ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
-      c->is_scam != is_scam) {
+  if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
+      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
+    c->has_location = has_location;
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -11458,21 +11481,20 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
   return get_basic_group_object(chat_id, get_chat(chat_id));
 }
 
-tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id, const Chat *chat) {
-  if (chat == nullptr) {
+tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id, const Chat *c) {
+  if (c == nullptr) {
     return nullptr;
   }
-  if (chat->migrated_to_channel_id.is_valid()) {
-    get_channel_force(chat->migrated_to_channel_id);
+  if (c->migrated_to_channel_id.is_valid()) {
+    get_channel_force(c->migrated_to_channel_id);
   }
-  return get_basic_group_object_const(chat_id, chat);
+  return get_basic_group_object_const(chat_id, c);
 }
 
-tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(ChatId chat_id,
-                                                                                const Chat *chat) const {
+tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(ChatId chat_id, const Chat *c) const {
   return make_tl_object<td_api::basicGroup>(
-      chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(), chat->is_active,
-      get_supergroup_id_object(chat->migrated_to_channel_id, "get_basic_group_object"));
+      chat_id.get(), c->participant_count, get_chat_status(c).get_chat_member_status_object(), c->is_active,
+      get_supergroup_id_object(c->migrated_to_channel_id, "get_basic_group_object"));
 }
 
 tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_info_object(ChatId chat_id) const {
@@ -11496,7 +11518,7 @@ int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
                      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, false, true, false, "", false)));
+                     0, false, false, false, true, false, "", false)));
   }
   return channel_id.get();
 }
@@ -11505,15 +11527,14 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   return get_supergroup_object(channel_id, get_channel(channel_id));
 }
 
-tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(ChannelId channel_id,
-                                                                         const Channel *channel) const {
-  if (channel == nullptr) {
+tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(ChannelId channel_id, const Channel *c) const {
+  if (c == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::supergroup>(
-      channel_id.get(), channel->username, channel->date, get_channel_status(channel).get_chat_member_status_object(),
-      channel->participant_count, channel->has_linked_channel, channel->sign_messages, !channel->is_megagroup,
-      channel->is_verified, channel->restriction_reason, channel->is_scam);
+  return make_tl_object<td_api::supergroup>(channel_id.get(), c->username, c->date,
+                                            get_channel_status(c).get_chat_member_status_object(), c->participant_count,
+                                            c->has_linked_channel, c->has_location, c->sign_messages, !c->is_megagroup,
+                                            c->is_verified, c->restriction_reason, c->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
@@ -11649,7 +11670,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     if (c != nullptr) {
       title = c->title;
       photo = &c->photo;
-      is_public = !c->username.empty();
+      is_public = is_channel_public(c);
       is_megagroup = c->is_megagroup;
       participant_count = c->participant_count;
     } else {

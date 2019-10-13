@@ -437,13 +437,14 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 //@status Status of the current user in the supergroup or channel
 //@member_count Member count; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was found through SearchPublicChats
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is a discussion group for a channel
+//@has_location True, if the supergroup has a chat location
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains the reason why access to this supergroup or channel must be restricted. Format of the string is "{type}: {description}".
 //-{type} Contains the type of the restriction and at least one of the suffixes "-all", "-ios", "-android", or "-wp", which describe the platforms on which access should be restricted. (For example, "terms-ios-android". {description} contains a human-readable description of the restriction, which can be shown to the user)
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool sign_messages:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@param_description Supergroup or channel description
@@ -453,7 +454,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@banned_count Number of users banned from chat; 0 if unknown
 //@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is a discussion group; 0 if none or unknown
 //@can_get_members True, if members of the chat can be retrieved
-//@can_set_username True, if the chat can be made public
+//@can_set_username True, if the chat can have username
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
@@ -653,7 +654,7 @@ chatInviteLink invite_link:string = ChatInviteLink;
 //@photo Chat photo; may be null
 //@member_count Number of members
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@is_public True, if the chat is a public supergroup or a channel with a username
+//@is_public True, if the chat is a public supergroup or a channel with a username or a location
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
@@ -2380,7 +2381,7 @@ chatReportReasonUnrelatedLocation = ChatReportReason;
 chatReportReasonCustom text:string = ChatReportReason;
 
 
-//@description Contains a public HTTPS link to a message in a public supergroup or channel with a username @link Message link @html HTML-code for embedding the message
+//@description Contains a public HTTPS link to a message in a supergroup or a channel with a username @link Message link @html HTML-code for embedding the message
 publicMessageLink link:string html:string = PublicMessageLink;
 
 //@description Contains information about a link to a message in a chat
@@ -2560,7 +2561,7 @@ topChatCategoryForwardChats = TopChatCategory;
 //@description A URL linking to a user @user_id Identifier of the user
 tMeUrlTypeUser user_id:int32 = TMeUrlType;
 
-//@description A URL linking to a public supergroup or channel @supergroup_id Identifier of the supergroup or channel
+//@description A URL linking to a public supergroup or a channel @supergroup_id Identifier of the supergroup or channel
 tMeUrlTypeSupergroup supergroup_id:int53 = TMeUrlType;
 
 //@description A chat invite link @info Chat invite link info
@@ -3160,7 +3161,7 @@ removeNotification notification_group_id:int32 notification_id:int32 = Ok;
 removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
-//@description Returns a public HTTPS link to a message. Available only for messages in supergroups and channels with username
+//@description Returns a public HTTPS link to a message. Available only for messages in supergroups and channels with a username
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@for_album Pass true if a link for a whole media album should be returned

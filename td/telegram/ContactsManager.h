@@ -391,6 +391,8 @@ class ContactsManager : public Actor {
   void reload_channel(ChannelId chnanel_id, Promise<Unit> &&promise);
   bool get_channel_full(ChannelId channel_id, Promise<Unit> &&promise);
 
+  bool is_channel_public(ChannelId channel_id) const;
+
   bool have_secret_chat(SecretChatId secret_chat_id) const;
   bool have_secret_chat_force(SecretChatId secret_chat_id);
   bool get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise);
@@ -667,10 +669,11 @@ class ContactsManager : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 2;
+    static constexpr uint32 CACHE_VERSION = 3;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
+    bool has_location = false;
     bool sign_messages = false;
 
     bool is_megagroup = false;
@@ -844,6 +847,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 17;
   static constexpr int32 CHANNEL_FLAG_IS_SCAM = 1 << 19;
   static constexpr int32 CHANNEL_FLAG_HAS_LINKED_CHAT = 1 << 20;
+  static constexpr int32 CHANNEL_FLAG_HAS_LOCATION = 1 << 21;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
@@ -1106,6 +1110,8 @@ class ContactsManager : public Actor {
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
+  static bool is_channel_public(const Channel *c);
+
   static bool is_valid_invite_link(const string &invite_link);
 
   bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
@@ -1133,13 +1139,13 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id, const UserFull *user_full) const;
 
-  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id, const Chat *chat);
+  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id, const Chat *c);
 
-  tl_object_ptr<td_api::basicGroup> get_basic_group_object_const(ChatId chat_id, const Chat *chat) const;
+  tl_object_ptr<td_api::basicGroup> get_basic_group_object_const(ChatId chat_id, const Chat *c) const;
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(const ChatFull *chat_full) const;
 
-  tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *channel) const;
+  tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *c) const;
 
   tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(const ChannelFull *channel_full) const;
 

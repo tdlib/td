@@ -8266,7 +8266,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
       if (is_broadcast_channel(dialog_id)) {
         return promise.set_error(Status::Error(3, "Can't delete chat history in a channel"));
       }
-      if (!get_dialog_username(dialog_id).empty()) {
+      if (td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id())) {
         return promise.set_error(Status::Error(3, "Can't delete chat history in a public supergroup"));
       }
       break;
@@ -13013,7 +13013,7 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
   if (dialog_id.get_type() != DialogType::Channel ||
       td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
     promise.set_error(Status::Error(
-        6, "Public message links are available only for messages in public supergroups and channel chats"));
+        6, "Public message links are available only for messages in supergroups and channel chats with a username"));
     return {};
   }
 
@@ -14450,7 +14450,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
         break;
       case DialogType::Channel:
         if (is_broadcast_channel(d->dialog_id) ||
-            !td_->contacts_manager_->get_channel_username(d->dialog_id.get_channel_id()).empty()) {
+            td_->contacts_manager_->is_channel_public(d->dialog_id.get_channel_id())) {
           // deleteChatHistory can't be used in channels and public supergroups
         } else {
           // private supergroups can be deleted for self
