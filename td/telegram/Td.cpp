@@ -6057,6 +6057,13 @@ void Td::on_request(uint64 id, const td_api::setChatDiscussionGroup &request) {
                                                   std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setChatLocation &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_channel_location(DialogId(request.chat_id_), DialogLocation(std::move(request.location_)),
+                                          std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_),

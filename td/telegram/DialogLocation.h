@@ -28,7 +28,7 @@ class DialogLocation {
  public:
   DialogLocation() = default;
 
-  DialogLocation(telegram_api::object_ptr<telegram_api::ChannelLocation> &&channel_location_ptr);
+  explicit DialogLocation(telegram_api::object_ptr<telegram_api::ChannelLocation> &&channel_location_ptr);
 
   explicit DialogLocation(td_api::object_ptr<td_api::chatLocation> &&chat_location);
 

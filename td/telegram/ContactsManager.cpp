@@ -1291,6 +1291,44 @@ class SetDiscussionGroupQuery : public Td::ResultHandler {
   }
 };
 
+class EditLocationQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  DialogLocation location_;
+
+ public:
+  explicit EditLocationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const DialogLocation &location) {
+    channel_id_ = channel_id;
+    location_ = location;
+
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editLocation(
+        std::move(input_channel), location_.get_input_geo_point(), location_.get_address()))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_editLocation>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(INFO, !result) << "Edit chat location has failed";
+
+    td->contacts_manager_->on_update_channel_location(channel_id_, location_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ReportChannelSpamQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -4751,6 +4789,38 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
              std::move(group_input_channel));
 }
 
+void ContactsManager::set_channel_location(DialogId dialog_id, const DialogLocation &location,
+                                           Promise<Unit> &&promise) {
+  if (location.empty()) {
+    return promise.set_error(Status::Error(400, "Invalid chat location specified"));
+  }
+
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (!c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
+  }
+  if (!c->status.is_creator()) {
+    return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+  }
+
+  td_->create_handler<EditLocationQuery>(std::move(promise))->send(channel_id, location);
+}
+
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                                           Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
@@ -7698,7 +7768,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id = td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true);
     }
-    auto location = DialogLocation(std::move(channel_full->location_));
 
     ChannelFull *channel = &channels_full_[channel_id];
     channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -7707,7 +7776,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
         channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
-        channel->sticker_set_id != sticker_set_id || channel->location != location || channel->is_all_history_available != is_all_history_available) {
+        channel->sticker_set_id != sticker_set_id || channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -7720,7 +7789,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->can_view_statistics = can_view_statistics;
       channel->is_all_history_available = is_all_history_available;
       channel->sticker_set_id = sticker_set_id;
-      channel->location = std::move(location);
 
       channel->is_changed = true;
 
@@ -7781,6 +7849,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
     }
     on_update_channel_full_linked_channel_id(channel, channel_id, linked_channel_id);
+
+    on_update_channel_full_location(channel, channel_id, DialogLocation(std::move(channel_full->location_)));
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
@@ -8929,6 +8999,22 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
   }
 }
 
+void ContactsManager::on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id,
+                                                      const DialogLocation &location) {
+  if (channel_full->location != location) {
+    channel_full->location = location;
+    channel_full->is_changed = true;
+  }
+
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (location.empty() == c->has_location) {
+    c->has_location = !location.empty();
+    c->need_send_update = true;
+    update_channel(c, channel_id);
+  }
+}
+
 void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
                                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr) {
   auto &invite_link_info = invite_link_infos_[invite_link];
@@ -9688,6 +9774,14 @@ void ContactsManager::on_update_channel_linked_channel_id(ChannelId channel_id, 
     if (channel_full != nullptr) {
       update_channel_full(channel_full, group_channel_id);
     }
+  }
+}
+
+void ContactsManager::on_update_channel_location(ChannelId channel_id, const DialogLocation &location) {
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full != nullptr) {
+    on_update_channel_full_location(channel_full, channel_id, location);
+    update_channel_full(channel_full, channel_id);
   }
 }
 

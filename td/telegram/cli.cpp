@@ -3496,6 +3496,15 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, group_chat_id) = split(args);
       send_request(td_api::make_object<td_api::setChatDiscussionGroup>(as_chat_id(chat_id), as_chat_id(group_chat_id)));
+    } else if (op == "scl") {
+      string chat_id;
+      string latitude;
+      string longitude;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(latitude, longitude) = split(args);
+      send_request(td_api::make_object<td_api::setChatLocation>(
+          as_chat_id(chat_id), td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude), "address")));
     } else if (op == "pcm" || op == "pcms") {
       string chat_id;
       string message_id;

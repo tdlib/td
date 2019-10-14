@@ -288,7 +288,7 @@ botCommand command:string description:string = BotCommand;
 botInfo description:string commands:vector<botCommand> = BotInfo;
 
 
-//@description Represents a location of a chat @location The location @address Location address; as defined by the chat creator
+//@description Represents a location of a chat @location The location @address Location address; 1-64 characters, as defined by the chat creator
 chatLocation location:location address:string = ChatLocation;
 
 
@@ -3442,11 +3442,15 @@ setChatDescription chat_id:int53 description:string = Ok;
 //-If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable needs to be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
+//@description Changes the lcoation of a chat. Available only for location-based supergroups, see supergroupFullInfo.can_set_location @chat_id Chat identifier @location New location for the chat; must be valid and not null
+setChatLocation chat_id:int53 location:chatLocation = Ok;
+
 //@description Pins a message in a chat; requires can_pin_messages rights @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
 
 //@description Removes the pinned message from a chat; requires can_pin_messages rights in the group or channel @chat_id Identifier of the chat
 unpinChatMessage chat_id:int53 = Ok;
+
 
 //@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
 joinChat chat_id:int53 = Ok;
