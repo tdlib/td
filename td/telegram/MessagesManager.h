@@ -16,6 +16,7 @@
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -545,8 +546,8 @@ class MessagesManager : public Actor {
   DialogId create_new_group_chat(const vector<UserId> &user_ids, const string &title, int64 &random_id,
                                  Promise<Unit> &&promise);
 
-  DialogId create_new_channel_chat(const string &title, bool is_megagroup, const string &description, int64 &random_id,
-                                   Promise<Unit> &&promise);
+  DialogId create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
+                                   const DialogLocation &location, int64 &random_id, Promise<Unit> &&promise);
 
   void create_new_secret_chat(UserId user_id, Promise<SecretChatId> &&promise);
 

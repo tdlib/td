@@ -591,17 +591,22 @@ class CreateChannelQuery : public Td::ResultHandler {
   explicit CreateChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &title, bool is_megagroup, const string &about, int64 random_id) {
+  void send(const string &title, bool is_megagroup, const string &about, const DialogLocation &location,
+            int64 random_id) {
     int32 flags = 0;
     if (is_megagroup) {
       flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
     } else {
       flags |= telegram_api::channels_createChannel::BROADCAST_MASK;
     }
+    if (!location.empty()) {
+      flags |= telegram_api::channels_createChannel::GEO_POINT_MASK;
+    }
 
     random_id_ = random_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_createChannel(
-        flags, false /*ignored*/, false /*ignored*/, title, about, nullptr, string()))));
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, title, about,
+                                                           location.get_input_geo_point(), location.get_address()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -13946,9 +13951,10 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
 }
 
 DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
-                                                  int64 &random_id, Promise<Unit> &&promise) {
+                                                  const DialogLocation &location, int64 &random_id,
+                                                  Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to create " << (is_megagroup ? "supergroup" : "broadcast") << " with title \"" << title
-            << "\" and description \"" << description << "\"";
+            << "\", description \"" << description << "\" and " << location;
 
   if (random_id != 0) {
     // request has already been sent before
@@ -13980,7 +13986,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
-      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), random_id);
+      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location, random_id);
   return DialogId();
 }
 

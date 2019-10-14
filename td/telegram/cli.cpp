@@ -3262,9 +3262,13 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string, ','), title));
     } else if (op == "cnch") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description"));
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr));
     } else if (op == "cnsg") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description"));
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr));
+    } else if (op == "cngc") {
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(
+          args, false, "Description",
+          td_api::make_object<td_api::chatLocation>(td_api::make_object<td_api::location>(40.0, 60.0), "address")));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       send_request(td_api::make_object<td_api::upgradeBasicGroupChatToSupergroupChat>(as_chat_id(args)));
     } else if (op == "DeleteSupergroup") {

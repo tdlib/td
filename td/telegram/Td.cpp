@@ -24,6 +24,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -1833,13 +1834,14 @@ class CreateNewSupergroupChatRequest : public RequestActor<> {
   string title_;
   bool is_megagroup_;
   string description_;
+  DialogLocation location_;
   int64 random_id_;
 
   DialogId dialog_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    dialog_id_ = td->messages_manager_->create_new_channel_chat(title_, is_megagroup_, description_, random_id_,
-                                                                std::move(promise));
+    dialog_id_ = td->messages_manager_->create_new_channel_chat(title_, is_megagroup_, description_, location_,
+                                                                random_id_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1849,11 +1851,12 @@ class CreateNewSupergroupChatRequest : public RequestActor<> {
 
  public:
   CreateNewSupergroupChatRequest(ActorShared<Td> td, uint64 request_id, string title, bool is_megagroup,
-                                 string description)
+                                 string description, td_api::object_ptr<td_api::chatLocation> &&location)
       : RequestActor(std::move(td), request_id)
       , title_(std::move(title))
       , is_megagroup_(is_megagroup)
       , description_(std::move(description))
+      , location_(std::move(location))
       , random_id_(0) {
   }
 };
@@ -5911,7 +5914,7 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.description_);
   CREATE_REQUEST(CreateNewSupergroupChatRequest, std::move(request.title_), !request.is_channel_,
-                 std::move(request.description_));
+                 std::move(request.description_), std::move(request.location_));
 }
 void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
   CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
