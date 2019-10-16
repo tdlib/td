@@ -3530,6 +3530,12 @@ class CliClient final : public Actor {
       string query;
       std::tie(limit, query) = split(args);
       send_request(td_api::make_object<td_api::searchChatsOnServer>(query, to_integer<int32>(limit)));
+    } else if (op == "scn") {
+      string latitude;
+      string longitude;
+
+      std::tie(latitude, longitude) = split(args);
+      send_request(td_api::make_object<td_api::searchChatsNearby>(as_location(latitude, longitude)));
     } else if (op == "sco") {
       string limit;
       string query;

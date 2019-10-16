@@ -646,6 +646,13 @@ chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto perm
 chats chat_ids:vector<int53> = Chats;
 
 
+//@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location in meters
+chatNearby chat_id:int53 distance:int32 = ChatNearby;
+
+//@description Represents a list of chats located nearby @users_nearby List of users nearby @supergroups_nearby List of location-based supergroups nearby
+chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby> = ChatsNearby;
+
+
 //@description Contains a chat invite link @invite_link Chat invite link
 chatInviteLink invite_link:string = ChatInviteLink;
 
@@ -656,7 +663,7 @@ chatInviteLink invite_link:string = ChatInviteLink;
 //@photo Chat photo; may be null
 //@member_count Number of members
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@is_public True, if the chat is a public supergroup or a channel with a username or a location
+//@is_public True, if the chat is a public supergroup or a channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
@@ -665,7 +672,7 @@ chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto memb
 //@description The chat can be reported as spam using the method reportChat with the reason chatReportReasonSpam
 chatActionBarReportSpam = ChatActionBar;
 
-//@description The chat is a supergroup with a location, which can be reported as unrelated to the group using the method reportChat with the reason chatReportReasonUnrelatedLocation
+//@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
 //@description The chat is a private or a secret chat, which can be reported using the method reportChat, or the other user can be added to the contact list using the method addContact, or the other user can be blocked using the method blockUser
@@ -2841,6 +2848,9 @@ updateConnectionState state:ConnectionState = Update;
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method should be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 
+//@description List of users nearby has changed. The update is sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
+updateUsersNearby users_nearby:vector<chatNearby> = Update;
+
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @offset Offset of the first entry to return
 updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location query:string offset:string = Update;
 
@@ -3068,6 +3078,9 @@ searchChats query:string limit:int32 = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the chat list @query Query to search for @limit Maximum number of chats to be returned
 searchChatsOnServer query:string limit:int32 = Chats;
+
+//@description Returns a list of users and location-based supergroups nearby. The list of users nearby will be updated for 60 seconds after the request by the updates updateUsersNearby. The request should be sent again every 25 seconds with adjusted location to not miss new chats @location Current user location
+searchChatsNearby location:location = ChatsNearby;
 
 //@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit Maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
@@ -3442,7 +3455,7 @@ setChatDescription chat_id:int53 description:string = Ok;
 //-If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable needs to be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
-//@description Changes the lcoation of a chat. Available only for location-based supergroups, see supergroupFullInfo.can_set_location @chat_id Chat identifier @location New location for the chat; must be valid and not null
+//@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 
 //@description Pins a message in a chat; requires can_pin_messages rights @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message

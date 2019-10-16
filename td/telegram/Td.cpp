@@ -5499,6 +5499,12 @@ void Td::on_request(uint64 id, td_api::searchChatsOnServer &request) {
   CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, request.limit_);
 }
 
+void Td::on_request(uint64 id, const td_api::searchChatsNearby &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->search_dialogs_nearby(Location(request.location_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getGroupsInCommon &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetGroupsInCommonRequest, request.user_id_, request.offset_chat_id_, request.limit_);

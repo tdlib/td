@@ -18,6 +18,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/QueryCombiner.h"
@@ -179,6 +180,8 @@ class ContactsManager : public Actor {
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
 
+  void on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers, bool from_update);
+
   void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
 
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
@@ -232,6 +235,8 @@ class ContactsManager : public Actor {
 
   void on_channel_unban_timeout(ChannelId channel_id);
 
+  void on_user_nearby_timeout(UserId user_id);
+
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
 
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
@@ -281,6 +286,8 @@ class ContactsManager : public Actor {
   void on_update_contacts_reset();
 
   void share_phone_number(UserId user_id, Promise<Unit> &&promise);
+
+  void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
 
   void set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise);
 
@@ -783,6 +790,18 @@ class ContactsManager : public Actor {
     bool is_megagroup = false;
   };
 
+  struct DialogNearby {
+    DialogId dialog_id;
+    int32 distance;
+
+    DialogNearby(DialogId dialog_id, int32 distance) : dialog_id(dialog_id), distance(distance) {
+    }
+
+    bool operator<(const DialogNearby &other) const {
+      return distance < other.distance || (distance == other.distance && dialog_id.get() < other.dialog_id.get());
+    }
+  };
+
   class UserLogEvent;
   class ChatLogEvent;
   class ChannelLogEvent;
@@ -1120,6 +1139,14 @@ class ContactsManager : public Actor {
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
+  static vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
+      const vector<DialogNearby> &dialogs_nearby);
+
+  void send_update_users_nearby() const;
+
+  void on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::Updates>> result,
+                             Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
+
   static bool is_channel_public(const Channel *c);
 
   static bool is_valid_invite_link(const string &invite_link);
@@ -1186,6 +1213,8 @@ class ContactsManager : public Actor {
   static void on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+
+  static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 
   void on_user_online_timeout(UserId user_id);
 
@@ -1287,6 +1316,9 @@ class ContactsManager : public Actor {
   bool are_imported_contacts_changing_ = false;
   bool need_clear_imported_contacts_ = false;
 
+  vector<DialogNearby> users_nearby_;
+  vector<DialogNearby> channels_nearby_;
+
   vector<Contact> next_all_imported_contacts_;
   vector<size_t> imported_contacts_unique_id_;
   vector<size_t> imported_contacts_pos_;
@@ -1296,6 +1328,7 @@ class ContactsManager : public Actor {
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
+  MultiTimeout user_nearby_timeout_{"UserOnlineTimeout"};
 };
 
 }  // namespace td

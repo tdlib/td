@@ -748,6 +748,33 @@ class ResetContactsQuery : public Td::ResultHandler {
   }
 };
 
+class SearchDialogsNearbyQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::Updates>> promise_;
+
+ public:
+  explicit SearchDialogsNearbyQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const Location &location) {
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::contacts_getLocated(location.get_input_geo_point()))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_getLocated>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UploadProfilePhotoQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
@@ -2487,6 +2514,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   channel_unban_timeout_.set_callback(on_channel_unban_timeout_callback);
   channel_unban_timeout_.set_callback_data(static_cast<void *>(this));
+
+  user_nearby_timeout_.set_callback(on_user_nearby_timeout_callback);
+  user_nearby_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void ContactsManager::tear_down() {
@@ -2559,6 +2589,35 @@ void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
   c->is_status_changed = true;
   invalidate_channel_full(channel_id, false);
   update_channel(c, channel_id);  // always call, because in case of failure we need to reactivate timeout
+}
+
+void ContactsManager::on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_user_nearby_timeout,
+                     UserId(narrow_cast<int32>(user_id_long)));
+}
+
+void ContactsManager::on_user_nearby_timeout(UserId user_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto u = get_user(user_id);
+  CHECK(u != nullptr);
+
+  LOG(INFO) << "Remove " << user_id << " from nearby list";
+  DialogId dialog_id(user_id);
+  for (size_t i = 0; i < users_nearby_.size(); i++) {
+    if (users_nearby_[i].dialog_id == dialog_id) {
+      users_nearby_.erase(users_nearby_.begin() + i);
+      send_update_users_nearby();
+      return;
+    }
+  }
 }
 
 template <class StorerT>
@@ -4481,6 +4540,143 @@ void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise
   td_->messages_manager_->hide_dialog_action_bar(DialogId(user_id));
 
   td_->create_handler<AcceptContactQuery>(std::move(promise))->send(user_id, std::move(input_user));
+}
+
+void ContactsManager::search_dialogs_nearby(const Location &location,
+                                            Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise) {
+  if (location.empty()) {
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
+  }
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                  Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
+    send_closure(actor_id, &ContactsManager::on_get_dialogs_nearby, std::move(result), std::move(promise));
+  });
+  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location);
+}
+
+vector<td_api::object_ptr<td_api::chatNearby>> ContactsManager::get_chats_nearby_object(
+    const vector<DialogNearby> &dialogs_nearby) {
+  return transform(dialogs_nearby, [](const DialogNearby &dialog_nearby) {
+    return td_api::make_object<td_api::chatNearby>(dialog_nearby.dialog_id.get(), dialog_nearby.distance);
+  });
+}
+
+void ContactsManager::send_update_users_nearby() const {
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateUsersNearby>(get_chats_nearby_object(users_nearby_)));
+}
+
+void ContactsManager::on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::Updates>> result,
+                                            Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  auto updates_ptr = result.move_as_ok();
+  if (updates_ptr->get_id() != telegram_api::updates::ID) {
+    LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
+    return promise.set_error(Status::Error(500, "Receive unsupported response from the server"));
+  }
+
+  auto update = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
+  LOG(INFO) << "Receive chats nearby in " << to_string(update);
+
+  on_get_users(std::move(update->users_), "on_get_dialogs_nearby");
+  on_get_chats(std::move(update->chats_), "on_get_dialogs_nearby");
+
+  for (auto &dialog_nearby : users_nearby_) {
+    user_nearby_timeout_.cancel_timeout(dialog_nearby.dialog_id.get_user_id().get());
+  }
+  users_nearby_.clear();
+  channels_nearby_.clear();
+  for (auto &update_ptr : update->updates_) {
+    if (update_ptr->get_id() != telegram_api::updatePeerLocated::ID) {
+      LOG(ERROR) << "Receive unexpected " << to_string(update);
+      continue;
+    }
+
+    on_update_peer_located(std::move(static_cast<telegram_api::updatePeerLocated *>(update_ptr.get())->peers_), false);
+  }
+
+  std::sort(users_nearby_.begin(), users_nearby_.end());
+  promise.set_value(td_api::make_object<td_api::chatsNearby>(get_chats_nearby_object(users_nearby_),
+                                                             get_chats_nearby_object(channels_nearby_)));
+  send_update_users_nearby();  // for other clients connected to the same TDLib instance
+}
+
+void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers,
+                                             bool from_update) {
+  auto now = G()->unix_time();
+  bool need_update = false;
+  for (auto &peer_located : peers) {
+    DialogId dialog_id(peer_located->peer_);
+    int32 expires_at = peer_located->expires_;
+    int32 distance = peer_located->distance_;
+    if (distance < 0 || distance > 50000000) {
+      LOG(ERROR) << "Receive wrong distance to " << to_string(peer_located);
+      continue;
+    }
+    if (expires_at <= now) {
+      LOG(INFO) << "Skip expired result " << to_string(peer_located);
+      continue;
+    }
+
+    auto dialog_type = dialog_id.get_type();
+    if (dialog_type == DialogType::User) {
+      auto user_id = dialog_id.get_user_id();
+      if (!have_user(user_id)) {
+        LOG(ERROR) << "Can't find " << user_id;
+        continue;
+      }
+      if (expires_at < now + 86400) {
+        user_nearby_timeout_.set_timeout_in(user_id.get(), expires_at - now + 1);
+      }
+    } else if (dialog_type == DialogType::Channel) {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!have_channel(channel_id)) {
+        LOG(ERROR) << "Can't find " << channel_id;
+        continue;
+      }
+      if (expires_at != std::numeric_limits<int32>::max()) {
+        LOG(ERROR) << "Receive expiring at " << expires_at << " group location in " << to_string(peer_located);
+      }
+      if (from_update) {
+        LOG(ERROR) << "Receive nearby " << channel_id << " from update";
+        continue;
+      }
+    } else {
+      LOG(ERROR) << "Receive chat of wrong type in " << to_string(peer_located);
+      continue;
+    }
+
+    td_->messages_manager_->force_create_dialog(dialog_id, "on_update_peer_located");
+
+    if (from_update) {
+      bool is_found = false;
+      for (auto &dialog_nearby : users_nearby_) {
+        if (dialog_nearby.dialog_id == dialog_id) {
+          if (dialog_nearby.distance != distance) {
+            dialog_nearby.distance = distance;
+            need_update = true;
+          }
+          is_found = true;
+          break;
+        }
+      }
+      if (!is_found) {
+        users_nearby_.emplace_back(dialog_id, distance);
+        need_update = true;
+      }
+    } else {
+      auto &dialogs_nearby = dialog_type == DialogType::User ? users_nearby_ : channels_nearby_;
+      dialogs_nearby.emplace_back(dialog_id, distance);
+    }
+  }
+  if (need_update) {
+    std::sort(users_nearby_.begin(), users_nearby_.end());
+    send_update_users_nearby();
+  }
 }
 
 void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise) {
