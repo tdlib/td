@@ -7935,21 +7935,20 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
 
   UserPhotos *user_photos = &user_photos_[user_id];
-  user_photos->photo_count = total_count;
-  CHECK(user_photos->getting_photos_now);
-  user_photos->getting_photos_now = false;
+  user_photos->count = total_count;
+  CHECK(user_photos->getting_now);
+  user_photos->getting_now = false;
 
-  if (user_photos->photos_offset == -1) {
-    user_photos->photos_offset = 0;
+  if (user_photos->offset == -1) {
+    user_photos->offset = 0;
     CHECK(user_photos->photos.empty());
   }
 
-  if (offset != narrow_cast<int32>(user_photos->photos.size()) + user_photos->photos_offset) {
+  if (offset != narrow_cast<int32>(user_photos->photos.size()) + user_photos->offset) {
     LOG(INFO) << "Inappropriate offset to append " << user_id << " profile photos to cache: offset = " << offset
-              << ", current_offset = " << user_photos->photos_offset
-              << ", photo_count = " << user_photos->photos.size();
+              << ", current_offset = " << user_photos->offset << ", photo_count = " << user_photos->photos.size();
     user_photos->photos.clear();
-    user_photos->photos_offset = offset;
+    user_photos->offset = offset;
   }
 
   for (auto &photo : photos) {
@@ -8614,11 +8613,11 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty) {
     auto user_photos = &it->second;
     user_photos->photos.clear();
     if (is_empty) {
-      user_photos->photo_count = 0;
+      user_photos->count = 0;
     } else {
-      user_photos->photo_count = -1;
+      user_photos->count = -1;
     }
-    user_photos->photos_offset = user_photos->photo_count;
+    user_photos->offset = user_photos->count;
   }
 }
 
@@ -10473,26 +10472,26 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
   }
 
   auto user_photos = &user_photos_[user_id];
-  if (user_photos->getting_photos_now) {
+  if (user_photos->getting_now) {
     promise.set_error(Status::Error(400, "Request for new profile photos has already been sent"));
     return result;
   }
 
-  if (user_photos->photo_count != -1) {  // know photo count
-    CHECK(user_photos->photos_offset != -1);
-    result.first = user_photos->photo_count;
+  if (user_photos->count != -1) {  // know photo count
+    CHECK(user_photos->offset != -1);
+    result.first = user_photos->count;
 
-    if (offset >= user_photos->photo_count) {
+    if (offset >= user_photos->count) {
       // offset if too big
       promise.set_value(Unit());
       return result;
     }
 
-    if (limit > user_photos->photo_count - offset) {
-      limit = user_photos->photo_count - offset;
+    if (limit > user_photos->count - offset) {
+      limit = user_photos->count - offset;
     }
 
-    int32 cache_begin = user_photos->photos_offset;
+    int32 cache_begin = user_photos->offset;
     int32 cache_end = cache_begin + narrow_cast<int32>(user_photos->photos.size());
     if (cache_begin <= offset && offset + limit <= cache_end) {
       // answer query from cache
@@ -10510,7 +10509,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     }
   }
 
-  user_photos->getting_photos_now = true;
+  user_photos->getting_now = true;
 
   if (limit < MAX_GET_PROFILE_PHOTOS / 5) {
     limit = MAX_GET_PROFILE_PHOTOS / 5;  // make limit reasonable

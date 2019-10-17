@@ -587,9 +587,9 @@ class ContactsManager : public Actor {
 
   struct UserPhotos {
     vector<Photo> photos;
-    int32 photo_count = -1;
-    int32 photos_offset = -1;
-    bool getting_photos_now = false;
+    int32 count = -1;
+    int32 offset = -1;
+    bool getting_now = false;
   };
 
   // do not forget to update drop_user_full and on_get_user_full
