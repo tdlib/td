@@ -5368,12 +5368,7 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   auto user_id = log_event.user_id;
   LOG(INFO) << "Add " << user_id << " from binlog";
   User *u = add_user(user_id, "on_binlog_user_event");
-  if (!(u->first_name.empty() && u->last_name.empty()) && Slice(u->debug_source) == Slice("on_binlog_user_event")) {
-    LOG(ERROR) << "Skip adding already added " << user_id;
-    binlog_erase(G()->td_db()->get_binlog(), event.id_);
-    return;  // TODO fix bug in Binlog and remove that fix
-  }
-  LOG_CHECK(u->first_name.empty() && u->last_name.empty()) << user_id << " " << u->debug_source;
+  LOG_CHECK(u->first_name.empty() && u->last_name.empty()) << user_id;
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
   u->logevent_id = event.id_;
@@ -5859,12 +5854,7 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   auto channel_id = log_event.channel_id;
   LOG(INFO) << "Add " << channel_id << " from binlog";
   Channel *c = add_channel(channel_id, "on_binlog_channel_event");
-  if (!c->status.is_banned() && Slice(c->debug_source) == Slice("on_binlog_channel_event")) {
-    LOG(ERROR) << "Skip adding already added " << channel_id;
-    binlog_erase(G()->td_db()->get_binlog(), event.id_);
-    return;  // TODO fix bug in Binlog and remove that fix
-  }
-  LOG_CHECK(c->status.is_banned()) << channel_id << " " << c->debug_source;
+  LOG_CHECK(c->status.is_banned()) << channel_id;
   *c = std::move(log_event.c);  // channels come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
@@ -8988,11 +8978,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
 
 ContactsManager::User *ContactsManager::add_user(UserId user_id, const char *source) {
   CHECK(user_id.is_valid());
-  User *u = &users_[user_id];
-  if (u->debug_source == nullptr) {
-    u->debug_source = source;
-  }
-  return u;
+  return &users_[user_id];
 }
 
 const ContactsManager::UserFull *ContactsManager::get_user_full(UserId user_id) const {
@@ -9509,7 +9495,6 @@ ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, con
     c->photo_source_id = it->second;
     channel_photo_file_source_ids_.erase(it);
   }
-  c->debug_source = source;
   return c;
 }
 

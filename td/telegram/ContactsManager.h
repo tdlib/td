@@ -531,8 +531,6 @@ class ContactsManager : public Actor {
 
     uint64 logevent_id = 0;
 
-    const char *debug_source = nullptr;
-
     template <class StorerT>
     void store(StorerT &storer) const;
 
@@ -664,8 +662,6 @@ class ContactsManager : public Actor {
     bool is_saved = false;        // is current channel version being saved/is saved to the database
     bool is_being_saved = false;  // is current channel being saved to the database
     uint64 logevent_id = 0;
-
-    const char *debug_source = nullptr;
 
     template <class StorerT>
     void store(StorerT &storer) const;
