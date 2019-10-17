@@ -1029,35 +1029,6 @@ class GetGroupsInCommonRequest : public RequestActor<> {
   }
 };
 
-class CheckChatUsernameRequest : public RequestActor<CheckDialogUsernameResult> {
-  DialogId dialog_id_;
-  string username_;
-
-  CheckDialogUsernameResult result_ = CheckDialogUsernameResult::Ok;
-
-  void do_run(Promise<CheckDialogUsernameResult> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(result_));
-      return;
-    }
-
-    td->contacts_manager_->check_dialog_username(dialog_id_, username_, std::move(promise));
-  }
-
-  void do_set_result(CheckDialogUsernameResult &&result) override {
-    result_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(ContactsManager::get_check_chat_username_result_object(result_));
-  }
-
- public:
-  CheckChatUsernameRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string username)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id), username_(std::move(username)) {
-  }
-};
-
 class GetCreatedPublicChatsRequest : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
@@ -5513,7 +5484,16 @@ void Td::on_request(uint64 id, const td_api::getGroupsInCommon &request) {
 void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
-  CREATE_REQUEST(CheckChatUsernameRequest, request.chat_id_, std::move(request.username_));
+  CREATE_REQUEST_PROMISE();
+  auto query_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<CheckDialogUsernameResult> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(ContactsManager::get_check_chat_username_result_object(result.ok()));
+        }
+      });
+  contacts_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
