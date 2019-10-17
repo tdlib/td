@@ -813,6 +813,14 @@ class ContactsManager : public Actor {
     bool operator<(const DialogNearby &other) const {
       return distance < other.distance || (distance == other.distance && dialog_id.get() < other.dialog_id.get());
     }
+
+    bool operator==(const DialogNearby &other) const {
+      return distance == other.distance && dialog_id == other.dialog_id;
+    }
+
+    bool operator!=(const DialogNearby &other) const {
+      return !(*this == other);
+    }
   };
 
   class UserLogEvent;

@@ -4664,6 +4664,7 @@ void ContactsManager::on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::U
   for (auto &dialog_nearby : users_nearby_) {
     user_nearby_timeout_.cancel_timeout(dialog_nearby.dialog_id.get_user_id().get());
   }
+  auto old_users_nearby = std::move(users_nearby_);
   users_nearby_.clear();
   channels_nearby_.clear();
   for (auto &update_ptr : update->updates_) {
@@ -4676,9 +4677,11 @@ void ContactsManager::on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::U
   }
 
   std::sort(users_nearby_.begin(), users_nearby_.end());
+  if (old_users_nearby != users_nearby_) {
+    send_update_users_nearby();  // for other clients connected to the same TDLib instance
+  }
   promise.set_value(td_api::make_object<td_api::chatsNearby>(get_chats_nearby_object(users_nearby_),
                                                              get_chats_nearby_object(channels_nearby_)));
-  send_update_users_nearby();  // for other clients connected to the same TDLib instance
 }
 
 void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers,
