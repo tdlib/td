@@ -593,6 +593,15 @@ bool has_json_object_field(const JsonObject &object, Slice name) {
   return false;
 }
 
+JsonValue get_json_object_field_force(JsonObject &object, Slice name) {
+  for (auto &field_value : object) {
+    if (field_value.first == name) {
+      return std::move(field_value.second);
+    }
+  }
+  return JsonValue();
+}
+
 Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValue::Type type, bool is_optional) {
   for (auto &field_value : object) {
     if (field_value.first == name) {

@@ -860,6 +860,8 @@ auto json_array(const A &a, F &&f) {
 
 bool has_json_object_field(const JsonObject &object, Slice name);
 
+JsonValue get_json_object_field_force(JsonObject &object, Slice name) TD_WARN_UNUSED_RESULT;
+
 Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValue::Type type,
                                         bool is_optional = true) TD_WARN_UNUSED_RESULT;
 
