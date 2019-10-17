@@ -15,7 +15,7 @@ do
   openssl_ssl_library="${openssl_path}/lib/libssl.a"
   options="$options -DOPENSSL_FOUND=1"
   options="$options -DOPENSSL_CRYPTO_LIBRARY=${openssl_crypto_library}"
-  #options="$options -DOPENSSL_SSL_LIBRARY=${openssl_ssl_library}"
+  options="$options -DOPENSSL_SSL_LIBRARY=${openssl_ssl_library}"
   options="$options -DOPENSSL_INCLUDE_DIR=${openssl_path}/include"
   options="$options -DOPENSSL_LIBRARIES=${openssl_crypto_library};${openssl_ssl_library}"
   options="$options -DCMAKE_BUILD_TYPE=Release"
