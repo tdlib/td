@@ -585,21 +585,22 @@ class ContactsManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  // do not forget to update drop_user_full and on_get_user_full
-  struct UserFull {
+  struct UserPhotos {
     vector<Photo> photos;
     int32 photo_count = -1;
     int32 photos_offset = -1;
+    bool getting_photos_now = false;
+  };
 
+  // do not forget to update drop_user_full and on_get_user_full
+  struct UserFull {
     unique_ptr<BotInfo> bot_info;
 
     string about;
 
     int32 common_chat_count = 0;
 
-    bool getting_photos_now = false;
-
-    bool is_inited = false;  // photos and bot_info may be inited regardless this flag
+    bool is_inited = false;  // bot_info may be inited regardless of this flag
     bool is_blocked = false;
     bool can_be_called = false;
     bool has_private_calls = false;
@@ -1254,6 +1255,7 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, User, UserIdHash> users_;
   std::unordered_map<UserId, UserFull, UserIdHash> users_full_;
+  std::unordered_map<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
   std::unordered_map<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
