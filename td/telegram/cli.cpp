@@ -3420,6 +3420,8 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Unknown status \"" << status_str << "\"";
       }
+    } else if (op == "cto") {
+      send_request(td_api::make_object<td_api::canTransferOwnership>());
     } else if (op == "transferChatOwnership") {
       string chat_id;
       string user_id;

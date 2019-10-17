@@ -2096,6 +2096,21 @@ inputBackgroundRemote background_id:int64 = InputBackground;
 hashtags hashtags:vector<string> = Hashtags;
 
 
+//@class CanTransferOwnershipResult @description Represents result of checking whether the current session can be used to transfer a chat ownership to another user
+
+//@description The session can be used
+canTransferOwnershipResultOk = CanTransferOwnershipResult;
+
+//@description The 2-step verification needs to be enabled first
+canTransferOwnershipResultPasswordNeeded = CanTransferOwnershipResult;
+
+//@description The 2-step verification was enabled recently, user needs to wait @retry_after Time left before the session can be used to transfer ownership of a chat, in seconds
+canTransferOwnershipResultPasswordTooFresh retry_after:int32 = CanTransferOwnershipResult;
+
+//@description The session was created recently, user needs to wait @retry_after Time left before the session can be used to transfer ownership of a chat, in seconds
+canTransferOwnershipResultSessionTooFresh retry_after:int32 = CanTransferOwnershipResult;
+
+
 //@class CheckChatUsernameResult @description Represents result of checking whether a username can be set for a chat
 
 //@description The username can be set
@@ -3482,6 +3497,9 @@ addChatMembers chat_id:int53 user_ids:vector<int32> = Ok;
 //@description Changes the status of a chat member, needs appropriate privileges. This function is currently not suitable for adding new members to the chat and transferring chat ownership; instead, use addChatMember or transferChatOwnership. The chat member status will not be changed until it has been synchronized with the server
 //@chat_id Chat identifier @user_id User identifier @status The new status of the member in the chat
 setChatMemberStatus chat_id:int53 user_id:int32 status:ChatMemberStatus = Ok;
+
+//@description Checks whether the current session can be used to transfer a chat ownership to another user
+canTransferOwnership = CanTransferOwnershipResult;
 
 //@description Changes owner of a chat. The current user must be a current owner of the chat. Use the method canTransferOwnership to check whether the ownership can be transferred from the current session. Available only for supergroups and channel chats
 //@chat_id Chat identifier @user_id Identifier of the user to which transfer the ownership. The ownership can't be transferred to a bot or to a deleted user @password The password of the current user

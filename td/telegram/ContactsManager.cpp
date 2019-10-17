@@ -1862,6 +1862,37 @@ class LeaveChannelQuery : public Td::ResultHandler {
   }
 };
 
+class CanEditChannelCreatorQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CanEditChannelCreatorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    auto input_user = td->contacts_manager_->get_input_user(td->contacts_manager_->get_my_id());
+    CHECK(input_user != nullptr);
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editCreator(
+        telegram_api::make_object<telegram_api::inputChannelEmpty>(), std::move(input_user),
+        make_tl_object<telegram_api::inputCheckPasswordEmpty>()))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_editCreator>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(ERROR) << "Receive result for CanEditChannelCreator: " << to_string(ptr);
+    promise_.set_error(Status::Error(500, "Server doesn't returned error"));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditChannelCreatorQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -5396,6 +5427,58 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
 
   td_->create_handler<EditChatAdminQuery>(std::move(promise))
       ->send(chat_id, std::move(input_user), status.is_administrator());
+}
+
+void ContactsManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {
+  auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> r_result) mutable {
+    CHECK(r_result.is_error());
+
+    auto error = r_result.move_as_error();
+    CanTransferOwnershipResult result;
+    if (error.message() == "PASSWORD_HASH_INVALID") {
+      return promise.set_value(std::move(result));
+    }
+    if (error.message() == "PASSWORD_MISSING") {
+      result.type = CanTransferOwnershipResult::Type::PasswordNeeded;
+      return promise.set_value(std::move(result));
+    }
+    if (begins_with(error.message(), "PASSWORD_TOO_FRESH_")) {
+      result.type = CanTransferOwnershipResult::Type::PasswordTooFresh;
+      result.retry_after = to_integer<int32>(error.message().substr(Slice("PASSWORD_TOO_FRESH_").size()));
+      if (result.retry_after < 0) {
+        result.retry_after = 0;
+      }
+      return promise.set_value(std::move(result));
+    }
+    if (begins_with(error.message(), "SESSION_TOO_FRESH_")) {
+      result.type = CanTransferOwnershipResult::Type::SessionTooFresh;
+      result.retry_after = to_integer<int32>(error.message().substr(Slice("SESSION_TOO_FRESH_").size()));
+      if (result.retry_after < 0) {
+        result.retry_after = 0;
+      }
+      return promise.set_value(std::move(result));
+    }
+    promise.set_error(std::move(error));
+  });
+
+  td_->create_handler<CanEditChannelCreatorQuery>(std::move(request_promise))->send();
+}
+
+td_api::object_ptr<td_api::CanTransferOwnershipResult> ContactsManager::get_can_transfer_ownership_result_object(
+    CanTransferOwnershipResult result) {
+  switch (result.type) {
+    case CanTransferOwnershipResult::Type::Ok:
+      return td_api::make_object<td_api::canTransferOwnershipResultOk>();
+    case CanTransferOwnershipResult::Type::PasswordNeeded:
+      return td_api::make_object<td_api::canTransferOwnershipResultPasswordNeeded>();
+    case CanTransferOwnershipResult::Type::PasswordTooFresh:
+      return td_api::make_object<td_api::canTransferOwnershipResultPasswordTooFresh>(result.retry_after);
+    case CanTransferOwnershipResult::Type::SessionTooFresh:
+      return td_api::make_object<td_api::canTransferOwnershipResultSessionTooFresh>(result.retry_after);
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password,

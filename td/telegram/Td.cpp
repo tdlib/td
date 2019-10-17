@@ -3368,7 +3368,7 @@ void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result
     pending_terms_of_service_ = std::move(result.ok().second);
     auto update = get_update_terms_of_service_object();
     if (update == nullptr) {
-      expires_in = min(max(result.ok().first, G()->unix_time() + 60) - G()->unix_time(), 86400);
+      expires_in = min(max(result.ok().first, G()->unix_time() + 3600) - G()->unix_time(), 86400);
     } else {
       send_update(std::move(update));
     }
@@ -6118,7 +6118,22 @@ void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
                                                    request.status_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<CanTransferOwnershipResult> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(ContactsManager::get_can_transfer_ownership_result_object(result.ok()));
+        }
+      });
+  contacts_manager_->can_transfer_ownership(std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.password_);
   contacts_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_), request.password_,

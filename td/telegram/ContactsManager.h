@@ -61,6 +61,12 @@ enum class ChannelType : uint8 { Broadcast, Megagroup, Unknown };
 
 enum class CheckDialogUsernameResult : uint8 { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
 
+struct CanTransferOwnershipResult {
+  enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
+  Type type = Type::Ok;
+  int32 retry_after = 0;
+};
+
 class ContactsManager : public Actor {
  public:
   ContactsManager(Td *td, ActorShared<> parent);
@@ -335,6 +341,11 @@ class ContactsManager : public Actor {
 
   void change_channel_participant_status(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                          Promise<Unit> &&promise);
+
+  void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
+
+  static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
+      CanTransferOwnershipResult result);
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
