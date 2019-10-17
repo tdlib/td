@@ -7481,16 +7481,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
     add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
 
-    UserFull *user_full = get_user_full(user_id);
-    if (user_full != nullptr) {
-      user_full->photos.clear();
-      if (u->photo.id == 0) {
-        user_full->photo_count = 0;
-      } else {
-        user_full->photo_count = -1;
-      }
-      user_full->photos_offset = user_full->photo_count;
-    }
+    drop_user_photos(user_id, u->photo.id <= 0);
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
@@ -7893,9 +7884,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   Photo photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
   if (photo.id == -2) {
-    user->photo_count = 0;
-    user->photos_offset = 0;
-    user->photos.clear();
+    drop_user_photos(user_id, true);
   }
   if ((user_full->flags_ & USER_FULL_FLAG_HAS_BOT_INFO) != 0 && !u->is_deleted) {
     on_update_user_full_bot_info(user, user_id, u->bot_info_version, std::move(user_full->bot_info_));
@@ -8340,16 +8329,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
     pending_user_photos_[user_id] = std::move(photo);
 
-    UserFull *user_full = get_user_full(user_id);
-    if (user_full != nullptr) {
-      user_full->photos.clear();
-      if (is_empty) {
-        user_full->photo_count = 0;
-      } else {
-        user_full->photo_count = -1;
-      }
-      user_full->photos_offset = user_full->photo_count;
-    }
+    drop_user_photos(user_id, is_empty);
     return;
   }
 
@@ -8618,19 +8598,26 @@ void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   UserId my_id = get_my_id();
 
-  UserFull *user_full = get_user_full(my_id);
-  if (user_full != nullptr) {
-    // drop photo cache
-    user_full->photos.clear();
-    user_full->photo_count = -1;
-    user_full->photos_offset = -1;
-  }
+  drop_user_photos(my_id, false);
 
   if (G()->close_flag()) {
     return promise.set_value(Unit());
   }
 
   reload_user(my_id, std::move(promise));
+}
+
+void ContactsManager::drop_user_photos(UserId user_id, bool is_empty) {
+  UserFull *user_full = get_user_full(user_id);
+  if (user_full != nullptr) {
+    user_full->photos.clear();
+    if (is_empty) {
+      user_full->photo_count = 0;
+    } else {
+      user_full->photo_count = -1;
+    }
+    user_full->photos_offset = user_full->photo_count;
+  }
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
@@ -8641,9 +8628,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
 
   user_full->expires_at = 0.0;
 
-  user_full->photos.clear();
-  user_full->photo_count = -1;
-  user_full->photos_offset = -1;
+  drop_user_photos(user_id, false);
   user_full->is_inited = true;
   user_full->is_blocked = false;
   user_full->can_be_called = false;

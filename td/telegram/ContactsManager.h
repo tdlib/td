@@ -1013,6 +1013,7 @@ class ContactsManager : public Actor {
                                                                bool need_phone_number_privacy_exception);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
+  void drop_user_photos(UserId user_id, bool is_empty);
   void drop_user_full(UserId user_id);
 
   void on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error);
