@@ -454,7 +454,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@banned_count Number of users banned from chat; 0 if unknown
 //@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is a discussion group; 0 if none or unknown
 //@can_get_members True, if members of the chat can be retrieved
-//@can_set_username True, if the chat can have username
+//@can_set_username True, if the chat username can be changed
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl

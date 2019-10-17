@@ -3247,7 +3247,8 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
     td->messages_manager_->on_get_peer_settings(
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/));
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/),
+        true);
 
     promise_.set_value(Unit());
   }
@@ -3288,7 +3289,8 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
     td->messages_manager_->on_get_peer_settings(
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/));
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/),
+        true);
 
     promise_.set_value(Unit());
   }
@@ -6691,9 +6693,10 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
-                                           tl_object_ptr<telegram_api::peerSettings> &&peer_settings) {
+                                           tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
+                                           bool ignore_privacy_exception) {
   CHECK(peer_settings != nullptr);
-  if (dialog_id.get_type() == DialogType::User) {
+  if (dialog_id.get_type() == DialogType::User && !ignore_privacy_exception) {
     auto need_phone_number_privacy_exception =
         (peer_settings->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0;
     td_->contacts_manager_->on_update_user_need_phone_number_privacy_exception(dialog_id.get_user_id(),
