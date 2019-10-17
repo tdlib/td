@@ -3420,6 +3420,15 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Unknown status \"" << status_str << "\"";
       }
+    } else if (op == "transferChatOwnership") {
+      string chat_id;
+      string user_id;
+      string password;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(user_id, password) = split(args);
+      send_request(
+          td_api::make_object<td_api::transferChatOwnership>(as_chat_id(chat_id), as_user_id(user_id), password));
     } else if (op == "log") {
       string chat_id;
       string limit;

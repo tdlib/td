@@ -6118,6 +6118,13 @@ void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
                                                    request.status_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.password_);
+  contacts_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_), request.password_,
+                                               std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatMember &request) {
   CREATE_REQUEST(GetChatMemberRequest, request.chat_id_, request.user_id_);
 }

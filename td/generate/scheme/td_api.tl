@@ -288,7 +288,7 @@ botCommand command:string description:string = BotCommand;
 botInfo description:string commands:vector<botCommand> = BotInfo;
 
 
-//@description Represents a location of a chat @location The location @address Location address; 1-64 characters, as defined by the chat creator
+//@description Represents a location of a chat @location The location @address Location address; 1-64 characters, as defined by the chat owner
 chatLocation location:location address:string = ChatLocation;
 
 
@@ -333,7 +333,7 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 
 //@class ChatMemberStatus @description Provides information about the status of a member in a chat
 
-//@description The user is the creator of a chat and has all the administrator privileges @is_member True, if the user is a member of the chat
+//@description The user is the owner of a chat and has all the administrator privileges @is_member True, if the user is a member of the chat
 chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat and has some additional privileges. In basic groups, administrators can edit and delete messages sent by others, add new members, and ban unprivileged members. In supergroups and channels, there are more detailed options for administrator privileges
@@ -378,7 +378,7 @@ chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;
 //@description Returns contacts of the user
 chatMembersFilterContacts = ChatMembersFilter;
 
-//@description Returns the creator and administrators
+//@description Returns the owner and administrators
 chatMembersFilterAdministrators = ChatMembersFilter;
 
 //@description Returns all chat members, including restricted chat members
@@ -402,7 +402,7 @@ supergroupMembersFilterRecent = SupergroupMembersFilter;
 //@description Returns contacts of the user, which are members of the supergroup or channel @query Query to search for
 supergroupMembersFilterContacts query:string = SupergroupMembersFilter;
 
-//@description Returns the creator and administrators
+//@description Returns the owner and administrators
 supergroupMembersFilterAdministrators = SupergroupMembersFilter;
 
 //@description Used to search for supergroup or channel members via a (string) query @query Query to search for
@@ -426,7 +426,7 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@upgraded_to_supergroup_id Identifier of the supergroup to which this group was upgraded; 0 if none
 basicGroup id:int32 member_count:int32 status:ChatMemberStatus is_active:Bool upgraded_to_supergroup_id:int32 = BasicGroup;
 
-//@description Contains full information about a basic group @param_description Group description @creator_user_id User identifier of the creator of the group; 0 if unknown @members Group members @invite_link Invite link for this group; available only for the group creator and only after it has been generated at least once
+//@description Contains full information about a basic group @param_description Group description @creator_user_id User identifier of the creator of the group; 0 if unknown @members Group members @invite_link Invite link for this group; available only after it has been generated at least once and only for the group creator
 basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatMember> invite_link:string = BasicGroupFullInfo;
 
 
@@ -663,7 +663,7 @@ chatInviteLink invite_link:string = ChatInviteLink;
 //@photo Chat photo; may be null
 //@member_count Number of members
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@is_public True, if the chat is a public supergroup or a channel, i.e. it has a username or it is a location-based supergroup
+//@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
@@ -675,13 +675,13 @@ chatActionBarReportSpam = ChatActionBar;
 //@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
-//@description The chat is a private or a secret chat, which can be reported using the method reportChat, or the other user can be added to the contact list using the method addContact, or the other user can be blocked using the method blockUser
+//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be added to the contact list using the method addContact, or the other user can be blocked using the method blockUser
 chatActionBarReportAddBlock = ChatActionBar;
 
-//@description The chat is a private or a secret chat and the other user can be added to the contact list using the method addContact
+//@description The chat is a private or secret chat and the other user can be added to the contact list using the method addContact
 chatActionBarAddContact = ChatActionBar;
 
-//@description The chat is a private or a secret chat with a mutual contact and the user's phone number can be shared with the other user using the method sharePhoneNumber
+//@description The chat is a private or secret chat with a mutual contact and the user's phone number can be shared with the other user using the method sharePhoneNumber
 chatActionBarSharePhoneNumber = ChatActionBar;
 
 
@@ -1791,8 +1791,8 @@ inputInlineQueryResultLocation id:string location:location live_period:int32 tit
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessagePhoto, InputMessageLocation, InputMessageVenue or InputMessageContact
 inputInlineQueryResultPhoto id:string title:string description:string thumbnail_url:string photo_url:string photo_width:int32 photo_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
-//@description Represents a link to a WEBP or a TGS sticker @id Unique identifier of the query result @thumbnail_url URL of the sticker thumbnail, if it exists
-//@sticker_url The URL of the WEBP or a TGS sticker (sticker file size must not exceed 5MB) @sticker_width Width of the sticker @sticker_height Height of the sticker
+//@description Represents a link to a WEBP or TGS sticker @id Unique identifier of the query result @thumbnail_url URL of the sticker thumbnail, if it exists
+//@sticker_url The URL of the WEBP or TGS sticker (sticker file size must not exceed 5MB) @sticker_width Width of the sticker @sticker_height Height of the sticker
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, inputMessageSticker, InputMessageLocation, InputMessageVenue or InputMessageContact
 inputInlineQueryResultSticker id:string thumbnail_url:string sticker_url:string sticker_width:int32 sticker_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
@@ -2390,7 +2390,7 @@ chatReportReasonUnrelatedLocation = ChatReportReason;
 chatReportReasonCustom text:string = ChatReportReason;
 
 
-//@description Contains a public HTTPS link to a message in a supergroup or a channel with a username @link Message link @html HTML-code for embedding the message
+//@description Contains a public HTTPS link to a message in a supergroup or channel with a username @link Message link @html HTML-code for embedding the message
 publicMessageLink link:string html:string = PublicMessageLink;
 
 //@description Contains information about a link to a message in a chat
@@ -2570,7 +2570,7 @@ topChatCategoryForwardChats = TopChatCategory;
 //@description A URL linking to a user @user_id Identifier of the user
 tMeUrlTypeUser user_id:int32 = TMeUrlType;
 
-//@description A URL linking to a public supergroup or a channel @supergroup_id Identifier of the supergroup or channel
+//@description A URL linking to a public supergroup or channel @supergroup_id Identifier of the supergroup or channel
 tMeUrlTypeSupergroup supergroup_id:int53 = TMeUrlType;
 
 //@description A chat invite link @info Chat invite link info
@@ -3025,10 +3025,10 @@ getBasicGroup basic_group_id:int32 = BasicGroup;
 //@description Returns full information about a basic group by its identifier @basic_group_id Basic group identifier
 getBasicGroupFullInfo basic_group_id:int32 = BasicGroupFullInfo;
 
-//@description Returns information about a supergroup or channel by its identifier. This is an offline request if the current user is not a bot @supergroup_id Supergroup or channel identifier
+//@description Returns information about a supergroup or a channel by its identifier. This is an offline request if the current user is not a bot @supergroup_id Supergroup or channel identifier
 getSupergroup supergroup_id:int32 = Supergroup;
 
-//@description Returns full information about a supergroup or channel by its identifier, cached for up to 1 minute @supergroup_id Supergroup or channel identifier
+//@description Returns full information about a supergroup or a channel by its identifier, cached for up to 1 minute @supergroup_id Supergroup or channel identifier
 getSupergroupFullInfo supergroup_id:int32 = SupergroupFullInfo;
 
 //@description Returns information about a secret chat by its identifier. This is an offline request @secret_chat_id Secret chat identifier
@@ -3237,7 +3237,7 @@ addLocalMessage chat_id:int53 sender_user_id:int32 reply_to_message_id:int53 dis
 //@description Deletes messages @chat_id Chat identifier @message_ids Identifiers of the messages to be deleted @revoke Pass true to try to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 
-//@description Deletes all messages sent by the specified user to a chat. Supported only in supergroups; requires can_delete_messages administrator privileges @chat_id Chat identifier @user_id User identifier
+//@description Deletes all messages sent by the specified user to a chat. Supported only for supergroups; requires can_delete_messages administrator privileges @chat_id Chat identifier @user_id User identifier
 deleteChatMessagesFromUser chat_id:int53 user_id:int32 = Ok;
 
 
@@ -3479,9 +3479,13 @@ addChatMember chat_id:int53 user_id:int32 forward_limit:int32 = Ok;
 //@chat_id Chat identifier @user_ids Identifiers of the users to be added to the chat
 addChatMembers chat_id:int53 user_ids:vector<int32> = Ok;
 
-//@description Changes the status of a chat member, needs appropriate privileges. This function is currently not suitable for adding new members to the chat; instead, use addChatMember. The chat member status will not be changed until it has been synchronized with the server
+//@description Changes the status of a chat member, needs appropriate privileges. This function is currently not suitable for adding new members to the chat and transferring chat ownership; instead, use addChatMember or transferChatOwnership. The chat member status will not be changed until it has been synchronized with the server
 //@chat_id Chat identifier @user_id User identifier @status The new status of the member in the chat
 setChatMemberStatus chat_id:int53 user_id:int32 status:ChatMemberStatus = Ok;
+
+//@description Changes owner of a chat. The current user must be a current owner of the chat. Use the method canTransferOwnership to check whether the ownership can be transferred from the current session. Available only for supergroups and channel chats
+//@chat_id Chat identifier @user_id Identifier of the user to which transfer the ownership. The ownership can't be transferred to a bot or to a deleted user @password The password of the current user
+transferChatOwnership chat_id:int53 user_id:int32 password:string = Ok;
 
 //@description Returns information about a single member of a chat @chat_id Chat identifier @user_id User identifier
 getChatMember chat_id:int53 user_id:int32 = ChatMember;
@@ -3781,7 +3785,7 @@ disconnectWebsite website_id:int64 = Ok;
 disconnectAllWebsites = Ok;
 
 
-//@description Changes the username of a supergroup or channel, requires creator privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
+//@description Changes the username of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
 setSupergroupUsername supergroup_id:int32 username:string = Ok;
 
 //@description Changes the sticker set of a supergroup; requires can_change_info rights @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
@@ -3800,7 +3804,7 @@ reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53>
 //@filter The type of users to return. By default, supergroupMembersRecent @offset Number of users to skip @limit The maximum number of users be returned; up to 200
 getSupergroupMembers supergroup_id:int32 filter:SupergroupMembersFilter offset:int32 limit:int32 = ChatMembers;
 
-//@description Deletes a supergroup or channel along with all messages in the corresponding chat. This will release the supergroup or channel username and remove all members; requires creator privileges in the supergroup or channel. Chats with more than 1000 members can't be deleted using this method @supergroup_id Identifier of the supergroup or channel
+//@description Deletes a supergroup or channel along with all messages in the corresponding chat. This will release the supergroup or channel username and remove all members; requires owner privileges in the supergroup or channel. Chats with more than 1000 members can't be deleted using this method @supergroup_id Identifier of the supergroup or channel
 deleteSupergroup supergroup_id:int32 = Ok;
 
 
@@ -3808,7 +3812,7 @@ deleteSupergroup supergroup_id:int32 = Ok;
 closeSecretChat secret_chat_id:int32 = Ok;
 
 
-//@description Returns a list of service actions taken by chat members and administrators in the last 48 hours. Available only in supergroups and channels. Requires administrator rights. Returns results in reverse chronological order (i. e., in order of decreasing event_id)
+//@description Returns a list of service actions taken by chat members and administrators in the last 48 hours. Available only for supergroups and channels. Requires administrator rights. Returns results in reverse chronological order (i. e., in order of decreasing event_id)
 //@chat_id Chat identifier @query Search query by which to filter events @from_event_id Identifier of an event from which to return results. Use 0 to get results from the latest events @limit Maximum number of events to return; up to 100
 //@filters The types of events to return. By default, all types will be returned @user_ids User identifiers by which to filter events. By default, events relating to all users will be returned
 getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filters:chatEventLogFilters user_ids:vector<int32> = ChatEvents;

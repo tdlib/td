@@ -336,6 +336,8 @@ class ContactsManager : public Actor {
   void change_channel_participant_status(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                          Promise<Unit> &&promise);
 
+  void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
+
   void export_chat_invite_link(ChatId chat_id, Promise<Unit> &&promise);
 
   void export_channel_invite_link(ChannelId channel_id, Promise<Unit> &&promise);
@@ -1209,6 +1211,10 @@ class ContactsManager : public Actor {
 
   void restrict_channel_participant(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status, Promise<Unit> &&promise);
+
+  void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
+                                  tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+                                  Promise<Unit> &&promise);
 
   static void on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 

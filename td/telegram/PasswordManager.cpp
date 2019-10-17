@@ -144,9 +144,20 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
 }
 
 tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_check_password(
-    Slice password, const PasswordState &state) const {
+    Slice password, const PasswordState &state) {
   return get_input_check_password(password, state.current_client_salt, state.current_server_salt, state.current_srp_g,
                                   state.current_srp_p, state.current_srp_B, state.current_srp_id);
+}
+
+void PasswordManager::get_input_check_password_srp(
+    string password, Promise<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> &&promise) {
+  do_get_state(PromiseCreator::lambda(
+      [promise = std::move(promise), password = std::move(password)](Result<PasswordState> r_state) mutable {
+        if (r_state.is_error()) {
+          return promise.set_error(r_state.move_as_error());
+        }
+        promise.set_value(PasswordManager::get_input_check_password(password, r_state.move_as_ok()));
+      }));
 }
 
 void PasswordManager::set_password(string current_password, string new_password, string new_hint,
