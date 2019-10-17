@@ -96,8 +96,7 @@ void gen_from_json_constructor(StringBuilder &sb, const T *constructor, bool is_
     sb << " {\n";
     for (auto &arg : constructor->args) {
       sb << "  {\n";
-      sb << "    TRY_RESULT(value, get_json_object_field(from, \"" << tl::simple::gen_cpp_name(arg.name)
-         << "\", td::JsonValue::Type::Null, true));\n";
+      sb << "    auto value = get_json_object_field_force(from, \"" << tl::simple::gen_cpp_name(arg.name) << "\");\n";
       sb << "    if (value.type() != td::JsonValue::Type::Null) {\n";
       if (arg.type->type == tl::simple::Type::Bytes) {
         sb << "      TRY_STATUS(from_json_bytes(to." << tl::simple::gen_cpp_field_name(arg.name) << ", value));\n";
