@@ -201,6 +201,14 @@ void FileReferenceManager::run_node(NodeId node_id) {
     node.query = {};
     return;
   }
+  if (node.last_successful_repair_time >= Time::now() - 60) {
+    VLOG(file_references) << "Recently repaired file reference for file " << node_id << ", do not try again";
+    for (auto &p : node.query->promises) {
+      p.set_error(Status::Error(429, "Too Many Requests: retry after 60"));
+    }
+    node.query = {};
+    return;
+  }
   auto file_source_id = node.file_source_ids.next();
   send_query({node_id, node.query->generation}, file_source_id);
 }
@@ -313,6 +321,7 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
   }
 
   if (status.is_ok()) {
+    node.last_successful_repair_time = Time::now();
     for (auto &p : query->promises) {
       p.set_value(Unit());
     }

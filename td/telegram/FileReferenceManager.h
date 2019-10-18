@@ -87,6 +87,7 @@ class FileReferenceManager : public Actor {
   struct Node {
     SetWithPosition<FileSourceId> file_source_ids;
     unique_ptr<Query> query;
+    double last_successful_repair_time = -1e10;
   };
 
   struct FileSourceMessage {
