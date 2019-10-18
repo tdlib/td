@@ -8256,7 +8256,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
       on_dialog_updated(dialog_id, "read_all_dialog_mentions");
     }
   }
-  remove_message_dialog_notifications(d, MessageId::max(), d->mention_notification_group, "read_all_dialog_mentions");
+  remove_message_dialog_notifications(d, MessageId::max(), true, "read_all_dialog_mentions");
 
   read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
 }
@@ -20339,6 +20339,12 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     if (d->max_notification_message_id.get() > group_info.max_removed_message_id.get()) {
       group_info.max_removed_message_id = d->max_notification_message_id.get_prev_server_message_id();
     }
+    if (!d->pending_new_message_notifications.empty()) {
+      for (auto &it : d->pending_new_message_notifications) {
+        it.first = DialogId();
+      }
+      flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(2)));
+    }
     // remove_message_notifications will be called by NotificationManager
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                        group_info.group_id, group_info.last_notification_id, MessageId(), 0, true, Promise<Unit>());
@@ -20351,15 +20357,25 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
   }
 }
 
-void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId max_message_id,
-                                                          NotificationGroupInfo &group_info, const char *source) {
+void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId max_message_id, bool from_mentions,
+                                                          const char *source) {
   // removes up to max_message_id
+  NotificationGroupInfo &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   if (!group_info.group_id.is_valid()) {
     return;
   }
 
   VLOG(notifications) << "Remove message dialog notifications in " << group_info.group_id << '/' << d->dialog_id
                       << " up to " << max_message_id << " from " << source;
+
+  if (!d->pending_new_message_notifications.empty()) {
+    for (auto &it : d->pending_new_message_notifications) {
+      if (it.second.get() <= max_message_id.get()) {
+        it.first = DialogId();
+      }
+    }
+    flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(3)));
+  }
 
   auto max_notification_message_id = max_message_id;
   if (d->last_message_id.is_valid() && max_notification_message_id.get() >= d->last_message_id.get()) {
@@ -24025,8 +24041,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
       d->pinned_message_notification_message_id.get() <= max_message_id.get()) {
     remove_dialog_pinned_message_notification(d);
   }
-  remove_message_dialog_notifications(d, max_message_id, d->message_notification_group, source);
-  remove_message_dialog_notifications(d, max_message_id, d->mention_notification_group, source);
+  remove_message_dialog_notifications(d, max_message_id, false, source);
+  remove_message_dialog_notifications(d, max_message_id, true, source);
 
   if (!G()->parameters().use_message_db) {
     return;
