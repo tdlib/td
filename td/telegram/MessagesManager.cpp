@@ -5873,7 +5873,7 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     *current_settings = new_settings;
 
     if (!was_muted && is_dialog_muted(d)) {
-      remove_all_dialog_notifications(d, d->message_notification_group, "save_scope_notification_settings");
+      remove_all_dialog_notifications(d, false, "save_scope_notification_settings");
     }
     if (is_dialog_pinned_message_notifications_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
         d->pinned_message_notification_message_id.is_valid()) {
@@ -20328,9 +20328,9 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   }
 }
 
-void MessagesManager::remove_all_dialog_notifications(Dialog *d, NotificationGroupInfo &group_info,
-                                                      const char *source) {
+void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_mentions, const char *source) {
   // removes up to group_info.last_notification_id
+  NotificationGroupInfo &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   if (group_info.group_id.is_valid() && group_info.last_notification_id.is_valid() &&
       group_info.max_removed_notification_id != group_info.last_notification_id) {
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << d->dialog_id << " to "
@@ -25471,8 +25471,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
     if (dialog_type == DialogType::Channel && !has_unread_counter) {
-      remove_all_dialog_notifications(d, d->message_notification_group, "set_dialog_order 1");
-      remove_all_dialog_notifications(d, d->mention_notification_group, "set_dialog_order 2");
+      remove_all_dialog_notifications(d, false, "set_dialog_order 1");
+      remove_all_dialog_notifications(d, true, "set_dialog_order 2");
       clear_active_dialog_actions(dialog_id);
     }
   }
@@ -25488,8 +25488,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     send_update_chat_is_sponsored(d);
     if (!is_loaded_from_database && is_sponsored) {
       // channel is sponsored only if user isn't a channel member
-      remove_all_dialog_notifications(d, d->message_notification_group, "set_dialog_order 3");
-      remove_all_dialog_notifications(d, d->mention_notification_group, "set_dialog_order 4");
+      remove_all_dialog_notifications(d, false, "set_dialog_order 3");
+      remove_all_dialog_notifications(d, true, "set_dialog_order 4");
     }
     need_update = false;
   }
