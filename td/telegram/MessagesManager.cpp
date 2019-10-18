@@ -25052,6 +25052,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     last_message_id = last_database_message_id;
   }
 
+  if (!d->last_new_message_id.is_valid() && d->last_new_message_id != MessageId()) {
+    LOG(ERROR) << "Drop invalid last_new_message_id " << d->last_new_message_id << " in " << dialog_id;
+    d->last_new_message_id = MessageId();
+  }
   if (!d->last_new_message_id.is_valid() && d->max_unavailable_message_id.is_valid() &&
       d->max_unavailable_message_id.is_server()) {
     LOG(ERROR) << "Bugfixing wrong last_new_message_id with max_unavailable_message_id to "
