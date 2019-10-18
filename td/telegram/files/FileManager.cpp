@@ -663,6 +663,10 @@ bool FileView::can_download_from_server() const {
   if (remote_location().get_dc_id().is_empty()) {
     return false;
   }
+  if (!remote_location().is_encrypted_any() && !remote_location().has_file_reference() &&
+      ((node_->download_id_ == 0 && node_->download_was_update_file_reference_) || !node_->remote_.is_full_alive)) {
+    return false;
+  }
   return true;
 }
 
@@ -2050,13 +2054,16 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
 void FileManager::run_download(FileNodePtr node) {
   if (node->need_load_from_pmc_) {
+    LOG(INFO) << "Skip run_download, because file " << node->main_file_id_ << " needs to be loaded from PMC";
     return;
   }
   if (node->generate_id_) {
+    LOG(INFO) << "Skip run_download, because file " << node->main_file_id_ << " is being generated";
     return;
   }
   auto file_view = FileView(node);
   if (!file_view.can_download_from_server()) {
+    LOG(INFO) << "Skip run_download, because file " << node->main_file_id_ << " can't be downloaded from server";
     return;
   }
   int8 priority = 0;
@@ -2071,6 +2078,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->set_download_priority(priority);
 
   if (priority == 0) {
+    LOG(INFO) << "Cancel downloading of file " << node->main_file_id_;
     if (old_priority != 0) {
       do_cancel_download(node);
     }
@@ -2083,6 +2091,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->is_download_limit_dirty_ = false;
 
   if (old_priority != 0) {
+    LOG(INFO) << "Update download offset and limits of file " << node->main_file_id_;
     CHECK(node->download_id_ != 0);
     send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
     if (need_update_limit) {
@@ -2101,6 +2110,7 @@ void FileManager::run_download(FileNodePtr node) {
   auto file_id = node->main_file_id_;
 
   if (node->need_reload_photo_ && file_view.may_reload_photo()) {
+    LOG(INFO) << "Reload photo from file " << node->main_file_id_;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadReloadDialog});
     node->download_id_ = id;
     context_->reload_photo(file_view.remote_location().get_source(),
@@ -2147,9 +2157,9 @@ void FileManager::run_download(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Download});
   node->download_id_ = id;
   node->is_download_started_ = false;
-  LOG(DEBUG) << "Run download of file " << file_id << " of size " << node->size_ << " from "
-             << node->remote_.full.value() << " with suggested name " << node->suggested_name() << " and encyption key "
-             << node->encryption_key_;
+  LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
+            << node->remote_.full.value() << " with suggested name " << node->suggested_name() << " and encyption key "
+            << node->encryption_key_;
   auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
   auto download_limit = node->download_limit_;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full.value(), node->local_,
@@ -2323,6 +2333,14 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     }
     return;
   }
+  if (file_view.get_type() == FileType::Thumbnail &&
+      (!file_view.has_local_location() && file_view.can_download_from_server())) {
+    // TODO
+    if (callback) {
+      callback->on_upload_error(file_id, Status::Error("Failed to upload thumbnail without local location"));
+    }
+    return;
+  }
 
   LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority;
   auto *file_info = get_file_id_info(file_id);
@@ -2410,10 +2428,20 @@ void FileManager::external_file_generate_finish(int64 id, Status status, Promise
 
 void FileManager::run_generate(FileNodePtr node) {
   if (node->need_load_from_pmc_) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " needs to be loaded from PMC";
     return;
   }
   FileView file_view(node);
-  if (file_view.has_local_location() || file_view.can_download_from_server() || !file_view.can_generate()) {
+  if (file_view.has_local_location()) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " has local location";
+    return;
+  }
+  if (file_view.can_download_from_server()) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can be downloaded from server";
+    return;
+  }
+  if (!file_view.can_generate()) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
     return;
   }
 

@@ -3159,6 +3159,16 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(as_input_file(video_path), nullptr,
                                                                            std::move(sticker_file_ids), 1, 2, 3, true,
                                                                            as_caption(""), op == "svttl" ? 10 : 0));
+    } else if (op == "svt" || op == "svtttl") {
+      string chat_id;
+      string video;
+      string thumbnail;
+      std::tie(chat_id, args) = split(args);
+      std::tie(video, thumbnail) = split(args);
+
+      send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
+                                as_input_file(video), as_input_thumbnail(as_input_file(thumbnail)), vector<int32>(), 0,
+                                0, 0, true, as_caption(""), op == "svtttl" ? 10 : 0));
     } else if (op == "svn") {
       string chat_id;
       string video_path;
