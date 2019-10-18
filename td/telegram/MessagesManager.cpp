@@ -8462,7 +8462,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
-    if (!max_message_id.is_valid() && (max_message_id != MessageId() || d->last_read_inbox_message_id != MessageId())) {
+    // there can be updateReadHistoryInbox up to message 0, if messages where read and then all messages where deleted
+    if (!max_message_id.is_valid() && max_message_id != MessageId()) {
       LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
       return;
     }
