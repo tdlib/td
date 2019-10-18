@@ -8166,7 +8166,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   d->mention_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
   d->mention_notification_group.max_removed_message_id = MessageId();            // it is not needed anymore
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
-  CHECK(d->notification_id_to_message_id.empty());
+  d->notification_id_to_message_id.clear();
 
   if (has_last_message_id) {
     set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages");
@@ -10441,7 +10441,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
     set_dialog_reply_markup(d, MessageId());
   }
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
-  CHECK(d->notification_id_to_message_id.empty());
+  d->notification_id_to_message_id.clear();
 
   if (d->delete_last_message_date != 0) {
     if (d->is_last_message_deleted_locally && d->last_clear_history_date == 0) {
