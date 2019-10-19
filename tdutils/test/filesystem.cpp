@@ -36,7 +36,7 @@ TEST(Misc, clean_filename) {
   ASSERT_STREQ(clean_filename("....test"), "test");
   ASSERT_STREQ(clean_filename("test.exe...."), "test.exe");  // extension has changed
   ASSERT_STREQ(clean_filename("test.exe01234567890123456789...."),
-               "test.exe01234567890123456789");  // extension may be more then 20 characters
+               "test.exe01234567890123456789");  // extension may be more than 20 characters
   ASSERT_STREQ(clean_filename("....test....asdf"), "test.asdf");
   ASSERT_STREQ(clean_filename("കറുപ്പ്.txt"), "കറപപ.txt");
 }

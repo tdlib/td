@@ -959,7 +959,7 @@ class MessagesManager : public Actor {
     MessageId first_database_message_id;  // identifier of the first message in the database, needed
                                           // until there is no gaps in the database
     MessageId last_database_message_id;   // identifier of the last local or server message, if last_database_message_id
-                                          // is known and last_message_id is known then last_database_message_id <=
+                                          // is known and last_message_id is known, then last_database_message_id <=
                                           // last_message_id
 
     std::array<MessageId, search_messages_filter_size()> first_database_message_id_by_index;

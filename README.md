@@ -179,7 +179,7 @@ the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_ap
 all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
 
 `TDLib` JSON interface adheres to semantic versioning and versions with the same major version number are binary and backward compatible, but the underlying `TDLib` API can be different for different minor and even patch versions.
-If you need to support different `TDLib` versions then you can use a value of the `version` option to find exact `TDLib` version and to use appropriate API then.
+If you need to support different `TDLib` versions, then you can use a value of the `version` option to find exact `TDLib` version to use appropriate API methods.
 
 See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
 
