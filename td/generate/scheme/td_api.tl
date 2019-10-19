@@ -158,7 +158,9 @@ file id:int32 size:int32 expected_size:int32 local:localFile remote:remoteFile =
 //@description A file defined by its unique ID @id Unique file identifier
 inputFileId id:int32 = InputFile;
 
-//@description A file defined by its remote ID @id Remote file identifier
+//@description A file defined by its remote ID. The remote ID is guaranteed to work only if it was received after TDLib launch and the corresponding file is still accessible to the user.
+//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If a file database is disabled, then the corresponding object with the file must be preloaded by the client
+//@id Remote file identifier
 inputFileRemote id:string = InputFile;
 
 //@description A file defined by a local path @path Local path to the file
@@ -2602,7 +2604,7 @@ updateChatPhoto chat_id:int53 photo:chatPhoto = Update;
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 
-//@description The last message of a chat was changed. If last_message is null then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @order New value of the chat order
+//@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @order New value of the chat order
 updateChatLastMessage chat_id:int53 last_message:message order:int64 = Update;
 
 //@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned or updateChatDraftMessage might be sent @chat_id Chat identifier @order New value of the order
@@ -2967,7 +2969,9 @@ getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
 getFile file_id:int32 = File;
 
-//@description Returns information about a file by its remote ID; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message @remote_file_id Remote identifier of the file to get @file_type File type, if known
+//@description Returns information about a file by its remote ID; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
+//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If a file database is disabled, then the corresponding object with the file must be preloaded by the client
+//@remote_file_id Remote identifier of the file to get @file_type File type, if known
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
 //@description Returns an ordered list of chats. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
