@@ -210,7 +210,7 @@ pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is
 //@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null @animation File containing the animation
 animation duration:int32 width:int32 height:int32 file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:photoSize animation:file = Animation;
 
-//@description Describes an audio file. Audio is usually in MP3 format @duration Duration of the audio, in seconds; as defined by the sender @title Title of the audio; as defined by the sender @performer Performer of the audio; as defined by the sender
+//@description Describes an audio file. Audio is usually in MP3 or M4A format @duration Duration of the audio, in seconds; as defined by the sender @title Title of the audio; as defined by the sender @performer Performer of the audio; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type The MIME type of the file; as defined by the sender @album_cover_minithumbnail The minithumbnail of the album cover; may be null @album_cover_thumbnail The thumbnail of the album cover; as defined by the sender. The full size thumbnail should be extracted from the downloaded file; may be null @audio File containing the audio
 audio duration:int32 title:string performer:string file_name:string mime_type:string album_cover_minithumbnail:minithumbnail album_cover_thumbnail:photoSize audio:file = Audio;
 

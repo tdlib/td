@@ -1001,8 +1001,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     VLOG(notifications) << "Have " << as_notification_update(update.get());
   }
 
-  updates.erase(std::remove_if(updates.begin(), updates.end(), [](auto &update) { return update == nullptr; }),
-                updates.end());
+  td::remove_if(updates, [](auto &update) { return update == nullptr; });
 
   // if a notification was added, then deleted and then re-added we need to keep
   // first addition, because it can be with sound,
@@ -1034,10 +1033,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
           notification_id = 0;
         }
       }
-      update_ptr->removed_notification_ids_.erase(
-          std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
-                         [](auto &notification_id) { return notification_id == 0; }),
-          update_ptr->removed_notification_ids_.end());
+      td::remove_if(update_ptr->removed_notification_ids_, [](auto &notification_id) { return notification_id == 0; });
     } else {
       CHECK(update->get_id() == td_api::updateNotification::ID);
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
@@ -1127,10 +1123,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
           // it is a first addition/edit of needed notification
           first_add_notification_pos[notification_id] = cur_pos;
         }
-        update_ptr->added_notifications_.erase(
-            std::remove_if(update_ptr->added_notifications_.begin(), update_ptr->added_notifications_.end(),
-                           [](auto &notification) { return notification == nullptr; }),
-            update_ptr->added_notifications_.end());
+        td::remove_if(update_ptr->added_notifications_, [](auto &notification) { return notification == nullptr; });
         if (update_ptr->added_notifications_.empty() && !update_ptr->is_silent_) {
           update_ptr->is_silent_ = true;
           is_changed = true;
@@ -1169,10 +1162,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
 
           // we need to keep the deletion, because otherwise we will have 2 consequent additions
         }
-        update_ptr->removed_notification_ids_.erase(
-            std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
-                           [](auto &notification_id) { return notification_id == 0; }),
-            update_ptr->removed_notification_ids_.end());
+        td::remove_if(update_ptr->removed_notification_ids_,
+                      [](auto &notification_id) { return notification_id == 0; });
 
         if (update_ptr->removed_notification_ids_.empty() && update_ptr->added_notifications_.empty()) {
           for (size_t i = cur_pos - 1; i > 0; i--) {
@@ -1263,8 +1254,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       CHECK(old_size == update_ptr->removed_notification_ids_.size());
     }
 
-    updates.erase(std::remove_if(updates.begin(), updates.end(), [](auto &update) { return update == nullptr; }),
-                  updates.end());
+    td::remove_if(updates, [](auto &update) { return update == nullptr; });
     if (updates.empty()) {
       VLOG(notifications) << "There are no updates to send in " << NotificationGroupId(group_id);
       break;
@@ -1776,12 +1766,9 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
     if (update->get_id() == td_api::updateNotificationGroup::ID) {
       auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
       if (!removed_notification_ids.empty() && !update_ptr->removed_notification_ids_.empty()) {
-        update_ptr->removed_notification_ids_.erase(
-            std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
-                           [&removed_notification_ids](auto &notification_id) {
-                             return removed_notification_ids.count(notification_id) == 1;
-                           }),
-            update_ptr->removed_notification_ids_.end());
+        td::remove_if(update_ptr->removed_notification_ids_, [&removed_notification_ids](auto &notification_id) {
+          return removed_notification_ids.count(notification_id) == 1;
+        });
       }
       for (auto &notification : update_ptr->added_notifications_) {
         if (is_removed(notification)) {
@@ -1790,10 +1777,7 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
           notification = nullptr;
         }
       }
-      update_ptr->added_notifications_.erase(
-          std::remove_if(update_ptr->added_notifications_.begin(), update_ptr->added_notifications_.end(),
-                         [](auto &notification) { return notification == nullptr; }),
-          update_ptr->added_notifications_.end());
+      td::remove_if(update_ptr->added_notifications_, [](auto &notification) { return notification == nullptr; });
     } else {
       CHECK(update->get_id() == td_api::updateNotification::ID);
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());

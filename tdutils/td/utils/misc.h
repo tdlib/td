@@ -83,6 +83,25 @@ auto transform(T &&v, const Func &f) {
   return detail::transform_helper<std::decay_t<T>>().transform(std::forward<T>(v), f);
 }
 
+template <class T, class Func>
+void remove_if(vector<T> &v, const Func &f) {
+  size_t i = 0;
+  while (i != v.size() && !f(v[i])) {
+    i++;
+  }
+  if (i == v.size()) {
+    return;
+  }
+
+  size_t j = i;
+  while (++i != v.size()) {
+    if (!f(v[i])) {
+      v[j++] = std::move(v[i]);
+    }
+  }
+  v.erase(v.begin() + j, v.end());
+}
+
 template <class T>
 void reset_to_empty(T &value) {
   using std::swap;

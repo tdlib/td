@@ -209,6 +209,65 @@ TEST(Misc, base64) {
               "Ojo7ISUiOw==");
 }
 
+template <class T>
+static void test_remove_if(vector<int> v, const T &func, vector<int> expected) {
+  remove_if(v, func);
+  if (expected != v) {
+    LOG(FATAL) << "Receive " << v << ", expected " << expected << " in remove_if";
+  }
+}
+
+TEST(Misc, remove_if) {
+  auto odd = [](int x) {
+    return x % 2 == 1;
+  };
+  auto even = [](int x) {
+    return x % 2 == 0;
+  };
+  auto all = [](int x) {
+    return true;
+  };
+  auto none = [](int x) {
+    return false;
+  };
+
+  vector<int> v{1, 2, 3, 4, 5, 6};
+  test_remove_if(v, odd, {2, 4, 6});
+  test_remove_if(v, even, {1, 3, 5});
+  test_remove_if(v, all, {});
+  test_remove_if(v, none, v);
+
+  v = vector<int>{1, 3, 5, 2, 4, 6};
+  test_remove_if(v, odd, {2, 4, 6});
+  test_remove_if(v, even, {1, 3, 5});
+  test_remove_if(v, all, {});
+  test_remove_if(v, none, v);
+
+  v.clear();
+  test_remove_if(v, odd, v);
+  test_remove_if(v, even, v);
+  test_remove_if(v, all, v);
+  test_remove_if(v, none, v);
+
+  v.push_back(-1);
+  test_remove_if(v, odd, v);
+  test_remove_if(v, even, v);
+  test_remove_if(v, all, {});
+  test_remove_if(v, none, v);
+
+  v[0] = 1;
+  test_remove_if(v, odd, {});
+  test_remove_if(v, even, v);
+  test_remove_if(v, all, {});
+  test_remove_if(v, none, v);
+
+  v[0] = 2;
+  test_remove_if(v, odd, v);
+  test_remove_if(v, even, {});
+  test_remove_if(v, all, {});
+  test_remove_if(v, none, v);
+}
+
 TEST(Misc, to_integer) {
   ASSERT_EQ(to_integer<int32>("-1234567"), -1234567);
   ASSERT_EQ(to_integer<int64>("-1234567"), -1234567);
