@@ -7856,9 +7856,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   UserFull *user = add_user_full(user_id);
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
-  if (!user->is_inited) {
-    user->can_pin_messages = (user_id == get_my_id());
-  }
   user->is_inited = true;
 
   on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
@@ -10389,6 +10386,7 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
   auto &user_full_ptr = users_full_[user_id];
   if (user_full_ptr == nullptr) {
     user_full_ptr = make_unique<UserFull>();
+    user_full_ptr->can_pin_messages = (user_id == get_my_id());
   }
   return user_full_ptr.get();
 }
