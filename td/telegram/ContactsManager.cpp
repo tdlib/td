@@ -7841,23 +7841,31 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
     user_full->is_is_blocked_changed = false;
   }
 
-  if (user_full->is_changed || user_full->need_send_update) {
+  user_full->need_send_update |= user_full->is_changed;
+  user_full->need_save_to_database |= user_full->is_changed;
+  user_full->is_changed = false;
+  if (user_full->need_send_update) {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                             get_user_full_info_object(user_id, user_full)));
-
-    if (!from_database && user_full->is_changed) {
-      save_user_full(user_full, user_id);
-    }
-    user_full->is_changed = false;
     user_full->need_send_update = false;
+  }
+  if (!from_database && user_full->need_save_to_database) {
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
+                                                            get_user_full_info_object(user_id, user_full)));
+    user_full->need_save_to_database = false;
   }
 }
 
 void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database) {
   CHECK(chat_full != nullptr);
   unavailable_chat_fulls_.erase(chat_id);  // don't needed anymore
-  if (chat_full->is_changed || chat_full->need_send_update) {
+
+  chat_full->need_send_update |= chat_full->is_changed;
+  chat_full->need_save_to_database |= chat_full->is_changed;
+  chat_full->is_changed = false;
+  if (chat_full->need_send_update) {
     vector<UserId> administrator_user_ids;
     vector<UserId> bot_user_ids;
     for (const auto &participant : chat_full->participants) {
@@ -7876,12 +7884,11 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id, "update_chat_full"),
                                                          get_basic_group_full_info_object(chat_full)));
-
-    if (!from_database && chat_full->is_changed) {
-      save_chat_full(chat_full, chat_id);
-    }
-    chat_full->is_changed = false;
     chat_full->need_send_update = false;
+  }
+  if (!from_database && chat_full->need_save_to_database) {
+    save_chat_full(chat_full, chat_id);
+    chat_full->need_save_to_database = false;
   }
 }
 
@@ -7889,19 +7896,23 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
   CHECK(channel_full != nullptr);
   unavailable_channel_fulls_.erase(channel_id);  // don't needed anymore
 
+  if (channel_full->participant_count < channel_full->administrator_count) {
+    channel_full->administrator_count = channel_full->participant_count;
+  }
+
+  channel_full->need_send_update |= channel_full->is_changed;
   channel_full->need_save_to_database |= channel_full->is_changed;
-  if (channel_full->is_changed) {
+  channel_full->is_changed = false;
+  if (channel_full->need_send_update) {
     if (channel_full->linked_channel_id.is_valid()) {
       td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full");
     }
-    if (channel_full->participant_count < channel_full->administrator_count) {
-      channel_full->administrator_count = channel_full->participant_count;
-    }
-    channel_full->is_changed = false;
+
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
                                                          get_supergroup_full_info_object(channel_full)));
+    channel_full->need_send_update = false;
   }
   if (!from_database && channel_full->need_save_to_database) {
     channel_full->need_save_to_database = false;

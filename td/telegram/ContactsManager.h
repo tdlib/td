@@ -600,8 +600,9 @@ class ContactsManager : public Actor {
 
     bool is_is_blocked_changed = true;
     bool is_common_chat_count_changed = true;
-    bool is_changed = true;        // have new changes that needs to be sent to the client and database
-    bool need_send_update = true;  // have new changes that needs to be sent only to the client
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need onto be saved to the database
 
     double expires_at = 0.0;
 
@@ -664,8 +665,9 @@ class ContactsManager : public Actor {
 
     bool can_set_username = false;
 
-    bool is_changed = true;        // have new changes that needs to be sent to the client and database
-    bool need_send_update = true;  // have new changes that needs to be sent only to the client
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need onto be saved to the database
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -746,8 +748,9 @@ class ContactsManager : public Actor {
     bool can_view_statistics = false;
     bool is_all_history_available = true;
 
-    bool is_changed = true;             // have new changes that needs to be sent to the client and database
-    bool need_save_to_database = true;  // have new changes that needs only to be saved to database
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need onto be saved to the database
 
     double expires_at = 0.0;
     bool is_expired() const;
