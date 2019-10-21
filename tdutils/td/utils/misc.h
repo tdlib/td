@@ -84,7 +84,7 @@ auto transform(T &&v, const Func &f) {
 }
 
 template <class T, class Func>
-void remove_if(vector<T> &v, const Func &f) {
+void remove_if(T &v, const Func &f) {
   size_t i = 0;
   while (i != v.size() && !f(v[i])) {
     i++;

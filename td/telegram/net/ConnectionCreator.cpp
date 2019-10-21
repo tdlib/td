@@ -812,14 +812,12 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
   VLOG(connections) << "In client_loop: " << tag("client", format::as_hex(client.hash));
 
   // Remove expired ready connections
-  client.ready_connections.erase(
-      std::remove_if(client.ready_connections.begin(), client.ready_connections.end(),
-                     [&, expires_at = Time::now_cached() - ClientInfo::READY_CONNECTIONS_TIMEOUT](auto &v) {
-                       bool drop = v.second < expires_at;
-                       VLOG_IF(connections, drop) << "Drop expired " << tag("connection", v.first.get());
-                       return drop;
-                     }),
-      client.ready_connections.end());
+  td::remove_if(client.ready_connections,
+                [&, expires_at = Time::now_cached() - ClientInfo::READY_CONNECTIONS_TIMEOUT](auto &v) {
+                  bool drop = v.second < expires_at;
+                  VLOG_IF(connections, drop) << "Drop expired " << tag("connection", v.first.get());
+                  return drop;
+                });
 
   // Send ready connections into promises
   {

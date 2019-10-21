@@ -4873,15 +4873,13 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
 
   auto language_codes = result.move_as_ok();
   LOG(INFO) << "Receive language codes " << language_codes << " for emojis search";
-  language_codes.erase(std::remove_if(language_codes.begin(), language_codes.end(),
-                                      [](const auto &language_code) {
-                                        if (language_code.empty() || language_code.find('$') != string::npos) {
-                                          LOG(ERROR) << "Receive language_code \"" << language_code << '"';
-                                          return true;
-                                        }
-                                        return false;
-                                      }),
-                       language_codes.end());
+  td::remove_if(language_codes, [](const auto &language_code) {
+    if (language_code.empty() || language_code.find('$') != string::npos) {
+      LOG(ERROR) << "Receive language_code \"" << language_code << '"';
+      return true;
+    }
+    return false;
+  });
   if (language_codes.empty()) {
     LOG(ERROR) << "Language codes list is empty";
     language_codes.emplace_back("en");

@@ -2638,8 +2638,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   }
 
   auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
-  bad_parts.erase(std::remove_if(bad_parts.begin(), bad_parts.end(), [](auto part_id) { return part_id < 0; }),
-                  bad_parts.end());
+  td::remove_if(bad_parts, [](auto part_id) { return part_id < 0; });
 
   QueryId id = queries_container_.create(Query{file_id, Query::Upload});
   node->upload_id_ = id;

@@ -34,7 +34,6 @@
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
 
-#include <algorithm>
 #include <tuple>
 #include <utility>
 
@@ -510,7 +509,7 @@ void Session::on_session_failed(Status status) {
 }
 
 void Session::on_container_sent(uint64 container_id, vector<uint64> msg_ids) {
-  auto erase_from = std::remove_if(msg_ids.begin(), msg_ids.end(), [&](uint64 msg_id) {
+  td::remove_if(msg_ids, [&](uint64 msg_id) {
     auto it = sent_queries_.find(msg_id);
     if (it == sent_queries_.end()) {
       return true;  // remove
@@ -518,7 +517,6 @@ void Session::on_container_sent(uint64 container_id, vector<uint64> msg_ids) {
     it->second.container_id = container_id;
     return false;
   });
-  msg_ids.erase(erase_from, msg_ids.end());
   if (msg_ids.empty()) {
     return;
   }

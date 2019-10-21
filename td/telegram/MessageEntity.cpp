@@ -985,15 +985,13 @@ const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames() {
 
 vector<Slice> find_mentions(Slice str) {
   auto mentions = match_mentions(str);
-  mentions.erase(std::remove_if(mentions.begin(), mentions.end(),
-                                [](Slice mention) {
-                                  mention.remove_prefix(1);
-                                  if (mention.size() >= 5) {
-                                    return false;
-                                  }
-                                  return get_valid_short_usernames().count(mention) == 0;
-                                }),
-                 mentions.end());
+  td::remove_if(mentions, [](Slice mention) {
+    mention.remove_prefix(1);
+    if (mention.size() >= 5) {
+      return false;
+    }
+    return get_valid_short_usernames().count(mention) == 0;
+  });
   return mentions;
 }
 
@@ -2572,9 +2570,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   CHECK(nested_entities_stack.empty());
   CHECK(current_entity == entities.size());
 
-  entities.erase(
-      std::remove_if(entities.begin(), entities.end(), [](const auto &entity) { return entity.length == 0; }),
-      entities.end());
+  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
 
   return {last_non_whitespace_pos, last_non_whitespace_utf16_offset};
 }
@@ -2651,12 +2647,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     }
     text.resize(new_size);
 
-    entities.erase(
-        std::remove_if(entities.begin(), entities.end(),
-                       [text_utf16_length = narrow_cast<int32>(utf8_utf16_length(text))](const auto &entity) {
-                         return entity.offset + entity.length > text_utf16_length;
-                       }),
-        entities.end());
+    td::remove_if(entities, [text_utf16_length = narrow_cast<int32>(utf8_utf16_length(text))](const auto &entity) {
+      return entity.offset + entity.length > text_utf16_length;
+    });
   }
 
   if (!skip_new_entities) {

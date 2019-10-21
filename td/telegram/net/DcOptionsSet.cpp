@@ -8,6 +8,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <set>
@@ -98,8 +99,7 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
     } else {
       bool have_ipv4 = std::any_of(options.begin(), options.end(), [](auto &v) { return !v.option->is_ipv6(); });
       if (have_ipv4) {
-        options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return v.option->is_ipv6(); }),
-                      options.end());
+        td::remove_if(options, [](auto &v) { return v.option->is_ipv6(); });
       }
     }
   } else {
@@ -111,15 +111,13 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
   if (prefer_ipv6) {
     bool have_ipv6 = std::any_of(options.begin(), options.end(), [](auto &v) { return v.option->is_ipv6(); });
     if (have_ipv6) {
-      options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return !v.option->is_ipv6(); }),
-                    options.end());
+      td::remove_if(options, [](auto &v) { return !v.option->is_ipv6(); });
     }
   }
 
   bool have_media_only = std::any_of(options.begin(), options.end(), [](auto &v) { return v.option->is_media_only(); });
   if (have_media_only) {
-    options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return !v.option->is_media_only(); }),
-                  options.end());
+    td::remove_if(options, [](auto &v) { return !v.option->is_media_only(); });
   }
 
   return options;

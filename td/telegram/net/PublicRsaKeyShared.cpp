@@ -8,6 +8,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -153,8 +154,7 @@ RSA *PublicRsaKeyShared::get_rsa_locked(int64 fingerprint) {
 
 void PublicRsaKeyShared::notify() {
   auto lock = rw_mutex_.lock_read();
-  auto it = std::remove_if(listeners_.begin(), listeners_.end(), [&](auto &listener) { return !listener->notify(); });
-  listeners_.erase(it, listeners_.end());
+  td::remove_if(listeners_, [&](auto &listener) { return !listener->notify(); });
 }
 
 }  // namespace td

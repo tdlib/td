@@ -11,10 +11,9 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/tl_helpers.h"
-
-#include <algorithm>
 
 namespace td {
 
@@ -103,9 +102,7 @@ class AuthDataSharedImpl : public AuthDataShared {
   void notify() {
     auto lock = rw_mutex_.lock_read();
 
-    auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
-                             [&](auto &listener) { return !listener->notify(); });
-    auth_key_listeners_.erase(it, auth_key_listeners_.end());
+    td::remove_if(auth_key_listeners_, [&](auto &listener) { return !listener->notify(); });
   }
 
   void log_auth_key(const mtproto::AuthKey &auth_key) {

@@ -13476,9 +13476,7 @@ int32 MessagesManager::get_pinned_dialogs_limit(FolderId folder_id) {
 }
 
 vector<DialogId> MessagesManager::remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids) {
-  dialog_ids.erase(std::remove_if(dialog_ids.begin(), dialog_ids.end(),
-                                  [](DialogId dialog_id) { return dialog_id.get_type() == DialogType::SecretChat; }),
-                   dialog_ids.end());
+  td::remove_if(dialog_ids, [](DialogId dialog_id) { return dialog_id.get_type() == DialogType::SecretChat; });
   return dialog_ids;
 }
 

@@ -468,9 +468,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 
     std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
-      auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
-                               [&](auto &listener) { return !listener->notify(); });
-      auth_key_listeners_.erase(it, auth_key_listeners_.end());
+      td::remove_if(auth_key_listeners_, [&](auto &listener) { return !listener->notify(); });
     }
 
     string auth_key_key() const {

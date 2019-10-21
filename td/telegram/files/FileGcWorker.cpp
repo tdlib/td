@@ -94,47 +94,43 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
 
   // Remove all files with atime > now - max_time_from_last_access
   double now = Clocks::system();
-  files.erase(
-      std::remove_if(
-          files.begin(), files.end(),
-          [&](const FullFileInfo &info) {
-            if (token_) {
-              return false;
-            }
-            if (immune_types[narrow_cast<size_t>(info.file_type)]) {
-              type_immunity_ignored_cnt++;
-              new_stats.add(FullFileInfo(info));
-              return true;
-            }
-            if (std::find(parameters.exclude_owner_dialog_ids.begin(), parameters.exclude_owner_dialog_ids.end(),
-                          info.owner_dialog_id) != parameters.exclude_owner_dialog_ids.end()) {
-              exclude_owner_dialog_id_ignored_cnt++;
-              new_stats.add(FullFileInfo(info));
-              return true;
-            }
-            if (!parameters.owner_dialog_ids.empty() &&
-                std::find(parameters.owner_dialog_ids.begin(), parameters.owner_dialog_ids.end(),
-                          info.owner_dialog_id) == parameters.owner_dialog_ids.end()) {
-              owner_dialog_id_ignored_cnt++;
-              new_stats.add(FullFileInfo(info));
-              return true;
-            }
-            if (static_cast<double>(info.mtime_nsec / 1000000000) > now - parameters.immunity_delay) {
-              // new files are immune to gc
-              time_immunity_ignored_cnt++;
-              new_stats.add(FullFileInfo(info));
-              return true;
-            }
+  td::remove_if(files, [&](const FullFileInfo &info) {
+    if (token_) {
+      return false;
+    }
+    if (immune_types[narrow_cast<size_t>(info.file_type)]) {
+      type_immunity_ignored_cnt++;
+      new_stats.add(FullFileInfo(info));
+      return true;
+    }
+    if (std::find(parameters.exclude_owner_dialog_ids.begin(), parameters.exclude_owner_dialog_ids.end(),
+                  info.owner_dialog_id) != parameters.exclude_owner_dialog_ids.end()) {
+      exclude_owner_dialog_id_ignored_cnt++;
+      new_stats.add(FullFileInfo(info));
+      return true;
+    }
+    if (!parameters.owner_dialog_ids.empty() &&
+        std::find(parameters.owner_dialog_ids.begin(), parameters.owner_dialog_ids.end(), info.owner_dialog_id) ==
+            parameters.owner_dialog_ids.end()) {
+      owner_dialog_id_ignored_cnt++;
+      new_stats.add(FullFileInfo(info));
+      return true;
+    }
+    if (static_cast<double>(info.mtime_nsec / 1000000000) > now - parameters.immunity_delay) {
+      // new files are immune to gc
+      time_immunity_ignored_cnt++;
+      new_stats.add(FullFileInfo(info));
+      return true;
+    }
 
-            if (static_cast<double>(info.atime_nsec / 1000000000) < now - parameters.max_time_from_last_access) {
-              do_remove_file(info);
-              total_removed_size += info.size;
-              remove_by_atime_cnt++;
-              return true;
-            }
-            return false;
-          }),
-      files.end());
+    if (static_cast<double>(info.atime_nsec / 1000000000) < now - parameters.max_time_from_last_access) {
+      do_remove_file(info);
+      total_removed_size += info.size;
+      remove_by_atime_cnt++;
+      return true;
+    }
+    return false;
+  });
   if (token_) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
