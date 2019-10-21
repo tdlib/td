@@ -268,6 +268,31 @@ TEST(Misc, remove_if) {
   test_remove_if(v, none, v);
 }
 
+static void test_remove(vector<int> v, int value, vector<int> expected) {
+  bool is_found = expected != v;
+  ASSERT_EQ(is_found, td::remove(v, value));
+  if (expected != v) {
+    LOG(FATAL) << "Receive " << v << ", expected " << expected << " in remove";
+  }
+}
+
+TEST(Misc, remove) {
+  vector<int> v{1, 2, 3, 4, 5, 6};
+  test_remove(v, 0, {1, 2, 3, 4, 5, 6});
+  test_remove(v, 1, {2, 3, 4, 5, 6});
+  test_remove(v, 2, {1, 3, 4, 5, 6});
+  test_remove(v, 3, {1, 2, 4, 5, 6});
+  test_remove(v, 4, {1, 2, 3, 5, 6});
+  test_remove(v, 5, {1, 2, 3, 4, 6});
+  test_remove(v, 6, {1, 2, 3, 4, 5});
+  test_remove(v, 7, {1, 2, 3, 4, 5, 6});
+
+  v.clear();
+  test_remove(v, -1, v);
+  test_remove(v, 0, v);
+  test_remove(v, 1, v);
+}
+
 TEST(Misc, contains) {
   td::vector<int> v{1, 3, 5, 7, 4, 2};
   for (int i = -10; i < 20; i++) {
