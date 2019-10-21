@@ -754,8 +754,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   }
 
   FileId file_id = r_file_id.ok();
-  auto it = std::find(saved_animation_ids_.begin(), saved_animation_ids_.end(), file_id);
-  if (it == saved_animation_ids_.end()) {
+  if (!td::remove(saved_animation_ids_, file_id)) {
     return promise.set_value(Unit());
   }
 
@@ -765,8 +764,6 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   }
 
   send_save_gif_query(file_id, true, std::move(promise));
-
-  saved_animation_ids_.erase(it);
 
   send_update_saved_animations();
 }

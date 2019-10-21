@@ -1856,7 +1856,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
       auto &sticker_ids = sticker_set->sticker_ids;
 
       auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_)).second;
-      if (sticker_id.is_valid() && std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
+      if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
         sticker_ids.push_back(sticker_id);
         sticker_set->is_changed = true;
       }
@@ -1880,8 +1880,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
 
       for (auto &cover : multicovered_set->covers_) {
         auto sticker_id = on_get_sticker_document(std::move(cover)).second;
-        if (sticker_id.is_valid() &&
-            std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
+        if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
           sticker_ids.push_back(sticker_id);
           sticker_set->is_changed = true;
         }
@@ -1967,7 +1966,7 @@ void StickersManager::on_get_messages_sticker_set(StickerSetId sticker_set_id,
       }
       auto &sticker_ids = s->emoji_stickers_map_[remove_emoji_modifiers(pack->emoticon_)];
       for (auto sticker_id : stickers) {
-        if (std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
+        if (!td::contains(sticker_ids, sticker_id)) {
           sticker_ids.push_back(sticker_id);
         }
       }
@@ -2165,7 +2164,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     prepend_sticker_ids.reserve(favorite_sticker_ids_.size() + recent_sticker_ids_[0].size());
     append(prepend_sticker_ids, recent_sticker_ids_[0]);
     for (auto sticker_id : favorite_sticker_ids_) {
-      if (std::find(prepend_sticker_ids.begin(), prepend_sticker_ids.end(), sticker_id) == prepend_sticker_ids.end()) {
+      if (!td::contains(prepend_sticker_ids, sticker_id)) {
         prepend_sticker_ids.push_back(sticker_id);
       }
     }
@@ -2184,8 +2183,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     for (const auto &sticker_id : prepend_sticker_ids) {
       const Sticker *s = get_sticker(sticker_id);
       LOG(INFO) << "Have prepend sticker " << sticker_id << " from " << s->set_id;
-      if (s->set_id.is_valid() &&
-          std::find(sets_to_load.begin(), sets_to_load.end(), s->set_id) == sets_to_load.end()) {
+      if (s->set_id.is_valid() && !td::contains(sets_to_load, s->set_id)) {
         const StickerSet *sticker_set = get_sticker_set(s->set_id);
         if (sticker_set == nullptr || !sticker_set->is_loaded) {
           sets_to_load.push_back(s->set_id);
@@ -2235,8 +2233,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
         continue;
       }
 
-      if (std::find(examined_sticker_sets.begin(), examined_sticker_sets.end(), sticker_set) ==
-          examined_sticker_sets.end()) {
+      if (!td::contains(examined_sticker_sets, sticker_set)) {
         examined_sticker_sets.push_back(sticker_set);
       }
     }
@@ -2279,7 +2276,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
           if (sticker_set != nullptr && sticker_set->was_loaded) {
             auto map_it = sticker_set->emoji_stickers_map_.find(emoji);
             if (map_it != sticker_set->emoji_stickers_map_.end()) {
-              if (std::find(map_it->second.begin(), map_it->second.end(), sticker_id) != map_it->second.end()) {
+              if (td::contains(map_it->second, sticker_id)) {
                 LOG(INFO) << "Found prepend sticker " << sticker_id << " has matching emoji";
                 is_good = true;
               }
@@ -2652,7 +2649,7 @@ void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_ins
     }
 
     if (is_archived) {
-      if (std::find(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set->id) == sticker_set_ids.end()) {
+      if (!td::contains(sticker_set_ids, sticker_set->id)) {
         total_count++;
         sticker_set_ids.insert(sticker_set_ids.begin(), sticker_set->id);
       }
@@ -3108,7 +3105,7 @@ void StickersManager::on_get_archived_sticker_sets(
       CHECK(sticker_set != nullptr);
       update_sticker_set(sticker_set);
 
-      if (std::find(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set_id) == sticker_set_ids.end()) {
+      if (!td::contains(sticker_set_ids, sticker_set_id)) {
         sticker_set_ids.push_back(sticker_set_id);
       }
     }
@@ -4267,8 +4264,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
   FileId file_id = r_file_id.ok();
-  auto it = std::find(sticker_ids.begin(), sticker_ids.end(), file_id);
-  if (it == sticker_ids.end()) {
+  if (!td::remove(sticker_ids, file_id)) {
     return promise.set_value(Unit());
   }
 
@@ -4278,8 +4274,6 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
   }
 
   send_save_recent_sticker_query(is_attached, file_id, true, std::move(promise));
-
-  sticker_ids.erase(it);
 
   need_update_recent_stickers_[is_attached] = true;
   send_update_recent_stickers();
@@ -4675,8 +4669,7 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
   }
 
   FileId file_id = r_file_id.ok();
-  auto it = std::find(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), file_id);
-  if (it == favorite_sticker_ids_.end()) {
+  if (!td::remove(favorite_sticker_ids_, file_id)) {
     return promise.set_value(Unit());
   }
 
@@ -4686,8 +4679,6 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
   }
 
   send_fave_sticker_query(file_id, true, std::move(promise));
-
-  favorite_sticker_ids_.erase(it);
 
   send_update_favorite_stickers();
 }
@@ -5075,7 +5066,7 @@ void StickersManager::on_get_emoji_keywords_difference(
           vector<string> emojis = search_language_emojis(language_code, text, true);
           bool is_changed = false;
           for (auto &emoji : keyword->emoticons_) {
-            if (std::find(emojis.begin(), emojis.end(), emoji) == emojis.end()) {
+            if (!td::contains(emojis, emoji)) {
               emojis.push_back(emoji);
               is_changed = true;
             }
@@ -5095,9 +5086,7 @@ void StickersManager::on_get_emoji_keywords_difference(
         vector<string> emojis = search_language_emojis(language_code, text, true);
         bool is_changed = false;
         for (auto &emoji : keyword->emoticons_) {
-          auto it = std::find(emojis.begin(), emojis.end(), emoji);
-          if (it != emojis.end()) {
-            emojis.erase(it);
+          if (td::remove(emojis, emoji)) {
             is_changed = true;
           }
         }

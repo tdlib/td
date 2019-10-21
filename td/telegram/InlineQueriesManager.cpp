@@ -1713,12 +1713,10 @@ bool InlineQueriesManager::update_bot_usage(UserId bot_user_id) {
 }
 
 void InlineQueriesManager::remove_recent_inline_bot(UserId bot_user_id, Promise<Unit> &&promise) {
-  auto it = std::find(recently_used_bot_user_ids_.begin(), recently_used_bot_user_ids_.end(), bot_user_id);
-  if (it != recently_used_bot_user_ids_.end()) {
-    recently_used_bot_user_ids_.erase(it);
+  if (td::remove(recently_used_bot_user_ids_, bot_user_id)) {
     save_recently_used_bots();
   }
-  return promise.set_value(Unit());
+  promise.set_value(Unit());
 }
 
 }  // namespace td

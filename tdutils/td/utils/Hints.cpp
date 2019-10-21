@@ -68,7 +68,7 @@ vector<string> Hints::get_words(Slice name, bool is_search) {
 
 void Hints::add_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys) {
   vector<KeyT> &keys = word_to_keys[word];
-  CHECK(std::find(keys.begin(), keys.end(), key) == keys.end());
+  CHECK(!td::contains(keys, key));
   keys.push_back(key);
 }
 

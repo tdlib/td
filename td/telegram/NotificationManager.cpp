@@ -392,8 +392,7 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
     return group_it;
   }
 
-  if (std::find(call_notification_group_ids_.begin(), call_notification_group_ids_.end(), group_id) !=
-      call_notification_group_ids_.end()) {
+  if (td::contains(call_notification_group_ids_, group_id)) {
     return groups_.end();
   }
 
@@ -1263,7 +1262,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     auto has_common_notifications = [](const vector<td_api::object_ptr<td_api::notification>> &notifications,
                                        const vector<int32> &notification_ids) {
       for (auto &notification : notifications) {
-        if (std::find(notification_ids.begin(), notification_ids.end(), notification->id_) != notification_ids.end()) {
+        if (td::contains(notification_ids, notification->id_)) {
           return true;
         }
       }

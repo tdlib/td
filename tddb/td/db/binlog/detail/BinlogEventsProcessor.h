@@ -14,6 +14,7 @@
 
 namespace td {
 namespace detail {
+
 class BinlogEventsProcessor {
  public:
   Status add_event(BinlogEvent &&event) TD_WARN_UNUSED_RESULT {
@@ -54,5 +55,6 @@ class BinlogEventsProcessor {
   Status do_event(BinlogEvent &&event);
   void compactify();
 };
+
 }  // namespace detail
 }  // namespace td

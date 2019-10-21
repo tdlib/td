@@ -429,8 +429,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   } else {
     auto &chosen_options = it->second.options_;
     for (auto &poll_option : poll->options) {
-      auto is_being_chosen =
-          std::find(chosen_options.begin(), chosen_options.end(), poll_option.data) != chosen_options.end();
+      auto is_being_chosen = td::contains(chosen_options, poll_option.data);
       if (poll_option.is_chosen) {
         voter_count_diff = -1;
       }

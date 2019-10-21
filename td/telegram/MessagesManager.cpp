@@ -11394,7 +11394,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     DialogId dialog_id(dialog->peer_);
-    if (std::find(added_dialog_ids.begin(), added_dialog_ids.end(), dialog_id) != added_dialog_ids.end()) {
+    if (td::contains(added_dialog_ids, dialog_id)) {
       LOG(ERROR) << "Receive " << dialog_id << " twice in result of getChats with total_count = " << total_count;
       continue;
     }
@@ -12729,7 +12729,7 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
     CHECK(dialog_id.is_valid());
     td_->contacts_manager_->on_get_chat(std::move(chat), "on_get_common_dialogs");
 
-    if (std::find(result.begin(), result.end(), dialog_id) == result.end()) {
+    if (!td::contains(result, dialog_id)) {
       force_create_dialog(dialog_id, "get common dialogs");
       result.push_back(dialog_id);
     }
@@ -13169,7 +13169,7 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
     if (begins_with(cur_t_me_url, "http://") || begins_with(cur_t_me_url, "https://")) {
       Slice t_me_url = cur_t_me_url;
       t_me_url = t_me_url.substr(url[4] == 's' ? 8 : 7);
-      if (std::find(t_me_urls.begin(), t_me_urls.end(), t_me_url) == t_me_urls.end()) {
+      if (!td::contains(t_me_urls, t_me_url)) {
         t_me_urls.push_back(t_me_url);
       }
     }
@@ -22200,8 +22200,7 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
     return;
   }
   const Message *m = get_message_force(d, d->reply_markup_message_id, "on_dialog_bots_updated");
-  if (m == nullptr || (m->sender_user_id.is_valid() &&
-                       std::find(bot_user_ids.begin(), bot_user_ids.end(), m->sender_user_id) == bot_user_ids.end())) {
+  if (m == nullptr || (m->sender_user_id.is_valid() && !td::contains(bot_user_ids, m->sender_user_id))) {
     LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot "
               << (m == nullptr ? UserId() : m->sender_user_id) << " isn't a member of the chat";
     set_dialog_reply_markup(d, MessageId());
@@ -24373,8 +24372,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           if (need_delete_message_files(d, m)) {
             FullMessageId full_message_id{dialog_id, message_id};
             for (auto file_id : old_file_ids) {
-              if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end() &&
-                  need_delete_file(full_message_id, file_id)) {
+              if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
                 send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
                              "edit message in add_message_to_dialog");
               }
@@ -28103,13 +28101,7 @@ bool MessagesManager::add_recently_found_dialog_internal(DialogId dialog_id) {
 
 bool MessagesManager::remove_recently_found_dialog_internal(DialogId dialog_id) {
   CHECK(have_dialog(dialog_id));
-
-  auto it = std::find(recently_found_dialog_ids_.begin(), recently_found_dialog_ids_.end(), dialog_id);
-  if (it == recently_found_dialog_ids_.end()) {
-    return false;
-  }
-  recently_found_dialog_ids_.erase(it);
-  return true;
+  return td::remove(recently_found_dialog_ids_, dialog_id);
 }
 
 void MessagesManager::suffix_load_loop(Dialog *d) {

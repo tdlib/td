@@ -5822,18 +5822,15 @@ void ContactsManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_
     return;
   }
 
-  auto it = std::find(dialogs_for_discussion_.begin(), dialogs_for_discussion_.end(), dialog_id);
-  bool is_found = it != dialogs_for_discussion_.end();
-  if (is_suitable == is_found) {
-    return;
-  }
-
   if (is_suitable) {
-    LOG(DEBUG) << "Add " << dialog_id << " to list of suitable discussion chats";
-    dialogs_for_discussion_.insert(dialogs_for_discussion_.begin(), dialog_id);
+    if (!td::contains(dialogs_for_discussion_, dialog_id)) {
+      LOG(DEBUG) << "Add " << dialog_id << " to list of suitable discussion chats";
+      dialogs_for_discussion_.insert(dialogs_for_discussion_.begin(), dialog_id);
+    }
   } else {
-    LOG(DEBUG) << "Remove " << dialog_id << " from list of suitable discussion chats";
-    dialogs_for_discussion_.erase(it);
+    if (td::remove(dialogs_for_discussion_, dialog_id)) {
+      LOG(DEBUG) << "Remove " << dialog_id << " from list of suitable discussion chats";
+    }
   }
 }
 
@@ -7743,8 +7740,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       if (c->username.empty()) {
         td::remove(created_public_channels_, channel_id);
       } else {
-        if (std::find(created_public_channels_.begin(), created_public_channels_.end(), channel_id) ==
-            created_public_channels_.end()) {
+        if (!td::contains(created_public_channels_, channel_id)) {
           created_public_channels_.push_back(channel_id);
         }
       }
@@ -9241,9 +9237,7 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
       }
     }
 
-    if (channel_full != nullptr && is_user_bot(user_id) &&
-        std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id) ==
-            channel_full->bot_user_ids.end()) {
+    if (channel_full != nullptr && is_user_bot(user_id) && !td::contains(channel_full->bot_user_ids, user_id)) {
       channel_full->bot_user_ids.push_back(user_id);
       channel_full->need_save_to_database = true;
     }
@@ -9280,13 +9274,9 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
 
   if (is_user_bot(deleted_user_id)) {
     auto channel_full = get_channel_full_force(channel_id);
-    if (channel_full != nullptr) {
-      auto user_it = std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), deleted_user_id);
-      if (user_it != channel_full->bot_user_ids.end()) {
-        channel_full->bot_user_ids.erase(user_it);
-        channel_full->need_save_to_database = true;
-        update_channel_full(channel_full, channel_id);
-      }
+    if (channel_full != nullptr && td::remove(channel_full->bot_user_ids, deleted_user_id)) {
+      channel_full->need_save_to_database = true;
+      update_channel_full(channel_full, channel_id);
     }
   }
 
@@ -9332,16 +9322,15 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     auto administrators_it = dialog_administrators_.find(dialog_id);
     if (administrators_it != dialog_administrators_.end()) {
       auto user_ids = administrators_it->second;
-      auto it = std::find(user_ids.begin(), user_ids.end(), user_id);
-      bool is_found = it != user_ids.end();
-
-      if (new_status.is_administrator() != is_found) {
-        if (is_found) {
-          user_ids.erase(it);
-        } else {
+      if (new_status.is_administrator()) {
+        if (!td::contains(user_ids, user_id)) {
           user_ids.push_back(user_id);
+          on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
         }
-        on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
+      } else {
+        if (td::remove(user_ids, user_id)) {
+          on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
+        }
       }
     }
   }
@@ -9384,15 +9373,12 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
 
   if (new_status.is_member() != old_status.is_member() && is_user_bot(user_id)) {
     if (new_status.is_member()) {
-      if (std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id) ==
-          channel_full->bot_user_ids.end()) {
+      if (!td::contains(channel_full->bot_user_ids, user_id)) {
         channel_full->bot_user_ids.push_back(user_id);
         channel_full->need_save_to_database = true;
       }
     } else {
-      auto user_it = std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id);
-      if (user_it != channel_full->bot_user_ids.end()) {
-        channel_full->bot_user_ids.erase(user_it);
+      if (td::remove(channel_full->bot_user_ids, user_id)) {
         channel_full->need_save_to_database = true;
       }
     }

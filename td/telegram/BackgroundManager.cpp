@@ -627,8 +627,7 @@ void BackgroundManager::on_installed_background(BackgroundId background_id, Back
     return promise.set_error(result.move_as_error());
   }
 
-  auto it = std::find(installed_background_ids_.begin(), installed_background_ids_.end(), background_id);
-  if (it == installed_background_ids_.end()) {
+  if (!td::contains(installed_background_ids_, background_id)) {
     installed_background_ids_.insert(installed_background_ids_.begin(), background_id);
   }
   set_background_id(background_id, type, for_dark_theme);
@@ -769,10 +768,7 @@ void BackgroundManager::on_removed_background(BackgroundId background_id, Result
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
-  auto it = std::find(installed_background_ids_.begin(), installed_background_ids_.end(), background_id);
-  if (it != installed_background_ids_.end()) {
-    installed_background_ids_.erase(it);
-  }
+  td::remove(installed_background_ids_, background_id);
   if (background_id == set_background_id_[0]) {
     set_background_id(BackgroundId(), BackgroundType(), false);
   }
@@ -1020,8 +1016,7 @@ td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_objec
     return get_background_object(background_id, for_dark_theme);
   });
   auto background_id = set_background_id_[for_dark_theme];
-  if (background_id.is_valid() && std::find(installed_background_ids_.begin(), installed_background_ids_.end(),
-                                            background_id) == installed_background_ids_.end()) {
+  if (background_id.is_valid() && !td::contains(installed_background_ids_, background_id)) {
     backgrounds.push_back(get_background_object(background_id, for_dark_theme));
   }
   std::stable_sort(backgrounds.begin(), backgrounds.end(),

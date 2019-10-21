@@ -12,6 +12,7 @@
 
 namespace td {
 namespace detail {
+
 class BinlogEventsBuffer {
  public:
   void add_event(BinlogEvent &&event);
@@ -45,5 +46,6 @@ class BinlogEventsBuffer {
   void do_event(BinlogEvent &&event);
   void clear();
 };
+
 }  // namespace detail
 }  // namespace td

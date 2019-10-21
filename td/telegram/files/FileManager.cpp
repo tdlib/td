@@ -971,9 +971,8 @@ void FileManager::try_forget_file_id(FileId file_id) {
   }
 
   LOG(DEBUG) << "Forget file " << file_id;
-  auto it = std::find(file_node->file_ids_.begin(), file_node->file_ids_.end(), file_id);
-  CHECK(it != file_node->file_ids_.end());
-  file_node->file_ids_.erase(it);
+  bool is_removed = td::remove(file_node->file_ids_, file_id);
+  CHECK(is_removed);
   *info = FileIdInfo();
   empty_file_ids_.push_back(file_id.get());
 }
@@ -1038,7 +1037,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
   // add #mtime# into conversion
   if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
     auto file_paths = log_interface->get_file_paths();
-    if (std::find(file_paths.begin(), file_paths.end(), original_path) == file_paths.end()) {
+    if (!td::contains(file_paths, original_path)) {
       auto r_stat = stat(original_path);
       uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
       conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;

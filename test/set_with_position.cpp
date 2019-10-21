@@ -7,6 +7,7 @@
 #include "td/telegram/SetWithPosition.h"
 
 #include "td/utils/common.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/tests.h"
 
@@ -21,8 +22,7 @@ template <class T>
 class OldSetWithPosition {
  public:
   void add(T value) {
-    auto it = std::find(values_.begin(), values_.end(), value);
-    if (it != values_.end()) {
+    if (td::contains(values_, value)) {
       return;
     }
     values_.push_back(value);

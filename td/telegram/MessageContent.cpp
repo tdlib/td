@@ -4849,7 +4849,7 @@ bool need_delay_message_content_notification(const MessageContent *content, User
       return true;
     case MessageContentType::ChatAddUsers: {
       auto &added_user_ids = static_cast<const MessageChatAddUsers *>(content)->user_ids;
-      return std::find(added_user_ids.begin(), added_user_ids.end(), my_user_id) == added_user_ids.end();
+      return !td::contains(added_user_ids, my_user_id);
     }
     case MessageContentType::ChatDeleteUser:
       return static_cast<const MessageChatDeleteUser *>(content)->user_id != my_user_id;
