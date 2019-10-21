@@ -488,8 +488,6 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant) const;
 
-  tl_object_ptr<td_api::botInfo> get_bot_info_object(UserId user_id) const;
-
   tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link) const;
 
   UserId get_support_user(Promise<Unit> &&promise);
@@ -551,7 +549,7 @@ class ContactsManager : public Actor {
     bool is_is_deleted_changed = true;
     bool is_default_permissions_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
-    bool need_send_update = true;  // have new changes not sent to the client
+    bool need_send_update = true;  // have new changes not sent to the client (and database)
     bool is_status_changed = true;
     bool is_online_status_changed = true;  // whether online/offline has changed
 
@@ -572,11 +570,7 @@ class ContactsManager : public Actor {
     int32 version = -1;
     string description;
     vector<std::pair<string, string>> commands;
-
-    BotInfo() = default;
-    BotInfo(int32 version, string description, vector<std::pair<string, string>> &&commands)
-        : version(version), description(std::move(description)), commands(std::move(commands)) {
-    }
+    bool is_changed = true;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -594,13 +588,11 @@ class ContactsManager : public Actor {
 
   // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
-    unique_ptr<BotInfo> bot_info;
-
     string about;
 
     int32 common_chat_count = 0;
 
-    bool is_inited = false;  // bot_info may be inited regardless of this flag
+    bool is_inited = false;  // TODO remove
     bool is_blocked = false;
     bool can_be_called = false;
     bool has_private_calls = false;
@@ -609,7 +601,8 @@ class ContactsManager : public Actor {
 
     bool is_is_blocked_changed = true;
     bool is_common_chat_count_changed = true;
-    bool is_changed = true;
+    bool is_changed = true;        // have new changes that needs to be sent to the client and database
+    bool need_send_update = true;  // have new changes that needs to be sent only to the client
 
     double expires_at = 0.0;
 
@@ -646,7 +639,7 @@ class ContactsManager : public Actor {
     bool is_default_permissions_changed = true;
     bool is_is_active_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
-    bool need_send_update = true;  // have new changes not sent to the client
+    bool need_send_update = true;  // have new changes not sent to the client (and database)
 
     bool is_repaired = false;  // whether cached value is rechecked
 
@@ -672,7 +665,8 @@ class ContactsManager : public Actor {
 
     bool can_set_username = false;
 
-    bool is_changed = true;
+    bool is_changed = true;        // have new changes that needs to be sent to the client and database
+    bool need_send_update = true;  // have new changes that needs to be sent only to the client
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -712,7 +706,7 @@ class ContactsManager : public Actor {
     bool had_read_access = true;
     bool was_member = false;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
-    bool need_send_update = true;  // have new changes not sent to the client
+    bool need_send_update = true;  // have new changes not sent to the client (and database)
 
     bool is_repaired = false;  // whether cached value is rechecked
 
@@ -776,7 +770,7 @@ class ContactsManager : public Actor {
 
     bool is_state_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
-    bool need_send_update = true;  // have new changes not sent to the client
+    bool need_send_update = true;  // have new changes not sent to the client (and database)
 
     bool is_saved = false;        // is current secret chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current secret chat being saved to the database
@@ -951,6 +945,12 @@ class ContactsManager : public Actor {
   void send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                 Promise<Unit> &&promise, const char *source);
 
+  const BotInfo *get_bot_info(UserId user_id) const;
+  BotInfo *get_bot_info(UserId user_id);
+  BotInfo *get_bot_info_force(UserId user_id, bool send_update = true);
+
+  BotInfo *add_bot_info(UserId user_id);
+
   const Chat *get_chat(ChatId chat_id) const;
   Chat *get_chat(ChatId chat_id);
   Chat *get_chat_force(ChatId chat_id);
@@ -998,9 +998,7 @@ class ContactsManager : public Actor {
 
   static bool is_valid_username(const string &username);
 
-  bool on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&bot_info);
-  bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
-                                    tl_object_ptr<telegram_api::botInfo> &&bot_info);
+  bool on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&new_bot_info, bool send_update = true);
   bool is_bot_info_expired(UserId user_id, int32 bot_info_version);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
@@ -1114,17 +1112,22 @@ class ContactsManager : public Actor {
   void load_secret_chat_from_database_impl(SecretChatId secret_chat_id, Promise<Unit> promise);
   void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value);
 
-  void save_user_full(UserFull *user_full, UserId user_id);
+  void save_user_full(const UserFull *user_full, UserId user_id);
   static string get_user_full_database_key(UserId user_id);
   static string get_user_full_database_value(const UserFull *user_full);
   void on_load_user_full_from_database(UserId user_id, string value);
 
-  void save_chat_full(ChatFull *chat_full, ChatId chat_id);
+  void save_bot_info(const BotInfo *bot_info, UserId user_id);
+  static string get_bot_info_database_key(UserId user_id);
+  static string get_bot_info_database_value(const BotInfo *bot_info);
+  void on_load_bot_info_from_database(UserId user_id, string value, bool send_update);
+
+  void save_chat_full(const ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);
   static string get_chat_full_database_value(const ChatFull *chat_full);
   void on_load_chat_full_from_database(ChatId chat_id, string value);
 
-  void save_channel_full(ChannelFull *channel_full, ChannelId channel_id);
+  void save_channel_full(const ChannelFull *channel_full, ChannelId channel_id);
   static string get_channel_full_database_key(ChannelId channel_id);
   static string get_channel_full_database_value(const ChannelFull *channel_full);
   void on_load_channel_full_from_database(ChannelId channel_id, string value);
@@ -1138,6 +1141,8 @@ class ContactsManager : public Actor {
   void update_user_full(UserFull *user_full, UserId user_id, bool from_database = false);
   void update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database = false);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
+
+  void update_bot_info(BotInfo *bot_info, UserId user_id, bool send_update, bool from_database);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 
@@ -1199,7 +1204,7 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
 
-  static tl_object_ptr<td_api::botInfo> get_bot_info_object(const BotInfo *bot_info);
+  td_api::object_ptr<td_api::botInfo> get_bot_info_object(UserId user_id) const;
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id, const User *u) const;
 
@@ -1261,6 +1266,7 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, unique_ptr<User>, UserIdHash> users_;
   std::unordered_map<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
+  std::unordered_map<UserId, unique_ptr<BotInfo>, UserIdHash> bot_infos_;
   std::unordered_map<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
   std::unordered_map<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
@@ -1300,6 +1306,7 @@ class ContactsManager : public Actor {
   std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;
   std::unordered_set<UserId, UserIdHash> unavailable_user_fulls_;
+  std::unordered_set<UserId, UserIdHash> unavailable_bot_infos_;
 
   std::unordered_map<ChatId, vector<Promise<Unit>>, ChatIdHash> load_chat_from_database_queries_;
   std::unordered_set<ChatId, ChatIdHash> loaded_from_database_chats_;
