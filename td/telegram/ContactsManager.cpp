@@ -6163,7 +6163,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
                  << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
       u->access_hash = access_hash;
       u->is_min_access_hash = is_min_access_hash;
-      u->is_changed = true;
+      u->need_save_to_database = true;
     }
   }
   if (is_received) {
@@ -6246,7 +6246,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (u->bot_info_version != bot_info_version) {
     u->bot_info_version = bot_info_version;
     LOG(DEBUG) << "Bot info version has changed for " << user_id;
-    u->is_changed = true;
+    u->need_save_to_database = true;
   }
 
   if (is_received && !u->is_received) {
@@ -6276,7 +6276,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
     u->cache_version = User::CACHE_VERSION;
-    u->is_changed = true;
+    u->need_save_to_database = true;
   }
   update_user(u, user_id);
 }
@@ -6387,7 +6387,7 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
   CHECK(u != nullptr);
   LOG_CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
                                << load_user_from_database_queries_.count(user_id) << " " << u->is_received << " "
-                               << u->is_deleted << " " << u->is_bot << " " << u->is_changed << " "
+                               << u->is_deleted << " " << u->is_bot << " " << u->need_save_to_database << " "
                                << u->need_send_update << " " << u->is_status_changed << " " << u->is_name_changed << " "
                                << u->is_username_changed << " " << u->is_photo_changed << " "
                                << u->is_is_contact_changed << " " << u->is_is_deleted_changed;
@@ -7607,9 +7607,10 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     */
   }
 
-  LOG(DEBUG) << "Update " << user_id << ": is_changed = " << u->is_changed
+  LOG(DEBUG) << "Update " << user_id << ": need_save_to_database = " << u->need_save_to_database
              << ", need_send_update = " << u->need_send_update << ", is_status_changed = " << u->is_status_changed;
-  if (u->is_changed || u->need_send_update) {
+  u->need_save_to_database |= u->need_send_update;
+  if (u->need_save_to_database) {
     if (!from_database) {
       u->is_saved = false;
     }
@@ -7618,7 +7619,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       u->need_send_update = false;
       u->is_status_changed = false;
     }
-    u->is_changed = false;
+    u->need_save_to_database = false;
   }
   if (u->is_status_changed) {
     if (!from_database) {
@@ -7674,13 +7675,14 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   c->is_default_permissions_changed = false;
   c->is_is_active_changed = false;
 
-  LOG(DEBUG) << "Update " << chat_id << ": is_changed = " << c->is_changed
+  LOG(DEBUG) << "Update " << chat_id << ": need_save_to_database = " << c->need_save_to_database
              << ", need_send_update = " << c->need_send_update;
-  if (c->is_changed || c->need_send_update) {
+  c->need_save_to_database |= c->need_send_update;
+  if (c->need_save_to_database) {
     if (!from_database) {
       c->is_saved = false;
     }
-    c->is_changed = false;
+    c->need_save_to_database = false;
     if (c->need_send_update) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateBasicGroup>(get_basic_group_object(chat_id, c)));
@@ -7759,13 +7761,14 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   c->is_status_changed = false;
   c->is_username_changed = false;
 
-  LOG(DEBUG) << "Update " << channel_id << ": is_changed = " << c->is_changed
+  LOG(DEBUG) << "Update " << channel_id << ": need_save_to_database = " << c->need_save_to_database
              << ", need_send_update = " << c->need_send_update;
-  if (c->is_changed || c->need_send_update) {
+  c->need_save_to_database |= c->need_send_update;
+  if (c->need_save_to_database) {
     if (!from_database) {
       c->is_saved = false;
     }
-    c->is_changed = false;
+    c->need_save_to_database = false;
     if (c->need_send_update) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
@@ -7801,13 +7804,14 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog,
                                          bool from_database) {
   CHECK(c != nullptr);
-  LOG(DEBUG) << "Update " << secret_chat_id << ": is_changed = " << c->is_changed
+  LOG(DEBUG) << "Update " << secret_chat_id << ": need_save_to_database = " << c->need_save_to_database
              << ", need_send_update = " << c->need_send_update;
-  if (c->is_changed || c->need_send_update) {
+  c->need_save_to_database |= c->need_send_update;
+  if (c->need_save_to_database) {
     if (!from_database) {
       c->is_saved = false;
     }
-    c->is_changed = false;
+    c->need_save_to_database = false;
     if (c->need_send_update) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateSecretChat>(get_secret_chat_object(secret_chat_id, c)));
@@ -8162,7 +8166,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
         if (c->version > c->pinned_message_version) {
           c->pinned_message_version = c->version;
-          c->is_changed = true;
+          c->need_save_to_database = true;
           update_chat(c, chat_id);
         }
       }
@@ -9785,7 +9789,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     }
 
     c->version = version;
-    c->is_changed = true;
+    c->need_save_to_database = true;
     if (user_id == get_my_id() && !c->status.is_creator()) {
       // if chat with version was already received, then the update is already processed
       // so we need to call on_update_chat_status only if version > c->version
@@ -9936,7 +9940,7 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
         << " and default_permissions = " << default_permissions
         << ", but default_permissions are not changed. Current version is " << c->version;
     c->version = version;
-    c->is_changed = true;
+    c->need_save_to_database = true;
     on_update_chat_default_permissions(c, chat_id, default_permissions, version);
     update_chat(c, chat_id);
   }
@@ -9950,7 +9954,7 @@ void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id
     c->default_permissions = default_permissions;
     c->default_permissions_version = version;
     c->is_default_permissions_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -9986,14 +9990,14 @@ void ContactsManager::on_update_chat_pinned_message(ChatId chat_id, MessageId pi
       repair_chat_participants(chat_id);
     } else if (version == c->version + 1) {
       c->version = version;
-      c->is_changed = true;
+      c->need_save_to_database = true;
     }
     td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
     if (version > c->pinned_message_version) {
       LOG(INFO) << "Change pinned message version of " << chat_id << " from " << c->pinned_message_version << " to "
                 << version;
       c->pinned_message_version = version;
-      c->is_changed = true;
+      c->need_save_to_database = true;
     }
     update_chat(c, chat_id);
   }
@@ -10030,7 +10034,7 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
 
   if (version > c->version) {
     c->version = version;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -10047,7 +10051,7 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
     }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -10055,7 +10059,7 @@ void ContactsManager::on_update_chat_title(Chat *c, ChatId chat_id, string &&tit
   if (c->title != title) {
     c->title = std::move(title);
     c->is_title_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -10176,7 +10180,7 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
     }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -10184,7 +10188,7 @@ void ContactsManager::on_update_channel_title(Channel *c, ChannelId channel_id, 
   if (c->title != title) {
     c->title = std::move(title);
     c->is_title_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -10214,7 +10218,7 @@ void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelI
               << default_permissions;
     c->default_permissions = default_permissions;
     c->is_default_permissions_changed = true;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -11284,7 +11288,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   auto *secret_chat = add_secret_chat(secret_chat_id);
   if (access_hash != secret_chat->access_hash) {
     secret_chat->access_hash = access_hash;
-    secret_chat->is_changed = true;
+    secret_chat->need_save_to_database = true;
   }
   if (user_id.is_valid() && user_id != secret_chat->user_id) {
     if (secret_chat->user_id.is_valid()) {
@@ -11313,7 +11317,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   }
   if (date != 0 && date != secret_chat->date) {
     secret_chat->date = date;
-    secret_chat->is_changed = true;
+    secret_chat->need_save_to_database = true;
   }
   if (!key_hash.empty() && key_hash != secret_chat->key_hash) {
     secret_chat->key_hash = std::move(key_hash);
@@ -11777,7 +11781,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     LOG_IF(ERROR, c->date != 0) << "Chat creation date has changed from " << c->date << " to " << chat.date_
                                 << debug_str;
     c->date = chat.date_;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   on_update_chat_status(c, chat_id, std::move(status));
   on_update_chat_default_permissions(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)),
@@ -11788,7 +11792,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated in " << debug_str;
   if (c->cache_version != Chat::CACHE_VERSION) {
     c->cache_version = Chat::CACHE_VERSION;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   update_chat(c, chat_id);
 }
@@ -11807,7 +11811,7 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
   on_update_chat_photo(c, chat_id, nullptr);
   if (c->date != 0) {
     c->date = 0;  // removed in 38-th layer
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   on_update_chat_status(c, chat_id, DialogParticipantStatus::Banned(0));
   if (is_uninited) {
@@ -11818,7 +11822,7 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
   }
   if (c->cache_version != Chat::CACHE_VERSION) {
     c->cache_version = Chat::CACHE_VERSION;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   update_chat(c, chat_id);
 }
@@ -11919,7 +11923,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
   if (c->access_hash != access_hash) {
     c->access_hash = access_hash;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   on_update_channel_title(c, channel_id, std::move(channel.title_));
   if (c->date != channel.date_) {
@@ -11954,7 +11958,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
   if (c->cache_version != Channel::CACHE_VERSION) {
     c->cache_version = Channel::CACHE_VERSION;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   update_channel(c, channel_id);
 }
@@ -11982,7 +11986,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
   if (c->access_hash != channel.access_hash_) {
     c->access_hash = channel.access_hash_;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   on_update_channel_title(c, channel_id, std::move(channel.title_));
   on_update_channel_photo(c, channel_id, nullptr);
@@ -12037,7 +12041,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
 
   if (c->cache_version != Channel::CACHE_VERSION) {
     c->cache_version = Channel::CACHE_VERSION;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   update_channel(c, channel_id);
 }
