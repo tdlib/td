@@ -102,6 +102,16 @@ void remove_if(T &v, const Func &f) {
   v.erase(v.begin() + j, v.end());
 }
 
+template <class V, class T>
+bool contains(const V &v, const T &elem) {
+  for (auto &x : v) {
+    if (x == elem) {
+      return true;
+    }
+  }
+  return false;
+}
+
 template <class T>
 void reset_to_empty(T &value) {
   using std::swap;

@@ -211,7 +211,7 @@ TEST(Misc, base64) {
 
 template <class T>
 static void test_remove_if(vector<int> v, const T &func, vector<int> expected) {
-  remove_if(v, func);
+  td::remove_if(v, func);
   if (expected != v) {
     LOG(FATAL) << "Receive " << v << ", expected " << expected << " in remove_if";
   }
@@ -266,6 +266,25 @@ TEST(Misc, remove_if) {
   test_remove_if(v, even, {});
   test_remove_if(v, all, {});
   test_remove_if(v, none, v);
+}
+
+TEST(Misc, contains) {
+  td::vector<int> v{1, 3, 5, 7, 4, 2};
+  for (int i = -10; i < 20; i++) {
+    ASSERT_EQ(td::contains(v, i), (1 <= i && i <= 5) || i == 7);
+  }
+
+  v.clear();
+  ASSERT_TRUE(!td::contains(v, 0));
+  ASSERT_TRUE(!td::contains(v, 1));
+
+  td::string str = "abacaba";
+  ASSERT_TRUE(!td::contains(str, '0'));
+  ASSERT_TRUE(!td::contains(str, 0));
+  ASSERT_TRUE(!td::contains(str, 'd'));
+  ASSERT_TRUE(td::contains(str, 'a'));
+  ASSERT_TRUE(td::contains(str, 'b'));
+  ASSERT_TRUE(td::contains(str, 'c'));
 }
 
 TEST(Misc, to_integer) {
