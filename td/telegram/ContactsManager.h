@@ -737,6 +737,8 @@ class ContactsManager : public Actor {
     MessageId migrated_from_max_message_id;
     ChatId migrated_from_chat_id;
 
+    vector<UserId> bot_user_ids;
+
     bool can_get_participants = false;
     bool can_set_username = false;
     bool can_set_sticker_set = false;
@@ -744,7 +746,8 @@ class ContactsManager : public Actor {
     bool can_view_statistics = false;
     bool is_all_history_available = true;
 
-    bool is_changed = true;
+    bool is_changed = true;             // have new changes that needs to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that needs only to be saved to database
 
     double expires_at = 0.0;
     bool is_expired() const;
@@ -1044,11 +1047,15 @@ class ContactsManager : public Actor {
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
   void on_update_channel_default_permissions(Channel *c, ChannelId channel_id, RestrictedRights default_permissions);
 
+  void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
+
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);
+  void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
+                                           vector<UserId> &&bot_user_ids);
 
   static bool speculative_add_count(int32 &count, int32 new_count);
 

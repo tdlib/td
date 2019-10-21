@@ -3221,6 +3221,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_migrated_from_max_message_id = migrated_from_max_message_id.is_valid();
   bool has_migrated_from_chat_id = migrated_from_chat_id.is_valid();
   bool has_location = !location.empty();
+  bool has_bot_user_ids = !bot_user_ids.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3238,6 +3239,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(is_all_history_available);
   STORE_FLAG(can_set_location);
   STORE_FLAG(has_location);
+  STORE_FLAG(has_bot_user_ids);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3264,6 +3266,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_location) {
     store(location, storer);
   }
+  if (has_bot_user_ids) {
+    store(bot_user_ids, storer);
+  }
   if (has_migrated_from_max_message_id) {
     store(migrated_from_max_message_id, storer);
   }
@@ -3286,6 +3291,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_migrated_from_max_message_id;
   bool has_migrated_from_chat_id;
   bool has_location;
+  bool has_bot_user_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3303,6 +3309,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(is_all_history_available);
   PARSE_FLAG(can_set_location);
   PARSE_FLAG(has_location);
+  PARSE_FLAG(has_bot_user_ids);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3328,6 +3335,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_location) {
     parse(location, parser);
+  }
+  if (has_bot_user_ids) {
+    parse(bot_user_ids, parser);
   }
   if (has_migrated_from_max_message_id) {
     parse(migrated_from_max_message_id, parser);
@@ -7247,9 +7257,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (user_full->need_phone_number_privacy_exception && is_user_contact(user_id)) {
     user_full->need_phone_number_privacy_exception = false;
   }
-  if (is_user_bot(user_id)) {
-    get_bot_info_force(user_id, false);
-  }
+  get_bot_info_force(user_id, false);
 
   update_user_full(user_full, user_id, true);
 
@@ -7415,6 +7423,10 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   }
   td_->messages_manager_->resolve_dependencies_force(dependencies);
 
+  for (auto &participant : chat_full->participants) {
+    get_bot_info_force(participant.user_id);
+  }
+
   update_chat_full(chat_full, chat_id, true);
 }
 
@@ -7484,7 +7496,12 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   dependencies.channel_ids.insert(channel_id);
   td_->messages_manager_->add_dialog_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
+  dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
   td_->messages_manager_->resolve_dependencies_force(dependencies);
+
+  for (auto &user_id : channel_full->bot_user_ids) {
+    get_bot_info_force(user_id);
+  }
 
   update_channel_full(channel_full, channel_id, true);
 }
@@ -7871,6 +7888,8 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
 void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database) {
   CHECK(channel_full != nullptr);
   unavailable_channel_fulls_.erase(channel_id);  // don't needed anymore
+
+  channel_full->need_save_to_database |= channel_full->is_changed;
   if (channel_full->is_changed) {
     if (channel_full->linked_channel_id.is_valid()) {
       td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full");
@@ -7883,10 +7902,10 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
                                                          get_supergroup_full_info_object(channel_full)));
-
-    if (!from_database) {
-      save_channel_full(channel_full, channel_id);
-    }
+  }
+  if (!from_database && channel_full->need_save_to_database) {
+    channel_full->need_save_to_database = false;
+    save_channel_full(channel_full, channel_id);
   }
 }
 
@@ -8274,9 +8293,17 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
     }
 
+    vector<UserId> bot_user_ids;
     for (auto &bot_info : channel_full->bot_info_) {
+      UserId user_id(bot_info->user_id_);
+      if (!is_user_bot(user_id)) {
+        continue;
+      }
+
+      bot_user_ids.push_back(user_id);
       on_update_bot_info(std::move(bot_info));
     }
+    on_update_channel_full_bot_user_ids(channel, channel_id, std::move(bot_user_ids));
 
     ChannelId linked_channel_id;
     if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
@@ -9115,7 +9142,7 @@ void ContactsManager::on_get_channel_participants_success(
       on_update_dialog_administrators(DialogId(channel_id), std::move(administrator_user_ids), true);
     }
     if (filter.is_bots() || filter.is_recent()) {
-      td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(bot_user_ids));
+      on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
     }
   }
 
@@ -9171,6 +9198,7 @@ bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
 void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                                            UserId inviter_user_id, int32 date, bool by_me) {
   auto it = cached_channel_participants_.find(channel_id);
+  auto channel_full = get_channel_full_force(channel_id);
   bool is_participants_cache_changed = false;
 
   int32 new_participant_count = 0;
@@ -9195,9 +9223,19 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
         participants.emplace_back(user_id, inviter_user_id, date, DialogParticipantStatus::Member());
       }
     }
+
+    if (channel_full != nullptr && is_user_bot(user_id) &&
+        std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id) ==
+            channel_full->bot_user_ids.end()) {
+      channel_full->bot_user_ids.push_back(user_id);
+      channel_full->need_save_to_database = true;
+    }
   }
   if (is_participants_cache_changed) {
     update_channel_online_member_count(channel_id, false);
+  }
+  if (channel_full != nullptr) {
+    update_channel_full(channel_full, channel_id);
   }
   if (new_participant_count == 0) {
     return;
@@ -9219,6 +9257,18 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
         participants.erase(participants.begin() + i);
         update_channel_online_member_count(channel_id, false);
         break;
+      }
+    }
+  }
+
+  if (is_user_bot(deleted_user_id)) {
+    auto channel_full = get_channel_full_force(channel_id);
+    if (channel_full != nullptr) {
+      auto user_it = std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), deleted_user_id);
+      if (user_it != channel_full->bot_user_ids.end()) {
+        channel_full->bot_user_ids.erase(user_it);
+        channel_full->need_save_to_database = true;
+        update_channel_full(channel_full, channel_id);
       }
     }
   }
@@ -9314,6 +9364,22 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
       speculative_add_count(channel_full->restricted_count, new_status.is_restricted() - old_status.is_restricted());
   channel_full->is_changed |=
       speculative_add_count(channel_full->banned_count, new_status.is_banned() - old_status.is_banned());
+
+  if (new_status.is_member() != old_status.is_member() && is_user_bot(user_id)) {
+    if (new_status.is_member()) {
+      if (std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id) ==
+          channel_full->bot_user_ids.end()) {
+        channel_full->bot_user_ids.push_back(user_id);
+        channel_full->need_save_to_database = true;
+      }
+    } else {
+      auto user_it = std::find(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end(), user_id);
+      if (user_it != channel_full->bot_user_ids.end()) {
+        channel_full->bot_user_ids.erase(user_it);
+        channel_full->need_save_to_database = true;
+      }
+    }
+  }
 
   update_channel_full(channel_full, channel_id);
 }
@@ -10226,6 +10292,32 @@ void ContactsManager::on_update_channel_location(ChannelId channel_id, const Dia
   if (channel_full != nullptr) {
     on_update_channel_full_location(channel_full, channel_id, location);
     update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids) {
+  CHECK(channel_id.is_valid());
+  if (!have_channel(channel_id)) {
+    LOG(ERROR) << channel_id << " not found";
+    return;
+  }
+
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full == nullptr) {
+    td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(bot_user_ids));
+    return;
+  }
+  on_update_channel_full_bot_user_ids(channel_full, channel_id, std::move(bot_user_ids));
+  update_channel_full(channel_full, channel_id);
+}
+
+void ContactsManager::on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
+                                                          vector<UserId> &&bot_user_ids) {
+  CHECK(channel_full != nullptr);
+  if (channel_full->bot_user_ids != bot_user_ids) {
+    td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), bot_user_ids);
+    channel_full->bot_user_ids = std::move(bot_user_ids);
+    channel_full->need_save_to_database = true;
   }
 }
 
