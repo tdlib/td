@@ -947,6 +947,8 @@ class ContactsManager : public Actor {
   UserFull *get_user_full(UserId user_id);
   UserFull *get_user_full_force(UserId user_id);
 
+  UserFull *add_user_full(UserId user_id);
+
   void send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                 Promise<Unit> &&promise, const char *source);
 
@@ -960,6 +962,8 @@ class ContactsManager : public Actor {
   ChatFull *get_chat_full(ChatId chat_id);
   ChatFull *get_chat_full_force(ChatId chat_id);
 
+  ChatFull *add_chat_full(ChatId chat_id);
+
   void send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source);
 
   const Channel *get_channel(ChannelId channel_id) const;
@@ -971,6 +975,8 @@ class ContactsManager : public Actor {
   const ChannelFull *get_channel_full(ChannelId channel_id) const;
   ChannelFull *get_channel_full(ChannelId channel_id);
   ChannelFull *get_channel_full_force(ChannelId channel_id);
+
+  ChannelFull *add_channel_full(ChannelId channel_id);
 
   void send_get_channel_full_query(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
                                    Promise<Unit> &&promise, const char *source);
@@ -1253,8 +1259,8 @@ class ContactsManager : public Actor {
   UserId support_user_id_;
   int32 my_was_online_local_ = 0;
 
-  std::unordered_map<UserId, User, UserIdHash> users_;
-  std::unordered_map<UserId, UserFull, UserIdHash> users_full_;
+  std::unordered_map<UserId, unique_ptr<User>, UserIdHash> users_;
+  std::unordered_map<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
   std::unordered_map<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
   std::unordered_map<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
@@ -1265,18 +1271,18 @@ class ContactsManager : public Actor {
   };
   std::unordered_map<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
 
-  std::unordered_map<ChatId, Chat, ChatIdHash> chats_;
-  std::unordered_map<ChatId, ChatFull, ChatIdHash> chats_full_;
+  std::unordered_map<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
+  std::unordered_map<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
   mutable std::unordered_set<ChatId, ChatIdHash> unknown_chats_;
   std::unordered_map<ChatId, FileSourceId, ChatIdHash> chat_photo_file_source_ids_;
 
   std::unordered_set<ChannelId, ChannelIdHash> min_channels_;
-  std::unordered_map<ChannelId, Channel, ChannelIdHash> channels_;
-  std::unordered_map<ChannelId, ChannelFull, ChannelIdHash> channels_full_;
+  std::unordered_map<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
+  std::unordered_map<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
   mutable std::unordered_set<ChannelId, ChannelIdHash> unknown_channels_;
   std::unordered_map<ChannelId, FileSourceId, ChannelIdHash> channel_photo_file_source_ids_;
 
-  std::unordered_map<SecretChatId, SecretChat, SecretChatIdHash> secret_chats_;
+  std::unordered_map<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable std::unordered_set<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   std::unordered_map<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
