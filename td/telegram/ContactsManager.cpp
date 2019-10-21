@@ -7741,9 +7741,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_username_changed) {
     if (c->status.is_creator() && created_public_channels_inited_) {
       if (c->username.empty()) {
-        created_public_channels_.erase(
-            std::remove(created_public_channels_.begin(), created_public_channels_.end(), channel_id),
-            created_public_channels_.end());
+        td::remove(created_public_channels_, channel_id);
       } else {
         if (std::find(created_public_channels_.begin(), created_public_channels_.end(), channel_id) ==
             created_public_channels_.end()) {
@@ -11298,8 +11296,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
     if (secret_chat->user_id.is_valid()) {
       LOG(ERROR) << "Secret chat user has changed from " << secret_chat->user_id << " to " << user_id;
       auto &old_secret_chat_ids = secret_chats_with_user_[secret_chat->user_id];
-      old_secret_chat_ids.erase(std::remove(old_secret_chat_ids.begin(), old_secret_chat_ids.end(), secret_chat_id),
-                                old_secret_chat_ids.end());
+      td::remove(old_secret_chat_ids, secret_chat_id);
     }
     secret_chat->user_id = user_id;
     secret_chats_with_user_[secret_chat->user_id].push_back(secret_chat_id);

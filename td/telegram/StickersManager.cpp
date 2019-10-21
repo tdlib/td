@@ -2641,8 +2641,7 @@ void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_ins
       sticker_set_ids.insert(sticker_set_ids.begin(), sticker_set->id);
     } else {
       installed_sticker_sets_hints_[sticker_set->is_masks].remove(sticker_set->id.get());
-      sticker_set_ids.erase(std::remove(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set->id),
-                            sticker_set_ids.end());
+      td::remove(sticker_set_ids, sticker_set->id);
     }
   }
   if (was_archived != is_archived && is_changed) {
@@ -2663,8 +2662,7 @@ void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_ins
         LOG(ERROR) << "Total count of archived sticker sets became negative";
         total_count = 0;
       }
-      sticker_set_ids.erase(std::remove(sticker_set_ids.begin(), sticker_set_ids.end(), sticker_set->id),
-                            sticker_set_ids.end());
+      td::remove(sticker_set_ids, sticker_set->id);
     }
   }
 }

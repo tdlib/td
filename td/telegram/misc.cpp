@@ -48,8 +48,9 @@ string clean_name(string str, size_t max_length) {
 }
 
 string clean_username(string str) {
-  str.resize(std::remove(str.begin(), str.end(), '.') - str.begin());
-  return trim(to_lower(str));
+  td::remove(str, '.');
+  to_lower_inplace(str);
+  return trim(str);
 }
 
 bool clean_input_string(string &str) {
