@@ -2880,7 +2880,6 @@ void ContactsManager::User::parse(ParserT &parser) {
 template <class StorerT>
 void ContactsManager::UserFull::store(StorerT &storer) const {
   using td::store;
-  CHECK(is_inited);
   bool has_about = !about.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
@@ -2900,7 +2899,6 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
 template <class ParserT>
 void ContactsManager::UserFull::parse(ParserT &parser) {
   using td::parse;
-  is_inited = true;
   bool has_about;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
@@ -4848,7 +4846,7 @@ void ContactsManager::on_update_profile_success(int32 flags, const string &first
 
   if ((flags & ACCOUNT_UPDATE_ABOUT) != 0) {
     UserFull *user_full = get_user_full_force(my_user_id);
-    if (user_full != nullptr && user_full->is_inited) {
+    if (user_full != nullptr) {
       user_full->about = about;
       user_full->is_changed = true;
       update_user_full(user_full, my_user_id);
@@ -7827,14 +7825,12 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
   }
 
   if (user_full->is_changed || user_full->need_send_update) {
-    if (user_full->is_inited) {
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
-                                                              get_user_full_info_object(user_id, user_full)));
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
+                                                            get_user_full_info_object(user_id, user_full)));
 
-      if (!from_database && user_full->is_changed) {
-        save_user_full(user_full, user_id);
-      }
+    if (!from_database && user_full->is_changed) {
+      save_user_full(user_full, user_id);
     }
     user_full->is_changed = false;
     user_full->need_send_update = false;
@@ -7933,7 +7929,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   UserFull *user = add_user_full(user_id);
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
-  user->is_inited = true;
 
   on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
   on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
@@ -8597,10 +8592,8 @@ void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked)
   }
 
   UserFull *user_full = get_user_full_force(user_id);
-  if (user_full == nullptr || !user_full->is_inited) {
-    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), is_blocked);
-  }
   if (user_full == nullptr) {
+    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), is_blocked);
     return;
   }
   on_update_user_full_is_blocked(user_full, user_id, is_blocked);
@@ -8609,7 +8602,7 @@ void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked)
 
 void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked) {
   CHECK(user_full != nullptr);
-  if (user_full->is_inited && user_full->is_blocked != is_blocked) {
+  if (user_full->is_blocked != is_blocked) {
     user_full->is_is_blocked_changed = true;
     user_full->is_blocked = is_blocked;
     user_full->is_changed = true;
@@ -8638,7 +8631,7 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
     LOG(ERROR) << "Receive " << common_chat_count << " as common group count with " << user_id;
     common_chat_count = 0;
   }
-  if (user_full->is_inited && user_full->common_chat_count != common_chat_count) {
+  if (user_full->common_chat_count != common_chat_count) {
     user_full->common_chat_count = common_chat_count;
     user_full->is_common_chat_count_changed = true;
     user_full->is_changed = true;
@@ -8665,7 +8658,7 @@ void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId 
 void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
     UserFull *user_full, UserId user_id, bool need_phone_number_privacy_exception) {
   CHECK(user_full != nullptr);
-  if (user_full->is_inited && user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
+  if (user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
     user_full->need_phone_number_privacy_exception = need_phone_number_privacy_exception;
     user_full->is_changed = true;
   }
@@ -8710,7 +8703,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
 
   user_full->expires_at = 0.0;
 
-  user_full->is_inited = true;
   user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->has_private_calls = false;
@@ -9050,7 +9042,7 @@ bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
 
 bool ContactsManager::is_user_blocked(UserId user_id) {
   const UserFull *user_full = get_user_full_force(user_id);
-  return user_full != nullptr && user_full->is_inited && user_full->is_blocked;
+  return user_full != nullptr && user_full->is_blocked;
 }
 
 void ContactsManager::on_get_channel_participants_success(
@@ -10497,7 +10489,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
   }
 
   auto user_full = get_user_full_force(user_id);
-  if (user_full == nullptr || !user_full->is_inited) {
+  if (user_full == nullptr) {
     auto input_user = get_input_user(user_id);
     if (input_user == nullptr) {
       promise.set_error(Status::Error(6, "Can't get info about inaccessible user"));
@@ -12337,9 +12329,6 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
 
   for (auto &it : users_full_) {
-    if (!it.second->is_inited) {
-      continue;
-    }
     updates.push_back(td_api::make_object<td_api::updateUserFullInfo>(
         get_user_id_object(it.first, "get_current_state"), get_user_full_info_object(it.first, it.second.get())));
   }

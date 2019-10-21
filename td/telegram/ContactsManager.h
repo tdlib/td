@@ -592,7 +592,6 @@ class ContactsManager : public Actor {
 
     int32 common_chat_count = 0;
 
-    bool is_inited = false;  // TODO remove
     bool is_blocked = false;
     bool can_be_called = false;
     bool has_private_calls = false;
