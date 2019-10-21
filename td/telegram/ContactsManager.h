@@ -548,8 +548,8 @@ class ContactsManager : public Actor {
     bool is_is_contact_changed = true;
     bool is_is_deleted_changed = true;
     bool is_default_permissions_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
-    bool need_send_update = true;       // have new changes that need to be sent to the client and databasedatabase
     bool is_status_changed = true;
     bool is_online_status_changed = true;  // whether online/offline has changed
 
@@ -638,8 +638,8 @@ class ContactsManager : public Actor {
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
     bool is_is_active_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
-    bool need_send_update = true;       // have new changes that need to be sent to the client and databasedatabase
 
     bool is_repaired = false;  // whether cached value is rechecked
 
@@ -706,8 +706,8 @@ class ContactsManager : public Actor {
     bool is_status_changed = true;
     bool had_read_access = true;
     bool was_member = false;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
-    bool need_send_update = true;       // have new changes that need to be sent to the client and databasedatabase
 
     bool is_repaired = false;  // whether cached value is rechecked
 
@@ -774,8 +774,8 @@ class ContactsManager : public Actor {
     bool is_outbound = false;
 
     bool is_state_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
-    bool need_send_update = true;       // have new changes that need to be sent to the client and databasedatabase
 
     bool is_saved = false;        // is current secret chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current secret chat being saved to the database
