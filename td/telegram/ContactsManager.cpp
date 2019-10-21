@@ -2526,10 +2526,6 @@ class GetSupportUserQuery : public Td::ResultHandler {
   }
 };
 
-bool ContactsManager::UserFull::is_bot_info_expired(int32 bot_info_version) const {
-  return bot_info_version != -1 && (bot_info == nullptr || bot_info->version != bot_info_version);
-}
-
 bool ContactsManager::UserFull::is_expired() const {
   return expires_at < Time::now();
 }
@@ -8013,6 +8009,20 @@ bool ContactsManager::on_update_user_full_bot_info(UserFull *user_full, UserId u
   return true;
 }
 
+bool ContactsManager::is_bot_info_expired(UserId user_id, int32 bot_info_version) {
+  if (bot_info_version == -1) {
+    return false;
+  }
+
+  auto user_full = get_user_full_force(user_id);
+  if (user_full == nullptr) {
+    return true;
+  }
+
+  auto bot_info = user_full->bot_info.get();
+  return bot_info == nullptr || bot_info->version != bot_info_version;
+}
+
 void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(chat);
   downcast_call(*chat, [this, source](auto &c) { this->on_chat_update(c, source); });
@@ -10426,7 +10436,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
     send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get_user_full");
     return false;
   }
-  if (user_full->is_expired() || user_full->is_bot_info_expired(u->bot_info_version)) {
+  if (user_full->is_expired() || is_bot_info_expired(user_id, u->bot_info_version)) {
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
     if (td_->auth_manager_->is_bot()) {
@@ -10658,7 +10668,7 @@ ContactsManager::ChatFull *ContactsManager::add_chat_full(ChatId chat_id) {
   return chat_full_ptr.get();
 }
 
-bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const {
+bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) {
   CHECK(c != nullptr);
   CHECK(chat_full != nullptr);
   if (!c->is_active && chat_full->version == -1) {
@@ -10673,14 +10683,9 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
 
   for (const auto &participant : chat_full->participants) {
     auto u = get_user(participant.user_id);
-    if (u != nullptr && u->bot_info_version != -1) {
-      auto user_full = get_user_full(participant.user_id);
-      if (user_full == nullptr || user_full->is_bot_info_expired(u->bot_info_version)) {
-        LOG(INFO) << "Have outdated botInfo for " << participant.user_id << " with version "
-                  << (user_full && user_full->bot_info ? user_full->bot_info->version : -123456789)
-                  << ", but current version is " << u->bot_info_version;
-        return true;
-      }
+    if (u != nullptr && is_bot_info_expired(participant.user_id, u->bot_info_version)) {
+      LOG(INFO) << "Have outdated botInfo for " << participant.user_id << ", expected version " << u->bot_info_version;
+      return true;
     }
   }
 
@@ -11241,10 +11246,10 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   if (!td_->auth_manager_->is_bot() && is_user_bot(user_id)) {
     // get BotInfo through UserFull
     auto u = get_user(user_id);
-    auto user_full = get_user_full_force(user_id);
-    if (user_full == nullptr || user_full->is_bot_info_expired(u->bot_info_version)) {
+    CHECK(u != nullptr);
+    if (is_bot_info_expired(user_id, u->bot_info_version)) {
       if (force) {
-        LOG(ERROR) << "Can't find cached UserFull";
+        LOG(ERROR) << "Can't find cached BotInfo";
       } else {
         send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get_channel_participant");
         return DialogParticipant();

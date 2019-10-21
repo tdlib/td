@@ -613,7 +613,6 @@ class ContactsManager : public Actor {
 
     double expires_at = 0.0;
 
-    bool is_bot_info_expired(int32 bot_info_version) const;
     bool is_expired() const;
 
     template <class StorerT>
@@ -1000,6 +999,9 @@ class ContactsManager : public Actor {
   static bool is_valid_username(const string &username);
 
   bool on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&bot_info);
+  bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
+                                    tl_object_ptr<telegram_api::botInfo> &&bot_info);
+  bool is_bot_info_expired(UserId user_id, int32 bot_info_version);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
@@ -1018,8 +1020,6 @@ class ContactsManager : public Actor {
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
-  bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
-                                    tl_object_ptr<telegram_api::botInfo> &&bot_info);
   void drop_user_photos(UserId user_id, bool is_empty);
   void drop_user_full(UserId user_id);
 
@@ -1139,7 +1139,7 @@ class ContactsManager : public Actor {
   void update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database = false);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
 
-  bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const;
+  bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 
   bool is_user_contact(const User *u, UserId user_id) const;
 
