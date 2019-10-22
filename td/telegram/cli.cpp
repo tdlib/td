@@ -3278,6 +3278,11 @@ class CliClient final : public Actor {
     } else if (op == "gcpcl") {
       send_request(td_api::make_object<td_api::getCreatedPublicChats>(
           td_api::make_object<td_api::publicChatTypeIsLocationBased>()));
+    } else if (op == "ccpcl") {
+      send_request(td_api::make_object<td_api::checkCreatedPublicChatsLimit>());
+    } else if (op == "ccpcll") {
+      send_request(td_api::make_object<td_api::checkCreatedPublicChatsLimit>(
+          td_api::make_object<td_api::publicChatTypeIsLocationBased>()));
     } else if (op == "gsdc") {
       send_request(td_api::make_object<td_api::getSuitableDiscussionChats>());
     } else if (op == "cpc") {

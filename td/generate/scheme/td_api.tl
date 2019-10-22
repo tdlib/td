@@ -3127,6 +3127,9 @@ checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 //@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
 getCreatedPublicChats type:PublicChatType = Chats;
 
+//@description Checks whether a maximum number of owned public chats is reached. Returns corresponding error if the limit was reached @type Type of the public chats, for which to check the limit
+checkCreatedPublicChatsLimit type:PublicChatType = Ok;
+
 //@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Basic group chats need to be first upgraded to supergroups before they can be set as a discussion group
 getSuitableDiscussionChats = Chats;
 

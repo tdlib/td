@@ -1975,11 +1975,14 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
   explicit GetCreatedPublicChannelsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(PublicDialogType type) {
+  void send(PublicDialogType type, bool check_limit) {
     type_ = type;
     int32 flags = 0;
     if (type_ == PublicDialogType::IsLocationBased) {
       flags |= telegram_api::channels_getAdminedPublicChannels::BY_LOCATION_MASK;
+    }
+    if (check_limit) {
+      flags |= telegram_api::channels_getAdminedPublicChannels::CHECK_LIMIT_MASK;
     }
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::channels_getAdminedPublicChannels(flags, false /*ignored*/, false /*ignored*/))));
@@ -5798,7 +5801,7 @@ vector<DialogId> ContactsManager::get_created_public_dialogs(PublicDialogType ty
     });
   }
 
-  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type);
+  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type, false);
   return {};
 }
 
@@ -5807,6 +5810,10 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
   int32 index = static_cast<int32>(type);
   created_public_channels_[index] = get_channel_ids(std::move(chats), "on_get_created_public_channels");
   created_public_channels_inited_[index] = true;
+}
+
+void ContactsManager::check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise) {
+  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type, true);
 }
 
 vector<DialogId> ContactsManager::get_dialogs_for_discussion(Promise<Unit> &&promise) {

@@ -5504,6 +5504,12 @@ void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
   CREATE_REQUEST(GetCreatedPublicChatsRequest, get_public_dialog_type(request.type_));
 }
 
+void Td::on_request(uint64 id, const td_api::checkCreatedPublicChatsLimit &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->check_created_public_dialogs_limit(get_public_dialog_type(request.type_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getSuitableDiscussionChats &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSuitableDiscussionChatsRequest);

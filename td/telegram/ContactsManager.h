@@ -366,6 +366,8 @@ class ContactsManager : public Actor {
 
   vector<DialogId> get_created_public_dialogs(PublicDialogType type, Promise<Unit> &&promise);
 
+  void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
+
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id) const;
