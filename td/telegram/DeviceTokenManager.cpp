@@ -371,8 +371,10 @@ void DeviceTokenManager::loop() {
       net_query = G()->net_query_creator().create(
           create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
-      net_query = G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(
-          token_type, info.token, info.is_app_sandbox, BufferSlice(info.encryption_key), std::move(other_user_ids))));
+      int32 flags = telegram_api::account_registerDevice::NO_MUTED_MASK;
+      net_query = G()->net_query_creator().create(create_storer(
+          telegram_api::account_registerDevice(flags, false /*ignored*/, token_type, info.token, info.is_app_sandbox,
+                                               BufferSlice(info.encryption_key), std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));
