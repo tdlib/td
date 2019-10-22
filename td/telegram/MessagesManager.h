@@ -598,7 +598,8 @@ class MessagesManager : public Actor {
       DialogId dialog_id, const string &query, int64 from_search_id, int32 limit,
       const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise);
 
-  std::pair<int32, vector<FullMessageId>> search_messages(const string &query, int32 offset_date,
+  std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
+                                                          const string &query, int32 offset_date,
                                                           DialogId offset_dialog_id, MessageId offset_message_id,
                                                           int32 limit, int64 &random_id, Promise<Unit> &&promise);
 

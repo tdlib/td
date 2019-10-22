@@ -1709,7 +1709,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::searchChatMessages>(
           search_chat_id_, "", 0, 0, 0, 100, td_api::make_object<td_api::searchMessagesFilterPhotoAndVideo>()));
-    } else if (op == "Search") {
+    } else if (op == "Search" || op == "SearchA" || op == "SearchM") {
       string from_date;
       string limit;
       string query;
@@ -1719,8 +1719,15 @@ class CliClient final : public Actor {
       if (from_date.empty()) {
         from_date = "0";
       }
-      send_request(td_api::make_object<td_api::searchMessages>(query, to_integer<int32>(from_date), 2147482647, 0,
-                                                               to_integer<int32>(limit)));
+      td_api::object_ptr<td_api::ChatList> chat_list;
+      if (op == "SearchA") {
+        chat_list = td_api::make_object<td_api::chatListArchive>();
+      }
+      if (op == "SearchM") {
+        chat_list = td_api::make_object<td_api::chatListMain>();
+      }
+      send_request(td_api::make_object<td_api::searchMessages>(
+          std::move(chat_list), query, to_integer<int32>(from_date), 2147482647, 0, to_integer<int32>(limit)));
     } else if (op == "SCM") {
       string chat_id;
       string limit;
