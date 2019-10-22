@@ -39,7 +39,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
-#include <algorithm>
 #include <utility>
 
 namespace td {

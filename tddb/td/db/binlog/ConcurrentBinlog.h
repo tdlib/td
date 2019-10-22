@@ -11,6 +11,7 @@
 
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogInterface.h"
+#include "td/db/DbKey.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

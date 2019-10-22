@@ -305,7 +305,7 @@ user id:int32 first_name:string last_name:string username:string phone_number:st
 
 //@description Contains full information about a user (except the full list of profile photos) @is_blocked True, if the user is blacklisted by the current user
 //@can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
-//@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share his phone number with the user when the method addContact is used
+//@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null
 userFullInfo is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
@@ -2694,7 +2694,7 @@ updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int
 //@description A new chat has been loaded/created. This update is guaranteed to come before the chat identifier is returned to the client. The chat field changes will be reported through separate updates @chat The chat
 updateNewChat chat:chat = Update;
 
-//@description The list to which the chat belongs was changed. This update is guaranteed to be sent only when chat.order == 0 and the current or the new chat list is null @chat_id Chat identifier @chat_list The new chat's list; may be null
+//@description The list to which the chat belongs was changed. This update is guaranteed to be sent only when chat.order == 0 and the current or the new chat list is null @chat_id Chat identifier @chat_list The new chat's chat list; may be null
 updateChatChatList chat_id:int53 chat_list:ChatList = Update;
 
 //@description The title of a chat was changed @chat_id Chat identifier @title The new chat title
@@ -3634,8 +3634,8 @@ unblockUser user_id:int32 = Ok;
 getBlockedUsers offset:int32 limit:int32 = Users;
 
 
-//@description Adds a user to the contacts list or edits an existing contact by their user_id @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
-//@share_phone_number True, if the new contact needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field UserFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share his phone number
+//@description Adds a user to the contact list or edits an existing contact by their user_id @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
+//@share_phone_number True, if the new contact needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field UserFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
 addContact contact:contact share_phone_number:Bool = Ok;
 
 //@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported

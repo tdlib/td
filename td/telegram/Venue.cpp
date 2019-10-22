@@ -7,6 +7,7 @@
 #include "td/telegram/Venue.h"
 
 #include "td/telegram/misc.h"
+#include "td/telegram/secret_api.h"
 
 namespace td {
 

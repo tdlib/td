@@ -19,6 +19,7 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
 
+#include "td/db/DbKey.h"
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValue.h"
 

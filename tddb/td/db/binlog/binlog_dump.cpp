@@ -6,6 +6,8 @@
 //
 #include "td/db/binlog/Binlog.h"
 
+#include "td/db/DbKey.h"
+
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

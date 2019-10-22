@@ -73,7 +73,6 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
-#include <algorithm>
 #include <utility>
 
 namespace td {

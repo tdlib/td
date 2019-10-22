@@ -9,6 +9,7 @@
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
+#include "td/db/DbKey.h"
 #include "td/db/SeqKeyValue.h"
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"

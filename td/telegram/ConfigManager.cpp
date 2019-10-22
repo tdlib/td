@@ -52,7 +52,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
-#include <algorithm>
 #include <memory>
 #include <utility>
 

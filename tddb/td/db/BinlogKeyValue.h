@@ -10,6 +10,7 @@
 
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogEvent.h"
+#include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 
 #include "td/utils/buffer.h"

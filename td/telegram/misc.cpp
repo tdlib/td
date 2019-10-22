@@ -13,7 +13,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/utf8.h"
 
-#include <algorithm>
 #include <cstring>
 #include <limits>
 

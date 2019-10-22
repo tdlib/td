@@ -8,11 +8,9 @@
 
 #include "td/telegram/Location.h"
 #include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/Version.h"
-
-#include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
