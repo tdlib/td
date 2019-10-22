@@ -1969,13 +1969,20 @@ class MigrateChatQuery : public Td::ResultHandler {
 
 class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  PublicDialogType type_;
 
  public:
   explicit GetCreatedPublicChannelsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getAdminedPublicChannels())));
+  void send(PublicDialogType type) {
+    type_ = type;
+    int32 flags = 0;
+    if (type_ == PublicDialogType::IsLocationBased) {
+      flags |= telegram_api::channels_getAdminedPublicChannels::BY_LOCATION_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::channels_getAdminedPublicChannels(flags, false /*ignored*/, false /*ignored*/))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1990,13 +1997,13 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
-        td->contacts_manager_->on_get_created_public_channels(std::move(chats->chats_));
+        td->contacts_manager_->on_get_created_public_channels(type_, std::move(chats->chats_));
         break;
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
         LOG(ERROR) << "Receive chatsSlice in result of GetCreatedPublicChannelsQuery";
-        td->contacts_manager_->on_get_created_public_channels(std::move(chats->chats_));
+        td->contacts_manager_->on_get_created_public_channels(type_, std::move(chats->chats_));
         break;
       }
       default:
@@ -5780,23 +5787,26 @@ vector<DialogId> ContactsManager::get_dialog_ids(vector<tl_object_ptr<telegram_a
   return dialog_ids;
 }
 
-vector<DialogId> ContactsManager::get_created_public_dialogs(Promise<Unit> &&promise) {
-  if (created_public_channels_inited_) {
+vector<DialogId> ContactsManager::get_created_public_dialogs(PublicDialogType type, Promise<Unit> &&promise) {
+  int32 index = static_cast<int32>(type);
+  if (created_public_channels_inited_[index]) {
     promise.set_value(Unit());
-    return transform(created_public_channels_, [&](ChannelId channel_id) {
+    return transform(created_public_channels_[index], [&](ChannelId channel_id) {
       DialogId dialog_id(channel_id);
       td_->messages_manager_->force_create_dialog(dialog_id, "get_created_public_dialogs");
       return dialog_id;
     });
   }
 
-  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send();
+  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type);
   return {};
 }
 
-void ContactsManager::on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
-  created_public_channels_inited_ = true;
-  created_public_channels_ = get_channel_ids(std::move(chats), "on_get_created_public_channels");
+void ContactsManager::on_get_created_public_channels(PublicDialogType type,
+                                                     vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
+  int32 index = static_cast<int32>(type);
+  created_public_channels_[index] = get_channel_ids(std::move(chats), "on_get_created_public_channels");
+  created_public_channels_inited_[index] = true;
 }
 
 vector<DialogId> ContactsManager::get_dialogs_for_discussion(Promise<Unit> &&promise) {
@@ -7736,12 +7746,12 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     }
   }
   if (c->is_username_changed) {
-    if (c->status.is_creator() && created_public_channels_inited_) {
+    if (c->status.is_creator() && created_public_channels_inited_[0]) {
       if (c->username.empty()) {
-        td::remove(created_public_channels_, channel_id);
+        td::remove(created_public_channels_[0], channel_id);
       } else {
-        if (!td::contains(created_public_channels_, channel_id)) {
-          created_public_channels_.push_back(channel_id);
+        if (!td::contains(created_public_channels_[0], channel_id)) {
+          created_public_channels_[0].push_back(channel_id);
         }
       }
     }
@@ -10183,14 +10193,19 @@ void ContactsManager::on_update_channel_title(Channel *c, ChannelId channel_id, 
 void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
   if (c->status != status) {
     LOG(INFO) << "Update " << channel_id << " status from " << c->status << " to " << status;
-    bool reget_channel_full = c->status.is_creator() != status.is_creator();
+    bool is_ownership_transferred = c->status.is_creator() != status.is_creator();
     bool drop_invite_link =
         c->status.is_administrator() != status.is_administrator() || c->status.is_member() != status.is_member();
     c->status = status;
     c->is_status_changed = true;
     c->is_changed = true;
     invalidate_channel_full(channel_id, drop_invite_link);
-    if (reget_channel_full) {
+    if (is_ownership_transferred) {
+      for (size_t i = 0; i < 2; i++) {
+        created_public_channels_inited_[i] = false;
+        created_public_channels_[i].clear();
+      }
+
       auto input_channel = get_input_channel(channel_id);
       if (input_channel != nullptr) {
         send_get_channel_full_query(channel_id, std::move(input_channel), Auto(), "update channel creator");

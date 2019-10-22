@@ -274,6 +274,7 @@ function split_file($file, $chunks, $undo) {
                 'get_erase_logevent_promise|parse_time|store_time' => 'logevent/LogEventHelper',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
                 'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
+                'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-][^.]|SecretChatsManager' => 'SecretChatsManager',
                 'stickers_manager[_(-][^.]|StickersManager' => 'StickersManager',

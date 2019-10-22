@@ -21,6 +21,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
@@ -218,7 +219,7 @@ class ContactsManager : public Actor {
 
   void invalidate_invite_link_info(const string &invite_link);
 
-  void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
+  void on_get_created_public_channels(PublicDialogType type, vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
   void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
@@ -363,7 +364,7 @@ class ContactsManager : public Actor {
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
-  vector<DialogId> get_created_public_dialogs(Promise<Unit> &&promise);
+  vector<DialogId> get_created_public_dialogs(PublicDialogType type, Promise<Unit> &&promise);
 
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
@@ -1306,8 +1307,8 @@ class ContactsManager : public Actor {
   std::unordered_map<ChannelId, string, ChannelIdHash> channel_invite_links_;  // in-memory cache for invite links
   std::unordered_map<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
 
-  bool created_public_channels_inited_ = false;
-  vector<ChannelId> created_public_channels_;
+  bool created_public_channels_inited_[2] = {false, false};
+  vector<ChannelId> created_public_channels_[2];
 
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;

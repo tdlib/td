@@ -67,6 +67,7 @@
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/PublicDialogType.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -1031,9 +1032,10 @@ class GetGroupsInCommonRequest : public RequestActor<> {
 
 class GetCreatedPublicChatsRequest : public RequestActor<> {
   vector<DialogId> dialog_ids_;
+  PublicDialogType type_;
 
   void do_run(Promise<Unit> &&promise) override {
-    dialog_ids_ = td->contacts_manager_->get_created_public_dialogs(std::move(promise));
+    dialog_ids_ = td->contacts_manager_->get_created_public_dialogs(type_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1041,7 +1043,8 @@ class GetCreatedPublicChatsRequest : public RequestActor<> {
   }
 
  public:
-  GetCreatedPublicChatsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  GetCreatedPublicChatsRequest(ActorShared<Td> td, uint64 request_id, PublicDialogType type)
+      : RequestActor(std::move(td), request_id), type_(type) {
   }
 };
 
@@ -5498,7 +5501,7 @@ void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
 
 void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetCreatedPublicChatsRequest);
+  CREATE_REQUEST(GetCreatedPublicChatsRequest, get_public_dialog_type(request.type_));
 }
 
 void Td::on_request(uint64 id, const td_api::getSuitableDiscussionChats &request) {

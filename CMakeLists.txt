@@ -611,6 +611,7 @@ set(TDLIB_SOURCE
   td/telegram/PollManager.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
+  td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
   td/telegram/ReplyMarkup.h
   td/telegram/RequestActor.h

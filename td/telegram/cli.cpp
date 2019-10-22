@@ -3275,6 +3275,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteSupergroup>(as_supergroup_id(args)));
     } else if (op == "gcpc") {
       send_request(td_api::make_object<td_api::getCreatedPublicChats>());
+    } else if (op == "gcpcl") {
+      send_request(td_api::make_object<td_api::getCreatedPublicChats>(
+          td_api::make_object<td_api::publicChatTypeIsLocationBased>()));
     } else if (op == "gsdc") {
       send_request(td_api::make_object<td_api::getSuitableDiscussionChats>());
     } else if (op == "cpc") {

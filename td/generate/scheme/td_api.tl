@@ -667,6 +667,15 @@ chatInviteLink invite_link:string = ChatInviteLink;
 chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
+//@class PublicChatType @description Describes a type of public chats
+
+//@description The chat is public, because it has username
+publicChatTypeHasUsername = PublicChatType;
+
+//@description The chat is public, because it is a location-based supergroup
+publicChatTypeIsLocationBased = PublicChatType;
+
+
 //@class ChatActionBar @description Describes actions which should be possible to do through a chat action bar
 
 //@description The chat can be reported as spam using the method reportChat with the reason chatReportReasonSpam
@@ -3115,8 +3124,8 @@ clearRecentlyFoundChats = Ok;
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if chat is being created @username Username to be checked
 checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 
-//@description Returns a list of public chats with username created by the user
-getCreatedPublicChats = Chats;
+//@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
+getCreatedPublicChats type:PublicChatType = Chats;
 
 //@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Basic group chats need to be first upgraded to supergroups before they can be set as a discussion group
 getSuitableDiscussionChats = Chats;
