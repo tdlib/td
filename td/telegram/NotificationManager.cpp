@@ -1804,8 +1804,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     return promise.set_value(Unit());
   }
 
-  VLOG(notifications) << "Remove " << notification_id << " from " << group_id << " with force_update = " << force_update
-                      << " from " << source;
+  VLOG(notifications) << "Remove " << notification_id << " from " << group_id << " with is_permanent = " << is_permanent
+                      << ", force_update = " << force_update << " from " << source;
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {

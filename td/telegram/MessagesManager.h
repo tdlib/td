@@ -1630,7 +1630,8 @@ class MessagesManager : public Actor {
   static void delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
                                                                   MessageId message_id);
 
-  void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update);
+  void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update,
+                                      bool ignore_pinned_message_notification_removal = false);
 
   void remove_new_secret_chat_notification(Dialog *d, bool is_permanent);
 
