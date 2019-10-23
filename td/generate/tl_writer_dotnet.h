@@ -261,7 +261,7 @@ class TlWriterDotNet : public TL_writer {
       if (is_header_) {
         ss << ";\n";
       } else {
-        ss << "{\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged(this).release());\n}\n";
+        ss << " {\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged(this).release());\n}\n";
       }
     }
     return ss.str();
@@ -345,7 +345,7 @@ class TlWriterDotNet : public TL_writer {
       ss << ";\n";
       return;
     }
-    ss << "{\n"
+    ss << " {\n"
        << "  if (!from) {\n"
        << "    return nullptr;\n"
        << "  }\n"
@@ -374,7 +374,7 @@ class TlWriterDotNet : public TL_writer {
       ss << ";\n";
       return;
     }
-    ss << "{\n"
+    ss << " {\n"
        << "  return REF_NEW " << class_name << "(";
     bool is_first = true;
     for (auto &it : t->args) {
@@ -522,7 +522,7 @@ class TlWriterDotNet : public TL_writer {
         ss << ";\n";
         return ss.str();
       }
-      ss << "{\n"
+      ss << " {\n"
          << "  if (!from) {\n"
          << "    return nullptr;\n"
          << "  }\n"
@@ -534,7 +534,7 @@ class TlWriterDotNet : public TL_writer {
         ss << ";\n";
         return ss.str();
       }
-      ss << "{\n";
+      ss << " {\n";
       ss << "  return DoFromUnmanaged<" << class_name << "^>(from);\n";
       ss << "}\n";
     }
