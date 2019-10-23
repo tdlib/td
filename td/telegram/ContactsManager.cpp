@@ -2884,8 +2884,14 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_cache_version) {
     parse(cache_version, parser);
   }
+
   if (first_name.empty() && last_name.empty()) {
     first_name = phone_number;
+  }
+  if (!is_contact && is_mutual_contact) {
+    LOG(ERROR) << "Have invalid flag is_mutual_contact";
+    is_mutual_contact = false;
+    cache_version = 0;
   }
 }
 
