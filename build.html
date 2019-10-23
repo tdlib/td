@@ -868,6 +868,9 @@ function onOptionsChanged() {
     }
     commands.push('cd ..');
   }
+  if (jni_install_dir) {
+    install_dir = jni_install_dir;
+  }
   if (install_dir) {
     if (install_dir !== '/usr/local') {
       install_dir = 'td/tdlib';
