@@ -92,7 +92,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FileEncryptionKey
   if (key.is_secret()) {
     return string_builder << "SecretKey{" << key.size() << "}";
   }
-  if (key.is_secret()) {
+  if (key.is_secure()) {
     return string_builder << "SecureKey{" << key.size() << "}";
   }
   return string_builder << "NoKey{}";
