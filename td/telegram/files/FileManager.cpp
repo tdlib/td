@@ -1278,7 +1278,7 @@ static int merge_choose_encryption_key(const FileEncryptionKey &a, const FileEnc
   if (a.empty() != b.empty()) {
     return a.empty() > b.empty();
   }
-  if (a.key_iv_ != b.key_iv_) {
+  if (a != b) {
     return -1;
   }
   return 2;

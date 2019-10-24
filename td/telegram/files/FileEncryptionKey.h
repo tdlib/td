@@ -86,13 +86,14 @@ struct FileEncryptionKey {
     }
   }
 
+  friend bool operator==(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
+    return lhs.key_iv_ == rhs.key_iv_;
+  }
+
+ private:
   string key_iv_;  // TODO wrong alignment is possible
   Type type_ = Type::None;
 };
-
-inline bool operator==(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
-  return lhs.key_iv_ == rhs.key_iv_;
-}
 
 inline bool operator!=(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
   return !(lhs == rhs);
