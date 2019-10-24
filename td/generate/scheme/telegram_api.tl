@@ -76,6 +76,7 @@ inputDocumentFileLocation#bad07584 id:long access_hash:long file_reference:bytes
 inputSecureFileLocation#cbc7ee28 id:long access_hash:long = InputFileLocation;
 inputTakeoutFileLocation#29be5899 = InputFileLocation;
 inputPhotoFileLocation#40181ffe id:long access_hash:long file_reference:bytes thumb_size:string = InputFileLocation;
+inputPhotoLegacyFileLocation#d83466f3 id:long access_hash:long file_reference:bytes volume_id:long local_id:int secret:long = InputFileLocation;
 inputPeerPhotoFileLocation#27d69997 flags:# big:flags.0?true peer:InputPeer volume_id:long local_id:int = InputFileLocation;
 inputStickerSetThumb#dbaeae9 stickerset:InputStickerSet volume_id:long local_id:int = InputFileLocation;
 

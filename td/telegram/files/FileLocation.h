@@ -396,8 +396,9 @@ class FullRemoteFileLocation {
       case LocationType::Photo:
         switch (photo().source_.get_type()) {
           case PhotoSizeSource::Type::Legacy:
-            return make_tl_object<telegram_api::inputFileLocation>(
-                photo().volume_id_, photo().local_id_, photo().source_.legacy().secret, BufferSlice(file_reference_));
+            return make_tl_object<telegram_api::inputPhotoLegacyFileLocation>(
+                photo().id_, photo().access_hash_, BufferSlice(file_reference_), photo().volume_id_, photo().local_id_,
+                photo().source_.legacy().secret);
           case PhotoSizeSource::Type::Thumbnail: {
             auto &thumbnail = photo().source_.thumbnail();
             switch (thumbnail.file_type) {
