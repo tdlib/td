@@ -284,6 +284,16 @@ class FullRemoteFileLocation {
     return AsKey{*this};
   }
 
+  struct AsUnique {
+    const FullRemoteFileLocation &key;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+  };
+  AsUnique as_unique() const {
+    return AsUnique{*this};
+  }
+
   DcId get_dc_id() const {
     CHECK(!is_web());
     return dc_id_;

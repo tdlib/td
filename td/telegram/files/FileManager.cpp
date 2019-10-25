@@ -2665,6 +2665,14 @@ static bool is_background_type(FileType type) {
   return type == FileType::Wallpaper || type == FileType::Background;
 }
 
+string FileManager::get_unique_id(const FullGenerateFileLocation &location) {
+  return base64url_encode(zero_encode('\xff' + serialize(location)));
+}
+
+string FileManager::get_unique_id(const FullRemoteFileLocation &location) {
+  return base64url_encode(zero_encode(serialize(location.as_unique())));
+}
+
 string FileManager::get_persistent_id(const FullGenerateFileLocation &location) {
   auto binary = serialize(location);
 
@@ -2672,6 +2680,7 @@ string FileManager::get_persistent_id(const FullGenerateFileLocation &location) 
   binary.push_back(PERSISTENT_ID_VERSION_MAP);
   return base64url_encode(binary);
 }
+
 string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
   auto location_copy = location;
   location_copy.clear_file_reference();
@@ -2805,12 +2814,17 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
   }
 
   string persistent_file_id;
+  string unique_file_id;
   if (file_view.has_alive_remote_location()) {
     persistent_file_id = get_persistent_id(file_view.remote_location());
+    if (!file_view.remote_location().is_web()) {
+      unique_file_id = get_unique_id(file_view.remote_location());
+    }
   } else if (file_view.has_url()) {
     persistent_file_id = file_view.url();
   } else if (file_view.has_generate_location() && begins_with(file_view.generate_location().conversion_, "#map#")) {
     persistent_file_id = get_persistent_id(file_view.generate_location());
+    unique_file_id = get_unique_id(file_view.generate_location());
   }
   bool is_uploading_completed = !persistent_file_id.empty();
 
@@ -2841,8 +2855,8 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
       td_api::make_object<td_api::localFile>(std::move(path), can_be_downloaded, can_be_deleted,
                                              file_view.is_downloading(), file_view.has_local_location(),
                                              download_offset, local_prefix_size, local_total_size),
-      td_api::make_object<td_api::remoteFile>(std::move(persistent_file_id), file_view.is_uploading(),
-                                              is_uploading_completed, remote_size));
+      td_api::make_object<td_api::remoteFile>(std::move(persistent_file_id), std::move(unique_file_id),
+                                              file_view.is_uploading(), is_uploading_completed, remote_size));
 }
 
 vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids, bool with_main_file_id) {

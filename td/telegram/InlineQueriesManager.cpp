@@ -837,8 +837,8 @@ td_api::object_ptr<td_api::localFile> copy(const td_api::localFile &obj) {
 }
 template <>
 td_api::object_ptr<td_api::remoteFile> copy(const td_api::remoteFile &obj) {
-  return td_api::make_object<td_api::remoteFile>(obj.id_, obj.is_uploading_active_, obj.is_uploading_completed_,
-                                                 obj.uploaded_size_);
+  return td_api::make_object<td_api::remoteFile>(obj.id_, obj.unique_id_, obj.is_uploading_active_,
+                                                 obj.is_uploading_completed_, obj.uploaded_size_);
 }
 
 template <>

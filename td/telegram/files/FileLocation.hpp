@@ -203,6 +203,17 @@ void FullRemoteFileLocation::AsKey::store(StorerT &storer) const {
 }
 
 template <class StorerT>
+void FullRemoteFileLocation::AsUnique::store(StorerT &storer) const {
+  using td::store;
+
+  store(key.location_type(), storer);
+  key.variant_.visit([&](auto &&value) {
+    using td::store;
+    store(value.as_key(), storer);
+  });
+}
+
+template <class StorerT>
 void RemoteFileLocation::store(StorerT &storer) const {
   td::store(variant_, storer);
 }

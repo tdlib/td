@@ -579,6 +579,9 @@ class FileManager : public FileLoadManager::Callback {
   void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, const char *source);
   void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
 
+  string get_unique_id(const FullGenerateFileLocation &location);
+  string get_unique_id(const FullRemoteFileLocation &location);
+
   string get_persistent_id(const FullGenerateFileLocation &location);
   string get_persistent_id(const FullRemoteFileLocation &location);
 
