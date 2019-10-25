@@ -183,7 +183,6 @@ class FullRemoteFileLocation {
  private:
   static constexpr int32 WEB_LOCATION_FLAG = 1 << 24;
   static constexpr int32 FILE_REFERENCE_FLAG = 1 << 25;
-  bool web_location_flag_{false};
   DcId dc_id_;
   string file_reference_;
   enum class LocationType : int32 { Web, Photo, Common, None };
@@ -361,7 +360,7 @@ class FullRemoteFileLocation {
   }
 
   bool is_web() const {
-    return web_location_flag_;
+    return variant_.get_offset() == 0;
   }
   bool is_photo() const {
     return location_type() == LocationType::Photo;
@@ -502,10 +501,7 @@ class FullRemoteFileLocation {
 
   // web document
   FullRemoteFileLocation(FileType file_type, string url, int64 access_hash)
-      : file_type_(file_type)
-      , web_location_flag_{true}
-      , dc_id_()
-      , variant_(WebRemoteFileLocation{std::move(url), access_hash}) {
+      : file_type_(file_type), dc_id_(), variant_(WebRemoteFileLocation{std::move(url), access_hash}) {
     CHECK(is_web());
     CHECK(!web().url_.empty());
   }

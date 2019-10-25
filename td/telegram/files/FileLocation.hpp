@@ -135,7 +135,7 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
   using ::td::parse;
   int32 raw_type;
   parse(raw_type, parser);
-  web_location_flag_ = (raw_type & WEB_LOCATION_FLAG) != 0;
+  bool is_web = (raw_type & WEB_LOCATION_FLAG) != 0;
   raw_type &= ~WEB_LOCATION_FLAG;
   bool has_file_reference = (raw_type & FILE_REFERENCE_FLAG) != 0;
   raw_type &= ~FILE_REFERENCE_FLAG;
@@ -149,13 +149,17 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
 
   if (has_file_reference) {
     parse(file_reference_, parser);
-    file_reference_.clear();
+    // file_reference_.clear();
+  }
+  if (is_web) {
+    variant_ = WebRemoteFileLocation();
+    return web().parse(parser);
   }
 
   switch (location_type()) {
     case LocationType::Web:
-      variant_ = WebRemoteFileLocation();
-      return web().parse(parser);
+      UNREACHABLE();
+      break;
     case LocationType::Photo:
       variant_ = PhotoRemoteFileLocation();
       photo().parse(parser);
