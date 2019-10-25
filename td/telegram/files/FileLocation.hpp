@@ -215,7 +215,41 @@ template <class StorerT>
 void FullRemoteFileLocation::AsUnique::store(StorerT &storer) const {
   using td::store;
 
-  store(key.location_type(), storer);
+  int32 type = [key = &key] {
+    if (key->is_web()) {
+      return 0;
+    }
+    switch (key->file_type_) {
+      case FileType::Photo:
+      case FileType::ProfilePhoto:
+      case FileType::Thumbnail:
+      case FileType::EncryptedThumbnail:
+      case FileType::Wallpaper:
+        return 1;
+      case FileType::Video:
+      case FileType::VoiceNote:
+      case FileType::Document:
+      case FileType::Sticker:
+      case FileType::Audio:
+      case FileType::Animation:
+      case FileType::VideoNote:
+      case FileType::Background:
+        return 2;
+      case FileType::SecureRaw:
+      case FileType::Secure:
+        return 3;
+      case FileType::Encrypted:
+        return 4;
+      case FileType::Temp:
+        return 5;
+      case FileType::None:
+      case FileType::Size:
+      default:
+        UNREACHABLE();
+        return -1;
+    }
+  }();
+  store(type, storer);
   key.variant_.visit([&](auto &&value) {
     using td::store;
     store(value.as_key(), storer);
