@@ -250,16 +250,6 @@ class FullRemoteFileLocation {
     }
     return type;
   }
-  int32 full_type() const {
-    auto type = static_cast<int32>(file_type_);
-    if (is_web()) {
-      type |= WEB_LOCATION_FLAG;
-    }
-    if (!file_reference_.empty()) {
-      type |= FILE_REFERENCE_FLAG;
-    }
-    return type;
-  }
 
   void check_file_reference() {
     if (file_reference_ == FileReferenceView::invalid_file_reference()) {

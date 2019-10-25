@@ -114,9 +114,14 @@ void CommonRemoteFileLocation::AsKey::store(StorerT &storer) const {
 template <class StorerT>
 void FullRemoteFileLocation::store(StorerT &storer) const {
   using ::td::store;
-  store(full_type(), storer);
+  bool has_file_reference = !file_reference_.empty();
+  auto type = key_type();
+  if (has_file_reference) {
+    type |= FILE_REFERENCE_FLAG;
+  }
+  store(type, storer);
   store(dc_id_.get_value(), storer);
-  if (!file_reference_.empty()) {
+  if (has_file_reference) {
     store(file_reference_, storer);
   }
   variant_.visit([&](auto &&value) {
