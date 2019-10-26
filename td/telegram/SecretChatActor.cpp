@@ -910,7 +910,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
         send_update_secret_chat();
       }
       if (layer >= MTPROTO_2_LAYER && mtproto_version < 2) {
-        return Status::Error(PSLICE() << "Mtproto 1.0 encryption is forbidden for this layer");
+        return Status::Error(PSLICE() << "MTProto 1.0 encryption is forbidden for this layer");
       }
       if (message_with_layer->in_seq_no_ < 0) {
         return Status::Error(PSLICE() << "Invalid seq_no: " << to_string(message_with_layer));

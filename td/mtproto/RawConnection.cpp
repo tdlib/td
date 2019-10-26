@@ -39,7 +39,7 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
     if (tmp.second) {
       use_quick_ack = true;
     } else {
-      LOG(ERROR) << "Quick ack collision " << tag("quick_ack", info.message_ack);
+      LOG(ERROR) << "Quick ack " << info.message_ack << " collision";
     }
   }
 
@@ -130,20 +130,20 @@ Status RawConnection::on_read_mtproto_error(int32 error_code) {
     if (stats_callback_) {
       stats_callback_->on_mtproto_error();
     }
-    return Status::Error(500, PSLICE() << "Mtproto error: " << error_code);
+    return Status::Error(500, PSLICE() << "MTProto error: " << error_code);
   }
   if (error_code == -404) {
-    return Status::Error(-404, PSLICE() << "Mtproto error: " << error_code);
+    return Status::Error(-404, PSLICE() << "MTProto error: " << error_code);
   }
-  return Status::Error(PSLICE() << "Mtproto error: " << error_code);
+  return Status::Error(PSLICE() << "MTProto error: " << error_code);
 }
 
 Status RawConnection::on_quick_ack(uint32 quick_ack, Callback &callback) {
   auto it = quick_ack_to_token_.find(quick_ack);
   if (it == quick_ack_to_token_.end()) {
-    LOG(WARNING) << Status::Error(PSLICE() << "Unknown " << tag("quick_ack", quick_ack));
+    LOG(WARNING) << Status::Error(PSLICE() << "Unknown quick_ack " << quick_ack);
     return Status::OK();
-    // TODO: return Status::Error(PSLICE() << "Unknown " << tag("quick_ack", quick_ack));
+    // TODO: return Status::Error(PSLICE() << "Unknown quick_ack " << quick_ack);
   }
   auto token = it->second;
   quick_ack_to_token_.erase(it);

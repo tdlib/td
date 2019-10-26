@@ -692,7 +692,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
                               << (info.use_http ? " over HTTP" : "");
 
   if (proxy.use_mtproto_proxy()) {
-    extra.debug_str = PSTRING() << "Mtproto " << proxy_ip_address << extra.debug_str;
+    extra.debug_str = PSTRING() << "MTProto " << proxy_ip_address << extra.debug_str;
 
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy_ip_address);
