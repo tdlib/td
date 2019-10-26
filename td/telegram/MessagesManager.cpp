@@ -8983,7 +8983,10 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
     if (max_message_id != MessageId() && unread_count > 0 && max_message_id.get() >= d->last_new_message_id.get() &&
         max_message_id.get() >= d->last_message_id.get() && max_message_id.get() >= d->last_database_message_id.get()) {
-      LOG(ERROR) << "Have unknown " << unread_count << " unread messages in " << dialog_id;
+      LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
+                 << dialog_id << " with last_new_message_id = " << d->last_new_message_id
+                 << ", last_message_id = " << d->last_message_id
+                 << ", last_database_message_id = " << d->last_database_message_id;
       unread_count = 0;
     }
 
@@ -22110,8 +22113,8 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   CHECK(d != nullptr);
 
   if (d->folder_id == folder_id) {
-    LOG(INFO) << "Folder of " << d->dialog_id << " is still " << folder_id;
     if (!d->is_folder_id_inited) {
+      LOG(INFO) << "Folder of " << d->dialog_id << " is still " << folder_id;
       d->is_folder_id_inited = true;
       on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
     }
