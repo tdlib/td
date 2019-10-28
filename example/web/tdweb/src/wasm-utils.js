@@ -122,14 +122,14 @@ export function instantiateCachedURL(dbVersion, url, importObject) {
 export async function instantiateAny(version, url, importObject) {
   console.log("instantiate");
   try {
-    return await instantiateStreaming(url, importObject);
-  } catch (e) {
-    console.log("instantiateSteaming failed", e);
-  }
-  try {
     return await instantiateCachedURL(version, url, importObject);
   } catch (e) {
     console.log("instantiateCachedURL failed", e);
+  }
+  try {
+    return await instantiateStreaming(url, importObject);
+  } catch (e) {
+    console.log("instantiateSteaming failed", e);
   }
   throw new Error("can't instantiate wasm");
 }
