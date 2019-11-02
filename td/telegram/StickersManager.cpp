@@ -2441,7 +2441,7 @@ StickerSetId StickersManager::get_sticker_set(StickerSetId set_id, Promise<Unit>
   const StickerSet *sticker_set = get_sticker_set(set_id);
   if (sticker_set == nullptr) {
     if (set_id.get() == GREAT_MINDS_SET_ID) {
-      do_reload_sticker_set(set_id, make_tl_object<telegram_api::inputStickerSetID>(GREAT_MINDS_SET_ID, 0),
+      do_reload_sticker_set(set_id, make_tl_object<telegram_api::inputStickerSetID>(set_id.get(), 0),
                             std::move(promise));
       return StickerSetId();
     }

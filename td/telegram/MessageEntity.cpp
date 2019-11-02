@@ -1519,7 +1519,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
       // begin of an entity
       MessageEntity::Type type;
       string argument;
-      int32 entity_byte_offset = i;
+      auto entity_byte_offset = i;
       switch (c) {
         case '_':
           if (text[i + 1] == '_') {
