@@ -14775,7 +14775,8 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
-  if (m->content->get_type() != MessageContentType::LiveLocation || m->is_failed_to_send) {
+  if (m->content->get_type() != MessageContentType::LiveLocation || m->is_failed_to_send ||
+      m->via_bot_user_id.is_valid() || m->forward_info != nullptr) {
     return;
   }
 
