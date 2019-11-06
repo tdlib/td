@@ -3144,9 +3144,12 @@ void StickersManager::on_get_featured_sticker_sets(
   CHECK(constructor_id == telegram_api::messages_featuredStickers::ID);
   auto featured_stickers = move_tl_object_as<telegram_api::messages_featuredStickers>(sticker_sets_ptr);
 
+  std::unordered_set<StickerSetId, StickerSetIdHash> unread_sticker_set_ids;
+  for (auto &unread_sticker_set_id : featured_stickers->unread_) {
+    unread_sticker_set_ids.insert(StickerSetId(unread_sticker_set_id));
+  }
+
   vector<StickerSetId> featured_sticker_set_ids;
-  std::unordered_set<StickerSetId, StickerSetIdHash> unread_sticker_set_ids(featured_stickers->unread_.begin(),
-                                                                            featured_stickers->unread_.end());
   for (auto &sticker_set : featured_stickers->sets_) {
     StickerSetId set_id = on_get_sticker_set_covered(std::move(sticker_set), true);
     if (!set_id.is_valid()) {
