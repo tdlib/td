@@ -254,10 +254,10 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
   start_net_query(
       NetQueryType::SignUp,
-      G()->net_query_creator().create(create_storer(telegram_api::auth_signUp(send_code_helper_.phone_number().str(),
-                                                                              send_code_helper_.phone_code_hash().str(),
-                                                                              code_, first_name, last_name)),
-                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+      G()->net_query_creator().create(
+          create_storer(telegram_api::auth_signUp(send_code_helper_.phone_number().str(),
+                                                  send_code_helper_.phone_code_hash().str(), first_name, last_name)),
+          DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
 void AuthManager::check_password(uint64 query_id, string password) {
@@ -391,10 +391,6 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
-  if (terms_of_service_.get_id().empty()) {
-    terms_of_service_ = TermsOfService(std::move(sent_code->terms_of_service_));
-  }
-
   send_code_helper_.on_sent_code(std::move(sent_code));
 
   update_state(State::WaitCode, true);
@@ -476,9 +472,7 @@ void AuthManager::on_authentication_result(NetQueryPtr &result, bool expected_fl
     }
     return;
   }
-  auto sign_in = r_sign_in.move_as_ok();
-  CHECK(sign_in->get_id() == telegram_api::auth_authorization::ID);
-  on_authorization(std::move(sign_in));
+  on_authorization(r_sign_in.move_as_ok());
 }
 
 void AuthManager::on_log_out_result(NetQueryPtr &result) {
@@ -549,14 +543,26 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
   }
 }
 
-void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorization> auth) {
+void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_Authorization> auth_ptr) {
   if (state_ == State::Ok) {
-    LOG(WARNING) << "Ignore duplicated auth.authorization";
+    LOG(WARNING) << "Ignore duplicated auth.Authorization";
     if (query_id_ != 0) {
       on_query_ok();
     }
     return;
   }
+  CHECK(auth_ptr != nullptr);
+  if (auth_ptr->get_id() == telegram_api::auth_authorizationSignUpRequired::ID) {
+    auto sign_up_required = telegram_api::move_object_as<telegram_api::auth_authorizationSignUpRequired>(auth_ptr);
+    terms_of_service_ = TermsOfService(std::move(sign_up_required->terms_of_service_));
+    update_state(State::WaitRegistration);
+    if (query_id_ != 0) {
+      on_query_ok();
+    }
+    return;
+  }
+  auto auth = telegram_api::move_object_as<telegram_api::auth_authorization>(auth_ptr);
+
   G()->shared_config().set_option_integer("authorization_date", G()->unix_time());
   if (was_check_bot_token_) {
     is_bot_ = true;
@@ -608,12 +614,6 @@ void AuthManager::on_result(NetQueryPtr result) {
         start_net_query(NetQueryType::GetPassword,
                         G()->net_query_creator().create(create_storer(telegram_api::account_getPassword()),
                                                         DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
-        return;
-      }
-      if (type == NetQueryType::SignIn && result->error().message() == CSlice("PHONE_NUMBER_UNOCCUPIED")) {
-        code_ = "11111";
-        update_state(State::WaitRegistration);
-        on_query_ok();
         return;
       }
       if (type != NetQueryType::LogOut) {
@@ -697,7 +697,7 @@ bool AuthManager::load_state() {
     return false;
   }
   if (!db_state.state_timestamp_.is_in_past()) {
-    LOG(INFO) << "Ignore auth_state: timestamp in future";
+    LOG(INFO) << "Ignore auth_state: timestamp in the future";
     return false;
   }
   if (Timestamp::at(db_state.state_timestamp_.at() + 5 * 60).is_in_past()) {
@@ -708,11 +708,10 @@ bool AuthManager::load_state() {
   LOG(INFO) << "Load auth_state from database: " << tag("state", static_cast<int32>(db_state.state_));
   if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
-    terms_of_service_ = std::move(db_state.terms_of_service_);
   } else if (db_state.state_ == State::WaitPassword) {
     wait_password_state_ = std::move(db_state.wait_password_state_);
   } else if (db_state.state_ == State::WaitRegistration) {
-    code_ = "11111";  // the code has already been checked
+    send_code_helper_ = std::move(db_state.send_code_helper_);
     terms_of_service_ = std::move(db_state.terms_of_service_);
   } else {
     UNREACHABLE();
@@ -731,12 +730,12 @@ void AuthManager::save_state() {
 
   DbState db_state = [&] {
     if (state_ == State::WaitCode) {
-      return DbState::wait_code(api_id_, api_hash_, send_code_helper_, terms_of_service_);
+      return DbState::wait_code(api_id_, api_hash_, send_code_helper_);
     } else if (state_ == State::WaitPassword) {
       return DbState::wait_password(api_id_, api_hash_, wait_password_state_);
     } else {
       CHECK(state_ == State::WaitRegistration);
-      return DbState::wait_registration(api_id_, api_hash_, terms_of_service_);
+      return DbState::wait_registration(api_id_, api_hash_, send_code_helper_, terms_of_service_);
     }
   }();
   G()->td_db()->get_binlog_pmc()->set("auth_state", log_event_store(db_state).as_slice().str());

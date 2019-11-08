@@ -241,7 +241,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
         remote_.is_web()
             ? create_storer(telegram_api::upload_getWebFile(remote_.as_input_web_file_location(),
                                                             static_cast<int32>(part.offset), static_cast<int32>(size)))
-            : create_storer(telegram_api::upload_getFile(remote_.as_input_file_location(),
+            : create_storer(telegram_api::upload_getFile(0, false /*ignored*/, remote_.as_input_file_location(),
                                                          static_cast<int32>(part.offset), static_cast<int32>(size))),
         dc_id, is_small_ ? NetQuery::Type::DownloadSmall : NetQuery::Type::Download);
   } else {

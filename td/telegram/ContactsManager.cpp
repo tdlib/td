@@ -1767,7 +1767,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editAdmin(
-        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights()))));
+        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights(), string()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

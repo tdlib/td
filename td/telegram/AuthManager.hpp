@@ -52,11 +52,13 @@ void AuthManager::DbState::store(StorerT &storer) const {
   bool is_pbkdf2_supported = true;
   bool is_srp_supported = true;
   bool is_wait_registration_supported = true;
+  bool is_wait_registration_stores_phone_number = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_terms_of_service);
   STORE_FLAG(is_pbkdf2_supported);
   STORE_FLAG(is_srp_supported);
   STORE_FLAG(is_wait_registration_supported);
+  STORE_FLAG(is_wait_registration_stores_phone_number);
   END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
@@ -72,6 +74,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   } else if (state_ == State::WaitPassword) {
     store(wait_password_state_, storer);
   } else if (state_ == State::WaitRegistration) {
+    store(send_code_helper_, storer);
   } else {
     UNREACHABLE();
   }
@@ -84,15 +87,17 @@ void AuthManager::DbState::parse(ParserT &parser) {
   bool is_pbkdf2_supported = false;
   bool is_srp_supported = false;
   bool is_wait_registration_supported = false;
+  bool is_wait_registration_stores_phone_number = false;
   if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_terms_of_service);
     PARSE_FLAG(is_pbkdf2_supported);
     PARSE_FLAG(is_srp_supported);
     PARSE_FLAG(is_wait_registration_supported);
+    PARSE_FLAG(is_wait_registration_stores_phone_number);
     END_PARSE_FLAGS();
   }
-  if (!is_wait_registration_supported) {
+  if (!is_wait_registration_stores_phone_number) {
     return parser.set_error("Have no wait registration support");
   }
   CHECK(is_pbkdf2_supported);
@@ -112,6 +117,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
   } else if (state_ == State::WaitPassword) {
     parse(wait_password_state_, parser);
   } else if (state_ == State::WaitRegistration) {
+    parse(send_code_helper_, parser);
   } else {
     parser.set_error(PSTRING() << "Unexpected " << tag("state", static_cast<int32>(state_)));
   }

@@ -367,8 +367,8 @@ class SendPaymentFormQuery : public Td::ResultHandler {
         promise_.set_value(make_tl_object<td_api::paymentResult>(true, string()));
         return;
       }
-      case telegram_api::payments_paymentVerficationNeeded::ID: {
-        auto result = move_tl_object_as<telegram_api::payments_paymentVerficationNeeded>(payment_result);
+      case telegram_api::payments_paymentVerificationNeeded::ID: {
+        auto result = move_tl_object_as<telegram_api::payments_paymentVerificationNeeded>(payment_result);
         promise_.set_value(make_tl_object<td_api::paymentResult>(false, std::move(result->url_)));
         return;
       }

@@ -112,12 +112,9 @@ class AuthManager : public NetActor {
     TermsOfService terms_of_service_;
 
     DbState() = default;
-    // TODO layer 104+: remove terms_of_service
-    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
-                             TermsOfService terms_of_service) {
+    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
       DbState state(State::WaitCode, api_id, api_hash);
       state.send_code_helper_ = std::move(send_code_helper);
-      state.terms_of_service_ = std::move(terms_of_service);
       return state;
     }
 
@@ -127,8 +124,10 @@ class AuthManager : public NetActor {
       return state;
     }
 
-    static DbState wait_registration(int32 api_id, string api_hash, TermsOfService terms_of_service) {
+    static DbState wait_registration(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
+                                     TermsOfService terms_of_service) {
       DbState state(State::WaitRegistration, api_id, api_hash);
+      state.send_code_helper_ = std::move(send_code_helper);
       state.terms_of_service_ = std::move(terms_of_service);
       return state;
     }
@@ -191,7 +190,7 @@ class AuthManager : public NetActor {
   void on_authentication_result(NetQueryPtr &result, bool expected_flag);
   void on_log_out_result(NetQueryPtr &result);
   void on_delete_account_result(NetQueryPtr &result);
-  void on_authorization(tl_object_ptr<telegram_api::auth_authorization> auth);
+  void on_authorization(tl_object_ptr<telegram_api::auth_Authorization> auth_ptr);
 
   void on_result(NetQueryPtr result) override;
 
