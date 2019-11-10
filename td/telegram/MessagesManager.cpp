@@ -23901,6 +23901,12 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventLocationChanged>(old_location.get_chat_location_object(),
                                                               new_location.get_chat_location_object());
     }
+    case telegram_api::channelAdminLogEventActionToggleSlowMode::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSlowMode>(action_ptr);
+      auto old_slow_mode_delay = clamp(action->prev_value_, 0, 86400 * 366);
+      auto new_slow_mode_delay = clamp(action->new_value_, 0, 86400 * 366);
+      return make_tl_object<td_api::chatEventSlowModeDelayChanged>(old_slow_mode_delay, new_slow_mode_delay);
+    }
     default:
       UNREACHABLE();
       return nullptr;
