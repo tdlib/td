@@ -157,7 +157,7 @@ class ContactsManager : public Actor {
   void on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source);
   void on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 
-  void on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_full);
+  void on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_full, Promise<Unit> &&promise);
 
   void on_update_profile_success(int32 flags, const string &first_name, const string &last_name, const string &about);
 
@@ -736,6 +736,9 @@ class ContactsManager : public Actor {
     int32 banned_count = 0;
     string invite_link;
 
+    uint32 speculative_version = 1;
+    uint32 repair_request_version = 0;
+
     StickerSetId sticker_set_id;
 
     ChannelId linked_channel_id;
@@ -988,8 +991,9 @@ class ContactsManager : public Actor {
 
   ChannelFull *add_channel_full(ChannelId channel_id);
 
-  void send_get_channel_full_query(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
-                                   Promise<Unit> &&promise, const char *source);
+  void send_get_channel_full_query(ChannelFull *channel_full, ChannelId channel_id,
+                                   tl_object_ptr<telegram_api::InputChannel> &&input_channel, Promise<Unit> &&promise,
+                                   const char *source);
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;
   SecretChat *get_secret_chat(SecretChatId secret_chat_id);
