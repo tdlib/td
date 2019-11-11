@@ -7,6 +7,7 @@
 #include "td/telegram/DialogParticipant.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -15,6 +16,10 @@
 
 namespace td {
 
+DialogParticipantStatus::DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank)
+    : type_(type), flags_(flags), until_date_(until_date), rank_(strip_empty_characters(std::move(rank), 16)) {
+}
+
 int32 DialogParticipantStatus::fix_until_date(int32 date) {
   if (date == std::numeric_limits<int32>::max() || date < 0) {
     return 0;
@@ -22,12 +27,13 @@ int32 DialogParticipantStatus::fix_until_date(int32 date) {
   return date;
 }
 
-DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member) {
+DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, string rank) {
   return DialogParticipantStatus(Type::Creator,
-                                 ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS | (is_member ? IS_MEMBER : 0), 0);
+                                 ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS | (is_member ? IS_MEMBER : 0), 0,
+                                 std::move(rank));
 }
 
-DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edited, bool can_change_info,
+DialogParticipantStatus DialogParticipantStatus::Administrator(string rank, bool can_be_edited, bool can_change_info,
                                                                bool can_post_messages, bool can_edit_messages,
                                                                bool can_delete_messages, bool can_invite_users,
                                                                bool can_restrict_members, bool can_pin_messages,
@@ -44,11 +50,11 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edite
   if (flags == 0 || flags == CAN_BE_EDITED) {
     return Member();
   }
-  return DialogParticipantStatus(Type::Administrator, IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags, 0);
+  return DialogParticipantStatus(Type::Administrator, IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags, 0, std::move(rank));
 }
 
 DialogParticipantStatus DialogParticipantStatus::Member() {
-  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_PERMISSION_RIGHTS, 0);
+  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_PERMISSION_RIGHTS, 0, string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Restricted(
@@ -70,26 +76,26 @@ DialogParticipantStatus DialogParticipantStatus::Restricted(
   if (flags == (IS_MEMBER | ALL_PERMISSION_RIGHTS)) {
     return Member();
   }
-  return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date));
+  return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date), string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Left() {
-  return DialogParticipantStatus(Type::Left, ALL_PERMISSION_RIGHTS, 0);
+  return DialogParticipantStatus(Type::Left, ALL_PERMISSION_RIGHTS, 0, string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date) {
-  return DialogParticipantStatus(Type::Banned, 0, fix_until_date(banned_until_date));
+  return DialogParticipantStatus(Type::Banned, 0, fix_until_date(banned_until_date), string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, true, true, false);
+  return Administrator(string(), is_creator, true, false, false, true, true, true, true, false);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
   if (is_megagroup) {
-    return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, true, true, false);
+    return Administrator(string(), is_creator, true, false, false, true, true, true, true, false);
   } else {
-    return DialogParticipantStatus::Administrator(is_creator, false, true, true, true, false, true, false, false);
+    return Administrator(string(), is_creator, false, true, true, true, false, true, false, false);
   }
 }
 
@@ -102,20 +108,20 @@ RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
 tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member_status_object() const {
   switch (type_) {
     case Type::Creator:
-      return make_tl_object<td_api::chatMemberStatusCreator>(is_member());
+      return td_api::make_object<td_api::chatMemberStatusCreator>(rank_, is_member());
     case Type::Administrator:
-      return make_tl_object<td_api::chatMemberStatusAdministrator>(
-          can_be_edited(), can_change_info_and_settings(), can_post_messages(), can_edit_messages(),
+      return td_api::make_object<td_api::chatMemberStatusAdministrator>(
+          rank_, can_be_edited(), can_change_info_and_settings(), can_post_messages(), can_edit_messages(),
           can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(), can_promote_members());
     case Type::Member:
-      return make_tl_object<td_api::chatMemberStatusMember>();
+      return td_api::make_object<td_api::chatMemberStatusMember>();
     case Type::Restricted:
-      return make_tl_object<td_api::chatMemberStatusRestricted>(is_member(), until_date_,
-                                                                get_restricted_rights().get_chat_permissions_object());
+      return td_api::make_object<td_api::chatMemberStatusRestricted>(
+          is_member(), until_date_, get_restricted_rights().get_chat_permissions_object());
     case Type::Left:
-      return make_tl_object<td_api::chatMemberStatusLeft>();
+      return td_api::make_object<td_api::chatMemberStatusLeft>();
     case Type::Banned:
-      return make_tl_object<td_api::chatMemberStatusBanned>(until_date_);
+      return td_api::make_object<td_api::chatMemberStatusBanned>(until_date_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -232,7 +238,7 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
       break;
   }
 
-  return DialogParticipantStatus(type_, flags, 0);
+  return DialogParticipantStatus(type_, flags, 0, string());
 }
 
 void DialogParticipantStatus::update_restrictions() const {
@@ -254,7 +260,8 @@ void DialogParticipantStatus::update_restrictions() const {
 }
 
 bool operator==(const DialogParticipantStatus &lhs, const DialogParticipantStatus &rhs) {
-  return lhs.type_ == rhs.type_ && lhs.flags_ == rhs.flags_ && lhs.until_date_ == rhs.until_date_;
+  return lhs.type_ == rhs.type_ && lhs.flags_ == rhs.flags_ && lhs.until_date_ == rhs.until_date_ &&
+         lhs.rank_ == rhs.rank_;
 }
 
 bool operator!=(const DialogParticipantStatus &lhs, const DialogParticipantStatus &rhs) {
@@ -267,6 +274,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       string_builder << "Creator";
       if (!status.is_member()) {
         string_builder << "-non-member";
+      }
+      if (!status.rank_.empty()) {
+        string_builder << " [" << status.rank_ << "]";
       }
       return string_builder;
     case DialogParticipantStatus::Type::Administrator:
@@ -294,6 +304,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       }
       if (status.can_promote_members()) {
         string_builder << "(promote)";
+      }
+      if (!status.rank_.empty()) {
+        string_builder << " [" << status.rank_ << "]";
       }
       return string_builder;
     case DialogParticipantStatus::Type::Member:
@@ -364,14 +377,14 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
   switch (constructor_id) {
     case td_api::chatMemberStatusCreator::ID: {
       auto st = static_cast<const td_api::chatMemberStatusCreator *>(status.get());
-      return DialogParticipantStatus::Creator(st->is_member_);
+      return DialogParticipantStatus::Creator(st->is_member_, st->custom_title_);
     }
     case td_api::chatMemberStatusAdministrator::ID: {
       auto st = static_cast<const td_api::chatMemberStatusAdministrator *>(status.get());
-      return DialogParticipantStatus::Administrator(st->can_be_edited_, st->can_change_info_, st->can_post_messages_,
-                                                    st->can_edit_messages_, st->can_delete_messages_,
-                                                    st->can_invite_users_, st->can_restrict_members_,
-                                                    st->can_pin_messages_, st->can_promote_members_);
+      return DialogParticipantStatus::Administrator(
+          st->custom_title_, st->can_be_edited_, st->can_change_info_, st->can_post_messages_, st->can_edit_messages_,
+          st->can_delete_messages_, st->can_invite_users_, st->can_restrict_members_, st->can_pin_messages_,
+          st->can_promote_members_);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();
@@ -401,8 +414,9 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
   }
 }
 
-DialogParticipantStatus get_dialog_participant_status(
-    bool can_be_edited, const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights) {
+DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
+                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights,
+                                                      string rank) {
   bool can_change_info = (admin_rights->flags_ & telegram_api::chatAdminRights::CHANGE_INFO_MASK) != 0;
   bool can_post_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::POST_MESSAGES_MASK) != 0;
   bool can_edit_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::EDIT_MESSAGES_MASK) != 0;
@@ -411,9 +425,9 @@ DialogParticipantStatus get_dialog_participant_status(
   bool can_restrict_members = (admin_rights->flags_ & telegram_api::chatAdminRights::BAN_USERS_MASK) != 0;
   bool can_pin_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::PIN_MESSAGES_MASK) != 0;
   bool can_promote_members = (admin_rights->flags_ & telegram_api::chatAdminRights::ADD_ADMINS_MASK) != 0;
-  return DialogParticipantStatus::Administrator(can_be_edited, can_change_info, can_post_messages, can_edit_messages,
-                                                can_delete_messages, can_invite_users, can_restrict_members,
-                                                can_pin_messages, can_promote_members);
+  return DialogParticipantStatus::Administrator(std::move(rank), can_be_edited, can_change_info, can_post_messages,
+                                                can_edit_messages, can_delete_messages, can_invite_users,
+                                                can_restrict_members, can_pin_messages, can_promote_members);
 }
 
 DialogParticipantStatus get_dialog_participant_status(

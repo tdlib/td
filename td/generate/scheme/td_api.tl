@@ -335,10 +335,13 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 
 //@class ChatMemberStatus @description Provides information about the status of a member in a chat
 
-//@description The user is the owner of a chat and has all the administrator privileges @is_member True, if the user is a member of the chat
-chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
+//@description The user is the owner of a chat and has all the administrator privileges
+//@custom_title A custom title of the owner; 0-16 characters without emojis; applicable to supergroups only
+//@is_member True, if the user is a member of the chat
+chatMemberStatusCreator custom_title:string is_member:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat and has some additional privileges. In basic groups, administrators can edit and delete messages sent by others, add new members, and ban unprivileged members. In supergroups and channels, there are more detailed options for administrator privileges
+//@custom_title A custom title of the administrator; 0-16 characters without emojis; applicable to supergroups only
 //@can_be_edited True, if the current user can edit the administrator privileges for the called user
 //@can_change_info True, if the administrator can change the chat title, photo, and other settings
 //@can_post_messages True, if the administrator can create channel posts; applicable to channels only
@@ -348,7 +351,7 @@ chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
 //@can_pin_messages True, if the administrator can pin messages; applicable to groups only
 //@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
-chatMemberStatusAdministrator can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool = ChatMemberStatus;
+chatMemberStatusAdministrator custom_title:string can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat, without any additional privileges or restrictions
 chatMemberStatusMember = ChatMemberStatus;
@@ -436,7 +439,7 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 //@id Supergroup or channel identifier
 //@username Username of the supergroup or channel; empty for private supergroups or channels
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
-//@status Status of the current user in the supergroup or channel
+//@status Status of the current user in the supergroup or channel; custom title will be always empty
 //@member_count Member count; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was found through SearchPublicChats
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is a discussion group for a channel
 //@has_location True, if the supergroup has a chat location

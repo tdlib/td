@@ -135,7 +135,8 @@ class DialogParticipantStatus {
 
   static constexpr uint32 IS_MEMBER = 1 << 27;
 
-  // bits 28-31 reserved for Type and until_date flag
+  static constexpr uint32 HAS_RANK = 1u << 14;
+  // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
 
@@ -157,19 +158,18 @@ class DialogParticipantStatus {
   mutable Type type_;
   mutable uint32 flags_;
   mutable int32 until_date_;  // restricted and banned only
+  string rank_;               // creator and administrator only
 
   static int32 fix_until_date(int32 date);
 
-  DialogParticipantStatus(Type type, uint32 flags, int32 until_date)
-      : type_(type), flags_(flags), until_date_(until_date) {
-  }
+  DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank);
 
  public:
-  static DialogParticipantStatus Creator(bool is_member);
+  static DialogParticipantStatus Creator(bool is_member, string rank);
 
-  static DialogParticipantStatus Administrator(bool can_be_edited, bool can_change_info, bool can_post_messages,
-                                               bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
-                                               bool can_restrict_members, bool can_pin_messages,
+  static DialogParticipantStatus Administrator(string rank, bool can_be_edited, bool can_change_info,
+                                               bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
+                                               bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
                                                bool can_promote_members);
 
   static DialogParticipantStatus Member();
@@ -308,15 +308,25 @@ class DialogParticipantStatus {
     return until_date_;
   }
 
+  const string &get_rank() const {
+    return rank_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     uint32 stored_flags = flags_ | (static_cast<uint32>(type_) << TYPE_SHIFT);
     if (until_date_ > 0) {
       stored_flags |= HAS_UNTIL_DATE;
     }
+    if (!rank_.empty()) {
+      stored_flags |= HAS_RANK;
+    }
     td::store(stored_flags, storer);
     if (until_date_ > 0) {
       td::store(until_date_, storer);
+    }
+    if (!rank_.empty()) {
+      td::store(rank_, storer);
     }
   }
 
@@ -327,6 +337,10 @@ class DialogParticipantStatus {
     if ((stored_flags & HAS_UNTIL_DATE) != 0) {
       td::parse(until_date_, parser);
       stored_flags &= ~HAS_UNTIL_DATE;
+    }
+    if ((stored_flags & HAS_RANK) != 0) {
+      td::parse(rank_, parser);
+      stored_flags &= ~HAS_RANK;
     }
     type_ = static_cast<Type>(stored_flags >> TYPE_SHIFT);
     flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
@@ -423,7 +437,8 @@ DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_a
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
 DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
-                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights);
+                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights,
+                                                      string rank);
 
 DialogParticipantStatus get_dialog_participant_status(
     bool is_member, const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights);

@@ -1767,7 +1767,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editAdmin(
-        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights(), string()))));
+        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights(), status.get_rank()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3027,7 +3027,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     } else if (left) {
       status = DialogParticipantStatus::Left();
     } else if (is_creator) {
-      status = DialogParticipantStatus::Creator(true);
+      status = DialogParticipantStatus::Creator(true, string());
     } else if (is_administrator && !everyone_is_administrator) {
       status = DialogParticipantStatus::GroupAdministrator(false);
     } else {
@@ -3191,7 +3191,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     } else if (left) {
       status = DialogParticipantStatus::Left();
     } else if (is_creator) {
-      status = DialogParticipantStatus::Creator(true);
+      status = DialogParticipantStatus::Creator(true, string());
     } else if (can_edit || can_moderate) {
       status = DialogParticipantStatus::ChannelAdministrator(false, is_megagroup);
     } else {
@@ -5313,7 +5313,7 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
           old_status.can_change_info_and_settings(), old_status.can_invite_users(), old_status.can_pin_messages());
     }
   }
-  if (old_status == status) {
+  if (old_status == status && !old_status.is_creator()) {
     return promise.set_value(Unit());
   }
 
@@ -5323,23 +5323,33 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
   bool need_restrict = false;
   if (status.is_creator() || old_status.is_creator()) {
     if (!old_status.is_creator()) {
-      return promise.set_error(Status::Error(3, "Can't add creator to the chat"));
+      return promise.set_error(Status::Error(3, "Can't add another owner to the chat"));
+    }
+    if (!status.is_creator()) {
+      return promise.set_error(Status::Error(3, "Can't remove chat owner"));
+    }
+    if (status.is_member() == old_status.is_member()) {
+      // change rank
+      if (user_id != get_my_id()) {
+        return promise.set_error(Status::Error(3, "Not enough rights to change chat owner custom title"));
+      }
+
+      auto input_user = get_input_user(user_id);
+      if (input_user == nullptr) {
+        return promise.set_error(Status::Error(3, "User not found"));
+      }
+
+      td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
+      return;
+    }
+    if (user_id != get_my_id()) {
+      return promise.set_error(Status::Error(3, "Not enough rights to edit chat owner membership"));
     }
     if (status.is_member()) {
-      // creator member -> not creator member
       // creator not member -> creator member
-      // creator not member -> not creator member
-      if (old_status.is_member()) {
-        return promise.set_error(Status::Error(3, "Can't demote chat creator"));
-      }
       need_add = true;
     } else {
       // creator member -> creator not member
-      // creator member -> not creator not member
-      // creator not member -> not creator not member
-      if (!old_status.is_member()) {
-        return promise.set_error(Status::Error(3, "Can't restrict chat creator"));
-      }
       need_restrict = true;
     }
   } else if (status.is_administrator()) {
@@ -5399,6 +5409,9 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     if (!get_channel_permissions(c).can_promote_members()) {
       return promise.set_error(Status::Error(3, "Not enough rights"));
     }
+
+    CHECK(!old_status.is_creator());
+    CHECK(!status.is_creator());
   }
 
   auto input_user = get_input_user(user_id);
@@ -5422,7 +5435,7 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
   }
 
   if (!get_chat_permissions(c).can_promote_members()) {
-    return promise.set_error(Status::Error(3, "Need creator rights in the group chat"));
+    return promise.set_error(Status::Error(3, "Need owner rights in the group chat"));
   }
 
   if (user_id == get_my_id()) {
@@ -5706,9 +5719,8 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     return;
   }
 
-  if (status.is_creator()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to restrict chat creator"));
-  }
+  CHECK(!old_status.is_creator());
+  CHECK(!status.is_creator());
 
   if (!get_channel_permissions(c).can_restrict_members()) {
     return promise.set_error(Status::Error(3, "Not enough rights to restrict/unrestrict chat member"));
@@ -8918,7 +8930,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
             auto participant = move_tl_object_as<telegram_api::chatParticipantCreator>(participant_ptr);
             new_creator_user_id = UserId(participant->user_id_);
             dialog_participant = {new_creator_user_id, new_creator_user_id, c->date,
-                                  DialogParticipantStatus::Creator(true)};
+                                  DialogParticipantStatus::Creator(true, string())};
             break;
           }
           case telegram_api::chatParticipantAdmin::ID: {
@@ -8998,13 +9010,15 @@ DialogParticipant ContactsManager::get_dialog_participant(
     }
     case telegram_api::channelParticipantCreator::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantCreator>(participant_ptr);
-      return {UserId(participant->user_id_), UserId(), 0, DialogParticipantStatus::Creator(true)};
+      return {UserId(participant->user_id_), UserId(), 0,
+              DialogParticipantStatus::Creator(true, std::move(participant->rank_))};
     }
     case telegram_api::channelParticipantAdmin::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
       bool can_be_edited = (participant->flags_ & telegram_api::channelParticipantAdmin::CAN_EDIT_MASK) != 0;
       return {UserId(participant->user_id_), UserId(participant->promoted_by_), participant->date_,
-              get_dialog_participant_status(can_be_edited, std::move(participant->admin_rights_))};
+              get_dialog_participant_status(can_be_edited, std::move(participant->admin_rights_),
+                                            std::move(participant->rank_))};
     }
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
@@ -9742,7 +9756,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
     }
     chat_full->participants.push_back(DialogParticipant{user_id, inviter_user_id, date,
                                                         user_id == chat_full->creator_user_id
-                                                            ? DialogParticipantStatus::Creator(true)
+                                                            ? DialogParticipantStatus::Creator(true, string())
                                                             : DialogParticipantStatus::Member()});
     update_chat_online_member_count(chat_full, chat_id, false);
     chat_full->is_changed = true;
@@ -10223,7 +10237,7 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
 
       auto input_channel = get_input_channel(channel_id);
       if (input_channel != nullptr) {
-        send_get_channel_full_query(channel_id, std::move(input_channel), Auto(), "update channel creator");
+        send_get_channel_full_query(channel_id, std::move(input_channel), Auto(), "update channel owner");
       }
     }
   }
@@ -11737,9 +11751,9 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     }
 
     if (is_creator) {
-      return DialogParticipantStatus::Creator(!has_left);
+      return DialogParticipantStatus::Creator(!has_left, string());
     } else if (chat.admin_rights_ != nullptr) {
-      return get_dialog_participant_status(false, std::move(chat.admin_rights_));
+      return get_dialog_participant_status(false, std::move(chat.admin_rights_), string());
     } else if (was_kicked) {
       return DialogParticipantStatus::Banned(0);
     } else if (has_left) {
@@ -11892,9 +11906,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     bool is_creator = (channel.flags_ & CHANNEL_FLAG_USER_IS_CREATOR) != 0;
 
     if (is_creator) {
-      return DialogParticipantStatus::Creator(!has_left);
+      return DialogParticipantStatus::Creator(!has_left, string());
     } else if (channel.admin_rights_ != nullptr) {
-      return get_dialog_participant_status(false, std::move(channel.admin_rights_));
+      return get_dialog_participant_status(false, std::move(channel.admin_rights_), string());
     } else if (channel.banned_rights_ != nullptr) {
       return get_dialog_participant_status(!has_left, std::move(channel.banned_rights_));
     } else if (has_left) {
