@@ -1931,14 +1931,18 @@ class SearchChatMembersRequest : public RequestActor<> {
 class GetChatAdministratorsRequest : public RequestActor<> {
   DialogId dialog_id_;
 
-  vector<UserId> user_ids_;
+  vector<DialogAdministrator> administrators_;
 
   void do_run(Promise<Unit> &&promise) override {
-    user_ids_ = td->messages_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
+    administrators_ = td->messages_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->contacts_manager_->get_users_object(-1, user_ids_));
+    auto administrator_objects = transform(
+        administrators_, [contacts_manager = td->contacts_manager_.get()](const DialogAdministrator &administrator) {
+          return administrator.get_chat_administrator_object(contacts_manager);
+        });
+    send_result(td_api::make_object<td_api::chatAdministrators>(std::move(administrator_objects)));
   }
 
  public:

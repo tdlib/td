@@ -2461,6 +2461,8 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
       return promise_.set_error(Status::Error(3, "Supergroup not found"));
     }
 
+    hash = 0;  // to load even only ranks changed
+
     channel_id_ = channel_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getParticipants(
         std::move(input_channel), telegram_api::make_object<telegram_api::channelParticipantsAdmins>(), 0,
@@ -2479,18 +2481,23 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
       case telegram_api::channels_channelParticipants::ID: {
         auto participants = telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr);
         td->contacts_manager_->on_get_users(std::move(participants->users_), "GetChannelAdministratorsQuery");
-        vector<UserId> administrator_user_ids;
-        administrator_user_ids.reserve(participants->participants_.size());
+        vector<DialogAdministrator> administrators;
+        administrators.reserve(participants->participants_.size());
         for (auto &participant : participants->participants_) {
-          UserId user_id;
-          downcast_call(*participant, [&user_id](auto &participant) { user_id = UserId(participant.user_id_); });
-          if (user_id.is_valid()) {
-            administrator_user_ids.push_back(user_id);
+          DialogParticipant dialog_participant =
+              td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant));
+          if (!dialog_participant.user_id.is_valid() || !dialog_participant.status.is_administrator()) {
+            LOG(ERROR) << "Receive " << dialog_participant.user_id << " with status " << dialog_participant.status
+                       << " as an administrator of " << channel_id_;
+            continue;
           }
+          administrators.emplace_back(dialog_participant.user_id, dialog_participant.status.get_rank());
         }
 
-        td->contacts_manager_->on_update_dialog_administrators(DialogId(channel_id_), std::move(administrator_user_ids),
-                                                               true);
+        td->contacts_manager_->on_update_channel_administrator_count(channel_id_,
+                                                                     narrow_cast<int32>(administrators.size()));
+        td->contacts_manager_->on_update_dialog_administrators(DialogId(channel_id_), std::move(administrators), true);
+
         break;
       }
       case telegram_api::channels_channelParticipantsNotModified::ID:
@@ -7901,18 +7908,18 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
   chat_full->need_save_to_database |= chat_full->is_changed;
   chat_full->is_changed = false;
   if (chat_full->need_send_update) {
-    vector<UserId> administrator_user_ids;
+    vector<DialogAdministrator> administrators;
     vector<UserId> bot_user_ids;
     for (const auto &participant : chat_full->participants) {
       auto user_id = participant.user_id;
       if (participant.status.is_administrator()) {
-        administrator_user_ids.push_back(user_id);
+        administrators.emplace_back(user_id, participant.status.get_rank());
       }
       if (is_user_bot(user_id)) {
         bot_user_ids.push_back(user_id);
       }
     }
-    on_update_dialog_administrators(DialogId(chat_id), std::move(administrator_user_ids), chat_full->version != -1);
+    on_update_dialog_administrators(DialogId(chat_id), std::move(administrators), chat_full->version != -1);
     td_->messages_manager_->on_dialog_bots_updated(DialogId(chat_id), std::move(bot_user_ids));
 
     send_closure(
@@ -9165,33 +9172,34 @@ void ContactsManager::on_get_channel_participants_success(
       filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
   if (is_full && (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
-    vector<UserId> administrator_user_ids;
+    vector<DialogAdministrator> administrators;
     vector<UserId> bot_user_ids;
     {
-      auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
       if (filter.is_recent()) {
         for (const auto &participant : result) {
           if (participant.status.is_administrator()) {
-            administrator_user_ids.push_back(participant.user_id);
+            administrators.emplace_back(participant.user_id, participant.status.get_rank());
           }
           if (is_user_bot(participant.user_id)) {
             bot_user_ids.push_back(participant.user_id);
           }
         }
-        administrator_count = narrow_cast<int32>(administrator_user_ids.size());
+        administrator_count = narrow_cast<int32>(administrators.size());
 
         if (get_channel_type(channel_id) == ChannelType::Megagroup && !td_->auth_manager_->is_bot()) {
           cached_channel_participants_[channel_id] = result;
           update_channel_online_member_count(channel_id, true);
         }
       } else if (filter.is_administrators()) {
-        administrator_user_ids = std::move(user_ids);
+        for (const auto &participant : result) {
+          administrators.emplace_back(participant.user_id, participant.status.get_rank());
+        }
       } else if (filter.is_bots()) {
-        bot_user_ids = std::move(user_ids);
+        bot_user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
       }
     }
     if (filter.is_administrators() || filter.is_recent()) {
-      on_update_dialog_administrators(DialogId(channel_id), std::move(administrator_user_ids), true);
+      on_update_dialog_administrators(DialogId(channel_id), std::move(administrators), true);
     }
     if (filter.is_bots() || filter.is_recent()) {
       on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
@@ -9356,19 +9364,36 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     update_channel(c, channel_id);
   }
 
-  if (new_status.is_administrator() != old_status.is_administrator()) {
+  if (new_status.is_administrator() != old_status.is_administrator() ||
+      new_status.get_rank() != old_status.get_rank()) {
     DialogId dialog_id(channel_id);
     auto administrators_it = dialog_administrators_.find(dialog_id);
     if (administrators_it != dialog_administrators_.end()) {
-      auto user_ids = administrators_it->second;
+      auto administrators = administrators_it->second;
       if (new_status.is_administrator()) {
-        if (!td::contains(user_ids, user_id)) {
-          user_ids.push_back(user_id);
-          on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
+        bool is_found = false;
+        for (auto &administrator : administrators) {
+          if (administrator.get_user_id() == user_id) {
+            is_found = true;
+            if (administrator.get_rank() != new_status.get_rank()) {
+              administrator = DialogAdministrator(user_id, new_status.get_rank());
+              on_update_dialog_administrators(dialog_id, std::move(administrators), true);
+            }
+            break;
+          }
+        }
+        if (!is_found) {
+          administrators.emplace_back(user_id, new_status.get_rank());
+          on_update_dialog_administrators(dialog_id, std::move(administrators), true);
         }
       } else {
-        if (td::remove(user_ids, user_id)) {
-          on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
+        size_t i = 0;
+        while (i != administrators.size() && administrators[i].get_user_id() != user_id) {
+          i++;
+        }
+        if (i != administrators.size()) {
+          administrators.erase(administrators.begin() + i);
+          on_update_dialog_administrators(dialog_id, std::move(administrators), true);
         }
       }
     }
@@ -11597,13 +11622,15 @@ void ContactsManager::send_get_channel_participants_query(ChannelId channel_id, 
       ->send(channel_id, std::move(filter), offset, limit, random_id);
 }
 
-vector<UserId> ContactsManager::get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise) {
+vector<DialogAdministrator> ContactsManager::get_dialog_administrators(DialogId dialog_id, int left_tries,
+                                                                       Promise<Unit> &&promise) {
   auto it = dialog_administrators_.find(dialog_id);
   if (it != dialog_administrators_.end()) {
     promise.set_value(Unit());
     if (left_tries >= 2) {
-      auto hash =
-          get_vector_hash(transform(it->second, [](UserId user_id) { return static_cast<uint32>(user_id.get()); }));
+      auto hash = get_vector_hash(transform(it->second, [](const DialogAdministrator &administrator) {
+        return static_cast<uint32>(administrator.get_user_id().get());
+      }));
       reload_dialog_administrators(dialog_id, hash, Auto());  // update administrators cache
     }
     return it->second;
@@ -11625,7 +11652,7 @@ vector<UserId> ContactsManager::get_dialog_administrators(DialogId dialog_id, in
 }
 
 string ContactsManager::get_dialog_administrators_database_key(DialogId dialog_id) {
-  return PSTRING() << "admin" << (-dialog_id.get());
+  return PSTRING() << "adm" << (-dialog_id.get());
 }
 
 void ContactsManager::load_dialog_administrators(DialogId dialog_id, Promise<Unit> &&promise) {
@@ -11649,50 +11676,63 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
     return;
   }
 
-  vector<UserId> user_ids;
-  log_event_parse(user_ids, value).ensure();
+  vector<DialogAdministrator> administrators;
+  log_event_parse(administrators, value).ensure();
 
-  LOG(INFO) << "Successfully loaded " << user_ids.size() << " administrators in " << dialog_id << " from database";
+  LOG(INFO) << "Successfully loaded " << administrators.size() << " administrators in " << dialog_id
+            << " from database";
 
   MultiPromiseActorSafe load_users_multipromise{"LoadUsersMultiPromiseActor"};
   load_users_multipromise.add_promise(
-      PromiseCreator::lambda([dialog_id, user_ids, promise = std::move(promise)](Result<> result) mutable {
+      PromiseCreator::lambda([dialog_id, administrators, promise = std::move(promise)](Result<> result) mutable {
         send_closure(G()->contacts_manager(), &ContactsManager::on_load_administrator_users_finished, dialog_id,
-                     std::move(user_ids), std::move(result), std::move(promise));
+                     std::move(administrators), std::move(result), std::move(promise));
       }));
 
   auto lock_promise = load_users_multipromise.get_promise();
 
-  for (auto user_id : user_ids) {
-    get_user(user_id, 3, load_users_multipromise.get_promise());
+  for (auto &administrator : administrators) {
+    get_user(administrator.get_user_id(), 3, load_users_multipromise.get_promise());
   }
 
   lock_promise.set_value(Unit());
 }
 
-void ContactsManager::on_load_administrator_users_finished(DialogId dialog_id, vector<UserId> user_ids, Result<> result,
+void ContactsManager::on_load_administrator_users_finished(DialogId dialog_id,
+                                                           vector<DialogAdministrator> administrators, Result<> result,
                                                            Promise<Unit> promise) {
   if (result.is_ok()) {
-    dialog_administrators_.emplace(dialog_id, std::move(user_ids));
+    dialog_administrators_.emplace(dialog_id, std::move(administrators));
   }
   promise.set_value(Unit());
 }
 
-void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids,
+void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count) {
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full != nullptr && channel_full->administrator_count != administrator_count) {
+    channel_full->administrator_count = administrator_count;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                                       bool have_access) {
-  LOG(INFO) << "Update administrators in " << dialog_id << " to " << format::as_array(administrator_user_ids);
+  LOG(INFO) << "Update administrators in " << dialog_id << " to " << format::as_array(administrators);
   if (have_access) {
-    std::sort(administrator_user_ids.begin(), administrator_user_ids.end(),
-              [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
+    std::sort(administrators.begin(), administrators.end(),
+              [](const DialogAdministrator &lhs, const DialogAdministrator &rhs) {
+                return lhs.get_user_id().get() < rhs.get_user_id().get();
+              });
 
     auto it = dialog_administrators_.find(dialog_id);
     if (it != dialog_administrators_.end()) {
-      if (it->second == administrator_user_ids) {
+      if (it->second == administrators) {
         return;
       }
-      it->second = std::move(administrator_user_ids);
+      it->second = std::move(administrators);
     } else {
-      it = dialog_administrators_.emplace(dialog_id, std::move(administrator_user_ids)).first;
+      it = dialog_administrators_.emplace(dialog_id, std::move(administrators)).first;
     }
 
     if (G()->parameters().use_chat_info_db) {

@@ -23571,7 +23571,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
   return {};
 }
 
-vector<UserId> MessagesManager::get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise) {
+vector<DialogAdministrator> MessagesManager::get_dialog_administrators(DialogId dialog_id, int left_tries,
+                                                                       Promise<Unit> &&promise) {
   LOG(INFO) << "Receive GetChatAdministrators request in " << dialog_id;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));

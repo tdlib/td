@@ -13,6 +13,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogId.h"
@@ -448,7 +449,7 @@ class MessagesManager : public Actor {
                                                                          int64 &random_id, bool force,
                                                                          Promise<Unit> &&promise);
 
-  vector<UserId> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
+  vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
   void export_dialog_invite_link(DialogId dialog_id, Promise<Unit> &&promise);
 

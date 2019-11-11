@@ -3407,6 +3407,9 @@ class CliClient final : public Actor {
       } else if (status_str == "admin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, true, true, true, true, true,
                                                                             true, true, true);
+      } else if (status_str == "adminq") {
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>("title", true, true, true, true, true, true,
+                                                                            true, true, true);
       } else if (status_str == "minadmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, true, false, false, false, false,
                                                                             false, false, false);

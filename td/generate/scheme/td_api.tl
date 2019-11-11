@@ -321,6 +321,13 @@ userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfil
 users total_count:int32 user_ids:vector<int32> = Users;
 
 
+//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator
+chatAdministrator user_id:int32 custom_title:string = ChatAdministrator;
+
+//@description Represents a list of chat administrators @administrators A list of chat administrators
+chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;
+
+
 //@description Describes actions that a user is allowed to take in a chat
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
@@ -3532,8 +3539,8 @@ getChatMember chat_id:int53 user_id:int32 = ChatMember;
 //@description Searches for a specified query in the first name, last name and username of the members of a specified chat. Requires administrator rights in channels @chat_id Chat identifier @query Query to search for @limit The maximum number of users to be returned @filter The type of users to return. By default, chatMembersFilterMembers
 searchChatMembers chat_id:int53 query:string limit:int32 filter:ChatMembersFilter = ChatMembers;
 
-//@description Returns a list of users who are administrators of the chat @chat_id Chat identifier
-getChatAdministrators chat_id:int53 = Users;
+//@description Returns a list of administrators of the chat with their custom titles @chat_id Chat identifier
+getChatAdministrators chat_id:int53 = ChatAdministrators;
 
 
 //@description Clears draft messages in all chats @exclude_secret_chats If true, local draft messages in secret chats will not be cleared

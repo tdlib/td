@@ -13,6 +13,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
+#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
@@ -186,10 +187,12 @@ class ContactsManager : public Actor {
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
+  void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
   void on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers, bool from_update);
 
-  void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
+  void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
+                                       bool have_access);
 
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                             UserId inviter_user_id, int32 date, bool by_me);
@@ -455,7 +458,7 @@ class ContactsManager : public Actor {
   DialogParticipant get_dialog_participant(ChannelId channel_id,
                                            tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const;
 
-  vector<UserId> get_dialog_administrators(DialogId chat_id, int left_tries, Promise<Unit> &&promise);
+  vector<DialogAdministrator> get_dialog_administrators(DialogId chat_id, int left_tries, Promise<Unit> &&promise);
 
   int32 get_user_id_object(UserId user_id, const char *source) const;
 
@@ -1209,8 +1212,8 @@ class ContactsManager : public Actor {
 
   void on_load_dialog_administrators_from_database(DialogId dialog_id, string value, Promise<Unit> &&promise);
 
-  void on_load_administrator_users_finished(DialogId dialog_id, vector<UserId> user_ids, Result<> result,
-                                            Promise<Unit> promise);
+  void on_load_administrator_users_finished(DialogId dialog_id, vector<DialogAdministrator> administrators,
+                                            Result<> result, Promise<Unit> promise);
 
   void reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise);
 
@@ -1335,7 +1338,7 @@ class ContactsManager : public Actor {
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
   QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner", 2.0};
 
-  std::unordered_map<DialogId, vector<UserId>, DialogIdHash> dialog_administrators_;
+  std::unordered_map<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
 
   class UploadProfilePhotoCallback;
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;
