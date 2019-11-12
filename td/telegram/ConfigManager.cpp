@@ -245,7 +245,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
                                         const ConfigShared *shared_config, bool is_test, int32 scheduler_id) {
   string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  if (name.empty() || true) {
+  if (name.empty()) {
     name = is_test ? "tapv3.stel.com" : "apv3.stel.com";
   }
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
