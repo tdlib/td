@@ -33,7 +33,8 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
     }
   } else if (code == 420) {
     auto msg = query->error().message();
-    for (auto prefix : {Slice("FLOOD_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
+    for (auto prefix :
+         {Slice("FLOOD_WAIT_"), Slice("SLOWMODE_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
       if (begins_with(msg, prefix)) {
         timeout = clamp(to_integer<int>(msg.substr(prefix.size())), 0, 14 * 24 * 60 * 60);
         break;
