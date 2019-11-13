@@ -86,8 +86,8 @@ td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string 
             .move_as_ok();
     static const string footer = base64_decode("/9k=").move_as_ok();
     auto result = td_api::make_object<td_api::minithumbnail>();
-    result->width_ = static_cast<unsigned char>(packed[1]);
-    result->height_ = static_cast<unsigned char>(packed[2]);
+    result->height_ = static_cast<unsigned char>(packed[1]);
+    result->width_ = static_cast<unsigned char>(packed[2]);
     result->data_ = PSTRING() << header.substr(0, 164) << packed[1] << header[165] << packed[2] << header.substr(167)
                               << packed.substr(3) << footer;
     return result;
