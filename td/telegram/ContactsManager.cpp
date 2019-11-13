@@ -5301,21 +5301,6 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
                                                              DialogParticipantStatus status,
                                                              DialogParticipantStatus old_status,
                                                              Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    if (status.is_restricted() && status.is_member() && !old_status.is_member()) {
-      // allow bots to restrict left chat members without trying to add them
-      status.set_is_member(false);
-    }
-
-    auto new_until_date = status.get_until_date();
-    if (new_until_date >= 1840000000 && status.is_restricted()) {
-      status = DialogParticipantStatus::Restricted(
-          status.is_member(), new_until_date - 300000000, status.can_send_messages(), status.can_send_media(),
-          status.can_send_stickers(), status.can_send_animations(), status.can_send_games(),
-          status.can_use_inline_bots(), status.can_add_web_page_previews(), old_status.can_send_polls(),
-          old_status.can_change_info_and_settings(), old_status.can_invite_users(), old_status.can_pin_messages());
-    }
-  }
   if (old_status == status && !old_status.is_creator()) {
     return promise.set_value(Unit());
   }
