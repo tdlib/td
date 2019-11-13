@@ -808,8 +808,9 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   info.salt = Random::secure_int64();
   info.session_id = Random::secure_int64();
 
-  auto packet = BufferWriter{Transport::write(query_storer, auth_data_->get_main_auth_key(), &info), 0, 0};
-  Transport::write(query_storer, auth_data_->get_main_auth_key(), &info, packet.as_slice());
+  const AuthKey &main_auth_key = auth_data_->get_main_auth_key();
+  auto packet = BufferWriter{Transport::write(query_storer, main_auth_key, &info), 0, 0};
+  Transport::write(query_storer, main_auth_key, &info, packet.as_slice());
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 
