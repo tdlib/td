@@ -1355,6 +1355,47 @@ class EditLocationQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "EditLocationQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleSlowModeQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  int32 slow_mode_delay_ = 0;
+
+ public:
+  explicit ToggleSlowModeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, int32 slow_mode_delay) {
+    channel_id_ = channel_id;
+    slow_mode_delay_ = slow_mode_delay;
+
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::channels_toggleSlowMode(std::move(input_channel), slow_mode_delay))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleSlowMode>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for toggleSlowMode: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    td->contacts_manager_->on_update_channel_slow_mode_delay(channel_id_, slow_mode_delay_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleSlowModeQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3245,6 +3286,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_migrated_from_chat_id = migrated_from_chat_id.is_valid();
   bool has_location = !location.empty();
   bool has_bot_user_ids = !bot_user_ids.empty();
+  bool is_slow_mode_enabled = slow_mode_delay != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3263,6 +3305,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(can_set_location);
   STORE_FLAG(has_location);
   STORE_FLAG(has_bot_user_ids);
+  STORE_FLAG(is_slow_mode_enabled);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3298,6 +3341,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_migrated_from_chat_id) {
     store(migrated_from_chat_id, storer);
   }
+  if (is_slow_mode_enabled) {
+    store(slow_mode_delay, storer);
+  }
   store_time(expires_at, storer);
 }
 
@@ -3315,6 +3361,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_migrated_from_chat_id;
   bool has_location;
   bool has_bot_user_ids;
+  bool is_slow_mode_enabled;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3333,6 +3380,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(can_set_location);
   PARSE_FLAG(has_location);
   PARSE_FLAG(has_bot_user_ids);
+  PARSE_FLAG(is_slow_mode_enabled);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3367,6 +3415,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_migrated_from_chat_id) {
     parse(migrated_from_chat_id, parser);
+  }
+  if (is_slow_mode_enabled) {
+    parse(slow_mode_delay, parser);
   }
   parse_time(expires_at, parser);
 }
@@ -5112,6 +5163,38 @@ void ContactsManager::set_channel_location(DialogId dialog_id, const DialogLocat
   }
 
   td_->create_handler<EditLocationQuery>(std::move(promise))->send(channel_id, location);
+}
+
+void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise) {
+  std::vector<int32> allowed_slow_mode_delays{0, 10, 30, 60, 300, 900, 3600};
+  if (!td::contains(allowed_slow_mode_delays, slow_mode_delay)) {
+    return promise.set_error(Status::Error(400, "Invalid new value for slow mode delay"));
+  }
+
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (!c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
+  }
+  if (!get_channel_permissions(c).can_restrict_members()) {
+    return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+  }
+
+  td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
@@ -8378,6 +8461,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_location(channel, channel_id, DialogLocation(std::move(channel_full->location_)));
 
+    on_update_channel_full_slow_mode_delay(channel, channel_id, channel_full->slowmode_seconds_);
+
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
 
@@ -9596,6 +9681,23 @@ void ContactsManager::on_update_channel_full_location(ChannelFull *channel_full,
   }
 }
 
+void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id,
+                                                             int32 slow_mode_delay) {
+  if (channel_full->slow_mode_delay != slow_mode_delay) {
+    channel_full->slow_mode_delay = slow_mode_delay;
+    channel_full->is_changed = true;
+  }
+
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  bool is_slow_mode_enabled = slow_mode_delay != 0;
+  if (is_slow_mode_enabled == c->is_slow_mode_enabled) {
+    c->is_slow_mode_enabled = is_slow_mode_enabled;
+    c->is_changed = true;
+    update_channel(c, channel_id);
+  }
+}
+
 void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
                                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr) {
   auto &invite_link_info = invite_link_infos_[invite_link];
@@ -10374,6 +10476,14 @@ void ContactsManager::on_update_channel_location(ChannelId channel_id, const Dia
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full != nullptr) {
     on_update_channel_full_location(channel_full, channel_id, location);
+    update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay) {
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full != nullptr) {
+    on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay);
     update_channel_full(channel_full, channel_id);
   }
 }
@@ -12364,9 +12474,10 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
   return td_api::make_object<td_api::supergroupFullInfo>(
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
-      channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
-      channel_full->can_set_location, channel_full->can_view_statistics, channel_full->is_all_history_available,
-      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(), channel_full->invite_link,
+      channel_full->slow_mode_delay, channel_full->can_get_participants, channel_full->can_set_username,
+      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
+      channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
+      channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

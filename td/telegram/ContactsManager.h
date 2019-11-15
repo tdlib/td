@@ -185,6 +185,7 @@ class ContactsManager : public Actor {
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
+  void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
@@ -327,6 +328,8 @@ class ContactsManager : public Actor {
   void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);
 
   void set_channel_location(DialogId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
+
+  void set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise);
 
   void report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                            Promise<Unit> &&promise);
@@ -746,6 +749,8 @@ class ContactsManager : public Actor {
 
     DialogLocation location;
 
+    int32 slow_mode_delay = 0;
+
     MessageId migrated_from_max_message_id;
     ChatId migrated_from_chat_id;
 
@@ -923,6 +928,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 14;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_LOCATION = 1 << 15;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_LOCATION = 1 << 16;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY = 1 << 17;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
@@ -1069,6 +1075,7 @@ class ContactsManager : public Actor {
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);
+  void on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id, int32 slow_mode_delay);
   void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                            vector<UserId> &&bot_user_ids);
 
