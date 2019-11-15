@@ -3122,6 +3122,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(has_cache_version);
   STORE_FLAG(has_linked_channel);
   STORE_FLAG(has_location);
+  STORE_FLAG(is_slow_mode_enabled);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -3184,6 +3185,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(has_cache_version);
   PARSE_FLAG(has_linked_channel);
   PARSE_FLAG(has_location);
+  PARSE_FLAG(is_slow_mode_enabled);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -11945,6 +11947,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
+  bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
   string restriction_reason = std::move(channel.restriction_reason_);
@@ -11962,6 +11965,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   if (is_megagroup) {
     LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
     sign_messages = true;
+  } else {
+    LOG_IF(ERROR, is_slow_mode_enabled) << "Slow mode enabled in the " << channel_id << " from " << source;
+    is_slow_mode_enabled = false;
   }
 
   DialogParticipantStatus status = [&]() {
@@ -12036,11 +12042,13 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
+      c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
+      c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
     c->sign_messages = sign_messages;
+    c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
     c->restriction_reason = std::move(restriction_reason);
@@ -12097,6 +12105,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   bool has_linked_channel = false;
   bool has_location = false;
   bool sign_messages = false;
+  bool is_slow_mode_enabled = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = false;
   string restriction_reason;
@@ -12119,11 +12128,13 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
 
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
-      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
+      c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
+      c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
     c->sign_messages = sign_messages;
+    c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
     c->restriction_reason = std::move(restriction_reason);
@@ -12324,7 +12335,7 @@ int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
                      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, false, false, true, false, "", false)));
+                     0, false, false, false, false, true, false, "", false)));
   }
   return channel_id.get();
 }
@@ -12337,10 +12348,10 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   if (c == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::supergroup>(channel_id.get(), c->username, c->date,
-                                            get_channel_status(c).get_chat_member_status_object(), c->participant_count,
-                                            c->has_linked_channel, c->has_location, c->sign_messages, !c->is_megagroup,
-                                            c->is_verified, c->restriction_reason, c->is_scam);
+  return td_api::make_object<td_api::supergroup>(
+      channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
+      c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, c->is_slow_mode_enabled,
+      !c->is_megagroup, c->is_verified, c->restriction_reason, c->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
@@ -12350,7 +12361,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(
     const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
-  return make_tl_object<td_api::supergroupFullInfo>(
+  return td_api::make_object<td_api::supergroupFullInfo>(
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
