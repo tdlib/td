@@ -1783,7 +1783,7 @@ class InviteToChannelQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for inviteToChannel: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
     promise_.set_value(Unit());
   }
@@ -1820,7 +1820,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editChannelAdmin: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
     promise_.set_value(Unit());
   }
@@ -1857,7 +1857,7 @@ class EditChannelBannedQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editChannelBanned: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
     promise_.set_value(Unit());
   }
@@ -1968,7 +1968,7 @@ class EditChannelCreatorQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editChannelCreator: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
     promise_.set_value(Unit());
   }
@@ -2715,7 +2715,7 @@ void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
 
   LOG(INFO) << "Update " << channel_id << " status";
   c->is_status_changed = true;
-  invalidate_channel_full(channel_id, false);
+  invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
   update_channel(c, channel_id);  // always call, because in case of failure we need to reactivate timeout
 }
 
@@ -9195,7 +9195,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
         update_channel(c, channel_id);
       }
     }
-    invalidate_channel_full(channel_id, false);
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
         << "Have read access to channel after receiving CHANNEL_PRIVATE. Channel state: "
         << oneline(to_string(get_supergroup_object(channel_id, c)))
@@ -9422,7 +9422,7 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
                                                            bool by_me) {
   if (by_me) {
     // Currently ignore all changes made by the current user, because they may be already counted
-    invalidate_channel_full(channel_id, false);  // just in case
+    invalidate_channel_full(channel_id, false, false);  // just in case
     return;
   }
 
@@ -9547,7 +9547,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
   update_channel_full(channel_full, channel_id);
 }
 
-void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link) {
+void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   // drop channel full cache
   auto channel_full = get_channel_full_force(channel_id);
@@ -9555,6 +9555,10 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
     channel_full->expires_at = 0.0;
     if (drop_invite_link) {
       on_update_channel_full_invite_link(channel_full, nullptr);
+    }
+    if (drop_slow_mode_delay && channel_full->slow_mode_delay != 0) {
+      channel_full->slow_mode_delay = 0;
+      channel_full->is_changed = true;
     }
     update_channel_full(channel_full, channel_id);
   } else if (drop_invite_link) {
@@ -10366,7 +10370,7 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
     c->status = status;
     c->is_status_changed = true;
     c->is_changed = true;
-    invalidate_channel_full(channel_id, drop_invite_link);
+    invalidate_channel_full(channel_id, drop_invite_link, !c->is_slow_mode_enabled);
     if (is_ownership_transferred) {
       for (size_t i = 0; i < 2; i++) {
         created_public_channels_inited_[i] = false;
@@ -10412,7 +10416,7 @@ void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_i
   if (c->username != username) {
     if (c->username.empty() || username.empty()) {
       // moving channel from private to public can change availability of chat members
-      invalidate_channel_full(channel_id, true);
+      invalidate_channel_full(channel_id, true, !c->is_slow_mode_enabled);
     }
 
     c->username = std::move(username);
@@ -12113,7 +12117,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
         c->is_verified = is_verified;
 
         c->is_changed = true;
-        invalidate_channel_full(channel_id, false);
+        invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
       }
 
       update_channel(c, channel_id);
@@ -12152,9 +12156,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason ||
-      c->is_scam != is_scam) {
+      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->restriction_reason != restriction_reason || c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
     c->sign_messages = sign_messages;
@@ -12165,7 +12168,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->is_scam = is_scam;
 
     c->is_changed = true;
-    invalidate_channel_full(channel_id, false);
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -12251,7 +12254,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_scam = is_scam;
 
     c->is_changed = true;
-    invalidate_channel_full(channel_id, false);
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
