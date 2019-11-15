@@ -3503,6 +3503,9 @@ setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 
+//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members rights @chat_id Chat identifier @slow_mode_delay New slow mode delay for the chat; must be one of 0, 10, 30, 60, 300, 900, 3600
+setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
+
 //@description Pins a message in a chat; requires can_pin_messages rights @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
 

@@ -3534,6 +3534,13 @@ class CliClient final : public Actor {
       std::tie(latitude, longitude) = split(args);
       send_request(td_api::make_object<td_api::setChatLocation>(
           as_chat_id(chat_id), td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude), "address")));
+    } else if (op == "scsmd") {
+      string chat_id;
+      string slow_mode_delay;
+
+      std::tie(chat_id, slow_mode_delay) = split(args);
+      send_request(
+          td_api::make_object<td_api::setChatSlowModeDelay>(as_chat_id(chat_id), to_integer<int32>(slow_mode_delay)));
     } else if (op == "pcm" || op == "pcms") {
       string chat_id;
       string message_id;

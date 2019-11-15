@@ -676,6 +676,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setChatLocation &request);
 
+  void on_request(uint64 id, const td_api::setChatSlowModeDelay &request);
+
   void on_request(uint64 id, const td_api::pinChatMessage &request);
 
   void on_request(uint64 id, const td_api::unpinChatMessage &request);
