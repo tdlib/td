@@ -1327,6 +1327,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   if (!y_file_id.is_valid()) {
+    LOG(DEBUG) << "Old file is invalid";
     return x_node->main_file_id_;
   }
   FileNodePtr y_node = get_file_node(y_file_id);
@@ -1338,6 +1339,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     x_node->set_upload_pause(FileId());
   }
   if (x_node.get() == y_node.get()) {
+    LOG(DEBUG) << "Files are already merged";
     return x_node->main_file_id_;
   }
   if (y_file_id == y_node->upload_pause_) {
@@ -2422,6 +2424,7 @@ void FileManager::delete_file_reference(FileId file_id, string file_reference) {
   if (remote != nullptr) {
     VLOG(file_references) << "Do delete file reference of remote file " << file_id;
     if (remote->delete_file_reference(file_reference)) {
+      VLOG(file_references) << "Successfully deleted file reference of remote file " << file_id;
       node->upload_was_update_file_reference_ = false;
       node->download_was_update_file_reference_ = false;
       node->on_pmc_changed();

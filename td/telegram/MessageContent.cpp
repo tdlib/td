@@ -2958,12 +2958,17 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           }
         }
 
+        LOG(DEBUG) << "Merge photos " << old_photo->photos << " and " << new_photo->photos
+                   << " with new photos size = " << new_photos_size << ", need_merge = " << need_merge
+                   << ", need_update = " << need_update;
         if (need_merge && new_photos_size != 0) {
           FileId old_file_id = get_message_content_upload_file_id(old_content);
           FileView old_file_view = td->file_manager_->get_file_view(old_file_id);
           FileId new_file_id = new_photo->photos[0].file_id;
           FileView new_file_view = td->file_manager_->get_file_view(new_file_id);
           CHECK(new_file_view.has_remote_location());
+
+          LOG(DEBUG) << "Trying to merge old file " << old_file_id << " and new file " << new_file_id;
           if (new_file_view.remote_location().is_web()) {
             LOG(ERROR) << "Have remote web photo location";
           } else if (!old_file_view.has_remote_location() ||
