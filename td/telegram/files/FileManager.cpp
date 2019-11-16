@@ -1492,6 +1492,10 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
   node->can_search_locally_ &= other_node->can_search_locally_;
 
+  if (other_node->last_successful_force_reupload_time_ > node->last_successful_force_reupload_time_) {
+    node->last_successful_force_reupload_time_ = other_node->last_successful_force_reupload_time_;
+  }
+
   if (main_file_id_i == other_node_i) {
     context_->on_merge_files(other_node->main_file_id_, node->main_file_id_);
     node->main_file_id_ = other_node->main_file_id_;
@@ -2167,7 +2171,7 @@ void FileManager::run_download(FileNodePtr node) {
                download_limit, priority);
 }
 
-class ForceUploadActor : public Actor {
+class FileManager::ForceUploadActor : public Actor {
  public:
   ForceUploadActor(FileManager *file_manager, FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback,
                    int32 new_priority, uint64 upload_order, ActorShared<> parent)
@@ -2248,6 +2252,7 @@ class ForceUploadActor : public Actor {
 
   void on_ok() {
     callback_.reset();
+    send_closure(G()->file_manager(), &FileManager::on_force_reupload_success, file_id_);
     stop();
   }
 
@@ -2284,16 +2289,14 @@ class ForceUploadActor : public Actor {
   }
 };
 
+void FileManager::on_force_reupload_success(FileId file_id) {
+  auto node = get_sync_file_node(file_id);
+  CHECK(node);
+  node->last_successful_force_reupload_time_ = Time::now();
+}
+
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                                 int32 new_priority, uint64 upload_order, bool force) {
-  if (bad_parts.size() == 1 && bad_parts[0] == -1) {
-    create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, std::move(callback), new_priority, upload_order,
-                                   context_->create_reference())
-        .release();
-    return;
-  }
-  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
-
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
@@ -2302,6 +2305,23 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     }
     return;
   }
+
+  if (bad_parts.size() == 1 && bad_parts[0] == -1) {
+    if (node->last_successful_force_reupload_time_ >= Time::now() - 60) {
+      LOG(INFO) << "Recently reuploaded file " << file_id << ", do not try again";
+      if (callback) {
+        callback->on_upload_error(file_id, Status::Error("Failed to reupload file"));
+      }
+      return;
+    }
+
+    create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, std::move(callback), new_priority, upload_order,
+                                   context_->create_reference())
+        .release();
+    return;
+  }
+  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
+
   if (force) {
     node->remote_.is_full_alive = false;
   }

@@ -147,6 +147,8 @@ class FileNode {
 
   FileId main_file_id_;
 
+  double last_successful_force_reupload_time_ = -1e10;
+
   FileId upload_pause_;
   int8 upload_priority_ = 0;
   int8 download_priority_ = 0;
@@ -513,6 +515,8 @@ class FileManager : public FileLoadManager::Callback {
     std::shared_ptr<UploadCallback> upload_callback_;
   };
 
+  class ForceUploadActor;
+
   ActorShared<> parent_;
   unique_ptr<Context> context_;
   std::shared_ptr<FileDbInterface> file_db_;
@@ -594,6 +598,8 @@ class FileManager : public FileLoadManager::Callback {
   FileNode *get_file_node_raw(FileId file_id, FileNodeId *file_node_id = nullptr);
 
   FileNodePtr get_sync_file_node(FileId file_id);
+
+  void on_force_reupload_success(FileId file_id);
 
   // void release_file_node(FileNodeId id);
   void do_cancel_download(FileNodePtr node);
