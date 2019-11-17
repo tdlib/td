@@ -29,6 +29,8 @@ class DeviceTokenManager : public NetQueryCallback {
   void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<int32> other_user_ids,
                        Promise<td_api::object_ptr<td_api::pushReceiverId>> promise);
 
+  void reregister_device();
+
   vector<std::pair<int64, Slice>> get_encryption_keys() const;
 
  private:

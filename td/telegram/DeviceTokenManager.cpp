@@ -268,6 +268,16 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   save_info(token_type);
 }
 
+void DeviceTokenManager::reregister_device() {
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
+    auto &token = tokens_[token_type];
+    if (token.state == TokenInfo::State::Sync && !token.token.empty()) {
+      token.state = TokenInfo::State::Register;
+    }
+  }
+  loop();
+}
+
 vector<std::pair<int64, Slice>> DeviceTokenManager::get_encryption_keys() const {
   vector<std::pair<int64, Slice>> result;
   for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
@@ -318,7 +328,7 @@ void DeviceTokenManager::start_up() {
       token.token = serialized.substr(1);
     }
     LOG(INFO) << "GET device token " << token_type << "--->" << token;
-    if (token.state == TokenInfo::State::Sync) {
+    if (token.state == TokenInfo::State::Sync && !token.token.empty()) {
       token.state = TokenInfo::State::Register;
     }
   }

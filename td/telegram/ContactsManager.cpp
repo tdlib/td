@@ -12,6 +12,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -220,6 +221,7 @@ class ResetAuthorizationsQuery : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to terminate all sessions";
+    send_closure(td->device_token_manager_, &DeviceTokenManager::reregister_device);
     promise_.set_value(Unit());
   }
 
