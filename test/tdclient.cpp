@@ -874,6 +874,7 @@ TEST(Client, SimpleMulti) {
   }
 }
 
+#if !TD_THREAD_UNSUPPORTED
 TEST(Client, Multi) {
   std::vector<td::thread> threads;
   for (int i = 0; i < 4; i++) {
@@ -895,6 +896,7 @@ TEST(Client, Multi) {
     thread.join();
   }
 }
+#endif
 
 TEST(PartsManager, hands) {
   //Status init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
