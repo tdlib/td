@@ -4023,9 +4023,9 @@ void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web()) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(td_->file_manager_->dup_file_id(file_id), file_view.remote_location().as_input_photo());
+        ->send(td_->file_manager_->dup_file_id(file_id), file_view.main_remote_location().as_input_photo());
     return;
   }
 
@@ -10418,14 +10418,14 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.has_remote_location() && input_file == nullptr) {
-    if (file_view.remote_location().is_web()) {
+    if (file_view.main_remote_location().is_web()) {
       // TODO reupload
       promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
       return;
     }
 
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(file_id, file_view.remote_location().as_input_photo());
+        ->send(file_id, file_view.main_remote_location().as_input_photo());
     return;
   }
   CHECK(input_file != nullptr);

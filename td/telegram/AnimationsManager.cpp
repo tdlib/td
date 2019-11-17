@@ -309,8 +309,8 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.remote_location().is_web() && input_file == nullptr) {
-    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), 0);
+  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.main_remote_location().as_input_document(), 0);
   }
   if (file_view.has_url()) {
     return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
@@ -362,7 +362,7 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
     return SecretInputMedia{};
   }
   if (file_view.has_remote_location()) {
-    input_file = file_view.remote_location().as_input_encrypted_file();
+    input_file = file_view.main_remote_location().as_input_encrypted_file();
   }
   if (!input_file) {
     return SecretInputMedia{};

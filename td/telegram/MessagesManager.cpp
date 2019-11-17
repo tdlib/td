@@ -6681,12 +6681,12 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
   if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.remote_location().is_web()) {
+    if (file_view.main_remote_location().is_web()) {
       // TODO reupload
       promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
       return;
     }
-    auto input_photo = file_view.remote_location().as_input_photo();
+    auto input_photo = file_view.main_remote_location().as_input_photo();
     input_chat_photo = make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo));
   } else {
     input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(std::move(input_file));
@@ -22210,9 +22210,9 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web()) {
     // file has already been uploaded, just send change photo request
-    auto input_photo = file_view.remote_location().as_input_photo();
+    auto input_photo = file_view.main_remote_location().as_input_photo();
     send_edit_dialog_photo_query(
         dialog_id, file_id, make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo)), std::move(promise));
     return;

@@ -240,6 +240,7 @@ class FileView {
   bool has_active_upload_remote_location() const;
   bool has_active_download_remote_location() const;
   const FullRemoteFileLocation &remote_location() const;
+  const FullRemoteFileLocation &main_remote_location() const;
   bool has_generate_location() const;
   const FullGenerateFileLocation &generate_location() const;
 

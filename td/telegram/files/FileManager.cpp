@@ -469,13 +469,16 @@ bool FileView::has_alive_remote_location() const {
 }
 
 bool FileView::has_active_upload_remote_location() const {
+  if (!has_remote_location()) {
+    return false;
+  }
   if (!has_alive_remote_location()) {
     return false;
   }
-  if (remote_location().is_encrypted_any()) {
+  if (main_remote_location().is_encrypted_any()) {
     return true;
   }
-  return remote_location().has_file_reference();
+  return main_remote_location().has_file_reference();
 }
 
 bool FileView::has_active_download_remote_location() const {
@@ -494,6 +497,11 @@ const FullRemoteFileLocation &FileView::remote_location() const {
   if (remote) {
     return *remote;
   }
+  return node_->remote_.full.value();
+}
+
+const FullRemoteFileLocation &FileView::main_remote_location() const {
+  CHECK(has_remote_location());
   return node_->remote_.full.value();
 }
 

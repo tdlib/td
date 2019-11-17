@@ -2972,9 +2972,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           if (new_file_view.remote_location().is_web()) {
             LOG(ERROR) << "Have remote web photo location";
           } else if (!old_file_view.has_remote_location() ||
-                     old_file_view.remote_location().get_file_reference() !=
+                     old_file_view.main_remote_location().get_file_reference() !=
                          new_file_view.remote_location().get_file_reference() ||
-                     old_file_view.remote_location().get_access_hash() !=
+                     old_file_view.main_remote_location().get_access_hash() !=
                          new_file_view.remote_location().get_access_hash()) {
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),

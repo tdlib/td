@@ -650,19 +650,19 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
       if (file_view.is_encrypted()) {
         return promise.set_error(Status::Error(400, "Can't send encrypted file"));
       }
-      if (file_view.remote_location().is_web()) {
+      if (file_view.main_remote_location().is_web()) {
         return promise.set_error(Status::Error(400, "Can't send web file"));
       }
 
       if (file_type == FileType::Photo) {
         auto result = make_tl_object<telegram_api::inputBotInlineResultPhoto>(
-            id, type, file_view.remote_location().as_input_photo(), std::move(inline_message));
+            id, type, file_view.main_remote_location().as_input_photo(), std::move(inline_message));
         results.push_back(std::move(result));
         continue;
       }
 
       auto result = make_tl_object<telegram_api::inputBotInlineResultDocument>(
-          flags, id, type, title, description, file_view.remote_location().as_input_document(),
+          flags, id, type, title, description, file_view.main_remote_location().as_input_document(),
           std::move(inline_message));
       results.push_back(std::move(result));
       continue;
