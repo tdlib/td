@@ -118,6 +118,29 @@ class GetOnlinesQuery : public Td::ResultHandler {
   }
 };
 
+class GetAllDraftsQuery : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getAllDrafts())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getAllDrafts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAllDraftsQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
+    status.ignore();
+  }
+};
+
 class GetDialogQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -12296,6 +12319,10 @@ void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool onl
                    get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
       is_query_sent = true;
     }
+    if (folder_id == FolderId::main() && list.last_server_dialog_date_ == MIN_DIALOG_DATE) {
+      // do not pass promise to not wait for drafts before showing chat list
+      td_->create_handler<GetAllDraftsQuery>()->send();
+    }
   }
   CHECK(is_query_sent);
 }
@@ -21926,6 +21953,11 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
+    } else {
+      send_get_dialog_query(dialog_id, Promise<Unit>());
+    }
     return;
   }
   update_dialog_draft_message(d, get_draft_message(td_->contacts_manager_.get(), std::move(draft_message)), true, true);
