@@ -301,7 +301,7 @@ endif()
 #SOURCE SETS
 
 set_source_files_properties(${TL_TD_AUTO} PROPERTIES GENERATED TRUE)
-if (TD_ENABLE_JNI)
+if (TD_ENABLE_JNI OR ANDROID)
   set(TL_JNI_OBJECT
     td/tl/tl_jni_object.cpp
     td/tl/tl_jni_object.h
