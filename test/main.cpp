@@ -30,8 +30,9 @@ int main(int argc, char **argv) {
   }
 #if TD_EMSCRIPTEN
   emscripten_set_main_loop(
-      [&runner] {
-        if (!runner.run_all_step()) {
+      [] {
+        td::TestsRunner &default_runner = td::TestsRunner::get_default();
+        if (!default_runner.run_all_step()) {
           emscripten_cancel_main_loop();
         }
       },
