@@ -621,7 +621,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 //@class ChatList @description Describes a list of chats
 
-//@description A main list of chats. Can contain ordinary chats and other lists of chats as folders
+//@description A main list of chats
 chatListMain = ChatList;
 
 //@description A list of chats usually located at the top of the main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list when a new message arrives
