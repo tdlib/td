@@ -411,7 +411,7 @@ function onOptionsChanged() {
   var use_vcpkg = os_windows;
 
   var use_lto = false;
-  if (!use_msvc && language !== 'Java' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Other')))) {
+  if (!use_msvc && language !== 'Java' && language !== 'Kotlin' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Other')))) {
     document.getElementById('buildLtoDiv').style.display = 'block';
     use_lto = document.getElementById('buildLtoCheckbox').checked;
   } else {
@@ -609,7 +609,7 @@ function onOptionsChanged() {
         }
         if (use_clang) {
           if (linux_distro === 'Ubuntu 18') {
-            packages += ' clang-6.0 libc++abi-dev';
+            packages += ' clang-6.0 libc++-dev libc++abi-dev';
           } else {
             if (linux_distro === 'Ubuntu 14') {
               packages += ' clang-3.9';
@@ -781,12 +781,14 @@ function onOptionsChanged() {
       var prefix = '';
       if (os_linux) {
         if (use_clang) {
-          prefix = 'CC=/usr/bin/clang CXX=/usr/bin/clang++ ';
           if (linux_distro === 'Ubuntu 18') {
+            prefix = 'CC=/usr/bin/clang-6.0 CXX=/usr/bin/clang++-6.0 ';
             options.push('-DCMAKE_AR=/usr/bin/llvm-ar-6.0');
             options.push('-DCMAKE_NM=/usr/bin/llvm-nm-6.0');
             options.push('-DCMAKE_OBJDUMP=/usr/bin/llvm-objdump-6.0');
             options.push('-DCMAKE_RANLIB=/usr/bin/llvm-ranlib-6.0');
+          } else {
+            prefix = 'CC=/usr/bin/clang CXX=/usr/bin/clang++ ';
           }
         } else if (linux_distro === 'Ubuntu 14') {
           prefix = 'CC=/usr/bin/gcc-4.9 CXX=/usr/bin/g++-4.9 ';
