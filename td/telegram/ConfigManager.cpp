@@ -252,7 +252,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.content_));
     if (json.type() != JsonValue::Type::Object) {
-      return Status::Error("JSON error");
+      return Status::Error("Expected JSON object");
     }
     auto &answer_object = json.get_object();
     TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
@@ -260,7 +260,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
     vector<string> parts;
     for (auto &v : answer_array) {
       if (v.type() != JsonValue::Type::Object) {
-        return Status::Error("JSON error");
+        return Status::Error("Expected JSON object");
       }
       auto &data_object = v.get_object();
       TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
@@ -320,7 +320,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
     if (json.type() != JsonValue::Type::Object) {
-      return Status::Error("JSON error");
+      return Status::Error("Expected JSON object");
     }
     auto &entries_object = json.get_object();
     TRY_RESULT(config, get_json_object_string_field(entries_object, "ipconfigv3", false));
@@ -343,6 +343,28 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
     return http_query.get_arg("content").str();
   };
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "reserve-5a846.firebaseio.com", {},
+                                prefer_ipv6, std::move(get_config));
+}
+
+ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+                                                bool is_test, int32 scheduler_id) {
+  if (is_test) {
+    promise.set_error(Status::Error(400, "Test config is not supported"));
+    return ActorOwn<>();
+  }
+
+  string url = "https://www.google.com/v1/projects/reserve-5a846/databases/(default)/documents/ipconfig/v3";
+  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
+    TRY_RESULT(json, json_decode(http_query.get_arg("fields")));
+    if (json.type() != JsonValue::Type::Object) {
+      return Status::Error("Expected JSON object");
+    }
+    TRY_RESULT(data, get_json_object_field(json.get_object(), "data", JsonValue::Type::Object, false));
+    TRY_RESULT(config, get_json_object_string_field(data.get_object(), "stringValue", false));
+    return std::move(config);
+  };
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firestore.googleapis.com", {},
                                 prefer_ipv6, std::move(get_config));
 }
 
@@ -773,6 +795,8 @@ class ConfigRecoverer : public Actor {
             return get_simple_config_firebase_remote_config;
           case 4:
             return get_simple_config_firebase_realtime;
+          case 5:
+            return get_simple_config_firebase_firestore;
           case 0:
             return get_simple_config_google_dns;
           case 1:
