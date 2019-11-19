@@ -198,7 +198,7 @@ Result<SimpleConfig> decode_config(Slice input) {
 }
 
 static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, int32 scheduler_id, string url,
-                                         string host, bool prefer_ipv6,
+                                         string host, std::vector<std::pair<string, string>> headers, bool prefer_ipv6,
                                          std::function<Result<string>(HttpQuery &)> get_config,
                                          string content = string(), string content_type = string()) {
   VLOG(config_recoverer) << "Request simple config from " << url;
@@ -207,9 +207,10 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
 #else
   const int timeout = 10;
   const int ttl = 3;
-  static const string user_agent =
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 "
-      "Safari/537.36";
+  headers.emplace_back("Host", std::move(host));
+  headers.emplace_back("User-Agent",
+                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/77.0.3865.90 Safari/537.36");
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
       PromiseCreator::lambda([get_config = std::move(get_config),
@@ -227,8 +228,8 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
           return std::move(res);
         }());
       }),
-      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}, {"User-Agent", user_agent}}),
-      timeout, ttl, prefer_ipv6, SslStream::VerifyPeer::Off, std::move(content), std::move(content_type)));
+      std::move(url), std::move(headers), timeout, ttl, prefer_ipv6, SslStream::VerifyPeer::Off, std::move(content),
+      std::move(content_type)));
 #endif
 }
 
@@ -237,66 +238,48 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", prefer_ipv6,
-                                [](HttpQuery &http_query) { return http_query.content_.str(); });
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", {},
+                                prefer_ipv6, [](HttpQuery &http_query) { return http_query.content_.str(); });
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,
                                         const ConfigShared *shared_config, bool is_test, int32 scheduler_id) {
-  VLOG(config_recoverer) << "Request simple config from DNS";
-#if TD_EMSCRIPTEN  // FIXME
-  return ActorOwn<>();
-#else
   string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
-  const int timeout = 10;
-  const int ttl = 3;
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   if (name.empty() || true) {
     name = is_test ? "tapv3.stel.com" : "apv3.stel.com";
   }
-  return ActorOwn<>(create_actor_on_scheduler<Wget>(
-      "Wget", scheduler_id,
-      PromiseCreator::lambda([promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
-        promise.set_result([&]() -> Result<SimpleConfigResult> {
-          TRY_RESULT(http_query, std::move(r_query));
-
-          SimpleConfigResult res;
-          res.r_http_date = HttpDate::parse_http_date(http_query->get_header("date").str());
-          res.r_config = [&]() -> Result<SimpleConfig> {
-            TRY_RESULT(json, json_decode(http_query->content_));
-            if (json.type() != JsonValue::Type::Object) {
-              return Status::Error("JSON error");
-            }
-            auto &answer_object = json.get_object();
-            TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
-            auto &answer_array = answer.get_array();
-            vector<string> parts;
-            for (auto &v : answer_array) {
-              if (v.type() != JsonValue::Type::Object) {
-                return Status::Error("JSON error");
-              }
-              auto &data_object = v.get_object();
-              TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
-              parts.push_back(std::move(part));
-            }
-            if (parts.size() != 2) {
-              return Status::Error("Expected data in two parts");
-            }
-            string data;
-            if (parts[0].size() < parts[1].size()) {
-              data = parts[1] + parts[0];
-            } else {
-              data = parts[0] + parts[1];
-            }
-            return decode_config(data);
-          }();
-          return std::move(res);
-        }());
-      }),
-      PSTRING() << "https://" << address << "?name=" << url_encode(name) << "&type=16",
-      std::vector<std::pair<string, string>>({{"Host", host.str()}, {"Accept", "application/dns-json"}}), timeout, ttl,
-      prefer_ipv6, SslStream::VerifyPeer::Off));
-#endif
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
+    TRY_RESULT(json, json_decode(http_query.content_));
+    if (json.type() != JsonValue::Type::Object) {
+      return Status::Error("JSON error");
+    }
+    auto &answer_object = json.get_object();
+    TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
+    auto &answer_array = answer.get_array();
+    vector<string> parts;
+    for (auto &v : answer_array) {
+      if (v.type() != JsonValue::Type::Object) {
+        return Status::Error("JSON error");
+      }
+      auto &data_object = v.get_object();
+      TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
+      parts.push_back(std::move(part));
+    }
+    if (parts.size() != 2) {
+      return Status::Error("Expected data in two parts");
+    }
+    string data;
+    if (parts[0].size() < parts[1].size()) {
+      data = parts[1] + parts[0];
+    } else {
+      data = parts[0] + parts[1];
+    }
+    return data;
+  };
+  return get_simple_config_impl(std::move(promise), scheduler_id,
+                                PSTRING() << "https://" << address << "?name=" << url_encode(name) << "&type=16",
+                                host.str(), {{"Accept", "application/dns-json"}}, prefer_ipv6, std::move(get_config));
 }
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
@@ -344,7 +327,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
     return std::move(config);
   };
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firebaseremoteconfig.googleapis.com",
-                                prefer_ipv6, get_config, payload, "application/json");
+                                {}, prefer_ipv6, std::move(get_config), payload, "application/json");
 }
 
 ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
