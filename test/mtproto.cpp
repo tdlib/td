@@ -170,6 +170,7 @@ TEST(Mtproto, config) {
     run(get_simple_config_azure, true);
     run(get_simple_config_google_dns, true);
     run(get_simple_config_mozilla_dns, true);
+    run(get_simple_config_firebase_remote_config, false);
   }
   cnt--;
   sched.start();

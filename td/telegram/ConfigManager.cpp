@@ -198,26 +198,37 @@ Result<SimpleConfig> decode_config(Slice input) {
 }
 
 static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, int32 scheduler_id, string url,
-                                         string host, bool prefer_ipv6) {
+                                         string host, bool prefer_ipv6,
+                                         std::function<Result<string>(HttpQuery &)> get_config,
+                                         string content = string(), string content_type = string()) {
   VLOG(config_recoverer) << "Request simple config from " << url;
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
   const int timeout = 10;
   const int ttl = 3;
+  static const string user_agent =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 "
+      "Safari/537.36";
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
-      PromiseCreator::lambda([promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
+      PromiseCreator::lambda([get_config = std::move(get_config),
+                              promise = std::move(promise)](Result<unique_ptr<HttpQuery>> r_query) mutable {
         promise.set_result([&]() -> Result<SimpleConfigResult> {
           TRY_RESULT(http_query, std::move(r_query));
           SimpleConfigResult res;
           res.r_http_date = HttpDate::parse_http_date(http_query->get_header("date").str());
-          res.r_config = decode_config(http_query->content_);
+          auto r_config = get_config(*http_query);
+          if (r_config.is_error()) {
+            res.r_config = r_config.move_as_error();
+          } else {
+            res.r_config = decode_config(r_config.ok());
+          }
           return std::move(res);
         }());
       }),
-      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), timeout, ttl, prefer_ipv6,
-      SslStream::VerifyPeer::Off));
+      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}, {"User-Agent", user_agent}}),
+      timeout, ttl, prefer_ipv6, SslStream::VerifyPeer::Off, std::move(content), std::move(content_type)));
 #endif
 }
 
@@ -226,7 +237,8 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", prefer_ipv6);
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", prefer_ipv6,
+                                [](HttpQuery &http_query) { return http_query.content_.str(); });
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,
@@ -297,6 +309,42 @@ ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, co
                                          bool is_test, int32 scheduler_id) {
   return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", "mozilla.cloudflare-dns.com", std::move(promise),
                                shared_config, is_test, scheduler_id);
+}
+
+static string generate_firebase_remote_config_payload() {
+  unsigned char buf[17];
+  Random::secure_bytes(buf, sizeof(buf));
+  buf[0] = static_cast<unsigned char>((buf[0] & 0xF0) | 0x07);
+  auto app_instance_id = base64url_encode(Slice(buf, sizeof(buf)));
+  app_instance_id.resize(22);
+  return PSTRING() << "{\"app_id\":\"1:560508485281:web:4ee13a6af4e84d49e67ae0\",\"app_instance_id\":\""
+                   << app_instance_id << "\"}";
+}
+
+ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise,
+                                                    const ConfigShared *shared_config, bool is_test,
+                                                    int32 scheduler_id) {
+  if (is_test) {
+    promise.set_error(Status::Error(400, "Test config is not supported"));
+    return ActorOwn<>();
+  }
+
+  static const string payload = generate_firebase_remote_config_payload();
+  string url =
+      "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/"
+      "firebase:fetch?key=AIzaSyC2-kAkpDsroixRXw-sTw-Wfqo4NxjMwwM";
+  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
+    TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
+    if (json.type() != JsonValue::Type::Object) {
+      return Status::Error("JSON error");
+    }
+    auto &entries_object = json.get_object();
+    TRY_RESULT(config, get_json_object_string_field(entries_object, "ipconfigv3", false));
+    return std::move(config);
+  };
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firebaseremoteconfig.googleapis.com",
+                                prefer_ipv6, get_config, payload, "application/json");
 }
 
 ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
@@ -719,9 +767,11 @@ class ConfigRecoverer : public Actor {
             send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
           });
       auto get_simple_config = [&]() {
-        switch (simple_config_turn_ % 3) {
+        switch (simple_config_turn_ % 4) {
           case 2:
             return get_simple_config_azure;
+          case 3:
+            return get_simple_config_firebase_remote_config;
           case 0:
             return get_simple_config_google_dns;
           case 1:
