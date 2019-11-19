@@ -24,7 +24,8 @@ class Wget : public HttpOutboundConnection::Callback {
  public:
   explicit Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers = {},
                 int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,
-                SslStream::VerifyPeer verify_peer = SslStream::VerifyPeer::On);
+                SslStream::VerifyPeer verify_peer = SslStream::VerifyPeer::On, string content = {},
+                string content_type = {});
 
  private:
   Status try_init();
@@ -46,6 +47,8 @@ class Wget : public HttpOutboundConnection::Callback {
   int32 ttl_;
   bool prefer_ipv6_ = false;
   SslStream::VerifyPeer verify_peer_;
+  string content_;
+  string content_type_;
 };
 
 }  // namespace td

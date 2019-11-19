@@ -23,14 +23,17 @@
 namespace td {
 
 Wget::Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers,
-           int32 timeout_in, int32 ttl, bool prefer_ipv6, SslStream::VerifyPeer verify_peer)
+           int32 timeout_in, int32 ttl, bool prefer_ipv6, SslStream::VerifyPeer verify_peer, string content,
+           string content_type)
     : promise_(std::move(promise))
     , input_url_(std::move(url))
     , headers_(std::move(headers))
     , timeout_in_(timeout_in)
     , ttl_(ttl)
     , prefer_ipv6_(prefer_ipv6)
-    , verify_peer_(verify_peer) {
+    , verify_peer_(verify_peer)
+    , content_(std::move(content))
+    , content_type_(std::move(content_type)) {
 }
 
 Status Wget::try_init() {
@@ -39,7 +42,15 @@ Status Wget::try_init() {
   url.host_ = std::move(ascii_host);
 
   HttpHeaderCreator hc;
-  hc.init_get(url.query_);
+  if (content_.empty()) {
+    hc.init_get(url.query_);
+  } else {
+    hc.init_post(url.query_);
+    hc.set_content_size(content_.size());
+    if (!content_type_.empty()) {
+      hc.set_content_type(content_type_);
+    }
+  }
   bool was_host = false;
   bool was_accept_encoding = false;
   for (auto &header : headers_) {
@@ -58,7 +69,7 @@ Status Wget::try_init() {
   if (!was_accept_encoding) {
     hc.add_header("Accept-Encoding", "gzip, deflate");
   }
-  TRY_RESULT(header, hc.finish());
+  TRY_RESULT(header, hc.finish(content_));
 
   IPAddress addr;
   TRY_STATUS(addr.init_host_port(url.host_, url.port_, prefer_ipv6_));
