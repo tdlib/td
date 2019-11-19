@@ -48,6 +48,9 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
                                                     const ConfigShared *shared_config, bool is_test,
                                                     int32 scheduler_id);
 
+ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+                                               bool is_test, int32 scheduler_id);
+
 class HttpDate {
   static bool is_leap(int32 year) {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);

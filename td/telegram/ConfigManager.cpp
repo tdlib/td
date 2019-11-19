@@ -330,6 +330,22 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
                                 {}, prefer_ipv6, std::move(get_config), payload, "application/json");
 }
 
+ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+                                               bool is_test, int32 scheduler_id) {
+  if (is_test) {
+    promise.set_error(Status::Error(400, "Test config is not supported"));
+    return ActorOwn<>();
+  }
+
+  string url = "https://reserve-5a846.firebaseio.com/ipconfigv3.json";
+  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
+    return http_query.get_arg("content").str();
+  };
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "reserve-5a846.firebaseio.com", {},
+                                prefer_ipv6, std::move(get_config));
+}
+
 ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
   class SessionCallback : public Session::Callback {
    public:
@@ -755,6 +771,8 @@ class ConfigRecoverer : public Actor {
             return get_simple_config_azure;
           case 3:
             return get_simple_config_firebase_remote_config;
+          case 4:
+            return get_simple_config_firebase_realtime;
           case 0:
             return get_simple_config_google_dns;
           case 1:

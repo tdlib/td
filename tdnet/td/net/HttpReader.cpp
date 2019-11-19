@@ -590,6 +590,18 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
 
   Parser parser(parameters);
   parser.skip_whitespaces();
+  if (parser.peek_char() == '"') {
+    auto r_value = json_string_decode(parser);
+    if (r_value.is_error()) {
+      return Status::Error(400, PSLICE() << "Bad Request: can't parse string content: " << r_value.error().message());
+    }
+    if (!parser.empty()) {
+      return Status::Error(400, "Bad Request: extra data after string");
+    }
+    query_->container_.emplace_back(BufferSlice("content"));
+    query_->args_.emplace_back(query_->container_.back().as_slice(), r_value.move_as_ok());
+    return Status::OK();
+  }
   parser.skip('{');
   if (parser.status().is_error()) {
     return Status::Error(400, "Bad Request: JSON object expected");
