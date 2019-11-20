@@ -24758,15 +24758,26 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  if (*need_update && dialog_id.get_type() == DialogType::Channel &&
-      message->date < G()->unix_time_cached() - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
-    // if the message is pretty old, we might have missed the update that the message has already been read
-    repair_channel_server_unread_count(d);
-  }
 
   const Message *m = message.get();
   if (!m->from_database && !message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_message_to_dialog");
+  }
+
+  if (*need_update && dialog_id.get_type() == DialogType::Channel) {
+    auto now = max(G()->unix_time_cached(), m->date);
+    if (m->date < now - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
+      // if the message is pretty old, we might have missed the update that the message has already been read
+      repair_channel_server_unread_count(d);
+    }
+    if (m->date + 3600 >= now && m->is_outgoing) {
+      auto channel_id = dialog_id.get_channel_id();
+      auto slow_mode_delay = td_->contacts_manager_->get_channel_slow_mode_delay(channel_id);
+      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      if (m->date + slow_mode_delay > now && !status.is_administrator()) {
+        td_->contacts_manager_->on_update_channel_slow_mode_next_send_date(channel_id, m->date + slow_mode_delay);
+      }
+    }
   }
 
   if (!is_attached && !m->have_next && !m->have_previous) {

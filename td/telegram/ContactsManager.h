@@ -186,7 +186,7 @@ class ContactsManager : public Actor {
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay);
-  void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 next_send_date);
+  void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
@@ -437,6 +437,7 @@ class ContactsManager : public Actor {
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   FileSourceId get_channel_photo_file_source_id(ChannelId channel_id);
+  int32 get_channel_slow_mode_delay(ChannelId channel_id);
 
   std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query, int32 limit);
 

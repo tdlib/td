@@ -8508,15 +8508,17 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_location(channel, channel_id, DialogLocation(std::move(channel_full->location_)));
 
-    int32 slow_mode_delay = 0;
-    int32 slow_mode_next_send_date = 0;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
-      slow_mode_delay = channel_full->slowmode_seconds_;
+    if (c->is_megagroup) {
+      int32 slow_mode_delay = 0;
+      int32 slow_mode_next_send_date = 0;
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
+        slow_mode_delay = channel_full->slowmode_seconds_;
+      }
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
+        slow_mode_next_send_date = channel_full->slowmode_next_send_date_;
+      }
+      on_update_channel_full_slow_mode_delay(channel, channel_id, slow_mode_delay, slow_mode_next_send_date);
     }
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
-      slow_mode_next_send_date = channel_full->slowmode_next_send_date_;
-    }
-    on_update_channel_full_slow_mode_delay(channel, channel_id, slow_mode_delay, slow_mode_next_send_date);
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
@@ -9744,6 +9746,11 @@ void ContactsManager::on_update_channel_full_location(ChannelFull *channel_full,
 
 void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id,
                                                              int32 slow_mode_delay, int32 slow_mode_next_send_date) {
+  if (slow_mode_delay < 0) {
+    LOG(ERROR) << "Receive slow mode delay " << slow_mode_delay << " in " << channel_id;
+    slow_mode_delay = 0;
+  }
+
   if (channel_full->slow_mode_delay != slow_mode_delay) {
     channel_full->slow_mode_delay = slow_mode_delay;
     channel_full->is_changed = true;
@@ -9762,12 +9769,23 @@ void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channe
 
 void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFull *channel_full,
                                                                       int32 slow_mode_next_send_date) {
+  if (slow_mode_next_send_date < 0) {
+    LOG(ERROR) << "Receive slow mode next send date " << slow_mode_next_send_date;
+    slow_mode_next_send_date = 0;
+  }
   if (channel_full->slow_mode_delay == 0 && slow_mode_next_send_date > 0) {
     LOG(ERROR) << "Slow mode is disabled, but next send date is " << slow_mode_next_send_date;
     slow_mode_next_send_date = 0;
   }
-  if (slow_mode_next_send_date <= G()->unix_time()) {
-    slow_mode_next_send_date = 0;
+
+  if (slow_mode_next_send_date != 0) {
+    auto now = G()->unix_time();
+    if (slow_mode_next_send_date <= now) {
+      slow_mode_next_send_date = 0;
+    }
+    if (slow_mode_next_send_date > now + 3601) {
+      slow_mode_next_send_date = now + 3601;
+    }
   }
   if (channel_full->slow_mode_next_send_date != slow_mode_next_send_date) {
     channel_full->slow_mode_next_send_date = slow_mode_next_send_date;
@@ -10566,10 +10584,10 @@ void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, in
   }
 }
 
-void ContactsManager::on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 next_send_date) {
+void ContactsManager::on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date) {
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full != nullptr) {
-    on_update_channel_full_slow_mode_next_send_date(channel_full, next_send_date);
+    on_update_channel_full_slow_mode_next_send_date(channel_full, slow_mode_next_send_date);
     update_channel_full(channel_full, channel_id);
   }
 }
@@ -11335,6 +11353,14 @@ FileSourceId ContactsManager::get_channel_photo_file_source_id(ChannelId channel
     source_id = td_->file_reference_manager_->create_channel_photo_file_source(channel_id);
   }
   return source_id;
+}
+
+int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full == nullptr) {
+    return 0;
+  }
+  return channel_full->slow_mode_delay;
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {
