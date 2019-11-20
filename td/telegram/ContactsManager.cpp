@@ -3287,6 +3287,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_location = !location.empty();
   bool has_bot_user_ids = !bot_user_ids.empty();
   bool is_slow_mode_enabled = slow_mode_delay != 0;
+  bool is_slow_mode_delay_active = slow_mode_next_send_date != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3306,6 +3307,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_location);
   STORE_FLAG(has_bot_user_ids);
   STORE_FLAG(is_slow_mode_enabled);
+  STORE_FLAG(is_slow_mode_delay_active);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3344,6 +3346,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (is_slow_mode_enabled) {
     store(slow_mode_delay, storer);
   }
+  if (is_slow_mode_delay_active) {
+    store(slow_mode_next_send_date, storer);
+  }
   store_time(expires_at, storer);
 }
 
@@ -3362,6 +3367,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_location;
   bool has_bot_user_ids;
   bool is_slow_mode_enabled;
+  bool is_slow_mode_delay_active;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3381,6 +3387,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_location);
   PARSE_FLAG(has_bot_user_ids);
   PARSE_FLAG(is_slow_mode_enabled);
+  PARSE_FLAG(is_slow_mode_delay_active);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3418,6 +3425,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (is_slow_mode_enabled) {
     parse(slow_mode_delay, parser);
+  }
+  if (is_slow_mode_delay_active) {
+    parse(slow_mode_next_send_date, parser);
   }
   parse_time(expires_at, parser);
 }
@@ -8461,7 +8471,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_location(channel, channel_id, DialogLocation(std::move(channel_full->location_)));
 
-    on_update_channel_full_slow_mode_delay(channel, channel_id, channel_full->slowmode_seconds_);
+    int32 slow_mode_delay = 0;
+    int32 slow_mode_next_send_date = 0;
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
+      slow_mode_delay = channel_full->slowmode_seconds_;
+    }
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
+      slow_mode_next_send_date = channel_full->slowmode_next_send_date_;
+    }
+    on_update_channel_full_slow_mode_delay(channel, channel_id, slow_mode_delay, slow_mode_next_send_date);
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
@@ -9558,6 +9576,7 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
     }
     if (drop_slow_mode_delay && channel_full->slow_mode_delay != 0) {
       channel_full->slow_mode_delay = 0;
+      channel_full->slow_mode_next_send_date = 0;
       channel_full->is_changed = true;
     }
     update_channel_full(channel_full, channel_id);
@@ -9686,11 +9705,12 @@ void ContactsManager::on_update_channel_full_location(ChannelFull *channel_full,
 }
 
 void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id,
-                                                             int32 slow_mode_delay) {
+                                                             int32 slow_mode_delay, int32 slow_mode_next_send_date) {
   if (channel_full->slow_mode_delay != slow_mode_delay) {
     channel_full->slow_mode_delay = slow_mode_delay;
     channel_full->is_changed = true;
   }
+  on_update_channel_full_slow_mode_next_send_date(channel_full, slow_mode_next_send_date);
 
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
@@ -9699,6 +9719,21 @@ void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channe
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_changed = true;
     update_channel(c, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFull *channel_full,
+                                                                      int32 slow_mode_next_send_date) {
+  if (channel_full->slow_mode_delay == 0 && slow_mode_next_send_date > 0) {
+    LOG(ERROR) << "Slow mode is disabled, but next send date is " << slow_mode_next_send_date;
+    slow_mode_next_send_date = 0;
+  }
+  if (slow_mode_next_send_date <= G()->unix_time()) {
+    slow_mode_next_send_date = 0;
+  }
+  if (channel_full->slow_mode_next_send_date != slow_mode_next_send_date) {
+    channel_full->slow_mode_next_send_date = slow_mode_next_send_date;
+    channel_full->is_changed = true;
   }
 }
 
@@ -10487,7 +10522,7 @@ void ContactsManager::on_update_channel_location(ChannelId channel_id, const Dia
 void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay) {
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full != nullptr) {
-    on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay);
+    on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, 0);
     update_channel_full(channel_full, channel_id);
   }
 }
@@ -12474,12 +12509,16 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(
     const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
+  double slow_mode_delay_expires_in = 0;
+  if (channel_full->slow_mode_next_send_date != 0) {
+    slow_mode_delay_expires_in = max(channel_full->slow_mode_next_send_date - G()->server_time(), 1e-3);
+  }
   return td_api::make_object<td_api::supergroupFullInfo>(
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
-      channel_full->slow_mode_delay, channel_full->can_get_participants, channel_full->can_set_username,
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
+      channel_full->slow_mode_delay, slow_mode_delay_expires_in, channel_full->can_get_participants,
+      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
+      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());

@@ -750,6 +750,7 @@ class ContactsManager : public Actor {
     DialogLocation location;
 
     int32 slow_mode_delay = 0;
+    int32 slow_mode_next_send_date = 0;
 
     MessageId migrated_from_max_message_id;
     ChatId migrated_from_chat_id;
@@ -929,6 +930,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_LOCATION = 1 << 15;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_LOCATION = 1 << 16;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY = 1 << 17;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
@@ -1075,7 +1077,9 @@ class ContactsManager : public Actor {
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);
-  void on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id, int32 slow_mode_delay);
+  void on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id, int32 slow_mode_delay,
+                                              int32 slow_mode_next_send_date);
+  void on_update_channel_full_slow_mode_next_send_date(ChannelFull *channel_full, int32 slow_mode_next_send_date);
   void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                            vector<UserId> &&bot_user_ids);
 
