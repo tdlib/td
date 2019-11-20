@@ -2645,6 +2645,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   user_nearby_timeout_.set_callback(on_user_nearby_timeout_callback);
   user_nearby_timeout_.set_callback_data(static_cast<void *>(this));
+
+  slow_mode_delay_timeout_.set_callback(on_slow_mode_delay_timeout_callback);
+  slow_mode_delay_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void ContactsManager::tear_down() {
@@ -2746,6 +2749,24 @@ void ContactsManager::on_user_nearby_timeout(UserId user_id) {
       return;
     }
   }
+}
+
+void ContactsManager::on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_slow_mode_delay_timeout,
+                     ChannelId(narrow_cast<int32>(channel_id_long)));
+}
+
+void ContactsManager::on_slow_mode_delay_timeout(ChannelId channel_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  on_update_channel_slow_mode_next_send_date(channel_id, 0);
 }
 
 template <class StorerT>
@@ -8020,6 +8041,22 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
     channel_full->administrator_count = channel_full->participant_count;
   }
 
+  if (channel_full->is_slow_mode_next_send_date_changed) {
+    auto now = G()->server_time();
+    if (channel_full->slow_mode_next_send_date > now + 3601) {
+      channel_full->slow_mode_next_send_date = static_cast<int32>(now) + 3601;
+    }
+    if (channel_full->slow_mode_next_send_date <= now) {
+      channel_full->slow_mode_next_send_date = 0;
+    }
+    if (channel_full->slow_mode_next_send_date == 0) {
+      slow_mode_delay_timeout_.cancel_timeout(channel_id.get());
+    } else {
+      slow_mode_delay_timeout_.set_timeout_in(channel_id.get(), channel_full->slow_mode_next_send_date - now + 0.002);
+    }
+    channel_full->is_slow_mode_next_send_date_changed = false;
+  }
+
   channel_full->need_send_update |= channel_full->is_changed;
   channel_full->need_save_to_database |= channel_full->is_changed;
   channel_full->is_changed = false;
@@ -9577,6 +9614,7 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
     if (drop_slow_mode_delay && channel_full->slow_mode_delay != 0) {
       channel_full->slow_mode_delay = 0;
       channel_full->slow_mode_next_send_date = 0;
+      channel_full->is_slow_mode_next_send_date_changed = true;
       channel_full->is_changed = true;
     }
     update_channel_full(channel_full, channel_id);
@@ -9733,6 +9771,7 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
   }
   if (channel_full->slow_mode_next_send_date != slow_mode_next_send_date) {
     channel_full->slow_mode_next_send_date = slow_mode_next_send_date;
+    channel_full->is_slow_mode_next_send_date_changed = true;
     channel_full->is_changed = true;
   }
 }
@@ -10523,6 +10562,14 @@ void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, in
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full != nullptr) {
     on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, 0);
+    update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 next_send_date) {
+  auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full != nullptr) {
+    on_update_channel_full_slow_mode_next_send_date(channel_full, next_send_date);
     update_channel_full(channel_full, channel_id);
   }
 }

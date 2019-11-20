@@ -186,6 +186,7 @@ class ContactsManager : public Actor {
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay);
+  void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
@@ -245,8 +246,6 @@ class ContactsManager : public Actor {
   void on_update_online_status_privacy();
 
   void on_channel_unban_timeout(ChannelId channel_id);
-
-  void on_user_nearby_timeout(UserId user_id);
 
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
 
@@ -764,6 +763,7 @@ class ContactsManager : public Actor {
     bool can_view_statistics = false;
     bool is_all_history_available = true;
 
+    bool is_slow_mode_next_send_date_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -1286,7 +1286,13 @@ class ContactsManager : public Actor {
 
   static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 
+  static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+
   void on_user_online_timeout(UserId user_id);
+
+  void on_user_nearby_timeout(UserId user_id);
+
+  void on_slow_mode_delay_timeout(ChannelId channel_id);
 
   void tear_down() override;
 
@@ -1401,7 +1407,8 @@ class ContactsManager : public Actor {
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
-  MultiTimeout user_nearby_timeout_{"UserOnlineTimeout"};
+  MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
+  MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
 };
 
 }  // namespace td
