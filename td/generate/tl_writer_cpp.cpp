@@ -517,15 +517,21 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
   assert(arity == 0);
 
   if (parser_type == 0) {
-    return "\n" + returned_type + class_name + "::fetch(" + parser_name +
-           " &p) {\n"
-           "  return make_tl_object<" +
-           class_name +
-           ">(p);\n"
-           "}\n\n" +
-           class_name + "::" + class_name + "(" + parser_name +
-           " &p)\n"
-           "#define FAIL(error) p.set_error(error)\n";
+    std::string result = "\n" + returned_type + class_name + "::fetch(" + parser_name +
+                         " &p) {\n"
+                         "  return make_tl_object<" +
+                         class_name + ">(";
+    if (field_num == 0) {
+      result += ");\n";
+    } else {
+      result +=
+          "p);\n"
+          "}\n\n" +
+          class_name + "::" + class_name + "(" + parser_name +
+          " &p)\n"
+          "#define FAIL(error) p.set_error(error)\n";
+    }
+    return result;
   }
 
   return "\n" + returned_type + class_name + "::fetch(" + parser_name +
@@ -542,9 +548,11 @@ std::string TD_TL_writer_cpp::gen_fetch_function_end(bool has_parent, int field_
   }
 
   if (parser_type == 0) {
+    if (field_num == 0) {
+      return "}\n";
+    }
     return "#undef FAIL\n"
-           "{" +
-           (field_num == 0 ? "\n  (void)p;\n" : std::string()) + "}\n";
+           "{}\n";
   }
 
   if (parser_type == -1) {

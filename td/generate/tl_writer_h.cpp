@@ -258,10 +258,15 @@ std::string TD_TL_writer_h::gen_fetch_function_begin(const std::string &parser_n
   std::string returned_type = "object_ptr<" + parent_class_name + "> ";
 
   if (parser_type == 0) {
-    return "\n"
-           "  static " +
-           returned_type + "fetch(" + parser_name + " &p);\n\n" + "  explicit " + class_name + "(" + parser_name +
-           " &p);\n";
+    std::string result =
+        "\n"
+        "  static " +
+        returned_type + "fetch(" + parser_name + " &p);\n";
+    if (field_num != 0) {
+      result += "\n"
+                "  explicit " + class_name + "(" + parser_name + " &p);\n";
+    }
+    return result;
   }
 
   assert(arity == 0);
