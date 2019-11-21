@@ -3824,6 +3824,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_bot_start_message);
     STORE_FLAG(has_real_forward_from);
     STORE_FLAG(has_legacy_layer);
+    STORE_FLAG(hide_edit_date);
     END_STORE_FLAGS();
   }
 
@@ -3970,6 +3971,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_bot_start_message);
     PARSE_FLAG(has_real_forward_from);
     PARSE_FLAG(has_legacy_layer);
+    PARSE_FLAG(hide_edit_date);
     END_PARSE_FLAGS();
   }
 
@@ -16462,10 +16464,11 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
   bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
+  auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), is_outgoing, can_be_edited, can_be_forwarded, can_delete_for_self,
-      can_delete_for_all_users, m->is_channel_post, contains_unread_mention, m->date, m->edit_date,
+      can_delete_for_all_users, m->is_channel_post, contains_unread_mention, m->date, edit_date,
       get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
       media_album_id, get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
@@ -21126,8 +21129,9 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   cancel_user_dialog_action(dialog_id, m);
+  auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), m->edit_date,
+               make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), edit_date,
                                                            get_reply_markup_object(m->reply_markup)));
 }
 
@@ -25490,6 +25494,12 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     old_message->media_album_id = new_message->media_album_id;
     LOG(DEBUG) << "Update message media_album_id";
     need_send_update = true;
+  }
+  if (old_message->hide_edit_date != new_message->hide_edit_date) {
+    old_message->hide_edit_date = new_message->hide_edit_date;
+    if (old_message->edit_date > 0) {
+      need_send_update = true;
+    }
   }
 
   if (old_message->edit_date > 0) {

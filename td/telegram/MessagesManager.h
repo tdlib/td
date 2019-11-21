@@ -903,6 +903,7 @@ class MessagesManager : public Actor {
     bool disable_notification = false;
     bool contains_mention = false;
     bool contains_unread_mention = false;
+    bool hide_edit_date = false;
     bool had_reply_markup = false;  // had non-inline reply markup?
     bool had_forward_info = false;
     bool is_content_secret = false;  // should be shown only while tapped
