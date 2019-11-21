@@ -1695,7 +1695,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
     return SecretInputMedia{nullptr, make_tl_object<secret_api::decryptedMessageMediaExternalDocument>(
                                          remote_location.get_id(), remote_location.get_access_hash(), 0 /*date*/,
                                          get_sticker_mime_type(sticker), narrow_cast<int32>(file_view.size()),
-                                         make_tl_object<secret_api::photoSizeEmpty>(),
+                                         make_tl_object<secret_api::photoSizeEmpty>("t"),
                                          remote_location.get_dc_id().get_raw_id(), std::move(attributes))};
   }
 }

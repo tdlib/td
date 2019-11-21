@@ -744,7 +744,7 @@ void PasswordManager::get_ton_wallet_password_salt(Promise<td_api::object_ptr<td
 
   get_ton_wallet_password_salt_queries_.push_back(std::move(promise));
   if (get_ton_wallet_password_salt_queries_.size() == 1) {
-    send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::wallet_getKeySecretSalt())),
+    send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::wallet_getKeySecretSalt(false))),
                       PromiseCreator::lambda([actor_id = actor_id(this)](Result<NetQueryPtr> r_query) mutable {
                         auto r_result = fetch_result<telegram_api::wallet_getKeySecretSalt>(std::move(r_query));
                         send_closure(actor_id, &PasswordManager::on_get_ton_wallet_password_salt, std::move(r_result));

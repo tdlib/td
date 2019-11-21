@@ -47,7 +47,7 @@ class F {
 };
 
 BENCH(Call, "TL Call") {
-  tl_object_ptr<telegram_api::Function> x = make_tl_object<telegram_api::account_getWallPapers>();
+  tl_object_ptr<telegram_api::Function> x = make_tl_object<telegram_api::account_getWallPapers>(0);
   uint32 res = 0;
   F f(res);
   for (int i = 0; i < n; i++) {

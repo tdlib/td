@@ -49,6 +49,10 @@ bool TD_TL_writer::is_combinator_supported(const tl::tl_combinator *constructor)
   return true;
 }
 
+bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t) const {
+  return tl_name == "td_api" || t->var_count > 0 || t->args.empty();
+}
+
 int TD_TL_writer::get_storer_type(const tl::tl_combinator *t, const std::string &storer_name) const {
   return storer_name == "TlStorerToString";
 }
