@@ -6334,7 +6334,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
-  string restriction_reason = std::move(user->restriction_reason_);
+  string restriction_reason;  // = std::move(user->restriction_reason_);
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
   string inline_query_placeholder = user->bot_inline_placeholder_;
@@ -6660,7 +6660,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", string(), string(), "42777",
-        std::move(profile_photo), nullptr, 0, string(), string(), string());
+        std::move(profile_photo), nullptr, 0, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -12180,7 +12180,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
-  string restriction_reason = std::move(channel.restriction_reason_);
+  string restriction_reason;  // = std::move(channel.restriction_reason_);
   bool is_scam = (channel.flags_ & CHANNEL_FLAG_IS_SCAM) != 0;
   int32 participant_count =
       (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0 ? channel.participants_count_ : 0;

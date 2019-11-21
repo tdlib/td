@@ -154,7 +154,7 @@ class StopPollActor : public NetActorOnce {
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(std::move(poll));
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
-        std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>())));
+        std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0)));
     auto sequence_id = -1;
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);

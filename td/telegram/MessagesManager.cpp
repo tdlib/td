@@ -1866,7 +1866,7 @@ class SendMessageActor : public NetActorOnce {
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendMessage(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
-        std::move(entities))));
+        std::move(entities), 0)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -1987,7 +1987,7 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendInlineBotResult(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id)));
+        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, 0)));
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
     return send_query_ref;
@@ -2043,7 +2043,7 @@ class SendMultiMediaActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendMultiMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media))));
+        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), 0)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -2165,7 +2165,7 @@ class SendMediaActor : public NetActorOnce {
     telegram_api::messages_sendMedia request(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                              std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
                                              std::move(input_media), text, random_id, std::move(reply_markup),
-                                             std::move(entities));
+                                             std::move(entities), 0);
     LOG(INFO) << "Send media: " << to_string(request);
     auto query = G()->net_query_creator().create(create_storer(request));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
@@ -2361,7 +2361,7 @@ class EditMessageActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), text,
-        std::move(input_media), std::move(reply_markup), std::move(entities))));
+        std::move(input_media), std::move(reply_markup), std::move(entities), 0)));
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -2662,7 +2662,7 @@ class ForwardMessagesActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_forwardMessages(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
-        MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer))));
+        MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer), 0)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
