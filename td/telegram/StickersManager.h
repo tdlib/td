@@ -99,12 +99,14 @@ class StickersManager : public Actor {
 
   void on_get_installed_sticker_sets_failed(bool is_masks, Status error);
 
-  void on_get_messages_sticker_set(StickerSetId sticker_set_id, tl_object_ptr<telegram_api::messages_stickerSet> &&set,
-                                   bool is_changed);
+  StickerSetId on_get_messages_sticker_set(StickerSetId sticker_set_id,
+                                           tl_object_ptr<telegram_api::messages_stickerSet> &&set, bool is_changed);
 
   StickerSetId on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet> &&set, bool is_changed);
 
   StickerSetId on_get_sticker_set_covered(tl_object_ptr<telegram_api::StickerSetCovered> &&set_ptr, bool is_changed);
+
+  void on_get_animated_emoji_sticker_set(StickerSetId sticker_set_id);
 
   void on_load_sticker_set_fail(StickerSetId sticker_set_id, const Status &error);
 
@@ -484,6 +486,8 @@ class StickersManager : public Actor {
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
+  void start_up() override;
+
   void tear_down() override;
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
@@ -585,6 +589,10 @@ class StickersManager : public Actor {
 
   int32 recent_stickers_limit_ = 200;
   int32 favorite_stickers_limit_ = 5;
+
+  StickerSetId animated_emoji_sticker_set_id_;
+  int64 animated_emoji_sticker_set_access_hash_ = 0;
+  string animated_emoji_sticker_set_name_;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;
