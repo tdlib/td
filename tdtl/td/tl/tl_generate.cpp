@@ -92,7 +92,7 @@ static void write_function_fetch(tl_outputer &out, const std::string &parser_nam
     return;
   }
 
-  out.append(w.gen_fetch_function_begin(parser_name, class_name, class_name, 0, vars, parser_type));
+  out.append(w.gen_fetch_function_begin(parser_name, class_name, class_name, 0, t->args.size(), vars, parser_type));
   out.append(w.gen_vars(t, NULL, vars));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
@@ -176,7 +176,8 @@ static void write_constructor_fetch(tl_outputer &out, const std::string &parser_
   }
 
   out.append(w.gen_fetch_function_begin(parser_name, class_name, parent_class_name,
-                                        static_cast<int>(result_type->children.size()), vars, parser_type));
+                                        static_cast<int>(result_type->children.size()), t->args.size(), vars,
+                                        parser_type));
   out.append(w.gen_vars(t, result_type, vars));
   out.append(w.gen_uni(result_type, vars, true));
   int field_num = 0;
@@ -369,7 +370,7 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
         continue;
       }
 
-      out.append(w.gen_fetch_function_begin(parsers[i], class_name, class_name, t->arity, empty_vars, -1));
+      out.append(w.gen_fetch_function_begin(parsers[i], class_name, class_name, t->arity, -1, empty_vars, -1));
       out.append(w.gen_fetch_switch_begin());
       for (std::size_t j = 0; j < t->constructors_num; j++) {
         if (w.is_combinator_supported(t->constructors[j])) {
@@ -652,7 +653,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
       }
 
       out.append(w.gen_fetch_function_begin(parsers[j], w.gen_base_type_class_name(i), w.gen_base_type_class_name(i), i,
-                                            empty_vars, -1));
+                                            -1, empty_vars, -1));
       out.append(w.gen_fetch_switch_begin());
       for (std::size_t type = 0; type < types_n; type++) {
         tl_type *t = config.get_type_by_num(type);
@@ -727,7 +728,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
       }
 
       out.append(w.gen_fetch_function_begin(parsers[j], w.gen_base_function_class_name(),
-                                            w.gen_base_function_class_name(), 0, empty_vars, -1));
+                                            w.gen_base_function_class_name(), 0, -1, empty_vars, -1));
       out.append(w.gen_fetch_switch_begin());
       for (std::size_t function = 0; function < functions_n; function++) {
         tl_combinator *t = config.get_function_by_num(function);

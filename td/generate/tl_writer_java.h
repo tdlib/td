@@ -88,7 +88,7 @@ class TD_TL_writer_java : public tl::TL_writer {
   std::string gen_function_result_type(const tl::tl_tree *result) const override;
 
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                       const std::string &parent_class_name, int arity,
+                                       const std::string &parent_class_name, int arity, int field_num,
                                        std::vector<tl::var_description> &vars, int parser_type) const override;
   std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override;

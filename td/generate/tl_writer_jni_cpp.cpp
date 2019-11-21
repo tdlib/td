@@ -380,7 +380,7 @@ std::string TD_TL_writer_jni_cpp::gen_get_id(const std::string &class_name, std:
 std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &parser_name,
                                                            const std::string &class_name,
                                                            const std::string &parent_class_name, int arity,
-                                                           std::vector<tl::var_description> &vars,
+                                                           int field_num, std::vector<tl::var_description> &vars,
                                                            int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
     assert(vars[i].is_stored == false);

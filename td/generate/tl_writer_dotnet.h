@@ -471,7 +471,7 @@ class TlWriterDotNet : public TL_writer {
   }
 
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                       const std::string &parent_class_name, int arity,
+                                       const std::string &parent_class_name, int arity, int field_num,
                                        std::vector<var_description> &vars, int parser_type) const override {
     return "";
   }
