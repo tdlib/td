@@ -24764,7 +24764,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_message_to_database(d, m, "add_message_to_dialog");
   }
 
-  if (*need_update && dialog_id.get_type() == DialogType::Channel) {
+  if (from_update && dialog_id.get_type() == DialogType::Channel) {
     auto now = max(G()->unix_time_cached(), m->date);
     if (m->date < now - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
       // if the message is pretty old, we might have missed the update that the message has already been read

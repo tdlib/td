@@ -1395,7 +1395,15 @@ class ToggleSlowModeQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleSlowModeQuery");
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      td->contacts_manager_->on_update_channel_slow_mode_delay(channel_id_, slow_mode_delay_);
+      if (!td->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleSlowModeQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -9760,7 +9768,7 @@ void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channe
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
   bool is_slow_mode_enabled = slow_mode_delay != 0;
-  if (is_slow_mode_enabled == c->is_slow_mode_enabled) {
+  if (is_slow_mode_enabled != c->is_slow_mode_enabled) {
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_changed = true;
     update_channel(c, channel_id);
