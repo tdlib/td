@@ -2947,6 +2947,9 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   if (!clean_input_string(loc_key)) {
     return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
   }
+  if (loc_key.empty()) {
+    return Status::Error("Receive empty loc_key");
+  }
   for (auto &loc_arg : loc_args) {
     if (!clean_input_string(loc_arg)) {
       return Status::Error(PSLICE() << "Receive invalid loc_arg " << format::escaped(loc_arg));
@@ -3006,6 +3009,10 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(200, "Immediate success");
   }
 
+  if (loc_key == "GEO_LIVE_PENDING") {
+    return Status::Error(406, "Need update live location");
+  }
+
   if (loc_key == "AUTH_REGION" || loc_key == "AUTH_UNKNOWN") {
     // TODO
     return Status::Error(200, "Immediate success");
@@ -3049,7 +3056,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error("Can't find dialog_id");
   }
 
-  if (loc_key.empty()) {
+  if (loc_key == "READ_HISTORY") {
     if (dialog_id.get_type() == DialogType::SecretChat) {
       return Status::Error("Receive read history in a secret chat");
     }
@@ -3084,6 +3091,10 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     td_->messages_manager_->remove_message_notifications_by_message_ids(dialog_id, message_ids);
     promise.set_value(Unit());
     return Status::OK();
+  }
+
+  if (loc_key == "MESSAGE_MUTED") {
+    return Status::Error(406, "Notifications about muted messages force loading data from the server");
   }
 
   TRY_RESULT(msg_id, get_json_object_int_field(custom, "msg_id"));
@@ -3142,12 +3153,12 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (begins_with(loc_key, "ENCRYPTION_")) {
-    // TODO new secret chat notifications
+    // TODO ENCRYPTION_REQUEST/ENCRYPTION_ACCEPT notifications
     return Status::Error(406, "New secret chat notification is not supported");
   }
 
   if (begins_with(loc_key, "PHONE_CALL_")) {
-    // TODO phone call request/missed notification
+    // TODO PHONE_CALL_REQUEST/PHONE_CALL_DECLINE/PHONE_CALL_MISSED notification
     return Status::Error(406, "Phone call notification is not supported");
   }
 
