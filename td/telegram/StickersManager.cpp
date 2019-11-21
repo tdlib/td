@@ -1035,6 +1035,22 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   on_update_recent_stickers_limit(G()->shared_config().get_option_integer("recent_stickers_limit", 200));
   on_update_favorite_stickers_limit(G()->shared_config().get_option_integer("favorite_stickers_limit", 5));
+
+  // add animated emoji sticker set
+  StickerSetId sticker_set_id;
+  int64 access_hash = 0;
+  string sticker_set_name;
+  if (G()->is_test_dc()) {
+    sticker_set_id = StickerSetId(1258816259751954);
+    access_hash = 4879754868529595811;
+    sticker_set_name = "emojies";
+  } else {
+    sticker_set_id = StickerSetId(1258816259751983);
+    access_hash = 5100237018658464041;
+    sticker_set_name = "animatedemojies";
+  }
+  add_sticker_set(sticker_set_id, access_hash);
+  short_name_to_sticker_set_id_.emplace(sticker_set_name, sticker_set_id);
 }
 
 void StickersManager::tear_down() {

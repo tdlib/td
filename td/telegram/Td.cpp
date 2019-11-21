@@ -4427,6 +4427,10 @@ void Td::init_options_and_network() {
   if (!G()->shared_config().have_option("message_caption_length_max")) {
     G()->shared_config().set_option_integer("message_caption_length_max", 1024);
   }
+  if (!G()->shared_config().have_option("animated_emojis_sticker_set_name")) {
+    G()->shared_config().set_option_string("animated_emojis_sticker_set_name",
+                                           G()->is_test_dc() ? Slice("emojies") : Slice("AnimatedEmojies"));
+  }
 
   init_connection_creator();
 
