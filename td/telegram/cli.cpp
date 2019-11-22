@@ -951,6 +951,9 @@ class CliClient final : public Actor {
     if (setting == "phone_number") {
       return td_api::make_object<td_api::userPrivacySettingShowPhoneNumber>();
     }
+    if (setting == "find") {
+      return td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
+    }
     return nullptr;
   }
 
@@ -1579,6 +1582,7 @@ class CliClient final : public Actor {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(as_chat_ids(ids)));
       } else if (as_bool(allow)) {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
+        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
       } else {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
       }

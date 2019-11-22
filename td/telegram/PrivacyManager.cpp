@@ -55,6 +55,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyPhoneNumber::ID:
       type_ = Type::UserPhoneNumber;
       break;
+    case telegram_api::privacyKeyAddedByPhone::ID:
+      type_ = Type::FindByPhoneNumber;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;
@@ -77,6 +80,8 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
       return make_tl_object<td_api::userPrivacySettingShowProfilePhoto>();
     case Type::UserPhoneNumber:
       return make_tl_object<td_api::userPrivacySettingShowPhoneNumber>();
+    case Type::FindByPhoneNumber:
+      return make_tl_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -98,6 +103,8 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
       return make_tl_object<telegram_api::inputPrivacyKeyProfilePhoto>();
     case Type::UserPhoneNumber:
       return make_tl_object<telegram_api::inputPrivacyKeyPhoneNumber>();
+    case Type::FindByPhoneNumber:
+      return make_tl_object<telegram_api::inputPrivacyKeyAddedByPhone>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -126,6 +133,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingShowPhoneNumber::ID:
       type_ = Type::UserPhoneNumber;
+      break;
+    case td_api::userPrivacySettingAllowFindingByPhoneNumber::ID:
+      type_ = Type::FindByPhoneNumber;
       break;
     default:
       UNREACHABLE();
@@ -348,6 +358,10 @@ Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySetti
     TRY_RESULT(new_rule, UserPrivacySettingRule::from_telegram_api(std::move(rule)));
     result.rules_.push_back(new_rule);
   }
+  if (!result.rules_.empty() &&
+      result.rules_.back().as_td_api()->get_id() == td_api::userPrivacySettingRuleRestrictAll::ID) {
+    result.rules_.pop_back();
+  }
   return result;
 }
 
@@ -372,7 +386,11 @@ tl_object_ptr<td_api::userPrivacySettingRules> PrivacyManager::UserPrivacySettin
 }
 
 vector<tl_object_ptr<telegram_api::InputPrivacyRule>> PrivacyManager::UserPrivacySettingRules::as_telegram_api() const {
-  return transform(rules_, [](const auto &rule) { return rule.as_telegram_api(); });
+  auto result = transform(rules_, [](const auto &rule) { return rule.as_telegram_api(); });
+  if (!result.empty() && result.back()->get_id() == telegram_api::inputPrivacyValueDisallowAll::ID) {
+    result.pop_back();
+  }
+  return result;
 }
 
 void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
@@ -432,11 +450,11 @@ void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                     PromiseCreator::lambda([this, user_privacy_setting,
                                             promise = std::move(promise)](Result<NetQueryPtr> x_net_query) mutable {
                       promise.set_result([&]() -> Result<Unit> {
+                        get_info(user_privacy_setting).has_set_query = false;
                         TRY_RESULT(net_query, std::move(x_net_query));
                         TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
                         LOG(INFO) << "Receive " << to_string(rules);
                         TRY_RESULT(privacy_rules, UserPrivacySettingRules::from_telegram_api(std::move(rules)));
-                        get_info(user_privacy_setting).has_set_query = false;
                         do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
                         return Unit();
                       }());

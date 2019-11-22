@@ -45,6 +45,7 @@ class PrivacyManager : public NetQueryCallback {
       LinkInForwardedMessages,
       UserProfilePhoto,
       UserPhoneNumber,
+      FindByPhoneNumber,
       Size
     };
 
