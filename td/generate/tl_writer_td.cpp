@@ -49,8 +49,8 @@ bool TD_TL_writer::is_combinator_supported(const tl::tl_combinator *constructor)
   return true;
 }
 
-bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t) const {
-  return tl_name == "td_api" || tl_name == "TdApi" || t->var_count > 0;
+bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t, bool is_function) const {
+  return tl_name == "td_api" || tl_name == "TdApi" || (t->var_count > 0 && !is_function);
 }
 
 int TD_TL_writer::get_storer_type(const tl::tl_combinator *t, const std::string &storer_name) const {

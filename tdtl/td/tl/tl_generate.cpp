@@ -253,7 +253,7 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
   std::vector<var_description> vars(t->var_count);
   out.append(w.gen_function_vars(t, vars));
 
-  if (w.is_default_constructor_generated(t)) {
+  if (w.is_default_constructor_generated(t, true)) {
     write_class_constructor(out, t, class_name, true, w);
   }
   if (required_args) {
@@ -306,7 +306,7 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
   int required_args = gen_field_definitions(out, t, class_name, w);
   out.append(w.gen_flags_definitions(t));
 
-  if (w.is_default_constructor_generated(t)) {
+  if (w.is_default_constructor_generated(t, false)) {
     write_class_constructor(out, t, class_name, true, w);
   }
   if (required_args) {
