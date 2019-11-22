@@ -55,14 +55,14 @@ static void write_class_constructor(tl_outputer &out, const tl_combinator *t, co
   //  std::fprintf(stderr, "Gen constructor %s\n", class_name.c_str());
   int fields_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    fields_num += !w.gen_constructor_parameter(0, class_name, t->args[i], is_default).empty();
+    fields_num += !w.gen_constructor_parameter(fields_num, class_name, t->args[i], is_default).empty();
   }
 
   out.append(w.gen_constructor_begin(fields_num, class_name, is_default));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
     std::string parameter_init = w.gen_constructor_parameter(field_num, class_name, t->args[i], is_default);
-    if (parameter_init.size()) {
+    if (!parameter_init.empty()) {
       out.append(parameter_init);
       field_num++;
     }
@@ -72,7 +72,7 @@ static void write_class_constructor(tl_outputer &out, const tl_combinator *t, co
   field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
     std::string field_init = w.gen_constructor_field_init(field_num, class_name, t->args[i], is_default);
-    if (field_init.size()) {
+    if (!field_init.empty()) {
       out.append(field_init);
       field_num++;
     }
@@ -85,19 +85,20 @@ static void write_function_fetch(tl_outputer &out, const std::string &parser_nam
                                  const std::string &class_name, const std::set<std::string> &request_types,
                                  const std::set<std::string> &result_types, const TL_writer &w) {
   //  std::fprintf(stderr, "Write function fetch %s\n", class_name.c_str());
-  std::vector<var_description> vars(t->var_count);
   int parser_type = w.get_parser_type(t, parser_name);
 
   if (!is_reachable_for_parser(parser_type, t->name, request_types, result_types, w)) {
     return;
   }
 
-  out.append(w.gen_fetch_function_begin(parser_name, class_name, class_name, 0, t->args.size(), vars, parser_type));
+  std::vector<var_description> vars(t->var_count);
+  out.append(w.gen_fetch_function_begin(parser_name, class_name, class_name, 0, static_cast<int>(t->args.size()), vars,
+                                        parser_type));
   out.append(w.gen_vars(t, NULL, vars));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
     std::string field_fetch = w.gen_field_fetch(field_num, t->args[i], vars, false, parser_type);
-    if (field_fetch.size()) {
+    if (!field_fetch.empty()) {
       out.append(field_fetch);
       field_num++;
     }
@@ -167,23 +168,22 @@ static void write_constructor_fetch(tl_outputer &out, const std::string &parser_
                                     const tl_tree_type *result_type, bool is_flat,
                                     const std::set<std::string> &request_types,
                                     const std::set<std::string> &result_types, const TL_writer &w) {
-  std::vector<var_description> vars(t->var_count);
-
   int parser_type = w.get_parser_type(t, parser_name);
 
   if (!is_reachable_for_parser(parser_type, t->name, request_types, result_types, w)) {
     return;
   }
 
+  std::vector<var_description> vars(t->var_count);
   out.append(w.gen_fetch_function_begin(parser_name, class_name, parent_class_name,
-                                        static_cast<int>(result_type->children.size()), t->args.size(), vars,
-                                        parser_type));
+                                        static_cast<int>(result_type->children.size()),
+                                        static_cast<int>(t->args.size()), vars, parser_type));
   out.append(w.gen_vars(t, result_type, vars));
   out.append(w.gen_uni(result_type, vars, true));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
     std::string field_fetch = w.gen_field_fetch(field_num, t->args[i], vars, is_flat, parser_type);
-    if (field_fetch.size()) {
+    if (!field_fetch.empty()) {
       out.append(field_fetch);
       field_num++;
     }
@@ -231,7 +231,7 @@ static int gen_field_definitions(tl_outputer &out, const tl_combinator *t, const
     }
 
     std::string type_name = w.gen_field_type(a);
-    if (type_name.size()) {
+    if (!type_name.empty()) {
       out.append(w.gen_field_definition(class_name, type_name, w.gen_field_name(a.name)));
     }
   }
