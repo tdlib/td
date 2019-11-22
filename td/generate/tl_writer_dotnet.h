@@ -270,7 +270,7 @@ class TlWriterDotNet : public TL_writer {
     return "";
   }
 
-  std::string gen_constructor_begin(int fields_num, const std::string &class_name, bool is_default) const override {
+  std::string gen_constructor_begin(int field_count, const std::string &class_name, bool is_default) const override {
     std::stringstream ss;
     ss << "\n";
     ss << (is_header_ ? "  " : gen_class_name(class_name) + "::") << gen_class_name(class_name) << "(";
@@ -312,12 +312,12 @@ class TlWriterDotNet : public TL_writer {
 
     return ss.str();
   }
-  std::string gen_constructor_end(const tl_combinator *t, int fields_num, bool is_default) const override {
+  std::string gen_constructor_end(const tl_combinator *t, int field_count, bool is_default) const override {
     if (is_header_) {
       return ");\n";
     }
     std::stringstream ss;
-    if (fields_num == 0) {
+    if (field_count == 0) {
       ss << ") {\n";
     }
     ss << "}\n";
@@ -471,11 +471,11 @@ class TlWriterDotNet : public TL_writer {
   }
 
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                       const std::string &parent_class_name, int arity, int field_num,
+                                       const std::string &parent_class_name, int arity, int field_count,
                                        std::vector<var_description> &vars, int parser_type) const override {
     return "";
   }
-  std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<var_description> &vars,
+  std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<var_description> &vars,
                                      int parser_type) const override {
     return "";
   }

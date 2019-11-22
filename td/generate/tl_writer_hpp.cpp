@@ -138,12 +138,12 @@ std::string TD_TL_writer_hpp::gen_function_result_type(const tl::tl_tree *result
 }
 
 std::string TD_TL_writer_hpp::gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                                       const std::string &parent_class_name, int arity, int field_num,
+                                                       const std::string &parent_class_name, int arity, int field_count,
                                                        std::vector<tl::var_description> &vars, int parser_type) const {
   return "";
 }
 
-std::string TD_TL_writer_hpp::gen_fetch_function_end(bool has_parent, int field_num,
+std::string TD_TL_writer_hpp::gen_fetch_function_end(bool has_parent, int field_count,
                                                      const std::vector<tl::var_description> &vars,
                                                      int parser_type) const {
   return "";
@@ -247,7 +247,7 @@ std::string TD_TL_writer_hpp::gen_additional_proxy_function_end(const std::strin
          "}\n\n";
 }
 
-std::string TD_TL_writer_hpp::gen_constructor_begin(int fields_num, const std::string &class_name,
+std::string TD_TL_writer_hpp::gen_constructor_begin(int field_count, const std::string &class_name,
                                                     bool is_default) const {
   return "";
 }
@@ -262,7 +262,7 @@ std::string TD_TL_writer_hpp::gen_constructor_field_init(int field_num, const st
   return "";
 }
 
-std::string TD_TL_writer_hpp::gen_constructor_end(const tl::tl_combinator *t, int fields_num, bool is_default) const {
+std::string TD_TL_writer_hpp::gen_constructor_end(const tl::tl_combinator *t, int field_count, bool is_default) const {
   return "";
 }
 

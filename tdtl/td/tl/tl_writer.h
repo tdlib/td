@@ -120,9 +120,9 @@ class TL_writer {
   virtual std::string gen_function_result_type(const tl_tree *result) const = 0;
 
   virtual std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                               const std::string &parent_class_name, int arity, int field_num,
+                                               const std::string &parent_class_name, int arity, int field_count,
                                                std::vector<var_description> &vars, int parser_type) const = 0;
-  virtual std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<var_description> &vars,
+  virtual std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<var_description> &vars,
                                              int parser_type) const = 0;
 
   virtual std::string gen_fetch_function_result_begin(const std::string &parser_name, const std::string &class_name,
@@ -140,12 +140,12 @@ class TL_writer {
   virtual std::string gen_fetch_switch_case(const tl_combinator *t, int arity) const = 0;
   virtual std::string gen_fetch_switch_end() const = 0;
 
-  virtual std::string gen_constructor_begin(int fields_num, const std::string &class_name, bool is_default) const = 0;
+  virtual std::string gen_constructor_begin(int field_count, const std::string &class_name, bool is_default) const = 0;
   virtual std::string gen_constructor_parameter(int field_num, const std::string &class_name, const arg &a,
                                                 bool is_default) const = 0;
   virtual std::string gen_constructor_field_init(int field_num, const std::string &class_name, const arg &a,
                                                  bool is_default) const = 0;
-  virtual std::string gen_constructor_end(const tl_combinator *t, int fields_num, bool is_default) const = 0;
+  virtual std::string gen_constructor_end(const tl_combinator *t, int field_count, bool is_default) const = 0;
 
   virtual std::string gen_additional_function(const std::string &function_name, const tl_combinator *t,
                                               bool is_function) const;

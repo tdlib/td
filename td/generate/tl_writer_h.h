@@ -63,9 +63,9 @@ class TD_TL_writer_h : public TD_TL_writer {
   std::string gen_function_result_type(const tl::tl_tree *result) const override;
 
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                       const std::string &parent_class_name, int arity, int field_num,
+                                       const std::string &parent_class_name, int arity, int field_count,
                                        std::vector<tl::var_description> &vars, int parser_type) const override;
-  std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<tl::var_description> &vars,
+  std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override;
 
   std::string gen_fetch_function_result_begin(const std::string &parser_name, const std::string &class_name,
@@ -83,10 +83,10 @@ class TD_TL_writer_h : public TD_TL_writer {
   std::string gen_fetch_switch_case(const tl::tl_combinator *t, int arity) const override;
   std::string gen_fetch_switch_end() const override;
 
-  std::string gen_constructor_begin(int fields_num, const std::string &class_name, bool is_default) const override;
+  std::string gen_constructor_begin(int field_count, const std::string &class_name, bool is_default) const override;
   std::string gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
                                          bool is_default) const override;
-  std::string gen_constructor_end(const tl::tl_combinator *t, int fields_num, bool is_default) const override;
+  std::string gen_constructor_end(const tl::tl_combinator *t, int field_count, bool is_default) const override;
 };
 
 }  // namespace td

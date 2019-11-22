@@ -53,12 +53,12 @@ static bool is_reachable_for_storer(int storer_type, const std::string &name,
 static void write_class_constructor(tl_outputer &out, const tl_combinator *t, const std::string &class_name,
                                     bool is_default, const TL_writer &w) {
   //  std::fprintf(stderr, "Gen constructor %s\n", class_name.c_str());
-  int fields_num = 0;
+  int field_count = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    fields_num += !w.gen_constructor_parameter(fields_num, class_name, t->args[i], is_default).empty();
+    field_count += !w.gen_constructor_parameter(field_count, class_name, t->args[i], is_default).empty();
   }
 
-  out.append(w.gen_constructor_begin(fields_num, class_name, is_default));
+  out.append(w.gen_constructor_begin(field_count, class_name, is_default));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
     std::string parameter_init = w.gen_constructor_parameter(field_num, class_name, t->args[i], is_default);
@@ -67,7 +67,7 @@ static void write_class_constructor(tl_outputer &out, const tl_combinator *t, co
       field_num++;
     }
   }
-  assert(field_num == fields_num);
+  assert(field_num == field_count);
 
   field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
