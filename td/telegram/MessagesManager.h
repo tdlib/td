@@ -144,7 +144,10 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_EDIT_DATE = 1 << 15;
   static constexpr int32 MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 16;
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID = 1 << 17;
+  static constexpr int32 MESSAGE_FLAG_IS_FROM_SCHEDULED = 1 << 18;
   static constexpr int32 MESSAGE_FLAG_IS_LEGACY = 1 << 19;
+  static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
+  static constexpr int32 MESSAGE_FLAG_IS_RESTRICTED = 1 << 22;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -876,7 +879,7 @@ class MessagesManager : public Actor {
     }
   };
 
-  // Do not forget to update MessagesManager::update_message when this class is changed
+  // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
   struct Message {
     int32 random_y;
 

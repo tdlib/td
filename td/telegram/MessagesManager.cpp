@@ -10557,7 +10557,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_ENTITIES |
         MESSAGE_FLAG_HAS_FROM_ID | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_VIEWS | MESSAGE_FLAG_IS_SENT_VIA_BOT |
         MESSAGE_FLAG_IS_SILENT | MESSAGE_FLAG_IS_POST | MESSAGE_FLAG_HAS_EDIT_DATE | MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE |
-        MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID | MESSAGE_FLAG_IS_LEGACY)) {
+        MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID | MESSAGE_FLAG_IS_FROM_SCHEDULED | MESSAGE_FLAG_IS_LEGACY |
+        MESSAGE_FLAG_HIDE_EDIT_DATE | MESSAGE_FLAG_IS_RESTRICTED)) {
     LOG(ERROR) << "Unsupported message flags = " << flags << " received";
   }
 
@@ -10565,6 +10566,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
   bool is_legacy = (flags & MESSAGE_FLAG_IS_LEGACY) != 0;
+  bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
 
   LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
       << "is_channel_message is true for message received in the " << dialog_id;
@@ -10662,6 +10664,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       (dialog_type == DialogType::Chat || (dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)));
   message->disable_notification = is_silent;
   message->is_content_secret = is_content_secret;
+  message->hide_edit_date = hide_edit_date;
   message->views = views;
   message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
