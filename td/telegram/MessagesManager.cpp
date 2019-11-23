@@ -3781,6 +3781,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_send_error_code = send_error_code != 0;
   bool has_real_forward_from = real_forward_from_dialog_id.is_valid() && real_forward_from_message_id.is_valid();
   bool has_legacy_layer = legacy_layer != 0;
+  bool has_restriction_reasons = !restriction_reasons.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3825,6 +3826,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_real_forward_from);
     STORE_FLAG(has_legacy_layer);
     STORE_FLAG(hide_edit_date);
+    STORE_FLAG(has_restriction_reasons);
     END_STORE_FLAGS();
   }
 
@@ -3897,6 +3899,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_legacy_layer) {
     store(legacy_layer, storer);
   }
+  if (has_restriction_reasons) {
+    store(restriction_reasons, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -3928,6 +3933,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_send_error_code = false;
   bool has_real_forward_from = false;
   bool has_legacy_layer = false;
+  bool has_restriction_reasons = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3972,6 +3978,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_real_forward_from);
     PARSE_FLAG(has_legacy_layer);
     PARSE_FLAG(hide_edit_date);
+    PARSE_FLAG(has_restriction_reasons);
     END_PARSE_FLAGS();
   }
 
@@ -4048,6 +4055,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_legacy_layer) {
     parse(legacy_layer, parser);
+  }
+  if (has_restriction_reasons) {
+    parse(has_restriction_reasons, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -10496,6 +10506,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           &message_info.ttl);
       message_info.reply_markup =
           message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
+      message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
       break;
     }
@@ -10653,6 +10664,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->forward_info = get_message_forward_info(std::move(message_info.forward_header));
   message->reply_to_message_id = reply_to_message_id;
   message->via_bot_user_id = via_bot_user_id;
+  message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
@@ -16474,7 +16486,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_delete_for_all_users, m->is_channel_post, contains_unread_mention, m->date, edit_date,
       get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
-      media_album_id, get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
+      media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
 }
 
@@ -25489,6 +25502,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
   if (update_message_views(dialog_id, old_message.get(), new_message->views)) {
     need_send_update = true;
+  }
+  if (old_message->restriction_reasons != new_message->restriction_reasons) {
+    old_message->restriction_reasons = std::move(new_message->restriction_reasons);
   }
   if (old_message->legacy_layer != new_message->legacy_layer) {
     old_message->legacy_layer = new_message->legacy_layer;

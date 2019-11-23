@@ -35,6 +35,7 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
@@ -828,6 +829,7 @@ class MessagesManager : public Actor {
     int32 views = 0;
     int32 flags = 0;
     int32 edit_date = 0;
+    vector<RestrictionReason> restriction_reasons;
     string author_signature;
     int64 media_album_id = 0;
 
@@ -897,6 +899,8 @@ class MessagesManager : public Actor {
     int64 reply_to_random_id = 0;  // for send_message
 
     UserId via_bot_user_id;
+
+    vector<RestrictionReason> restriction_reasons;
 
     string author_signature;
 
