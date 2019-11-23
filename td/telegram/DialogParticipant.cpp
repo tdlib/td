@@ -231,7 +231,7 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
       }
       break;
     case Type::Banned:
-      // banned can do nothing, even restirctions allows them to do that
+      // banned can do nothing, even restrictions allows them to do that
       break;
     default:
       UNREACHABLE();

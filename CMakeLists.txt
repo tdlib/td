@@ -444,6 +444,7 @@ set(TDLIB_SOURCE
   td/telegram/PollManager.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/ReplyMarkup.cpp
+  td/telegram/RestrictionReason.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
@@ -617,6 +618,7 @@ set(TDLIB_SOURCE
   td/telegram/QueryCombiner.h
   td/telegram/ReplyMarkup.h
   td/telegram/RequestActor.h
+  td/telegram/RestrictionReason.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h

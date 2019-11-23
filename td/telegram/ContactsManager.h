@@ -24,6 +24,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
+#include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/UserId.h"
@@ -517,7 +518,7 @@ class ContactsManager : public Actor {
 
     ProfilePhoto photo;
 
-    string restriction_reason;
+    vector<RestrictionReason> restriction_reasons;
     string inline_query_placeholder;
     int32 bot_info_version = -1;
 
@@ -691,7 +692,7 @@ class ContactsManager : public Actor {
     DialogPhoto photo;
     FileSourceId photo_source_id;
     string username;
-    string restriction_reason;
+    vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
     int32 date = 0;
