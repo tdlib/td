@@ -882,6 +882,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
   static constexpr int32 USER_FULL_FLAG_CAN_PIN_MESSAGE = 1 << 7;
   static constexpr int32 USER_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
+  static constexpr int32 USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 12;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
@@ -892,6 +893,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
 
   static constexpr int32 CHAT_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
+  static constexpr int32 CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 8;
   static constexpr int32 CHAT_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
@@ -933,6 +935,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_LOCATION = 1 << 16;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY = 1 << 17;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 19;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;

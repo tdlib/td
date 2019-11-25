@@ -8137,6 +8137,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     }
     td_->messages_manager_->on_update_dialog_folder_id(DialogId(user_id), folder_id);
   }
+  td_->messages_manager_->on_update_dialog_has_scheduled_messages(
+      DialogId(user_id), (user_full->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
 
   UserFull *user = add_user_full(user_id);
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
@@ -8355,6 +8357,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
       td_->messages_manager_->on_update_dialog_folder_id(DialogId(chat_id), folder_id);
     }
+    td_->messages_manager_->on_update_dialog_has_scheduled_messages(
+        DialogId(chat_id), (chat_full->flags_ & CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
 
     ChatFull *chat = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
@@ -8495,6 +8499,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
       td_->messages_manager_->on_update_dialog_folder_id(DialogId(channel_id), folder_id);
     }
+    td_->messages_manager_->on_update_dialog_has_scheduled_messages(
+        DialogId(channel_id), (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
 
     if (participant_count >= 190) {
       int32 online_member_count = 0;

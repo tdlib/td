@@ -285,6 +285,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
 
+  void on_update_dialog_has_scheduled_messages(DialogId dialog_id, bool has_scheduled_messages);
+
   void on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id);
 
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
@@ -1080,6 +1082,7 @@ class MessagesManager : public Actor {
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool is_marked_as_unread = false;
+    bool has_scheduled_messages = false;
 
     bool increment_view_counter = false;
 
@@ -1874,6 +1877,8 @@ class MessagesManager : public Actor {
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
+
+  void set_dialog_has_scheduled_messages(Dialog *d, bool has_scheduled_messages);
 
   void set_dialog_folder_id(Dialog *d, FolderId folder_id);
 

@@ -4170,6 +4170,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(can_block_user);
     STORE_FLAG(can_share_phone_number);
     STORE_FLAG(can_report_location);
+    STORE_FLAG(has_scheduled_messages);
     END_STORE_FLAGS();
   }
 
@@ -4328,6 +4329,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(can_block_user);
     PARSE_FLAG(can_share_phone_number);
     PARSE_FLAG(can_report_location);
+    PARSE_FLAG(has_scheduled_messages);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -14540,10 +14542,10 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_dialog_public_order(d),
-      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_delete_for_self,
-      can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
-      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER,
+      d->has_scheduled_messages, can_delete_for_self, can_delete_for_all_users, can_report_dialog(d->dialog_id),
+      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
+      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
       d->pinned_message_id.get(), d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message),
       d->client_data);
@@ -22153,6 +22155,35 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
+}
+
+void MessagesManager::on_update_dialog_has_scheduled_messages(DialogId dialog_id, bool has_scheduled_messages) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive has_scheduled_messages in invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (d->has_scheduled_messages != has_scheduled_messages) {
+    set_dialog_has_scheduled_messages(d, has_scheduled_messages);
+  }
+}
+
+void MessagesManager::set_dialog_has_scheduled_messages(Dialog *d, bool has_scheduled_messages) {
+  CHECK(d != nullptr);
+  CHECK(d->has_scheduled_messages != has_scheduled_messages);
+  d->has_scheduled_messages = has_scheduled_messages;
+  on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_messages");
+
+  LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_messages to " << has_scheduled_messages;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_scheduled_messages";
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_messages));
 }
 
 void MessagesManager::on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id) {
