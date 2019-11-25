@@ -3827,6 +3827,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_legacy_layer);
     STORE_FLAG(hide_edit_date);
     STORE_FLAG(has_restriction_reasons);
+    STORE_FLAG(is_from_scheduled);
     END_STORE_FLAGS();
   }
 
@@ -3979,6 +3980,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_legacy_layer);
     PARSE_FLAG(hide_edit_date);
     PARSE_FLAG(has_restriction_reasons);
+    PARSE_FLAG(is_from_scheduled);
     END_PARSE_FLAGS();
   }
 
@@ -10578,6 +10580,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
   bool is_legacy = (flags & MESSAGE_FLAG_IS_LEGACY) != 0;
   bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
+  bool is_from_scheduled = (flags & MESSAGE_FLAG_IS_FROM_SCHEDULED) != 0;
 
   LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
       << "is_channel_message is true for message received in the " << dialog_id;
@@ -10677,6 +10680,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->disable_notification = is_silent;
   message->is_content_secret = is_content_secret;
   message->hide_edit_date = hide_edit_date;
+  message->is_from_scheduled = is_from_scheduled;
   message->views = views;
   message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
@@ -25519,6 +25523,9 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (old_message->edit_date > 0) {
       need_send_update = true;
     }
+  }
+  if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
+    old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
 
   if (old_message->edit_date > 0) {

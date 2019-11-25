@@ -915,6 +915,7 @@ class MessagesManager : public Actor {
     bool had_forward_info = false;
     bool is_content_secret = false;  // should be shown only while tapped
     bool is_mention_notification_disabled = false;
+    bool is_from_scheduled = false;
 
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
