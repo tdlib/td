@@ -43,6 +43,7 @@ class MessageId {
   ServerMessageId get_server_message_id_force() const;
 
   int32 get_scheduled_server_message_id_force() const {
+    CHECK(is_scheduled());
     return static_cast<int32>((id >> 3) & ((1 << 18) - 1));
   }
 
@@ -108,11 +109,13 @@ class MessageId {
 
   // returns greatest server message id not bigger than this message id
   MessageId get_prev_server_message_id() const {
+    CHECK(!is_scheduled());
     return MessageId(id & ~FULL_TYPE_MASK);
   }
 
   // returns smallest server message id not less than this message id
   MessageId get_next_server_message_id() const {
+    CHECK(!is_scheduled());
     return MessageId((id + FULL_TYPE_MASK) & ~FULL_TYPE_MASK);
   }
 

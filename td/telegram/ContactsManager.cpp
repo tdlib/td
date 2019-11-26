@@ -5274,6 +5274,10 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
 
   vector<MessageId> server_message_ids;
   for (auto &message_id : message_ids) {
+    if (message_id.is_valid_scheduled()) {
+      return promise.set_error(Status::Error(6, "Can't report scheduled messages"));
+    }
+
     if (!message_id.is_valid()) {
       return promise.set_error(Status::Error(6, "Message not found"));
     }

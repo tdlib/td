@@ -25663,6 +25663,10 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                                              unique_ptr<MessageContent> new_content,
                                              bool need_send_update_message_content, bool need_merge_files,
                                              bool is_message_in_dialog) {
+  if (old_message->message_id.is_scheduled()) {
+    is_message_in_dialog = false;
+  }
+
   bool is_content_changed = false;
   bool need_update = false;
   unique_ptr<MessageContent> &old_content = old_message->content;
@@ -28336,6 +28340,9 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   if (m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(Status::Error(5, "Message is not a poll"));
   }
+  if (full_message_id.get_message_id().is_scheduled()) {
+    return promise.set_error(Status::Error(5, "Can't answer polls from scheduled messages"));
+  }
   if (!full_message_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be answered"));
   }
@@ -28361,6 +28368,9 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, td_api::object_pt
   if (!can_edit_message(full_message_id.get_dialog_id(), m, true)) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
+  if (full_message_id.get_message_id().is_scheduled()) {
+    return promise.set_error(Status::Error(5, "Can't stop polls from scheduled messages"));
+  }
   if (!full_message_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
@@ -28384,6 +28394,9 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId fu
     return Status::Error(5, "Message has no invoice");
   }
   auto message_id = full_message_id.get_message_id();
+  if (message_id.is_scheduled()) {
+    return Status::Error(5, "Wrong scheduled message identifier");
+  }
   if (!message_id.is_server()) {
     return Status::Error(5, "Wrong message identifier");
   }
@@ -28435,6 +28448,9 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Message has wrong type"));
   }
   auto message_id = full_message_id.get_message_id();
+  if (message_id.is_scheduled()) {
+    return promise.set_error(Status::Error(5, "Can't get payment receipt from scheduled messages"));
+  }
   if (!message_id.is_server()) {
     return promise.set_error(Status::Error(5, "Wrong message identifier"));
   }

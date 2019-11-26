@@ -64,10 +64,12 @@ MessageType MessageId::get_type() const {
 }
 
 ServerMessageId MessageId::get_server_message_id_force() const {
+  CHECK(!is_scheduled());
   return ServerMessageId(narrow_cast<int32>(id >> SERVER_ID_SHIFT));
 }
 
 MessageId MessageId::get_next_message_id(MessageType type) const {
+  CHECK(!is_scheduled());
   switch (type) {
     case MessageType::Server:
       return get_next_server_message_id();

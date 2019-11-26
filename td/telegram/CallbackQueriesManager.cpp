@@ -241,6 +241,10 @@ int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
     promise.set_error(Status::Error(5, "Message not found"));
     return 0;
   }
+  if (full_message_id.get_message_id().is_valid_scheduled()) {
+    promise.set_error(Status::Error(5, "Can't send callback queries from scheduled messages"));
+    return 0;
+  }
   if (!full_message_id.get_message_id().is_server()) {
     promise.set_error(Status::Error(5, "Bad message identifier"));
     return 0;

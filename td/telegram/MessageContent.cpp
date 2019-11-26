@@ -3360,6 +3360,9 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 }
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+  if (full_message_id.get_message_id().is_scheduled()) {
+    return;
+  }
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
@@ -3369,6 +3372,9 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
 }
 
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+  if (full_message_id.get_message_id().is_scheduled()) {
+    return;
+  }
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);

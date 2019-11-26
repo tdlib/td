@@ -293,7 +293,7 @@ class NetQuery : public ListNode {
   static int32 get_my_id();
 
   movable_atomic<uint64> session_id_{0};
-  uint64 message_id_{};
+  uint64 message_id_{0};
 
   movable_atomic<int32> cancellation_token_{-1};  // == 0 if query is canceled
   ActorShared<NetQueryCallback> callback_;
