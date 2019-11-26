@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/logging.h"
 

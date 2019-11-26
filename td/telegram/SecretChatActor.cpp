@@ -8,6 +8,7 @@
 
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/telegram/secret_api.hpp"

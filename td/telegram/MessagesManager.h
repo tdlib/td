@@ -38,6 +38,7 @@
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"

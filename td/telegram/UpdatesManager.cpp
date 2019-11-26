@@ -33,6 +33,7 @@
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"

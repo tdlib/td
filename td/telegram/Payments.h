@@ -8,8 +8,8 @@
 
 #include "td/actor/PromiseFuture.h"
 
-#include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"

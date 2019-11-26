@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationId.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/actor/PromiseFuture.h"
 

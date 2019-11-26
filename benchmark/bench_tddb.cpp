@@ -8,6 +8,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/NotificationId.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"

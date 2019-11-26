@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -17,44 +18,6 @@
 #include <type_traits>
 
 namespace td {
-
-class ServerMessageId {
-  int32 id = 0;
-
- public:
-  ServerMessageId() = default;
-
-  explicit ServerMessageId(int32 message_id) : id(message_id) {
-  }
-  template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
-  ServerMessageId(T message_id) = delete;
-
-  bool is_valid() const {
-    return id > 0;
-  }
-
-  int32 get() const {
-    return id;
-  }
-
-  bool operator==(const ServerMessageId &other) const {
-    return id == other.id;
-  }
-
-  bool operator!=(const ServerMessageId &other) const {
-    return id != other.id;
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    storer.store_int(id);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    id = parser.fetch_int();
-  }
-};
 
 enum class MessageType : int32 { None, Server, Local, YetUnsent };
 

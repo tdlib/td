@@ -630,6 +630,7 @@ set(TDLIB_SOURCE
   td/telegram/SecureValue.h
   td/telegram/SendCodeHelper.h
   td/telegram/SequenceDispatcher.h
+  td/telegram/ServerMessageId.h
   td/telegram/SetWithPosition.h
   td/telegram/StateManager.h
   td/telegram/StickerSetId.h
