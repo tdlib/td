@@ -21853,23 +21853,22 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   fail_send_message(full_message_id, error_code, error_message);
 }
 
-MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
+MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) {
   CHECK(d != nullptr);
   int64 last =
       std::max({d->last_message_id.get(), d->last_new_message_id.get(), d->last_database_message_id.get(),
                 d->last_assigned_message_id.get(), d->last_clear_history_message_id.get(),
                 d->deleted_last_message_id.get(), d->max_unavailable_message_id.get(), d->max_added_message_id.get()});
   if (last < d->last_read_inbox_message_id.get() &&
-      d->last_read_inbox_message_id.get() <= (d->last_new_message_id.get() | MessageId::FULL_TYPE_MASK)) {
+      d->last_read_inbox_message_id.get() < d->last_new_message_id.get_next_server_message_id().get()) {
     last = d->last_read_inbox_message_id.get();
   }
   if (last < d->last_read_outbox_message_id.get() &&
-      d->last_read_outbox_message_id.get() <= (d->last_new_message_id.get() | MessageId::FULL_TYPE_MASK)) {
+      d->last_read_outbox_message_id.get() < d->last_new_message_id.get_next_server_message_id().get()) {
     last = d->last_read_outbox_message_id.get();
   }
 
-  int64 base = (last + MessageId::TYPE_MASK + 1) & ~MessageId::TYPE_MASK;
-  d->last_assigned_message_id = MessageId(base + type);
+  d->last_assigned_message_id = MessageId(last).get_next_message_id(type);
   if (d->last_assigned_message_id.get() > MessageId::max().get()) {
     LOG(FATAL) << "Force restart because of message_id overflow: " << d->last_assigned_message_id;
   }
@@ -21878,11 +21877,11 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
 }
 
 MessageId MessagesManager::get_next_yet_unsent_message_id(Dialog *d) {
-  return get_next_message_id(d, MessageId::TYPE_YET_UNSENT);
+  return get_next_message_id(d, MessageType::YetUnsent);
 }
 
 MessageId MessagesManager::get_next_local_message_id(Dialog *d) {
-  return get_next_message_id(d, MessageId::TYPE_LOCAL);
+  return get_next_message_id(d, MessageType::Local);
 }
 
 void MessagesManager::fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message) {
@@ -21907,10 +21906,12 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // dump_debug_message_op(d, 5);
   }
 
-  auto new_message_id = MessageId(old_message_id.get() - MessageId::TYPE_YET_UNSENT + MessageId::TYPE_LOCAL);
+  auto new_message_id = old_message_id.get_next_message_id(MessageType::Local);  // trying to not change message place
   if (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
       d->deleted_message_ids.count(new_message_id) || new_message_id.get() <= d->last_clear_history_message_id.get()) {
     new_message_id = get_next_local_message_id(d);
+  } else if (new_message_id.get() > d->last_assigned_message_id.get()) {
+    d->last_assigned_message_id = new_message_id;
   }
 
   message->message_id = new_message_id;

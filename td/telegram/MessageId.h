@@ -63,15 +63,14 @@ class MessageId {
   int64 id = 0;
 
   static constexpr int32 SERVER_ID_SHIFT = 20;
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id);
-
- public:
   static constexpr int32 TYPE_MASK = (1 << 3) - 1;
   static constexpr int32 FULL_TYPE_MASK = (1 << SERVER_ID_SHIFT) - 1;
   static constexpr int32 TYPE_YET_UNSENT = 1;
   static constexpr int32 TYPE_LOCAL = 2;
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id);
+
+ public:
   MessageId() = default;
 
   explicit MessageId(ServerMessageId server_message_id)
@@ -150,6 +149,21 @@ class MessageId {
   // returns smallest server message id not less than this message id
   MessageId get_next_server_message_id() const {
     return MessageId((id + FULL_TYPE_MASK) & ~FULL_TYPE_MASK);
+  }
+
+  MessageId get_next_message_id(MessageType type) const {
+    switch (type) {
+      case MessageType::Server:
+        return get_next_server_message_id();
+      case MessageType::Local:
+        return MessageId(((id + TYPE_MASK + 1 - TYPE_LOCAL) & ~TYPE_MASK) + TYPE_LOCAL);
+      case MessageType::YetUnsent:
+        return MessageId(((id + TYPE_MASK + 1 - TYPE_YET_UNSENT) & ~TYPE_MASK) + TYPE_YET_UNSENT);
+      case MessageType::None:
+      default:
+        UNREACHABLE();
+        return MessageId();
+    }
   }
 
   bool operator==(const MessageId &other) const {

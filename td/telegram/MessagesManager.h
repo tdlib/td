@@ -2237,7 +2237,7 @@ class MessagesManager : public Actor {
 
   Dialog *get_service_notifications_dialog();
 
-  static MessageId get_next_message_id(Dialog *d, int32 type);
+  static MessageId get_next_message_id(Dialog *d, MessageType type);
 
   static MessageId get_next_local_message_id(Dialog *d);
 
