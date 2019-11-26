@@ -9897,7 +9897,7 @@ void MessagesManager::init() {
       }
       log_string.remove_prefix(log_string.find(' ') + 1);
 
-      auto message_id = MessageId((static_cast<int64>(server_message_id) << MessageId::SERVER_ID_SHIFT) + add);
+      auto message_id = MessageId(MessageId(ServerMessageId(server_message_id)).get() + add);
 
       auto content_type = log_string.substr(0, log_string.find(' '));
       log_string.remove_prefix(log_string.find(' ') + 1);
@@ -25938,7 +25938,6 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     case DialogType::SecretChat:
       if (!d->last_new_message_id.is_valid()) {
         LOG(INFO) << "Set " << d->dialog_id << " last new message id in add_new_dialog";
-        // TODO use date << MessageId::SERVER_ID_SHIFT;
         d->last_new_message_id = MessageId::min();
       }
       for (auto &first_message_id : d->first_database_message_id_by_index) {
@@ -26123,7 +26122,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (dialog_type != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
       !d->last_new_message_id.is_server()) {
     // fix wrong last_new_message_id
-    d->last_new_message_id = MessageId(d->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
+    d->last_new_message_id = d->last_new_message_id.get_prev_server_message_id();
     on_dialog_updated(dialog_id, "fix_new_dialog 10");
   }
 
@@ -26347,7 +26346,8 @@ void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
 }
 
 int64 MessagesManager::get_dialog_order(MessageId message_id, int32 message_date) {
-  return (static_cast<int64>(message_date) << 32) + narrow_cast<int32>(message_id.get() >> MessageId::SERVER_ID_SHIFT);
+  return (static_cast<int64>(message_date) << 32) +
+         message_id.get_prev_server_message_id().get_server_message_id().get();
 }
 
 int64 MessagesManager::get_dialog_public_order(const Dialog *d) const {

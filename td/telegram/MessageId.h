@@ -62,8 +62,11 @@ enum class MessageType : int32 { None, Server, Local, YetUnsent };
 class MessageId {
   int64 id = 0;
 
- public:
   static constexpr int32 SERVER_ID_SHIFT = 20;
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id);
+
+ public:
   static constexpr int32 TYPE_MASK = (1 << 3) - 1;
   static constexpr int32 FULL_TYPE_MASK = (1 << SERVER_ID_SHIFT) - 1;
   static constexpr int32 TYPE_YET_UNSENT = 1;
