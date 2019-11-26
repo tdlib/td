@@ -99,6 +99,7 @@ set(TDUTILS_SOURCE
   td/utils/MimeType.cpp
   td/utils/MpmcQueue.cpp
   td/utils/OptionsParser.cpp
+  td/utils/PathView.cpp
   td/utils/Random.cpp
   td/utils/SharedSlice.cpp
   td/utils/Slice.cpp
