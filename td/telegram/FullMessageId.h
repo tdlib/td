@@ -12,8 +12,6 @@
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
-
 namespace td {
 
 struct FullMessageId {

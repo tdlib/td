@@ -23,6 +23,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
+#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"

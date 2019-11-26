@@ -52,6 +52,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include <functional>
 #include <memory>
 #include <utility>
 

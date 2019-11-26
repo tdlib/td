@@ -7,6 +7,7 @@
 #include "td/mtproto/SessionConnection.h"
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/CryptoStorer.h"
 #include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/Transport.h"

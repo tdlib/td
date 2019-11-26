@@ -13,7 +13,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/MessageId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
