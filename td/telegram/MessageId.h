@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
@@ -63,18 +64,44 @@ class MessageId {
   int64 id = 0;
 
   static constexpr int32 SERVER_ID_SHIFT = 20;
+  static constexpr int32 SHORT_TYPE_MASK = (1 << 2) - 1;
   static constexpr int32 TYPE_MASK = (1 << 3) - 1;
   static constexpr int32 FULL_TYPE_MASK = (1 << SERVER_ID_SHIFT) - 1;
+  static constexpr int32 SCHEDULED_MASK = 4;
   static constexpr int32 TYPE_YET_UNSENT = 1;
   static constexpr int32 TYPE_LOCAL = 2;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id);
+
+  // ordinary message ID layout
+  // |-------31--------|---17---|1|--2-|
+  // |server_message_id|local_id|0|type|
+
+  // scheduled message ID layout
+  // |-------30-------|----18---|1|--2-|
+  // |send_date-2**30 |server_id|1|type|
 
  public:
   MessageId() = default;
 
   explicit MessageId(ServerMessageId server_message_id)
       : id(static_cast<int64>(server_message_id.get()) << SERVER_ID_SHIFT) {
+  }
+
+  static MessageId get_scheduled_message_id(int32 server_message_id, int32 send_date) {
+    if (send_date <= (1 << 30)) {
+      LOG(ERROR) << "Scheduled message send date " << send_date << " is in the past";
+      return MessageId();
+    }
+    if (server_message_id <= 0) {
+      LOG(ERROR) << "Scheduled message ID " << server_message_id << " is non-positive";
+      return MessageId();
+    }
+    if (server_message_id >= (1 << 18)) {
+      LOG(ERROR) << "Scheduled message ID " << server_message_id << " is too big";
+      return MessageId();
+    }
+    return MessageId((static_cast<int64>(send_date - (1 << 30)) << 21) | (server_message_id << 3) | SCHEDULED_MASK);
   }
 
   explicit constexpr MessageId(int64 message_id) : id(message_id) {
@@ -100,6 +127,15 @@ class MessageId {
     return type == TYPE_YET_UNSENT || type == TYPE_LOCAL;
   }
 
+  bool is_valid_scheduled() const {
+    if (id <= 0 || id > max().get()) {
+      return false;
+    }
+    int32 type = (id & TYPE_MASK);
+    return type == SCHEDULED_MASK || type == (SCHEDULED_MASK | TYPE_YET_UNSENT) ||
+           type == (SCHEDULED_MASK | TYPE_LOCAL);
+  }
+
   int64 get() const {
     return id;
   }
@@ -121,19 +157,28 @@ class MessageId {
     }
   }
 
+  bool is_scheduled() const {
+    return (id & SCHEDULED_MASK) != 0;
+  }
+
   bool is_yet_unsent() const {
-    CHECK(is_valid());
-    return (id & TYPE_MASK) == TYPE_YET_UNSENT;
+    CHECK(is_valid() || is_scheduled());
+    return (id & SHORT_TYPE_MASK) == TYPE_YET_UNSENT;
   }
 
   bool is_local() const {
-    CHECK(is_valid());
-    return (id & TYPE_MASK) == TYPE_LOCAL;
+    CHECK(is_valid() || is_scheduled());
+    return (id & SHORT_TYPE_MASK) == TYPE_LOCAL;
   }
 
   bool is_server() const {
     CHECK(is_valid());
     return (id & FULL_TYPE_MASK) == 0;
+  }
+
+  bool is_scheduled_server() const {
+    CHECK(is_valid_scheduled());
+    return (id & SHORT_TYPE_MASK) == 0;
   }
 
   ServerMessageId get_server_message_id() const {
@@ -164,6 +209,11 @@ class MessageId {
         UNREACHABLE();
         return MessageId();
     }
+  }
+
+  int32 get_scheduled_server_message_id() const {
+    CHECK(is_scheduled_server());
+    return static_cast<int32>((id >> 3) & ((1 << 18) - 1));
   }
 
   bool operator==(const MessageId &other) const {
