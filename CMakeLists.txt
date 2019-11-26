@@ -411,6 +411,7 @@ set(TDLIB_SOURCE
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageEntity.cpp
+  td/telegram/MessageId.cpp
   td/telegram/MessagesDb.cpp
   td/telegram/MessagesManager.cpp
   td/telegram/misc.cpp

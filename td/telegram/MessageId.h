@@ -9,8 +9,6 @@
 #include "td/telegram/DialogId.h"
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -88,21 +86,7 @@ class MessageId {
       : id(static_cast<int64>(server_message_id.get()) << SERVER_ID_SHIFT) {
   }
 
-  static MessageId get_scheduled_message_id(int32 server_message_id, int32 send_date) {
-    if (send_date <= (1 << 30)) {
-      LOG(ERROR) << "Scheduled message send date " << send_date << " is in the past";
-      return MessageId();
-    }
-    if (server_message_id <= 0) {
-      LOG(ERROR) << "Scheduled message ID " << server_message_id << " is non-positive";
-      return MessageId();
-    }
-    if (server_message_id >= (1 << 18)) {
-      LOG(ERROR) << "Scheduled message ID " << server_message_id << " is too big";
-      return MessageId();
-    }
-    return MessageId((static_cast<int64>(send_date - (1 << 30)) << 21) | (server_message_id << 3) | SCHEDULED_MASK);
-  }
+  static MessageId get_scheduled_message_id(int32 server_message_id, int32 send_date);
 
   explicit constexpr MessageId(int64 message_id) : id(message_id) {
   }
@@ -116,46 +100,15 @@ class MessageId {
     return MessageId(static_cast<int64>(std::numeric_limits<int32>::max()) << SERVER_ID_SHIFT);
   }
 
-  bool is_valid() const {
-    if (id <= 0 || id > max().get()) {
-      return false;
-    }
-    if ((id & FULL_TYPE_MASK) == 0) {
-      return true;
-    }
-    int32 type = (id & TYPE_MASK);
-    return type == TYPE_YET_UNSENT || type == TYPE_LOCAL;
-  }
+  bool is_valid() const;
 
-  bool is_valid_scheduled() const {
-    if (id <= 0 || id > max().get()) {
-      return false;
-    }
-    int32 type = (id & TYPE_MASK);
-    return type == SCHEDULED_MASK || type == (SCHEDULED_MASK | TYPE_YET_UNSENT) ||
-           type == (SCHEDULED_MASK | TYPE_LOCAL);
-  }
+  bool is_valid_scheduled() const;
 
   int64 get() const {
     return id;
   }
 
-  MessageType get_type() const {
-    if (id <= 0 || id > max().get()) {
-      return MessageType::None;
-    }
-    if ((id & FULL_TYPE_MASK) == 0) {
-      return MessageType::Server;
-    }
-    switch (id & TYPE_MASK) {
-      case TYPE_YET_UNSENT:
-        return MessageType::YetUnsent;
-      case TYPE_LOCAL:
-        return MessageType::Local;
-      default:
-        return MessageType::None;
-    }
-  }
+  MessageType get_type() const;
 
   bool is_scheduled() const {
     return (id & SCHEDULED_MASK) != 0;
@@ -196,20 +149,7 @@ class MessageId {
     return MessageId((id + FULL_TYPE_MASK) & ~FULL_TYPE_MASK);
   }
 
-  MessageId get_next_message_id(MessageType type) const {
-    switch (type) {
-      case MessageType::Server:
-        return get_next_server_message_id();
-      case MessageType::Local:
-        return MessageId(((id + TYPE_MASK + 1 - TYPE_LOCAL) & ~TYPE_MASK) + TYPE_LOCAL);
-      case MessageType::YetUnsent:
-        return MessageId(((id + TYPE_MASK + 1 - TYPE_YET_UNSENT) & ~TYPE_MASK) + TYPE_YET_UNSENT);
-      case MessageType::None:
-      default:
-        UNREACHABLE();
-        return MessageId();
-    }
-  }
+  MessageId get_next_message_id(MessageType type) const;
 
   int32 get_scheduled_server_message_id() const {
     CHECK(is_scheduled_server());
@@ -240,24 +180,6 @@ struct MessageIdHash {
     return std::hash<int64>()(message_id.get());
   }
 };
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id) {
-  if (!message_id.is_valid()) {
-    return string_builder << "invalid message " << message_id.get();
-  }
-  if (message_id.is_server()) {
-    return string_builder << "server message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT);
-  }
-  if (message_id.is_local()) {
-    return string_builder << "local message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT) << '.'
-                          << (message_id.get() & MessageId::FULL_TYPE_MASK);
-  }
-  if (message_id.is_yet_unsent()) {
-    return string_builder << "yet unsent message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT) << '.'
-                          << (message_id.get() & MessageId::FULL_TYPE_MASK);
-  }
-  return string_builder << "bugged message " << message_id.get();
-}
 
 struct FullMessageId {
  private:
