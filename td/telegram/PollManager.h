@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/MessageId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/ReplyMarkup.h"

@@ -22,6 +22,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"

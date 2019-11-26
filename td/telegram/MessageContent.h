@@ -9,6 +9,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"

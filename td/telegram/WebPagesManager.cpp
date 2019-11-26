@@ -639,9 +639,9 @@ void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_pa
   cached_web_page_id = web_page_id;
 }
 
-void WebPagesManager::wait_for_pending_web_page(DialogId dialog_id, MessageId message_id, WebPageId web_page_id) {
-  LOG(INFO) << "Waiting for " << web_page_id << " needed in " << message_id << " in " << dialog_id;
-  pending_web_pages_[web_page_id].emplace(dialog_id, message_id);
+void WebPagesManager::wait_for_pending_web_page(FullMessageId full_message_id, WebPageId web_page_id) {
+  LOG(INFO) << "Waiting for " << web_page_id << " needed in " << full_message_id;
+  pending_web_pages_[web_page_id].emplace(full_message_id);
   pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), 1.0);
 }
 

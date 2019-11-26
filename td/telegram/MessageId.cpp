@@ -63,6 +63,11 @@ MessageType MessageId::get_type() const {
   }
 }
 
+ServerMessageId MessageId::get_server_message_id() const {
+  CHECK(id == 0 || is_server());
+  return ServerMessageId(narrow_cast<int32>(id >> SERVER_ID_SHIFT));
+}
+
 MessageId MessageId::get_next_message_id(MessageType type) const {
   switch (type) {
     case MessageType::Server:

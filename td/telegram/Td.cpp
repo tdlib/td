@@ -34,6 +34,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"

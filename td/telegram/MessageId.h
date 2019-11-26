@@ -6,12 +6,10 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/tl_helpers.h"
 
 #include <functional>
 #include <limits>
@@ -97,10 +95,7 @@ class MessageId {
     return (id & SHORT_TYPE_MASK) == 0;
   }
 
-  ServerMessageId get_server_message_id() const {
-    CHECK(id == 0 || is_server());
-    return ServerMessageId(narrow_cast<int32>(id >> SERVER_ID_SHIFT));
-  }
+  ServerMessageId get_server_message_id() const;
 
   // returns greatest server message id not bigger than this message id
   MessageId get_prev_server_message_id() const {
@@ -143,58 +138,5 @@ struct MessageIdHash {
     return std::hash<int64>()(message_id.get());
   }
 };
-
-struct FullMessageId {
- private:
-  DialogId dialog_id;
-  MessageId message_id;
-
- public:
-  FullMessageId() : dialog_id(), message_id() {
-  }
-
-  FullMessageId(DialogId dialog_id, MessageId message_id) : dialog_id(dialog_id), message_id(message_id) {
-  }
-
-  bool operator==(const FullMessageId &other) const {
-    return dialog_id == other.dialog_id && message_id == other.message_id;
-  }
-
-  bool operator!=(const FullMessageId &other) const {
-    return !(*this == other);
-  }
-
-  DialogId get_dialog_id() const {
-    return dialog_id;
-  }
-  MessageId get_message_id() const {
-    return message_id;
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using ::td::store;
-    store(dialog_id, storer);
-    store(message_id, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using ::td::parse;
-    parse(dialog_id, parser);
-    parse(message_id, parser);
-  }
-};
-
-struct FullMessageIdHash {
-  std::size_t operator()(FullMessageId full_message_id) const {
-    return DialogIdHash()(full_message_id.get_dialog_id()) * 2023654985u +
-           MessageIdHash()(full_message_id.get_message_id());
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, FullMessageId full_message_id) {
-  return string_builder << full_message_id.get_message_id() << " in " << full_message_id.get_dialog_id();
-}
 
 }  // namespace td

@@ -12,7 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/MessageId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/WebPageId.h"
 
@@ -47,7 +47,7 @@ class WebPagesManager : public Actor {
 
   void on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database);
 
-  void wait_for_pending_web_page(DialogId dialog_id, MessageId message_id, WebPageId web_page_id);
+  void wait_for_pending_web_page(FullMessageId full_message_id, WebPageId web_page_id);
 
   bool have_web_page(WebPageId web_page_id) const;
 

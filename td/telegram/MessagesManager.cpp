@@ -24369,8 +24369,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   auto web_page_id = get_message_content_web_page_id(message->content.get());
   if (web_page_id.is_valid() && !td_->web_pages_manager_->have_web_page(web_page_id)) {
     waiting_for_web_page_messages_.emplace(dialog_id, message_id);
-    send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page, dialog_id, message_id,
-                 web_page_id);
+    send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page,
+                 FullMessageId{dialog_id, message_id}, web_page_id);
   }
 
   if (*need_update && message_id.get() <= d->last_new_message_id.get()) {
