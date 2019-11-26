@@ -478,9 +478,6 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
           page->document = std::move(parsed_document);
         }
       }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_INSTANT_VIEW) {
-        on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
-      }
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_DOCUMENTS) {
         for (auto &document : web_page->documents_) {
           int32 document_id = document->get_id();
@@ -492,6 +489,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
           }
         }
+      }
+      if (web_page->flags_ & WEBPAGE_FLAG_HAS_INSTANT_VIEW) {
+        on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
       }
 
       update_web_page(std::move(page), web_page_id, false, false);
@@ -1265,7 +1265,9 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       LOG(ERROR) << document.type << " has no remote location";
     }
   };
-  add_document(web_page->document);
+  if (!web_page->document.empty()) {
+    add_document(web_page->document);
+  }
   for (auto &document : web_page->documents) {
     add_document(document);
   }
