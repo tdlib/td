@@ -40,6 +40,12 @@ class MessageId {
   // |-------30-------|----18---|1|--2-|
   // |send_date-2**30 |server_id|1|type|
 
+  ServerMessageId get_server_message_id_force() const;
+
+  int32 get_scheduled_server_message_id_force() const {
+    return static_cast<int32>((id >> 3) & ((1 << 18) - 1));
+  }
+
  public:
   MessageId() = default;
 
@@ -95,7 +101,10 @@ class MessageId {
     return (id & SHORT_TYPE_MASK) == 0;
   }
 
-  ServerMessageId get_server_message_id() const;
+  ServerMessageId get_server_message_id() const {
+    CHECK(id == 0 || is_server());
+    return get_server_message_id_force();
+  }
 
   // returns greatest server message id not bigger than this message id
   MessageId get_prev_server_message_id() const {
@@ -111,7 +120,7 @@ class MessageId {
 
   int32 get_scheduled_server_message_id() const {
     CHECK(is_scheduled_server());
-    return static_cast<int32>((id >> 3) & ((1 << 18) - 1));
+    return get_scheduled_server_message_id_force();
   }
 
   bool operator==(const MessageId &other) const {

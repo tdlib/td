@@ -63,8 +63,7 @@ MessageType MessageId::get_type() const {
   }
 }
 
-ServerMessageId MessageId::get_server_message_id() const {
-  CHECK(id == 0 || is_server());
+ServerMessageId MessageId::get_server_message_id_force() const {
   return ServerMessageId(narrow_cast<int32>(id >> SERVER_ID_SHIFT));
 }
 
@@ -84,18 +83,36 @@ MessageId MessageId::get_next_message_id(MessageType type) const {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id) {
+  if (message_id.is_scheduled()) {
+    string_builder << "scheduled ";
+
+    if (!message_id.is_valid_scheduled()) {
+      return string_builder << "invalid message " << message_id.get();
+    }
+    if (message_id.is_scheduled_server()) {
+      return string_builder << "server message " << message_id.get_scheduled_server_message_id_force();
+    }
+    if (message_id.is_local()) {
+      return string_builder << "local message " << message_id.get_scheduled_server_message_id_force();
+    }
+    if (message_id.is_yet_unsent()) {
+      return string_builder << "yet unsent message " << message_id.get_scheduled_server_message_id_force();
+    }
+    return string_builder << "bugged message " << message_id.get();
+  }
+
   if (!message_id.is_valid()) {
     return string_builder << "invalid message " << message_id.get();
   }
   if (message_id.is_server()) {
-    return string_builder << "server message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT);
+    return string_builder << "server message " << message_id.get_server_message_id_force().get();
   }
   if (message_id.is_local()) {
-    return string_builder << "local message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT) << '.'
+    return string_builder << "local message " << message_id.get_server_message_id_force().get() << '.'
                           << (message_id.get() & MessageId::FULL_TYPE_MASK);
   }
   if (message_id.is_yet_unsent()) {
-    return string_builder << "yet unsent message " << (message_id.get() >> MessageId::SERVER_ID_SHIFT) << '.'
+    return string_builder << "yet unsent message " << message_id.get_server_message_id_force().get() << '.'
                           << (message_id.get() & MessageId::FULL_TYPE_MASK);
   }
   return string_builder << "bugged message " << message_id.get();
