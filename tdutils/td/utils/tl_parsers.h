@@ -10,7 +10,6 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
@@ -38,23 +37,7 @@ class TlParser {
   alignas(4) static const unsigned char empty_data[sizeof(UInt256)];
 
  public:
-  explicit TlParser(Slice slice) {
-    data_len = left_len = slice.size();
-    if (is_aligned_pointer<4>(slice.begin())) {
-      data = slice.ubegin();
-    } else {
-      int32 *buf;
-      if (data_len <= small_data_array.size() * sizeof(int32)) {
-        buf = &small_data_array[0];
-      } else {
-        LOG(ERROR) << "Unexpected big unaligned data pointer of length " << slice.size() << " at " << slice.begin();
-        data_buf = std::make_unique<int32[]>(1 + data_len / sizeof(int32));
-        buf = data_buf.get();
-      }
-      std::memcpy(buf, slice.begin(), slice.size());
-      data = reinterpret_cast<unsigned char *>(buf);
-    }
-  }
+  explicit TlParser(Slice slice);
 
   TlParser(const TlParser &other) = delete;
   TlParser &operator=(const TlParser &other) = delete;
@@ -143,15 +126,15 @@ class TlParser {
   T fetch_string() {
     check_len(sizeof(int32));
     size_t result_len = *data;
-    const char *result_begin;
+    const unsigned char *result_begin;
     size_t result_aligned_len;
     if (result_len < 254) {
-      result_begin = reinterpret_cast<const char *>(data + 1);
+      result_begin = data + 1;
       result_aligned_len = (result_len >> 2) << 2;
       data += sizeof(int32);
     } else if (result_len == 254) {
       result_len = data[1] + (data[2] << 8) + (data[3] << 16);
-      result_begin = reinterpret_cast<const char *>(data + 4);
+      result_begin = data + 4;
       result_aligned_len = ((result_len + 3) >> 2) << 2;
       data += sizeof(int32);
     } else {
@@ -165,7 +148,7 @@ class TlParser {
         return T();
       }
       result_len = static_cast<size_t>(result_len_uint64);
-      result_begin = reinterpret_cast<const char *>(data + 8);
+      result_begin = data + 8;
       result_aligned_len = ((result_len + 3) >> 2) << 2;
       data += sizeof(int64);
     }
@@ -174,7 +157,7 @@ class TlParser {
       return T();
     }
     data += result_aligned_len;
-    return T(result_begin, result_len);
+    return T(reinterpret_cast<const char *>(result_begin), result_len);
   }
 
   template <class T>
@@ -204,6 +187,7 @@ class TlBufferParser : public TlParser {
  public:
   explicit TlBufferParser(const BufferSlice *buffer_slice) : TlParser(buffer_slice->as_slice()), parent_(buffer_slice) {
   }
+
   template <class T>
   T fetch_string() {
     auto result = TlParser::fetch_string<T>();
@@ -230,6 +214,7 @@ class TlBufferParser : public TlParser {
 
     return T();
   }
+
   template <class T>
   T fetch_string_raw(const size_t size) {
     return TlParser::fetch_string_raw<T>(size);
@@ -238,12 +223,7 @@ class TlBufferParser : public TlParser {
  private:
   const BufferSlice *parent_;
 
-  BufferSlice as_buffer_slice(Slice slice) {
-    if (is_aligned_pointer<4>(slice.data())) {
-      return parent_->from_slice(slice);
-    }
-    return BufferSlice(slice);
-  }
+  BufferSlice as_buffer_slice(Slice slice);
 };
 
 template <>

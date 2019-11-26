@@ -18,7 +18,6 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Variant.h"
@@ -404,11 +403,11 @@ class FullRemoteFileLocation {
               case FileType::Photo:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
                     photo().id_, photo().access_hash_, BufferSlice(file_reference_),
-                    std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
+                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
               case FileType::Thumbnail:
                 return make_tl_object<telegram_api::inputDocumentFileLocation>(
                     photo().id_, photo().access_hash_, BufferSlice(file_reference_),
-                    std::string(1, static_cast<char>(narrow_cast<uint8>(thumbnail.thumbnail_type))));
+                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
               default:
                 UNREACHABLE();
                 break;

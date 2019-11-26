@@ -7,8 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 
@@ -605,7 +603,7 @@ class ChainBufferReader {
   }
 
   ChainBufferReader cut_head(size_t offset) TD_WARN_UNUSED_RESULT {
-    LOG_CHECK(offset <= size()) << offset << " " << size();
+    CHECK(offset <= size());
     auto it = begin_.clone();
     it.advance(offset);
     return cut_head(std::move(it));
@@ -753,8 +751,8 @@ class BufferBuilder {
 
   template <class F>
   void for_each(F &&f) const & {
-    for (auto &slice : reversed(to_prepend_)) {
-      f(slice.as_slice());
+    for (auto i = to_prepend_.size(); i > 0; i--) {
+      f(to_prepend_[i - 1].as_slice());
     }
     if (!buffer_writer_.empty()) {
       f(buffer_writer_.as_slice());
@@ -765,8 +763,8 @@ class BufferBuilder {
   }
   template <class F>
   void for_each(F &&f) && {
-    for (auto &slice : reversed(to_prepend_)) {
-      f(std::move(slice));
+    for (auto i = to_prepend_.size(); i > 0; i--) {
+      f(std::move(to_prepend_[i - 1]));
     }
     if (!buffer_writer_.empty()) {
       f(buffer_writer_.as_buffer_slice());
