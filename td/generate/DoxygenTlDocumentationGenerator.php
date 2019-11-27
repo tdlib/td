@@ -181,7 +181,7 @@ EOT
  * \\code
  * auto get_authorization_state_request = td::td_api::make_object<td::td_api::getAuthorizationState>();
  * auto message_text = td::td_api::make_object<td::td_api::formattedText>("Hello, world!!!",
- *                     std::vector<td::td_api::object_ptr<td::td_api::textEntities>>());
+ *                     std::vector<td::td_api::object_ptr<td::td_api::textEntity>>());
  * auto send_message_request = td::td_api::make_object<td::td_api::sendMessage>(chat_id, 0, false, false, nullptr,
  *      td::td_api::make_object<td::td_api::inputMessageText>(std::move(message_text), false, true));
  * \\endcode
