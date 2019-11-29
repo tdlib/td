@@ -8519,59 +8519,57 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
   }
 }
 
-void MessagesManager::find_messages_from_user(const unique_ptr<Message> &m, UserId user_id,
-                                              vector<MessageId> &message_ids) {
+void MessagesManager::find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
   }
 
-  find_messages_from_user(m->left, user_id, message_ids);
+  find_messages_from_user(m->left.get(), user_id, message_ids);
 
   if (m->sender_user_id == user_id) {
     message_ids.push_back(m->message_id);
   }
 
-  find_messages_from_user(m->right, user_id, message_ids);
+  find_messages_from_user(m->right.get(), user_id, message_ids);
 }
 
-void MessagesManager::find_unread_mentions(const unique_ptr<Message> &m, vector<MessageId> &message_ids) {
+void MessagesManager::find_unread_mentions(const Message *m, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
   }
 
-  find_unread_mentions(m->left, message_ids);
+  find_unread_mentions(m->left.get(), message_ids);
 
   if (m->contains_unread_mention) {
     message_ids.push_back(m->message_id);
   }
 
-  find_unread_mentions(m->right, message_ids);
+  find_unread_mentions(m->right.get(), message_ids);
 }
 
-void MessagesManager::find_old_messages(const unique_ptr<Message> &m, MessageId max_message_id,
-                                        vector<MessageId> &message_ids) {
+void MessagesManager::find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
   }
 
-  find_old_messages(m->left, max_message_id, message_ids);
+  find_old_messages(m->left.get(), max_message_id, message_ids);
 
   if (m->message_id.get() <= max_message_id.get()) {
     message_ids.push_back(m->message_id);
 
-    find_old_messages(m->right, max_message_id, message_ids);
+    find_old_messages(m->right.get(), max_message_id, message_ids);
   }
 }
 
-void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const unique_ptr<Message> &m,
+void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
                                                vector<MessageId> &message_ids, int32 &left_to_unload) const {
   if (m == nullptr) {
     return;
   }
 
-  find_unloadable_messages(d, unload_before_date, m->left, message_ids, left_to_unload);
+  find_unloadable_messages(d, unload_before_date, m->left.get(), message_ids, left_to_unload);
 
-  if (can_unload_message(d, m.get())) {
+  if (can_unload_message(d, m)) {
     if (m->last_access_date <= unload_before_date) {
       message_ids.push_back(m->message_id);
     } else {
@@ -8579,7 +8577,7 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
     }
   }
 
-  find_unloadable_messages(d, unload_before_date, m->right, message_ids, left_to_unload);
+  find_unloadable_messages(d, unload_before_date, m->right.get(), message_ids, left_to_unload);
 }
 
 void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise) {
@@ -8637,7 +8635,7 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
   }
 
   vector<MessageId> message_ids;
-  find_messages_from_user(d->messages, user_id, message_ids);
+  find_messages_from_user(d->messages.get(), user_id, message_ids);
 
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
@@ -8714,7 +8712,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   vector<MessageId> to_unload_message_ids;
   int32 left_to_unload = 0;
-  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->messages,
+  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->messages.get(),
                            to_unload_message_ids, left_to_unload);
 
   vector<int64> unloaded_message_ids;
@@ -8864,7 +8862,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
   }
 
   vector<MessageId> message_ids;
-  find_unread_mentions(d->messages, message_ids);
+  find_unread_mentions(d->messages.get(), message_ids);
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread mentions in memory";
   bool is_update_sent = false;
@@ -9431,7 +9429,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     d->max_unavailable_message_id = max_unavailable_message_id;
 
     vector<MessageId> message_ids;
-    find_old_messages(d->messages, max_unavailable_message_id, message_ids);
+    find_old_messages(d->messages.get(), max_unavailable_message_id, message_ids);
 
     vector<int64> deleted_message_ids;
     bool need_update_dialog_pos = false;
@@ -11293,7 +11291,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
 
   vector<MessageId> message_ids;
   std::unordered_set<NotificationId, NotificationIdHash> removed_notification_ids_set;
-  find_unread_mentions(d->messages, message_ids);
+  find_unread_mentions(d->messages.get(), message_ids);
   VLOG(notifications) << "Found unread mentions in " << message_ids;
   for (auto &message_id : message_ids) {
     auto m = get_message(d, message_id);
@@ -12351,11 +12349,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   return nullptr;
 }
 
-void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &m,
+void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message,
                                                     vector<int64> &deleted_message_ids) {
-  if (m == nullptr) {
+  if (message == nullptr) {
     return;
   }
+  const Message *m = message.get();
   MessageId message_id = m->message_id;
 
   if (is_debug_message_op_enabled()) {
@@ -12366,15 +12365,15 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   LOG(INFO) << "Delete " << message_id;
   deleted_message_ids.push_back(message_id.get());
 
-  do_delete_all_dialog_messages(d, m->right, deleted_message_ids);
-  do_delete_all_dialog_messages(d, m->left, deleted_message_ids);
+  do_delete_all_dialog_messages(d, message->right, deleted_message_ids);
+  do_delete_all_dialog_messages(d, message->left, deleted_message_ids);
 
-  delete_active_live_location(d->dialog_id, m.get());
-  remove_message_file_sources(d->dialog_id, m.get());
+  delete_active_live_location(d->dialog_id, m);
+  remove_message_file_sources(d->dialog_id, m);
 
-  on_message_deleted(d, m.get(), "do_delete_all_dialog_messages");
+  on_message_deleted(d, message.get(), "do_delete_all_dialog_messages");
 
-  m = nullptr;
+  message = nullptr;
 }
 
 bool MessagesManager::have_dialog(DialogId dialog_id) const {
@@ -16102,7 +16101,7 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
            get_dialog_message_by_date_results_.find(random_id) != get_dialog_message_by_date_results_.end());
   get_dialog_message_by_date_results_[random_id];  // reserve place for result
 
-  auto message_id = find_message_by_date(d->messages, date);
+  auto message_id = find_message_by_date(d->messages.get(), date);
   if (message_id.is_valid() && (message_id == d->last_message_id || get_message(d, message_id)->have_next)) {
     get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
     promise.set_value(Unit());
@@ -16124,16 +16123,16 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
   return random_id;
 }
 
-MessageId MessagesManager::find_message_by_date(const unique_ptr<Message> &m, int32 date) {
+MessageId MessagesManager::find_message_by_date(const Message *m, int32 date) {
   if (m == nullptr) {
     return MessageId();
   }
 
   if (m->date > date) {
-    return find_message_by_date(m->left, date);
+    return find_message_by_date(m->left.get(), date);
   }
 
-  auto message_id = find_message_by_date(m->right, date);
+  auto message_id = find_message_by_date(m->right.get(), date);
   if (message_id.is_valid()) {
     return message_id;
   }
@@ -16149,7 +16148,7 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialo
     Message *m =
         on_get_message_from_database(dialog_id, d, result.ok(), false, "on_get_dialog_message_by_date_from_database");
     if (m != nullptr) {
-      auto message_id = find_message_by_date(d->messages, date);
+      auto message_id = find_message_by_date(d->messages.get(), date);
       if (!message_id.is_valid()) {
         LOG(ERROR) << "Failed to find " << m->message_id << " in " << dialog_id << " by date " << date;
         message_id = m->message_id;
@@ -16173,7 +16172,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
       return promise.set_value(Unit());
     }
 
-    auto message_id = find_message_by_date(d->messages, date);
+    auto message_id = find_message_by_date(d->messages.get(), date);
     if (message_id.is_valid()) {
       get_dialog_message_by_date_results_[random_id] = {d->dialog_id, message_id};
     }
@@ -16208,7 +16207,7 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
       if (result != FullMessageId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
-        auto message_id = find_message_by_date(d->messages, date);
+        auto message_id = find_message_by_date(d->messages.get(), date);
         if (!message_id.is_valid()) {
           LOG(ERROR) << "Failed to find " << result.get_message_id() << " in " << dialog_id << " by date " << date;
           message_id = result.get_message_id();

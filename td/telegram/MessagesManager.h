@@ -1572,7 +1572,7 @@ class MessagesManager : public Actor {
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanent);
 
-  void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &m, vector<int64> &deleted_message_ids);
+  void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message, vector<int64> &deleted_message_ids);
 
   void delete_message_from_server(DialogId dialog_id, MessageId message_ids, bool revoke);
 
@@ -1590,15 +1590,15 @@ class MessagesManager : public Actor {
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 logevent_id, Promise<Unit> &&promise);
 
-  static MessageId find_message_by_date(const unique_ptr<Message> &m, int32 date);
+  static MessageId find_message_by_date(const Message *m, int32 date);
 
-  static void find_messages_from_user(const unique_ptr<Message> &m, UserId user_id, vector<MessageId> &message_ids);
+  static void find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids);
 
-  static void find_unread_mentions(const unique_ptr<Message> &m, vector<MessageId> &message_ids);
+  static void find_unread_mentions(const Message *m, vector<MessageId> &message_ids);
 
-  static void find_old_messages(const unique_ptr<Message> &m, MessageId max_message_id, vector<MessageId> &message_ids);
+  static void find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids);
 
-  void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const unique_ptr<Message> &m,
+  void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
                                 vector<MessageId> &message_ids, int32 &left_to_unload) const;
 
   void on_pending_message_views_timeout(DialogId dialog_id);
