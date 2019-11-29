@@ -12239,11 +12239,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   d->debug_being_deleted_message_id_source = "";
 
   if (!only_from_memory) {
-    if (message_id.is_yet_unsent()) {
-      cancel_send_message_query(d->dialog_id, result.get());
-    } else {
-      cancel_edit_message_media(d->dialog_id, result.get(), "Message was deleted");
-    }
+    cancel_send_deleted_message(d->dialog_id, result.get());
 
     if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
       get_history_from_the_end(d->dialog_id, true, false, Auto());
@@ -12348,13 +12344,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   remove_message_file_sources(d->dialog_id, m);
 
   // TODO delete the message
-  /*
-  if (message_id.is_yet_unsent()) {
-    cancel_send_message_query(d->dialog_id, result.get());
-  } else {
-    cancel_edit_message_media(d->dialog_id, result.get(), "Message was deleted");
-  }
-  */
+
+  // cancel_send_deleted_message(d->dialog_id, result.get());
+
   return nullptr;
 }
 
@@ -12379,11 +12371,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   delete_active_live_location(d->dialog_id, m.get());
   remove_message_file_sources(d->dialog_id, m.get());
 
-  if (message_id.is_yet_unsent()) {
-    cancel_send_message_query(d->dialog_id, m.get());
-  } else {
-    cancel_edit_message_media(d->dialog_id, m.get(), "Message was deleted");
-  }
+  cancel_send_deleted_message(d->dialog_id, m.get());
 
   on_message_deleted(d, m.get(), "do_delete_all_dialog_messages");
 
@@ -17217,6 +17205,14 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         }
       }
     }
+  }
+}
+
+void MessagesManager::cancel_send_deleted_message(DialogId dialog_id, Message *m) {
+  if (m->message_id.is_yet_unsent()) {
+    cancel_send_message_query(dialog_id, m);
+  } else {
+    cancel_edit_message_media(dialog_id, m, "Message was deleted");
   }
 }
 

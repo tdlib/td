@@ -2049,6 +2049,8 @@ class MessagesManager : public Actor {
 
   void cancel_send_message_query(DialogId dialog_id, Message *m);
 
+  void cancel_send_deleted_message(DialogId dialog_id, Message *m);
+
   static int32 get_message_flags(const Message *m);
 
   static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);
