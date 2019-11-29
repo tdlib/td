@@ -29,7 +29,7 @@ Status MessageIdDuplicateChecker::check(int64 message_id) {
     }
   }
   if (saved_message_ids_.count(message_id) != 0) {
-    return Status::Error(1, PSLICE() << "Ignore duplicated_message id " << tag("message_id", message_id));
+    return Status::Error(1, PSLICE() << "Ignore duplicated message_id " << tag("message_id", message_id));
   }
 
   saved_message_ids_.insert(message_id);
