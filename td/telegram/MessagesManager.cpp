@@ -12239,8 +12239,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   d->debug_being_deleted_message_id_source = "";
 
   if (!only_from_memory) {
-    cancel_send_deleted_message(d->dialog_id, result.get());
-
     if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
       get_history_from_the_end(d->dialog_id, true, false, Auto());
     }
@@ -12290,6 +12288,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, const char *source) {
   // also called for unloaded messages
+
+  cancel_send_deleted_message(d->dialog_id, m);
+
   CHECK(m->message_id.is_valid());
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
@@ -12370,8 +12371,6 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
 
   delete_active_live_location(d->dialog_id, m.get());
   remove_message_file_sources(d->dialog_id, m.get());
-
-  cancel_send_deleted_message(d->dialog_id, m.get());
 
   on_message_deleted(d, m.get(), "do_delete_all_dialog_messages");
 
