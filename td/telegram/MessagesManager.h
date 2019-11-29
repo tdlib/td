@@ -1028,9 +1028,9 @@ class MessagesManager : public Actor {
     FolderId folder_id;
 
     MessageId
-        last_read_all_mentions_message_id;  // all mentions with a message id not greater than it are implicitly read
+        last_read_all_mentions_message_id;  // all mentions with a message identifier not greater than it are implicitly read
     MessageId
-        max_unavailable_message_id;  // maximal unavailable message id for dialogs with cleared/unavailable history
+        max_unavailable_message_id;  // maximum unavailable message identifier for dialogs with cleared/unavailable history
 
     int32 last_clear_history_date = 0;
     MessageId last_clear_history_message_id;

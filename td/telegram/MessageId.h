@@ -111,13 +111,13 @@ class MessageId {
     return get_server_message_id_force();
   }
 
-  // returns greatest server message id not bigger than this message id
+  // returns greatest server message identifier not bigger than this message identifier
   MessageId get_prev_server_message_id() const {
     CHECK(!is_scheduled());
     return MessageId(id & ~FULL_TYPE_MASK);
   }
 
-  // returns smallest server message id not less than this message id
+  // returns smallest server message identifier not less than this message identifier
   MessageId get_next_server_message_id() const {
     CHECK(!is_scheduled());
     return MessageId((id + FULL_TYPE_MASK) & ~FULL_TYPE_MASK);

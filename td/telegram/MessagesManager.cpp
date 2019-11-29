@@ -7781,7 +7781,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
                 << ", first_added_message_id = " << first_added_message_id << ", from_message_id = " << from_message_id;
       if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
           (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
-        LOG(INFO) << "Update calls database first message id to " << first_added_message_id;
+        LOG(INFO) << "Update calls database first message to " << first_added_message_id;
         old_first_db_message_id = first_added_message_id;
         update_state = true;
       }
@@ -9388,8 +9388,8 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     if (max_unavailable_message_id > d->last_new_message_id && from_update) {
       if (d->last_new_message_id.is_valid()) {
         if (!td_->auth_manager_->is_bot()) {
-          LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message id to " << max_unavailable_message_id
-                     << " from " << source << ", but last new message id is " << d->last_new_message_id;
+          LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message to " << max_unavailable_message_id
+                     << " from " << source << ", but last new message is " << d->last_new_message_id;
         }
         max_unavailable_message_id = d->last_new_message_id;
       } else if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_server()) {
@@ -9406,7 +9406,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
                  << " from " << source;
       return;
     }
-    LOG(INFO) << "Set max unavailable message id to " << max_unavailable_message_id << " in " << dialog_id << " from "
+    LOG(INFO) << "Set max unavailable message to " << max_unavailable_message_id << " in " << dialog_id << " from "
               << source;
 
     on_dialog_updated(dialog_id, "set_dialog_max_unavailable_message_id");
@@ -9448,7 +9448,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       read_history_inbox(dialog_id, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
     }
   } else {
-    LOG(INFO) << "Receive max unavailable message identifier in unknown " << dialog_id << " from " << source;
+    LOG(INFO) << "Receive max unavailable message in unknown " << dialog_id << " from " << source;
   }
 }
 
@@ -16515,7 +16515,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << d->last_new_message_id << ' ' << debug_last_new_message_id << ' ' << d->last_message_id << ' '
             << debug_last_message_id;
         CHECK(next_message->message_id <= d->last_database_message_id);
-        LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
+        LOG(ERROR) << "Fix first database message in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
         set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database 6");
       }
@@ -19377,7 +19377,8 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   if (!channel_id.is_valid()) {
     if (sender_user_id.is_valid()) {
       if (message_id.is_valid()) {
-        LOG(ERROR) << "Receive non-empty message id in message forward header: " << oneline(to_string(forward_header));
+        LOG(ERROR) << "Receive non-empty message identifier in message forward header: "
+                   << oneline(to_string(forward_header));
         message_id = MessageId();
       }
     } else if (sender_name.empty()) {
@@ -20139,7 +20140,7 @@ Result<MessageId> MessagesManager::add_local_message(
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {
   if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
-    LOG(ERROR) << "Receive " << new_message_id << " in update message id with random_id " << random_id << " from "
+    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
     auto it = debug_being_sent_messages_.find(random_id);
     if (it == debug_being_sent_messages_.end()) {
@@ -20155,7 +20156,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
       LOG(ERROR) << "Sent message is in not found " << dialog_id;
       return false;
     }
-    LOG(ERROR) << "Receive " << new_message_id << " in update message id with random_id " << random_id << " in "
+    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " in "
                << dialog_id;
     return false;
   }
@@ -21698,8 +21699,9 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   }
   if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
     LOG(ERROR) << "Receive " << new_message_id << " as sent message from " << source;
-    on_send_message_fail(random_id,
-                         Status::Error(500, "Internal server error: receive invalid message id as sent message id"));
+    on_send_message_fail(
+        random_id,
+        Status::Error(500, "Internal server error: receive invalid message identifier as sent message identifier"));
     return {};
   }
   if (new_message_id.is_yet_unsent()) {
@@ -26394,7 +26396,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     }
     case DialogType::SecretChat:
       if (!d->last_new_message_id.is_valid()) {
-        LOG(INFO) << "Set " << d->dialog_id << " last new message id in add_new_dialog";
+        LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog";
         d->last_new_message_id = MessageId::min();
       }
       for (auto &first_message_id : d->first_database_message_id_by_index) {
@@ -26672,8 +26674,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         LOG(INFO) << "Have last read outbox message " << d->last_read_outbox_message_id << " in " << dialog_id
                   << ", but last read inbox message is " << d->last_read_inbox_message_id;
         // can't fix last_read_inbox_message_id by last_read_outbox_message_id because last_read_outbox_message_id is
-        // just a message id not less than last read outgoing message and less than first unread outgoing message, so
-        // it may not point to the outgoing message
+        // just a message identifier not less than an identifier of last read outgoing message and less than
+        // an identifier of first unread outgoing message, so it may not point to the outgoing message
         // read_history_inbox(dialog_id, d->last_read_outbox_message_id, d->server_unread_count, "fix_new_dialog 6");
       }
       break;
