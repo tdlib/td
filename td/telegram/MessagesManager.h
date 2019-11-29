@@ -1216,7 +1216,7 @@ class MessagesManager : public Actor {
       while (root != nullptr) {
         //        LOG(DEBUG) << "Have root->message_id = " << root->message_id;
         stack_.push_back(root);
-        if (root->message_id.get() <= message_id.get()) {
+        if (root->message_id <= message_id) {
           //          LOG(DEBUG) << "Go right";
           last_right_pos = stack_.size();
           root = root->right.get();

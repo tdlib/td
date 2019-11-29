@@ -598,7 +598,7 @@ void NotificationManager::on_get_message_notifications_from_database(Notificatio
   }
   auto first_message_id = get_first_message_id(group);
   if (first_message_id.is_valid()) {
-    while (!notifications.empty() && notifications.back().type->get_message_id().get() >= first_message_id.get()) {
+    while (!notifications.empty() && notifications.back().type->get_message_id() >= first_message_id) {
       // possible if notifications was added after the database request was sent
       notifications.pop_back();
     }
@@ -880,7 +880,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     return;
   }
   auto message_id = type->get_message_id();
-  if (message_id.is_valid() && message_id.get() <= get_last_message_id(group).get()) {
+  if (message_id.is_valid() && message_id <= get_last_message_id(group)) {
     LOG(ERROR) << "Failed to add " << notification_id << " of type " << *type << " to " << group_id << " of type "
                << group_type << " in " << dialog_id << ", because have already added notification about "
                << get_last_message_id(group);
@@ -1961,7 +1961,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();
        ++it) {
     if (it->notification_id.get() <= max_notification_id.get() ||
-        (max_message_id.is_valid() && it->type->get_message_id().get() <= max_message_id.get())) {
+        (max_message_id.is_valid() && it->type->get_message_id() <= max_message_id)) {
       pending_delete_end = it + 1;
       on_notification_removed(it->notification_id);
     }
@@ -1988,7 +1988,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   for (size_t pos = 0; pos < notification_delete_end; pos++) {
     auto &notification = group_it->second.notifications[pos];
     if (notification.notification_id.get() > max_notification_id.get() &&
-        (!max_message_id.is_valid() || notification.type->get_message_id().get() > max_message_id.get())) {
+        (!max_message_id.is_valid() || notification.type->get_message_id() > max_message_id)) {
       notification_delete_end = pos;
     } else {
       on_notification_removed(notification.notification_id);

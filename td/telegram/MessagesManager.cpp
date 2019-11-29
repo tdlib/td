@@ -4121,7 +4121,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_pinned_message_id = pinned_message_id.is_valid();
   bool has_flags2 = true;
   bool has_max_notification_message_id =
-      max_notification_message_id.is_valid() && max_notification_message_id.get() > last_new_message_id.get();
+      max_notification_message_id.is_valid() && max_notification_message_id > last_new_message_id;
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   BEGIN_STORE_FLAGS();
@@ -5458,13 +5458,11 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
     return;
   }
   auto message_id = full_message_id.get_message_id();
-  if (message_id.is_scheduled()) {
-    return;
-  }
   Message *m = get_message_force(d, message_id, "on_update_message_views");
   if (m == nullptr) {
     LOG(INFO) << "Ignore updateMessageViews about unknown " << full_message_id;
-    if (message_id.get() > d->last_new_message_id.get() && dialog_id.get_type() == DialogType::Channel) {
+    if (!message_id.is_scheduled() && message_id > d->last_new_message_id &&
+        dialog_id.get_type() == DialogType::Channel) {
       get_channel_difference(dialog_id, d->pts, true, "on_update_message_views");
     }
     return;
@@ -7332,6 +7330,7 @@ void MessagesManager::after_get_difference() {
     // this is impossible for ordinary chats because updates coming during getDifference have already been applied
     auto full_message_id = it.first;
     auto dialog_id = full_message_id.get_dialog_id();
+    auto message_id = full_message_id.get_message_id();
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
         // get channel difference may prevent updates from being applied
@@ -7361,7 +7360,7 @@ void MessagesManager::after_get_difference() {
         if (dialog_id.get_type() != DialogType::Channel) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
-        if (full_message_id.get_message_id().get() <= d->last_new_message_id.get()) {
+        if (message_id.is_scheduled() || message_id <= d->last_new_message_id) {
           get_message_from_server(it.first, PromiseCreator::lambda([this, full_message_id](Result<Unit> result) {
                                     if (result.is_error()) {
                                       LOG(WARNING)
@@ -7489,7 +7488,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     MessageId cur_message_id = MessageId::max();
     for (const auto &message : messages) {
       MessageId message_id = get_message_id(message);
-      if (message_id.get() >= cur_message_id.get()) {
+      if (message_id >= cur_message_id) {
         string error = PSTRING() << "Receive messages in the wrong order in history of " << dialog_id << " from "
                                  << from_message_id << " with offset " << offset << ", limit " << limit
                                  << ", from_the_end = " << from_the_end << ": ";
@@ -7516,8 +7515,8 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
 
   if (narrow_cast<int32>(messages.size()) < limit + offset && d != nullptr) {
     MessageId first_received_message_id = get_message_id(messages.back());
-    if (first_received_message_id.get() >= from_message_id.get() && d->first_database_message_id.is_valid() &&
-        first_received_message_id.get() >= d->first_database_message_id.get()) {
+    if (first_received_message_id >= from_message_id && d->first_database_message_id.is_valid() &&
+        first_received_message_id >= d->first_database_message_id) {
       // it is likely that there is no more history messages on the server
       have_full_history = true;
     }
@@ -7537,7 +7536,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   for (auto &message : messages) {
-    if (!have_next && from_the_end && d != nullptr && get_message_id(message).get() < d->last_message_id.get()) {
+    if (!have_next && from_the_end && d != nullptr && get_message_id(message) < d->last_message_id) {
       // last message in the dialog should be attached to the next message if there is some
       have_next = true;
     }
@@ -7589,20 +7588,19 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     on_dialog_updated(dialog_id, "set have_full_history 2");
   }
 
-  //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id.get() > first_received_message_id.get())
+  //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id > first_received_message_id)
   //      << "Receive message " << first_received_message_id << ", but first chat message is " << d->first_message_id;
 
   bool need_update_database_message_ids =
-      last_added_message_id.is_valid() &&
-      (from_the_end || (last_added_message_id.get() >= d->first_database_message_id.get() &&
-                        d->last_database_message_id.get() >= first_added_message_id.get()));
+      last_added_message_id.is_valid() && (from_the_end || (last_added_message_id >= d->first_database_message_id &&
+                                                            d->last_database_message_id >= first_added_message_id));
   if (from_the_end) {
     if (!d->last_new_message_id.is_valid()) {
       set_dialog_last_new_message_id(
           d, last_added_message_id.is_valid() ? last_added_message_id : last_received_message_id, "on_get_history");
     }
     if (last_added_message_id.is_valid()) {
-      if (last_added_message_id.get() > d->last_message_id.get()) {
+      if (last_added_message_id > d->last_message_id) {
         CHECK(d->last_new_message_id.is_valid());
         set_dialog_last_message_id(d, last_added_message_id, "on_get_history");
         send_update_chat_last_message(d, "on_get_history");
@@ -7643,8 +7641,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         if (*it != nullptr && ((*it)->message_id == d->first_database_message_id || (*it)->have_next)) {
           while (*it != nullptr) {
             auto message_id = (*it)->message_id;
-            if ((message_id.is_server() || message_id.is_local()) &&
-                message_id.get() < d->first_database_message_id.get()) {
+            if ((message_id.is_server() || message_id.is_local()) && message_id < d->first_database_message_id) {
               set_dialog_first_database_message_id(d, message_id, "on_get_history 2");
               try_restore_dialog_reply_markup(d, *it);
               is_dialog_updated = true;
@@ -7658,8 +7655,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         if (*it != nullptr && ((*it)->message_id == d->last_database_message_id || (*it)->have_next)) {
           while (*it != nullptr) {
             auto message_id = (*it)->message_id;
-            if ((message_id.is_server() || message_id.is_local()) &&
-                message_id.get() > d->last_database_message_id.get()) {
+            if ((message_id.is_server() || message_id.is_local()) && message_id > d->last_database_message_id) {
               set_dialog_last_database_message_id(d, message_id, "on_get_history 2");
               is_dialog_updated = true;
             }
@@ -7680,8 +7676,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     CHECK(d->last_database_message_id.is_valid());
 
     for (auto &first_message_id : d->first_database_message_id_by_index) {
-      if (first_added_message_id.get() < first_message_id.get() &&
-          first_message_id.get() <= last_added_message_id.get()) {
+      if (first_added_message_id < first_message_id && first_message_id <= last_added_message_id) {
         first_message_id = first_added_message_id;
       }
     }
@@ -7765,7 +7760,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
       }
 
       auto message_id = new_message.get_message_id();
-      if (message_id.get() < first_added_message_id.get() || !first_added_message_id.is_valid()) {
+      if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
         first_added_message_id = message_id;
       }
     }
@@ -7781,14 +7776,11 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
 
       auto &old_first_db_message_id =
           calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter)];
-      bool from_the_end = !from_message_id.is_valid() || from_message_id.get() >= MessageId::max().get();
-      LOG(INFO) << "Have from_the_end = " << from_the_end
-                << ", old_first_db_message_id = " << old_first_db_message_id.get()
-                << ", first_added_message_id = " << first_added_message_id.get()
-                << ", from_message_id = " << from_message_id.get();
-      if ((from_the_end ||
-           (old_first_db_message_id.is_valid() && old_first_db_message_id.get() <= from_message_id.get())) &&
-          (!old_first_db_message_id.is_valid() || first_added_message_id.get() < old_first_db_message_id.get())) {
+      bool from_the_end = !from_message_id.is_valid() || from_message_id >= MessageId::max();
+      LOG(INFO) << "Have from_the_end = " << from_the_end << ", old_first_db_message_id = " << old_first_db_message_id
+                << ", first_added_message_id = " << first_added_message_id << ", from_message_id = " << from_message_id;
+      if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
+          (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
         LOG(INFO) << "Update calls database first message id to " << first_added_message_id;
         old_first_db_message_id = first_added_message_id;
         update_state = true;
@@ -7829,14 +7821,13 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     }
 
     auto message_id = new_message.get_message_id();
-    if (filter == SearchMessagesFilter::UnreadMention &&
-        message_id.get() <= d->last_read_all_mentions_message_id.get()) {
+    if (filter == SearchMessagesFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id) {
       total_count--;
       continue;
     }
 
     // TODO check that messages are returned in decreasing message_id order
-    if (message_id.get() < first_added_message_id.get() || !first_added_message_id.is_valid()) {
+    if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
       first_added_message_id = message_id;
     }
     result.push_back(message_id);
@@ -7863,11 +7854,10 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
 
     auto &old_first_db_message_id = d->first_database_message_id_by_index[search_messages_filter_index(filter)];
     bool from_the_end = !from_message_id.is_valid() ||
-                        (d->last_message_id != MessageId() && from_message_id.get() > d->last_message_id.get()) ||
-                        from_message_id.get() >= MessageId::max().get();
-    if ((from_the_end ||
-         (old_first_db_message_id.is_valid() && old_first_db_message_id.get() <= from_message_id.get())) &&
-        (!old_first_db_message_id.is_valid() || first_added_message_id.get() < old_first_db_message_id.get())) {
+                        (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
+                        from_message_id >= MessageId::max();
+    if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
+        (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
       old_first_db_message_id = first_added_message_id;
       update_dialog = true;
     }
@@ -8554,7 +8544,7 @@ void MessagesManager::find_old_messages(const Message *m, MessageId max_message_
 
   find_old_messages(m->left.get(), max_message_id, message_ids);
 
-  if (m->message_id.get() <= max_message_id.get()) {
+  if (m->message_id <= max_message_id) {
     message_ids.push_back(m->message_id);
 
     find_old_messages(m->right.get(), max_message_id, message_ids);
@@ -8856,7 +8846,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     return promise.set_value(Unit());
   }
 
-  if (d->last_new_message_id.get() > d->last_read_all_mentions_message_id.get()) {
+  if (d->last_new_message_id > d->last_read_all_mentions_message_id) {
     d->last_read_all_mentions_message_id = d->last_new_message_id;
     on_dialog_updated(dialog_id, "read_all_dialog_mentions");
   }
@@ -8952,7 +8942,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   Message *m = get_message_force(d, message_id, "read_channel_message_content_from_updates");
   if (m != nullptr) {
     read_message_content(d, m, false, "read_channel_message_content_from_updates");
-  } else if (message_id.get() > d->last_new_message_id.get()) {
+  } else if (message_id > d->last_new_message_id) {
     get_channel_difference(d->dialog_id, d->pts, true, "read_channel_message_content_from_updates");
   }
 }
@@ -8985,7 +8975,7 @@ int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, Message
   }
 
   int32 unread_count = type == MessageType::Server ? d->server_unread_count : d->local_unread_count;
-  while (*it != nullptr && (*it)->message_id.get() > d->last_read_inbox_message_id.get()) {
+  while (*it != nullptr && (*it)->message_id > d->last_read_inbox_message_id) {
     if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
       unread_count--;
     }
@@ -9004,7 +8994,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
   CHECK(!max_message_id.is_scheduled());
   int32 unread_count = 0;
   MessagesConstIterator it(d, MessageId::max());
-  while (*it != nullptr && (*it)->message_id.get() > max_message_id.get()) {
+  while (*it != nullptr && (*it)->message_id > max_message_id) {
     if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
       unread_count++;
     }
@@ -9080,7 +9070,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  if (d->last_read_inbox_message_id.get() >= d->last_new_message_id.get()) {
+  if (d->last_read_inbox_message_id >= d->last_new_message_id) {
     // all messages are already read
     return;
   }
@@ -9109,7 +9099,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
       return;
     }
-    if (d->is_last_read_inbox_message_id_inited && max_message_id.get() <= d->last_read_inbox_message_id.get()) {
+    if (d->is_last_read_inbox_message_id_inited && max_message_id <= d->last_read_inbox_message_id) {
       LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
                 << ", but all messages have already been read up to " << d->last_read_inbox_message_id;
       return;
@@ -9121,8 +9111,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       return;
     }
 
-    if (max_message_id != MessageId() && unread_count > 0 && max_message_id.get() >= d->last_new_message_id.get() &&
-        max_message_id.get() >= d->last_message_id.get() && max_message_id.get() >= d->last_database_message_id.get()) {
+    if (max_message_id != MessageId() && unread_count > 0 && max_message_id >= d->last_new_message_id &&
+        max_message_id >= d->last_message_id && max_message_id >= d->last_database_message_id) {
       LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
                  << dialog_id << " with last_new_message_id = " << d->last_new_message_id
                  << ", last_message_id = " << d->last_message_id
@@ -9130,8 +9120,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       unread_count = 0;
     }
 
-    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id.get() > d->last_new_message_id.get() &&
-                     max_message_id.get() > d->max_notification_message_id.get() && max_message_id.is_server() &&
+    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
+                     max_message_id > d->max_notification_message_id && max_message_id.is_server() &&
                      dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
         << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
         << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
@@ -9141,7 +9131,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
     }
 
-    if (max_message_id.get() > d->last_new_message_id.get() && dialog_id.get_type() == DialogType::Channel) {
+    if (max_message_id > d->last_new_message_id && dialog_id.get_type() == DialogType::Channel) {
       LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
@@ -9189,7 +9179,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
       LOG(ERROR) << "Receive read outbox update in " << dialog_id << " with " << max_message_id;
       return;
     }
-    if (max_message_id.get() <= d->last_read_outbox_message_id.get()) {
+    if (max_message_id <= d->last_read_outbox_message_id) {
       LOG(INFO) << "Receive read outbox update up to " << max_message_id
                 << ", but all messages have already been read up to " << d->last_read_outbox_message_id;
       return;
@@ -9201,7 +9191,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
     }
 
     // it is impossible for just sent outgoing messages because updates are ordered by pts
-    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id.get() > d->last_new_message_id.get() &&
+    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
                      dialog_id.get_type() != DialogType::Channel)
         << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id << " with last new "
         << d->last_new_message_id << ". Possible only for deleted outgoing message";
@@ -9347,7 +9337,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       if (!d->pending_new_message_notifications.empty()) {
         for (auto &it : d->pending_new_message_notifications) {
-          if (it.second.get() <= message_id.get()) {
+          if (it.second <= message_id) {
             it.first = DialogId();
           }
         }
@@ -9365,7 +9355,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     }
 
     if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
-        d->pinned_message_notification_message_id.get() <= d->last_read_inbox_message_id.get()) {
+        d->pinned_message_notification_message_id <= d->last_read_inbox_message_id) {
       // remove pinned message notification when it is read
       remove_dialog_pinned_message_notification(d);
     }
@@ -9395,7 +9385,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
-    if (max_unavailable_message_id.get() > d->last_new_message_id.get() && from_update) {
+    if (max_unavailable_message_id > d->last_new_message_id && from_update) {
       if (d->last_new_message_id.is_valid()) {
         if (!td_->auth_manager_->is_bot()) {
           LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message id to " << max_unavailable_message_id
@@ -9421,7 +9411,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 
     on_dialog_updated(dialog_id, "set_dialog_max_unavailable_message_id");
 
-    if (d->max_unavailable_message_id.get() > max_unavailable_message_id.get()) {
+    if (d->max_unavailable_message_id > max_unavailable_message_id) {
       d->max_unavailable_message_id = max_unavailable_message_id;
       return;
     }
@@ -9440,7 +9430,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 
       auto m = get_message(d, message_id);
       CHECK(m != nullptr);
-      CHECK(m->message_id.get() <= max_unavailable_message_id.get());
+      CHECK(m->message_id <= max_unavailable_message_id);
       CHECK(m->message_id == message_id);
       deleted_message_ids.push_back(message_id.get());
       auto p =
@@ -9632,7 +9622,7 @@ void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto now = Time::now();
-  for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id.get() >= till_message_id.get(); --it) {
+  for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id >= till_message_id; --it) {
     auto *m = *it;
     if (m->is_outgoing == is_outgoing) {
       ttl_on_view(d, m, view_date, now);
@@ -10736,8 +10726,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   MessageId reply_to_message_id = message_info.reply_to_message_id;
   CHECK(!reply_to_message_id.is_scheduled());
   if (!message_id.is_scheduled() && reply_to_message_id != MessageId() &&
-      (!reply_to_message_id.is_valid() || reply_to_message_id.get() >= message_id.get())) {
-    if (!reply_to_message_id.is_valid() || reply_to_message_id.get() - message_id.get() <= 2000000000) {
+      (!reply_to_message_id.is_valid() || reply_to_message_id >= message_id)) {
+    if (!reply_to_message_id.is_valid() ||
+        reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(2000000000)).get()) {
       LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id;
     }
     reply_to_message_id = MessageId();
@@ -10870,8 +10861,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
-    if (!from_update) {
-      if (message_id.get() <= d->last_new_message_id.get()) {
+    if (!from_update && !message_id.is_scheduled()) {
+      if (message_id <= d->last_new_message_id) {
         if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
           LOG(ERROR) << "New " << it->second << "/" << message_id << " in " << dialog_id << " from " << source
                      << " has id less than last_new_message_id = " << d->last_new_message_id;
@@ -11037,7 +11028,7 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
   CHECK(!last_new_message_id.is_scheduled());
 
-  LOG_CHECK(last_new_message_id.get() > d->last_new_message_id.get())
+  LOG_CHECK(last_new_message_id > d->last_new_message_id)
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
@@ -11055,7 +11046,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
     vector<MessageId> to_delete_message_ids;
     while (*it != nullptr) {
       auto message_id = (*it)->message_id;
-      if (message_id.get() <= last_new_message_id.get()) {
+      if (message_id <= last_new_message_id) {
         break;
       }
       if (!message_id.is_yet_unsent()) {
@@ -11654,8 +11645,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
               on_get_message(std::move(last_message), false, has_pts, false, false, "get chats");
           CHECK(d->last_new_message_id == MessageId());
           set_dialog_last_new_message_id(d, last_message_id, "on_get_dialogs");
-          if (d->last_new_message_id.get() > d->last_message_id.get() &&
-              added_full_message_id.get_message_id().is_valid()) {
+          if (d->last_new_message_id > d->last_message_id && added_full_message_id.get_message_id().is_valid()) {
             CHECK(added_full_message_id.get_message_id() == d->last_new_message_id);
             set_dialog_last_message_id(d, d->last_new_message_id, "on_get_dialogs");
             send_update_chat_last_message(d, "on_get_dialogs");
@@ -11694,7 +11684,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         on_dialog_updated(dialog_id, "repair dialog server unread count");
       }
       if (d->server_unread_count != dialog->unread_count_ ||
-          d->last_read_inbox_message_id.get() < read_inbox_max_message_id.get()) {
+          d->last_read_inbox_message_id < read_inbox_max_message_id) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
                                               d->local_unread_count, true, "on_get_dialogs");
       }
@@ -11705,7 +11695,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_outbox_message_id_inited) {
-      if (d->last_read_outbox_message_id.get() < read_outbox_max_message_id.get()) {
+      if (d->last_read_outbox_message_id < read_outbox_max_message_id) {
         set_dialog_last_read_outbox_message_id(d, read_outbox_max_message_id);
       }
       if (!d->is_last_read_outbox_message_id_inited) {
@@ -11841,7 +11831,7 @@ void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int6
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
   CHECK(message_id.is_valid());
   auto it = d->random_id_to_message_id.find(random_id);
-  if (it == d->random_id_to_message_id.end() || it->second.get() < message_id.get()) {
+  if (it == d->random_id_to_message_id.end() || it->second < message_id) {
     LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
     d->random_id_to_message_id[random_id] = message_id;
   }
@@ -11868,10 +11858,10 @@ void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d
     VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
                         << d->dialog_id;
     d->notification_id_to_message_id.emplace(notification_id, message_id);
-  } else if (it->second.get() != message_id.get()) {
+  } else if (it->second != message_id) {
     LOG(ERROR) << "Have duplicated " << notification_id << " in " << d->dialog_id << " in " << message_id << " and "
                << it->second;
-    if (it->second.get() < message_id.get()) {
+    if (it->second < message_id) {
       it->second = message_id;
     }
   }
@@ -12059,7 +12049,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       can't do this because the message may be never received in the dialog, unread count will became negative
       // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
       if (message_id.is_valid() && !message_id.is_yet_unsent() && d->is_last_read_inbox_message_id_inited &&
-          message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
+          message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
         int32 server_unread_count = d->server_unread_count;
         int32 local_unread_count = d->local_unread_count;
         int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
@@ -12144,7 +12134,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       if (*it != nullptr) {
         if (!(*it)->message_id.is_yet_unsent() && (*it)->message_id != d->last_database_message_id) {
           set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
-          if (d->last_database_message_id.get() < d->first_database_message_id.get()) {
+          if (d->last_database_message_id < d->first_database_message_id) {
             LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
                        << d->first_database_message_id << " in " << d->dialog_id;
             set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
@@ -12183,7 +12173,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       }
     }
   }
-  if (only_from_memory && message_id.get() >= d->suffix_load_first_message_id_.get()) {
+  if (only_from_memory && message_id >= d->suffix_load_first_message_id_) {
     d->suffix_load_first_message_id_ = MessageId();
     d->suffix_load_done_ = false;
   }
@@ -12245,9 +12235,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       set_dialog_reply_markup(d, MessageId());
     }
     // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
-    if (!result->is_outgoing && message_id.get() > d->last_read_inbox_message_id.get() &&
-        d->dialog_id != get_my_dialog_id() && d->is_last_read_inbox_message_id_inited &&
-        !td_->auth_manager_->is_bot()) {
+    if (!result->is_outgoing && message_id > d->last_read_inbox_message_id && d->dialog_id != get_my_dialog_id() &&
+        d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
@@ -13034,7 +13023,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   auto dialog_type = d->dialog_id.get_type();
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
   if (m == nullptr && message_id.is_valid() && message_id.is_server()) {
-    if (d->last_new_message_id != MessageId() && message_id.get() > d->last_new_message_id.get()) {
+    if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
       // message will not be added to the dialog anyway
       if (dialog_type == DialogType::Channel) {
         // so we try to force channel difference first
@@ -14366,7 +14355,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         d->pending_viewed_message_ids.insert(message_id);
       }
 
-      if (!message_id.is_yet_unsent() && message_id.get() > max_message_id.get()) {
+      if (!message_id.is_yet_unsent() && message_id > max_message_id) {
         max_message_id = message_id;
       }
 
@@ -14380,8 +14369,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
           on_message_changed(d, m, true, "view_messages");
         }
       }
-    } else if (!message_id.is_yet_unsent() && message_id.get() > max_message_id.get() &&
-               message_id.get() <= d->max_notification_message_id.get()) {
+    } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
+               message_id <= d->max_notification_message_id) {
       max_message_id = message_id;
     }
   }
@@ -14393,7 +14382,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0);
   }
 
-  if (need_read && max_message_id.get() > d->last_read_inbox_message_id.get()) {
+  if (need_read && max_message_id > d->last_read_inbox_message_id) {
     MessageId last_read_message_id = max_message_id;
     MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
     read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages");
@@ -14404,7 +14393,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         read_history_on_server(d, last_read_message_id.get_prev_server_message_id());
       }
     } else {
-      if (last_read_message_id.get() > prev_last_read_inbox_message_id.get()) {
+      if (last_read_message_id > prev_last_read_inbox_message_id) {
         read_history_on_server(d, last_read_message_id);
       }
     }
@@ -14509,14 +14498,14 @@ void MessagesManager::open_dialog(Dialog *d) {
   }
   d->is_opened = true;
 
-  auto min_message_id = MessageId(ServerMessageId(1)).get();
-  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id.get() < min_message_id &&
-      d->messages != nullptr && d->messages->message_id.get() < min_message_id) {
+  auto min_message_id = MessageId(ServerMessageId(1));
+  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id && d->messages != nullptr &&
+      d->messages->message_id < min_message_id) {
     Message *m = d->messages.get();
     while (m->right != nullptr) {
       m = m->right.get();
     }
-    if (m->message_id.get() < min_message_id) {
+    if (m->message_id < min_message_id) {
       read_history_inbox(dialog_id, m->message_id, -1, "open_dialog");
     }
   }
@@ -15120,8 +15109,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
 
   MessagesConstIterator p(d, from_message_id);
   LOG(DEBUG) << "Iterator points to " << (*p ? (*p)->message_id : MessageId());
-  bool from_the_end = (d->last_message_id != MessageId() && from_message_id.get() > d->last_message_id.get()) ||
-                      from_message_id.get() >= MessageId::max().get();
+  bool from_the_end = (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
+                      from_message_id >= MessageId::max();
 
   if (from_the_end) {
     limit += offset;
@@ -15138,16 +15127,15 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
         while (cur->left != nullptr) {
           cur = cur->left.get();
         }
-        CHECK(cur->message_id.get() > from_message_id.get());
+        CHECK(cur->message_id > from_message_id);
         from_message_id = cur->message_id;
         p = MessagesConstIterator(d, from_message_id);
       } else {
         have_a_gap = true;
       }
     } else if ((*p)->message_id != from_message_id) {
-      CHECK((*p)->message_id.get() < from_message_id.get());
-      if (!(*p)->have_next &&
-          (d->last_message_id == MessageId() || (*p)->message_id.get() < d->last_message_id.get())) {
+      CHECK((*p)->message_id < from_message_id);
+      if (!(*p)->have_next && (d->last_message_id == MessageId() || (*p)->message_id < d->last_message_id)) {
         have_a_gap = true;
       }
     }
@@ -15172,7 +15160,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
       }
     }
 
-    if (offset < 0 && ((d->last_message_id != MessageId() && from_message_id.get() >= d->last_message_id.get()) ||
+    if (offset < 0 && ((d->last_message_id != MessageId() && from_message_id >= d->last_message_id) ||
                        (!have_a_gap && left_tries == 0))) {
       CHECK(!have_a_gap);
       limit += offset;
@@ -15329,7 +15317,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
   if (dialog_id.get_type() != DialogType::SecretChat) {
     message_id = message_id.get_prev_server_message_id();
   }
-  if (message_id.get() > max_message_id.get()) {
+  if (message_id > max_message_id) {
     max_message_id = message_id;
   }
 
@@ -15478,8 +15466,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     }
     LOG(INFO) << "Search messages in " << dialog_id << " from " << fixed_from_message_id << ", have up to "
               << first_db_message_id << ", message_count = " << message_count;
-    if ((first_db_message_id.get() < fixed_from_message_id.get() ||
-         (first_db_message_id.get() == fixed_from_message_id.get() && offset < 0)) &&
+    if ((first_db_message_id < fixed_from_message_id || (first_db_message_id == fixed_from_message_id && offset < 0)) &&
         message_count != -1) {
       LOG(INFO) << "Search messages in database in " << dialog_id << " from " << fixed_from_message_id
                 << " and with limit " << limit;
@@ -15581,7 +15568,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     CHECK(fixed_from_message_id.is_valid() && fixed_from_message_id.is_server());
     LOG(INFO) << "Search call messages from " << fixed_from_message_id << ", have up to " << first_db_message_id
               << ", message_count = " << message_count;
-    if (first_db_message_id.get() < fixed_from_message_id.get() && message_count != -1) {
+    if (first_db_message_id < fixed_from_message_id && message_count != -1) {
       LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
       MessagesDbCallsQuery db_query;
@@ -15871,10 +15858,11 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   res.reserve(messages.size());
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, message, false, "on_search_dialog_messages_db_result");
-    if (m != nullptr && first_db_message_id.get() <= m->message_id.get()) {
+    if (m != nullptr && first_db_message_id <= m->message_id) {
       if (filter_type == SearchMessagesFilter::UnreadMention && !m->contains_unread_mention) {
         // skip already read by d->last_read_all_mentions_message_id mentions
       } else {
+        CHECK(!m->message_id.is_scheduled());
         res.push_back(m->message_id);
       }
     }
@@ -15883,7 +15871,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   auto &message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
   int32 result_size = narrow_cast<int32>(res.size());
   bool from_the_end =
-      from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0].get() < from_message_id.get()));
+      from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0] < from_message_id));
   if (message_count < result_size || (message_count > result_size && from_the_end &&
                                       first_db_message_id == MessageId::min() && result_size < limit + offset)) {
     LOG(INFO) << "Fix found message count in " << dialog_id << " from " << message_count << " to " << result_size;
@@ -16006,7 +15994,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
     auto m = on_get_message_from_database(message.dialog_id, get_dialog_force(message.dialog_id), message.data, false,
                                           "on_messages_db_calls_result");
 
-    if (m != nullptr && first_db_message_id.get() <= m->message_id.get()) {
+    if (m != nullptr && first_db_message_id <= m->message_id) {
       res.push_back(FullMessageId(message.dialog_id, m->message_id));
     }
   }
@@ -16310,7 +16298,7 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
       max_message_id = (*p)->message_id;
     }
   }
-  if (limit > 0 && (d->last_message_id == MessageId() || max_message_id.get() < d->last_message_id.get())) {
+  if (limit > 0 && (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
     // need to preload some new messages
     LOG(INFO) << "Preloading newer after " << max_message_id;
     load_messages(d->dialog_id, max_message_id, -MAX_GET_HISTORY + 1, MAX_GET_HISTORY, 3, false, Promise<Unit>());
@@ -16421,7 +16409,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       break;
     }
-    if (message->message_id.get() >= debug_cur_message_id.get()) {
+    if (message->message_id >= debug_cur_message_id) {
       // TODO move to ERROR
       LOG(FATAL) << "Receive message " << message->message_id << " after " << debug_cur_message_id
                  << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
@@ -16430,7 +16418,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
     debug_cur_message_id = message->message_id;
 
-    if (message->message_id.get() < d->first_database_message_id.get()) {
+    if (message->message_id < d->first_database_message_id) {
       if (d->have_full_history) {
         LOG(ERROR) << "Have full history in the " << dialog_id << " and receive " << message->message_id
                    << " from database, but first database message is " << d->first_database_message_id;
@@ -16438,9 +16426,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         break;
       }
     }
-    if (!have_next &&
-        (from_the_end || (is_first && offset < -1 && message->message_id.get() <= from_message_id.get())) &&
-        message->message_id.get() < d->last_message_id.get()) {
+    if (!have_next && (from_the_end || (is_first && offset < -1 && message->message_id <= from_message_id)) &&
+        message->message_id < d->last_message_id) {
       // last message in the dialog must be attached to the next local message
       have_next = true;
     }
@@ -16470,7 +16457,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         added_new_message = true;
       }
       if (next_message != nullptr && !next_message->have_previous) {
-        LOG_CHECK(m->message_id.get() < next_message->message_id.get())
+        LOG_CHECK(m->message_id < next_message->message_id)
             << m->message_id << ' ' << next_message->message_id << ' ' << debug_cur_message_id << ' ' << dialog_id
             << ' ' << from_message_id << ' ' << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local
             << ' ' << messages.size() << ' ' << debug_first_database_message_id << ' ' << last_added_message_id << ' '
@@ -16504,7 +16491,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
   if (from_the_end && last_added_message_id.is_valid()) {
     // CHECK(d->first_database_message_id.is_valid());
-    // CHECK(last_added_message_id.get() >= d->first_database_message_id.get());
+    // CHECK(last_added_message_id >= d->first_database_message_id);
     if ((had_full_history || d->have_full_history) && !d->last_new_message_id.is_valid() &&
         (last_added_message_id.is_server() || d->dialog_id.get_type() == DialogType::SecretChat)) {
       LOG(ERROR) << "Trying to hard fix " << d->dialog_id << " last new message to " << last_added_message_id
@@ -16512,15 +16499,14 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       d->last_new_message_id = last_added_message_id;
       on_dialog_updated(d->dialog_id, "on_get_history_from_database 3");
     }
-    if (last_added_message_id.get() > d->last_message_id.get() && d->last_new_message_id.is_valid()) {
+    if (last_added_message_id > d->last_message_id && d->last_new_message_id.is_valid()) {
       set_dialog_last_message_id(d, last_added_message_id, "on_get_history_from_database 4");
       need_update_dialog_pos = true;
     }
-    if (last_added_message_id.get() != d->last_database_message_id.get() && d->last_new_message_id.is_valid()) {
+    if (last_added_message_id != d->last_database_message_id && d->last_new_message_id.is_valid()) {
       auto debug_last_database_message_id = d->last_database_message_id;
       set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database 5");
-      if (last_added_message_id.get() < d->first_database_message_id.get() ||
-          !d->first_database_message_id.is_valid()) {
+      if (last_added_message_id < d->first_database_message_id || !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
         LOG_CHECK(had_full_history || d->have_full_history)
             << had_full_history << ' ' << d->have_full_history << ' ' << next_message->message_id << ' '
@@ -16528,7 +16514,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << ' ' << d->last_database_message_id << ' ' << debug_last_database_message_id << ' ' << dialog_id << ' '
             << d->last_new_message_id << ' ' << debug_last_new_message_id << ' ' << d->last_message_id << ' '
             << debug_last_message_id;
-        CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
+        CHECK(next_message->message_id <= d->last_database_message_id);
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
         set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database 6");
@@ -17114,7 +17100,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   if (reply_to_message == nullptr || message_id.is_yet_unsent() ||
       (message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
     if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-        message_id.get() > d->last_new_message_id.get() && message_id.get() <= d->max_notification_message_id.get()) {
+        message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
       // allow to reply yet unreceived server message
       return message_id;
     }
@@ -19844,7 +19830,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     if (m->try_resend_at > Time::now()) {
       return Status::Error(400, "Message can't be re-sent yet");
     }
-    if (m->message_id.get() <= last_message_id.get()) {
+    if (last_message_id.is_valid() && m->message_id.is_scheduled() != last_message_id.is_scheduled()) {
+      return Status::Error(400, "Messages must be all scheduled or ordinary");
+    }
+    if (m->message_id <= last_message_id) {
       return Status::Error(400, "Message identifiers must be in a strictly increasing order");
     }
     last_message_id = message_id;
@@ -20292,19 +20281,19 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error(406, "Ignore notification in unknown chat");
   }
 
-  bool is_new_pinned = is_pinned && message_id.is_valid() && message_id.get() > d->max_notification_message_id.get();
+  bool is_new_pinned = is_pinned && message_id.is_valid() && message_id > d->max_notification_message_id;
   CHECK(!message_id.is_scheduled());
   if (message_id.is_valid()) {
-    if (message_id.get() <= d->last_new_message_id.get()) {
+    if (message_id <= d->last_new_message_id) {
       return Status::Error("Ignore notification about known message");
     }
-    if (!is_from_binlog && message_id.get() == d->max_notification_message_id.get()) {
+    if (!is_from_binlog && message_id == d->max_notification_message_id) {
       return Status::Error("Ignore previously added message push notification");
     }
-    if (!is_from_binlog && message_id.get() < d->max_notification_message_id.get()) {
+    if (!is_from_binlog && message_id < d->max_notification_message_id) {
       return Status::Error("Ignore out of order message push notification");
     }
-    if (message_id.get() <= d->last_read_inbox_message_id.get()) {
+    if (message_id <= d->last_read_inbox_message_id) {
       return Status::Error("Ignore notification about read message");
     }
   }
@@ -20351,7 +20340,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error("Can't assign notification group ID");
   }
 
-  if (message_id.is_valid() && message_id.get() > d->max_notification_message_id.get()) {
+  if (message_id.is_valid() && message_id > d->max_notification_message_id) {
     if (is_new_pinned) {
       set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId());
     }
@@ -20491,12 +20480,12 @@ bool MessagesManager::is_message_notification_active(const Dialog *d, const Mess
   CHECK(!m->message_id.is_scheduled());
   if (is_from_mention_notification_group(d, m)) {
     return m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
-           m->message_id.get() > d->mention_notification_group.max_removed_message_id.get() &&
+           m->message_id > d->mention_notification_group.max_removed_message_id &&
            (m->contains_unread_mention || m->message_id == d->pinned_message_notification_message_id);
   } else {
     return m->notification_id.get() > d->message_notification_group.max_removed_notification_id.get() &&
-           m->message_id.get() > d->message_notification_group.max_removed_message_id.get() &&
-           m->message_id.get() > d->last_read_inbox_message_id.get();
+           m->message_id > d->message_notification_group.max_removed_message_id &&
+           m->message_id > d->last_read_inbox_message_id;
   }
 }
 
@@ -20504,16 +20493,15 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
                                                           NotificationId max_notification_id, int32 limit) {
   CHECK(d != nullptr);
   auto message_id = d->pinned_message_notification_message_id;
-  if (!message_id.is_valid() || message_id.get() > d->last_new_message_id.get()) {
+  if (!message_id.is_valid() || message_id > d->last_new_message_id) {
     CHECK(!message_id.is_scheduled());
     return;
   }
 
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
   if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
-      m->message_id.get() > d->mention_notification_group.max_removed_message_id.get() &&
-      m->message_id.get() > d->last_read_inbox_message_id.get() &&
-      !is_dialog_pinned_message_notifications_disabled(d)) {
+      m->message_id > d->mention_notification_group.max_removed_message_id &&
+      m->message_id > d->last_read_inbox_message_id && !is_dialog_pinned_message_notifications_disabled(d)) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
       auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
@@ -20524,11 +20512,11 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
       auto pos = res.size();
       res.emplace_back(m->notification_id, m->date, m->disable_notification,
                        create_new_message_notification(message_id));
-      while (pos > 0 && res[pos - 1].type->get_message_id().get() < message_id.get()) {
+      while (pos > 0 && res[pos - 1].type->get_message_id() < message_id) {
         std::swap(res[pos - 1], res[pos]);
         pos--;
       }
-      if (pos > 0 && res[pos - 1].type->get_message_id().get() == message_id.get()) {
+      if (pos > 0 && res[pos - 1].type->get_message_id() == message_id) {
         res.erase(res.begin() + pos);  // notification was already there
       }
       if (res.size() > static_cast<size_t>(limit)) {
@@ -20552,7 +20540,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
   auto from_notification_id = NotificationId::max();
   auto from_message_id = MessageId::max();
   vector<Notification> res;
-  if (!from_mentions && from_message_id.get() <= d->last_read_inbox_message_id.get()) {
+  if (!from_mentions && from_message_id <= d->last_read_inbox_message_id) {
     return res;
   }
   while (true) {
@@ -20595,7 +20583,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         from_notification_id = notification_id;
         is_found = true;
       }
-      if (m->message_id.get() >= from_message_id.get()) {
+      if (m->message_id >= from_message_id) {
         LOG(ERROR) << "Have nonmonotoic message ids: " << d->dialog_id << " " << m->message_id << " " << notification_id
                    << " " << from_message_id << " " << from_notification_id;
         is_correct = false;
@@ -20605,8 +20593,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       }
 
       if (notification_id.get() <= group_info.max_removed_notification_id.get() ||
-          m->message_id.get() <= group_info.max_removed_message_id.get() ||
-          (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
+          m->message_id <= group_info.max_removed_message_id ||
+          (!from_mentions && m->message_id <= d->last_read_inbox_message_id)) {
         // if message still has notification_id, but it was removed via max_removed_notification_id,
         // or max_removed_message_id, or last_read_inbox_message_id,
         // then there will be no more messages with active notifications
@@ -20661,7 +20649,7 @@ Result<vector<BufferSlice>> MessagesManager::do_get_message_notifications_from_d
 
   auto *db = G()->td_db()->get_messages_db_sync();
   if (!from_mentions) {
-    CHECK(from_message_id.get() > d->last_read_inbox_message_id.get());
+    CHECK(from_message_id > d->last_read_inbox_message_id);
     VLOG(notifications) << "Trying to load " << limit << " messages with notifications in "
                         << d->message_notification_group.group_id << '/' << d->dialog_id << " from "
                         << from_notification_id;
@@ -20764,8 +20752,8 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
 
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
   if (from_notification_id.get() <= group_info.max_removed_notification_id.get() ||
-      from_message_id.get() <= group_info.max_removed_message_id.get() ||
-      (!from_mentions && from_message_id.get() <= d->last_read_inbox_message_id.get())) {
+      from_message_id <= group_info.max_removed_message_id ||
+      (!from_mentions && from_message_id <= d->last_read_inbox_message_id)) {
     return promise.set_value(vector<Notification>());
   }
 
@@ -20843,7 +20831,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
     } else {
       from_notification_id = notification_id;
     }
-    if (from_message_id.is_valid() && m->message_id.get() >= from_message_id.get()) {
+    if (from_message_id.is_valid() && m->message_id >= from_message_id) {
       LOG(ERROR) << "Receive " << m->message_id << "/" << notification_id << " after " << from_message_id << "/"
                  << from_notification_id;
       is_correct = false;
@@ -20852,8 +20840,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
     }
 
     if (notification_id.get() <= group_info.max_removed_notification_id.get() ||
-        m->message_id.get() <= group_info.max_removed_message_id.get() ||
-        (!from_mentions && m->message_id.get() <= d->last_read_inbox_message_id.get())) {
+        m->message_id <= group_info.max_removed_message_id ||
+        (!from_mentions && m->message_id <= d->last_read_inbox_message_id)) {
       // if message still has notification_id, but it was removed via max_removed_notification_id,
       // or max_removed_message_id, or last_read_inbox_message_id,
       // then there will be no more messages with active notifications
@@ -21016,6 +21004,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   if (!max_notification_id.is_valid()) {
     return;
   }
+  CHECK(!max_message_id.is_scheduled());
 
   bool from_mentions = d->mention_notification_group.group_id == group_id;
   if (d->new_secret_chat_notification_id.is_valid()) {
@@ -21028,7 +21017,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   if (max_notification_id.get() <= group_info.max_removed_notification_id.get()) {
     return;
   }
-  if (max_message_id.get() > group_info.max_removed_message_id.get()) {
+  if (max_message_id > group_info.max_removed_message_id) {
     VLOG(notifications) << "Set max_removed_message_id in " << group_info.group_id << '/' << dialog_id << " to "
                         << max_message_id;
     group_info.max_removed_message_id = max_message_id.get_prev_server_message_id();
@@ -21051,7 +21040,7 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
   CHECK(d != nullptr);
   if (from_mentions) {
     bool has_pinned_message = d->pinned_message_notification_message_id.is_valid() &&
-                              d->pinned_message_notification_message_id.get() <= d->last_new_message_id.get();
+                              d->pinned_message_notification_message_id <= d->last_new_message_id;
     return d->unread_mention_count + static_cast<int32>(has_pinned_message);
   } else {
     if (d->new_secret_chat_notification_id.is_valid()) {
@@ -21182,11 +21171,11 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
   auto from_mentions = is_from_mention_notification_group(d, m);
   bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
-  bool is_active = from_mentions ? m->contains_unread_mention || is_pinned
-                                 : m->message_id.get() > d->last_read_inbox_message_id.get();
+  bool is_active =
+      from_mentions ? m->contains_unread_mention || is_pinned : m->message_id > d->last_read_inbox_message_id;
   if (is_active) {
     auto &group = from_mentions ? d->mention_notification_group : d->message_notification_group;
-    if (group.max_removed_message_id.get() >= m->message_id.get()) {
+    if (group.max_removed_message_id >= m->message_id) {
       is_active = false;
     }
   }
@@ -21310,7 +21299,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   } else if (td_->is_online() && d->is_opened) {
     min_delay_ms = 1000;  // 1 second
   }
-  bool is_silent = m->disable_notification || m->message_id.get() <= d->max_notification_message_id.get();
+  bool is_silent = m->disable_notification || m->message_id <= d->max_notification_message_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, is_silent, min_delay_ms, m->notification_id,
@@ -21362,7 +21351,7 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << d->dialog_id << " to "
                         << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
-    if (d->max_notification_message_id.get() > group_info.max_removed_message_id.get()) {
+    if (d->max_notification_message_id > group_info.max_removed_message_id) {
       group_info.max_removed_message_id = d->max_notification_message_id.get_prev_server_message_id();
     }
     if (!d->pending_new_message_notifications.empty()) {
@@ -21397,7 +21386,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
 
   if (!d->pending_new_message_notifications.empty()) {
     for (auto &it : d->pending_new_message_notifications) {
-      if (it.second.get() <= max_message_id.get()) {
+      if (it.second <= max_message_id) {
         it.first = DialogId();
       }
     }
@@ -21405,7 +21394,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
   }
 
   auto max_notification_message_id = max_message_id;
-  if (d->last_message_id.is_valid() && max_notification_message_id.get() >= d->last_message_id.get()) {
+  if (d->last_message_id.is_valid() && max_notification_message_id >= d->last_message_id) {
     max_notification_message_id = d->last_message_id;
     set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(),
                                  "remove_message_dialog_notifications 1");
@@ -22156,21 +22145,21 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
 
 MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) {
   CHECK(d != nullptr);
-  int64 last =
-      std::max({d->last_message_id.get(), d->last_new_message_id.get(), d->last_database_message_id.get(),
-                d->last_assigned_message_id.get(), d->last_clear_history_message_id.get(),
-                d->deleted_last_message_id.get(), d->max_unavailable_message_id.get(), d->max_added_message_id.get()});
-  if (last < d->last_read_inbox_message_id.get() &&
-      d->last_read_inbox_message_id.get() < d->last_new_message_id.get_next_server_message_id().get()) {
-    last = d->last_read_inbox_message_id.get();
+  MessageId last_message_id =
+      std::max({d->last_message_id, d->last_new_message_id, d->last_database_message_id, d->last_assigned_message_id,
+                d->last_clear_history_message_id, d->deleted_last_message_id, d->max_unavailable_message_id,
+                d->max_added_message_id});
+  if (last_message_id < d->last_read_inbox_message_id &&
+      d->last_read_inbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
+    last_message_id = d->last_read_inbox_message_id;
   }
-  if (last < d->last_read_outbox_message_id.get() &&
-      d->last_read_outbox_message_id.get() < d->last_new_message_id.get_next_server_message_id().get()) {
-    last = d->last_read_outbox_message_id.get();
+  if (last_message_id < d->last_read_outbox_message_id &&
+      d->last_read_outbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
+    last_message_id = d->last_read_outbox_message_id;
   }
 
-  d->last_assigned_message_id = MessageId(last).get_next_message_id(type);
-  if (d->last_assigned_message_id.get() > MessageId::max().get()) {
+  d->last_assigned_message_id = last_message_id.get_next_message_id(type);
+  if (d->last_assigned_message_id > MessageId::max()) {
     LOG(FATAL) << "Force restart because of message_id overflow: " << d->last_assigned_message_id;
   }
   CHECK(d->last_assigned_message_id.is_valid());
@@ -22211,10 +22200,9 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (!old_message_id.is_scheduled()) {
     new_message_id = old_message_id.get_next_message_id(MessageType::Local);  // trying to not change message place
     if (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
-        d->deleted_message_ids.count(new_message_id) ||
-        new_message_id.get() <= d->last_clear_history_message_id.get()) {
+        d->deleted_message_ids.count(new_message_id) || new_message_id <= d->last_clear_history_message_id) {
       new_message_id = get_next_local_message_id(d);
-    } else if (new_message_id.get() > d->last_assigned_message_id.get()) {
+    } else if (new_message_id > d->last_assigned_message_id) {
       d->last_assigned_message_id = new_message_id;
     }
   } else {
@@ -24380,10 +24368,10 @@ const unique_ptr<MessagesManager::Message> *MessagesManager::find_message(const 
   CHECK(!message_id.is_scheduled());
   while (*v != nullptr) {
     //    LOG(DEBUG) << "Pass " << (*v)->message_id;
-    if ((*v)->message_id.get() < message_id.get()) {
+    if ((*v)->message_id < message_id) {
       //      LOG(DEBUG) << "Go right";
       v = &(*v)->right;
-    } else if ((*v)->message_id.get() > message_id.get()) {
+    } else if ((*v)->message_id > message_id) {
       //      LOG(DEBUG) << "Go left";
       v = &(*v)->left;
     } else {
@@ -24398,7 +24386,7 @@ MessagesManager::Message *MessagesManager::insert_message(unique_ptr<Message> *v
   auto message_id = message->message_id;
   CHECK(!message_id.is_scheduled());
   while (*v != nullptr && (*v)->random_y >= message->random_y) {
-    if ((*v)->message_id.get() < message_id.get()) {
+    if ((*v)->message_id < message_id) {
       v = &(*v)->right;
     } else if ((*v)->message_id == message_id) {
       UNREACHABLE();
@@ -24412,7 +24400,7 @@ MessagesManager::Message *MessagesManager::insert_message(unique_ptr<Message> *v
 
   unique_ptr<Message> cur = std::move(*v);
   while (cur != nullptr) {
-    if (cur->message_id.get() < message_id.get()) {
+    if (cur->message_id < message_id) {
       *left = std::move(cur);
       left = &((*left)->right);
       cur = std::move(*left);
@@ -24598,7 +24586,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
     return nullptr;
   }
-  if (!message_id.is_scheduled() && message_id.get() <= d->last_clear_history_message_id.get()) {
+  if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
@@ -24638,12 +24626,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update) {
     CHECK(message->have_next);
     CHECK(message->have_previous);
-    if (message_id.get() <= d->last_new_message_id.get() && dialog_id.get_type() != DialogType::Channel) {
+    if (message_id <= d->last_new_message_id && dialog_id.get_type() != DialogType::Channel) {
       if (!G()->parameters().use_message_db) {
         if (td_->auth_manager_->is_bot() && Time::now() > start_time_ + 300 &&
-            MessageId(ServerMessageId(100)).get() <= message_id.get() &&
-            message_id.get() <= MessageId(ServerMessageId(1000)).get() &&
-            d->last_new_message_id.get() >= MessageId(ServerMessageId(2147483000)).get()) {
+            MessageId(ServerMessageId(100)) <= message_id && message_id <= MessageId(ServerMessageId(1000)) &&
+            d->last_new_message_id >= MessageId(ServerMessageId(2147483000))) {
           LOG(FATAL) << "Force restart because of message_id overflow in " << dialog_id << " from "
                      << d->last_new_message_id << " to " << message_id;
         }
@@ -24671,7 +24658,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         max_message_id = d->last_database_message_id;
       }
     }
-    if (max_message_id != MessageId() && message_id.get() > max_message_id.get()) {
+    if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!message->from_database) {
         if (message_id != d->pinned_message_id) {
           LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
@@ -24692,7 +24679,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
-      message_id.get() <= d->max_unavailable_message_id.get()) {
+      message_id <= d->max_unavailable_message_id) {
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
@@ -24732,7 +24719,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                  FullMessageId{dialog_id, message_id}, web_page_id);
   }
 
-  if (*need_update && message_id.get() <= d->last_new_message_id.get()) {
+  if (*need_update && message_id <= d->last_new_message_id) {
     *need_update = false;
   }
 
@@ -24855,7 +24842,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
+  if (message->contains_unread_mention && message_id <= d->last_read_all_mentions_message_id) {
     message->contains_unread_mention = false;
     if (message->from_database) {
       on_message_changed(d, message.get(), false, "add already read mention message to dialog");
@@ -24906,7 +24893,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     remove_new_secret_chat_notification(d, true);
   }
 
-  if (message->message_id.get() > d->max_added_message_id.get()) {
+  if (message->message_id > d->max_added_message_id) {
     d->max_added_message_id = message->message_id;
   }
 
@@ -24977,8 +24964,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!(d->have_full_history && auto_attach) && d->last_message_id.is_valid() &&
-      d->last_message_id.get() < MessageId(ServerMessageId(1)).get() &&
-      message_id.get() >= MessageId(ServerMessageId(1)).get()) {
+      d->last_message_id < MessageId(ServerMessageId(1)) && message_id >= MessageId(ServerMessageId(1))) {
     set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
 
     set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
@@ -24996,7 +24982,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = false;
   }
 
-  if (from_update && message_id.get() > d->last_new_message_id.get() && !message_id.is_yet_unsent()) {
+  if (from_update && message_id > d->last_new_message_id && !message_id.is_yet_unsent()) {
     if (dialog_id.get_type() == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
@@ -25010,9 +24996,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     Message *previous_message = *it;
     if (previous_message != nullptr) {
       auto previous_message_id = previous_message->message_id;
-      CHECK(previous_message_id.get() < message_id.get());
-      if (previous_message->have_next ||
-          (d->last_message_id.is_valid() && previous_message_id.get() >= d->last_message_id.get())) {
+      CHECK(previous_message_id < message_id);
+      if (previous_message->have_next || (d->last_message_id.is_valid() && previous_message_id >= d->last_message_id)) {
         if (message_id.is_server() && previous_message_id.is_server() && previous_message->have_next) {
           ++it;
           auto next_message = *it;
@@ -25041,7 +25026,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       Message *cur = d->messages.get();
       Message *next_message = nullptr;
       while (cur != nullptr) {
-        if (cur->message_id.get() < message_id.get()) {
+        if (cur->message_id < message_id) {
           cur = cur->right.get();
         } else {
           next_message = cur;
@@ -25092,7 +25077,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   UserId my_user_id(td_->contacts_manager_->get_my_id());
   DialogId my_dialog_id(my_user_id);
-  if (*need_update && message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
+  if (*need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
     if (!message->is_outgoing && dialog_id != my_dialog_id) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
@@ -25122,17 +25107,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (*need_update) {
     update_message_count_by_index(d, +1, message.get());
   }
-  if (auto_attach && message_id.get() > d->last_message_id.get() && message_id.get() >= d->last_new_message_id.get()) {
+  if (auto_attach && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog");
     *need_update_dialog_pos = true;
   }
-  if (auto_attach && !message_id.is_yet_unsent() && message_id.get() >= d->last_new_message_id.get() &&
+  if (auto_attach && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
       (d->last_new_message_id.is_valid() ||
        (message_id.is_local() && d->last_message_id.is_valid() &&
-        (message_id.get() >= d->last_message_id.get() ||
-         (d->last_database_message_id.is_valid() && message_id.get() > d->last_database_message_id.get()))))) {
-    CHECK(message_id.get() <= d->last_message_id.get());
-    if (message_id.get() > d->last_database_message_id.get()) {
+        (message_id >= d->last_message_id ||
+         (d->last_database_message_id.is_valid() && message_id > d->last_database_message_id))))) {
+    CHECK(message_id <= d->last_message_id);
+    if (message_id > d->last_database_message_id) {
       set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
       if (!d->first_database_message_id.is_valid()) {
         set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
@@ -25550,7 +25535,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     remove_new_secret_chat_notification(d, true);
   }
   if (d->pinned_message_notification_message_id.is_valid() &&
-      d->pinned_message_notification_message_id.get() <= max_message_id.get()) {
+      d->pinned_message_notification_message_id <= max_message_id) {
     remove_dialog_pinned_message_notification(d);
   }
   remove_message_dialog_notifications(d, max_message_id, false, source);
@@ -25568,7 +25553,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     bool need_save = false;
     int i = 0;
     for (auto &first_message_id : calls_db_state_.first_calls_database_message_id_by_index) {
-      if (first_message_id.get() <= max_message_id.get()) {
+      if (first_message_id <= max_message_id) {
         first_message_id = max_message_id.get_next_server_message_id();
         calls_db_state_.message_count_by_index[i] = -1;
         need_save = true;
@@ -25690,7 +25675,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
                            m->notification_id, true, false, Promise<Unit>(), "delete_message_from_database");
       }
     }
-  } else if (!message_id.is_scheduled() && message_id.get() > d->last_new_message_id.get()) {
+  } else if (!message_id.is_scheduled() && message_id > d->last_new_message_id) {
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
                        d->message_notification_group.group_id, message_id, false, "delete_message_from_database");
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
@@ -26548,8 +26533,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->pinned_message_notification_message_id = MessageId();
       on_dialog_updated(dialog_id, "fix pinned message notification");
     } else if (is_dialog_pinned_message_notifications_disabled(d) ||
-               pinned_message_id.get() <= d->last_read_inbox_message_id.get() ||
-               pinned_message_id.get() <= d->mention_notification_group.max_removed_message_id.get()) {
+               pinned_message_id <= d->last_read_inbox_message_id ||
+               pinned_message_id <= d->mention_notification_group.max_removed_message_id) {
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
@@ -26625,7 +26610,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       // must be called before set_dialog_first_database_message_id and set_dialog_last_database_message_id
       set_dialog_last_new_message_id(d, last_message_id, "fix_new_dialog 1");
     }
-    if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > last_message_id.get()) {
+    if (!d->first_database_message_id.is_valid() || d->first_database_message_id > last_message_id) {
       LOG(ERROR) << "Bugfixing wrong first_database_message_id from " << d->first_database_message_id << " to "
                  << last_message_id << " in " << dialog_id;
       set_dialog_first_database_message_id(d, last_message_id, "fix_new_dialog 2");
@@ -26633,7 +26618,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     set_dialog_last_database_message_id(d, last_message_id, "fix_new_dialog 3", is_loaded_from_database);
   } else if (d->first_database_message_id.is_valid()) {
     // ensure that first_database_message_id <= last_database_message_id
-    if (d->first_database_message_id.get() <= d->last_new_message_id.get()) {
+    if (d->first_database_message_id <= d->last_new_message_id) {
       set_dialog_last_database_message_id(d, d->last_new_message_id, "fix_new_dialog 4");
     } else {
       // can't fix last_database_message_id, drop first_database_message_id; it shouldn't happen anyway
@@ -26683,7 +26668,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     case DialogType::User:
       break;
     case DialogType::Chat:
-      if (d->last_read_inbox_message_id.get() < d->last_read_outbox_message_id.get()) {
+      if (d->last_read_inbox_message_id < d->last_read_outbox_message_id) {
         LOG(INFO) << "Have last read outbox message " << d->last_read_outbox_message_id << " in " << dialog_id
                   << ", but last read inbox message is " << d->last_read_inbox_message_id;
         // can't fix last_read_inbox_message_id by last_read_outbox_message_id because last_read_outbox_message_id is
@@ -27536,6 +27521,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
       return;
     }
   }
+  CHECK(!last_message_id.is_scheduled());
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -27559,8 +27545,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   //    offline. It is the best way for gaps support, but it is pretty hard to implement correctly.
   // It should be also noted that some messages like live location messages shouldn't be deleted.
 
-  if (last_message_id.get() > d->last_new_message_id.get()) {
-    // TODO properly support last_message_id.get() <= d->last_new_message_id.get()
+  if (last_message_id > d->last_new_message_id) {
+    // TODO properly support last_message_id <= d->last_new_message_id
     set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
     d->have_full_history = false;
@@ -27572,9 +27558,9 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
 
   on_dialog_updated(dialog_id, "on_get_channel_dialog 10");
 
-  // TODO properly support last_message_id.get() <= d->last_new_message_id.get()
-  if (last_message_id.get() > d->last_new_message_id.get()) {  // if last message is really a new message
-    if (!d->last_new_message_id.is_valid() && last_message_id.get() <= d->max_added_message_id.get()) {
+  // TODO properly support last_message_id <= d->last_new_message_id
+  if (last_message_id > d->last_new_message_id) {  // if last message is really a new message
+    if (!d->last_new_message_id.is_valid() && last_message_id <= d->max_added_message_id) {
       set_dialog_last_new_message_id(d, last_message_id, "on_get_channel_dialog 15");  // remove too new messages
       set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 16");
       set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 17");
@@ -27592,7 +27578,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
         LOG(ERROR) << added_full_message_id << " doesn't became last new message, which is " << d->last_new_message_id;
         dump_debug_message_op(d, 2);
       }
-    } else if (last_message_id.get() > d->last_new_message_id.get()) {
+    } else if (last_message_id > d->last_new_message_id) {
       set_dialog_last_new_message_id(d, last_message_id,
                                      "on_get_channel_dialog 40");  // skip updates about some messages
     }
@@ -27856,7 +27842,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       auto message_id = request.message_id;
       LOG(INFO) << "Run postponed getMessage request for " << message_id << " in " << dialog_id;
       CHECK(message_id.is_valid());
-      if (d->last_new_message_id != MessageId() && message_id.get() > d->last_new_message_id.get()) {
+      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
         // message will not be added to the dialog anyway, get channel difference didn't help
         request.promise.set_value(Unit());
       } else {
@@ -28816,7 +28802,7 @@ void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<> pro
 void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till " << message_id;
   auto condition = [message_id](const Message *m) {
-    return m != nullptr && m->message_id.get() < message_id.get();
+    return m != nullptr && m->message_id < message_id;
   };
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }

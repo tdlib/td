@@ -138,6 +138,23 @@ class MessageId {
     return id != other.id;
   }
 
+  friend bool operator<(const MessageId &lhs, const MessageId &rhs) {
+    CHECK(lhs.is_scheduled() == rhs.is_scheduled());
+    return lhs.id < rhs.id;
+  }
+
+  friend bool operator>(const MessageId &lhs, const MessageId &rhs) {
+    return rhs < lhs;
+  }
+
+  friend bool operator<=(const MessageId &lhs, const MessageId &rhs) {
+    return !(rhs < lhs);
+  }
+
+  friend bool operator>=(const MessageId &lhs, const MessageId &rhs) {
+    return !(lhs < rhs);
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_long(id);
