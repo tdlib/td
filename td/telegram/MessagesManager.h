@@ -1343,30 +1343,31 @@ class MessagesManager : public Actor {
     Promise<> success_promise;
   };
 
+  class ChangeDialogReportSpamStateOnServerLogEvent;
   class DeleteAllChannelMessagesFromUserOnServerLogEvent;
   class DeleteDialogHistoryFromServerLogEvent;
   class DeleteMessageLogEvent;
   class DeleteMessagesFromServerLogEvent;
+  class DeleteScheduledMessagesFromServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
+  class GetDialogFromServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadHistoryOnServerLogEvent;
   class ReadHistoryInSecretChatLogEvent;
   class ReadMessageContentsOnServerLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
-  class SaveDialogDraftMessageOnServerLogEvent;
-  class UpdateDialogNotificationSettingsOnServerLogEvent;
-  class UpdateScopeNotificationSettingsOnServerLogEvent;
   class ResetAllNotificationSettingsOnServerLogEvent;
-  class ChangeDialogReportSpamStateOnServerLogEvent;
-  class SetDialogFolderIdOnServerLogEvent;
+  class SaveDialogDraftMessageOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
   class SendMessageLogEvent;
   class SendScreenshotTakenNotificationMessageLogEvent;
+  class SetDialogFolderIdOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
-  class GetDialogFromServerLogEvent;
+  class UpdateDialogNotificationSettingsOnServerLogEvent;
+  class UpdateScopeNotificationSettingsOnServerLogEvent;
 
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
@@ -1561,6 +1562,8 @@ class MessagesManager : public Actor {
   unique_ptr<Message> do_delete_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
                                         bool only_from_memory, bool *need_update_dialog_pos, const char *source);
 
+  unique_ptr<Message> do_delete_scheduled_message(Dialog *d, MessageId message_id, const char *source);
+
   void on_message_deleted(Dialog *d, Message *m, const char *source);
 
   int32 get_unload_dialog_delay() const;
@@ -1571,8 +1574,13 @@ class MessagesManager : public Actor {
 
   void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &m, vector<int64> &deleted_message_ids);
 
+  void delete_message_from_server(DialogId dialog_id, MessageId message_ids, bool revoke);
+
   void delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 logevent_id,
                                    Promise<Unit> &&promise);
+
+  void delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id,
+                                             Promise<Unit> &&promise);
 
   void delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
                                          bool revoke, bool allow_error, uint64 logevent_id, Promise<Unit> &&promise);
@@ -1691,6 +1699,9 @@ class MessagesManager : public Actor {
 
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
+
+  Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update,
+                                           const char *source);
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 
@@ -2009,7 +2020,8 @@ class MessagesManager : public Actor {
   void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
                                      tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
-  Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value, const char *source);
+  Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value, bool is_scheduled,
+                                        const char *source);
 
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);
@@ -2256,7 +2268,7 @@ class MessagesManager : public Actor {
 
   string get_search_text(const Message *m) const;
 
-  unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value);
+  unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value, bool is_scheduled);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value);
 
@@ -2277,6 +2289,8 @@ class MessagesManager : public Actor {
 
   uint64 save_delete_messages_from_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids,
                                                    bool revoke);
+
+  uint64 save_delete_scheduled_messages_from_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   uint64 save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
                                                          bool remove_from_dialog_list, bool revoke);

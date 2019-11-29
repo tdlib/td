@@ -62,7 +62,7 @@ class MessageId {
   MessageId(T message_id) = delete;
 
   static constexpr MessageId min() {
-    return MessageId(static_cast<int64>(MessageId::TYPE_LOCAL));
+    return MessageId(static_cast<int64>(MessageId::TYPE_YET_UNSENT));
   }
   static constexpr MessageId max() {
     return MessageId(static_cast<int64>(std::numeric_limits<int32>::max()) << SERVER_ID_SHIFT);
@@ -100,6 +100,10 @@ class MessageId {
   bool is_scheduled_server() const {
     CHECK(is_valid_scheduled());
     return (id & SHORT_TYPE_MASK) == 0;
+  }
+
+  bool is_any_server() const {
+    return is_scheduled() ? is_scheduled_server() : is_server();
   }
 
   ServerMessageId get_server_message_id() const {
