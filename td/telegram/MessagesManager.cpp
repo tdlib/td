@@ -12028,7 +12028,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   }
 
   FullMessageId full_message_id(d->dialog_id, message_id);
-  unique_ptr<Message> *v = find_message(&d->messages, message_id);
+  unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
   if (*v == nullptr) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
     if (only_from_memory) {
@@ -12066,7 +12066,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       */
       return nullptr;
     }
-    v = find_message(&d->messages, message_id);
+    v = treap_find_message(&d->messages, message_id);
     CHECK(*v != nullptr);
   }
 
@@ -12204,24 +12204,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
 
-  unique_ptr<Message> result = std::move(*v);
-  unique_ptr<Message> left = std::move(result->left);
-  unique_ptr<Message> right = std::move(result->right);
-
-  LOG_CHECK(result->message_id == message_id) << result->message_id << " " << message_id << " " << source;
-
-  while (left != nullptr || right != nullptr) {
-    if (left == nullptr || (right != nullptr && right->random_y > left->random_y)) {
-      *v = std::move(right);
-      v = &((*v)->left);
-      right = std::move(*v);
-    } else {
-      *v = std::move(left);
-      v = &((*v)->right);
-      left = std::move(*v);
-    }
-  }
-  CHECK(*v == nullptr);
+  auto result = treap_delete_message(v);
 
   d->being_deleted_message_id = MessageId();
   d->debug_being_deleted_message_id_source = "";
@@ -12309,7 +12292,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   CHECK(message_id.is_valid_scheduled());
 
   FullMessageId full_message_id(d->dialog_id, message_id);
-  unique_ptr<Message> *v = find_message(&d->messages, message_id);  // TODO search in persistent_messages
+  unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);  // TODO search in persistent_messages
   if (*v == nullptr) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
     if (get_message_force(d, message_id, "do_delete_message") == nullptr) {
@@ -12318,7 +12301,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
       delete_message_from_database(d, message_id, nullptr, true);
       return nullptr;
     }
-    v = find_message(&d->messages, message_id);
+    v = treap_find_message(&d->messages, message_id);
     CHECK(*v != nullptr);
   }
 
@@ -24360,21 +24343,18 @@ tl_object_ptr<td_api::chatEvents> MessagesManager::get_chat_events_object(int64 
   return result;
 }
 
-unique_ptr<MessagesManager::Message> *MessagesManager::find_message(unique_ptr<Message> *v, MessageId message_id) {
-  return const_cast<unique_ptr<Message> *>(find_message(static_cast<const unique_ptr<Message> *>(v), message_id));
+unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(unique_ptr<Message> *v,
+                                                                          MessageId message_id) {
+  return const_cast<unique_ptr<Message> *>(treap_find_message(static_cast<const unique_ptr<Message> *>(v), message_id));
 }
 
-const unique_ptr<MessagesManager::Message> *MessagesManager::find_message(const unique_ptr<Message> *v,
-                                                                          MessageId message_id) {
+const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(const unique_ptr<Message> *v,
+                                                                                MessageId message_id) {
   LOG(DEBUG) << "Searching for " << message_id << " in " << static_cast<const void *>(v->get());
-  CHECK(!message_id.is_scheduled());
   while (*v != nullptr) {
-    //    LOG(DEBUG) << "Pass " << (*v)->message_id;
     if ((*v)->message_id < message_id) {
-      //      LOG(DEBUG) << "Go right";
       v = &(*v)->right;
     } else if ((*v)->message_id > message_id) {
-      //      LOG(DEBUG) << "Go left";
       v = &(*v)->left;
     } else {
       LOG(DEBUG) << "Message found";
@@ -24384,9 +24364,8 @@ const unique_ptr<MessagesManager::Message> *MessagesManager::find_message(const 
   return v;
 }
 
-MessagesManager::Message *MessagesManager::insert_message(unique_ptr<Message> *v, unique_ptr<Message> message) {
+MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Message> *v, unique_ptr<Message> message) {
   auto message_id = message->message_id;
-  CHECK(!message_id.is_scheduled());
   while (*v != nullptr && (*v)->random_y >= message->random_y) {
     if ((*v)->message_id < message_id) {
       v = &(*v)->right;
@@ -24418,6 +24397,27 @@ MessagesManager::Message *MessagesManager::insert_message(unique_ptr<Message> *v
   return v->get();
 }
 
+unique_ptr<MessagesManager::Message> MessagesManager::treap_delete_message(unique_ptr<Message> *v) {
+  unique_ptr<Message> result = std::move(*v);
+  unique_ptr<Message> left = std::move(result->left);
+  unique_ptr<Message> right = std::move(result->right);
+
+  while (left != nullptr || right != nullptr) {
+    if (left == nullptr || (right != nullptr && right->random_y > left->random_y)) {
+      *v = std::move(right);
+      v = &((*v)->left);
+      right = std::move(*v);
+    } else {
+      *v = std::move(left);
+      v = &((*v)->right);
+      left = std::move(*v);
+    }
+  }
+  CHECK(*v == nullptr);
+
+  return result;
+}
+
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
   return const_cast<Message *>(get_message(static_cast<const Dialog *>(d), message_id));
 }
@@ -24432,7 +24432,7 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
 
   CHECK(d != nullptr);
   LOG(DEBUG) << "Search for " << message_id << " in " << d->dialog_id;
-  auto result = find_message(&d->messages, message_id)->get();
+  auto result = treap_find_message(&d->messages, message_id)->get();
   if (result != nullptr) {
     result->last_access_date = G()->unix_time_cached();
   }
@@ -24746,10 +24746,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                      (from_update || message_id.is_local() || message_id.is_yet_unsent());
 
   {
-    unique_ptr<Message> *v = find_message(&d->messages, message_id);
+    unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
     if (*v == nullptr && !message->from_database) {
       if (G()->parameters().use_message_db && get_message_force(d, message_id, "add_message_to_dialog 2") != nullptr) {
-        v = find_message(&d->messages, message_id);
+        v = treap_find_message(&d->messages, message_id);
         CHECK(*v != nullptr);
       }
     }
@@ -25278,7 +25278,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  Message *result_message = insert_message(&d->messages, std::move(message));
+  Message *result_message = treap_insert_message(&d->messages, std::move(message));
   CHECK(result_message != nullptr);
   CHECK(d->messages != nullptr);
 
@@ -25382,12 +25382,12 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   {
     // TODO find the scheduled message
-    unique_ptr<Message> *v = find_message(&d->messages, message_id);
+    unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
     if (*v == nullptr && !message->from_database) {
       // load message from database before updating it
       if (G()->parameters().use_message_db &&
           get_message_force(d, message_id, "add_scheduled_message_to_dialog") != nullptr) {
-        v = find_message(&d->messages, message_id);
+        v = treap_find_message(&d->messages, message_id);
         CHECK(*v != nullptr);
       }
     }
@@ -25452,7 +25452,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   // TODO insert scheduled message
-  Message *result_message = insert_message(&d->messages, std::move(message));
+  Message *result_message = treap_insert_message(&d->messages, std::move(message));
   CHECK(result_message != nullptr);
   return result_message;
 }

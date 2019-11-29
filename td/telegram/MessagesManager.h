@@ -2002,10 +2002,11 @@ class MessagesManager : public Actor {
                                                                                const string &query, int32 limit,
                                                                                DialogParticipantsFilter filter) const;
 
-  static unique_ptr<Message> *find_message(unique_ptr<Message> *v, MessageId message_id);
-  static const unique_ptr<Message> *find_message(const unique_ptr<Message> *v, MessageId message_id);
+  static unique_ptr<Message> *treap_find_message(unique_ptr<Message> *v, MessageId message_id);
+  static const unique_ptr<Message> *treap_find_message(const unique_ptr<Message> *v, MessageId message_id);
 
-  static Message *insert_message(unique_ptr<Message> *v, unique_ptr<Message> message);
+  static Message *treap_insert_message(unique_ptr<Message> *v, unique_ptr<Message> message);
+  static unique_ptr<Message> treap_delete_message(unique_ptr<Message> *v);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
