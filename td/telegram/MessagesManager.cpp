@@ -12240,7 +12240,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   if (!only_from_memory) {
     if (message_id.is_yet_unsent()) {
-      cancel_send_message_query(d->dialog_id, result);
+      cancel_send_message_query(d->dialog_id, result.get());
     } else {
       cancel_edit_message_media(d->dialog_id, result.get(), "Message was deleted");
     }
@@ -12293,6 +12293,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, const char *source) {
+  // also called for unloaded messages
   CHECK(m->message_id.is_valid());
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
@@ -12349,7 +12350,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   // TODO delete the message
   /*
   if (message_id.is_yet_unsent()) {
-    cancel_send_message_query(d->dialog_id, result);
+    cancel_send_message_query(d->dialog_id, result.get());
   } else {
     cancel_edit_message_media(d->dialog_id, result.get(), "Message was deleted");
   }
@@ -12379,7 +12380,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   remove_message_file_sources(d->dialog_id, m.get());
 
   if (message_id.is_yet_unsent()) {
-    cancel_send_message_query(d->dialog_id, m);
+    cancel_send_message_query(d->dialog_id, m.get());
   } else {
     cancel_edit_message_media(d->dialog_id, m.get(), "Message was deleted");
   }
@@ -17163,7 +17164,7 @@ void MessagesManager::cancel_upload_file(FileId file_id) {
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
 }
 
-void MessagesManager::cancel_send_message_query(DialogId dialog_id, unique_ptr<Message> &m) {
+void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) {
   CHECK(m != nullptr);
   CHECK(m->content != nullptr);
   CHECK(m->message_id.is_yet_unsent());
