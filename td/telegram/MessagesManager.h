@@ -1745,8 +1745,7 @@ class MessagesManager : public Actor {
 
   void attach_message_to_next(Dialog *d, MessageId message_id, const char *source);
 
-  bool update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
-                      bool *need_update_dialog_pos);
+  bool update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message, bool *need_update_dialog_pos);
 
   static bool need_message_changed_warning(const Message *old_message);
 
