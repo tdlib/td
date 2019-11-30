@@ -25212,64 +25212,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
   }
-  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info == nullptr && !m->had_forward_info &&
-      (m->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat &&
-      !message_id.is_local()) {
+  if (!td_->auth_manager_->is_bot() && from_update && (m->is_outgoing || dialog_id == my_dialog_id) &&
+      dialog_id.get_type() != DialogType::SecretChat && !message_id.is_local() && m->forward_info == nullptr &&
+      !m->had_forward_info) {
     on_sent_message_content(td_, m->content.get());
   }
   if (from_update) {
     update_used_hashtags(dialog_id, m);
-  }
-  if (!td_->auth_manager_->is_bot() && from_update && message_id.is_server() &&
-      (m->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat) {
-    if (m->via_bot_user_id.is_valid() && m->forward_info == nullptr && !m->had_forward_info) {
-      // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
-      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
-                   DialogId(m->via_bot_user_id), m->date);
-    }
-    if (m->forward_info != nullptr && d->last_outgoing_forwarded_message_date < m->date) {
-      TopDialogCategory category =
-          dialog_id.get_type() == DialogType::User ? TopDialogCategory::ForwardUsers : TopDialogCategory::ForwardChats;
-      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
-      d->last_outgoing_forwarded_message_date = m->date;
-    }
-
-    TopDialogCategory category = TopDialogCategory::Size;
-    switch (dialog_id.get_type()) {
-      case DialogType::User: {
-        if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
-          category = TopDialogCategory::BotPM;
-        } else {
-          category = TopDialogCategory::Correspondent;
-        }
-        break;
-      }
-      case DialogType::Chat:
-        category = TopDialogCategory::Group;
-        break;
-      case DialogType::Channel:
-        switch (td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id())) {
-          case ChannelType::Broadcast:
-            category = TopDialogCategory::Channel;
-            break;
-          case ChannelType::Megagroup:
-            category = TopDialogCategory::Group;
-            break;
-          case ChannelType::Unknown:
-            break;
-          default:
-            UNREACHABLE();
-            break;
-        }
-        break;
-      case DialogType::SecretChat:
-      case DialogType::None:
-      default:
-        UNREACHABLE();
-    }
-    if (category != TopDialogCategory::Size) {
-      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
-    }
+    update_top_dialogs(dialog_id, m);
   }
 
   Message *result_message = treap_insert_message(&d->messages, std::move(message));
@@ -27833,8 +27783,8 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
 void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || m->via_bot_user_id.is_valid() || m->hide_via_bot || m->forward_info != nullptr ||
-      m->had_forward_info || (!m->is_outgoing && dialog_id != get_my_dialog_id())) {
+  if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id()) ||
+      m->via_bot_user_id.is_valid() || m->hide_via_bot || m->forward_info != nullptr || m->had_forward_info) {
     return;
   }
   const FormattedText *text = get_message_content_text(m->content.get());
@@ -27863,6 +27813,68 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
     auto to = ptr;
 
     send_closure(td_->hashtag_hints_, &HashtagHints::hashtag_used, Slice(from + 1, to).str());
+  }
+}
+
+void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
+  auto dialog_type = dialog_id.get_type();
+  if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id()) ||
+      dialog_type == DialogType::SecretChat || !m->message_id.is_any_server()) {
+    return;
+  }
+
+  bool is_forward = m->forward_info != nullptr || m->had_forward_info;
+  if (m->via_bot_user_id.is_valid() && !is_forward) {
+    // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
+    send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
+                 DialogId(m->via_bot_user_id), m->date);
+  }
+
+  if (is_forward) {
+    auto &last_forward_date = last_outgoing_forwarded_message_date_[dialog_id];
+    if (last_forward_date < m->date) {
+      TopDialogCategory category =
+          dialog_type == DialogType::User ? TopDialogCategory::ForwardUsers : TopDialogCategory::ForwardChats;
+      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
+      last_forward_date = m->date;
+    }
+  }
+
+  TopDialogCategory category = TopDialogCategory::Size;
+  switch (dialog_type) {
+    case DialogType::User: {
+      if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
+        category = TopDialogCategory::BotPM;
+      } else {
+        category = TopDialogCategory::Correspondent;
+      }
+      break;
+    }
+    case DialogType::Chat:
+      category = TopDialogCategory::Group;
+      break;
+    case DialogType::Channel:
+      switch (td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id())) {
+        case ChannelType::Broadcast:
+          category = TopDialogCategory::Channel;
+          break;
+        case ChannelType::Megagroup:
+          category = TopDialogCategory::Group;
+          break;
+        case ChannelType::Unknown:
+          break;
+        default:
+          UNREACHABLE();
+          break;
+      }
+      break;
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  if (category != TopDialogCategory::Size) {
+    send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
   }
 }
 

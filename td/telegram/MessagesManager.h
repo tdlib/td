@@ -1041,7 +1041,6 @@ class MessagesManager : public Actor {
     int32 pending_last_message_date = 0;
     MessageId pending_last_message_id;
     MessageId max_notification_message_id;
-    int32 last_outgoing_forwarded_message_date = 0;
 
     MessageId max_added_message_id;
     MessageId being_added_message_id;
@@ -2271,6 +2270,8 @@ class MessagesManager : public Actor {
 
   void update_used_hashtags(DialogId dialog_id, const Message *m);
 
+  void update_top_dialogs(DialogId dialog_id, const Message *m);
+
   string get_search_text(const Message *m) const;
 
   unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value, bool is_scheduled);
@@ -2591,6 +2592,8 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
   std::unordered_map<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
+
+  std::unordered_map<DialogId, int32, DialogIdHash> last_outgoing_forwarded_message_date_;
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;
