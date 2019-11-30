@@ -2270,6 +2270,8 @@ class MessagesManager : public Actor {
 
   void speculatively_update_channel_participants(DialogId dialog_id, const Message *m);
 
+  void update_sent_message_contents(DialogId dialog_id, const Message *m);
+
   void update_used_hashtags(DialogId dialog_id, const Message *m);
 
   void update_top_dialogs(DialogId dialog_id, const Message *m);

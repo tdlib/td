@@ -25070,10 +25070,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  UserId my_user_id(td_->contacts_manager_->get_my_id());
-  DialogId my_dialog_id(my_user_id);
   if (*need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
-    if (!message->is_outgoing && dialog_id != my_dialog_id) {
+    if (!message->is_outgoing && dialog_id != get_my_dialog_id()) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       if (message_id.is_server()) {
@@ -25186,17 +25184,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   add_message_file_sources(dialog_id, m);
   register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
-  if (from_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
+  if (*need_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
+    // always update pinned message from service message, even new pinned_message_id is invalid
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
   }
-  if (!td_->auth_manager_->is_bot() && from_update && (m->is_outgoing || dialog_id == my_dialog_id) &&
-      dialog_id.get_type() != DialogType::SecretChat && !message_id.is_local() && m->forward_info == nullptr &&
-      !m->had_forward_info) {
-    on_sent_message_content(td_, m->content.get());
-  }
+
   if (from_update) {
     speculatively_update_channel_participants(dialog_id, m);
+    update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
   }
@@ -25339,17 +25335,14 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   add_message_file_sources(dialog_id, m);
 
-  DialogId my_dialog_id = get_my_dialog_id();
-  if (from_update && m->forward_info == nullptr && !m->had_forward_info &&
-      (m->is_outgoing || dialog_id == my_dialog_id) && !message_id.is_local()) {
-    on_sent_message_content(td_, m->content.get());
-  }
   if (from_update) {
+    update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
   }
 
   Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));
   CHECK(result_message != nullptr);
+  CHECK(d->scheduled_messages != nullptr);
   return result_message;
 }
 
@@ -27761,6 +27754,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 }
 
 void MessagesManager::speculatively_update_channel_participants(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
   if (!m->message_id.is_any_server() || dialog_id.get_type() != DialogType::Channel || !m->sender_user_id.is_valid()) {
     return;
   }
@@ -27784,6 +27778,17 @@ void MessagesManager::speculatively_update_channel_participants(DialogId dialog_
     default:
       break;
   }
+}
+
+void MessagesManager::update_sent_message_contents(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id()) ||
+      dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_local() || m->forward_info != nullptr ||
+      m->had_forward_info) {
+    return;
+  }
+
+  on_sent_message_content(td_, m->content.get());
 }
 
 void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m) {
@@ -27822,6 +27827,7 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
 }
 
 void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
   auto dialog_type = dialog_id.get_type();
   if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id()) ||
       dialog_type == DialogType::SecretChat || !m->message_id.is_any_server()) {
