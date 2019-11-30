@@ -24783,7 +24783,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
         auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if (need_delete_message_files(d, m)) {
+          if (need_delete_message_files(dialog_id, m)) {
             FullMessageId full_message_id{dialog_id, message_id};
             for (auto file_id : old_file_ids) {
               if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
@@ -25383,7 +25383,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         CHECK(need_update_dialog_pos == false);
         auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if (need_delete_message_files(d, m)) {
+          if (need_delete_message_files(dialog_id, m)) {
             FullMessageId full_message_id{dialog_id, message_id};
             for (auto file_id : old_file_ids) {
               if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
@@ -25603,13 +25603,12 @@ bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId fil
   return true;
 }
 
-bool MessagesManager::need_delete_message_files(Dialog *d, const Message *m) const {
+bool MessagesManager::need_delete_message_files(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
     return false;
   }
 
-  CHECK(d != nullptr);
-  auto dialog_type = d->dialog_id.get_type();
+  auto dialog_type = dialog_id.get_type();
   if (!m->message_id.is_scheduled() && !m->message_id.is_server() && dialog_type != DialogType::SecretChat) {
     return false;
   }
@@ -25664,7 +25663,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
                        d->mention_notification_group.group_id, message_id, false, "delete_message_from_database");
   }
 
-  auto need_delete_files = need_delete_message_files(d, m);
+  auto need_delete_files = need_delete_message_files(d->dialog_id, m);
   if (need_delete_files) {
     delete_message_files(d->dialog_id, m);
   }
