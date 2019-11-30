@@ -1123,7 +1123,8 @@ class MessagesManager : public Actor {
 
     std::unordered_set<MessageId, MessageIdHash> pending_viewed_message_ids;
 
-    unique_ptr<Message> messages = nullptr;
+    unique_ptr<Message> messages;
+    unique_ptr<Message> scheduled_messages;
 
     struct MessageOp {
       enum : int8 { Add, SetPts, Delete, DeleteAll } type;

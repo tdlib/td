@@ -12290,16 +12290,16 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   CHECK(message_id.is_valid_scheduled());
 
   FullMessageId full_message_id(d->dialog_id, message_id);
-  unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);  // TODO search in persistent_messages
+  unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages, message_id);
   if (*v == nullptr) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
-    if (get_message_force(d, message_id, "do_delete_message") == nullptr) {
+    if (get_message_force(d, message_id, "do_delete_scheduled_message") == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
       delete_message_from_database(d, message_id, nullptr, true);
       return nullptr;
     }
-    v = treap_find_message(&d->messages, message_id);
+    v = treap_find_message(&d->scheduled_messages, message_id);
     CHECK(*v != nullptr);
   }
 
@@ -12312,9 +12312,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   remove_message_file_sources(d->dialog_id, m);
 
-  // TODO delete the message
+  auto result = treap_delete_message(v);
 
-  // cancel_send_deleted_message(d->dialog_id, result.get());
+  cancel_send_deleted_message(d->dialog_id, result.get());
 
   return nullptr;
 }
@@ -24422,17 +24422,15 @@ MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId mess
 }
 
 const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, MessageId message_id) {
-  if (!message_id.is_valid()) {
-    if (message_id.is_valid_scheduled()) {
-      // TODO return scheduled message
-    }
+  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return nullptr;
   }
 
   CHECK(d != nullptr);
   LOG(DEBUG) << "Search for " << message_id << " in " << d->dialog_id;
-  auto result = treap_find_message(&d->messages, message_id)->get();
-  if (result != nullptr) {
+  bool is_scheduled = message_id.is_scheduled();
+  auto result = treap_find_message(is_scheduled ? &d->scheduled_messages : &d->messages, message_id)->get();
+  if (result != nullptr && !is_scheduled) {
     result->last_access_date = G()->unix_time_cached();
   }
   return result;
@@ -24747,7 +24745,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   {
     unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
     if (*v == nullptr && !message->from_database) {
-      if (G()->parameters().use_message_db && get_message_force(d, message_id, "add_message_to_dialog 2") != nullptr) {
+      if (get_message_force(d, message_id, "add_message_to_dialog 2") != nullptr) {
         v = treap_find_message(&d->messages, message_id);
         CHECK(*v != nullptr);
       }
@@ -25380,13 +25378,11 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   {
-    // TODO find the scheduled message
-    unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
+    unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages, message_id);
     if (*v == nullptr && !message->from_database) {
       // load message from database before updating it
-      if (G()->parameters().use_message_db &&
-          get_message_force(d, message_id, "add_scheduled_message_to_dialog") != nullptr) {
-        v = treap_find_message(&d->messages, message_id);
+      if (get_message_force(d, message_id, "add_scheduled_message_to_dialog") != nullptr) {
+        v = treap_find_message(&d->scheduled_messages, message_id);
         CHECK(*v != nullptr);
       }
     }
@@ -25450,8 +25446,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     update_used_hashtags(dialog_id, m);
   }
 
-  // TODO insert scheduled message
-  Message *result_message = treap_insert_message(&d->messages, std::move(message));
+  Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));
   CHECK(result_message != nullptr);
   return result_message;
 }
