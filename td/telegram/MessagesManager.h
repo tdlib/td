@@ -2268,6 +2268,8 @@ class MessagesManager : public Actor {
   void save_recently_found_dialogs();
   bool load_recently_found_dialogs(Promise<Unit> &promise);
 
+  void reget_message_from_server_if_needed(DialogId dialog_id, const Message *m);
+
   void speculatively_update_channel_participants(DialogId dialog_id, const Message *m);
 
   void update_sent_message_contents(DialogId dialog_id, const Message *m);

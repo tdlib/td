@@ -25174,14 +25174,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
   }
 
-  if (message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat &&
-      (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER))) {
-    FullMessageId full_message_id{dialog_id, message_id};
-    LOG(INFO) << "Reget from server " << full_message_id;
-    get_message_from_server(full_message_id, Auto());
-  }
+  reget_message_from_server_if_needed(dialog_id, m);
 
   add_message_file_sources(dialog_id, m);
+
   register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
   if (*need_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
@@ -25326,12 +25322,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     add_message_to_database(d, m, "add_scheduled_message_to_dialog");
   }
 
-  if (message_id.is_scheduled_server() &&
-      (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER))) {
-    FullMessageId full_message_id{dialog_id, message_id};
-    LOG(INFO) << "Reget from server " << full_message_id;
-    get_message_from_server(full_message_id, Auto());
-  }
+  reget_message_from_server_if_needed(dialog_id, m);
 
   add_message_file_sources(dialog_id, m);
 
@@ -27750,6 +27741,15 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
     on_get_dialogs(res.folder_id, std::move(res.dialogs), res.total_count, std::move(res.messages),
                    std::move(res.promise));
+  }
+}
+
+void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, const Message *m) {
+  if (m->message_id.is_any_server() && dialog_id.get_type() != DialogType::SecretChat &&
+      (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER))) {
+    FullMessageId full_message_id{dialog_id, m->message_id};
+    LOG(INFO) << "Reget from server " << full_message_id;
+    get_message_from_server(full_message_id, Auto());
   }
 }
 
