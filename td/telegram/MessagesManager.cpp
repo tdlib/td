@@ -25186,28 +25186,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   add_message_file_sources(dialog_id, m);
   register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
-  if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel &&
-      m->sender_user_id.is_valid()) {
-    switch (message_content_type) {
-      case MessageContentType::ChatAddUsers:
-        td_->contacts_manager_->speculative_add_channel_participants(
-            dialog_id.get_channel_id(), get_message_content_added_user_ids(m->content.get()), m->sender_user_id,
-            m->date, m->sender_user_id == my_user_id);
-        break;
-      case MessageContentType::ChatJoinedByLink:
-        td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), {m->sender_user_id},
-                                                                     m->sender_user_id, m->date,
-                                                                     m->sender_user_id == my_user_id);
-        break;
-      case MessageContentType::ChatDeleteUser:
-        td_->contacts_manager_->speculative_delete_channel_participant(
-            dialog_id.get_channel_id(), get_message_content_deleted_user_id(m->content.get()),
-            m->sender_user_id == my_user_id);
-        break;
-      default:
-        break;
-    }
-  }
   if (from_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
@@ -25218,6 +25196,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_sent_message_content(td_, m->content.get());
   }
   if (from_update) {
+    speculatively_update_channel_participants(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
   }
@@ -27778,6 +27757,32 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
     on_get_dialogs(res.folder_id, std::move(res.dialogs), res.total_count, std::move(res.messages),
                    std::move(res.promise));
+  }
+}
+
+void MessagesManager::speculatively_update_channel_participants(DialogId dialog_id, const Message *m) {
+  if (!m->message_id.is_any_server() || dialog_id.get_type() != DialogType::Channel || !m->sender_user_id.is_valid()) {
+    return;
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  UserId my_user_id(td_->contacts_manager_->get_my_id());
+  bool by_me = m->sender_user_id == my_user_id;
+  switch (m->content->get_type()) {
+    case MessageContentType::ChatAddUsers:
+      td_->contacts_manager_->speculative_add_channel_participants(
+          channel_id, get_message_content_added_user_ids(m->content.get()), m->sender_user_id, m->date, by_me);
+      break;
+    case MessageContentType::ChatJoinedByLink:
+      td_->contacts_manager_->speculative_add_channel_participants(channel_id, {m->sender_user_id}, m->sender_user_id,
+                                                                   m->date, by_me);
+      break;
+    case MessageContentType::ChatDeleteUser:
+      td_->contacts_manager_->speculative_delete_channel_participant(
+          channel_id, get_message_content_deleted_user_id(m->content.get()), by_me);
+      break;
+    default:
+      break;
   }
 }
 
