@@ -15798,6 +15798,27 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
   }
 }
 
+void MessagesManager::change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids) {
+  auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
+  if (new_file_ids == old_file_ids) {
+    return;
+  }
+
+  FullMessageId full_message_id{dialog_id, m->message_id};
+  if (need_delete_message_files(dialog_id, m)) {
+    for (auto file_id : old_file_ids) {
+      if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
+        send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "change_message_files");
+      }
+    }
+  }
+
+  auto file_source_id = get_message_file_source_id(full_message_id);
+  if (file_source_id.is_valid()) {
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
+  }
+}
+
 MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *d, SearchMessagesFilter filter) {
   CHECK(d != nullptr);
   auto message_id = filter == SearchMessagesFilter::Empty
@@ -24781,23 +24802,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         if (was_deleted) {
           try_add_active_live_location(dialog_id, m);
         }
-        auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
-        if (new_file_ids != old_file_ids) {
-          if (need_delete_message_files(dialog_id, m)) {
-            FullMessageId full_message_id{dialog_id, message_id};
-            for (auto file_id : old_file_ids) {
-              if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
-                send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
-                             "edit message in add_message_to_dialog");
-              }
-            }
-          }
-
-          auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
-          if (file_source_id.is_valid()) {
-            td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
-          }
-        }
+        change_message_files(dialog_id, m, old_file_ids);
         if (need_send_update && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
           auto &group_info = get_notification_group_info(d, m);
           if (group_info.group_id.is_valid()) {
@@ -25381,23 +25386,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         bool need_update_dialog_pos = false;
         update_message(d, m, std::move(message), &need_update_dialog_pos);
         CHECK(need_update_dialog_pos == false);
-        auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
-        if (new_file_ids != old_file_ids) {
-          if (need_delete_message_files(dialog_id, m)) {
-            FullMessageId full_message_id{dialog_id, message_id};
-            for (auto file_id : old_file_ids) {
-              if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
-                send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
-                             "edit message in add_scheduled_message_to_dialog");
-              }
-            }
-          }
-
-          auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
-          if (file_source_id.is_valid()) {
-            td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
-          }
-        }
+        change_message_files(dialog_id, m, old_file_ids);
       }
       return m;
     }

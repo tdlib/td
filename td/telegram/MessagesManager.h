@@ -2118,6 +2118,8 @@ class MessagesManager : public Actor {
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m);
 
+  void change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids);
+
   Result<unique_ptr<ReplyMarkup>> get_dialog_reply_markup(
       DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const TD_WARN_UNUSED_RESULT;
 
