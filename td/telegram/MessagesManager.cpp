@@ -8217,13 +8217,13 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
       UNREACHABLE();
   }
 
-  // TODO MultiPromise
-  if (!deleted_server_message_ids.empty()) {
-    delete_messages_from_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, std::move(promise));
-  }
-  if (!deleted_scheduled_message_ids.empty()) {
-    delete_scheduled_messages_from_server(dialog_id, std::move(deleted_scheduled_message_ids), 0, std::move(promise));
-  }
+  MultiPromiseActorSafe mpas{"DeleteMessagesFromServerMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+
+  auto lock = mpas.get_promise();
+  delete_messages_from_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
+  delete_scheduled_messages_from_server(dialog_id, std::move(deleted_scheduled_message_ids), 0, mpas.get_promise());
+  lock.set_value(Unit());
 
   bool need_update_dialog_pos = false;
   vector<int64> deleted_message_ids;
@@ -8288,8 +8288,7 @@ uint64 MessagesManager::save_delete_messages_from_server_logevent(DialogId dialo
 void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
                                                   uint64 logevent_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
-    promise.set_value(Unit());
-    return;
+    return promise.set_value(Unit());
   }
   LOG(INFO) << (revoke ? "Revoke " : "Delete ") << format::as_array(message_ids) << " in " << dialog_id
             << " from server";
@@ -8362,8 +8361,7 @@ uint64 MessagesManager::save_delete_scheduled_messages_from_server_logevent(Dial
 void MessagesManager::delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids,
                                                             uint64 logevent_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
-    promise.set_value(Unit());
-    return;
+    return promise.set_value(Unit());
   }
   LOG(INFO) << "Delete " << format::as_array(message_ids) << " in " << dialog_id << " from server";
 
