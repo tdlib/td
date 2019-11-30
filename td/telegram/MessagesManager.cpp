@@ -6110,11 +6110,8 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, m);
-  } else {
-    if (m->forward_info == nullptr && !m->had_forward_info && (m->is_outgoing || dialog_id == get_my_dialog_id())) {
-      update_used_hashtags(dialog_id, m);
-    }
   }
+  update_used_hashtags(dialog_id, m);
 }
 
 void MessagesManager::process_pending_updates() {
@@ -25216,10 +25213,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
   }
   if (!td_->auth_manager_->is_bot() && from_update && m->forward_info == nullptr && !m->had_forward_info &&
-      (m->is_outgoing || dialog_id == my_dialog_id)) {
-    if (dialog_id.get_type() != DialogType::SecretChat && !message_id.is_local()) {
-      on_sent_message_content(td_, m->content.get());
-    }
+      (m->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat &&
+      !message_id.is_local()) {
+    on_sent_message_content(td_, m->content.get());
+  }
+  if (from_update) {
     update_used_hashtags(dialog_id, m);
   }
   if (!td_->auth_manager_->is_bot() && from_update && message_id.is_server() &&
@@ -25414,10 +25412,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   DialogId my_dialog_id = get_my_dialog_id();
   if (from_update && m->forward_info == nullptr && !m->had_forward_info &&
-      (m->is_outgoing || dialog_id == my_dialog_id)) {
-    if (!message_id.is_local()) {
-      on_sent_message_content(td_, m->content.get());
-    }
+      (m->is_outgoing || dialog_id == my_dialog_id) && !message_id.is_local()) {
+    on_sent_message_content(td_, m->content.get());
+  }
+  if (from_update) {
     update_used_hashtags(dialog_id, m);
   }
 
@@ -27835,7 +27833,8 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
 void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
+  if (td_->auth_manager_->is_bot() || m->via_bot_user_id.is_valid() || m->hide_via_bot || m->forward_info != nullptr ||
+      m->had_forward_info || (!m->is_outgoing && dialog_id != get_my_dialog_id())) {
     return;
   }
   const FormattedText *text = get_message_content_text(m->content.get());
