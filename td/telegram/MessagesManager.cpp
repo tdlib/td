@@ -10970,6 +10970,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     send_update_chat_last_message(d, "on_get_message");
   }
 
+  // set dialog reply markup only after updateNewMessage and updateChatLastMessage are sent
   if (need_update && m->reply_markup != nullptr && !m->message_id.is_scheduled() &&
       m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard && m->reply_markup->is_personal &&
       !td_->auth_manager_->is_bot()) {
