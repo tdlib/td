@@ -436,15 +436,11 @@ class StickersManager : public Actor {
 
   void save_recent_stickers_to_database(bool is_attached);
 
-  void add_recent_sticker_inner(bool is_attached, FileId sticker_id, Promise<Unit> &&promise);
-
-  bool add_recent_sticker_impl(bool is_attached, FileId sticker_id, Promise<Unit> &promise);
+  void add_recent_sticker_impl(bool is_attached, FileId sticker_id, bool add_on_server, Promise<Unit> &&promise);
 
   int32 get_favorite_stickers_hash() const;
 
-  void add_favorite_sticker_inner(FileId sticker_id, Promise<Unit> &&promise);
-
-  bool add_favorite_sticker_impl(FileId sticker_id, Promise<Unit> &promise);
+  void add_favorite_sticker_impl(FileId sticker_id, bool add_on_server, Promise<Unit> &&promise);
 
   void load_favorite_stickers(Promise<Unit> &&promise);
 

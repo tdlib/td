@@ -4234,13 +4234,7 @@ void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<t
     return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
   }
 
-  add_recent_sticker_inner(is_attached, r_file_id.ok(), std::move(promise));
-}
-
-void StickersManager::add_recent_sticker_inner(bool is_attached, FileId sticker_id, Promise<Unit> &&promise) {
-  if (add_recent_sticker_impl(is_attached, sticker_id, promise)) {
-    send_save_recent_sticker_query(is_attached, sticker_id, false, std::move(promise));
-  }
+  add_recent_sticker_impl(is_attached, r_file_id.ok(), true, std::move(promise));
 }
 
 void StickersManager::send_save_recent_sticker_query(bool is_attached, FileId sticker_id, bool unsave,
@@ -4260,25 +4254,25 @@ void StickersManager::send_save_recent_sticker_query(bool is_attached, FileId st
 
 void StickersManager::add_recent_sticker_by_id(bool is_attached, FileId sticker_id) {
   // TODO log event
-  Promise<Unit> promise;
-  add_recent_sticker_impl(is_attached, sticker_id, promise);
+  add_recent_sticker_impl(is_attached, sticker_id, false, Auto());
 }
 
-bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_id, Promise<Unit> &promise) {
+void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_id, bool add_on_server,
+                                              Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   LOG(INFO) << "Add recent " << (is_attached ? "attached " : "") << "sticker " << sticker_id;
   if (!are_recent_stickers_loaded_[is_attached]) {
-    load_recent_stickers(is_attached, PromiseCreator::lambda([is_attached, sticker_id,
+    load_recent_stickers(is_attached, PromiseCreator::lambda([is_attached, sticker_id, add_on_server,
                                                               promise = std::move(promise)](Result<> result) mutable {
                            if (result.is_ok()) {
-                             send_closure(G()->stickers_manager(), &StickersManager::add_recent_sticker_inner,
-                                          is_attached, sticker_id, std::move(promise));
+                             send_closure(G()->stickers_manager(), &StickersManager::add_recent_sticker_impl,
+                                          is_attached, sticker_id, add_on_server, std::move(promise));
                            } else {
                              promise.set_error(result.move_as_error());
                            }
                          }));
-    return false;
+    return;
   }
 
   auto is_equal = [sticker_id](FileId file_id) {
@@ -4292,32 +4286,26 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
       save_recent_stickers_to_database(is_attached);
     }
 
-    promise.set_value(Unit());
-    return false;
+    return promise.set_value(Unit());
   }
 
   auto sticker = get_sticker(sticker_id);
   if (sticker == nullptr) {
-    promise.set_error(Status::Error(7, "Sticker not found"));
-    return false;
+    return promise.set_error(Status::Error(7, "Sticker not found"));
   }
   if (!sticker->set_id.is_valid()) {
-    promise.set_error(Status::Error(7, "Stickers without sticker set can't be added to recent"));
-    return false;
+    return promise.set_error(Status::Error(7, "Stickers without sticker set can't be added to recent"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
-    promise.set_error(Status::Error(7, "Can save only sent stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can save only sent stickers"));
   }
   if (file_view.remote_location().is_web()) {
-    promise.set_error(Status::Error(7, "Can't save web stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can't save web stickers"));
   }
   if (!file_view.remote_location().is_document()) {
-    promise.set_error(Status::Error(7, "Can't save encrypted stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can't save encrypted stickers"));
   }
 
   need_update_recent_stickers_[is_attached] = true;
@@ -4337,7 +4325,9 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
   }
 
   send_update_recent_stickers();
-  return true;
+  if (add_on_server) {
+    send_save_recent_sticker_query(is_attached, sticker_id, false, std::move(promise));
+  }
 }
 
 void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
@@ -4646,13 +4636,7 @@ void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile
     return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
   }
 
-  add_favorite_sticker_inner(r_file_id.ok(), std::move(promise));
-}
-
-void StickersManager::add_favorite_sticker_inner(FileId sticker_id, Promise<Unit> &&promise) {
-  if (add_favorite_sticker_impl(sticker_id, promise)) {
-    send_fave_sticker_query(sticker_id, false, std::move(promise));
-  }
+  add_favorite_sticker_impl(r_file_id.ok(), true, std::move(promise));
 }
 
 void StickersManager::send_fave_sticker_query(FileId sticker_id, bool unsave, Promise<Unit> &&promise) {
@@ -4671,23 +4655,23 @@ void StickersManager::send_fave_sticker_query(FileId sticker_id, bool unsave, Pr
 
 void StickersManager::add_favorite_sticker_by_id(FileId sticker_id) {
   // TODO log event
-  Promise<Unit> promise;
-  add_favorite_sticker_impl(sticker_id, promise);
+  add_favorite_sticker_impl(sticker_id, false, Auto());
 }
 
-bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit> &promise) {
+void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_server, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   if (!are_favorite_stickers_loaded_) {
-    load_favorite_stickers(PromiseCreator::lambda([sticker_id, promise = std::move(promise)](Result<> result) mutable {
-      if (result.is_ok()) {
-        send_closure(G()->stickers_manager(), &StickersManager::add_favorite_sticker_inner, sticker_id,
-                     std::move(promise));
-      } else {
-        promise.set_error(result.move_as_error());
-      }
-    }));
-    return false;
+    load_favorite_stickers(
+        PromiseCreator::lambda([sticker_id, add_on_server, promise = std::move(promise)](Result<> result) mutable {
+          if (result.is_ok()) {
+            send_closure(G()->stickers_manager(), &StickersManager::add_favorite_sticker_impl, sticker_id,
+                         add_on_server, std::move(promise));
+          } else {
+            promise.set_error(result.move_as_error());
+          }
+        }));
+    return;
   }
 
   auto is_equal = [sticker_id](FileId file_id) {
@@ -4700,32 +4684,26 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
       save_favorite_stickers_to_database();
     }
 
-    promise.set_value(Unit());
-    return false;
+    return promise.set_value(Unit());
   }
 
   auto sticker = get_sticker(sticker_id);
   if (sticker == nullptr) {
-    promise.set_error(Status::Error(7, "Sticker not found"));
-    return false;
+    return promise.set_error(Status::Error(7, "Sticker not found"));
   }
   if (!sticker->set_id.is_valid()) {
-    promise.set_error(Status::Error(7, "Stickers without sticker set can't be favorite"));
-    return false;
+    return promise.set_error(Status::Error(7, "Stickers without sticker set can't be favorite"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
-    promise.set_error(Status::Error(7, "Can add to favorites only sent stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can add to favorites only sent stickers"));
   }
   if (file_view.remote_location().is_web()) {
-    promise.set_error(Status::Error(7, "Can't add to favorites web stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can't add to favorites web stickers"));
   }
   if (!file_view.remote_location().is_document()) {
-    promise.set_error(Status::Error(7, "Can't add to favorites encrypted stickers"));
-    return false;
+    return promise.set_error(Status::Error(7, "Can't add to favorites encrypted stickers"));
   }
 
   auto it = std::find_if(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), is_equal);
@@ -4743,7 +4721,9 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
   }
 
   send_update_favorite_stickers();
-  return true;
+  if (add_on_server) {
+    send_fave_sticker_query(sticker_id, false, std::move(promise));
+  }
 }
 
 void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
