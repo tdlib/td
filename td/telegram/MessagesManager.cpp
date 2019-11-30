@@ -13200,12 +13200,12 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     }
   }
 
-  // TODO MultiPromise
-  size_t query_count = !ordinary_message_ids.empty() + channel_message_ids.size();
-  LOG_IF(ERROR, query_count > 1 && promise) << "Promise will be called after first query returns";
+  MultiPromiseActorSafe mpas{"GetMessagesFromServerMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+  auto lock = mpas.get_promise();
 
   if (!ordinary_message_ids.empty()) {
-    td_->create_handler<GetMessagesQuery>(std::move(promise))->send(std::move(ordinary_message_ids));
+    td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(ordinary_message_ids));
   }
 
   if (!scheduled_message_ids.empty()) {
@@ -13217,12 +13217,13 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     auto input_channel = td_->contacts_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it";
-      promise.set_error(Status::Error(6, "Can't access the chat"));
+      mpas.get_promise().set_error(Status::Error(6, "Can't access the chat"));
       continue;
     }
-    td_->create_handler<GetChannelMessagesQuery>(std::move(promise))
+    td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
         ->send(it.first, std::move(input_channel), std::move(it.second));
   }
+  lock.set_value(Unit());
 }
 
 bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, int32 seconds) {
