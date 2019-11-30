@@ -2939,6 +2939,47 @@ class DeleteChannelMessagesQuery : public Td::ResultHandler {
   }
 };
 
+class DeleteScheduledMessagesQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeleteScheduledMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+    dialog_id_ = dialog_id;
+    LOG(INFO) << "Send deleteScheduledMessagesQuery to delete " << format::as_array(message_ids);
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_deleteScheduledMessages(
+        std::move(input_peer), MessagesManager::get_scheduled_server_message_ids(message_ids)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteScheduledMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteScheduledMessagesQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteScheduledMessagesQuery")) {
+      LOG(ERROR) << "Receive error for delete scheduled messages: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogNotifySettingsQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -4834,6 +4875,10 @@ vector<MessageId> MessagesManager::get_message_ids(const vector<int64> &input_me
 
 vector<int32> MessagesManager::get_server_message_ids(const vector<MessageId> &message_ids) {
   return transform(message_ids, [](MessageId message_id) { return message_id.get_server_message_id().get(); });
+}
+
+vector<int32> MessagesManager::get_scheduled_server_message_ids(const vector<MessageId> &message_ids) {
+  return transform(message_ids, [](MessageId message_id) { return message_id.get_scheduled_server_message_id(); });
 }
 
 tl_object_ptr<telegram_api::InputMessage> MessagesManager::get_input_message(MessageId message_id) {
@@ -8369,8 +8414,7 @@ void MessagesManager::delete_scheduled_messages_from_server(DialogId dialog_id, 
   auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
-  // TODO delete scheduled messages from server
-  promise.set_value(Unit());
+  td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
 }
 
 void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke,
