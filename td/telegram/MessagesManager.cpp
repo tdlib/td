@@ -324,6 +324,47 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
   }
 };
 
+class GetScheduledMessagesQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetScheduledMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer, vector<int32> &&message_ids) {
+    dialog_id_ = dialog_id;
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::messages_getScheduledMessages(std::move(input_peer), std::move(message_ids)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getScheduledMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetScheduledMessagesQuery");
+    LOG_IF(ERROR, info.is_channel_messages != (dialog_id_.get_type() == DialogType::Channel))
+        << "Receive wrong messages constructor in GetScheduledMessagesQuery";
+    // TODO add is_scheduled parameter
+    // td->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages,
+    //                                       "GetChannelMessagesQuery");
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "MESSAGE_IDS_EMPTY") {
+      promise_.set_value(Unit());
+      return;
+    }
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetScheduledMessagesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -13210,15 +13251,15 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     CHECK(message_ids.size() == 1);
   }
 
-  vector<int32> scheduled_message_ids;
   vector<tl_object_ptr<telegram_api::InputMessage>> ordinary_message_ids;
   std::unordered_map<ChannelId, vector<tl_object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_message_ids;
+  std::unordered_map<DialogId, vector<int32>, DialogIdHash> scheduled_message_ids;
   for (auto &full_message_id : message_ids) {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     if (!message_id.is_valid() || !message_id.is_server()) {
       if (message_id.is_valid_scheduled()) {
-        scheduled_message_ids.push_back(message_id.get_scheduled_server_message_id().get());
+        scheduled_message_ids[dialog_id].push_back(message_id.get_scheduled_server_message_id().get());
       }
       continue;
     }
@@ -13251,8 +13292,17 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(ordinary_message_ids));
   }
 
-  if (!scheduled_message_ids.empty()) {
-    // TODO get scheduled messages
+  for (auto &it : scheduled_message_ids) {
+    auto dialog_id = it.first;
+    have_dialog_force(dialog_id);
+    auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      LOG(ERROR) << "Can't find info about " << dialog_id << " to get a message from it";
+      mpas.get_promise().set_error(Status::Error(6, "Can't access the chat"));
+      continue;
+    }
+    td_->create_handler<GetScheduledMessagesQuery>(mpas.get_promise())
+        ->send(dialog_id, std::move(input_peer), std::move(it.second));
   }
 
   for (auto &it : channel_message_ids) {
