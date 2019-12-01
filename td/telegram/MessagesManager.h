@@ -181,11 +181,7 @@ class MessagesManager : public Actor {
 
   static tl_object_ptr<telegram_api::InputMessage> get_input_message(MessageId message_id);
 
-  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
-
   DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) const;
-
-  FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr) const;
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
@@ -213,7 +209,7 @@ class MessagesManager : public Actor {
   MessagesInfo on_get_messages(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
 
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
-                       const char *source);
+                       bool is_scheduled, const char *source);
 
   void on_get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_the_end,
                       vector<tl_object_ptr<telegram_api::Message>> &&messages);
@@ -239,7 +235,8 @@ class MessagesManager : public Actor {
 
   // if message is from_update, flags have_previous and have_next are ignored and should be both true
   FullMessageId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
-                               bool is_channel_message, bool have_previous, bool have_next, const char *source);
+                               bool is_channel_message, bool is_scheduled, bool have_previous, bool have_next,
+                               const char *source);
 
   void open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<>);
 
@@ -1418,6 +1415,10 @@ class MessagesManager : public Actor {
 
   static constexpr bool DROP_UPDATES = false;
 
+  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
+
+  FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) const;
+
   static bool is_dialog_inited(const Dialog *d);
 
   int32 get_dialog_mute_until(const Dialog *d) const;
@@ -1444,7 +1445,8 @@ class MessagesManager : public Actor {
 
   void fix_message_info_dialog_id(MessageInfo &message_info) const;
 
-  MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, const char *source) const;
+  MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
+                                         const char *source) const;
 
   std::pair<DialogId, unique_ptr<Message>> create_message(MessageInfo &&message_info, bool is_channel_message);
 

@@ -967,7 +967,7 @@ void UpdatesManager::process_get_difference_updates(
 
   for (auto &message : new_messages) {
     // channel messages must not be received in this vector
-    td_->messages_manager_->on_get_message(std::move(message), true, false, true, true, "get difference");
+    td_->messages_manager_->on_get_message(std::move(message), true, false, false, true, true, "get difference");
     CHECK(!running_get_difference_);
   }
 
