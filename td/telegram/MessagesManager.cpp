@@ -12398,6 +12398,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   auto result = treap_delete_message(v);
 
+  if (message_id.is_scheduled_server()) {
+    size_t erased = d->scheduled_message_date.erase(message_id.get_scheduled_server_message_id());
+    CHECK(erased != 0);
+  }
+
   cancel_send_deleted_message(d->dialog_id, result.get());
 
   return nullptr;
@@ -25424,6 +25429,12 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   if (from_update) {
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
+  }
+
+  if (message_id.is_scheduled_server()) {
+    int32 &date = d->scheduled_message_date[message_id.get_scheduled_server_message_id()];
+    CHECK(date == 0);
+    date = m->date;
   }
 
   Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));

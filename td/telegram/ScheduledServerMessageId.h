@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -47,6 +48,12 @@ class ScheduledServerMessageId {
   template <class ParserT>
   void parse(ParserT &parser) {
     id = parser.fetch_int();
+  }
+};
+
+struct ScheduledServerMessageIdHash {
+  std::size_t operator()(ScheduledServerMessageId message_id) const {
+    return std::hash<int32>()(message_id.get());
   }
 };
 
