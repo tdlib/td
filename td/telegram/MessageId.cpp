@@ -11,20 +11,16 @@
 
 namespace td {
 
-MessageId MessageId::get_scheduled_message_id(int32 server_message_id, int32 send_date) {
+MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date) {
   if (send_date <= (1 << 30)) {
     LOG(ERROR) << "Scheduled message send date " << send_date << " is in the past";
-    return MessageId();
+    return;
   }
-  if (server_message_id <= 0) {
-    LOG(ERROR) << "Scheduled message ID " << server_message_id << " is non-positive";
-    return MessageId();
+  if (!server_message_id.is_valid()) {
+    LOG(ERROR) << "Scheduled message ID " << server_message_id.get() << " is invalid";
+    return;
   }
-  if (server_message_id >= (1 << 18)) {
-    LOG(ERROR) << "Scheduled message ID " << server_message_id << " is too big";
-    return MessageId();
-  }
-  return MessageId((static_cast<int64>(send_date - (1 << 30)) << 21) | (server_message_id << 3) | SCHEDULED_MASK);
+  id = (static_cast<int64>(send_date - (1 << 30)) << 21) | (server_message_id.get() << 3) | SCHEDULED_MASK;
 }
 
 bool MessageId::is_valid() const {
@@ -92,13 +88,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id) {
       return string_builder << "invalid message " << message_id.get();
     }
     if (message_id.is_scheduled_server()) {
-      return string_builder << "server message " << message_id.get_scheduled_server_message_id_force();
+      return string_builder << "server message " << message_id.get_scheduled_server_message_id_force().get();
     }
     if (message_id.is_local()) {
-      return string_builder << "local message " << message_id.get_scheduled_server_message_id_force();
+      return string_builder << "local message " << message_id.get_scheduled_server_message_id_force().get();
     }
     if (message_id.is_yet_unsent()) {
-      return string_builder << "yet unsent message " << message_id.get_scheduled_server_message_id_force();
+      return string_builder << "yet unsent message " << message_id.get_scheduled_server_message_id_force().get();
     }
     return string_builder << "bugged message " << message_id.get();
   }

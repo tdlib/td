@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
@@ -42,9 +43,9 @@ class MessageId {
 
   ServerMessageId get_server_message_id_force() const;
 
-  int32 get_scheduled_server_message_id_force() const {
+  ScheduledServerMessageId get_scheduled_server_message_id_force() const {
     CHECK(is_scheduled());
-    return static_cast<int32>((id >> 3) & ((1 << 18) - 1));
+    return ScheduledServerMessageId(static_cast<int32>((id >> 3) & ((1 << 18) - 1)));
   }
 
  public:
@@ -54,7 +55,7 @@ class MessageId {
       : id(static_cast<int64>(server_message_id.get()) << SERVER_ID_SHIFT) {
   }
 
-  static MessageId get_scheduled_message_id(int32 server_message_id, int32 send_date);
+  MessageId(ScheduledServerMessageId server_message_id, int32 send_date);
 
   explicit constexpr MessageId(int64 message_id) : id(message_id) {
   }
@@ -125,7 +126,7 @@ class MessageId {
 
   MessageId get_next_message_id(MessageType type) const;
 
-  int32 get_scheduled_server_message_id() const {
+  ScheduledServerMessageId get_scheduled_server_message_id() const {
     CHECK(is_scheduled_server());
     return get_scheduled_server_message_id_force();
   }

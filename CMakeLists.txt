@@ -621,6 +621,7 @@ set(TDLIB_SOURCE
   td/telegram/ReplyMarkup.h
   td/telegram/RequestActor.h
   td/telegram/RestrictionReason.h
+  td/telegram/ScheduledServerMessageId.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h

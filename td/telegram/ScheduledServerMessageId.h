@@ -12,31 +12,41 @@
 
 namespace td {
 
-class ServerMessageId {
+class ScheduledServerMessageId {
   int32 id = 0;
 
  public:
-  ServerMessageId() = default;
+  ScheduledServerMessageId() = default;
 
-  explicit ServerMessageId(int32 message_id) : id(message_id) {
+  explicit ScheduledServerMessageId(int32 message_id) : id(message_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
-  ServerMessageId(T message_id) = delete;
+  ScheduledServerMessageId(T message_id) = delete;
 
   bool is_valid() const {
-    return id > 0;
+    return id > 0 && id < (1 << 18);
   }
 
   int32 get() const {
     return id;
   }
 
-  bool operator==(const ServerMessageId &other) const {
+  bool operator==(const ScheduledServerMessageId &other) const {
     return id == other.id;
   }
 
-  bool operator!=(const ServerMessageId &other) const {
+  bool operator!=(const ScheduledServerMessageId &other) const {
     return id != other.id;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_int(id);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    id = parser.fetch_int();
   }
 };
 

@@ -4878,7 +4878,8 @@ vector<int32> MessagesManager::get_server_message_ids(const vector<MessageId> &m
 }
 
 vector<int32> MessagesManager::get_scheduled_server_message_ids(const vector<MessageId> &message_ids) {
-  return transform(message_ids, [](MessageId message_id) { return message_id.get_scheduled_server_message_id(); });
+  return transform(message_ids,
+                   [](MessageId message_id) { return message_id.get_scheduled_server_message_id().get(); });
 }
 
 tl_object_ptr<telegram_api::InputMessage> MessagesManager::get_input_message(MessageId message_id) {
@@ -13217,7 +13218,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     auto message_id = full_message_id.get_message_id();
     if (!message_id.is_valid() || !message_id.is_server()) {
       if (message_id.is_valid_scheduled()) {
-        scheduled_message_ids.push_back(message_id.get_scheduled_server_message_id());
+        scheduled_message_ids.push_back(message_id.get_scheduled_server_message_id().get());
       }
       continue;
     }
