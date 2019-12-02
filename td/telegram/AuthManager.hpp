@@ -97,7 +97,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
     PARSE_FLAG(is_wait_registration_stores_phone_number);
     END_PARSE_FLAGS();
   }
-  if (!is_wait_registration_stores_phone_number) {
+  if (!is_wait_registration_supported || !is_wait_registration_stores_phone_number) {
     return parser.set_error("Have no wait registration support");
   }
   CHECK(is_pbkdf2_supported);
