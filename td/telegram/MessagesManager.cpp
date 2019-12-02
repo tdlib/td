@@ -24542,6 +24542,15 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   CHECK(d != nullptr);
   LOG(DEBUG) << "Search for " << message_id << " in " << d->dialog_id;
   bool is_scheduled = message_id.is_scheduled();
+  if (is_scheduled && message_id.is_scheduled_server()) {
+    auto server_message_id = message_id.get_scheduled_server_message_id();
+    auto it = d->scheduled_message_date.find(server_message_id);
+    if (it != d->scheduled_message_date.end()) {
+      int32 date = it->second;
+      message_id = MessageId(server_message_id, date);
+      CHECK(message_id.is_scheduled_server());
+    }
+  }
   auto result = treap_find_message(is_scheduled ? &d->scheduled_messages : &d->messages, message_id)->get();
   if (result != nullptr && !is_scheduled) {
     result->last_access_date = G()->unix_time_cached();
@@ -24568,10 +24577,6 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
   }
 
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
-
-  if (message_id.is_scheduled_server()) {
-    // TODO load scheduled message by server message_id
-  }
 
   auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
   if (r_value.is_error()) {
