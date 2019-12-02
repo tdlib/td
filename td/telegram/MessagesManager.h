@@ -1710,7 +1710,7 @@ class MessagesManager : public Actor {
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
-  Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update,
+  Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                            const char *source);
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);

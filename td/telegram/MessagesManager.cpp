@@ -12402,16 +12402,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   CHECK(d != nullptr);
   CHECK(message_id.is_valid_scheduled());
 
-  FullMessageId full_message_id(d->dialog_id, message_id);
   unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages, message_id);
   if (*v == nullptr) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
-    if (get_message_force(d, message_id, "do_delete_scheduled_message") == nullptr) {
+    auto message = get_message_force(d, message_id, "do_delete_scheduled_message");
+    if (message == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
       delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
       return nullptr;
     }
+
+    message_id = message->message_id;
     v = treap_find_message(&d->scheduled_messages, message_id);
     CHECK(*v != nullptr);
   }
@@ -12419,7 +12421,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   const Message *m = v->get();
   CHECK(m->message_id == message_id);
 
-  LOG(INFO) << "Deleting " << full_message_id << " from " << source;
+  LOG(INFO) << "Deleting " << FullMessageId{d->dialog_id, message_id} << " from " << source;
 
   delete_message_from_database(d, message_id, m, is_permanently_deleted);
 
@@ -12434,7 +12436,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   cancel_send_deleted_message(d->dialog_id, result.get());
 
-  return nullptr;
+  return result;
 }
 
 void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message,
@@ -24756,9 +24758,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             << ", from_update = " << from_update << ", have_previous = " << message->have_previous
             << ", have_next = " << message->have_next;
 
+  if (*need_update) {
+    CHECK(from_update);
+  }
+
   if (!message_id.is_valid()) {
     if (message_id.is_valid_scheduled()) {
-      return add_scheduled_message_to_dialog(d, std::move(message), from_update, source);
+      return add_scheduled_message_to_dialog(d, std::move(message), from_update, need_update, source);
     }
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     CHECK(!message->from_database);
@@ -24774,9 +24780,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   message->last_access_date = G()->unix_time_cached();
 
-  if (*need_update) {
-    CHECK(from_update);
-  }
   if (from_update) {
     CHECK(message->have_next);
     CHECK(message->have_previous);
@@ -25386,9 +25389,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 }
 
 MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message,
-                                                                           bool from_update, const char *source) {
+                                                                           bool from_update, bool *need_update,
+                                                                           const char *source) {
   CHECK(message != nullptr);
   CHECK(d != nullptr);
+  CHECK(need_update != nullptr);
   CHECK(source != nullptr);
 
   DialogId dialog_id = d->dialog_id;
@@ -25453,6 +25458,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         message->message_id = message_id;
         message->random_y = get_random_y(message->message_id);
       } else {
+        *need_update = false;
         return m;
       }
     }
@@ -25826,7 +25832,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                          (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer));
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
-      LOG_IF(ERROR, !new_message->is_outgoing && dialog_id != get_my_dialog_id())
+      LOG_IF(ERROR, !is_scheduled && !new_message->is_outgoing && dialog_id != get_my_dialog_id())
           << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
           << " to " << new_message->date << ", message content type is " << old_message->content->get_type() << '/'
           << new_message->content->get_type();
@@ -25844,13 +25850,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   bool is_edited = false;
+  int32 old_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
   if (old_message->edit_date != new_message->edit_date) {
     if (new_message->edit_date > 0) {
       if (new_message->edit_date > old_message->edit_date) {
         LOG(DEBUG) << "Message edit date has changed from " << old_message->edit_date << " to "
                    << new_message->edit_date;
+
         old_message->edit_date = new_message->edit_date;
-        is_edited = true;
         need_send_update = true;
       }
     } else {
@@ -26037,6 +26044,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       need_send_update = true;
     }
   }
+  int32 new_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
+  if (new_shown_edit_date != old_shown_edit_date) {
+    is_edited = true;
+  }
+
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
     old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
