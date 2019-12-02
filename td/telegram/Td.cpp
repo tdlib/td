@@ -6862,6 +6862,11 @@ void Td::on_request(uint64 id, td_api::getOption &request) {
         option_value = make_tl_object<td_api::optionValueBoolean>(is_online_);
       }
       break;
+    case 'u':
+      if (request.name_ == "unix_time") {
+        option_value = make_tl_object<td_api::optionValueInteger>(G()->unix_time());
+      }
+      break;
     case 'v':
       if (request.name_ == "version") {
         option_value = make_tl_object<td_api::optionValueString>(TDLIB_VERSION);
