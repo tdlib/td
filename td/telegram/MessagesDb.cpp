@@ -245,6 +245,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
     TRY_RESULT_ASSIGN(add_scheduled_message_stmt_,
                       db_.get_statement("INSERT OR REPLACE INTO scheduled_messages VALUES(?1, ?2, ?3, ?4)"));
+    TRY_RESULT_ASSIGN(
+        get_scheduled_message_stmt_,
+        db_.get_statement("SELECT data FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_scheduled_message_stmt_,
                       db_.get_statement("DELETE FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
 
@@ -408,18 +411,19 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     CHECK(dialog_id.is_valid());
-    CHECK(message_id.is_valid());
-
+    CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
+    auto &stmt = message_id.is_scheduled() ? get_scheduled_message_stmt_ : get_message_stmt_;
     SCOPE_EXIT {
-      get_message_stmt_.reset();
+      stmt.reset();
     };
-    get_message_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    get_message_stmt_.bind_int64(2, message_id.get()).ensure();
-    get_message_stmt_.step().ensure();
-    if (!get_message_stmt_.has_row()) {
+
+    stmt.bind_int64(1, dialog_id.get()).ensure();
+    stmt.bind_int64(2, message_id.get()).ensure();
+    stmt.step().ensure();
+    if (!stmt.has_row()) {
       return Status::Error("Not found");
     }
-    return BufferSlice(get_message_stmt_.view_blob(0));
+    return BufferSlice(stmt.view_blob(0));
   }
 
   Result<std::pair<DialogId, BufferSlice>> get_message_by_unique_message_id(
@@ -778,6 +782,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   SqliteStatement get_messages_fts_stmt_;
 
   SqliteStatement add_scheduled_message_stmt_;
+  SqliteStatement get_scheduled_message_stmt_;
   SqliteStatement delete_scheduled_message_stmt_;
 
   Result<std::vector<BufferSlice>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,

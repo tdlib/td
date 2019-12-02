@@ -24569,16 +24569,15 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
 
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
 
-  if (message_id.is_scheduled()) {
-    // TODO load scheduled message
-    return nullptr;
-  } else {
-    auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
-    if (r_value.is_error()) {
-      return nullptr;
-    }
-    return on_get_message_from_database(d->dialog_id, d, r_value.ok(), false, source);
+  if (message_id.is_scheduled_server()) {
+    // TODO load scheduled message by server message_id
   }
+
+  auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
+  if (r_value.is_error()) {
+    return nullptr;
+  }
+  return on_get_message_from_database(d->dialog_id, d, r_value.ok(), message_id.is_scheduled(), source);
 }
 
 MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId dialog_id, Dialog *d,
