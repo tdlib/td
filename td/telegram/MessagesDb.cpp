@@ -94,9 +94,18 @@ Status init_messages_db(SqliteDb &db, int32 version) {
     return Status::OK();
   };
   auto add_notification_id_index = [&db]() {
+    return db.exec(
+        "CREATE INDEX IF NOT EXISTS message_by_notification_id ON messages (dialog_id, notification_id) WHERE "
+        "notification_id IS NOT NULL");
+  };
+  auto add_scheduled_messages_table = [&db]() {
     TRY_STATUS(
-        db.exec("CREATE INDEX IF NOT EXISTS message_by_notification_id ON messages (dialog_id, notification_id) "
-                "WHERE notification_id IS NOT NULL"));
+        db.exec("CREATE TABLE IF NOT EXISTS scheduled_messages (dialog_id INT8, message_id INT8, "
+                "server_message_id INT4, data BLOB, PRIMARY KEY (dialog_id, message_id))"));
+
+    TRY_STATUS(
+        db.exec("CREATE INDEX IF NOT EXISTS message_by_server_message_id ON scheduled_messages "
+                "(dialog_id, server_message_id) WHERE server_message_id IS NOT NULL"));
     return Status::OK();
   };
 
@@ -128,6 +137,8 @@ Status init_messages_db(SqliteDb &db, int32 version) {
 
     TRY_STATUS(add_notification_id_index());
 
+    TRY_STATUS(add_scheduled_messages_table());
+
     version = current_db_version();
   }
   if (version < static_cast<int32>(DbVersion::MessagesDbMediaIndex)) {
@@ -148,6 +159,9 @@ Status init_messages_db(SqliteDb &db, int32 version) {
   if (version < static_cast<int32>(DbVersion::AddNotificationsSupport)) {
     TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN notification_id INT4"));
     TRY_STATUS(add_notification_id_index());
+  }
+  if (version < static_cast<int32>(DbVersion::AddScheduledMessages)) {
+    TRY_STATUS(add_scheduled_messages_table());
   }
   return Status::OK();
 }
@@ -228,6 +242,11 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
               PSLICE() << "SELECT dialog_id, data FROM messages WHERE unique_message_id < ?1 AND (index_mask & "
                        << (1 << i) << ") != 0 ORDER BY unique_message_id DESC LIMIT ?2"));
     }
+
+    TRY_RESULT_ASSIGN(add_scheduled_message_stmt_,
+                      db_.get_statement("INSERT OR REPLACE INTO scheduled_messages VALUES(?1, ?2, ?3, ?4)"));
+    TRY_RESULT_ASSIGN(delete_scheduled_message_stmt_,
+                      db_.get_statement("DELETE FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
 
     // LOG(ERROR) << get_message_stmt_.explain().ok();
     // LOG(ERROR) << get_messages_from_notification_id_stmt.explain().ok();
@@ -318,17 +337,43 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return Status::OK();
   }
 
+  Status add_scheduled_message(FullMessageId full_message_id, BufferSlice data) override {
+    LOG(INFO) << "Add " << full_message_id << " to database";
+    auto dialog_id = full_message_id.get_dialog_id();
+    auto message_id = full_message_id.get_message_id();
+    CHECK(dialog_id.is_valid());
+    CHECK(message_id.is_valid_scheduled());
+    SCOPE_EXIT {
+      add_scheduled_message_stmt_.reset();
+    };
+    add_scheduled_message_stmt_.bind_int64(1, dialog_id.get()).ensure();
+    add_scheduled_message_stmt_.bind_int64(2, message_id.get()).ensure();
+
+    if (message_id.is_scheduled_server()) {
+      add_scheduled_message_stmt_.bind_int32(3, message_id.get_scheduled_server_message_id().get()).ensure();
+    } else {
+      add_scheduled_message_stmt_.bind_null(3).ensure();
+    }
+
+    add_scheduled_message_stmt_.bind_blob(4, data.as_slice()).ensure();
+
+    add_scheduled_message_stmt_.step().ensure();
+
+    return Status::OK();
+  }
+
   Status delete_message(FullMessageId full_message_id) override {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     CHECK(dialog_id.is_valid());
-    CHECK(message_id.is_valid());
+    CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
+    auto &stmt = message_id.is_scheduled() ? delete_scheduled_message_stmt_ : delete_message_stmt_;
     SCOPE_EXIT {
-      delete_message_stmt_.reset();
+      stmt.reset();
     };
-    delete_message_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    delete_message_stmt_.bind_int64(2, message_id.get()).ensure();
-    delete_message_stmt_.step().ensure();
+    stmt.bind_int64(1, dialog_id.get()).ensure();
+    stmt.bind_int64(2, message_id.get()).ensure();
+    stmt.step().ensure();
     return Status::OK();
   }
 
@@ -732,6 +777,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   SqliteStatement get_messages_fts_stmt_;
 
+  SqliteStatement add_scheduled_message_stmt_;
+  SqliteStatement delete_scheduled_message_stmt_;
+
   Result<std::vector<BufferSlice>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
                                                      MessageId from_message_id, int32 offset, int32 limit) {
     LOG_CHECK(dialog_id.is_valid()) << dialog_id;
@@ -863,6 +911,9 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
                        ttl_expires_at, index_mask, search_id, std::move(text), notification_id, std::move(data),
                        std::move(promise));
   }
+  void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) override {
+    send_closure_later(impl_, &Impl::add_scheduled_message, full_message_id, std::move(data), std::move(promise));
+  }
 
   void delete_message(FullMessageId full_message_id, Promise<> promise) override {
     send_closure_later(impl_, &Impl::delete_message, full_message_id, std::move(promise));
@@ -931,6 +982,11 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
             std::move(promise),
             sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at,
                                   index_mask, search_id, std::move(text), notification_id, std::move(data)));
+      });
+    }
+    void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) {
+      add_write_query([this, full_message_id, promise = std::move(promise), data = std::move(data)](Unit) mutable {
+        this->on_write_result(std::move(promise), sync_db_->add_scheduled_message(full_message_id, std::move(data)));
       });
     }
 

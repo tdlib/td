@@ -91,6 +91,7 @@ class MessagesDbSyncInterface {
   virtual Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                              int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                              NotificationId notification_id, BufferSlice data) = 0;
+  virtual Status add_scheduled_message(FullMessageId full_message_id, BufferSlice data) = 0;
 
   virtual Status delete_message(FullMessageId full_message_id) = 0;
   virtual Status delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) = 0;
@@ -137,6 +138,7 @@ class MessagesDbAsyncInterface {
   virtual void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                            NotificationId notification_id, BufferSlice data, Promise<> promise) = 0;
+  virtual void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) = 0;
 
   virtual void delete_message(FullMessageId full_message_id, Promise<> promise) = 0;
   virtual void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) = 0;

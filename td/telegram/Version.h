@@ -47,6 +47,7 @@ enum class DbVersion : int32 {
   FixFileRemoteLocationKeyBug,
   AddNotificationsSupport,
   AddFolders,
+  AddScheduledMessages,
   Next
 };
 

@@ -590,8 +590,7 @@ class GetCommonDialogsQuery : public Td::ResultHandler {
 
     auto chats_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetCommonDialogsQuery: " << to_string(chats_ptr);
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td->messages_manager_->on_get_common_dialogs(user_id_, offset_chat_id_, std::move(chats->chats_),
@@ -10646,17 +10645,17 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
     tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled, const char *source) const {
   LOG(DEBUG) << "Receive from " << source << " " << to_string(message_ptr);
   LOG_CHECK(message_ptr != nullptr) << source;
-  int32 constructor_id = message_ptr->get_id();
 
   MessageInfo message_info;
-  switch (constructor_id) {
+  message_info.message_id = get_message_id(message_ptr, is_scheduled);
+  switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID:
+      message_info.message_id = MessageId();
       break;
     case telegram_api::message::ID: {
       auto message = move_tl_object_as<telegram_api::message>(message_ptr);
 
       message_info.dialog_id = DialogId(message->to_id_);
-      message_info.message_id = get_message_id(message_ptr, is_scheduled);
       if (message->flags_ & MESSAGE_FLAG_HAS_FROM_ID) {
         message_info.sender_user_id = UserId(message->from_id_);
       }
@@ -10703,7 +10702,6 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       auto message = move_tl_object_as<telegram_api::messageService>(message_ptr);
 
       message_info.dialog_id = DialogId(message->to_id_);
-      message_info.message_id = get_message_id(message_ptr, is_scheduled);
       if (message->flags_ & MESSAGE_FLAG_HAS_FROM_ID) {
         message_info.sender_user_id = UserId(message->from_id_);
       }
@@ -16284,8 +16282,8 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
       continue;
     }
     if (message_date != 0 && message_date <= date) {
-      result = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false, false, false,
-                              "on_get_dialog_message_by_date_success");
+      result = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false, false,
+                              false, "on_get_dialog_message_by_date_success");
       if (result != FullMessageId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
@@ -24306,7 +24304,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
       auto message = create_message(
-          parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionUpdatePinned"), true);
+          parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionUpdatePinned"),
+          true);
       if (message.second == nullptr) {
         return make_tl_object<td_api::chatEventMessageUnpinned>();
       }
@@ -24315,12 +24314,12 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
-      auto old_message = create_message(
-          parse_telegram_api_message(std::move(action->prev_message_), false, "prev channelAdminLogEventActionEditMessage"),
-          true);
-      auto new_message = create_message(
-          parse_telegram_api_message(std::move(action->new_message_), false, "new channelAdminLogEventActionEditMessage"),
-          true);
+      auto old_message = create_message(parse_telegram_api_message(std::move(action->prev_message_), false,
+                                                                   "prev channelAdminLogEventActionEditMessage"),
+                                        true);
+      auto new_message = create_message(parse_telegram_api_message(std::move(action->new_message_), false,
+                                                                   "new channelAdminLogEventActionEditMessage"),
+                                        true);
       if (old_message.second == nullptr || new_message.second == nullptr || old_message.first != new_message.first) {
         LOG(ERROR) << "Failed to get edited message";
         return nullptr;
@@ -24347,7 +24346,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionDeleteMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
       auto message = create_message(
-          parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionDeleteMessage"), true);
+          parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionDeleteMessage"),
+          true);
       if (message.second == nullptr) {
         LOG(ERROR) << "Failed to get deleted message";
         return nullptr;
@@ -25462,7 +25462,8 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(m != nullptr);
   MessageId message_id = m->message_id;
   if (message_id.is_scheduled()) {
-    // TODO save scheduled message to database
+    G()->td_db()->get_messages_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
+                                                                 Auto());  // TODO Promise
     return;
   }
   LOG_CHECK(message_id.is_server() || message_id.is_local()) << source;
@@ -25715,11 +25716,7 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
 
   // message may not exist in the dialog
   LOG(INFO) << "Delete " << logevent.full_message_id_ << " from database";
-  if (logevent.full_message_id_.get_message_id().is_scheduled()) {
-    // TODO delete scheduled message from database
-  } else {
-    G()->td_db()->get_messages_db_async()->delete_message(logevent.full_message_id_, std::move(db_promise));
-  }
+  G()->td_db()->get_messages_db_async()->delete_message(logevent.full_message_id_, std::move(db_promise));
 }
 
 void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
