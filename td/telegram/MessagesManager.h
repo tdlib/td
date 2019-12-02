@@ -1568,7 +1568,8 @@ class MessagesManager : public Actor {
   unique_ptr<Message> do_delete_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
                                         bool only_from_memory, bool *need_update_dialog_pos, const char *source);
 
-  unique_ptr<Message> do_delete_scheduled_message(Dialog *d, MessageId message_id, const char *source);
+  unique_ptr<Message> do_delete_scheduled_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
+                                                  const char *source);
 
   void on_message_deleted(Dialog *d, Message *m, const char *source);
 

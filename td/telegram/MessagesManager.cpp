@@ -12093,7 +12093,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   CHECK(d != nullptr);
   if (!message_id.is_valid()) {
     if (message_id.is_valid_scheduled()) {
-      return do_delete_scheduled_message(d, message_id, source);
+      return do_delete_scheduled_message(d, message_id, is_permanently_deleted, source);
     }
 
     LOG(ERROR) << "Trying to delete " << message_id << " in " << d->dialog_id << " from " << source;
@@ -12360,6 +12360,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, const char *sour
 }
 
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_message(Dialog *d, MessageId message_id,
+                                                                                  bool is_permanently_deleted,
                                                                                   const char *source) {
   CHECK(d != nullptr);
   CHECK(message_id.is_valid_scheduled());
@@ -12371,7 +12372,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     if (get_message_force(d, message_id, "do_delete_scheduled_message") == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
-      delete_message_from_database(d, message_id, nullptr, true);
+      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
       return nullptr;
     }
     v = treap_find_message(&d->scheduled_messages, message_id);
@@ -12383,7 +12384,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   LOG(INFO) << "Deleting " << full_message_id << " from " << source;
 
-  delete_message_from_database(d, message_id, m, true);
+  delete_message_from_database(d, message_id, m, is_permanently_deleted);
 
   remove_message_file_sources(d->dialog_id, m);
 
@@ -25397,7 +25398,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     Message *m = message->from_database ? get_message(d, message_id)
                                         : get_message_force(d, message_id, "add_scheduled_message_to_dialog");
     if (m != nullptr) {
-      LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
+      auto old_message_id = m->message_id;
+      LOG(INFO) << "Adding already existing " << old_message_id << " in " << dialog_id << " from " << source;
+      message->message_id = old_message_id;
+      message->random_y = get_random_y(message->message_id);
       if (!message->from_database) {
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
         bool need_update_dialog_pos = false;
@@ -25405,7 +25409,13 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         CHECK(need_update_dialog_pos == false);
         change_message_files(dialog_id, m, old_file_ids);
       }
-      return m;
+      if (old_message_id != message_id) {
+        message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
+        message->message_id = message_id;
+        message->random_y = get_random_y(message->message_id);
+      } else {
+        return m;
+      }
     }
   }
 
