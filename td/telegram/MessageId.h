@@ -18,7 +18,7 @@
 
 namespace td {
 
-enum class MessageType : int32 { None, Server, Local, YetUnsent };
+enum class MessageType : int32 { None, Server, YetUnsent, Local };
 
 class MessageId {
   int64 id = 0;
@@ -55,7 +55,7 @@ class MessageId {
       : id(static_cast<int64>(server_message_id.get()) << SERVER_ID_SHIFT) {
   }
 
-  MessageId(ScheduledServerMessageId server_message_id, int32 send_date);
+  MessageId(ScheduledServerMessageId server_message_id, int32 send_date, bool force = false);
 
   explicit constexpr MessageId(int64 message_id) : id(message_id) {
   }
@@ -129,6 +129,11 @@ class MessageId {
   ScheduledServerMessageId get_scheduled_server_message_id() const {
     CHECK(is_scheduled_server());
     return get_scheduled_server_message_id_force();
+  }
+
+  int32 get_scheduled_message_date() const {
+    CHECK(is_valid_scheduled());
+    return static_cast<int32>(id >> 21) + (1 << 30);
   }
 
   bool operator==(const MessageId &other) const {

@@ -16901,7 +16901,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   int32 schedule_date = 0;
   bool is_scheduled = schedule_date != 0;
   CHECK(d != nullptr);
-  MessageId message_id = get_next_yet_unsent_message_id(d);  // TODO support sending scheduled messages
+  MessageId message_id =
+      is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, schedule_date) : get_next_yet_unsent_message_id(d);
   DialogId dialog_id = d->dialog_id;
   LOG(INFO) << "Create " << message_id << " in " << dialog_id;
 
@@ -22309,6 +22310,20 @@ MessageId MessagesManager::get_next_local_message_id(Dialog *d) {
   return get_next_message_id(d, MessageType::Local);
 }
 
+MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(const Dialog *d, int32 date) {
+  CHECK(date > 0);
+  auto it = MessagesConstIterator(d, MessageId(ScheduledServerMessageId(), date + 1, true));
+  int32 prev_date = 0;
+  if (*it != nullptr) {
+    prev_date = (*it)->message_id.get_scheduled_message_date();
+  }
+  if (prev_date < date) {
+    return MessageId(ScheduledServerMessageId(1), date).get_next_message_id(MessageType::YetUnsent);
+  }
+  CHECK(*it != nullptr);
+  return (*it)->message_id.get_next_message_id(MessageType::YetUnsent);
+}
+
 void MessagesManager::fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
@@ -22331,9 +22346,9 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // dump_debug_message_op(d, 5);
   }
 
-  MessageId new_message_id;
+  MessageId new_message_id =
+      old_message_id.get_next_message_id(MessageType::Local);  // trying to not change message place
   if (!old_message_id.is_scheduled()) {
-    new_message_id = old_message_id.get_next_message_id(MessageType::Local);  // trying to not change message place
     if (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
         d->deleted_message_ids.count(new_message_id) || new_message_id <= d->last_clear_history_message_id) {
       new_message_id = get_next_local_message_id(d);
@@ -22341,11 +22356,9 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
       d->last_assigned_message_id = new_message_id;
     }
   } else {
-    new_message_id = MessageId(old_message_id.get() + 1);  // trying to not change message place
-    if (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
-        d->deleted_message_ids.count(new_message_id)) {
-      // TODO
-      // new_message_id = get_next_scheduled_local_message_id(d);
+    while (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
+           d->deleted_message_ids.count(new_message_id)) {
+      new_message_id = new_message_id.get_next_message_id(MessageType::Local);
     }
   }
 
@@ -25780,11 +25793,11 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
 
 void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
+  CHECK(message_id.is_valid());
   MessagesIterator it(d, message_id);
   Message *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
-  CHECK(m->message_id.is_valid());
   LOG_CHECK(m->have_previous) << d->dialog_id << " " << message_id << " " << source;
   --it;
   LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
@@ -25798,11 +25811,11 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
 
 void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
+  CHECK(message_id.is_valid());
   MessagesIterator it(d, message_id);
   Message *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
-  CHECK(m->message_id.is_valid());
   LOG_CHECK(m->have_next) << d->dialog_id << " " << message_id << " " << source;
   ++it;
   LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
@@ -28064,7 +28077,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   auto now = G()->unix_time();
   bool is_scheduled = m->message_id.is_scheduled();
 
-  m->message_id = get_next_yet_unsent_message_id(d);  // TODO support sending scheduled messages
+  m->message_id =
+      is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, m->date) : get_next_yet_unsent_message_id(d);
   m->random_y = get_random_y(m->message_id);
   if (!is_scheduled) {
     m->date = now;
@@ -28271,9 +28285,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
         auto now = G()->unix_time();
         for (auto &m : messages) {
-          m->message_id = get_next_yet_unsent_message_id(to_dialog);  // TODO support sending scheduled messages
+          bool is_scheduled = m->message_id.is_scheduled();
+          m->message_id = is_scheduled ? get_next_yet_unsent_scheduled_message_id(to_dialog, m->date)
+                                       : get_next_yet_unsent_message_id(to_dialog);
           m->random_y = get_random_y(m->message_id);
-          m->date = now;
+          if (!is_scheduled) {
+            m->date = now;
+          }
           m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);
           m->have_previous = true;
           m->have_next = true;

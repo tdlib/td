@@ -11,12 +11,12 @@
 
 namespace td {
 
-MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date) {
+MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date, bool force) {
   if (send_date <= (1 << 30)) {
     LOG(ERROR) << "Scheduled message send date " << send_date << " is in the past";
     return;
   }
-  if (!server_message_id.is_valid()) {
+  if (!server_message_id.is_valid() && !force) {
     LOG(ERROR) << "Scheduled message ID " << server_message_id.get() << " is invalid";
     return;
   }
@@ -46,6 +46,20 @@ MessageType MessageId::get_type() const {
   if (id <= 0 || id > max().get()) {
     return MessageType::None;
   }
+
+  if (is_scheduled()) {
+    switch (id & TYPE_MASK) {
+      case SCHEDULED_MASK | TYPE_YET_UNSENT:
+        return MessageType::YetUnsent;
+      case SCHEDULED_MASK | TYPE_LOCAL:
+        return MessageType::Local;
+      case SCHEDULED_MASK:
+        return MessageType::Server;
+      default:
+        return MessageType::None;
+    }
+  }
+
   if ((id & FULL_TYPE_MASK) == 0) {
     return MessageType::Server;
   }
@@ -65,14 +79,37 @@ ServerMessageId MessageId::get_server_message_id_force() const {
 }
 
 MessageId MessageId::get_next_message_id(MessageType type) const {
-  CHECK(!is_scheduled());
+  if (is_scheduled()) {
+    CHECK(is_valid_scheduled());
+    auto current_type = get_type();
+    if (static_cast<int32>(current_type) < static_cast<int32>(type)) {
+      return MessageId(id - static_cast<int32>(current_type) + static_cast<int32>(type));
+    }
+    int64 base_id = (id & ~TYPE_MASK) + TYPE_MASK + 1 + SCHEDULED_MASK;
+    switch (type) {
+      case MessageType::Server:
+        return MessageId(base_id);
+      case MessageType::YetUnsent:
+        return MessageId(base_id + TYPE_YET_UNSENT);
+      case MessageType::Local:
+        return MessageId(base_id + TYPE_LOCAL);
+      case MessageType::None:
+      default:
+        UNREACHABLE();
+        return MessageId();
+    }
+  }
+
   switch (type) {
     case MessageType::Server:
+      if (is_server()) {
+        return MessageId(ServerMessageId(get_server_message_id().get() + 1));
+      }
       return get_next_server_message_id();
-    case MessageType::Local:
-      return MessageId(((id + TYPE_MASK + 1 - TYPE_LOCAL) & ~TYPE_MASK) + TYPE_LOCAL);
     case MessageType::YetUnsent:
       return MessageId(((id + TYPE_MASK + 1 - TYPE_YET_UNSENT) & ~TYPE_MASK) + TYPE_YET_UNSENT);
+    case MessageType::Local:
+      return MessageId(((id + TYPE_MASK + 1 - TYPE_LOCAL) & ~TYPE_MASK) + TYPE_LOCAL);
     case MessageType::None:
     default:
       UNREACHABLE();

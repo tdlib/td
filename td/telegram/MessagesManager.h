@@ -1311,7 +1311,9 @@ class MessagesManager : public Actor {
    public:
     MessagesIterator() = default;
 
-    MessagesIterator(Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
+    MessagesIterator(Dialog *d, MessageId message_id)
+        : MessagesIteratorBase(message_id.is_scheduled() ? d->scheduled_messages.get() : d->messages.get(),
+                               message_id) {
     }
 
     Message *operator*() const {
@@ -1323,7 +1325,9 @@ class MessagesManager : public Actor {
    public:
     MessagesConstIterator() = default;
 
-    MessagesConstIterator(const Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
+    MessagesConstIterator(const Dialog *d, MessageId message_id)
+        : MessagesIteratorBase(message_id.is_scheduled() ? d->scheduled_messages.get() : d->messages.get(),
+                               message_id) {
     }
 
     const Message *operator*() const {
@@ -2270,6 +2274,8 @@ class MessagesManager : public Actor {
   static MessageId get_next_local_message_id(Dialog *d);
 
   static MessageId get_next_yet_unsent_message_id(Dialog *d);
+
+  static MessageId get_next_yet_unsent_scheduled_message_id(const Dialog *d, int32 date);
 
   bool add_recently_found_dialog_internal(DialogId dialog_id);
 
