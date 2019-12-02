@@ -253,6 +253,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
         db_.get_statement("SELECT data FROM scheduled_messages WHERE dialog_id = ?1 AND server_message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_scheduled_message_stmt_,
                       db_.get_statement("DELETE FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
+    TRY_RESULT_ASSIGN(
+        delete_scheduled_server_message_stmt_,
+        db_.get_statement("DELETE FROM scheduled_messages WHERE dialog_id = ?1 AND server_message_id = ?2"));
 
     // LOG(ERROR) << get_message_stmt_.explain().ok();
     // LOG(ERROR) << get_messages_from_notification_id_stmt.explain().ok();
@@ -373,12 +376,20 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     auto message_id = full_message_id.get_message_id();
     CHECK(dialog_id.is_valid());
     CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
-    auto &stmt = message_id.is_scheduled() ? delete_scheduled_message_stmt_ : delete_message_stmt_;
+    bool is_scheduled = message_id.is_scheduled();
+    bool is_scheduled_server = is_scheduled && message_id.is_scheduled_server();
+    auto &stmt = is_scheduled
+                     ? (is_scheduled_server ? delete_scheduled_server_message_stmt_ : delete_scheduled_message_stmt_)
+                     : delete_message_stmt_;
     SCOPE_EXIT {
       stmt.reset();
     };
     stmt.bind_int64(1, dialog_id.get()).ensure();
-    stmt.bind_int64(2, message_id.get()).ensure();
+    if (is_scheduled_server) {
+      stmt.bind_int32(2, message_id.get_scheduled_server_message_id().get()).ensure();
+    } else {
+      stmt.bind_int64(2, message_id.get()).ensure();
+    }
     stmt.step().ensure();
     return Status::OK();
   }
@@ -795,6 +806,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   SqliteStatement get_scheduled_message_stmt_;
   SqliteStatement get_scheduled_server_message_stmt_;
   SqliteStatement delete_scheduled_message_stmt_;
+  SqliteStatement delete_scheduled_server_message_stmt_;
 
   Result<std::vector<BufferSlice>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
                                                      MessageId from_message_id, int32 offset, int32 limit) {
