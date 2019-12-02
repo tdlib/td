@@ -8047,12 +8047,14 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
     if (new_message != FullMessageId()) {
       if (new_message.get_dialog_id() != dialog_id) {
         LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
+        total_count--;
         continue;
       }
       auto m = get_message(new_message);
       if (m->content->get_type() != MessageContentType::LiveLocation) {
         LOG(ERROR) << "Receive a message of wrong type " << m->content->get_type() << " in on_get_recent_locations in "
                    << dialog_id;
+        total_count--;
         continue;
       }
 
