@@ -180,11 +180,7 @@ class MessagesManager : public Actor {
 
   static vector<int32> get_scheduled_server_message_ids(const vector<MessageId> &message_ids);
 
-  static tl_object_ptr<telegram_api::InputMessage> get_input_message(MessageId message_id);
-
   DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) const;
-
-  static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
@@ -1425,6 +1421,10 @@ class MessagesManager : public Actor {
   static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
   FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) const;
+
+  static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
+
+  static tl_object_ptr<telegram_api::InputMessage> get_input_message(MessageId message_id);
 
   static bool is_dialog_inited(const Dialog *d);
 
