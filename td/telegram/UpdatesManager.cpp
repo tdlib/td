@@ -1912,6 +1912,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
   td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_get_message(std::move(update->message_), true, false, true, true, true,
+                                         "updateNewScheduledMessage");
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduledMessages> update,
                                bool /*force_apply*/) {
   vector<ScheduledServerMessageId> message_ids = transform(update->messages_, [](int32 scheduled_server_message_id) {
@@ -1922,9 +1927,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, bool /*force_apply*/) {
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
 }

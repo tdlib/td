@@ -10782,6 +10782,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       sender_user_id = UserId();
     }
   }
+  if (message_id.is_scheduled()) {
+    is_channel_message = (dialog_type == DialogType::Channel);
+  }
 
   int32 flags = message_info.flags;
   if (flags &
@@ -10801,8 +10804,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
   bool is_from_scheduled = (flags & MESSAGE_FLAG_IS_FROM_SCHEDULED) != 0;
 
-  LOG_IF(ERROR, is_channel_message && dialog_type != DialogType::Channel)
-      << "is_channel_message is true for message received in the " << dialog_id;
+  LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
+      << "is_channel_message is wrong for message received in the " << dialog_id;
   LOG_IF(ERROR, is_channel_post && !is_broadcast_channel(dialog_id))
       << "is_channel_post is true for message received in the " << dialog_id;
 
