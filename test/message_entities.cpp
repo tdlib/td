@@ -596,16 +596,16 @@ TEST(MessageEntities, fix_formatted_text) {
     check_fix_formatted_text(str, entities, expected_str, fixed_entities, false, false, false, false);
   }
 
-  str = "👉 👉";
+  str = "👉 👉  ";
   for (int i = 0; i < 10; i++) {
     td::vector<td::MessageEntity> entities;
     entities.emplace_back(td::MessageEntity::Type::Bold, i, 1);
-    if (i == 0 || i == 1 || i == 3 || i == 4) {
+    if (i != 2 && i != 5 && i != 6) {
       check_fix_formatted_text(str, entities, true, true, true, true);
       check_fix_formatted_text(str, entities, false, false, false, false);
     } else {
       check_fix_formatted_text(str, entities, str, {}, true, true, true, true);
-      check_fix_formatted_text(str, entities, str, {}, false, false, false, false);
+      check_fix_formatted_text(str, entities, str.substr(0, str.size() - 2), {}, false, false, false, false);
     }
   }
 
@@ -676,8 +676,13 @@ TEST(MessageEntities, fix_formatted_text) {
       td::vector<td::MessageEntity> entities;
       entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       td::vector<td::MessageEntity> fixed_entities;
-      if (length > 0 && offset >= 0 && static_cast<size_t>(length + offset) <= str.size() &&
-          (length >= 2 || offset != 3)) {
+      if (length > 0 && offset >= 0 && static_cast<size_t>(length + offset) > str.size()) {
+        check_fix_formatted_text(str, entities, true, false, false, false);
+        check_fix_formatted_text(str, entities, false, false, false, true);
+        continue;
+      }
+
+      if (length > 0 && offset >= 0 && (length >= 2 || offset != 3)) {
         fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       }
       check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);
@@ -711,9 +716,14 @@ TEST(MessageEntities, fix_formatted_text) {
     td::vector<td::MessageEntity> entities;
     td::vector<td::MessageEntity> fixed_entities;
 
+    auto length = td::narrow_cast<int>(td::utf8_utf16_length(str));
     for (int i = 0; i < 10; i++) {
-      entities.emplace_back(td::MessageEntity::Type::Bold, (i + 1) * 3, 2);
-      entities.emplace_back(td::MessageEntity::Type::Italic, (i + 1) * 3 + 2, 1);
+      if ((i + 1) * 3 + 2 <= length) {
+        entities.emplace_back(td::MessageEntity::Type::Bold, (i + 1) * 3, 2);
+      }
+      if ((i + 2) * 3 <= length) {
+        entities.emplace_back(td::MessageEntity::Type::Italic, (i + 1) * 3 + 2, 1);
+      }
 
       if (i < 4) {
         fixed_entities.emplace_back(td::MessageEntity::Type::Bold, i * 3, 2);
