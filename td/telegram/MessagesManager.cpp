@@ -5729,6 +5729,40 @@ void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, i
                                  "on_update_channel_online_member_count");
 }
 
+void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
+                                                          vector<ScheduledServerMessageId> &&server_message_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive deleted scheduled messages in invalid " << dialog_id;
+    return;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(INFO) << "Skip updateDeleteScheduledMessages in unknown " << dialog_id;
+    return;
+  }
+
+  vector<int64> deleted_message_ids;
+  for (auto server_message_id : server_message_ids) {
+    if (!server_message_id.is_valid()) {
+      LOG(ERROR) << "Incoming update tries to delete scheduled message " << server_message_id.get();
+      continue;
+    }
+
+    auto message = do_delete_scheduled_message(d, MessageId(server_message_id, std::numeric_limits<int32>::max()), true,
+                                               "on_update_delete_scheduled_messages");
+    if (message != nullptr) {
+      deleted_message_ids.push_back(message->message_id.get());
+    }
+  }
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+}
+
 void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -25411,6 +25445,8 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       }
       if (old_message_id != message_id) {
         message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
+        CHECK(message != nullptr);
+        send_update_delete_messages(dialog_id, {old_message_id.get()}, false, false);
         message->message_id = message_id;
         message->random_y = get_random_y(message->message_id);
       } else {
