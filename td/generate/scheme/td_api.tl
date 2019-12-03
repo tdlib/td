@@ -1483,7 +1483,7 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 //@class MessageSchedulingState @description Contains information about the time when a scheduled message will be sent
 
-//@description The message will be sent at the specified date @send_date Date the message will be sent
+//@description The message will be sent at the specified date @send_date Date the message will be sent. The date must be within 367 days in the future
 messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
 
 //@description The message will be sent when the peer will be online. Applicable to private chats only and when the exact online status of the peer is known
@@ -3338,6 +3338,9 @@ editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup capti
 
 //@description Edits the reply markup of an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup
 editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup = Ok;
+
+//@description Edits the time when a scheduled message will be sent @chat_id The chat the message belongs to @message_id Identifier of the message @scheduling_state The new message scheduling state. Pass null to send the message immediately
+editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, URLs, and email addresses) contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text in which to look for entites

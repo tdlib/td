@@ -602,6 +602,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request);
 
+  void on_request(uint64 id, td_api::editMessageSchedulingState &request);
+
   void on_request(uint64 id, td_api::setGameScore &request);
 
   void on_request(uint64 id, td_api::setInlineGameScore &request);

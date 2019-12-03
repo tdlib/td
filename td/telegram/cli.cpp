@@ -536,20 +536,20 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::inputFileId>(as_file_id(str));
   }
 
-  static tl_object_ptr<td_api::InputFile> as_local_file(string path) {
+  static td_api::object_ptr<td_api::InputFile> as_local_file(string path) {
     return td_api::make_object<td_api::inputFileLocal>(trim(std::move(path)));
   }
 
-  static tl_object_ptr<td_api::InputFile> as_remote_file(string id) {
+  static td_api::object_ptr<td_api::InputFile> as_remote_file(string id) {
     return td_api::make_object<td_api::inputFileRemote>(trim(std::move(id)));
   }
 
-  static tl_object_ptr<td_api::InputFile> as_generated_file(string original_path, string conversion,
-                                                            int32 expected_size = 0) {
+  static td_api::object_ptr<td_api::InputFile> as_generated_file(string original_path, string conversion,
+                                                                 int32 expected_size = 0) {
     return td_api::make_object<td_api::inputFileGenerated>(trim(original_path), trim(conversion), expected_size);
   }
 
-  static tl_object_ptr<td_api::InputFile> as_input_file(string str) {
+  static td_api::object_ptr<td_api::InputFile> as_input_file(string str) {
     str = trim(str);
     if ((str.size() >= 20 && is_base64url(str)) || begins_with(str, "http")) {
       return as_remote_file(str);
@@ -565,18 +565,19 @@ class CliClient final : public Actor {
     return as_local_file(str);
   }
 
-  static tl_object_ptr<td_api::inputThumbnail> as_input_thumbnail(tl_object_ptr<td_api::InputFile> input_file,
-                                                                  int32 width = 0, int32 height = 0) {
+  static td_api::object_ptr<td_api::inputThumbnail> as_input_thumbnail(td_api::object_ptr<td_api::InputFile> input_file,
+                                                                       int32 width = 0, int32 height = 0) {
     return td_api::make_object<td_api::inputThumbnail>(std::move(input_file), width, height);
   }
 
-  static tl_object_ptr<td_api::inputThumbnail> as_input_thumbnail(const string &thumbnail, int32 width = 0,
-                                                                  int32 height = 0) {
+  static td_api::object_ptr<td_api::inputThumbnail> as_input_thumbnail(const string &thumbnail, int32 width = 0,
+                                                                       int32 height = 0) {
     return as_input_thumbnail(as_input_file(thumbnail), width, height);
   }
 
-  static tl_object_ptr<td_api::inputThumbnail> as_input_thumbnail(const string &original_path, const string &conversion,
-                                                                  int32 width = 0, int32 height = 0) {
+  static td_api::object_ptr<td_api::inputThumbnail> as_input_thumbnail(const string &original_path,
+                                                                       const string &conversion, int32 width = 0,
+                                                                       int32 height = 0) {
     return as_input_thumbnail(as_generated_file(original_path, conversion), width, height);
   }
 
@@ -588,7 +589,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
-  static tl_object_ptr<td_api::location> as_location(string latitude, string longitude) {
+  static td_api::object_ptr<td_api::location> as_location(string latitude, string longitude) {
     if (trim(latitude).empty() && trim(longitude).empty()) {
       return nullptr;
     }
@@ -605,7 +606,7 @@ class CliClient final : public Actor {
     return transform(transform(full_split(ids_string, delimiter), trim<Slice>), to_integer<T>);
   }
 
-  void on_result(uint64 generation, uint64 id, tl_object_ptr<td_api::Object> result) {
+  void on_result(uint64 generation, uint64 id, td_api::object_ptr<td_api::Object> result) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << to_string(result);
     }
@@ -713,7 +714,7 @@ class CliClient final : public Actor {
     }
   }
 
-  void on_error(uint64 generation, uint64 id, tl_object_ptr<td_api::error> error) {
+  void on_error(uint64 generation, uint64 id, td_api::object_ptr<td_api::error> error) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Receive error [" << generation << "][id=" << id << "] " << to_string(error);
     }
@@ -781,10 +782,10 @@ class CliClient final : public Actor {
      public:
       TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {
       }
-      void on_result(uint64 id, tl_object_ptr<td_api::Object> result) override {
+      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
         client_->on_result(generation_, id, std::move(result));
       }
-      void on_error(uint64 id, tl_object_ptr<td_api::error> error) override {
+      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) override {
         client_->on_error(generation_, id, std::move(error));
       }
       TdCallbackImpl(const TdCallbackImpl &) = delete;
@@ -897,7 +898,7 @@ class CliClient final : public Actor {
   }
 #endif
 
-  static tl_object_ptr<td_api::formattedText> as_formatted_text(
+  static td_api::object_ptr<td_api::formattedText> as_formatted_text(
       string text, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
     if (entities.empty() && !text.empty()) {
       auto parsed_text = execute(
@@ -909,12 +910,12 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::formattedText>(text, std::move(entities));
   }
 
-  static tl_object_ptr<td_api::formattedText> as_caption(string caption,
-                                                         vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
+  static td_api::object_ptr<td_api::formattedText> as_caption(
+      string caption, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
     return as_formatted_text(caption, std::move(entities));
   }
 
-  static tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) {
+  static td_api::object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) {
     if (scope.empty()) {
       return nullptr;
     }
@@ -927,7 +928,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::notificationSettingsScopePrivateChats>();
   }
 
-  static tl_object_ptr<td_api::UserPrivacySetting> get_user_privacy_setting(MutableSlice setting) {
+  static td_api::object_ptr<td_api::UserPrivacySetting> get_user_privacy_setting(MutableSlice setting) {
     setting = trim(setting);
     to_lower_inplace(setting);
     if (setting == "invite") {
@@ -957,7 +958,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static tl_object_ptr<td_api::SearchMessagesFilter> get_search_messages_filter(MutableSlice filter) {
+  static td_api::object_ptr<td_api::SearchMessagesFilter> get_search_messages_filter(MutableSlice filter) {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (filter == "an" || filter == "animation") {
@@ -1011,7 +1012,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static tl_object_ptr<td_api::ChatMembersFilter> get_chat_members_filter(MutableSlice filter) {
+  static td_api::object_ptr<td_api::ChatMembersFilter> get_chat_members_filter(MutableSlice filter) {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (filter == "a" || filter == "admin" || filter == "administrators") {
@@ -1038,7 +1039,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static tl_object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
+  static td_api::object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
     category = trim(category);
     to_lower_inplace(category);
     if (!category.empty() && category.back() == 's') {
@@ -1061,7 +1062,7 @@ class CliClient final : public Actor {
     }
   }
 
-  static tl_object_ptr<td_api::ChatAction> get_chat_action(MutableSlice action) {
+  static td_api::object_ptr<td_api::ChatAction> get_chat_action(MutableSlice action) {
     action = trim(action);
     to_lower_inplace(action);
     if (action == "c" || action == "cancel") {
@@ -1103,7 +1104,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatActionTyping>();
   }
 
-  static tl_object_ptr<td_api::NetworkType> get_network_type(MutableSlice type) {
+  static td_api::object_ptr<td_api::NetworkType> get_network_type(MutableSlice type) {
     type = trim(type);
     to_lower_inplace(type);
     if (type == "none") {
@@ -1124,7 +1125,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static tl_object_ptr<td_api::PassportElementType> as_passport_element_type(Slice passport_element_type) {
+  static td_api::object_ptr<td_api::PassportElementType> as_passport_element_type(Slice passport_element_type) {
     if (passport_element_type == "address" || passport_element_type == "a") {
       return td_api::make_object<td_api::passportElementTypeAddress>();
     }
@@ -1162,8 +1163,8 @@ class CliClient final : public Actor {
     return transform(full_split(types, delimiter), [](Slice str) { return as_passport_element_type(str); });
   }
 
-  static tl_object_ptr<td_api::InputPassportElement> as_input_passport_element(string passport_element_type, string arg,
-                                                                               bool with_selfie) {
+  static td_api::object_ptr<td_api::InputPassportElement> as_input_passport_element(string passport_element_type,
+                                                                                    string arg, bool with_selfie) {
     vector<td_api::object_ptr<td_api::InputFile>> input_files;
     td_api::object_ptr<td_api::InputFile> selfie;
     if (!arg.empty()) {
@@ -1239,7 +1240,16 @@ class CliClient final : public Actor {
                                                          true, true, -1, 5, 3, "abacaba");
   }
 
-  static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
+  static td_api::object_ptr<td_api::MessageSchedulingState> as_message_scheduling_state(Slice date) {
+    date = trim(date);
+    auto send_date = to_integer<int32>(date);
+    if (send_date == -1) {
+      return td_api::make_object<td_api::messageSchedulingStateSendWhenOnline>();
+    }
+    return td_api::make_object<td_api::messageSchedulingStateSendAtDate>(send_date);
+  }
+
+  static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
     if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Execute request: " << to_string(f);
     }
@@ -1250,7 +1260,7 @@ class CliClient final : public Actor {
     return res;
   }
 
-  uint64 send_request(tl_object_ptr<td_api::Function> f) {
+  uint64 send_request(td_api::object_ptr<td_api::Function> f) {
     static uint64 query_num = 1;
     if (!td_client_.empty()) {
       auto id = query_num++;
@@ -1573,7 +1583,7 @@ class CliClient final : public Actor {
       std::tie(setting, args) = split(args);
       std::tie(allow, ids) = split(args);
 
-      std::vector<tl_object_ptr<td_api::UserPrivacySettingRule>> rules;
+      std::vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
       if (allow == "c" || allow == "contacts") {
         rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
       } else if (allow == "users") {
@@ -1616,7 +1626,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sharePhoneNumber>(as_user_id(user_id)));
     } else if (op == "ImportContacts" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
-      vector<tl_object_ptr<td_api::contact>> contacts;
+      vector<td_api::object_ptr<td_api::contact>> contacts;
       for (auto c : contacts_str) {
         string phone_number;
         string first_name;
@@ -1952,7 +1962,7 @@ class CliClient final : public Actor {
       std::tie(name, args) = split(args);
       std::tie(native_name, key) = split(args);
 
-      vector<tl_object_ptr<td_api::languagePackString>> strings;
+      vector<td_api::object_ptr<td_api::languagePackString>> strings;
       strings.push_back(td_api::make_object<td_api::languagePackString>(
           key, td_api::make_object<td_api::languagePackStringValueOrdinary>("Ordinary value")));
       strings.push_back(td_api::make_object<td_api::languagePackString>(
@@ -1981,7 +1991,8 @@ class CliClient final : public Actor {
       std::tie(language_code, args) = split(args);
       std::tie(key, value) = split(args);
 
-      tl_object_ptr<td_api::languagePackString> str = td_api::make_object<td_api::languagePackString>(key, nullptr);
+      td_api::object_ptr<td_api::languagePackString> str =
+          td_api::make_object<td_api::languagePackString>(key, nullptr);
       if (op == "sclsv") {
         str->value_ = td_api::make_object<td_api::languagePackStringValueOrdinary>(value);
       } else if (op == "sclsp") {
@@ -2154,17 +2165,17 @@ class CliClient final : public Actor {
       std::tie(chat_ids, args) = split(args);
       std::tie(exclude_chat_ids, chat_ids_limit) = split(args);
       send_request(td_api::make_object<td_api::optimizeStorage>(
-          10000000, -1, -1, 0, std::vector<tl_object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids, ','),
+          10000000, -1, -1, 0, std::vector<td_api::object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids, ','),
           as_chat_ids(exclude_chat_ids, ','), to_integer<int32>(chat_ids_limit)));
     } else if (op == "clean_storage_default") {
       send_request(td_api::make_object<td_api::optimizeStorage>());
     } else if (op == "clean_photos") {
-      std::vector<tl_object_ptr<td_api::FileType>> types;
+      std::vector<td_api::object_ptr<td_api::FileType>> types;
       types.push_back(td_api::make_object<td_api::fileTypePhoto>());
       send_request(td_api::make_object<td_api::optimizeStorage>(0, 0, 0, 0, std::move(types), as_chat_ids(""),
                                                                 as_chat_ids(""), 20));
     } else if (op == "clean_storage") {
-      std::vector<tl_object_ptr<td_api::FileType>> types;
+      std::vector<td_api::object_ptr<td_api::FileType>> types;
       types.push_back(td_api::make_object<td_api::fileTypeThumbnail>());
       types.push_back(td_api::make_object<td_api::fileTypeProfilePhoto>());
       types.push_back(td_api::make_object<td_api::fileTypePhoto>());
@@ -2664,9 +2675,9 @@ class CliClient final : public Actor {
       string message;
       std::tie(chat_id, args) = split(args);
       std::tie(reply_to_message_id, message) = split(args);
-      tl_object_ptr<td_api::draftMessage> draft_message;
+      td_api::object_ptr<td_api::draftMessage> draft_message;
       if (!reply_to_message_id.empty() || !message.empty()) {
-        vector<tl_object_ptr<td_api::textEntity>> entities;
+        vector<td_api::object_ptr<td_api::textEntity>> entities;
         entities.push_back(
             td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
 
@@ -2779,7 +2790,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
           as_chat_id(chat_id), as_message_id(reply_to_message_id), false, false,
           transform(photos, [](const string &photo_path) {
-            tl_object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
+            td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
                 as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
             return content;
           })));
@@ -2861,6 +2872,14 @@ class CliClient final : public Actor {
       std::tie(latitude, longitude) = split(args);
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(as_chat_id(chat_id), as_message_id(message_id),
                                                                         nullptr, as_location(latitude, longitude)));
+    } else if (op == "emss") {
+      string chat_id;
+      string message_id;
+      string date;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, date) = split(args);
+      send_request(td_api::make_object<td_api::editMessageSchedulingState>(
+          as_chat_id(chat_id), as_message_id(message_id), as_message_scheduling_state(date)));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {
@@ -3394,7 +3413,7 @@ class CliClient final : public Actor {
       string chat_id;
       string user_id;
       string status_str;
-      tl_object_ptr<td_api::ChatMemberStatus> status;
+      td_api::object_ptr<td_api::ChatMemberStatus> status;
 
       std::tie(chat_id, args) = split(args);
       std::tie(user_id, status_str) = split(args);
@@ -3691,7 +3710,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(reason_str, message_ids) = split(args);
 
-      tl_object_ptr<td_api::ChatReportReason> reason;
+      td_api::object_ptr<td_api::ChatReportReason> reason;
       if (reason_str == "spam") {
         reason = td_api::make_object<td_api::chatReportReasonSpam>();
       } else if (reason_str == "violence") {

@@ -409,6 +409,10 @@ class MessagesManager : public Actor {
   void edit_inline_message_reply_markup(const string &inline_message_id,
                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
 
+  void edit_message_scheduling_state(FullMessageId full_message_id,
+                                     td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
+                                     Promise<Unit> &&promise);
+
   void set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score, bool force,
                       Promise<Unit> &&promise);
 
@@ -1856,6 +1860,8 @@ class MessagesManager : public Actor {
   void send_update_chat_action_bar(const Dialog *d);
 
   void hide_dialog_action_bar(Dialog *d);
+
+  static Result<int32> get_message_schedule_date(td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);
 
   static tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m);
 

@@ -2369,7 +2369,8 @@ class EditMessageActor : public NetActorOnce {
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, uint64 sequence_dispatcher_id) {
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date,
+            uint64 sequence_dispatcher_id) {
     dialog_id_ = dialog_id;
 
     if (false && input_media != nullptr) {
@@ -2397,11 +2398,16 @@ class EditMessageActor : public NetActorOnce {
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
+    if (schedule_date != 0) {
+      flags |= telegram_api::messages_editMessage::SCHEDULE_DATE_MASK;
+    }
     LOG(DEBUG) << "Edit message with flags " << flags;
 
+    int32 server_message_id = schedule_date != 0 ? message_id.get_scheduled_server_message_id().get()
+                                                 : message_id.get_server_message_id().get();
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), text,
-        std::move(input_media), std::move(reply_markup), std::move(entities), 0)));
+        flags, false /*ignored*/, std::move(input_peer), server_message_id, text, std::move(input_media),
+        std::move(reply_markup), std::move(entities), schedule_date)));
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -16771,6 +16777,35 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
 
+Result<int32> MessagesManager::get_message_schedule_date(
+    td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state) {
+  if (scheduling_state == nullptr) {
+    return 0;
+  }
+
+  switch (scheduling_state->get_id()) {
+    case td_api::messageSchedulingStateSendWhenOnline::ID:
+      return SCHEDULE_WHEN_ONLINE_DATE;
+    case td_api::messageSchedulingStateSendAtDate::ID: {
+      auto send_at_date = td_api::move_object_as<td_api::messageSchedulingStateSendAtDate>(scheduling_state);
+      auto send_date = send_at_date->send_date_;
+      if (send_date <= 0) {
+        return Status::Error(400, "Invalid send date specified");
+      }
+      if (send_date <= G()->unix_time()) {
+        return 0;
+      }
+      if (send_date - G()->unix_time() > 367 * 86400) {
+        return Status::Error(400, "Send date is too far in the future");
+      }
+      return send_date;
+    }
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
 tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) {
   CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
@@ -17772,7 +17807,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
                  dialog_id, message_id, caption == nullptr ? "" : caption->text,
                  get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-                 std::move(input_media), std::move(input_reply_markup),
+                 std::move(input_media), std::move(input_reply_markup), 0,
                  get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
     return;
   }
@@ -18703,7 +18738,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
       td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
       message_id, input_message_text.text.text,
       get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
-      nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+      nullptr, std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -18760,7 +18795,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
                                                                                 location.get_input_geo_point(), 0);
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
-               std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -18967,7 +19002,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
                message_id, caption.text,
                get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-               nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               nullptr, std::move(input_reply_markup), 0,
+               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
@@ -19006,7 +19042,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -19190,6 +19226,47 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
              nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
+}
+
+void MessagesManager::edit_message_scheduling_state(
+    FullMessageId full_message_id, td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
+    Promise<Unit> &&promise) {
+  auto r_schedule_date = get_message_schedule_date(std::move(scheduling_state));
+  if (r_schedule_date.is_error()) {
+    return promise.set_error(r_schedule_date.move_as_error());
+  }
+  auto schedule_date = r_schedule_date.move_as_ok();
+
+  LOG(INFO) << "Begin to reschedule " << full_message_id << " to " << schedule_date;
+
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(5, "Chat not found"));
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Edit)) {
+    return promise.set_error(Status::Error(5, "Can't access the chat"));
+  }
+
+  auto message_id = full_message_id.get_message_id();
+  const Message *m = get_message_force(d, message_id, "edit_message_scheduling_state");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(5, "Message not found"));
+  }
+
+  if (!message_id.is_scheduled()) {
+    return promise.set_error(Status::Error(5, "Message is not scheduled"));
+  }
+
+  if (schedule_date > 0) {
+    send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
+                 message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
+                 schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  } else {
+    // TODO immediately send the message
+    promise.set_value(Unit());
+  }
 }
 
 int32 MessagesManager::get_message_flags(const Message *m) {
