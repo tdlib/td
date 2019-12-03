@@ -956,6 +956,7 @@ class MessagesManager : public Actor {
 
     unique_ptr<ReplyMarkup> reply_markup;
 
+    int32 edited_schedule_date = 0;
     unique_ptr<MessageContent> edited_content;
     unique_ptr<ReplyMarkup> edited_reply_markup;
     uint64 edit_generation = 0;
@@ -1489,8 +1490,8 @@ class MessagesManager : public Actor {
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
-                               bool was_uploaded, bool was_thumbnail_uploaded, string file_reference, uint64 generation,
-                               Result<Unit> &&result);
+                               bool was_uploaded, bool was_thumbnail_uploaded, string file_reference,
+                               int32 scheduled_date, uint64 generation, Result<Unit> &&result);
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
@@ -2368,6 +2369,8 @@ class MessagesManager : public Actor {
   Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
   bool is_broadcast_channel(DialogId dialog_id) const;
+
+  static int32 get_message_schedule_date(const Message *m);
 
   int32 recently_found_dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
   MultiPromiseActor resolve_recently_found_dialogs_multipromise_{"ResolveRecentlyFoundDialogsMultiPromiseActor"};

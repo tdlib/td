@@ -350,7 +350,7 @@ class GetScheduledMessagesQuery : public Td::ResultHandler {
     LOG_IF(ERROR, info.is_channel_messages != (dialog_id_.get_type() == DialogType::Channel))
         << "Receive wrong messages constructor in GetScheduledMessagesQuery";
     td->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages, true,
-                                           "GetChannelMessagesQuery");
+                                           "GetScheduledMessagesQuery");
 
     promise_.set_value(Unit());
   }
@@ -17845,18 +17845,19 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     bool was_thumbnail_uploaded = FileManager::extract_was_thumbnail_uploaded(input_media);
 
     LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
+    auto schedule_date = get_message_schedule_date(m);
     auto promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, message_id, file_id, thumbnail_file_id, generation = m->edit_generation,
-         was_uploaded, was_thumbnail_uploaded,
+        [actor_id = actor_id(this), dialog_id, message_id, file_id, thumbnail_file_id, schedule_date,
+         generation = m->edit_generation, was_uploaded, was_thumbnail_uploaded,
          file_reference = FileManager::extract_file_reference(input_media)](Result<Unit> result) mutable {
           send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id, file_id,
-                       thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, std::move(file_reference), generation,
-                       std::move(result));
+                       thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, std::move(file_reference),
+                       schedule_date, generation, std::move(result));
         });
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
                  dialog_id, message_id, caption == nullptr ? "" : caption->text,
                  get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-                 std::move(input_media), std::move(input_reply_markup), 0,
+                 std::move(input_media), std::move(input_reply_markup), schedule_date,
                  get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
     return;
   }
@@ -18727,6 +18728,16 @@ bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
   return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
 }
 
+int32 MessagesManager::get_message_schedule_date(const Message *m) {
+  if (!m->message_id.is_scheduled()) {
+    return 0;
+  }
+  if (m->edited_schedule_date != 0) {
+    return m->edited_schedule_date;
+  }
+  return m->date;
+}
+
 void MessagesManager::edit_message_text(FullMessageId full_message_id,
                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                         tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
@@ -18787,7 +18798,8 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
       td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
       message_id, input_message_text.text.text,
       get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
-      nullptr, std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+      nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
+      get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -18844,7 +18856,8 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
                                                                                 location.get_input_geo_point(), 0);
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
-               std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               std::move(input_reply_markup), get_message_schedule_date(m),
+               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -18862,7 +18875,8 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, 
 
 void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id,
                                               FileId thumbnail_file_id, bool was_uploaded, bool was_thumbnail_uploaded,
-                                              string file_reference, uint64 generation, Result<Unit> &&result) {
+                                              string file_reference, int32 schedule_date, uint64 generation,
+                                              Result<Unit> &&result) {
   CHECK(message_id.is_any_server());
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr || m->edit_generation != generation) {
@@ -18916,6 +18930,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     }
   }
 
+  if (m->edited_schedule_date == schedule_date) {
+    m->edited_schedule_date = 0;
+  }
   m->edited_content = nullptr;
   m->edited_reply_markup = nullptr;
   m->edit_generation = 0;
@@ -19051,7 +19068,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
                message_id, caption.text,
                get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-               nullptr, std::move(input_reply_markup), 0,
+               nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
@@ -19091,7 +19108,8 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               std::move(input_reply_markup), 0, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               std::move(input_reply_markup), get_message_schedule_date(m),
+               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -19299,7 +19317,7 @@ void MessagesManager::edit_message_scheduling_state(
   }
 
   auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "edit_message_scheduling_state");
+  Message *m = get_message_force(d, message_id, "edit_message_scheduling_state");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19310,6 +19328,11 @@ void MessagesManager::edit_message_scheduling_state(
   if (!message_id.is_scheduled_server()) {
     return promise.set_error(Status::Error(5, "Can't reschedule the message"));
   }
+
+  if (get_message_schedule_date(m) == schedule_date) {
+    return promise.set_value(Unit());
+  }
+  m->edited_schedule_date = schedule_date;
 
   if (schedule_date > 0) {
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
@@ -26006,6 +26029,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                  << ", message content type is " << old_message->content->get_type() << '/'
                  << new_message->content->get_type();
     }
+  }
+  if (old_message->date == old_message->edited_schedule_date) {
+    old_message->edited_schedule_date = 0;
   }
   bool is_edited = false;
   int32 old_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
