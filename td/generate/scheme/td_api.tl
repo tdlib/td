@@ -542,6 +542,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts and for channel posts automatically forwarded to discussion group
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
+//@scheduling_state Information about the scheduling state of the message; may be null
 //@is_outgoing True, if the message is outgoing
 //@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message by the client
 //@can_be_forwarded True, if the message can be forwarded
@@ -562,7 +563,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string views:int32 media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string views:int32 media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -1478,6 +1479,15 @@ textEntityTypeMentionName user_id:int32 = TextEntityType;
 //@description A thumbnail to be sent along with a file; should be in JPEG or WEBP format for stickers, and less than 200 kB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
 //@width Thumbnail width, usually shouldn't exceed 320. Use 0 if unknown @height Thumbnail height, usually shouldn't exceed 320. Use 0 if unknown
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
+
+
+//@class MessageSchedulingState @description Contains information about the time when a scheduled message will be sent
+
+//@description The message will be sent at the specified date @send_date Date the message will be sent
+messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
+
+//@description The message will be sent when the peer will be online. Applicable to private chats only and when the exact online status of the peer is known
+messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 
 
 //@class InputMessageContent @description The content of a message to send

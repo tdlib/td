@@ -1412,6 +1412,8 @@ class MessagesManager : public Actor {
 
   static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
 
+  static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
+
   static constexpr double DIALOG_ACTION_TIMEOUT = 5.5;
 
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
@@ -1854,6 +1856,8 @@ class MessagesManager : public Actor {
   void send_update_chat_action_bar(const Dialog *d);
 
   void hide_dialog_action_bar(Dialog *d);
+
+  static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
 
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
                                                     bool for_event_log = false) const;

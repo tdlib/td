@@ -16771,6 +16771,13 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
 
+tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_scheduling_state_object(int32 send_date) {
+  if (send_date == SCHEDULE_WHEN_ONLINE_DATE) {
+    return td_api::make_object<td_api::messageSchedulingStateSendWhenOnline>();
+  }
+  return td_api::make_object<td_api::messageSchedulingStateSendAtDate>(send_date);
+}
+
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId full_message_id) {
   return get_message_object(full_message_id.get_dialog_id(), get_message_force(full_message_id, "get_message_object"));
 }
@@ -16803,6 +16810,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     can_delete = can_delete_channel_message(dialog_status, m, is_bot);
   }
 
+  bool is_scheduled = m->message_id.is_scheduled();
   DialogId my_dialog_id = get_my_dialog_id();
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
@@ -16825,7 +16833,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   if (for_event_log) {
     can_delete_for_self = false;
     can_delete_for_all_users = false;
-  } else if (m->message_id.is_scheduled()) {
+  } else if (is_scheduled) {
     can_delete_for_self = (dialog_id == my_dialog_id);
     can_delete_for_all_users = !can_delete_for_self;
   }
@@ -16836,7 +16844,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
     auto forward_info = m->forward_info.get();
-    is_outgoing = m->message_id.is_scheduled() || forward_info == nullptr ||
+    is_outgoing = is_scheduled || forward_info == nullptr ||
                   (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
   }
 
@@ -16851,19 +16859,20 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   } else {
     ttl = 0;
   }
+  auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, is_bot);
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
   bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
-  auto date = m->message_id.is_scheduled() ? 0 : m->date;
+  auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
-      dialog_id.get(), std::move(sending_state), is_outgoing, can_be_edited, can_be_forwarded, can_delete_for_self,
-      can_delete_for_all_users, m->is_channel_post, contains_unread_mention, date, edit_date,
-      get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
+      dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
+      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, m->is_channel_post, contains_unread_mention,
+      date, edit_date, get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
       media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
