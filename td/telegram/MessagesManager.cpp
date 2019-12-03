@@ -2358,6 +2358,55 @@ class UploadMediaQuery : public Td::ResultHandler {
   }
 };
 
+class SendScheduledMessageActor : public NetActorOnce {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SendScheduledMessageActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, uint64 sequence_dispatcher_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
+    if (input_peer == nullptr) {
+      on_error(0, Status::Error(400, "Can't access the chat"));
+      stop();
+      return;
+    }
+
+    LOG(DEBUG) << "Send " << FullMessageId{dialog_id, message_id};
+
+    int32 server_message_id = message_id.get_scheduled_server_message_id().get();
+    auto query = G()->net_query_creator().create(
+        create_storer(telegram_api::messages_sendScheduledMessages(std::move(input_peer), {server_message_id})));
+
+    query->debug("send to MessagesManager::MultiSequenceDispatcher");
+    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_sendScheduledMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendScheduledMessage: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    LOG(INFO) << "Receive error for SendScheduledMessage: " << status;
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScheduledMessageActor");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditMessageActor : public NetActorOnce {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -19258,14 +19307,17 @@ void MessagesManager::edit_message_scheduling_state(
   if (!message_id.is_scheduled()) {
     return promise.set_error(Status::Error(5, "Message is not scheduled"));
   }
+  if (!message_id.is_scheduled_server()) {
+    return promise.set_error(Status::Error(5, "Can't reschedule the message"));
+  }
 
   if (schedule_date > 0) {
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                  message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
                  schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   } else {
-    // TODO immediately send the message
-    promise.set_value(Unit());
+    send_closure(td_->create_net_actor<SendScheduledMessageActor>(std::move(promise)), &SendScheduledMessageActor::send,
+                 dialog_id, message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   }
 }
 
