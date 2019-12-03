@@ -16771,6 +16771,18 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
 
+tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) {
+  CHECK(m != nullptr);
+  if (m->message_id.is_yet_unsent()) {
+    return td_api::make_object<td_api::messageSendingStatePending>();
+  }
+  if (m->is_failed_to_send) {
+    return td_api::make_object<td_api::messageSendingStateFailed>(
+        m->send_error_code, m->send_error_message, can_resend_message(m), max(m->try_resend_at - Time::now(), 0.0));
+  }
+  return nullptr;
+}
+
 tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_scheduling_state_object(int32 send_date) {
   if (send_date == SCHEDULE_WHEN_ONLINE_DATE) {
     return td_api::make_object<td_api::messageSchedulingStateSendWhenOnline>();
@@ -16788,14 +16800,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     return nullptr;
   }
 
-  // TODO get_message_sending_state_object
-  tl_object_ptr<td_api::MessageSendingState> sending_state;
-  if (m->is_failed_to_send) {
-    sending_state = make_tl_object<td_api::messageSendingStateFailed>(
-        m->send_error_code, m->send_error_message, can_resend_message(m), max(m->try_resend_at - Time::now(), 0.0));
-  } else if (m->message_id.is_yet_unsent()) {
-    sending_state = make_tl_object<td_api::messageSendingStatePending>();
-  }
+  auto sending_state = get_message_sending_state_object(m);
 
   if (for_event_log) {
     CHECK(m->message_id.is_server());

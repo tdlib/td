@@ -1857,6 +1857,8 @@ class MessagesManager : public Actor {
 
   void hide_dialog_action_bar(Dialog *d);
 
+  static tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m);
+
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
 
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
