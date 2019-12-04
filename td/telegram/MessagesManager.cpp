@@ -5815,7 +5815,10 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
       deleted_message_ids.push_back(message->message_id.get());
     }
   }
+
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+  send_update_chat_has_scheduled_messages(d);
 }
 
 void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
@@ -8417,6 +8420,8 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
     send_update_chat_last_message(d, "delete_messages");
   }
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+  send_update_chat_has_scheduled_messages(d);
 }
 
 void MessagesManager::delete_message_from_server(DialogId dialog_id, MessageId message_id, bool revoke) {
@@ -11137,6 +11142,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     // don't need to update dialog pos
     return FullMessageId();
   }
+
+  send_update_chat_has_scheduled_messages(d);
 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "on_get_message");
@@ -16936,6 +16943,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   for (auto message_id : added_message_ids) {
     send_update_new_message(d, get_message(d, message_id));
   }
+  send_update_chat_has_scheduled_messages(d);
 
   auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
   CHECK(it != load_scheduled_messages_from_database_queries_.end());
@@ -17190,6 +17198,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
   auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
   CHECK(result != nullptr);
+  send_update_chat_has_scheduled_messages(d);
   return result;
 }
 
@@ -21879,7 +21888,9 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
 void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d != nullptr);
   CHECK(d->messages == nullptr);
-  send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(get_chat_object(d)));
+  auto chat_object = get_chat_object(d);
+  d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
+  send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
 }
 
@@ -22080,11 +22091,16 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
                td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
 }
 
-void MessagesManager::send_update_chat_has_scheduled_messages(const Dialog *d) const {
+void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
+  bool has_scheduled_messages = d->has_scheduled_server_messages || d->scheduled_messages != nullptr;
+  if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
+    return;
+  }
+  d->last_sent_has_scheduled_messages = has_scheduled_messages;
+
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_has_scheduled_messages";
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatHasScheduledMessages>(
-                   d->dialog_id.get(), d->has_scheduled_server_messages || d->scheduled_messages != nullptr));
+               td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_messages));
 }
 
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
@@ -22932,9 +22948,8 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
   on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_server_messages");
 
   LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_server_messages to " << has_scheduled_server_messages;
-  if (d->scheduled_messages == nullptr) {
-    send_update_chat_has_scheduled_messages(d);
-  }
+
+  send_update_chat_has_scheduled_messages(d);
 }
 
 void MessagesManager::on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id) {
@@ -28430,7 +28445,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   auto result_message =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "resend message");
   CHECK(result_message != nullptr);
-  // CHECK(need_update_dialog_pos == true);
+
+  send_update_chat_has_scheduled_messages(d);
 
   send_update_new_message(d, result_message);
   if (need_update_dialog_pos) {
@@ -28645,6 +28661,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
                                                              &need_update_dialog_pos, "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());
         }
+        send_update_chat_has_scheduled_messages(to_dialog);
+
         if (need_update_dialog_pos) {
           send_update_chat_last_message(to_dialog, "on_reforward_message");
         }

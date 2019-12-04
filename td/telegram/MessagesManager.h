@@ -1089,6 +1089,7 @@ class MessagesManager : public Actor {
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool is_marked_as_unread = false;
+    bool last_sent_has_scheduled_messages = false;
     bool has_scheduled_server_messages = false;
     bool has_loaded_scheduled_messages_from_database = false;
 
@@ -1869,7 +1870,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_action_bar(const Dialog *d);
 
-  void send_update_chat_has_scheduled_messages(const Dialog *d) const;
+  void send_update_chat_has_scheduled_messages(Dialog *d);
 
   void hide_dialog_action_bar(Dialog *d);
 
