@@ -10883,6 +10883,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (is_message_auto_read(message_info.dialog_id, (message->flags_ & MESSAGE_FLAG_IS_OUT) != 0)) {
         is_content_read = true;
       }
+      if (is_scheduled) {
+        is_content_read = false;
+      }
       message_info.content = get_message_content(
           td_,
           get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
@@ -23066,8 +23069,8 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
-  get_dialog_scheduled_messages(dialog_id,
-                                PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+  // TODO create logevent
+  get_dialog_scheduled_messages(dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
                                                dialog_id, Promise<Unit>());
                                 }));
