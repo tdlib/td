@@ -1113,6 +1113,7 @@ class MessagesManager : public Actor {
     std::unordered_map<MessageId, MessageId, MessageIdHash> yet_unsent_message_id_to_persistent_message_id;
 
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
+    std::unordered_set<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
 
     std::vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
     std::vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;

@@ -8421,9 +8421,10 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
 void MessagesManager::delete_message_from_server(DialogId dialog_id, MessageId message_id, bool revoke) {
   if (message_id.is_valid()) {
+    CHECK(message_id.is_server());
     delete_messages_from_server(dialog_id, {message_id}, revoke, 0, Auto());
   } else {
-    CHECK(message_id.is_valid_scheduled());
+    CHECK(message_id.is_scheduled_server());
     delete_scheduled_messages_from_server(dialog_id, {message_id}, 0, Auto());
   }
 }
@@ -13204,8 +13205,8 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
     }
   } else if (m == nullptr && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-    if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat &&
-        input_message == nullptr) {
+    if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
+        dialog_type != DialogType::SecretChat && input_message == nullptr) {
       return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
     }
   }
@@ -24906,8 +24907,14 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
     return nullptr;
   }
 
-  if (message_id.is_scheduled() && d->has_loaded_scheduled_messages_from_database) {
-    return nullptr;
+  if (message_id.is_scheduled()) {
+    if (d->has_loaded_scheduled_messages_from_database) {
+      return nullptr;
+    }
+    if (message_id.is_scheduled_server() &&
+        d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id())) {
+      return nullptr;
+    }
   }
 
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
@@ -25703,6 +25710,13 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     return nullptr;
   }
 
+  if (message_id.is_scheduled_server() &&
+      d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id())) {
+    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
+    debug_add_message_to_dialog_fail_reason_ = "adding deleted scheduled server message";
+    return nullptr;
+  }
+
   if (dialog_id.get_type() == DialogType::SecretChat) {
     LOG(ERROR) << "Tried to add " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding scheduled message to secret chat";
@@ -25995,7 +26009,11 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
   }
 
   if (is_permanently_deleted) {
-    d->deleted_message_ids.insert(message_id);
+    if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
+      d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+    } else {
+      d->deleted_message_ids.insert(message_id);
+    }
   }
 
   if (message_id.is_yet_unsent()) {
@@ -28626,7 +28644,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dialog *d = get_dialog_force(log_event.full_message_id_.get_dialog_id());
         if (d != nullptr) {
-          d->deleted_message_ids.insert(log_event.full_message_id_.get_message_id());
+          auto message_id = log_event.full_message_id_.get_message_id();
+          if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
+            d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+          } else {
+            d->deleted_message_ids.insert(message_id);
+          }
         }
 
         do_delete_message_logevent(log_event);
@@ -28669,7 +28692,9 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        d->deleted_message_ids.insert(log_event.message_ids_.begin(), log_event.message_ids_.end());
+        for (auto message_id : log_event.message_ids_) {
+          d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+        }
 
         delete_scheduled_messages_from_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
         break;
