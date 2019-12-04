@@ -13395,11 +13395,13 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
 
   get_dialog_info_full(dialog_id, Auto());
 
-  tl_object_ptr<telegram_api::InputMessage> input_message;
-  if (dialog_id.get_type() == DialogType::Channel) {
-    input_message = make_tl_object<telegram_api::inputMessagePinned>();
+  if (d->pinned_message_id.is_valid()) {
+    tl_object_ptr<telegram_api::InputMessage> input_message;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      input_message = make_tl_object<telegram_api::inputMessagePinned>();
+    }
+    get_message_force_from_server(d, d->pinned_message_id, std::move(promise), std::move(input_message));
   }
-  get_message_force_from_server(d, d->pinned_message_id, std::move(promise), std::move(input_message));
 
   return d->pinned_message_id;
 }
@@ -16953,6 +16955,11 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
 }
 
 vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    promise.set_error(Status::Error(500, "Request aborted"));
+    return {};
+  }
+
   const Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     promise.set_error(Status::Error(6, "Chat not found"));
@@ -23058,6 +23065,14 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
 }
 
+void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
+  get_dialog_scheduled_messages(dialog_id,
+                                PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+                                  send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
+                                               dialog_id, Promise<Unit>());
+                                }));
+}
+
 void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId dialog_id,
                                                                      bool has_scheduled_server_messages) {
   if (!dialog_id.is_valid()) {
@@ -23071,6 +23086,7 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
     return;
   }
 
+  LOG(INFO) << "Receive has_scheduled_server_messages = " << has_scheduled_server_messages << " in " << dialog_id;
   if (d->has_scheduled_server_messages != has_scheduled_server_messages) {
     set_dialog_has_scheduled_server_messages(d, has_scheduled_server_messages);
   }
@@ -23080,6 +23096,7 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
   CHECK(d != nullptr);
   CHECK(d->has_scheduled_server_messages != has_scheduled_server_messages);
   d->has_scheduled_server_messages = has_scheduled_server_messages;
+  repair_dialog_scheduled_messages(d->dialog_id);
   on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_server_messages");
 
   LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_server_messages to " << has_scheduled_server_messages;
