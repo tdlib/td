@@ -4307,6 +4307,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(can_share_phone_number);
     STORE_FLAG(can_report_location);
     STORE_FLAG(has_scheduled_server_messages);
+    STORE_FLAG(has_scheduled_database_messages);
     END_STORE_FLAGS();
   }
 
@@ -4466,6 +4467,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(can_share_phone_number);
     PARSE_FLAG(can_report_location);
     PARSE_FLAG(has_scheduled_server_messages);
+    PARSE_FLAG(has_scheduled_database_messages);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -14738,6 +14740,20 @@ void MessagesManager::open_dialog(Dialog *d) {
         send_update_chat_online_member_count(dialog_id, info.online_member_count);
       }
     }
+
+    if (d->has_scheduled_database_messages && !d->is_has_scheduled_database_messages_checked) {
+      CHECK(G()->parameters().use_message_db);
+
+      LOG(INFO) << "Send check has_scheduled_database_messages request";
+      d->is_has_scheduled_database_messages_checked = true;
+      G()->td_db()->get_messages_db_async()->get_scheduled_messages(
+          dialog_id, 1,
+          PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](std::vector<BufferSlice> messages) {
+            if (messages.empty()) {
+              send_closure(actor_id, &MessagesManager::set_dialog_has_scheduled_database_messages, dialog_id, false);
+            }
+          }));
+    }
   }
 }
 
@@ -14928,7 +14944,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
     }
   }
 
-  bool has_scheduled_messages = d->has_scheduled_server_messages || d->scheduled_messages != nullptr;
+  bool has_scheduled_messages =
+      d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_object(d), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -16863,6 +16880,17 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   find_old_messages(d->scheduled_messages.get(),
                     MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), message_ids);
   std::reverse(message_ids.begin(), message_ids.end());
+
+  if (G()->parameters().use_message_db) {
+    bool has_scheduled_database_messages = false;
+    for (auto &message_id : message_ids) {
+      if (!message_id.is_yet_unsent()) {
+        has_scheduled_database_messages = true;
+        break;
+      }
+    }
+    set_dialog_has_scheduled_database_messages(d->dialog_id, has_scheduled_database_messages);
+  }
 
   if (d->scheduled_messages_sync_generation != scheduled_messages_sync_generation_) {
     vector<uint32> numbers;
@@ -22093,7 +22121,12 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
-  bool has_scheduled_messages = d->has_scheduled_server_messages || d->scheduled_messages != nullptr;
+  if (d->scheduled_messages == nullptr && d->has_loaded_scheduled_messages_from_database) {
+    set_dialog_has_scheduled_database_messages_impl(d, false);
+  }
+
+  bool has_scheduled_messages =
+      d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
     return;
   }
@@ -22951,6 +22984,29 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
   LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_server_messages to " << has_scheduled_server_messages;
 
   send_update_chat_has_scheduled_messages(d);
+}
+
+void MessagesManager::set_dialog_has_scheduled_database_messages(DialogId dialog_id,
+                                                                 bool has_scheduled_database_messages) {
+  return set_dialog_has_scheduled_database_messages_impl(get_dialog(dialog_id), has_scheduled_database_messages);
+}
+
+void MessagesManager::set_dialog_has_scheduled_database_messages_impl(Dialog *d, bool has_scheduled_database_messages) {
+  CHECK(d != nullptr);
+  if (d->has_scheduled_database_messages == has_scheduled_database_messages) {
+    return;
+  }
+
+  if (d->has_scheduled_database_messages && d->scheduled_messages != nullptr &&
+      !d->scheduled_messages->message_id.is_yet_unsent()) {
+    // to prevent race between add_message_to_database and check of has_scheduled_database_messages
+    return;
+  }
+
+  CHECK(G()->parameters().use_message_db);
+
+  d->has_scheduled_database_messages = has_scheduled_database_messages;
+  on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_database_messages");
 }
 
 void MessagesManager::on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id) {
@@ -25872,6 +25928,7 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(m != nullptr);
   MessageId message_id = m->message_id;
   if (message_id.is_scheduled()) {
+    set_dialog_has_scheduled_database_messages(d->dialog_id, true);
     G()->td_db()->get_messages_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
                                                                  Auto());  // TODO Promise
     return;

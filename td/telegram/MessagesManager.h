@@ -1091,6 +1091,8 @@ class MessagesManager : public Actor {
     bool is_marked_as_unread = false;
     bool last_sent_has_scheduled_messages = false;
     bool has_scheduled_server_messages = false;
+    bool has_scheduled_database_messages = false;
+    bool is_has_scheduled_database_messages_checked = false;
     bool has_loaded_scheduled_messages_from_database = false;
 
     bool increment_view_counter = false;
@@ -1930,6 +1932,10 @@ class MessagesManager : public Actor {
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
 
   void set_dialog_has_scheduled_server_messages(Dialog *d, bool has_scheduled_server_messages);
+
+  void set_dialog_has_scheduled_database_messages(DialogId dialog_id, bool has_scheduled_database_messages);
+
+  void set_dialog_has_scheduled_database_messages_impl(Dialog *d, bool has_scheduled_database_messages);
 
   void set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
