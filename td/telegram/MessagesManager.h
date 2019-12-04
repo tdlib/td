@@ -226,6 +226,9 @@ class MessagesManager : public Actor {
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_messages_search(int64 random_id);
 
+  void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
+                                        vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
+
   void on_get_recent_locations(DialogId dialog_id, int32 limit, int64 random_id, int32 total_count,
                                vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_get_recent_locations_failed(int64 random_id);
