@@ -1869,6 +1869,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_action_bar(const Dialog *d);
 
+  void send_update_chat_has_scheduled_messages(const Dialog *d) const;
+
   void hide_dialog_action_bar(Dialog *d);
 
   static Result<int32> get_message_schedule_date(td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);

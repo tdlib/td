@@ -22080,6 +22080,13 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
                td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
 }
 
+void MessagesManager::send_update_chat_has_scheduled_messages(const Dialog *d) const {
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_has_scheduled_messages";
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatHasScheduledMessages>(
+                   d->dialog_id.get(), d->has_scheduled_server_messages || d->scheduled_messages != nullptr));
+}
+
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
@@ -22925,11 +22932,8 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
   on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_server_messages");
 
   LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_server_messages to " << has_scheduled_server_messages;
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_scheduled_server_messages";
   if (d->scheduled_messages == nullptr) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_server_messages));
+    send_update_chat_has_scheduled_messages(d);
   }
 }
 
