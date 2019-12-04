@@ -632,6 +632,8 @@ class MessagesManager : public Actor {
   int32 get_dialog_message_count(DialogId dialog_id, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
                                  bool return_local, int64 &random_id, Promise<Unit> &&promise);
 
+  vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise);
+
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
   tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id);
@@ -1044,6 +1046,7 @@ class MessagesManager : public Actor {
     int32 pending_last_message_date = 0;
     MessageId pending_last_message_id;
     MessageId max_notification_message_id;
+    uint32 scheduled_messages_sync_generation = 0;
 
     MessageId max_added_message_id;
     MessageId being_added_message_id;
@@ -1087,6 +1090,7 @@ class MessagesManager : public Actor {
     bool need_repair_server_unread_count = false;
     bool is_marked_as_unread = false;
     bool has_scheduled_messages = false;
+    bool has_loaded_scheduled_messages_from_database = false;
 
     bool increment_view_counter = false;
 
@@ -1680,6 +1684,10 @@ class MessagesManager : public Actor {
 
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);
+
+  void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash, Promise<Unit> &&promise);
+
+  void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<BufferSlice> &&messages);
 
   static int32 get_random_y(MessageId message_id);
 
@@ -2585,6 +2593,8 @@ class MessagesManager : public Actor {
   bool are_active_live_location_messages_loaded_ = false;
   vector<Promise<Unit>> load_active_live_location_messages_queries_;
 
+  std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> load_scheduled_messages_from_database_queries_;
+
   struct ResolvedUsername {
     DialogId dialog_id;
     double expires_at;
@@ -2639,6 +2649,8 @@ class MessagesManager : public Actor {
   };
 
   std::unordered_map<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
+
+  uint32 scheduled_messages_sync_generation_ = 1;
 
   DialogId sponsored_dialog_id_;
 

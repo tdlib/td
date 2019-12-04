@@ -1713,6 +1713,9 @@ class CliClient final : public Actor {
                                                                  to_integer<int32>(offset), to_integer<int32>(limit),
                                                                  op == "ghl"));
       }
+    } else if (op == "gcsm") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::getChatScheduledMessages>(as_chat_id(chat_id)));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
 

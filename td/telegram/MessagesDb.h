@@ -105,6 +105,7 @@ class MessagesDbSyncInterface {
                                                          MessageId last_message_id, int32 date) = 0;
 
   virtual Result<std::vector<BufferSlice>> get_messages(MessagesDbMessagesQuery query) = 0;
+  virtual Result<std::vector<BufferSlice>> get_scheduled_messages(DialogId dialog_id) = 0;
   virtual Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id,
                                                                         NotificationId from_notification_id,
                                                                         int32 limit) = 0;
@@ -152,6 +153,7 @@ class MessagesDbAsyncInterface {
                                           int32 date, Promise<BufferSlice> promise) = 0;
 
   virtual void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) = 0;
+  virtual void get_scheduled_messages(DialogId dialog_id, Promise<std::vector<BufferSlice>> promise) = 0;
   virtual void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                                  Promise<vector<BufferSlice>> promise) = 0;
 

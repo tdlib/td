@@ -1710,6 +1710,26 @@ class GetChatMessageCountRequest : public RequestActor<> {
   }
 };
 
+class GetChatScheduledMessagesRequest : public RequestActor<> {
+  DialogId dialog_id_;
+
+  vector<MessageId> message_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    message_ids_ = td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_));
+  }
+
+ public:
+  GetChatScheduledMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
+      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
+    set_tries(3);
+  }
+};
+
 class GetWebPagePreviewRequest : public RequestOnceActor {
   td_api::object_ptr<td_api::formattedText> text_;
 
@@ -5640,6 +5660,11 @@ void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
 void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatMessageCountRequest, request.chat_id_, std::move(request.filter_), request.return_local_);
+}
+
+void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {

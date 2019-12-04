@@ -3230,6 +3230,9 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local If true, returns count that is available locally without sending network requests, returning -1 if the number of messages is unknown
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
 
+//@description Returns all scheduled messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
+getChatScheduledMessages chat_id:int53 = Messages;
+
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;

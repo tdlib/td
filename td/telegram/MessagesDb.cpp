@@ -210,6 +210,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     TRY_RESULT_ASSIGN(get_messages_stmt_.desc_stmt_,
                       db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id < "
                                         "?2 ORDER BY message_id DESC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(get_scheduled_messages_stmt_,
+                      db_.get_statement("SELECT data, message_id FROM scheduled_messages WHERE dialog_id = ?1 AND "
+                                        "message_id < ?2 ORDER BY message_id DESC LIMIT ?3"));
     TRY_RESULT_ASSIGN(get_messages_from_notification_id_stmt_,
                       db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND "
                                         "notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
@@ -482,8 +485,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     int64 left_message_id = first_message_id.get();
     int64 right_message_id = last_message_id.get();
     LOG_CHECK(left_message_id <= right_message_id) << first_message_id << " " << last_message_id;
-    TRY_RESULT(first_messages,
-               get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id.get(), left_message_id - 1, 1));
+    TRY_RESULT(first_messages, get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id, left_message_id - 1, 1));
     if (!first_messages.empty()) {
       MessageId real_first_message_id;
       int32 real_first_message_date;
@@ -495,7 +497,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
         MessageId prev_found_message_id;
         while (left_message_id <= right_message_id) {
           auto middle_message_id = left_message_id + ((right_message_id - left_message_id) >> 1);
-          TRY_RESULT(messages, get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id.get(), middle_message_id, 1));
+          TRY_RESULT(messages, get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id, middle_message_id, 1));
 
           MessageId message_id;
           int32 message_date = std::numeric_limits<int32>::max();
@@ -511,7 +513,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
           if (prev_found_message_id == message_id) {
             // we may be very close to the result, let's check
             TRY_RESULT(left_messages,
-                       get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id.get(), left_message_id - 1, 2));
+                       get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id, left_message_id - 1, 2));
             CHECK(!left_messages.empty());
             if (left_messages.size() == 1) {
               // only one message has left, result is found
@@ -583,6 +585,10 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
                                      query.limit);
     }
     return get_messages_impl(get_messages_stmt_, query.dialog_id, query.from_message_id, query.offset, query.limit);
+  }
+
+  Result<std::vector<BufferSlice>> get_scheduled_messages(DialogId dialog_id) override {
+    return get_messages_inner(get_scheduled_messages_stmt_, dialog_id, std::numeric_limits<int64>::max(), 1000);
   }
 
   Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
@@ -795,6 +801,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     SqliteStatement desc_stmt_;
   };
   GetMessagesStmt get_messages_stmt_;
+  SqliteStatement get_scheduled_messages_stmt_;
   SqliteStatement get_messages_from_notification_id_stmt_;
 
   std::array<GetMessagesStmt, MESSAGES_DB_INDEX_COUNT> get_messages_from_index_stmts_;
@@ -837,7 +844,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
         left_cnt++;
       }
 
-      TRY_RESULT(left_tmp, get_messages_inner(stmt.desc_stmt_, dialog_id.get(), left_message_id, left_cnt));
+      TRY_RESULT(left_tmp, get_messages_inner(stmt.desc_stmt_, dialog_id, left_message_id, left_cnt));
       left = std::move(left_tmp);
 
       if (right_cnt == 1 && !left.empty() && false /*get_message_id(left[0].as_slice()) == message_id*/) {
@@ -845,7 +852,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       }
     }
     if (right_cnt != 0) {
-      TRY_RESULT(right_tmp, get_messages_inner(stmt.asc_stmt_, dialog_id.get(), right_message_id, right_cnt));
+      TRY_RESULT(right_tmp, get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt));
       right = std::move(right_tmp);
       std::reverse(right.begin(), right.end());
     }
@@ -862,24 +869,24 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return std::move(right);
   }
 
-  Result<std::vector<BufferSlice>> get_messages_inner(SqliteStatement &stmt, int64 dialog_id, int64 from_message_id,
+  Result<std::vector<BufferSlice>> get_messages_inner(SqliteStatement &stmt, DialogId dialog_id, int64 from_message_id,
                                                       int32 limit) {
     SCOPE_EXIT {
       stmt.reset();
     };
-    stmt.bind_int64(1, dialog_id).ensure();
+    stmt.bind_int64(1, dialog_id.get()).ensure();
     stmt.bind_int64(2, from_message_id).ensure();
     stmt.bind_int32(3, limit).ensure();
 
-    LOG(INFO) << "Begin to load " << limit << " messages in " << DialogId(dialog_id) << " from "
-              << MessageId(from_message_id) << " from database";
+    LOG(INFO) << "Begin to load " << limit << " messages in " << dialog_id << " from " << MessageId(from_message_id)
+              << " from database";
     std::vector<BufferSlice> result;
     stmt.step().ensure();
     while (stmt.has_row()) {
       auto data_slice = stmt.view_blob(0);
       result.emplace_back(data_slice);
       auto message_id = stmt.view_int64(1);
-      LOG(INFO) << "Loaded " << MessageId(message_id) << " in " << DialogId(dialog_id) << " from database";
+      LOG(INFO) << "Loaded " << MessageId(message_id) << " in " << dialog_id << " from database";
       stmt.step().ensure();
     }
     return std::move(result);
@@ -972,6 +979,9 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
   void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) override {
     send_closure_later(impl_, &Impl::get_messages, std::move(query), std::move(promise));
   }
+  void get_scheduled_messages(DialogId dialog_id, Promise<std::vector<BufferSlice>> promise) override {
+    send_closure_later(impl_, &Impl::get_scheduled_messages, dialog_id, std::move(promise));
+  }
   void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                          Promise<vector<BufferSlice>> promise) override {
     send_closure_later(impl_, &Impl::get_messages_from_notification_id, dialog_id, from_notification_id, limit,
@@ -1057,6 +1067,10 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_messages(std::move(query)));
+    }
+    void get_scheduled_messages(DialogId dialog_id, Promise<std::vector<BufferSlice>> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_scheduled_messages(dialog_id));
     }
     void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                            Promise<vector<BufferSlice>> promise) {

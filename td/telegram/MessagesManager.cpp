@@ -7443,6 +7443,9 @@ void MessagesManager::on_upload_dialog_photo_error(FileId file_id, Status status
 void MessagesManager::before_get_difference() {
   running_get_difference_ = true;
 
+  // scheduled messages are not returned in getDifference, so we must always reget them after it
+  scheduled_messages_sync_generation_++;
+
   postponed_pts_updates_.insert(std::make_move_iterator(pending_updates_.begin()),
                                 std::make_move_iterator(pending_updates_.end()));
 
@@ -15375,7 +15378,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
   }
 
   LOG(INFO) << "Return " << messages.size() << " messages in result to getChatHistory";
-  promise.set_value(Unit());                            // can send some messages
+  promise.set_value(Unit());                            // can return some messages
   return get_messages_object(-1, std::move(messages));  // TODO return real total_count of messages in the dialog
 }
 
@@ -16824,6 +16827,112 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
     limit = MAX_GET_HISTORY;
   }
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
+}
+
+vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+  const Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return {};
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(5, "Can't access the chat"));
+    return {};
+  }
+  if (is_broadcast_channel(dialog_id) &&
+      !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_post_messages()) {
+    promise.set_error(Status::Error(3, "Not enough rights to get scheduled messages"));
+    return {};
+  }
+
+  if (!d->has_loaded_scheduled_messages_from_database) {
+    load_dialog_scheduled_messages(dialog_id, true, 0, std::move(promise));
+    return {};
+  }
+
+  vector<MessageId> message_ids;
+  find_old_messages(d->scheduled_messages.get(),
+                    MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), message_ids);
+  std::reverse(message_ids.begin(), message_ids.end());
+
+  if (d->scheduled_messages_sync_generation != scheduled_messages_sync_generation_) {
+    // TODO calculate hash
+    // TODO reload synchronously, if there is no known server messages and (has_scheduled_messages == true or
+    // d->scheduled_messages_sync_generation == 0 && !G()->parameters().use_message_db)
+    load_dialog_scheduled_messages(dialog_id, false, 0, Promise<Unit>());
+  }
+
+  promise.set_value(Unit());
+  return message_ids;
+}
+
+void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash,
+                                                     Promise<Unit> &&promise) {
+  if (G()->parameters().use_message_db && from_database) {
+    LOG(INFO) << "Load scheduled messages from database in " << dialog_id;
+    auto &queries = load_scheduled_messages_from_database_queries_[dialog_id];
+    queries.push_back(std::move(promise));
+    if (queries.size() == 1) {
+      G()->td_db()->get_messages_db_async()->get_scheduled_messages(
+          dialog_id, PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](std::vector<BufferSlice> messages) {
+            send_closure(actor_id, &MessagesManager::on_get_scheduled_messages_from_database, dialog_id,
+                         std::move(messages));
+          }));
+    }
+  } else {
+    // TODO reload scheduled messages from server
+    // reload synchronously, if there is no known server messages and (has_scheduled_messages == true or
+    // d->scheduled_messages_sync_generation == 0 && !G()->parameters().use_message_db)
+  }
+}
+
+void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id, vector<BufferSlice> &&messages) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  d->has_loaded_scheduled_messages_from_database = true;
+
+  LOG(INFO) << "Receive " << messages.size() << " scheduled messages from database in " << dialog_id;
+
+  Dependencies dependencies;
+  vector<MessageId> added_message_ids;
+  for (auto &message_slice : messages) {
+    auto message = parse_message(dialog_id, std::move(message_slice), true);
+    if (message == nullptr) {
+      continue;
+    }
+    message->from_database = true;
+
+    if (get_message(d, message->message_id) != nullptr) {
+      continue;
+    }
+
+    auto web_page_id = get_message_content_web_page_id(message->content.get());
+    if (web_page_id.is_valid()) {
+      td_->web_pages_manager_->have_web_page_force(web_page_id);
+    }
+    bool need_update = false;
+    Message *m = add_scheduled_message_to_dialog(d, std::move(message), false, &need_update,
+                                                 "on_get_scheduled_messages_from_database");
+    if (m != nullptr) {
+      add_message_dependencies(dependencies, dialog_id, m);
+      added_message_ids.push_back(m->message_id);
+    }
+  }
+  resolve_dependencies_force(dependencies);
+
+  for (auto message_id : added_message_ids) {
+    send_update_new_message(d, get_message(d, message_id));
+  }
+
+  auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
+  CHECK(it != load_scheduled_messages_from_database_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  load_scheduled_messages_from_database_queries_.erase(it);
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
 }
 
 Result<int32> MessagesManager::get_message_schedule_date(
@@ -24797,6 +24906,10 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
     return nullptr;
   }
 
+  if (message_id.is_scheduled() && d->has_loaded_scheduled_messages_from_database) {
+    return nullptr;
+  }
+
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
 
   auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
@@ -24918,11 +25031,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
 
-  if (d->deleted_message_ids.count(message_id)) {
-    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
-    return nullptr;
-  }
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
@@ -24950,6 +25058,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     CHECK(!message->from_database);
     debug_add_message_to_dialog_fail_reason_ = "invalid message id";
+    return nullptr;
+  }
+
+  if (d->deleted_message_ids.count(message_id)) {
+    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
+    debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
     return nullptr;
   }
 
@@ -25582,6 +25696,12 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   CHECK(message_id.is_valid_scheduled());
   CHECK(!message->notification_id.is_valid());
   CHECK(!message->removed_notification_id.is_valid());
+
+  if (d->deleted_message_ids.count(message_id)) {
+    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
+    debug_add_message_to_dialog_fail_reason_ = "adding deleted scheduled message";
+    return nullptr;
+  }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
     LOG(ERROR) << "Tried to add " << message_id << " to " << dialog_id << " from " << source;
