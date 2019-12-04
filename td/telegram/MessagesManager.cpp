@@ -16857,10 +16857,23 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   std::reverse(message_ids.begin(), message_ids.end());
 
   if (d->scheduled_messages_sync_generation != scheduled_messages_sync_generation_) {
-    // TODO calculate hash
+    vector<uint32> numbers;
+    for (auto &message_id : message_ids) {
+      if (!message_id.is_scheduled_server()) {
+        continue;
+      }
+
+      numbers.push_back(message_id.get_scheduled_server_message_id().get());
+      const Message *m = get_message(d, message_id);
+      CHECK(m != nullptr);
+      numbers.push_back(m->edit_date);
+      numbers.push_back(m->date);
+    }
+    auto hash = get_vector_hash(numbers);
+
     // TODO reload synchronously, if there is no known server messages and (has_scheduled_messages == true or
     // d->scheduled_messages_sync_generation == 0 && !G()->parameters().use_message_db)
-    load_dialog_scheduled_messages(dialog_id, false, 0, Promise<Unit>());
+    load_dialog_scheduled_messages(dialog_id, false, hash, Promise<Unit>());
   }
 
   promise.set_value(Unit());
