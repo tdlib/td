@@ -587,8 +587,8 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return get_messages_impl(get_messages_stmt_, query.dialog_id, query.from_message_id, query.offset, query.limit);
   }
 
-  Result<std::vector<BufferSlice>> get_scheduled_messages(DialogId dialog_id) override {
-    return get_messages_inner(get_scheduled_messages_stmt_, dialog_id, std::numeric_limits<int64>::max(), 1000);
+  Result<std::vector<BufferSlice>> get_scheduled_messages(DialogId dialog_id, int32 limit) override {
+    return get_messages_inner(get_scheduled_messages_stmt_, dialog_id, std::numeric_limits<int64>::max(), limit);
   }
 
   Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
@@ -979,8 +979,8 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
   void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) override {
     send_closure_later(impl_, &Impl::get_messages, std::move(query), std::move(promise));
   }
-  void get_scheduled_messages(DialogId dialog_id, Promise<std::vector<BufferSlice>> promise) override {
-    send_closure_later(impl_, &Impl::get_scheduled_messages, dialog_id, std::move(promise));
+  void get_scheduled_messages(DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) override {
+    send_closure_later(impl_, &Impl::get_scheduled_messages, dialog_id, limit, std::move(promise));
   }
   void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                          Promise<vector<BufferSlice>> promise) override {
@@ -1068,9 +1068,9 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
       add_read_query();
       promise.set_result(sync_db_->get_messages(std::move(query)));
     }
-    void get_scheduled_messages(DialogId dialog_id, Promise<std::vector<BufferSlice>> promise) {
+    void get_scheduled_messages(DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_scheduled_messages(dialog_id));
+      promise.set_result(sync_db_->get_scheduled_messages(dialog_id, limit));
     }
     void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                            Promise<vector<BufferSlice>> promise) {

@@ -16896,7 +16896,8 @@ void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool fr
     queries.push_back(std::move(promise));
     if (queries.size() == 1) {
       G()->td_db()->get_messages_db_async()->get_scheduled_messages(
-          dialog_id, PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](std::vector<BufferSlice> messages) {
+          dialog_id, 1000,
+          PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](std::vector<BufferSlice> messages) {
             send_closure(actor_id, &MessagesManager::on_get_scheduled_messages_from_database, dialog_id,
                          std::move(messages));
           }));
