@@ -5704,9 +5704,9 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id = messages_manager_->send_message(
-      dialog_id, MessageId(request.reply_to_message_id_), request.disable_notification_, request.from_background_,
-      std::move(request.reply_markup_), std::move(request.input_message_content_));
+  auto r_new_message_id =
+      messages_manager_->send_message(dialog_id, MessageId(request.reply_to_message_id_), std::move(request.options_),
+                                      std::move(request.reply_markup_), std::move(request.input_message_content_));
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
@@ -5718,9 +5718,9 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_message_ids = messages_manager_->send_message_group(dialog_id, MessageId(request.reply_to_message_id_),
-                                                             request.disable_notification_, request.from_background_,
-                                                             std::move(request.input_message_contents_));
+  auto r_message_ids =
+      messages_manager_->send_message_group(dialog_id, MessageId(request.reply_to_message_id_),
+                                            std::move(request.options_), std::move(request.input_message_contents_));
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }
@@ -5751,8 +5751,8 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
 
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_inline_query_result_message(
-      dialog_id, MessageId(request.reply_to_message_id_), request.disable_notification_, request.from_background_,
-      request.query_id_, request.result_id_, request.hide_via_bot_);
+      dialog_id, MessageId(request.reply_to_message_id_), std::move(request.options_), request.query_id_,
+      request.result_id_, request.hide_via_bot_);
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
@@ -5906,12 +5906,11 @@ void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &requ
   answer_ok_query(id, messages_manager_->send_screenshot_taken_notification_message(DialogId(request.chat_id_)));
 }
 
-void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
+void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->forward_messages(
       dialog_id, DialogId(request.from_chat_id_), MessagesManager::get_message_ids(request.message_ids_),
-      request.disable_notification_, request.from_background_, false, request.as_album_, request.send_copy_,
-      request.remove_caption_);
+      std::move(request.options_), false, request.as_album_, request.send_copy_, request.remove_caption_);
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }

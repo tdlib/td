@@ -1276,7 +1276,9 @@ class CliClient final : public Actor {
                     bool disable_notification = false, bool from_background = false, int64 reply_to_message_id = 0) {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
-        chat, reply_to_message_id, disable_notification, from_background, nullptr, std::move(input_message_content)));
+        chat, reply_to_message_id,
+        td_api::make_object<td_api::sendMessageOptions>(disable_notification, from_background), nullptr,
+        std::move(input_message_content)));
     query_id_to_send_message_info_[id].start_time = Time::now();
   }
 
@@ -2539,7 +2541,7 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id),
-                                                                as_message_ids(message_ids), false, false, op[2] == 'g',
+                                                                as_message_ids(message_ids), nullptr, op[2] == 'g',
                                                                 op[0] == 'c', Random::fast(0, 1) == 1));
     } else if (op == "resend") {
       string chat_id;
@@ -2791,7 +2793,7 @@ class CliClient final : public Actor {
       photos = full_split(args);
 
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          as_chat_id(chat_id), as_message_id(reply_to_message_id), false, false,
+          as_chat_id(chat_id), as_message_id(reply_to_message_id), nullptr,
           transform(photos, [](const string &photo_path) {
             td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
                 as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
@@ -2920,7 +2922,7 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-          chat, 0, false, false, to_integer<int64>(query_id), result_id, op == "siqrh"));
+          chat, 0, nullptr, to_integer<int64>(query_id), result_id, op == "siqrh"));
     } else if (op == "gcqr") {
       string chat_id;
       string message_id;

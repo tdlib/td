@@ -620,7 +620,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request);
 
-  void on_request(uint64 id, const td_api::forwardMessages &request);
+  void on_request(uint64 id, td_api::forwardMessages &request);
 
   void on_request(uint64 id, const td_api::resendMessages &request);
 
