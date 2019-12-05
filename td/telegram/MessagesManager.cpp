@@ -18995,7 +18995,8 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 }
 
 bool MessagesManager::can_resend_message(const Message *m) {
-  if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically") {
+  if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
+      m->send_error_message != "SCHEDULE_TOO_MUCH") {
     return false;
   }
   if (m->is_bot_start_message) {
@@ -20443,11 +20444,13 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     if (m->try_resend_at > Time::now()) {
       return Status::Error(400, "Message can't be re-sent yet");
     }
-    if (last_message_id.is_valid() && m->message_id.is_scheduled() != last_message_id.is_scheduled()) {
-      return Status::Error(400, "Messages must be all scheduled or ordinary");
-    }
-    if (m->message_id <= last_message_id) {
-      return Status::Error(400, "Message identifiers must be in a strictly increasing order");
+    if (last_message_id != MessageId()) {
+      if (m->message_id.is_scheduled() != last_message_id.is_scheduled()) {
+        return Status::Error(400, "Messages must be all scheduled or ordinary");
+      }
+      if (m->message_id <= last_message_id) {
+        return Status::Error(400, "Message identifiers must be in a strictly increasing order");
+      }
     }
     last_message_id = message_id;
   }
@@ -28669,6 +28672,13 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     return nullptr;
   }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    return nullptr;
+  }
+
+  LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
+            << " from binlog";
 
   auto now = G()->unix_time();
   if (m->message_id.is_scheduled()) {
@@ -28679,14 +28689,6 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
   m->have_previous = true;
   m->have_next = true;
-
-  LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
-            << " from binlog";
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    binlog_erase(G()->td_db()->get_binlog(), logevent_id);
-    return nullptr;
-  }
 
   message_random_ids_.insert(m->random_id);
 
@@ -28848,7 +28850,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
       case LogEvent::HandlerType::ForwardMessages: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
+          continue;
         }
 
         ForwardMessagesLogEvent log_event;
@@ -28878,7 +28880,21 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
+
         auto now = G()->unix_time();
+        if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
+            messages.empty() ||
+            (messages[0]->send_date < now - MAX_RESEND_DELAY && to_dialog_id != get_my_dialog_id())) {
+          LOG(WARNING) << "Can't continue forwarding " << messages.size() << " message(s) to " << to_dialog_id;
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          continue;
+        }
+
+        LOG(INFO) << "Continue to forward " << messages.size() << " message(s) to " << to_dialog_id << " from binlog";
+
+        bool need_update = false;
+        bool need_update_dialog_pos = false;
+        vector<Message *> forwarded_messages;
         for (auto &m : messages) {
           if (m->message_id.is_scheduled()) {
             set_message_id(m, get_next_yet_unsent_scheduled_message_id(to_dialog, m->date));
@@ -28889,27 +28905,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);
           m->have_previous = true;
           m->have_next = true;
-        }
 
-        if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
-            messages.empty() ||
-            (messages[0]->send_date < now - MAX_RESEND_DELAY && to_dialog_id != get_my_dialog_id())) {
-          LOG(WARNING) << "Can't continue forwarding " << messages.size() << " message(s) to " << to_dialog_id;
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        LOG(INFO) << "Continue to forward " << messages.size() << " message(s) to " << to_dialog_id << " from binlog";
-
-        bool need_update = false;
-        bool need_update_dialog_pos = false;
-        vector<Message *> forwarded_messages;
-        for (auto &m : messages) {
           message_random_ids_.insert(m->random_id);
           forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), true, &need_update,
                                                              &need_update_dialog_pos, "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());
         }
+
         send_update_chat_has_scheduled_messages(to_dialog);
 
         if (need_update_dialog_pos) {
