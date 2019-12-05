@@ -70,7 +70,7 @@ textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 textEntities entities:vector<textEntity> = TextEntities;
 
 //@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect each other.
-//-Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline, Strikethrough and BlockQuote entities can contain and to be contained in any other entities. All other entities can't contain each other
+//-Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline and Strikethrough entities can contain and to be contained in any other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
@@ -1456,9 +1456,6 @@ textEntityTypeUnderline = TextEntityType;
 
 //@description A strike-through text
 textEntityTypeStrikethrough = TextEntityType;
-
-//@description A block quote; this entity can't be sent for now
-textEntityTypeBlockQuote = TextEntityType;
 
 //@description Text that must be formatted as if inside a code HTML tag
 textEntityTypeCode = TextEntityType;
