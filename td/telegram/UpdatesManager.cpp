@@ -591,6 +591,9 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
   if (id == telegram_api::updateNewChannelMessage::ID) {
     message = static_cast<const telegram_api::updateNewChannelMessage *>(update)->message_.get();
   }
+  if (id == telegram_api::updateNewScheduledMessage::ID) {
+    message = static_cast<const telegram_api::updateNewScheduledMessage *>(update)->message_.get();
+  }
   if (id == telegram_api::updateEditMessage::ID) {
     message = static_cast<const telegram_api::updateEditMessage *>(update)->message_.get();
   }
@@ -811,6 +814,8 @@ vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_mes
         messages.emplace_back(&static_cast<const telegram_api::updateNewMessage *>(update.get())->message_);
       } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
         messages.emplace_back(&static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_);
+      } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
+        messages.emplace_back(&static_cast<const telegram_api::updateNewScheduledMessage *>(update.get())->message_);
       }
     }
   }
@@ -942,6 +947,7 @@ void UpdatesManager::process_get_difference_updates(
   for (auto &update : other_updates) {
     auto constructor_id = update->get_id();
     if (constructor_id == telegram_api::updateMessageID::ID) {
+      // in getDifference updateMessageID can't be received for scheduled messages
       on_update(move_tl_object_as<telegram_api::updateMessageID>(update), true);
       CHECK(!running_get_difference_);
     }
@@ -1180,6 +1186,29 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     }
   }
 
+  size_t ordinary_new_message_count = 0;
+  size_t scheduled_new_message_count = 0;
+  for (auto &update : updates) {
+    if (update != nullptr) {
+      auto constructor_id = update->get_id();
+      if (constructor_id == telegram_api::updateNewMessage::ID ||
+          constructor_id == telegram_api::updateNewChannelMessage::ID) {
+        ordinary_new_message_count++;
+      } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
+        scheduled_new_message_count++;
+      }
+    }
+  }
+
+  if (ordinary_new_message_count != 0 && scheduled_new_message_count != 0) {
+    LOG(ERROR) << "Receive mixed message types in updates:";
+    for (auto &update : updates) {
+      LOG(ERROR) << "Update: " << oneline(to_string(update));
+    }
+    schedule_get_difference("on_get_wrong_updates");
+    return;
+  }
+
   for (auto &update : updates) {
     if (update != nullptr) {
       LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
@@ -1187,8 +1216,15 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (id == telegram_api::updateMessageID::ID) {
         LOG(INFO) << "Receive from " << source << " " << to_string(update);
         auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
-        if (!td_->messages_manager_->on_update_message_id(
-                sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)), source)) {
+        bool success = false;
+        if (ordinary_new_message_count != 0) {
+          success = td_->messages_manager_->on_update_message_id(
+              sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)), source);
+        } else if (scheduled_new_message_count != 0) {
+          success = td_->messages_manager_->on_update_scheduled_message_id(
+              sent_message_update->random_id_, ScheduledServerMessageId(sent_message_update->id_), source);
+        }
+        if (!success) {
           for (auto &debug_update : updates) {
             LOG(ERROR) << "Update: " << oneline(to_string(debug_update));
           }
@@ -1286,6 +1322,11 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
       auto constructor_id = update->get_id();
       if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
         on_update(move_tl_object_as<telegram_api::updateNewChannelMessage>(update), force_apply);
+      }
+
+      // process updateNewScheduledMessage first
+      if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
+        on_update(move_tl_object_as<telegram_api::updateNewScheduledMessage>(update), force_apply);
       }
 
       // updatePtsChanged forces get difference, so process it last

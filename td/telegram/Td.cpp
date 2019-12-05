@@ -5711,7 +5711,7 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
 
-  CHECK(r_new_message_id.ok().is_valid());
+  CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
   send_closure(actor_id(this), &Td::send_result, id,
                messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
 }
@@ -5740,7 +5740,7 @@ void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
 
-  CHECK(r_new_message_id.ok().is_valid());
+  CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
   send_closure(actor_id(this), &Td::send_result, id,
                messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
 }
@@ -5757,7 +5757,7 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
 
-  CHECK(r_new_message_id.ok().is_valid());
+  CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
   send_closure(actor_id(this), &Td::send_result, id,
                messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
 }

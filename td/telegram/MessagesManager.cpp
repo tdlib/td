@@ -1927,7 +1927,7 @@ class SendMessageActor : public NetActorOnce {
   DialogId dialog_id_;
 
  public:
-  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id,
+  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, int64 random_id,
             NetQueryRef *send_query_ref, uint64 sequence_dispatcher_id) {
@@ -1948,7 +1948,7 @@ class SendMessageActor : public NetActorOnce {
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendMessage(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
-        std::move(entities), 0)));
+        std::move(entities), schedule_date)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -2059,8 +2059,8 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
-  NetQueryRef send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int64 random_id, int64 query_id,
-                   const string &result_id) {
+  NetQueryRef send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date, int64 random_id,
+                   int64 query_id, const string &result_id) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -2069,7 +2069,7 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendInlineBotResult(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, 0)));
+        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, schedule_date)));
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
     return send_query_ref;
@@ -2105,8 +2105,9 @@ class SendMultiMediaActor : public NetActorOnce {
   DialogId dialog_id_;
 
  public:
-  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, vector<FileId> &&file_ids,
-            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, uint64 sequence_dispatcher_id) {
+  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date,
+            vector<FileId> &&file_ids, vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media,
+            uint64 sequence_dispatcher_id) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
@@ -2125,7 +2126,7 @@ class SendMultiMediaActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendMultiMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), 0)));
+        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), schedule_date)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -2222,7 +2223,7 @@ class SendMediaActor : public NetActorOnce {
 
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id, MessageId reply_to_message_id,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            int32 schedule_date, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, int64 random_id, NetQueryRef *send_query_ref,
             uint64 sequence_dispatcher_id) {
@@ -2247,7 +2248,7 @@ class SendMediaActor : public NetActorOnce {
     telegram_api::messages_sendMedia request(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                              std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
                                              std::move(input_media), text, random_id, std::move(reply_markup),
-                                             std::move(entities), 0);
+                                             std::move(entities), schedule_date);
     LOG(INFO) << "Send media: " << to_string(request);
     auto query = G()->net_query_creator().create(create_storer(request));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
@@ -2777,7 +2778,7 @@ class ForwardMessagesActor : public NetActorOnce {
   }
 
   void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
-            vector<int64> &&random_ids, uint64 sequence_dispatcher_id) {
+            vector<int64> &&random_ids, int32 schedule_date, uint64 sequence_dispatcher_id) {
     LOG(INFO) << "Forward " << format::as_array(message_ids) << " from " << from_dialog_id << " to " << to_dialog_id;
 
     random_ids_ = random_ids;
@@ -2799,7 +2800,8 @@ class ForwardMessagesActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_forwardMessages(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
-        MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer), 0)));
+        MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
+        schedule_date)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -5523,7 +5525,7 @@ void MessagesManager::on_update_edit_channel_message(tl_object_ptr<telegram_api:
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::SecretChat:
-      LOG(ERROR) << "Receive updateNewChannelMessage in wrong " << dialog_id;
+      LOG(ERROR) << "Receive updateEditChannelMessage in wrong " << dialog_id;
       return;
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
@@ -11106,6 +11108,26 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   return {dialog_id, std::move(message)};
 }
 
+MessageId MessagesManager::find_old_message_id(DialogId dialog_id, MessageId message_id) const {
+  if (message_id.is_scheduled()) {
+    CHECK(message_id.is_scheduled_server());
+    auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
+    if (dialog_it != update_scheduled_message_ids_.end()) {
+      auto it = dialog_it->second.find(message_id.get_scheduled_server_message_id());
+      if (it != dialog_it->second.end()) {
+        return it->second;
+      }
+    }
+  } else {
+    CHECK(message_id.is_server());
+    auto it = update_message_ids_.find(FullMessageId(dialog_id, message_id));
+    if (it != update_message_ids_.end()) {
+      return it->second;
+    }
+  }
+  return MessageId();
+}
+
 FullMessageId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                               bool is_channel_message, bool is_scheduled, bool have_previous,
                                               bool have_next, const char *source) {
@@ -11129,27 +11151,27 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   bool need_update = from_update || message_id.is_scheduled();
   bool need_update_dialog_pos = false;
 
-  FullMessageId full_message_id(dialog_id, message_id);
-  auto it = update_message_ids_.find(full_message_id);
-  if (it != update_message_ids_.end()) {
+  MessageId old_message_id = find_old_message_id(dialog_id, message_id);
+  LOG(INFO) << "Found old " << old_message_id << " by " << FullMessageId{dialog_id, message_id};
+  if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
     if (!from_update && !message_id.is_scheduled()) {
       if (message_id <= d->last_new_message_id) {
         if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
-          LOG(ERROR) << "New " << it->second << "/" << message_id << " in " << dialog_id << " from " << source
+          LOG(ERROR) << "New " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
                      << " has id less than last_new_message_id = " << d->last_new_message_id;
           return FullMessageId();
         }
         // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
         // get_message_from_server from after_get_difference
         // TODO move to INFO
-        LOG(ERROR) << "Receive " << it->second << "/" << message_id << " in " << dialog_id << " from " << source
+        LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
                    << " with id less than last_new_message_id = " << d->last_new_message_id
                    << " and trying to add it anyway";
       } else {
-        LOG(ERROR) << "Ignore " << it->second << "/" << message_id << " received not through update from " << source
+        LOG(ERROR) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
                    << ": "
                    << oneline(to_string(get_message_object(dialog_id, new_message.get())));  // TODO move to INFO
         dump_debug_message_op(d, 3);                                                         // TODO remove
@@ -11160,9 +11182,16 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       }
     }
 
-    MessageId old_message_id = it->second;
-
-    update_message_ids_.erase(it);
+    if (message_id.is_scheduled()) {
+      auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
+      CHECK(dialog_it != update_scheduled_message_ids_.end());
+      dialog_it->second.erase(message_id.get_scheduled_server_message_id());
+      if (dialog_it->second.empty()) {
+        update_scheduled_message_ids_.erase(dialog_it);
+      }
+    } else {
+      update_message_ids_.erase(FullMessageId(dialog_id, message_id));
+    }
 
     if (!new_message->is_outgoing && dialog_id != get_my_dialog_id()) {
       // sent message is not from me
@@ -17106,7 +17135,7 @@ Result<int32> MessagesManager::get_message_schedule_date(
       if (send_date <= 0) {
         return Status::Error(400, "Invalid send date specified");
       }
-      if (send_date <= G()->unix_time()) {
+      if (send_date <= G()->unix_time() + 10) {
         return 0;
       }
       if (send_date - G()->unix_time() > 367 * 86400) {
@@ -17263,12 +17292,14 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
                                                                unique_ptr<MessageContent> &&content,
                                                                bool *need_update_dialog_pos,
                                                                unique_ptr<MessageForwardInfo> forward_info) {
+  CHECK(d != nullptr);
+  CHECK(!reply_to_message_id.is_scheduled());
+
   int32 schedule_date = 0;
   bool is_scheduled = schedule_date != 0;
-  CHECK(d != nullptr);
+  DialogId dialog_id = d->dialog_id;
   MessageId message_id =
       is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, schedule_date) : get_next_yet_unsent_message_id(d);
-  DialogId dialog_id = d->dialog_id;
   LOG(INFO) << "Create " << message_id << " in " << dialog_id;
 
   auto dialog_type = dialog_id.get_type();
@@ -17289,7 +17320,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   m->date = is_scheduled ? schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
   m->is_channel_post = is_channel_post;
-  m->is_outgoing = dialog_id != DialogId(my_id);
+  m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = from_background;
   m->views = is_channel_post ? 1 : 0;
   m->content = std::move(content);
@@ -18037,11 +18068,13 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
+    CHECK(!is_edit);
     const FormattedText *message_text = get_message_content_text(content);
     CHECK(message_text != nullptr);
 
     int64 random_id = begin_send_message(dialog_id, m);
     if (is_secret) {
+      CHECK(!m->message_id.is_scheduled());
       auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
       send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
                    m->reply_to_random_id, m->ttl, message_text->text,
@@ -18050,7 +18083,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
                    m->media_album_id, random_id);
     } else {
       send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-                   m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+                   m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
                    get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
                    message_text->text, random_id, &m->send_query_ref,
                    get_sequence_dispatcher_id(dialog_id, content_type));
@@ -18063,6 +18096,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
   if (is_secret) {
+    CHECK(!is_edit);
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
@@ -18145,7 +18179,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
           send_closure(td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-                       get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+                       get_message_flags(m), dialog_id, m->reply_to_message_id, get_message_schedule_date(m),
+                       get_input_reply_markup(m->reply_markup),
                        get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
                        caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
                        get_sequence_dispatcher_id(dialog_id, m->content->get_type()));
@@ -18378,6 +18413,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
   MessageId reply_to_message_id;
   int32 flags = 0;
+  int32 schedule_date = 0;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     auto *m = get_message(d, request.message_ids[i]);
     if (m == nullptr) {
@@ -18388,6 +18424,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     reply_to_message_id = m->reply_to_message_id;
     flags = get_message_flags(m);
+    schedule_date = get_message_schedule_date(m);
 
     file_ids.push_back(get_message_content_any_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
@@ -18449,7 +18486,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
   send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
-               reply_to_message_id, std::move(file_ids), std::move(input_single_media),
+               reply_to_message_id, schedule_date, std::move(file_ids), std::move(input_single_media),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo));
 }
 
@@ -18794,8 +18831,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, co
   if (!m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
-  m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(flags, dialog_id, m->reply_to_message_id,
-                                                                            random_id, query_id, result_id);
+  m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
+      flags, dialog_id, m->reply_to_message_id, get_message_schedule_date(m), random_id, query_id, result_id);
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,
@@ -19629,6 +19666,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->clear_draft) {
     flags |= SEND_MESSAGE_FLAG_CLEAR_DRAFT;
   }
+  if (m->message_id.is_scheduled()) {
+    flags |= SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
+  }
   return flags;
 }
 
@@ -20087,6 +20127,8 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
     logevent_id = save_forward_messages_logevent(to_dialog_id, from_dialog_id, messages, message_ids);
   }
 
+  auto schedule_date = get_message_schedule_date(messages[0]);
+
   int32 flags = 0;
   if (messages[0]->disable_notification) {
     flags |= SEND_MESSAGE_FLAG_DISABLE_NOTIFICATION;
@@ -20100,12 +20142,15 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   if (messages[0]->in_game_share) {
     flags |= SEND_MESSAGE_FLAG_WITH_MY_SCORE;
   }
+  if (schedule_date != 0) {
+    flags |= SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
+  }
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_logevent_promise(logevent_id)),
                &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id, message_ids, std::move(random_ids),
-               get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
+               schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
 }
 
 Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
@@ -20705,7 +20750,7 @@ Result<MessageId> MessagesManager::add_local_message(
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {
-  if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
+  if (!new_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
     auto it = debug_being_sent_messages_.find(random_id);
@@ -20739,7 +20784,32 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 
   being_sent_messages_.erase(it);
 
+  LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
   update_message_ids_[FullMessageId(dialog_id, new_message_id)] = old_message_id;
+  return true;
+}
+
+bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledServerMessageId new_message_id,
+                                                     const string &source) {
+  if (!new_message_id.is_valid()) {
+    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
+               << source;
+    return false;
+  }
+
+  auto it = being_sent_messages_.find(random_id);
+  if (it == being_sent_messages_.end()) {
+    LOG(ERROR) << "Receive not send outgoing " << new_message_id << " with random_id = " << random_id;
+    return false;
+  }
+
+  auto dialog_id = it->second.get_dialog_id();
+  auto old_message_id = it->second.get_message_id();
+
+  being_sent_messages_.erase(it);
+
+  LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
+  update_scheduled_message_ids_[dialog_id][new_message_id] = old_message_id;
   return true;
 }
 
@@ -22272,6 +22342,7 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
     } else {
       td_->updates_manager_->schedule_get_difference("check_send_message_result");
     }
+    repair_dialog_scheduled_messages(dialog_id);
   }
 }
 
@@ -22282,7 +22353,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (DROP_UPDATES) {
     return {};
   }
-  if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
+  if (!new_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << new_message_id << " as sent message from " << source;
     on_send_message_fail(
         random_id,
@@ -23060,6 +23131,10 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
+    return;
+  }
+
   // TODO create logevent
   get_dialog_scheduled_messages(dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
@@ -23071,6 +23146,9 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
                                                                      bool has_scheduled_server_messages) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive has_scheduled_server_messages in invalid " << dialog_id;
+    return;
+  }
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     return;
   }
 
@@ -26512,7 +26590,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   if (old_message->is_outgoing != new_message->is_outgoing && is_new_available) {
-    if (!replace_legacy) {
+    if (!replace_legacy && !(message_id.is_scheduled() && dialog_id == get_my_dialog_id())) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
                  << " to " << new_message->is_outgoing << ", message content type is "
                  << old_message->content->get_type() << '/' << new_message->content->get_type();
@@ -28029,6 +28107,7 @@ void MessagesManager::process_get_channel_difference_updates(
   debug_channel_difference_dialog_ = dialog_id;
   for (auto &update : other_updates) {
     if (update->get_id() == telegram_api::updateMessageID::ID) {
+      // in channels.getDifference updateMessageID can't be received for scheduled messages
       auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
       on_update_message_id(sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)),
                            "get_channel_difference");

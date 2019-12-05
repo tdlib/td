@@ -163,6 +163,7 @@ class MessagesManager : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_CLEAR_DRAFT = 1 << 7;
   static constexpr int32 SEND_MESSAGE_FLAG_WITH_MY_SCORE = 1 << 8;
   static constexpr int32 SEND_MESSAGE_FLAG_GROUP_MEDIA = 1 << 9;
+  static constexpr int32 SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE = 1 << 10;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
@@ -275,6 +276,8 @@ class MessagesManager : public Actor {
                              int32 total_count);
 
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const string &source);
+
+  bool on_update_scheduled_message_id(int64 random_id, ScheduledServerMessageId new_message_id, const string &source);
 
   void on_update_dialog_draft_message(DialogId dialog_id, tl_object_ptr<telegram_api::DraftMessage> &&draft_message);
 
@@ -1475,6 +1478,8 @@ class MessagesManager : public Actor {
 
   std::pair<DialogId, unique_ptr<Message>> create_message(MessageInfo &&message_info, bool is_channel_message);
 
+  MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
+
   FullMessageId on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
                                bool have_previous, bool have_next, const char *source);
 
@@ -2468,7 +2473,10 @@ class MessagesManager : public Actor {
   std::unordered_map<int64, FullMessageId> being_sent_messages_;  // message_random_id -> message
 
   std::unordered_map<FullMessageId, MessageId, FullMessageIdHash>
-      update_message_ids_;                                         // full_message_id -> temporary_id
+      update_message_ids_;  // new_message_id -> temporary_id
+  std::unordered_map<DialogId, std::unordered_map<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash>,
+                     DialogIdHash>
+      update_scheduled_message_ids_;                               // new_message_id -> temporary_id
   std::unordered_map<int64, DialogId> debug_being_sent_messages_;  // message_random_id -> dialog_id
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";

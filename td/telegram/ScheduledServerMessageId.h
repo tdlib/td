@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 
 #include <functional>
 #include <type_traits>
@@ -56,5 +57,9 @@ struct ScheduledServerMessageIdHash {
     return std::hash<int32>()(message_id.get());
   }
 };
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, ScheduledServerMessageId message_id) {
+  return string_builder << "scheduled server message " << message_id.get();
+}
 
 }  // namespace td
