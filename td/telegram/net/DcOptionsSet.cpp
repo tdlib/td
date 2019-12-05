@@ -47,6 +47,8 @@ DcOptions DcOptionsSet::get_dc_options() const {
 vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only,
                                                                         bool use_static, bool prefer_ipv6,
                                                                         bool only_http) {
+  LOG(DEBUG) << "Find all " << (allow_media_only ? "media " : "") << "connections in " << dc_id
+             << ". use_static = " << use_static << ", prefer_ipv6 = " << prefer_ipv6 << ", only_http = " << only_http;
   std::vector<ConnectionInfo> options;
   std::vector<ConnectionInfo> static_options;
 
