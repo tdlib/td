@@ -5450,8 +5450,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     auto dialog_id = d->dialog_id;
     CHECK(dialog_id.get_type() == DialogType::User);
     auto new_message = make_unique<Message>();
-    new_message->message_id = get_next_local_message_id(d);
-    new_message->random_y = get_random_y(new_message->message_id);
+    set_message_id(new_message, get_next_local_message_id(d));
     new_message->sender_user_id = dialog_id.get_user_id();
     new_message->date = date;
     new_message->ttl = ttl;
@@ -10302,8 +10301,7 @@ void MessagesManager::init() {
 
       if (op == "MessageOpAdd") {
         auto m = make_unique<Message>();
-        m->random_y = get_random_y(message_id);
-        m->message_id = message_id;
+        set_message_id(m, message_id);
         m->date = G()->unix_time();
         m->content = create_text_message_content("text", {}, {});
 
@@ -11049,8 +11047,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id;
 
   auto message = make_unique<Message>();
-  message->random_y = get_random_y(message_id);
-  message->message_id = message_id;
+  set_message_id(message, message_id);
   message->sender_user_id = sender_user_id;
   message->date = date;
   message->ttl = ttl;
@@ -11185,15 +11182,13 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     need_update = false;
 
-    new_message->message_id = old_message_id;
-    new_message->random_y = get_random_y(new_message->message_id);
+    set_message_id(new_message, old_message_id);
     new_message->have_previous = false;
     new_message->have_next = false;
     update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos);
     new_message = std::move(old_message);
 
-    new_message->message_id = message_id;
-    new_message->random_y = get_random_y(new_message->message_id);
+    set_message_id(new_message, message_id);
     send_update_message_send_succeeded(d, old_message_id, new_message.get());
 
     if (!message_id.is_scheduled()) {
@@ -17280,8 +17275,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   auto my_id = td_->contacts_manager_->get_my_id();
 
   auto m = make_unique<Message>();
-  m->random_y = get_random_y(message_id);
-  m->message_id = message_id;
+  set_message_id(m, message_id);
   bool is_channel_post = is_broadcast_channel(dialog_id);
   if (is_channel_post) {
     // sender of the post can be hidden
@@ -20652,8 +20646,7 @@ Result<MessageId> MessagesManager::add_local_message(
   MessageId message_id = get_next_local_message_id(d);
 
   auto m = make_unique<Message>();
-  m->random_y = get_random_y(message_id);
-  m->message_id = message_id;
+  set_message_id(m, message_id);
   if (is_channel_post) {
     // sender of the post can be hidden
     if (td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
@@ -22385,8 +22378,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
                                 sent_message->is_content_secret, source);
   }
 
-  sent_message->message_id = new_message_id;
-  sent_message->random_y = get_random_y(sent_message->message_id);
+  set_message_id(sent_message, new_message_id);
 
   sent_message->have_previous = true;
   sent_message->have_next = true;
@@ -22820,13 +22812,12 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     }
   }
 
-  message->message_id = new_message_id;
+  set_message_id(message, new_message_id);
   if (old_message_id.is_scheduled()) {
     CHECK(message->message_id.is_valid_scheduled());
   } else {
     CHECK(message->message_id.is_valid());
   }
-  message->random_y = get_random_y(message->message_id);
   message->is_failed_to_send = true;
   message->send_error_code = error_code;
   message->send_error_message = error_message;
@@ -25210,6 +25201,11 @@ int32 MessagesManager::get_random_y(MessageId message_id) {
   return static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
 }
 
+void MessagesManager::set_message_id(unique_ptr<Message> &message, MessageId message_id) {
+  message->message_id = message_id;
+  message->random_y = get_random_y(message_id);
+}
+
 MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
@@ -25970,8 +25966,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     if (m != nullptr) {
       auto old_message_id = m->message_id;
       LOG(INFO) << "Adding already existing " << old_message_id << " in " << dialog_id << " from " << source;
-      message->message_id = old_message_id;
-      message->random_y = get_random_y(message->message_id);
+      set_message_id(message, old_message_id);
       if (!message->from_database) {
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
         bool need_update_dialog_pos = false;
@@ -25983,8 +25978,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
         CHECK(message != nullptr);
         send_update_delete_messages(dialog_id, {old_message_id.get()}, false, false);
-        message->message_id = message_id;
-        message->random_y = get_random_y(message->message_id);
+        set_message_id(message, message_id);
       } else {
         *need_update = false;
         return m;
@@ -28598,12 +28592,10 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
 
   auto now = G()->unix_time();
-  bool is_scheduled = m->message_id.is_scheduled();
-
-  m->message_id =
-      is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, m->date) : get_next_yet_unsent_message_id(d);
-  m->random_y = get_random_y(m->message_id);
-  if (!is_scheduled) {
+  if (m->message_id.is_scheduled()) {
+    set_message_id(m, get_next_yet_unsent_scheduled_message_id(d, m->date));
+  } else {
+    set_message_id(m, get_next_yet_unsent_message_id(d));
     m->date = now;
   }
   m->have_previous = true;
@@ -28809,11 +28801,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
         auto now = G()->unix_time();
         for (auto &m : messages) {
-          bool is_scheduled = m->message_id.is_scheduled();
-          m->message_id = is_scheduled ? get_next_yet_unsent_scheduled_message_id(to_dialog, m->date)
-                                       : get_next_yet_unsent_message_id(to_dialog);
-          m->random_y = get_random_y(m->message_id);
-          if (!is_scheduled) {
+          if (m->message_id.is_scheduled()) {
+            set_message_id(m, get_next_yet_unsent_scheduled_message_id(to_dialog, m->date));
+          } else {
+            set_message_id(m, get_next_yet_unsent_message_id(to_dialog));
             m->date = now;
           }
           m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);

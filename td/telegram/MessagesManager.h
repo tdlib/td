@@ -1698,6 +1698,8 @@ class MessagesManager : public Actor {
 
   static int32 get_random_y(MessageId message_id);
 
+  static void set_message_id(unique_ptr<Message> &message, MessageId message_id);
+
   bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) const;
 
   bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
