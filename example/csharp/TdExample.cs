@@ -206,7 +206,7 @@ namespace TdExample
             TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][] { row, row, row });
 
             TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), false, true);
-            _client.Send(new TdApi.SendMessage(chatId, 0, false, false, replyMarkup, content), _defaultHandler);
+            _client.Send(new TdApi.SendMessage(chatId, 0, null, replyMarkup, content), _defaultHandler);
         }
 
         static void Main()

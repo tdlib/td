@@ -18,7 +18,7 @@ int main() {
   void *client = td_json_client_create();
   // somehow share the client with other threads, which will be able to send requests via td_json_client_send
 
-  const bool test_incorrect_queries = true;
+  const bool test_incorrect_queries = false;
   if (test_incorrect_queries) {
     td_json_client_execute(nullptr, "{\"@type\":\"setLogVerbosityLevel\", \"new_verbosity_level\":3}");
     td_json_client_execute(nullptr, "");
