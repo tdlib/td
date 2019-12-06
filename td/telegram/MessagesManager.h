@@ -1370,10 +1370,11 @@ class MessagesManager : public Actor {
   struct SendMessageOptions {
     bool disable_notification = false;
     bool from_background = false;
+    int32 schedule_date = 0;
 
     SendMessageOptions() = default;
-    SendMessageOptions(bool disable_notification, bool from_background)
-        : disable_notification(disable_notification), from_background(from_background) {
+    SendMessageOptions(bool disable_notification, bool from_background, int32 schedule_date)
+        : disable_notification(disable_notification), from_background(from_background), schedule_date(schedule_date) {
     }
   };
 
@@ -1498,7 +1499,7 @@ class MessagesManager : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content);
 
   Result<SendMessageOptions> process_send_message_options(DialogId dialog_id,
-                                                          tl_object_ptr<td_api::sendMessageOptions> &&options);
+                                                          tl_object_ptr<td_api::sendMessageOptions> &&options) const;
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options,
                                unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,

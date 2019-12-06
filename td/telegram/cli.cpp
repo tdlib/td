@@ -1277,8 +1277,9 @@ class CliClient final : public Actor {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat, reply_to_message_id,
-        td_api::make_object<td_api::sendMessageOptions>(disable_notification, from_background), nullptr,
-        std::move(input_message_content)));
+        td_api::make_object<td_api::sendMessageOptions>(disable_notification, from_background,
+                                                        as_message_scheduling_state(schedule_date_)),
+        nullptr, std::move(input_message_content)));
     query_id_to_send_message_info_[id].start_time = Time::now();
   }
 
@@ -2751,6 +2752,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchSecretMessages>(
           as_chat_id(chat_id), query, to_integer<int64>(from_search_id), to_integer<int32>(limit),
           get_search_messages_filter(filter)));
+    } else if (op == "ssd") {
+      schedule_date_ = args;
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
       string chat_id;
       string reply_to_message_id;
@@ -3995,6 +3998,7 @@ class CliClient final : public Actor {
   std::unordered_map<int32, double> being_downloaded_files_;
 
   int32 my_id_ = 0;
+  string schedule_date_;
 
   ConcurrentScheduler *scheduler_{nullptr};
 

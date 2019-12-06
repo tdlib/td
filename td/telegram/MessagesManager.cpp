@@ -17287,11 +17287,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
 
-  int32 schedule_date = 0;
-  bool is_scheduled = schedule_date != 0;
+  bool is_scheduled = options.schedule_date != 0;
   DialogId dialog_id = d->dialog_id;
-  MessageId message_id =
-      is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, schedule_date) : get_next_yet_unsent_message_id(d);
+  MessageId message_id = is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
+                                      : get_next_yet_unsent_message_id(d);
   LOG(INFO) << "Create " << message_id << " in " << dialog_id;
 
   auto dialog_type = dialog_id.get_type();
@@ -17309,7 +17308,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
     m->sender_user_id = my_id;
   }
   m->send_date = G()->unix_time();
-  m->date = is_scheduled ? schedule_date : m->send_date;
+  m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
@@ -17960,16 +17959,34 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
 }
 
 Result<MessagesManager::SendMessageOptions> MessagesManager::process_send_message_options(
-    DialogId dialog_id, tl_object_ptr<td_api::sendMessageOptions> &&options) {
+    DialogId dialog_id, tl_object_ptr<td_api::sendMessageOptions> &&options) const {
   SendMessageOptions result;
   if (options != nullptr) {
     result.disable_notification = options->disable_notification_;
     result.from_background = options->from_background_;
+    TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   }
 
-  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
+  auto dialog_type = dialog_id.get_type();
+  bool is_secret = dialog_type == DialogType::SecretChat;
   if (result.disable_notification && is_secret) {
     return Status::Error(400, "Can't send messages with silent notifications to secret chats");
+  }
+  if (result.schedule_date != 0) {
+    if (is_secret) {
+      return Status::Error(400, "Can't schedule messages in secret chats");
+    }
+    if (td_->auth_manager_->is_bot()) {
+      return Status::Error(400, "Bots can't send scheduled messages");
+    }
+  }
+  if (result.schedule_date == SCHEDULE_WHEN_ONLINE_DATE) {
+    if (dialog_type != DialogType::User) {
+      return Status::Error(400, "Messages can be scheduled till online only in private chats");
+    }
+    if (dialog_id == get_my_dialog_id()) {
+      return Status::Error(400, "Can't scheduled till online messages in chat with self");
+    }
   }
 
   return result;
@@ -20521,7 +20538,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
 
-    SendMessageOptions options(message->disable_notification, message->from_background);
+    SendMessageOptions options(message->disable_notification, message->from_background,
+                               get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(d, get_reply_to_message_id(d, message->reply_to_message_id), options,
                                      std::move(new_contents[i]), &need_update_dialog_pos);
     m->reply_markup = std::move(message->reply_markup);

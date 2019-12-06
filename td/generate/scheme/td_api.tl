@@ -1490,7 +1490,8 @@ messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 //@description Options to be used when a message is send
 //@disable_notification Pass true to disable notification for the message. Must be false if the message is sent to a secret chat
 //@from_background Pass true if the message is sent from the background
-sendMessageOptions disable_notification:Bool from_background:Bool = SendMessageOptions;
+//@scheduling_state Message scheduling state. Messages sent to a secret chat, live location messages and self-destructing messages can't be scheduled
+sendMessageOptions disable_notification:Bool from_background:Bool scheduling_state:MessageSchedulingState = SendMessageOptions;
 
 
 //@class InputMessageContent @description The content of a message to send
