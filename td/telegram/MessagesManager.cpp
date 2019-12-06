@@ -5646,7 +5646,7 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
     return;
   }
 
-  if (update_message_views(full_message_id.get_dialog_id(), m, views)) {
+  if (update_message_views(dialog_id, m, views)) {
     on_message_changed(d, m, true, "on_update_message_views");
   }
 }
@@ -7546,6 +7546,7 @@ void MessagesManager::after_get_difference() {
     auto full_message_id = it.first;
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
+    CHECK(message_id.is_valid());
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
         // get channel difference may prevent updates from being applied
@@ -7969,12 +7970,13 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     auto &result = it->second.second;
     CHECK(result.empty());
     for (auto &message : messages) {
-      auto new_message = on_get_message(std::move(message), false, false, false, false, false, "search call messages");
-      if (new_message != FullMessageId()) {
-        result.push_back(new_message);
+      auto new_full_message_id =
+          on_get_message(std::move(message), false, false, false, false, false, "search call messages");
+      if (new_full_message_id != FullMessageId()) {
+        result.push_back(new_full_message_id);
       }
 
-      auto message_id = new_message.get_message_id();
+      auto message_id = new_full_message_id.get_message_id();
       if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
         first_added_message_id = message_id;
       }
@@ -8022,20 +8024,20 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   for (auto &message : messages) {
-    auto new_message = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                                      false, false, "SearchMessagesQuery");
-    if (new_message == FullMessageId()) {
+    auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
+                                              false, false, false, "SearchMessagesQuery");
+    if (new_full_message_id == FullMessageId()) {
       total_count--;
       continue;
     }
 
-    if (new_message.get_dialog_id() != dialog_id) {
-      LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
+    if (new_full_message_id.get_dialog_id() != dialog_id) {
+      LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << dialog_id;
       total_count--;
       continue;
     }
 
-    auto message_id = new_message.get_message_id();
+    auto message_id = new_full_message_id.get_message_id();
     if (filter == SearchMessagesFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id) {
       total_count--;
       continue;
@@ -8108,11 +8110,11 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
   CHECK(result.empty());
   for (auto &message : messages) {
     auto dialog_id = get_message_dialog_id(message);
-    auto new_message = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                                      false, false, "search messages");
-    if (new_message != FullMessageId()) {
-      CHECK(dialog_id == new_message.get_dialog_id());
-      result.push_back(new_message);
+    auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
+                                              false, false, false, "search messages");
+    if (new_full_message_id != FullMessageId()) {
+      CHECK(dialog_id == new_full_message_id.get_dialog_id());
+      result.push_back(new_full_message_id);
     } else {
       total_count--;
     }
@@ -8194,15 +8196,16 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
   auto &result = it->second.second;
   CHECK(result.empty());
   for (auto &message : messages) {
-    auto new_message = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                                      false, false, "get recent locations");
-    if (new_message != FullMessageId()) {
-      if (new_message.get_dialog_id() != dialog_id) {
-        LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
+    auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
+                                              false, false, false, "get recent locations");
+    if (new_full_message_id != FullMessageId()) {
+      if (new_full_message_id.get_dialog_id() != dialog_id) {
+        LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << dialog_id;
         total_count--;
         continue;
       }
-      auto m = get_message(new_message);
+      auto m = get_message(new_full_message_id);
+      CHECK(m != nullptr);
       if (m->content->get_type() != MessageContentType::LiveLocation) {
         LOG(ERROR) << "Receive a message of wrong type " << m->content->get_type() << " in on_get_recent_locations in "
                    << dialog_id;
@@ -8210,7 +8213,7 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
         continue;
       }
 
-      result.push_back(new_message.get_message_id());
+      result.push_back(m->message_id);
     } else {
       total_count--;
     }
@@ -8438,7 +8441,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   message_ids.reserve(input_message_ids.size());
   vector<MessageId> deleted_server_message_ids;
 
-  vector<MessageId> deleted_scheduled_message_ids;
+  vector<MessageId> deleted_scheduled_server_message_ids;
   for (auto message_id : input_message_ids) {
     if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
       return promise.set_error(Status::Error(6, "Invalid message identifier"));
@@ -8446,14 +8449,15 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
     message_id = get_persistent_message_id(d, message_id);
     message_ids.push_back(message_id);
-    if (get_message_force(d, message_id, "delete_messages") != nullptr) {
-      if (message_id.is_scheduled()) {
-        if (message_id.is_scheduled_server()) {
-          deleted_scheduled_message_ids.push_back(message_id);
+    auto message = get_message_force(d, message_id, "delete_messages");
+    if (message != nullptr) {
+      if (message->message_id.is_scheduled()) {
+        if (message->message_id.is_scheduled_server()) {
+          deleted_scheduled_server_message_ids.push_back(message->message_id);
         }
       } else {
-        if (message_id.is_server() || is_secret) {
-          deleted_server_message_ids.push_back(message_id);
+        if (message->message_id.is_server() || is_secret) {
+          deleted_server_message_ids.push_back(message->message_id);
         }
       }
     }
@@ -8493,7 +8497,8 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
   auto lock = mpas.get_promise();
   delete_messages_from_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
-  delete_scheduled_messages_from_server(dialog_id, std::move(deleted_scheduled_message_ids), 0, mpas.get_promise());
+  delete_scheduled_messages_from_server(dialog_id, std::move(deleted_scheduled_server_message_ids), 0,
+                                        mpas.get_promise());
   lock.set_value(Unit());
 
   bool need_update_dialog_pos = false;
@@ -11649,6 +11654,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     // message has already been deleted
     return;
   }
+  full_message_id = FullMessageId(dialog_id, m->message_id);
 
   if (m->content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has been already changed to " << m->content->get_type();
@@ -11694,8 +11700,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     // dialog can be not yet added
     return;
   }
-  auto message_id = full_message_id.get_message_id();
-  Message *m = get_message(d, message_id);
+  Message *m = get_message(d, full_message_id.get_message_id());
   if (m == nullptr) {
     // message can be already deleted
     return;
@@ -11719,7 +11724,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     return;
   }
 
-  send_update_message_content(dialog_id, message_id, content, m->date, m->is_content_secret,
+  send_update_message_content(dialog_id, m->message_id, content, m->date, m->is_content_secret,
                               "on_update_message_web_page");
 }
 
@@ -13330,9 +13335,9 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
     }
   } else if (m == nullptr && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-    if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
+    if (d->deleted_scheduled_server_message_ids.count(m->message_id.get_scheduled_server_message_id()) == 0 &&
         dialog_type != DialogType::SecretChat && input_message == nullptr) {
-      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
+      return get_message_from_server({d->dialog_id, m->message_id}, std::move(promise));
     }
   }
 
@@ -13368,8 +13373,8 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
   }
 
   tl_object_ptr<telegram_api::InputMessage> input_message;
-  if (message_id.is_valid() && message_id.is_server()) {
-    input_message = make_tl_object<telegram_api::inputMessageReplyTo>(message_id.get_server_message_id().get());
+  if (m->message_id.is_valid() && m->message_id.is_server()) {
+    input_message = make_tl_object<telegram_api::inputMessageReplyTo>(m->message_id.get_server_message_id().get());
   }
   auto replied_message_id = get_replied_message_id(m);
   get_message_force_from_server(d, replied_message_id, std::move(promise), std::move(input_message));
@@ -13578,21 +13583,20 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     return {};
   }
 
-  auto message_id = full_message_id.get_message_id();
-  auto *m = get_message_force(d, message_id, "get_public_message_link");
+  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_public_message_link");
   if (m == nullptr) {
     promise.set_error(Status::Error(6, "Message not found"));
     return {};
   }
-  if (message_id.is_yet_unsent()) {
+  if (m->message_id.is_yet_unsent()) {
     promise.set_error(Status::Error(6, "Message is yet unsent"));
     return {};
   }
-  if (message_id.is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     promise.set_error(Status::Error(6, "Message is scheduled"));
     return {};
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     promise.set_error(Status::Error(6, "Message is local"));
     return {};
   }
@@ -13600,7 +13604,7 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
   auto it = public_message_links_[for_group].find(full_message_id);
   if (it == public_message_links_[for_group].end()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
-        ->send(dialog_id.get_channel_id(), message_id, for_group, false);
+        ->send(dialog_id.get_channel_id(), m->message_id, for_group, false);
     return {};
   }
 
@@ -13631,27 +13635,26 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<
     return {};
   }
 
-  auto message_id = full_message_id.get_message_id();
-  auto *m = get_message_force(d, message_id, "get_message_link");
+  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
   if (m == nullptr) {
     promise.set_error(Status::Error(6, "Message not found"));
     return {};
   }
-  if (message_id.is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     promise.set_error(Status::Error(6, "Message is scheduled"));
     return {};
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     promise.set_error(Status::Error(6, "Message is local"));
     return {};
   }
 
   td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
-      ->send(dialog_id.get_channel_id(), message_id, false, true);
+      ->send(dialog_id.get_channel_id(), m->message_id, false, true);
 
   promise.set_value(Unit());
   return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "c/"
-                   << dialog_id.get_channel_id().get() << "/" << message_id.get_server_message_id().get();
+                   << dialog_id.get_channel_id().get() << "/" << m->message_id.get_server_message_id().get();
 }
 
 Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(Slice url) {
@@ -14711,19 +14714,18 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
     return Status::Error(3, "Chat not found");
   }
 
-  auto message_id = full_message_id.get_message_id();
-  auto *m = get_message_force(d, message_id, "open_message_content");
+  auto *m = get_message_force(d, full_message_id.get_message_id(), "open_message_content");
   if (m == nullptr) {
     return Status::Error(4, "Message not found");
   }
 
-  if (message_id.is_scheduled() || message_id.is_yet_unsent() || m->is_outgoing) {
+  if (m->message_id.is_scheduled() || m->message_id.is_yet_unsent() || m->is_outgoing) {
     return Status::OK();
   }
 
   if (read_message_content(d, m, true, "open_message_content") &&
-      (message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
-    read_message_contents_on_server(dialog_id, {message_id}, 0);
+      (m->message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
+    read_message_contents_on_server(dialog_id, {m->message_id}, 0);
   }
 
   return Status::OK();
@@ -17025,6 +17027,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
       numbers.push_back(message_id.get_scheduled_server_message_id().get());
       const Message *m = get_message(d, message_id);
       CHECK(m != nullptr);
+      CHECK(m->message_id.get_scheduled_server_message_id() == message_id.get_scheduled_server_message_id());
       numbers.push_back(m->edit_date);
       numbers.push_back(m->date);
     }
@@ -18337,7 +18340,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   }
 
   send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id, dialog_id,
-                     message_id, std::move(result));
+                     m->message_id, std::move(result));
 }
 
 void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_id, MessageId message_id,
@@ -18389,7 +18392,7 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
   CHECK(dialog_id.get_type() != DialogType::SecretChat);
 
   send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id, dialog_id,
-                     message_id, std::move(error));
+                     m->message_id, std::move(error));
 }
 
 void MessagesManager::on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id,
@@ -19114,8 +19117,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "edit_message_text");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_text");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19149,7 +19151,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
 
   send_closure(
       td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
-      message_id, input_message_text.text.text,
+      m->message_id, input_message_text.text.text,
       get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
       nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
       get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
@@ -19170,8 +19172,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "edit_message_live_location");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_live_location");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19208,7 +19209,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
                                                                                 location.get_input_geo_point(), 0);
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
+               m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
                std::move(input_reply_markup), get_message_schedule_date(m),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
@@ -19279,7 +19280,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     cancel_upload_message_content_files(m->edited_content.get());
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
-      get_message_from_server({dialog_id, message_id}, Auto());
+      get_message_from_server({dialog_id, m->message_id}, Auto());
     }
   }
 
@@ -19323,8 +19324,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  Message *m = get_message_force(d, message_id, "edit_message_media");
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_media");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19332,7 +19332,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
   if (!can_edit_message(dialog_id, m, true)) {
     return promise.set_error(Status::Error(5, "Message can't be edited"));
   }
-  CHECK(message_id.is_any_server());
+  CHECK(m->message_id.is_any_server());
 
   MessageContentType old_message_content_type = m->content->get_type();
   if (old_message_content_type != MessageContentType::Animation &&
@@ -19390,8 +19390,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "edit_message_caption");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_caption");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19419,7 +19418,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
 
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
-               message_id, caption.text,
+               m->message_id, caption.text,
                get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
                nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
@@ -19443,8 +19442,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "edit_message_reply_markup");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_reply_markup");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19460,7 +19458,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   }
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
+               m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
                std::move(input_reply_markup), get_message_schedule_date(m),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
@@ -19669,16 +19667,15 @@ void MessagesManager::edit_message_scheduling_state(
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  Message *m = get_message_force(d, message_id, "edit_message_scheduling_state");
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "edit_message_scheduling_state");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
 
-  if (!message_id.is_scheduled()) {
+  if (!m->message_id.is_scheduled()) {
     return promise.set_error(Status::Error(5, "Message is not scheduled"));
   }
-  if (!message_id.is_scheduled_server()) {
+  if (!m->message_id.is_scheduled_server()) {
     return promise.set_error(Status::Error(5, "Can't reschedule the message"));
   }
 
@@ -19689,11 +19686,11 @@ void MessagesManager::edit_message_scheduling_state(
 
   if (schedule_date > 0) {
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-                 message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
+                 m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
                  schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   } else {
     send_closure(td_->create_net_actor<SendScheduledMessageActor>(std::move(promise)), &SendScheduledMessageActor::send,
-                 dialog_id, message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+                 dialog_id, m->message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   }
 }
 
@@ -19805,8 +19802,7 @@ void MessagesManager::set_game_score(FullMessageId full_message_id, bool edit_me
     return promise.set_error(Status::Error(5, "Can't access the chat"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "set_game_score");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "set_game_score");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -19821,7 +19817,7 @@ void MessagesManager::set_game_score(FullMessageId full_message_id, bool edit_me
   }
 
   send_closure(td_->create_net_actor<SetGameScoreActor>(std::move(promise)), &SetGameScoreActor::send, dialog_id,
-               message_id, edit_message, std::move(input_user), score, force,
+               m->message_id, edit_message, std::move(input_user), score, force,
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
@@ -19864,13 +19860,12 @@ int64 MessagesManager::get_game_high_scores(FullMessageId full_message_id, UserI
     return 0;
   }
 
-  auto message_id = full_message_id.get_message_id();
-  const Message *m = get_message_force(d, message_id, "get_game_high_scores");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "get_game_high_scores");
   if (m == nullptr) {
     promise.set_error(Status::Error(5, "Message not found"));
     return 0;
   }
-  if (message_id.is_scheduled() || !message_id.is_server()) {
+  if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
     promise.set_error(Status::Error(5, "Wrong message identifier specified"));
     return 0;
   }
@@ -19888,7 +19883,7 @@ int64 MessagesManager::get_game_high_scores(FullMessageId full_message_id, UserI
   game_high_scores_[random_id];  // reserve place for result
 
   td_->create_handler<GetGameHighScoresQuery>(std::move(promise))
-      ->send(dialog_id, message_id, std::move(input_user), random_id);
+      ->send(dialog_id, m->message_id, std::move(input_user), random_id);
   return random_id;
 }
 
@@ -20282,6 +20277,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
     CHECK(message_id.is_valid());
+    CHECK(message_id == forwarded_message->message_id);
 
     if (!can_forward_message(from_dialog_id, forwarded_message)) {
       LOG(INFO) << "Can't forward " << message_id;
@@ -20510,7 +20506,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
         return Status::Error(400, "Message identifiers must be in a strictly increasing order");
       }
     }
-    last_message_id = message_id;
+    last_message_id = m->message_id;
   }
 
   vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
@@ -20522,20 +20518,20 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, m->content.get(), false);
     if (content == nullptr) {
-      LOG(INFO) << "Can't resend " << message_id;
+      LOG(INFO) << "Can't resend " << m->message_id;
       continue;
     }
 
     auto can_send_status = can_send_message_content(dialog_id, content.get(), false);
     if (can_send_status.is_error()) {
-      LOG(INFO) << "Can't resend " << message_id << ": " << can_send_status.message();
+      LOG(INFO) << "Can't resend " << m->message_id << ": " << can_send_status.message();
       continue;
     }
 
     if (content->get_type() == MessageContentType::Game &&
         !get_message_content_game_bot_user_id(content.get()).is_valid()) {
       // must not happen
-      LOG(ERROR) << "Can't resend game from " << message_id;
+      LOG(ERROR) << "Can't resend game from " << m->message_id;
       continue;
     }
 
@@ -22668,7 +22664,7 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
     media_album_id = m->media_album_id;
 
     CHECK(dialog_id == full_message_id.get_dialog_id());
-    message_ids.push_back(full_message_id.get_message_id());
+    message_ids.push_back(m->message_id);
     messages.push_back(m);
   }
 
@@ -25303,17 +25299,16 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   auto old_message = get_message(d, m->message_id);
   if (old_message != nullptr) {
-    CHECK(m->message_id == old_message->message_id);
     // data in the database is always outdated, so return a message from the memory
     if (dialog_id.get_type() == DialogType::SecretChat) {
       CHECK(!is_scheduled);
       // just in case restore random_id to message_id corespondence
       // can be needed if there was newer unloaded message with the same random_id
-      add_random_id_to_message_id_correspondence(d, old_message->random_id, m->message_id);
+      add_random_id_to_message_id_correspondence(d, old_message->random_id, old_message->message_id);
     }
 
     if (old_message->notification_id.is_valid() && !is_scheduled) {
-      add_notification_id_to_message_id_correspondence(d, old_message->notification_id, m->message_id);
+      add_notification_id_to_message_id_correspondence(d, old_message->notification_id, old_message->message_id);
     }
 
     return old_message;
@@ -26132,11 +26127,11 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
 
   const Message *m = message.get();
-  if (message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
     replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
   }
 
-  if (!m->from_database && !message_id.is_yet_unsent()) {
+  if (!m->from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_scheduled_message_to_dialog");
   }
 
@@ -26149,8 +26144,8 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     update_used_hashtags(dialog_id, m);
   }
 
-  if (message_id.is_scheduled_server()) {
-    int32 &date = d->scheduled_message_date[message_id.get_scheduled_server_message_id()];
+  if (m->message_id.is_scheduled_server()) {
+    int32 &date = d->scheduled_message_date[m->message_id.get_scheduled_server_message_id()];
     CHECK(date == 0);
     date = m->date;
   }
@@ -29658,10 +29653,10 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   if (m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(Status::Error(5, "Message is not a poll"));
   }
-  if (full_message_id.get_message_id().is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     return promise.set_error(Status::Error(5, "Can't answer polls from scheduled messages"));
   }
-  if (!full_message_id.get_message_id().is_server()) {
+  if (!m->message_id.is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be answered"));
   }
 
@@ -29686,10 +29681,10 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, td_api::object_pt
   if (!can_edit_message(full_message_id.get_dialog_id(), m, true)) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
-  if (full_message_id.get_message_id().is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     return promise.set_error(Status::Error(5, "Can't stop polls from scheduled messages"));
   }
-  if (!full_message_id.get_message_id().is_server()) {
+  if (!m->message_id.is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
 
@@ -29711,16 +29706,15 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId fu
   if (m->content->get_type() != MessageContentType::Invoice) {
     return Status::Error(5, "Message has no invoice");
   }
-  auto message_id = full_message_id.get_message_id();
-  if (message_id.is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     return Status::Error(5, "Wrong scheduled message identifier");
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     return Status::Error(5, "Wrong message identifier");
   }
   // TODO need to check that message is not forwarded
 
-  return message_id.get_server_message_id();
+  return m->message_id.get_server_message_id();
 }
 
 void MessagesManager::get_payment_form(FullMessageId full_message_id,
@@ -29765,15 +29759,14 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
   if (m->content->get_type() != MessageContentType::PaymentSuccessful) {
     return promise.set_error(Status::Error(5, "Message has wrong type"));
   }
-  auto message_id = full_message_id.get_message_id();
-  if (message_id.is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     return promise.set_error(Status::Error(5, "Can't get payment receipt from scheduled messages"));
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     return promise.set_error(Status::Error(5, "Wrong message identifier"));
   }
 
-  ::td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
+  ::td::get_payment_receipt(m->message_id.get_server_message_id(), std::move(promise));
 }
 
 void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
