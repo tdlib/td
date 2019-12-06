@@ -6251,8 +6251,8 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
         folder_id = FolderId(read_update->folder_id_);
       }
       on_update_dialog_folder_id(dialog_id, folder_id);
-      read_history_inbox(dialog_id, MessageId(ServerMessageId(read_update->max_id_)), read_update->still_unread_count_,
-                         "updateReadHistoryInbox");
+      read_history_inbox(dialog_id, MessageId(ServerMessageId(read_update->max_id_)),
+                         -1 /*read_update->still_unread_count*/, "updateReadHistoryInbox");
       break;
     }
     case telegram_api::updateReadHistoryOutbox::ID: {
