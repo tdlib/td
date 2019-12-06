@@ -375,6 +375,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Status delete_message(FullMessageId full_message_id) override {
+    LOG(INFO) << "Delete " << full_message_id << " from database";
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     CHECK(dialog_id.is_valid());
@@ -398,6 +399,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Status delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) override {
+    LOG(INFO) << "Delete all messages in " << dialog_id << " up to " << from_message_id << " from database";
     CHECK(dialog_id.is_valid());
     CHECK(from_message_id.is_valid());
     SCOPE_EXIT {
@@ -413,6 +415,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Status delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id) override {
+    LOG(INFO) << "Delete all messages in " << dialog_id << " sent by " << sender_user_id << " from database";
     CHECK(dialog_id.is_valid());
     CHECK(sender_user_id.is_valid());
     SCOPE_EXIT {

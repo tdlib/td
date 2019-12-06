@@ -11211,6 +11211,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     need_update = false;
 
     set_message_id(new_message, old_message_id);
+    new_message->from_database = false;
     new_message->have_previous = false;
     new_message->have_next = false;
     update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos);
@@ -22515,6 +22516,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   set_message_id(sent_message, new_message_id);
 
+  sent_message->from_database = false;
   sent_message->have_previous = true;
   sent_message->have_next = true;
 
@@ -22966,6 +22968,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   }
   update_failed_to_send_message_content(td_, message->content);
 
+  message->from_database = false;
   message->have_previous = true;
   message->have_next = true;
 
@@ -26124,6 +26127,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         CHECK(message != nullptr);
         send_update_delete_messages(dialog_id, {message->message_id.get()}, false, false);
         set_message_id(message, message_id);
+        message->from_database = false;
       } else {
         *need_update = false;
         return m;
@@ -26187,6 +26191,9 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   MessageId message_id = m->message_id;
+
+  LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
+
   if (message_id.is_scheduled()) {
     set_dialog_has_scheduled_database_messages(d->dialog_id, true);
     G()->td_db()->get_messages_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
@@ -26194,8 +26201,6 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
     return;
   }
   LOG_CHECK(message_id.is_server() || message_id.is_local()) << source;
-
-  LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
 
   ServerMessageId unique_message_id;
   int64 random_id = 0;
