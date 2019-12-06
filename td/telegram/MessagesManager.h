@@ -1501,6 +1501,10 @@ class MessagesManager : public Actor {
   Result<SendMessageOptions> process_send_message_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::sendMessageOptions> &&options) const;
 
+  static Status can_use_send_message_options(const SendMessageOptions &options,
+                                             const unique_ptr<MessageContent> &content, int32 ttl);
+  static Status can_use_send_message_options(const SendMessageOptions &options, const InputMessageContent &content);
+
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options,
                                unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
                                unique_ptr<MessageForwardInfo> forward_info = nullptr);

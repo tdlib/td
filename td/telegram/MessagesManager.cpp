@@ -17869,6 +17869,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
   TRY_RESULT(send_message_options, process_send_message_options(dialog_id, std::move(options)));
+  TRY_STATUS(can_use_send_message_options(send_message_options, message_content));
 
   // there must be no errors after get_message_to_send call
 
@@ -17992,6 +17993,25 @@ Result<MessagesManager::SendMessageOptions> MessagesManager::process_send_messag
   return result;
 }
 
+Status MessagesManager::can_use_send_message_options(const SendMessageOptions &options,
+                                                     const unique_ptr<MessageContent> &content, int32 ttl) {
+  if (options.schedule_date != 0) {
+    if (ttl > 0) {
+      return Status::Error(400, "Can't send scheduled self-destructing messages");
+    }
+    if (content->get_type() == MessageContentType::LiveLocation) {
+      return Status::Error(400, "Can't send scheduled live location messages");
+    }
+  }
+
+  return Status::OK();
+}
+
+Status MessagesManager::can_use_send_message_options(const SendMessageOptions &options,
+                                                     const InputMessageContent &content) {
+  return can_use_send_message_options(options, content.content, content.ttl);
+}
+
 int64 MessagesManager::generate_new_media_album_id() {
   int64 media_album_id = 0;
   do {
@@ -18021,6 +18041,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
+    TRY_STATUS(can_use_send_message_options(send_message_options, message_content));
     if (!is_allowed_media_group_content(message_content.content->get_type())) {
       return Status::Error(5, "Wrong message content type");
     }
@@ -18772,6 +18793,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
     return Status::Error(5, "Inline query result not found");
   }
 
+  TRY_STATUS(can_use_send_message_options(send_message_options, content->message_content, 0));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true));
 
   bool need_update_dialog_pos = false;
@@ -20276,6 +20298,12 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy);
     if (can_send_status.is_error()) {
+      LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
+      continue;
+    }
+
+    auto can_use_options_status = can_use_send_message_options(send_message_options, content, 0);
+    if (can_use_options_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
     }
