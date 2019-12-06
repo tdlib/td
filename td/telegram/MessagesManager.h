@@ -503,7 +503,7 @@ class MessagesManager : public Actor {
   vector<DialogId> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
                                       Promise<Unit> &&promise);
 
-  bool have_message(FullMessageId full_message_id, const char *source);
+  bool have_message_force(FullMessageId full_message_id, const char *source);
 
   void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
 
