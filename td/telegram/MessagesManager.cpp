@@ -8179,7 +8179,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     auto message_id = it.second;
     auto message = do_delete_scheduled_message(d, message_id, true, "on_get_scheduled_server_messages");
     CHECK(message != nullptr);
-    send_update_delete_messages(dialog_id, {message_id.get()}, true, false);
+    send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
   }
 
   send_update_chat_has_scheduled_messages(d);
@@ -8240,16 +8240,16 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
 
     Dialog *d = get_dialog_by_message_id(message_id);
     if (d != nullptr) {
-      auto m = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
-      CHECK(m != nullptr);
-      LOG_CHECK(m->message_id == message_id) << message_id << " " << m->message_id << " " << d->dialog_id;
-      deleted_message_ids[d->dialog_id].push_back(message_id.get());
+      auto message = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
+      CHECK(message != nullptr);
+      LOG_CHECK(message->message_id == message_id) << message_id << " " << message->message_id << " " << d->dialog_id;
+      deleted_message_ids[d->dialog_id].push_back(message->message_id.get());
     }
     if (last_clear_history_message_id_to_dialog_id_.count(message_id)) {
       d = get_dialog(last_clear_history_message_id_to_dialog_id_[message_id]);
       CHECK(d != nullptr);
-      auto m = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
-      CHECK(m == nullptr);
+      auto message = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
+      CHECK(message == nullptr);
     }
   }
   for (auto &it : need_update_dialog_pos) {
@@ -8283,8 +8283,8 @@ void MessagesManager::delete_dialog_messages_from_updates(DialogId dialog_id, co
       continue;
     }
 
-    delete_message(d, message_id, true, &need_update_dialog_pos, "updates");
-    deleted_message_ids.push_back(message_id.get());
+    auto message = delete_message(d, message_id, true, &need_update_dialog_pos, "updates");
+    deleted_message_ids.push_back(message == nullptr ? message_id.get() : message->message_id.get());
   }
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "delete_dialog_messages_from_updates");
@@ -8906,9 +8906,9 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
     CHECK(m->sender_user_id == user_id);
     CHECK(m->message_id == message_id);
     if (can_delete_channel_message(channel_status, m, is_bot)) {
-      deleted_message_ids.push_back(message_id.get());
       auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "delete messages from user");
       CHECK(p.get() == m);
+      deleted_message_ids.push_back(p->message_id.get());
     }
   }
 
@@ -9703,10 +9703,10 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       CHECK(m != nullptr);
       CHECK(m->message_id <= max_unavailable_message_id);
       CHECK(m->message_id == message_id);
-      deleted_message_ids.push_back(message_id.get());
       auto p =
           delete_message(d, message_id, !from_update, &need_update_dialog_pos, "set_dialog_max_unavailable_message_id");
       CHECK(p.get() == m);
+      deleted_message_ids.push_back(p->message_id.get());
     }
 
     if (need_update_dialog_pos) {
@@ -11256,7 +11256,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     auto p = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(p.get() == m);
     // CHECK(d->messages == nullptr);
-    send_update_delete_messages(dialog_id, {message_id.get()}, false, false);
+    send_update_delete_messages(dialog_id, {p->message_id.get()}, false, false);
     // don't need to update dialog pos
     return FullMessageId();
   }
@@ -11357,9 +11357,9 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       vector<int64> deleted_message_ids;
       bool need_update_dialog_pos = false;
       for (auto message_id : to_delete_message_ids) {
-        if (delete_message(d, message_id, false, &need_update_dialog_pos, "set_dialog_last_new_message_id") !=
-            nullptr) {
-          deleted_message_ids.push_back(message_id.get());
+        auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "set_dialog_last_new_message_id");
+        if (message != nullptr) {
+          deleted_message_ids.push_back(message->message_id.get());
         }
       }
       if (need_update_dialog_pos) {
@@ -21663,7 +21663,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
           d->mention_notification_group.group_id, message_id, true, "remove_message_notifications_by_message_ids");
       continue;
     }
-    deleted_message_ids.push_back(message_id.get());
+    deleted_message_ids.push_back(message->message_id.get());
   }
 
   if (need_update_dialog_pos) {
@@ -25497,9 +25497,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (message_content_type == MessageContentType::ChatDeleteHistory) {
-    auto m = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
-    if (m != nullptr) {
-      send_update_delete_messages(dialog_id, {m->message_id.get()}, true, false);
+    {
+      auto m = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
+      if (m != nullptr) {
+        send_update_delete_messages(dialog_id, {m->message_id.get()}, true, false);
+      }
     }
     int32 last_message_date = 0;
     if (d->last_message_id != MessageId()) {
@@ -26117,7 +26119,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       if (old_message_id != message_id) {
         message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
         CHECK(message != nullptr);
-        send_update_delete_messages(dialog_id, {old_message_id.get()}, false, false);
+        send_update_delete_messages(dialog_id, {message->message_id.get()}, false, false);
         set_message_id(message, message_id);
       } else {
         *need_update = false;
