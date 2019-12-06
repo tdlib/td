@@ -1461,6 +1461,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryInbo
   CHECK(update != nullptr);
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
+  if (force_apply) {
+    update->still_unread_count_ = -1;
+  }
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply,
                                              "on_updateReadHistoryInbox");
 }
