@@ -1242,6 +1242,9 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::MessageSchedulingState> as_message_scheduling_state(Slice date) {
     date = trim(date);
+    if (date.empty()) {
+      return nullptr;
+    }
     auto send_date = to_integer<int32>(date);
     if (send_date == -1) {
       return td_api::make_object<td_api::messageSchedulingStateSendWhenOnline>();
