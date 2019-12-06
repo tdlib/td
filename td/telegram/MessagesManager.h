@@ -1620,15 +1620,16 @@ class MessagesManager : public Actor {
   unique_ptr<Message> do_delete_scheduled_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
                                                   const char *source);
 
-  void on_message_deleted(Dialog *d, Message *m, const char *source);
+  void on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source);
 
   int32 get_unload_dialog_delay() const;
 
   void unload_dialog(DialogId dialog_id);
 
-  void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanent);
+  void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
-  void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message, vector<int64> &deleted_message_ids);
+  void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message, bool is_permanently_deleted,
+                                     vector<int64> &deleted_message_ids);
 
   void delete_message_from_server(DialogId dialog_id, MessageId message_ids, bool revoke);
 
@@ -2125,7 +2126,7 @@ class MessagesManager : public Actor {
 
   void cancel_send_message_query(DialogId dialog_id, Message *m);
 
-  void cancel_send_deleted_message(DialogId dialog_id, Message *m);
+  void cancel_send_deleted_message(DialogId dialog_id, Message *m, bool is_permanently_deleted);
 
   static int32 get_message_flags(const Message *m);
 

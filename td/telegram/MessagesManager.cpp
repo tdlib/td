@@ -9004,10 +9004,11 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanent) {
+void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted) {
   CHECK(d != nullptr);
   LOG(INFO) << "Delete all messages in " << d->dialog_id
-            << " with remove_from_dialog_list = " << remove_from_dialog_list << " and is_permanent = " << is_permanent;
+            << " with remove_from_dialog_list = " << remove_from_dialog_list
+            << " and is_permanently_deleted = " << is_permanently_deleted;
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::DeleteAll, MessageId(), MessageContentType::None,
                                      remove_from_dialog_list, false, false, "");
@@ -9046,9 +9047,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
 
   vector<int64> deleted_message_ids;
-  do_delete_all_dialog_messages(d, d->messages, deleted_message_ids);
+  do_delete_all_dialog_messages(d, d->messages, is_permanently_deleted, deleted_message_ids);
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages");
-  if (is_permanent) {
+  if (is_permanently_deleted) {
     for (auto id : deleted_message_ids) {
       d->deleted_message_ids.insert(MessageId{id});
     }
@@ -9080,7 +9081,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages");
 
-  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanent, false);
+  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted, false);
 }
 
 void MessagesManager::delete_dialog(DialogId dialog_id) {
@@ -12553,15 +12554,15 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     update_message_count_by_index(d, -1, result.get());
   }
 
-  on_message_deleted(d, result.get(), source);
+  on_message_deleted(d, result.get(), is_permanently_deleted, source);
 
   return result;
 }
 
-void MessagesManager::on_message_deleted(Dialog *d, Message *m, const char *source) {
+void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
   // also called for unloaded messages
 
-  cancel_send_deleted_message(d->dialog_id, m);
+  cancel_send_deleted_message(d->dialog_id, m, is_permanently_deleted);
 
   CHECK(m->message_id.is_valid());
   switch (d->dialog_id.get_type()) {
@@ -12626,13 +12627,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     CHECK(erased != 0);
   }
 
-  cancel_send_deleted_message(d->dialog_id, result.get());
+  cancel_send_deleted_message(d->dialog_id, result.get(), is_permanently_deleted);
 
   return result;
 }
 
 void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message,
-                                                    vector<int64> &deleted_message_ids) {
+                                                    bool is_permanently_deleted, vector<int64> &deleted_message_ids) {
   if (message == nullptr) {
     return;
   }
@@ -12647,13 +12648,13 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   LOG(INFO) << "Delete " << message_id;
   deleted_message_ids.push_back(message_id.get());
 
-  do_delete_all_dialog_messages(d, message->right, deleted_message_ids);
-  do_delete_all_dialog_messages(d, message->left, deleted_message_ids);
+  do_delete_all_dialog_messages(d, message->right, is_permanently_deleted, deleted_message_ids);
+  do_delete_all_dialog_messages(d, message->left, is_permanently_deleted, deleted_message_ids);
 
   delete_active_live_location(d->dialog_id, m);
   remove_message_file_sources(d->dialog_id, m);
 
-  on_message_deleted(d, message.get(), "do_delete_all_dialog_messages");
+  on_message_deleted(d, message.get(), is_permanently_deleted, "do_delete_all_dialog_messages");
 
   message = nullptr;
 }
@@ -17719,10 +17720,10 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
   }
 }
 
-void MessagesManager::cancel_send_deleted_message(DialogId dialog_id, Message *m) {
+void MessagesManager::cancel_send_deleted_message(DialogId dialog_id, Message *m, bool is_permanently_deleted) {
   if (m->message_id.is_yet_unsent()) {
     cancel_send_message_query(dialog_id, m);
-  } else {
+  } else if (is_permanently_deleted || !m->message_id.is_scheduled()) {
     cancel_edit_message_media(dialog_id, m, "Message was deleted");
   }
 }
