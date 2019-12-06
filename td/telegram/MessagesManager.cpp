@@ -4166,6 +4166,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(edit_date, parser);
   }
   if (has_send_date) {
+    CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
     CHECK(message_id.is_yet_unsent());
     parse(send_date, parser);
   } else if (message_id.is_valid() && message_id.is_yet_unsent()) {
@@ -10603,7 +10604,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
   }
   Message *m = get_message(d, message_id);
   CHECK(m != nullptr);
-  if (message_id.is_yet_unsent() || m->is_failed_to_send || !m->is_outgoing) {
+  if (m->message_id.is_yet_unsent() || m->is_failed_to_send || !m->is_outgoing) {
     LOG(ERROR) << "Peer has opened wrong " << message_id << " in " << dialog_id;
     return;
   }
@@ -14653,12 +14654,12 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
 
     auto *m = get_message_force(d, message_id, "view_messages");
     if (m != nullptr) {
-      if (message_id.is_server() && m->views > 0) {
-        d->pending_viewed_message_ids.insert(message_id);
+      if (m->message_id.is_server() && m->views > 0) {
+        d->pending_viewed_message_ids.insert(m->message_id);
       }
 
-      if (!message_id.is_yet_unsent() && message_id > max_message_id) {
-        max_message_id = message_id;
+      if (!m->message_id.is_yet_unsent() && m->message_id > max_message_id) {
+        max_message_id = m->message_id;
       }
 
       if (need_read) {
@@ -14666,14 +14667,14 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         if (message_content_type != MessageContentType::VoiceNote &&
             message_content_type != MessageContentType::VideoNote &&
             update_message_contains_unread_mention(d, m, false, "view_messages")) {
-          CHECK(message_id.is_server());
-          read_content_message_ids.push_back(message_id);
+          CHECK(m->message_id.is_server());
+          read_content_message_ids.push_back(m->message_id);
           on_message_changed(d, m, true, "view_messages");
         }
       }
-    } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
-               message_id <= d->max_notification_message_id) {
-      max_message_id = message_id;
+    } else if (!m->message_id.is_yet_unsent() && m->message_id > max_message_id &&
+               m->message_id <= d->max_notification_message_id) {
+      max_message_id = m->message_id;
     }
   }
   if (!d->pending_viewed_message_ids.empty()) {
@@ -17009,6 +17010,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   if (G()->parameters().use_message_db) {
     bool has_scheduled_database_messages = false;
     for (auto &message_id : message_ids) {
+      CHECK(message_id.is_valid_scheduled());
       if (!message_id.is_yet_unsent()) {
         has_scheduled_database_messages = true;
         break;
@@ -17620,20 +17622,20 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
     return MessageId();
   }
   message_id = get_persistent_message_id(d, message_id);
-  const Message *reply_to_message = get_message_force(d, message_id, "get_reply_to_message_id");
-  if (reply_to_message == nullptr || message_id.is_yet_unsent() ||
-      (message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
-    if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-        message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
+  const Message *m = get_message_force(d, message_id, "get_reply_to_message_id");
+  if (m == nullptr || m->message_id.is_yet_unsent() ||
+      (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+    if (m->message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
+        m->message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
       // allow to reply yet unreceived server message
-      return message_id;
+      return m->message_id;
     }
 
     // TODO local replies to local messages can be allowed
     // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
     return MessageId();
   }
-  return message_id;
+  return m->message_id;
 }
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
@@ -17663,6 +17665,7 @@ void MessagesManager::cancel_upload_file(FileId file_id) {
 void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) {
   CHECK(m != nullptr);
   CHECK(m->content != nullptr);
+  CHECK(m->message_id.is_valid() || m->message_id.is_valid_scheduled());
   CHECK(m->message_id.is_yet_unsent());
   LOG(INFO) << "Cancel send message query for " << m->message_id;
 
@@ -18312,6 +18315,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
+  CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
   CHECK(message_id.is_yet_unsent());
   Message *m = get_message(d, message_id);
   if (m == nullptr) {
@@ -25908,11 +25912,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   const Message *m = message.get();
-  if (message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
     replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
   }
 
-  if (!m->from_database && !message_id.is_yet_unsent()) {
+  if (!m->from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_message_to_dialog");
   }
 
@@ -25933,7 +25937,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!is_attached && !m->have_next && !m->have_previous) {
-    MessagesIterator it(d, message_id);
+    MessagesIterator it(d, m->message_id);
     if (*it != nullptr && (*it)->have_next) {
       // need to drop a connection between messages
       auto previous_message = *it;
@@ -25942,7 +25946,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         if (next_message->message_id.is_server() &&
             !(td_->auth_manager_->is_bot() && Slice(source) == Slice("GetChannelMessagesQuery"))) {
-          LOG(ERROR) << "Can't attach " << message_id << " from " << source << " before " << next_message->message_id
+          LOG(ERROR) << "Can't attach " << m->message_id << " from " << source << " before " << next_message->message_id
                      << " and after " << previous_message->message_id << " in " << dialog_id;
           dump_debug_message_op(d);
         }
@@ -25966,9 +25970,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   add_message_file_sources(dialog_id, m);
 
-  register_message_content(td_, m->content.get(), {dialog_id, message_id});
+  register_message_content(td_, m->content.get(), {dialog_id, m->message_id});
 
-  if (*need_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
+  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
     // always update pinned message from service message, even new pinned_message_id is invalid
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
@@ -25987,14 +25991,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!is_attached) {
     if (m->have_next) {
-      LOG_CHECK(!m->have_previous) << auto_attach << " " << dialog_id << " " << message_id << " " << from_update << " "
-                                   << *need_update << " " << d->being_updated_last_new_message_id << " "
+      LOG_CHECK(!m->have_previous) << auto_attach << " " << dialog_id << " " << m->message_id << " " << from_update
+                                   << " " << *need_update << " " << d->being_updated_last_new_message_id << " "
                                    << d->last_new_message_id << " " << d->being_updated_last_database_message_id << " "
                                    << d->last_database_message_id << " " << debug_have_previous << " "
                                    << debug_have_next << " " << source;
-      attach_message_to_next(d, message_id, source);
+      attach_message_to_next(d, m->message_id, source);
     } else if (m->have_previous) {
-      attach_message_to_previous(d, message_id, source);
+      attach_message_to_previous(d, m->message_id, source);
     }
   }
 
@@ -26002,14 +26006,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     case DialogType::User:
     case DialogType::Chat:
       if (m->message_id.is_server()) {
-        message_id_to_dialog_id_[message_id] = dialog_id;
+        message_id_to_dialog_id_[m->message_id] = dialog_id;
       }
       break;
     case DialogType::Channel:
       // nothing to do
       break;
     case DialogType::SecretChat:
-      add_random_id_to_message_id_correspondence(d, m->random_id, message_id);
+      add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
       break;
     case DialogType::None:
     default:
@@ -26017,7 +26021,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->notification_id.is_valid()) {
-    add_notification_id_to_message_id_correspondence(d, m->notification_id, message_id);
+    add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
 
   d->being_added_message_id = MessageId();
