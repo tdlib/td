@@ -13337,9 +13337,9 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
     }
   } else if (m == nullptr && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-    if (d->deleted_scheduled_server_message_ids.count(m->message_id.get_scheduled_server_message_id()) == 0 &&
+    if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
         dialog_type != DialogType::SecretChat && input_message == nullptr) {
-      return get_message_from_server({d->dialog_id, m->message_id}, std::move(promise));
+      return get_message_from_server({d->dialog_id, message_id}, std::move(promise));
     }
   }
 
@@ -14673,9 +14673,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
           on_message_changed(d, m, true, "view_messages");
         }
       }
-    } else if (!m->message_id.is_yet_unsent() && m->message_id > max_message_id &&
-               m->message_id <= d->max_notification_message_id) {
-      max_message_id = m->message_id;
+    } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
+               message_id <= d->max_notification_message_id) {
+      max_message_id = message_id;
     }
   }
   if (!d->pending_viewed_message_ids.empty()) {
@@ -17626,10 +17626,10 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   const Message *m = get_message_force(d, message_id, "get_reply_to_message_id");
   if (m == nullptr || m->message_id.is_yet_unsent() ||
       (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
-    if (m->message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-        m->message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
+    if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
+        message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
       // allow to reply yet unreceived server message
-      return m->message_id;
+      return message_id;
     }
 
     // TODO local replies to local messages can be allowed
@@ -17721,6 +17721,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
 }
 
 void MessagesManager::cancel_send_deleted_message(DialogId dialog_id, Message *m, bool is_permanently_deleted) {
+  CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
     cancel_send_message_query(dialog_id, m);
   } else if (is_permanently_deleted || !m->message_id.is_scheduled()) {
@@ -25988,6 +25989,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   Message *result_message = treap_insert_message(&d->messages, std::move(message));
   CHECK(result_message != nullptr);
+  CHECK(result_message == m);
   CHECK(d->messages != nullptr);
 
   if (!is_attached) {
