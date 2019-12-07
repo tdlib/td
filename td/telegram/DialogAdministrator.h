@@ -20,13 +20,15 @@ class ContactsManager;
 class DialogAdministrator {
   UserId user_id_;
   string rank_;
+  bool is_creator_ = false;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAdministrator &location);
 
  public:
   DialogAdministrator() = default;
 
-  DialogAdministrator(UserId user_id, const string &rank) : user_id_(user_id), rank_(rank) {
+  DialogAdministrator(UserId user_id, const string &rank, bool is_creator)
+      : user_id_(user_id), rank_(rank), is_creator_(is_creator) {
   }
 
   td_api::object_ptr<td_api::chatAdministrator> get_chat_administrator_object(
@@ -40,12 +42,17 @@ class DialogAdministrator {
     return rank_;
   }
 
+  bool is_creator() const {
+    return is_creator_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
     bool has_rank = !rank_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_rank);
+    STORE_FLAG(is_creator_);
     END_STORE_FLAGS();
     store(user_id_, storer);
     if (has_rank) {
@@ -59,6 +66,7 @@ class DialogAdministrator {
     bool has_rank;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_rank);
+    PARSE_FLAG(is_creator_);
     END_PARSE_FLAGS();
     parse(user_id_, parser);
     if (has_rank) {
@@ -68,7 +76,8 @@ class DialogAdministrator {
 };
 
 inline bool operator==(const DialogAdministrator &lhs, const DialogAdministrator &rhs) {
-  return lhs.get_user_id() == rhs.get_user_id() && lhs.get_rank() == rhs.get_rank();
+  return lhs.get_user_id() == rhs.get_user_id() && lhs.get_rank() == rhs.get_rank() &&
+         lhs.is_creator() == rhs.is_creator();
 }
 
 inline bool operator!=(const DialogAdministrator &lhs, const DialogAdministrator &rhs) {

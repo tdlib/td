@@ -320,8 +320,8 @@ userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfil
 users total_count:int32 user_ids:vector<int32> = Users;
 
 
-//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator
-chatAdministrator user_id:int32 custom_title:string = ChatAdministrator;
+//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator @is_owner True, if the user is the owner of the chat
+chatAdministrator user_id:int32 custom_title:string is_owner:Bool = ChatAdministrator;
 
 //@description Represents a list of chat administrators @administrators A list of chat administrators
 chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;
@@ -3564,7 +3564,7 @@ setChatMemberStatus chat_id:int53 user_id:int32 status:ChatMemberStatus = Ok;
 //@description Checks whether the current session can be used to transfer a chat ownership to another user
 canTransferOwnership = CanTransferOwnershipResult;
 
-//@description Changes owner of a chat. The current user must be a current owner of the chat. Use the method canTransferOwnership to check whether the ownership can be transferred from the current session. Available only for supergroups and channel chats
+//@description Changes the owner of a chat. The current user must be a current owner of the chat. Use the method canTransferOwnership to check whether the ownership can be transferred from the current session. Available only for supergroups and channel chats
 //@chat_id Chat identifier @user_id Identifier of the user to which transfer the ownership. The ownership can't be transferred to a bot or to a deleted user @password The password of the current user
 transferChatOwnership chat_id:int53 user_id:int32 password:string = Ok;
 

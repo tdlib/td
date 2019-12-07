@@ -2507,7 +2507,7 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
       return promise_.set_error(Status::Error(3, "Supergroup not found"));
     }
 
-    hash = 0;  // to load even only ranks changed
+    hash = 0;  // to load even only ranks or creator changed
 
     channel_id_ = channel_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getParticipants(
@@ -2537,7 +2537,8 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
                        << " as an administrator of " << channel_id_;
             continue;
           }
-          administrators.emplace_back(dialog_participant.user_id, dialog_participant.status.get_rank());
+          administrators.emplace_back(dialog_participant.user_id, dialog_participant.status.get_rank(),
+                                      dialog_participant.status.is_creator());
         }
 
         td->contacts_manager_->on_update_channel_administrator_count(channel_id_,
@@ -8037,7 +8038,7 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
     for (const auto &participant : chat_full->participants) {
       auto user_id = participant.user_id;
       if (participant.status.is_administrator()) {
-        administrators.emplace_back(user_id, participant.status.get_rank());
+        administrators.emplace_back(user_id, participant.status.get_rank(), participant.status.is_creator());
       }
       if (is_user_bot(user_id)) {
         bot_user_ids.push_back(user_id);
@@ -9356,7 +9357,8 @@ void ContactsManager::on_get_channel_participants_success(
       if (filter.is_recent()) {
         for (const auto &participant : result) {
           if (participant.status.is_administrator()) {
-            administrators.emplace_back(participant.user_id, participant.status.get_rank());
+            administrators.emplace_back(participant.user_id, participant.status.get_rank(),
+                                        participant.status.is_creator());
           }
           if (is_user_bot(participant.user_id)) {
             bot_user_ids.push_back(participant.user_id);
@@ -9370,7 +9372,8 @@ void ContactsManager::on_get_channel_participants_success(
         }
       } else if (filter.is_administrators()) {
         for (const auto &participant : result) {
-          administrators.emplace_back(participant.user_id, participant.status.get_rank());
+          administrators.emplace_back(participant.user_id, participant.status.get_rank(),
+                                      participant.status.is_creator());
         }
       } else if (filter.is_bots()) {
         bot_user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
@@ -9557,15 +9560,16 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
         for (auto &administrator : administrators) {
           if (administrator.get_user_id() == user_id) {
             is_found = true;
-            if (administrator.get_rank() != new_status.get_rank()) {
-              administrator = DialogAdministrator(user_id, new_status.get_rank());
+            if (administrator.get_rank() != new_status.get_rank() ||
+                administrator.is_creator() != new_status.is_creator()) {
+              administrator = DialogAdministrator(user_id, new_status.get_rank(), new_status.is_creator());
               on_update_dialog_administrators(dialog_id, std::move(administrators), true);
             }
             break;
           }
         }
         if (!is_found) {
-          administrators.emplace_back(user_id, new_status.get_rank());
+          administrators.emplace_back(user_id, new_status.get_rank(), new_status.is_creator());
           on_update_dialog_administrators(dialog_id, std::move(administrators), true);
         }
       } else {
@@ -10506,6 +10510,8 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
       if (input_channel != nullptr) {
         send_get_channel_full_query(nullptr, channel_id, std::move(input_channel), Auto(), "update channel owner");
       }
+
+      reload_dialog_administrators(DialogId(channel_id), 0, Auto());
     }
   }
 }
