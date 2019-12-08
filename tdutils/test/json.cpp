@@ -49,7 +49,7 @@ TEST(JSON, object) {
   JsonBuilder jb(std::move(sb));
   auto c = jb.enter_object();
   c("key", "value");
-  c << std::make_pair("1", 2);
+  c("1", 2);
   c.leave();
   ASSERT_EQ(jb.string_builder().is_error(), false);
   auto encoded = jb.string_builder().as_cslice().str();
