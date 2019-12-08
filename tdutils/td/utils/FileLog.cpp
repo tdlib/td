@@ -40,8 +40,7 @@ Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) 
   } else {
     path_ = r_path.move_as_ok();
   }
-  TRY_RESULT(size, fd_.get_size());
-  size_ = size;
+  TRY_RESULT_ASSIGN(size_, fd_.get_size());
   rotate_threshold_ = rotate_threshold;
   redirect_stderr_ = redirect_stderr;
   return Status::OK();

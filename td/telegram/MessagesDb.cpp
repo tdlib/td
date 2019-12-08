@@ -847,16 +847,14 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
         left_cnt++;
       }
 
-      TRY_RESULT(left_tmp, get_messages_inner(stmt.desc_stmt_, dialog_id, left_message_id, left_cnt));
-      left = std::move(left_tmp);
+      TRY_RESULT_ASSIGN(left, get_messages_inner(stmt.desc_stmt_, dialog_id, left_message_id, left_cnt));
 
       if (right_cnt == 1 && !left.empty() && false /*get_message_id(left[0].as_slice()) == message_id*/) {
         right_cnt = 0;
       }
     }
     if (right_cnt != 0) {
-      TRY_RESULT(right_tmp, get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt));
-      right = std::move(right_tmp);
+      TRY_RESULT_ASSIGN(right, get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt));
       std::reverse(right.begin(), right.end());
     }
     if (left.empty()) {

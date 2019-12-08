@@ -386,7 +386,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   }
 #endif
   TRY_RESULT(ascii_host, idn_to_ascii(host));
-  host = ascii_host;
+  host = ascii_host;  // assign string to CSlice
 
   // some getaddrinfo implementations use inet_pton instead of inet_aton and support only decimal-dotted IPv4 form,
   // and so doesn't recognize 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001 as valid IPv4 addresses

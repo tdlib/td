@@ -3210,8 +3210,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (mtpeer.type() != JsonValue::Type::Null) {
       TRY_RESULT(ah, get_json_object_string_field(mtpeer.get_object(), "ah"));
       if (!ah.empty()) {
-        TRY_RESULT(sender_access_hash_safe, to_integer_safe<int64>(ah));
-        sender_access_hash = sender_access_hash_safe;
+        TRY_RESULT_ASSIGN(sender_access_hash, to_integer_safe<int64>(ah));
       }
       TRY_RESULT(ph, get_json_object_field(mtpeer.get_object(), "ph", JsonValue::Type::Object));
       if (ph.type() != JsonValue::Type::Null) {

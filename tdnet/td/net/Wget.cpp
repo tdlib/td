@@ -38,8 +38,7 @@ Wget::Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::
 
 Status Wget::try_init() {
   TRY_RESULT(url, parse_url(input_url_));
-  TRY_RESULT(ascii_host, idn_to_ascii(url.host_));
-  url.host_ = std::move(ascii_host);
+  TRY_RESULT_ASSIGN(url.host_, idn_to_ascii(url.host_));
 
   HttpHeaderCreator hc;
   if (content_.empty()) {

@@ -685,8 +685,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
   TRY_RESULT(info, dc_options_set_.find_connection(
                        dc_id, allow_media_only, proxy.use_proxy() && proxy.use_socks5_proxy(), prefer_ipv6, only_http));
   extra.stat = info.stat;
-  TRY_RESULT(transport_type, get_transport_type(proxy, info));
-  extra.transport_type = std::move(transport_type);
+  TRY_RESULT_ASSIGN(extra.transport_type, get_transport_type(proxy, info));
 
   extra.debug_str = PSTRING() << " to " << (info.option->is_media_only() ? "MEDIA " : "") << dc_id
                               << (info.use_http ? " over HTTP" : "");

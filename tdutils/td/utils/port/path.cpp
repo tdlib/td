@@ -56,8 +56,7 @@ Status set_temporary_dir(CSlice dir) {
     input_dir += TD_DIR_SLASH;
   }
   TRY_STATUS(mkpath(input_dir, 0750));
-  TRY_RESULT(real_dir, realpath(input_dir));
-  temporary_dir = std::move(real_dir);
+  TRY_RESULT_ASSIGN(temporary_dir, realpath(input_dir));
   return Status::OK();
 }
 
@@ -419,8 +418,7 @@ Result<string> realpath(CSlice slice, bool ignore_access_denied) {
       return OS_ERROR(PSLICE() << "GetFullPathNameW failed for \"" << slice << '"');
     }
   } else {
-    TRY_RESULT(t_res, from_wstring(buf));
-    res = std::move(t_res);
+    TRY_RESULT_ASSIGN(res, from_wstring(buf));
   }
   if (res.empty()) {
     return Status::Error("Empty path");

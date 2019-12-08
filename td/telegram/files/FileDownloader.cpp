@@ -135,8 +135,7 @@ Status FileDownloader::on_ok(int64 size) {
   if (only_check_) {
     path = path_;
   } else {
-    TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
-    path = std::move(perm_path);
+    TRY_RESULT_ASSIGN(path, create_from_temp(path_, dir, name_));
   }
   callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size, !only_check_);
   return Status::OK();
@@ -492,11 +491,9 @@ void FileDownloader::try_release_fd() {
 Status FileDownloader::acquire_fd() {
   if (fd_.empty()) {
     if (path_.empty()) {
-      TRY_RESULT(file_path, open_temp_file(remote_.file_type_));
-      std::tie(fd_, path_) = std::move(file_path);
+      TRY_RESULT_ASSIGN(std::tie(fd_, path_), open_temp_file(remote_.file_type_));
     } else {
-      TRY_RESULT(fd, FileFd::open(path_, (only_check_ ? 0 : FileFd::Write) | FileFd::Read));
-      fd_ = std::move(fd);
+      TRY_RESULT_ASSIGN(fd_, FileFd::open(path_, (only_check_ ? 0 : FileFd::Write) | FileFd::Read));
     }
   }
   return Status::OK();

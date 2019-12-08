@@ -892,19 +892,15 @@ static Result<SecureValue> get_identity_document(SecureValueType type, FileManag
     }
   }
 
-  TRY_RESULT(front_side, get_secure_file(file_manager, std::move(identity_document->front_side_)));
-  res.front_side = std::move(front_side);
+  TRY_RESULT_ASSIGN(res.front_side, get_secure_file(file_manager, std::move(identity_document->front_side_)));
   if (identity_document->reverse_side_ != nullptr) {
-    TRY_RESULT(reverse_side, get_secure_file(file_manager, std::move(identity_document->reverse_side_)));
-    res.reverse_side = std::move(reverse_side);
+    TRY_RESULT_ASSIGN(res.reverse_side, get_secure_file(file_manager, std::move(identity_document->reverse_side_)));
   }
   if (identity_document->selfie_ != nullptr) {
-    TRY_RESULT(selfie, get_secure_file(file_manager, std::move(identity_document->selfie_)));
-    res.selfie = std::move(selfie);
+    TRY_RESULT_ASSIGN(res.selfie, get_secure_file(file_manager, std::move(identity_document->selfie_)));
   }
   if (!identity_document->translation_.empty()) {
-    TRY_RESULT(translations, get_secure_files(file_manager, std::move(identity_document->translation_)));
-    res.translations = std::move(translations);
+    TRY_RESULT_ASSIGN(res.translations, get_secure_files(file_manager, std::move(identity_document->translation_)));
   }
   return res;
 }
@@ -962,11 +958,9 @@ static Result<SecureValue> get_personal_document(
   if (personal_document->files_.empty()) {
     return Status::Error(400, "Document's files are required");
   }
-  TRY_RESULT(files, get_secure_files(file_manager, std::move(personal_document->files_)));
-  res.files = std::move(files);
+  TRY_RESULT_ASSIGN(res.files, get_secure_files(file_manager, std::move(personal_document->files_)));
   if (!personal_document->translation_.empty()) {
-    TRY_RESULT(translations, get_secure_files(file_manager, std::move(personal_document->translation_)));
-    res.translations = std::move(translations);
+    TRY_RESULT_ASSIGN(res.translations, get_secure_files(file_manager, std::move(personal_document->translation_)));
   }
   return res;
 }
@@ -1002,8 +996,7 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
     case td_api::inputPassportElementPersonalDetails::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementPersonalDetails>(input_passport_element);
       res.type = SecureValueType::PersonalDetails;
-      TRY_RESULT(personal_details, get_personal_details(std::move(input->personal_details_)));
-      res.data = std::move(personal_details);
+      TRY_RESULT_ASSIGN(res.data, get_personal_details(std::move(input->personal_details_)));
       break;
     }
     case td_api::inputPassportElementPassport::ID: {
@@ -1455,7 +1448,7 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
             }));
         }
       }));
-    o(rename_payload_to_nonce ? "nonce" : "payload", nonce);
+    o(rename_payload_to_nonce ? Slice("nonce") : Slice("payload"), nonce);
   });
 }
 

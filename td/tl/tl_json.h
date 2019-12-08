@@ -81,8 +81,7 @@ inline Status from_json(int32 &to, JsonValue &from) {
     return Status::Error(PSLICE() << "Expected Number, got " << from.type());
   }
   Slice number = from.type() == JsonValue::Type::String ? from.get_string() : from.get_number();
-  TRY_RESULT(res, to_integer_safe<int32>(number));
-  to = res;
+  TRY_RESULT_ASSIGN(to, to_integer_safe<int32>(number));
   return Status::OK();
 }
 
@@ -105,8 +104,7 @@ inline Status from_json(int64 &to, JsonValue &from) {
     return Status::Error(PSLICE() << "Expected String or Number, got " << from.type());
   }
   Slice number = from.type() == JsonValue::Type::String ? from.get_string() : from.get_number();
-  TRY_RESULT(res, to_integer_safe<int64>(number));
-  to = res;
+  TRY_RESULT_ASSIGN(to, to_integer_safe<int64>(number));
   return Status::OK();
 }
 
@@ -130,8 +128,7 @@ inline Status from_json_bytes(string &to, JsonValue &from) {
   if (from.type() != JsonValue::Type::String) {
     return Status::Error(PSLICE() << "Expected String, got " << from.type());
   }
-  TRY_RESULT(decoded, base64_decode(from.get_string()));
-  to = std::move(decoded);
+  TRY_RESULT_ASSIGN(to, base64_decode(from.get_string()));
   return Status::OK();
 }
 
@@ -180,8 +177,7 @@ std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_p
   if (constructor_value.type() == JsonValue::Type::Number) {
     constructor = to_integer<int32>(constructor_value.get_number());
   } else if (constructor_value.type() == JsonValue::Type::String) {
-    TRY_RESULT(t_constructor, tl_constructor_from_string(to.get(), constructor_value.get_string().str()));
-    constructor = t_constructor;
+    TRY_RESULT_ASSIGN(constructor, tl_constructor_from_string(to.get(), constructor_value.get_string().str()));
   } else {
     return Status::Error(PSLICE() << "Expected String or Integer, got " << constructor_value.type());
   }
