@@ -31,7 +31,7 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
   }
   sb << " {\n";
   sb << "  auto jo = jv.enter_object();\n";
-  sb << "  jo << ctie(\"@type\", \"" << tl::simple::gen_cpp_name(constructor->name) << "\");\n";
+  sb << "  jo(\"@type\", \"" << tl::simple::gen_cpp_name(constructor->name) << "\");\n";
   for (auto &arg : constructor->args) {
     auto field = tl::simple::gen_cpp_field_name(arg.name);
     // TODO: or as null
@@ -49,7 +49,7 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
                arg.type->vector_value_type->type == tl::simple::Type::Int64) {
       object = PSTRING() << "JsonVectorInt64{" << object << "}";
     }
-    sb << "  jo << ctie(\"" << arg.name << "\", ToJson(" << object << "));\n";
+    sb << "  jo(\"" << arg.name << "\", ToJson(" << object << "));\n";
     if (is_custom) {
       sb << "  }\n";
     }

@@ -177,7 +177,7 @@ class JsonableJsonValue : public Jsonable {
             if (!check_utf8(member->key_)) {
               LOG(ERROR) << "Have incorrect UTF-8 object key " << member->key_;
             } else {
-              object << ctie(member->key_, JsonableJsonValue(member->value_.get()));
+              object(member->key_, JsonableJsonValue(member->value_.get()));
             }
           }
         }

@@ -15,19 +15,10 @@
 #include "td/utils/StringBuilder.h"
 
 #include <new>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 
 namespace td {
-
-template <class... Args>
-std::tuple<const Args &...> ctie(const Args &... args) TD_WARN_UNUSED_RESULT;
-
-template <class... Args>
-std::tuple<const Args &...> ctie(const Args &... args) {
-  return std::tie(args...);
-}
 
 class JsonTrue {
  public:
@@ -411,10 +402,6 @@ class JsonObjectScope : public JsonScope {
     *sb_ << "}";
   }
   template <class S, class T>
-  JsonObjectScope &operator<<(std::tuple<S, T> key_value) {
-    return (*this)(std::get<0>(key_value), std::get<1>(key_value));
-  }
-  template <class S, class T>
   JsonObjectScope &operator<<(std::pair<S, T> key_value) {
     return (*this)(key_value.first, key_value.second);
   }
@@ -603,7 +590,7 @@ class JsonValue : public Jsonable {
       case Type::Object: {
         auto object = scope->enter_object();
         for (auto &key_value : get_object()) {
-          object << ctie(JsonString(key_value.first), key_value.second);
+          object(JsonString(key_value.first), key_value.second);
         }
         break;
       }

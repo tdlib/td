@@ -48,7 +48,7 @@ TEST(JSON, object) {
   StringBuilder sb(MutableSlice{tmp, sizeof(tmp)});
   JsonBuilder jb(std::move(sb));
   auto c = jb.enter_object();
-  c << std::tie("key", "value");
+  c("key", "value");
   c << std::make_pair("1", 2);
   c.leave();
   ASSERT_EQ(jb.string_builder().is_error(), false);
