@@ -26,7 +26,7 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
   sb << "void to_json(JsonValueScope &jv, "
      << "const td_api::" << tl::simple::gen_cpp_name(constructor->name) << " &object)";
   if (is_header) {
-    sb << ";\n";
+    sb << ";\n\n";
     return;
   }
   sb << " {\n";
@@ -54,7 +54,7 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
       sb << "  }\n";
     }
   }
-  sb << "}\n";
+  sb << "}\n\n";
 }
 
 void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode) {
@@ -66,13 +66,13 @@ void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_he
       auto type_name = tl::simple::gen_cpp_name(custom_type->name);
       sb << "void to_json(JsonValueScope &jv, const td_api::" << type_name << " &object)";
       if (is_header) {
-        sb << ";\n";
+        sb << ";\n\n";
       } else {
         sb << " {\n"
            << "  td_api::downcast_call(const_cast<td_api::" << type_name
            << " &>(object), [&jv](const auto &object) { "
               "to_json(jv, object); });\n"
-           << "}\n";
+           << "}\n\n";
       }
     }
     for (auto *constructor : custom_type->constructors) {
@@ -91,23 +91,16 @@ template <class T>
 void gen_from_json_constructor(StringBuilder &sb, const T *constructor, bool is_header) {
   sb << "Status from_json(td_api::" << tl::simple::gen_cpp_name(constructor->name) << " &to, JsonObject &from)";
   if (is_header) {
-    sb << ";\n";
+    sb << ";\n\n";
   } else {
     sb << " {\n";
     for (auto &arg : constructor->args) {
-      sb << "  {\n";
-      sb << "    auto value = get_json_object_field_force(from, \"" << tl::simple::gen_cpp_name(arg.name) << "\");\n";
-      sb << "    if (value.type() != td::JsonValue::Type::Null) {\n";
-      if (arg.type->type == tl::simple::Type::Bytes) {
-        sb << "      TRY_STATUS(from_json_bytes(to." << tl::simple::gen_cpp_field_name(arg.name) << ", value));\n";
-      } else {
-        sb << "      TRY_STATUS(from_json(to." << tl::simple::gen_cpp_field_name(arg.name) << ", value));\n";
-      }
-      sb << "    }\n";
-      sb << "  }\n";
+      sb << "  TRY_STATUS(from_json" << (arg.type->type == tl::simple::Type::Bytes ? "_bytes" : "") << "(to."
+         << tl::simple::gen_cpp_field_name(arg.name) << ", get_json_object_field_force(from, \""
+         << tl::simple::gen_cpp_name(arg.name) << "\")));\n";
     }
     sb << "  return Status::OK();\n";
-    sb << "}\n";
+    sb << "}\n\n";
   }
 }
 
@@ -132,7 +125,7 @@ using Vec = std::vector<std::pair<int32, std::string>>;
 void gen_tl_constructor_from_string(StringBuilder &sb, Slice name, const Vec &vec, bool is_header) {
   sb << "Result<int32> tl_constructor_from_string(td_api::" << name << " *object, const std::string &str)";
   if (is_header) {
-    sb << ";\n";
+    sb << ";\n\n";
     return;
   }
   sb << " {\n";
@@ -153,7 +146,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, Slice name, const Vec &ve
      << "    return Status::Error(PSLICE() << \"Unknown class \\\"\" << str << \"\\\"\");\n"
      << "  }\n"
      << "  return it->second;\n";
-  sb << "}\n";
+  sb << "}\n\n";
 }
 
 void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode) {
@@ -221,7 +214,7 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
     sb << "#include <unordered_map>\n\n";
   }
   sb << "namespace td {\n";
-  sb << "namespace td_api{\n";
+  sb << "namespace td_api{\n\n";
   gen_tl_constructor_from_string(sb, schema, is_header, mode);
   gen_from_json(sb, schema, is_header, mode);
   gen_to_json(sb, schema, is_header, mode);

@@ -76,8 +76,11 @@ void to_json(JsonValueScope &jv, const std::vector<T> &v) {
   }
 }
 
-inline Status from_json(int32 &to, JsonValue &from) {
+inline Status from_json(int32 &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Number && from.type() != JsonValue::Type::String) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected Number, got " << from.type());
   }
   Slice number = from.type() == JsonValue::Type::String ? from.get_string() : from.get_number();
@@ -85,10 +88,13 @@ inline Status from_json(int32 &to, JsonValue &from) {
   return Status::OK();
 }
 
-inline Status from_json(bool &to, JsonValue &from) {
+inline Status from_json(bool &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Boolean) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     int32 x = 0;
-    auto status = from_json(x, from);
+    auto status = from_json(x, std::move(from));
     if (status.is_ok()) {
       to = x != 0;
       return Status::OK();
@@ -99,8 +105,11 @@ inline Status from_json(bool &to, JsonValue &from) {
   return Status::OK();
 }
 
-inline Status from_json(int64 &to, JsonValue &from) {
+inline Status from_json(int64 &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Number && from.type() != JsonValue::Type::String) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected String or Number, got " << from.type());
   }
   Slice number = from.type() == JsonValue::Type::String ? from.get_string() : from.get_number();
@@ -108,24 +117,33 @@ inline Status from_json(int64 &to, JsonValue &from) {
   return Status::OK();
 }
 
-inline Status from_json(double &to, JsonValue &from) {
+inline Status from_json(double &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Number) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected Number, got " << from.type());
   }
   to = to_double(from.get_number());
   return Status::OK();
 }
 
-inline Status from_json(string &to, JsonValue &from) {
+inline Status from_json(string &to, JsonValue from) {
   if (from.type() != JsonValue::Type::String) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected String, got " << from.type());
   }
   to = from.get_string().str();
   return Status::OK();
 }
 
-inline Status from_json_bytes(string &to, JsonValue &from) {
+inline Status from_json_bytes(string &to, JsonValue from) {
   if (from.type() != JsonValue::Type::String) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected String, got " << from.type());
   }
   TRY_RESULT_ASSIGN(to, base64_decode(from.get_string()));
@@ -133,14 +151,17 @@ inline Status from_json_bytes(string &to, JsonValue &from) {
 }
 
 template <class T>
-Status from_json(std::vector<T> &to, JsonValue &from) {
+Status from_json(std::vector<T> &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Array) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
     return Status::Error(PSLICE() << "Expected Array, got " << from.type());
   }
   to = std::vector<T>(from.get_array().size());
   size_t i = 0;
   for (auto &value : from.get_array()) {
-    TRY_STATUS(from_json(to[i], value));
+    TRY_STATUS(from_json(to[i], std::move(value)));
     i++;
   }
   return Status::OK();
@@ -162,7 +183,7 @@ class DowncastHelper : public T {
 };
 
 template <class T>
-std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_ptr<T> &to, JsonValue &from) {
+std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_ptr<T> &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Object) {
     if (from.type() == JsonValue::Type::Null) {
       to = nullptr;
@@ -198,7 +219,7 @@ std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_p
 }
 
 template <class T>
-std::enable_if_t<std::is_constructible<T>::value, Status> from_json(tl_object_ptr<T> &to, JsonValue &from) {
+std::enable_if_t<std::is_constructible<T>::value, Status> from_json(tl_object_ptr<T> &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Object) {
     if (from.type() == JsonValue::Type::Null) {
       to = nullptr;
