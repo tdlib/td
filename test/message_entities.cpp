@@ -776,6 +776,22 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("&lt;&gt;&amp;&quot;&laquo;&raquo;&#12345678;", "<>&\"&laquo;&raquo;&#12345678;", {});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("➡️ ➡️<em>➡️ ➡️</em>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("➡️ ➡️<b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Bold, 5, 5}});
+  check_parse_html("➡️ ➡️<strong>➡️ ➡️</strong>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Bold, 5, 5}});
+  check_parse_html("➡️ ➡️<u>➡️ ➡️</u>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Underline, 5, 5}});
+  check_parse_html("➡️ ➡️<ins>➡️ ➡️</ins>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Underline, 5, 5}});
+  check_parse_html("➡️ ➡️<s>➡️ ➡️</s>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<strike>➡️ ➡️</strike>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<del>➡️ ➡️</del>", "➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<i>🏟 &lt🏟</i>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
