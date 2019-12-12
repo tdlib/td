@@ -219,7 +219,8 @@ class NotificationManager : public Actor {
   void add_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
                                const Notification &notification);
 
-  NotificationGroups::iterator add_group(NotificationGroupKey &&group_key, NotificationGroup &&group);
+  NotificationGroups::iterator add_group(NotificationGroupKey &&group_key, NotificationGroup &&group,
+                                         const char *source);
 
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
 

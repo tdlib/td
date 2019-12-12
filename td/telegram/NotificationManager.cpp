@@ -363,7 +363,11 @@ void NotificationManager::tear_down() {
 }
 
 NotificationManager::NotificationGroups::iterator NotificationManager::add_group(NotificationGroupKey &&group_key,
-                                                                                 NotificationGroup &&group) {
+                                                                                 NotificationGroup &&group,
+                                                                                 const char *source) {
+  if (group.notifications.empty()) {
+    LOG_CHECK(group_key.last_notification_date == 0) << "Trying to add empty " << group_key << " from " << source;
+  }
   bool is_inserted = group_keys_.emplace(group_key.group_id, group_key).second;
   CHECK(is_inserted);
   return groups_.emplace(std::move(group_key), std::move(group)).first;
@@ -438,7 +442,7 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
       send_add_group_update(group_key, group);
     }
   }
-  return add_group(std::move(group_key), std::move(group));
+  return add_group(std::move(group_key), std::move(group), "get_group_force");
 }
 
 void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) {
@@ -709,8 +713,9 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
   }
 
   if (is_position_changed) {
-    add_group(std::move(final_group_key), std::move(group));
+    add_group(std::move(final_group_key), std::move(group), "add_notifications_to_group_begin");
   } else {
+    CHECK(group_it->first.last_notification_date == 0 || !group.notifications.empty());
     group_it->second = std::move(group);
   }
 }
@@ -865,7 +870,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
-    group_it = add_group(NotificationGroupKey(group_id, dialog_id, 0), NotificationGroup());
+    group_it = add_group(NotificationGroupKey(group_id, dialog_id, 0), NotificationGroup(), "add_notification");
   }
   if (group_it->second.notifications.empty() && group_it->second.pending_notifications.empty()) {
     group_it->second.type = group_type;
@@ -1552,7 +1557,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     group.is_loaded_from_database = false;
   }
 
-  add_group(std::move(final_group_key), std::move(group));
+  add_group(std::move(final_group_key), std::move(group), "flush_pending_notifications");
 
   if (force_update) {
     if (removed_group_id.is_valid()) {
@@ -1733,10 +1738,11 @@ void NotificationManager::on_notifications_removed(
   }
 
   if (is_position_changed) {
-    add_group(std::move(final_group_key), std::move(group));
+    add_group(std::move(final_group_key), std::move(group), "on_notifications_removed");
 
     last_group_key = get_last_updated_group_key();
   } else {
+    CHECK(group_it->first.last_notification_date == 0 || !group.notifications.empty());
     group_it->second = std::move(group);
   }
 
