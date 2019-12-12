@@ -1508,7 +1508,7 @@ class MessagesManager : public Actor {
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options,
                                unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
-                               unique_ptr<MessageForwardInfo> forward_info = nullptr);
+                               unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false);
 
   int64 begin_send_message(DialogId dialog_id, const Message *m);
 

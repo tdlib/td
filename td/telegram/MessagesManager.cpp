@@ -17288,11 +17288,9 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
-MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, MessageId reply_to_message_id,
-                                                               const SendMessageOptions &options,
-                                                               unique_ptr<MessageContent> &&content,
-                                                               bool *need_update_dialog_pos,
-                                                               unique_ptr<MessageForwardInfo> forward_info) {
+MessagesManager::Message *MessagesManager::get_message_to_send(
+    Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options, unique_ptr<MessageContent> &&content,
+    bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
 
@@ -17325,6 +17323,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   m->views = is_channel_post ? 1 : 0;
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
+  m->is_copy = is_copy || forward_info != nullptr;
 
   if (td_->auth_manager_->is_bot() || options.disable_notification) {
     m->disable_notification = options.disable_notification;
@@ -17888,7 +17887,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(), false),
-                                   &need_update_dialog_pos);
+                                   &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -18815,7 +18814,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(), false),
-                                   &need_update_dialog_pos);
+                                   &need_update_dialog_pos, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -20464,10 +20463,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     for (auto &copied_message : copied_messages) {
       Message *m = get_message_to_send(to_dialog, MessageId(), send_message_options, std::move(copied_message.content),
-                                       &need_update_dialog_pos);
+                                       &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       m->media_album_id = media_album_id;
-      m->is_copy = true;
 
       save_send_message_logevent(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
@@ -20579,7 +20577,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     SendMessageOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(d, get_reply_to_message_id(d, message->reply_to_message_id), options,
-                                     std::move(new_contents[i]), &need_update_dialog_pos);
+                                     std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
     m->reply_markup = std::move(message->reply_markup);
     m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
