@@ -4000,6 +4000,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(hide_edit_date);
     STORE_FLAG(has_restriction_reasons);
     STORE_FLAG(is_from_scheduled);
+    STORE_FLAG(is_copy);
     END_STORE_FLAGS();
   }
 
@@ -4153,6 +4154,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(hide_edit_date);
     PARSE_FLAG(has_restriction_reasons);
     PARSE_FLAG(is_from_scheduled);
+    PARSE_FLAG(is_copy);
     END_PARSE_FLAGS();
   }
 
@@ -17702,7 +17704,8 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
                        m->message_id, Status::OK());
   }
 
-  if (!m->message_id.is_scheduled() && G()->parameters().use_file_db) {  // ResourceManager::Mode::Baseline
+  if (!m->message_id.is_scheduled() && G()->parameters().use_file_db &&
+      !m->is_copy) {  // ResourceManager::Mode::Baseline
     auto queue_id = get_sequence_dispatcher_id(dialog_id, m->content->get_type());
     if (queue_id & 1) {
       auto queue_it = yet_unsent_media_queues_.find(queue_id);
@@ -18235,12 +18238,13 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
-          send_closure(td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-                       get_message_flags(m), dialog_id, m->reply_to_message_id, get_message_schedule_date(m),
-                       get_input_reply_markup(m->reply_markup),
-                       get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
-                       caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
-                       get_sequence_dispatcher_id(dialog_id, m->content->get_type()));
+          send_closure(
+              td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
+              get_message_flags(m), dialog_id, m->reply_to_message_id, get_message_schedule_date(m),
+              get_input_reply_markup(m->reply_markup),
+              get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
+              caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
+              get_sequence_dispatcher_id(dialog_id, m->is_copy ? MessageContentType::None : m->content->get_type()));
         }));
   } else {
     switch (input_media->get_id()) {
@@ -18472,6 +18476,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   MessageId reply_to_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
+  bool is_copy = false;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     auto *m = get_message(d, request.message_ids[i]);
     if (m == nullptr) {
@@ -18483,6 +18488,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     reply_to_message_id = m->reply_to_message_id;
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
+    is_copy = m->is_copy;
 
     file_ids.push_back(get_message_content_any_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
@@ -18545,7 +18551,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   }
   send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
                reply_to_message_id, schedule_date, std::move(file_ids), std::move(input_single_media),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo));
+               get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
 }
 
 void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id,
@@ -20461,6 +20467,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                        &need_update_dialog_pos);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       m->media_album_id = media_album_id;
+      m->is_copy = true;
 
       save_send_message_logevent(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
@@ -25744,7 +25751,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (G()->parameters().use_file_db && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
-      !message->hide_via_bot) {
+      !message->hide_via_bot && !message->is_copy) {
     auto queue_id = get_sequence_dispatcher_id(dialog_id, message_content_type);
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;

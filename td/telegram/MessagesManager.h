@@ -932,6 +932,7 @@ class MessagesManager : public Actor {
     bool is_mention_notification_disabled = false;
     bool is_from_scheduled = false;
 
+    bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
     bool clear_draft = false;               // for send_message
