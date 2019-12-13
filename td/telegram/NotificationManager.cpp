@@ -3017,7 +3017,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (loc_key == "GEO_LIVE_PENDING") {
-    return Status::Error(406, "Need update live location");
+    td_->messages_manager_->on_update_some_live_location_viewed(std::move(promise));
+    return Status::OK();
   }
 
   if (loc_key == "AUTH_REGION" || loc_key == "AUTH_UNKNOWN") {

@@ -5701,13 +5701,32 @@ void MessagesManager::on_update_live_location_viewed(FullMessageId full_message_
     return;
   }
 
-  auto active_live_locations = get_active_live_location_messages(Auto());
-  if (!td::contains(active_live_locations, full_message_id)) {
-    LOG(DEBUG) << "Can't find " << full_message_id << " in " << active_live_locations;
+  auto active_live_location_message_ids = get_active_live_location_messages(Auto());
+  if (!td::contains(active_live_location_message_ids, full_message_id)) {
+    LOG(DEBUG) << "Can't find " << full_message_id << " in " << active_live_location_message_ids;
     return;
   }
 
   send_update_message_live_location_viewed(full_message_id);
+}
+
+void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promise) {
+  LOG(DEBUG) << "Some live location was viewed";
+  if (!are_active_live_location_messages_loaded_) {
+    get_active_live_location_messages(
+        PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Unit result) mutable {
+          send_closure(actor_id, &MessagesManager::on_update_some_live_location_viewed, std::move(promise));
+        }));
+    return;
+  }
+
+  // update all live locations, because it is unknown, which exactly was viewed
+  auto active_live_location_message_ids = get_active_live_location_messages(Auto());
+  for (auto full_message_id : active_live_location_message_ids) {
+    send_update_message_live_location_viewed(full_message_id);
+  }
+
+  promise.set_value(Unit());
 }
 
 void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
