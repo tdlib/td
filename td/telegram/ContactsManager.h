@@ -229,6 +229,8 @@ class ContactsManager : public Actor {
 
   void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
+
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
@@ -375,6 +377,8 @@ class ContactsManager : public Actor {
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
+
+  vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id) const;
 
@@ -1345,6 +1349,9 @@ class ContactsManager : public Actor {
 
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;
+
+  bool inactive_channels_inited_ = false;
+  vector<ChannelId> inactive_channels_;
 
   std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;

@@ -1068,6 +1068,22 @@ class GetSuitableDiscussionChatsRequest : public RequestActor<> {
   }
 };
 
+class GetInactiveSupergroupChatsRequest : public RequestActor<> {
+  vector<DialogId> dialog_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    dialog_ids_ = td->contacts_manager_->get_inactive_channels(std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(MessagesManager::get_chats_object(dialog_ids_));
+  }
+
+ public:
+  GetInactiveSupergroupChatsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  }
+};
+
 class GetMessageRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
 
@@ -5565,6 +5581,11 @@ void Td::on_request(uint64 id, const td_api::checkCreatedPublicChatsLimit &reque
 void Td::on_request(uint64 id, const td_api::getSuitableDiscussionChats &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSuitableDiscussionChatsRequest);
+}
+
+void Td::on_request(uint64 id, const td_api::getInactiveSupergroupChats &request) {
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(GetInactiveSupergroupChatsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::addRecentlyFoundChat &request) {

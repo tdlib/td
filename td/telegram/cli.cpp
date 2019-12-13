@@ -3330,6 +3330,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::publicChatTypeIsLocationBased>()));
     } else if (op == "gsdc") {
       send_request(td_api::make_object<td_api::getSuitableDiscussionChats>());
+    } else if (op == "gisc") {
+      send_request(td_api::make_object<td_api::getInactiveSupergroupChats>());
     } else if (op == "cpc") {
       string user_id;
       string force;

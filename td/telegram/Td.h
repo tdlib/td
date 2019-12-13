@@ -532,6 +532,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getSuitableDiscussionChats &request);
 
+  void on_request(uint64 id, const td_api::getInactiveSupergroupChats &request);
+
   void on_request(uint64 id, const td_api::openChat &request);
 
   void on_request(uint64 id, const td_api::closeChat &request);

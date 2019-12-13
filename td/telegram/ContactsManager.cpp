@@ -2117,6 +2117,37 @@ class GetGroupsForDiscussionQuery : public Td::ResultHandler {
   }
 };
 
+class GetInactiveChannelsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetInactiveChannelsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getInactiveChannels())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_getInactiveChannels>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetInactiveChannelsQuery " << to_string(result);
+    // TODO use result->dates_
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetInactiveChannelsQuery");
+    td->contacts_manager_->on_get_inactive_channels(std::move(result->chats_));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUsersQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6001,6 +6032,25 @@ void ContactsManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_
       LOG(DEBUG) << "Remove " << dialog_id << " from list of suitable discussion chats";
     }
   }
+}
+
+vector<DialogId> ContactsManager::get_inactive_channels(Promise<Unit> &&promise) {
+  if (inactive_channels_inited_) {
+    promise.set_value(Unit());
+    return transform(inactive_channels_, [&](ChannelId channel_id) {
+      DialogId dialog_id{channel_id};
+      td_->messages_manager_->force_create_dialog(dialog_id, "get_inactive_channels");
+      return dialog_id;
+    });
+  }
+
+  td_->create_handler<GetInactiveChannelsQuery>(std::move(promise))->send();
+  return {};
+}
+
+void ContactsManager::on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
+  inactive_channels_inited_ = true;
+  inactive_channels_ = get_channel_ids(std::move(chats), "on_get_inactive_channels");
 }
 
 void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,

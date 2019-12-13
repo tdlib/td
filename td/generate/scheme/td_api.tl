@@ -3171,6 +3171,9 @@ checkCreatedPublicChatsLimit type:PublicChatType = Ok;
 //@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Basic group chats need to be first upgraded to supergroups before they can be set as a discussion group
 getSuitableDiscussionChats = Chats;
 
+//@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error
+getInactiveSupergroupChats = Chats;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
 getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
