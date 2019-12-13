@@ -495,8 +495,8 @@ class SendLiteRequestQuery : public Td::ResultHandler {
   }
 
   void send(BufferSlice request) {
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::wallet_sendLiteRequest(std::move(request)))));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::wallet_sendLiteRequest(std::move(request))),
+                                               DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

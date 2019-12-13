@@ -477,7 +477,8 @@ class GetAppConfigQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig())));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig()), DcId::main(),
+                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -508,7 +509,8 @@ class SaveAppLogQuery : public Td::ResultHandler {
     input_app_events.push_back(
         make_tl_object<telegram_api::inputAppEvent>(G()->server_time_cached(), type, peer_id, std::move(data)));
     send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::help_saveAppLog(std::move(input_app_events)))));
+        G()->net_query_creator().create(create_storer(telegram_api::help_saveAppLog(std::move(input_app_events))),
+                                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3504,6 +3506,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::setCustomLanguagePackString::ID:
     case td_api::deleteLanguagePack::ID:
     case td_api::processPushNotification::ID:
+    case td_api::sendTonLiteServerRequest::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
     case td_api::getStorageStatistics::ID:

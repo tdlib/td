@@ -26,6 +26,7 @@ class GetTermsOfServiceUpdateQuery : public Td::ResultHandler {
   }
 
   void send() {
+    // we don't poll terms of service before authorization
     send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfServiceUpdate())));
   }
 

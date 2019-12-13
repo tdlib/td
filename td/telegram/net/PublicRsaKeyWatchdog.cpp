@@ -70,7 +70,7 @@ void PublicRsaKeyWatchdog::loop() {
   has_query_ = true;
   G()->net_query_dispatcher().dispatch_with_callback(
       G()->net_query_creator().create(create_storer(telegram_api::help_getCdnConfig()), DcId::main(),
-                                      NetQuery::Type::Common, NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On,
+                                      NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::On,
                                       60 * 60 * 24),
       actor_shared(this));
 }

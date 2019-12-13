@@ -4168,7 +4168,7 @@ sendCustomRequest method:string parameters:string = CustomRequestResult;
 answerCustomQuery custom_query_id:int64 data:string = Ok;
 
 
-//@description Sends a request to TON lite server through Telegram servers @request The request
+//@description Sends a request to TON lite server through Telegram servers. Can be called before authorization @request The request
 sendTonLiteServerRequest request:bytes = TonLiteServerResponse;
 
 //@description Returns a salt to be used with locally stored password to access a local TON-based wallet
