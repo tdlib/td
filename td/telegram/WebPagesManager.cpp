@@ -829,6 +829,10 @@ void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
                  true, std::move(result));
   });
 
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   td_->create_handler<GetWebPageQuery>(std::move(promise))
       ->send(web_page->url, web_page->instant_view.is_full ? web_page->instant_view.hash : 0);
 }
@@ -1044,6 +1048,10 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
 }
 
 void WebPagesManager::reload_web_page_by_url(const string &url, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   LOG(INFO) << "Reload url \"" << url << '"';
   td_->create_handler<GetWebPageQuery>(std::move(promise))->send(url, 0);
 }
