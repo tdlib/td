@@ -797,7 +797,7 @@ richTextItalic text:RichText = RichText;
 //@description An underlined rich text @text Text
 richTextUnderline text:RichText = RichText;
 
-//@description A strike-through rich text @text Text
+//@description A strikethrough rich text @text Text
 richTextStrikethrough text:RichText = RichText;
 
 //@description A fixed-width rich text @text Text
@@ -1454,7 +1454,7 @@ textEntityTypeItalic = TextEntityType;
 //@description An underlined text
 textEntityTypeUnderline = TextEntityType;
 
-//@description A strike-through text
+//@description A strikethrough text
 textEntityTypeStrikethrough = TextEntityType;
 
 //@description Text that must be formatted as if inside a code HTML tag
