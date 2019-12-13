@@ -6053,6 +6053,12 @@ void ContactsManager::on_get_inactive_channels(vector<tl_object_ptr<telegram_api
   inactive_channels_ = get_channel_ids(std::move(chats), "on_get_inactive_channels");
 }
 
+void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
+  if (inactive_channels_inited_ && td::remove(inactive_channels_, channel_id)) {
+    LOG(DEBUG) << "Remove " << channel_id << " from list of inactive channels";
+  }
+}
+
 void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
                                            vector<int32> unimported_contact_invites) {
   LOG(INFO) << "Contacts import with random_id " << random_id
@@ -7952,6 +7958,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 
     if (c->is_megagroup) {
       update_dialogs_for_discussion(DialogId(channel_id), c->status.is_administrator() && c->status.can_pin_messages());
+    }
+    if (!c->status.is_member()) {
+      remove_inactive_channel(channel_id);
     }
   }
   if (c->is_username_changed) {

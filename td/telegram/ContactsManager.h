@@ -231,6 +231,8 @@ class ContactsManager : public Actor {
 
   void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  void remove_inactive_channel(ChannelId channel_id);
+
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);

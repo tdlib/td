@@ -25944,6 +25944,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         td_->contacts_manager_->on_update_channel_slow_mode_next_send_date(channel_id, m->date + slow_mode_delay);
       }
     }
+    if (m->date > now - 14 * 86400) {
+      td_->contacts_manager_->remove_inactive_channel(dialog_id.get_channel_id());
+    }
   }
 
   if (!is_attached && !m->have_next && !m->have_previous) {
