@@ -286,6 +286,10 @@ class UpdatesManager : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/);
 };
 
 }  // namespace td

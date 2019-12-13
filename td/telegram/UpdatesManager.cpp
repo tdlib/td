@@ -1975,4 +1975,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/) {
+}
+
 }  // namespace td
