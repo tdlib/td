@@ -311,6 +311,8 @@ class MessagesManager : public Actor {
 
   void on_update_message_views(FullMessageId full_message_id, int32 views);
 
+  void on_update_live_location_viewed(FullMessageId full_message_id);
+
   void on_update_message_content(FullMessageId full_message_id);
 
   void on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count, int32 pts,
@@ -1873,6 +1875,8 @@ class MessagesManager : public Actor {
                                    int32 message_date, bool is_content_secret, const char *source) const;
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
+
+  void send_update_message_live_location_viewed(FullMessageId full_message_id);
 
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                    bool from_cache) const;

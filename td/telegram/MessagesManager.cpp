@@ -5692,6 +5692,24 @@ bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32
   return false;
 }
 
+void MessagesManager::on_update_live_location_viewed(FullMessageId full_message_id) {
+  LOG(DEBUG) << "Live location was viewed in " << full_message_id;
+  if (!are_active_live_location_messages_loaded_) {
+    get_active_live_location_messages(PromiseCreator::lambda([actor_id = actor_id(this), full_message_id](Unit result) {
+      send_closure(actor_id, &MessagesManager::on_update_live_location_viewed, full_message_id);
+    }));
+    return;
+  }
+
+  auto active_live_locations = get_active_live_location_messages(Auto());
+  if (!td::contains(active_live_locations, full_message_id)) {
+    LOG(DEBUG) << "Can't find " << full_message_id << " in " << active_live_locations;
+    return;
+  }
+
+  send_update_message_live_location_viewed(full_message_id);
+}
+
 void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
   const Dialog *d = get_dialog(full_message_id.get_dialog_id());
   CHECK(d != nullptr);
@@ -16011,6 +16029,10 @@ void MessagesManager::on_load_active_live_location_full_message_ids_from_databas
   if (value.empty()) {
     LOG(INFO) << "Active live location messages aren't found in the database";
     on_load_active_live_location_messages_finished();
+
+    if (!active_live_location_full_message_ids_.empty()) {
+      save_active_live_locations();
+    }
     return;
   }
 
@@ -16074,6 +16096,9 @@ void MessagesManager::add_active_live_location(FullMessageId full_message_id) {
 
   if (are_active_live_location_messages_loaded_) {
     save_active_live_locations();
+  } else {
+    // load active live locations and save after that
+    get_active_live_location_messages(Auto());
   }
 }
 
@@ -22144,6 +22169,13 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), edit_date,
                                                            get_reply_markup_object(m->reply_markup)));
+}
+
+void MessagesManager::send_update_message_live_location_viewed(FullMessageId full_message_id) {
+  CHECK(get_message(full_message_id) != nullptr);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateMessageLiveLocationViewed>(full_message_id.get_dialog_id().get(),
+                                                                            full_message_id.get_message_id().get()));
 }
 
 void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,

@@ -1952,6 +1952,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> updat
                std::move(update->difference_));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_live_location_viewed(
+      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))});
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, bool /*force_apply*/) {
   td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_));
 }
@@ -1973,9 +1978,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/) {
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/) {

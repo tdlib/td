@@ -2726,6 +2726,10 @@ updateMessageContentOpened chat_id:int53 message_id:int53 = Update;
 //@description A message with an unread mention was read @chat_id Chat identifier @message_id Message identifier @unread_mention_count The new number of unread mention messages left in the chat
 updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int32 = Update;
 
+//@description A message with a live location was viewed. When the update is received, the client is supposed to update the live location
+//@chat_id Identifier of the chat with the live location message @message_id Identifier of the message with live location
+updateMessageLiveLocationViewed chat_id:int53 message_id:int53 = Update;
+
 //@description A new chat has been loaded/created. This update is guaranteed to come before the chat identifier is returned to the client. The chat field changes will be reported through separate updates @chat The chat
 updateNewChat chat:chat = Update;
 
@@ -2913,14 +2917,17 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description List of users nearby has changed. The update is sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @offset Offset of the first entry to return
+//@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null
+//@query Text of the query @offset Offset of the first entry to return
 updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location query:string offset:string = Update;
 
-//@description The user has chosen a result of an inline query; for bots only @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @result_id Identifier of the chosen result @inline_message_id Identifier of the sent inline message, if known
+//@description The user has chosen a result of an inline query; for bots only @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null
+//@query Text of the query @result_id Identifier of the chosen result @inline_message_id Identifier of the sent inline message, if known
 updateNewChosenInlineResult sender_user_id:int32 user_location:location query:string result_id:string inline_message_id:string = Update;
 
-//@description A new incoming callback query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @chat_id Identifier of the chat where the query was sent
-//@message_id Identifier of the message, from which the query originated @chat_instance Identifier that uniquely corresponds to the chat to which the message was sent @payload Query payload
+//@description A new incoming callback query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query
+//@chat_id Identifier of the chat where the query was sent @message_id Identifier of the message, from which the query originated
+//@chat_instance Identifier that uniquely corresponds to the chat to which the message was sent @payload Query payload
 updateNewCallbackQuery id:int64 sender_user_id:int32 chat_id:int53 message_id:int53 chat_instance:int64 payload:CallbackQueryPayload = Update;
 
 //@description A new incoming callback query from a message sent via a bot; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @inline_message_id Identifier of the inline message, from which the query originated
