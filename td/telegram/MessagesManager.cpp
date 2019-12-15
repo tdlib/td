@@ -27053,7 +27053,7 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
 }
 
 void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source, bool force_update_dialog_pos) {
-  CHECK(dialog_id.is_valid());
+  LOG_CHECK(dialog_id.is_valid()) << source;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(INFO) << "Force create " << dialog_id << " from " << source;
