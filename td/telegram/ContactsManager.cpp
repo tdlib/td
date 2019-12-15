@@ -6556,9 +6556,14 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   log_event_parse(log_event, event.data_).ensure();
 
   auto user_id = log_event.user_id;
+  if (have_user(user_id)) {
+    LOG(ERROR) << "Skip adding already added " << user_id;
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
+
   LOG(INFO) << "Add " << user_id << " from binlog";
   User *u = add_user(user_id, "on_binlog_user_event");
-  LOG_CHECK(u->first_name.empty() && u->last_name.empty()) << user_id;
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
   u->logevent_id = event.id_;
@@ -6819,9 +6824,14 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   log_event_parse(log_event, event.data_).ensure();
 
   auto chat_id = log_event.chat_id;
+  if (have_chat(chat_id)) {
+    LOG(ERROR) << "Skip adding already added " << chat_id;
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
+
   LOG(INFO) << "Add " << chat_id << " from binlog";
   Chat *c = add_chat(chat_id);
-  CHECK(c->status.is_banned());
   *c = std::move(log_event.c);  // chats come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
@@ -7042,9 +7052,14 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   log_event_parse(log_event, event.data_).ensure();
 
   auto channel_id = log_event.channel_id;
+  if (have_channel(channel_id)) {
+    LOG(ERROR) << "Skip adding already added " << channel_id;
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
+
   LOG(INFO) << "Add " << channel_id << " from binlog";
   Channel *c = add_channel(channel_id, "on_binlog_channel_event");
-  LOG_CHECK(c->status.is_banned()) << channel_id;
   *c = std::move(log_event.c);  // channels come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
@@ -7259,9 +7274,14 @@ void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   log_event_parse(log_event, event.data_).ensure();
 
   auto secret_chat_id = log_event.secret_chat_id;
+  if (have_secret_chat(secret_chat_id)) {
+    LOG(ERROR) << "Skip adding already added " << secret_chat_id;
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
+
   LOG(INFO) << "Add " << secret_chat_id << " from binlog";
   SecretChat *c = add_secret_chat(secret_chat_id);
-  CHECK(c->date == 0);
   *c = std::move(log_event.c);  // secret chats come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
