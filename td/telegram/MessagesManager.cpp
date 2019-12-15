@@ -4234,7 +4234,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(legacy_layer, parser);
   }
   if (has_restriction_reasons) {
-    parse(has_restriction_reasons, parser);
+    parse(restriction_reasons, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
