@@ -6748,7 +6748,7 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
 }
 
 void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !dialog_id.is_valid()) {
     return;
   }
 
@@ -6875,6 +6875,9 @@ void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_
         return td_->create_handler<ReportEncryptedSpamQuery>(std::move(promise))->send(dialog_id);
       } else {
         auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+        if (!user_id.is_valid()) {
+          return promise.set_error(Status::Error(400, "Peer user not found"));
+        }
         return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(DialogId(user_id), false);
       }
     case DialogType::None:
@@ -14886,11 +14889,14 @@ void MessagesManager::open_dialog(Dialog *d) {
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
       repair_dialog_action_bar(dialog_id);
       break;
-    case DialogType::SecretChat:
+    case DialogType::SecretChat: {
       // to repair dialog action bar
-      td_->contacts_manager_->reload_user_full(
-          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (user_id.is_valid()) {
+        td_->contacts_manager_->reload_user_full(user_id);
+      }
       break;
+    }
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -20800,9 +20806,11 @@ Result<MessageId> MessagesManager::add_local_message(
     if (dialog_type == DialogType::User && DialogId(sender_user_id) != dialog_id) {
       return Status::Error(400, "Wrong sender user");
     }
-    if (dialog_type == DialogType::SecretChat &&
-        sender_user_id != td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id())) {
-      return Status::Error(400, "Wrong sender user");
+    if (dialog_type == DialogType::SecretChat) {
+      auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (!peer_user_id.is_valid() || sender_user_id != peer_user_id) {
+        return Status::Error(400, "Wrong sender user");
+      }
     }
   }
 
@@ -24664,9 +24672,9 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (user_id == td_->contacts_manager_->get_my_id()) {
         promise.set_value(Unit());
-        return {user_id, peer_user_id, 0, DialogParticipantStatus::Member()};
+        return {user_id, peer_user_id.is_valid() ? peer_user_id : user_id, 0, DialogParticipantStatus::Member()};
       }
-      if (user_id == peer_user_id) {
+      if (peer_user_id.is_valid() && user_id == peer_user_id) {
         promise.set_value(Unit());
         return {peer_user_id, user_id, 0, DialogParticipantStatus::Member()};
       }
@@ -24687,7 +24695,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
   vector<UserId> user_ids;
   switch (filter) {
     case DialogParticipantsFilter::Contacts:
-      if (td_->contacts_manager_->is_user_contact(peer_user_id)) {
+      if (peer_user_id.is_valid() && td_->contacts_manager_->is_user_contact(peer_user_id)) {
         user_ids.push_back(peer_user_id);
       }
       break;
@@ -24695,7 +24703,9 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
       break;
     case DialogParticipantsFilter::Members:
       user_ids.push_back(my_user_id);
-      user_ids.push_back(peer_user_id);
+      if (peer_user_id.is_valid()) {
+        user_ids.push_back(peer_user_id);
+      }
       break;
     case DialogParticipantsFilter::Restricted:
       break;
@@ -24705,7 +24715,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
       if (td_->auth_manager_->is_bot()) {
         user_ids.push_back(my_user_id);
       }
-      if (td_->contacts_manager_->is_user_bot(peer_user_id)) {
+      if (peer_user_id.is_valid() && td_->contacts_manager_->is_user_bot(peer_user_id)) {
         user_ids.push_back(peer_user_id);
       }
       break;
@@ -24715,7 +24725,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
 
   auto result = td_->contacts_manager_->search_among_users(user_ids, query, limit);
   return {result.first, transform(result.second, [&](UserId user_id) {
-            return DialogParticipant(user_id, user_id == my_user_id ? peer_user_id : my_user_id, 0,
+            return DialogParticipant(user_id,
+                                     user_id == my_user_id && peer_user_id.is_valid() ? peer_user_id : my_user_id, 0,
                                      DialogParticipantStatus::Member());
           })};
 }
@@ -27281,7 +27292,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get action bar from the server
     if (dialog_type == DialogType::SecretChat) {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
+      if (user_id.is_valid()) {
+        force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
+      }
     } else {
       repair_dialog_action_bar(dialog_id);
     }

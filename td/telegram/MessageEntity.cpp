@@ -2748,7 +2748,7 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
       return !contacts_manager->is_user_bot(dialog_id.get_user_id());
     case DialogType::SecretChat: {
       auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return !contacts_manager->is_user_bot(user_id);
+      return !user_id.is_valid() || !contacts_manager->is_user_bot(user_id);
     }
     case DialogType::Chat:
     case DialogType::Channel:
