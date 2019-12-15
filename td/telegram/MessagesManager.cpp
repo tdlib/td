@@ -6748,6 +6748,10 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
 }
 
 void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
       td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
