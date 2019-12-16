@@ -1440,6 +1440,8 @@ class MessagesManager : public Actor {
   static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds
   static constexpr int32 MAX_SAVE_DIALOG_DELAY = 0;   // seconds
 
+  static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;  // seconds, server-side limit
+
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
 
@@ -2203,6 +2205,8 @@ class MessagesManager : public Actor {
 
   void view_message_live_location_on_server(int64 task_id);
 
+  void view_message_live_location_on_server_impl(int64 task_id, FullMessageId full_message_id);
+
   void on_message_live_location_viewed_on_server(int64 task_id);
 
   void add_message_file_sources(DialogId dialog_id, const Message *m);
@@ -2300,6 +2304,8 @@ class MessagesManager : public Actor {
   static void on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
   static void on_pending_message_views_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
+  static void on_pending_message_live_location_view_timeout_callback(void *messages_manager_ptr, int64 task_id);
 
   static void on_pending_draft_message_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
@@ -2637,6 +2643,7 @@ class MessagesManager : public Actor {
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
   MultiTimeout pending_message_views_timeout_{"PendingMessageViewsTimeout"};
+  MultiTimeout pending_message_live_location_view_timeout_{"PendingMessageLiveLocationViewTimeout"};
   MultiTimeout pending_draft_message_timeout_{"PendingDraftMessageTimeout"};
   MultiTimeout pending_read_history_timeout_{"PendingReadHistoryTimeout"};
   MultiTimeout pending_updated_dialog_timeout_{"PendingUpdatedDialogTimeout"};

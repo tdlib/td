@@ -4707,6 +4707,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   pending_message_views_timeout_.set_callback(on_pending_message_views_timeout_callback);
   pending_message_views_timeout_.set_callback_data(static_cast<void *>(this));
 
+  pending_message_live_location_view_timeout_.set_callback(on_pending_message_live_location_view_timeout_callback);
+  pending_message_live_location_view_timeout_.set_callback_data(static_cast<void *>(this));
+
   pending_draft_message_timeout_.set_callback(on_pending_draft_message_timeout_callback);
   pending_draft_message_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -4757,6 +4760,17 @@ void MessagesManager::on_pending_message_views_timeout_callback(void *messages_m
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_pending_message_views_timeout,
                      DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_pending_message_live_location_view_timeout_callback(void *messages_manager_ptr,
+                                                                             int64 task_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager),
+                     &MessagesManager::view_message_live_location_on_server, task_id);
 }
 
 void MessagesManager::on_pending_draft_message_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -16175,9 +16189,9 @@ void MessagesManager::on_message_live_location_viewed(Dialog *d, const Message *
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
+    case DialogType::Channel:
       // ok
       break;
-    case DialogType::Channel:
     case DialogType::SecretChat:
       return;
     default:
@@ -16205,8 +16219,9 @@ void MessagesManager::on_message_live_location_viewed(Dialog *d, const Message *
   }
 
   live_location_task_id = ++viewed_live_location_task_id_;
-  viewed_live_location_tasks_[live_location_task_id] = FullMessageId(d->dialog_id, m->message_id);
-  view_message_live_location_on_server(live_location_task_id);
+  auto &full_message_id = viewed_live_location_tasks_[live_location_task_id];
+  full_message_id = FullMessageId(d->dialog_id, m->message_id);
+  view_message_live_location_on_server_impl(live_location_task_id, full_message_id);
 }
 
 void MessagesManager::view_message_live_location_on_server(int64 task_id) {
@@ -16233,11 +16248,15 @@ void MessagesManager::view_message_live_location_on_server(int64 task_id) {
     viewed_live_location_tasks_.erase(it);
     return;
   }
+  view_message_live_location_on_server_impl(task_id, full_message_id);
+}
 
+void MessagesManager::view_message_live_location_on_server_impl(int64 task_id, FullMessageId full_message_id) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), task_id](Unit result) {
     send_closure(actor_id, &MessagesManager::on_message_live_location_viewed_on_server, task_id);
   });
-  read_message_contents_on_server(full_message_id.get_dialog_id(), {m->message_id}, 0, std::move(promise), true);
+  read_message_contents_on_server(full_message_id.get_dialog_id(), {full_message_id.get_message_id()}, 0,
+                                  std::move(promise), true);
 }
 
 void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
@@ -16250,7 +16269,7 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
     return;
   }
 
-  // TODO schedule new server request in 60 seconds
+  pending_message_live_location_view_timeout_.add_timeout_in(task_id, LIVE_LOCATION_VIEW_PERIOD);
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
