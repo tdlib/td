@@ -296,26 +296,7 @@ void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
   for (auto &prefix : prefixes) {
     if (msg.substr(0, prefix.size()) == prefix) {
       int32 new_main_dc_id = to_integer<int32>(msg.substr(prefix.size()));
-      if (!DcId::is_valid(new_main_dc_id)) {
-        LOG(FATAL) << "Receive " << prefix << " to wrong dc " << new_main_dc_id;
-      }
-      if (new_main_dc_id != main_dc_id_.load(std::memory_order_relaxed)) {
-        // Very rare event. Mutex is ok.
-        std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-        if (new_main_dc_id != main_dc_id_) {
-          LOG(INFO) << "Update: " << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
-          if (is_dc_inited(main_dc_id_.load(std::memory_order_relaxed))) {
-            send_closure_later(dcs_[main_dc_id_ - 1].main_session_, &SessionMultiProxy::update_main_flag, false);
-          }
-          main_dc_id_ = new_main_dc_id;
-          if (is_dc_inited(main_dc_id_.load(std::memory_order_relaxed))) {
-            send_closure_later(dcs_[main_dc_id_ - 1].main_session_, &SessionMultiProxy::update_main_flag, true);
-          }
-          send_closure_later(dc_auth_manager_, &DcAuthManager::update_main_dc,
-                             DcId::internal(main_dc_id_.load(std::memory_order_relaxed)));
-          G()->td_db()->get_binlog_pmc()->set("main_dc_id", to_string(main_dc_id_.load(std::memory_order_relaxed)));
-        }
-      }
+      set_main_dc_id(new_main_dc_id);
 
       if (!net_query->dc_id().is_main()) {
         LOG(ERROR) << msg << " from query to non-main dc " << net_query->dc_id();
@@ -326,6 +307,34 @@ void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
       break;
     }
   }
+}
+
+void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
+  if (!DcId::is_valid(new_main_dc_id)) {
+    LOG(ERROR) << "Receive wrong DC " << new_main_dc_id;
+    return;
+  }
+  if (new_main_dc_id == main_dc_id_.load(std::memory_order_relaxed)) {
+    return;
+  }
+
+  // Very rare event. Mutex is ok.
+  std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
+  if (new_main_dc_id == main_dc_id_) {
+    return;
+  }
+
+  LOG(INFO) << "Update: " << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
+  if (is_dc_inited(main_dc_id_.load(std::memory_order_relaxed))) {
+    send_closure_later(dcs_[main_dc_id_ - 1].main_session_, &SessionMultiProxy::update_main_flag, false);
+  }
+  main_dc_id_ = new_main_dc_id;
+  if (is_dc_inited(main_dc_id_.load(std::memory_order_relaxed))) {
+    send_closure_later(dcs_[main_dc_id_ - 1].main_session_, &SessionMultiProxy::update_main_flag, true);
+  }
+  send_closure_later(dc_auth_manager_, &DcAuthManager::update_main_dc,
+                     DcId::internal(main_dc_id_.load(std::memory_order_relaxed)));
+  G()->td_db()->get_binlog_pmc()->set("main_dc_id", to_string(main_dc_id_.load(std::memory_order_relaxed)));
 }
 
 }  // namespace td

@@ -56,6 +56,8 @@ class NetQueryDispatcher {
     return DcId::internal(main_dc_id_.load());
   }
 
+  void set_main_dc_id(int32 new_main_dc_id);
+
  private:
   std::atomic<bool> stop_flag_{false};
   bool need_destroy_auth_key_{false};
