@@ -14710,15 +14710,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         max_message_id = m->message_id;
       }
 
-      if (need_read) {
-        auto message_content_type = m->content->get_type();
-        if (message_content_type != MessageContentType::VoiceNote &&
-            message_content_type != MessageContentType::VideoNote &&
-            update_message_contains_unread_mention(d, m, false, "view_messages")) {
-          CHECK(m->message_id.is_server());
-          read_content_message_ids.push_back(m->message_id);
-          on_message_changed(d, m, true, "view_messages");
-        }
+      auto message_content_type = m->content->get_type();
+      if (message_content_type == MessageContentType::LiveLocation) {
+        on_message_live_location_viewed(d, m);
+      }
+
+      if (need_read && message_content_type != MessageContentType::VoiceNote &&
+          message_content_type != MessageContentType::VideoNote &&
+          update_message_contains_unread_mention(d, m, false, "view_messages")) {
+        CHECK(m->message_id.is_server());
+        read_content_message_ids.push_back(m->message_id);
+        on_message_changed(d, m, true, "view_messages");
       }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
                message_id <= d->max_notification_message_id) {
@@ -14730,7 +14732,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
     d->increment_view_counter |= d->is_opened;
   }
   if (!read_content_message_ids.empty()) {
-    read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0);
+    read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
   }
 
   if (need_read && max_message_id > d->last_read_inbox_message_id) {
@@ -14774,7 +14776,11 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
 
   if (read_message_content(d, m, true, "open_message_content") &&
       (m->message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
-    read_message_contents_on_server(dialog_id, {m->message_id}, 0);
+    read_message_contents_on_server(dialog_id, {m->message_id}, 0, Auto());
+  }
+
+  if (m->content->get_type() == MessageContentType::LiveLocation) {
+    on_message_live_location_viewed(d, m);
   }
 
   return Status::OK();
@@ -14806,16 +14812,18 @@ uint64 MessagesManager::save_read_message_contents_on_server_logevent(DialogId d
 }
 
 void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                      uint64 logevent_id) {
+                                                      uint64 logevent_id, Promise<Unit> &&promise, bool skip_logevent) {
   CHECK(!message_ids.empty());
 
   LOG(INFO) << "Read contents of " << format::as_array(message_ids) << " in " << dialog_id << " on server";
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
+  if (logevent_id == 0 && G()->parameters().use_message_db && !skip_logevent) {
     logevent_id = save_read_message_contents_on_server_logevent(dialog_id, message_ids);
   }
 
-  auto promise = get_erase_logevent_promise(logevent_id);
+  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -14825,16 +14833,17 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
       td_->create_handler<ReadChannelMessagesContentsQuery>(std::move(promise))
           ->send(dialog_id.get_channel_id(), std::move(message_ids));
       break;
-    case DialogType::SecretChat:
+    case DialogType::SecretChat: {
       CHECK(message_ids.size() == 1);
-      for (auto message_id : message_ids) {
-        auto m = get_message_force({dialog_id, message_id}, "read_message_contents_on_server");
-        if (m != nullptr) {
-          send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_open_message,
-                       dialog_id.get_secret_chat_id(), m->random_id, std::move(promise));
-        }
+      auto m = get_message_force({dialog_id, message_ids[0]}, "read_message_contents_on_server");
+      if (m != nullptr) {
+        send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_open_message,
+                     dialog_id.get_secret_chat_id(), m->random_id, std::move(promise));
+      } else {
+        promise.set_error(Status::Error(400, "Message not found"));
       }
       break;
+    }
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -14963,6 +14972,12 @@ void MessagesManager::close_dialog(Dialog *d) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_unload_dialog_delay());
   }
+
+  for (auto &it : d->pending_viewed_live_locations) {
+    auto live_location_task_id = it.second;
+    CHECK(viewed_live_location_tasks_.erase(live_location_task_id) > 0);
+  }
+  d->pending_viewed_live_locations.clear();
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -16104,7 +16119,7 @@ void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Mes
   CHECK(m != nullptr);
 
   if (m->content->get_type() != MessageContentType::LiveLocation || m->message_id.is_scheduled() ||
-      m->is_failed_to_send || m->via_bot_user_id.is_valid() || m->forward_info != nullptr) {
+      m->message_id.is_local() || m->via_bot_user_id.is_valid() || m->forward_info != nullptr) {
     return;
   }
 
@@ -16144,6 +16159,98 @@ void MessagesManager::save_active_live_locations() {
                                         log_event_store(active_live_location_full_message_ids_).as_slice().str(),
                                         Auto());
   }
+}
+
+void MessagesManager::on_message_live_location_viewed(Dialog *d, const Message *m) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  CHECK(m->content->get_type() == MessageContentType::LiveLocation);
+  CHECK(!m->message_id.is_scheduled());
+
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+      // ok
+      break;
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+      return;
+    default:
+      UNREACHABLE();
+      return;
+  }
+  if (!d->is_opened) {
+    return;
+  }
+
+  if (m->is_outgoing || !m->message_id.is_server() || m->via_bot_user_id.is_valid() || !m->sender_user_id.is_valid() ||
+      td_->contacts_manager_->is_user_bot(m->sender_user_id) || m->forward_info != nullptr) {
+    return;
+  }
+
+  auto live_period = get_message_content_live_location_period(m->content.get());
+  if (live_period <= G()->unix_time() - m->date + 1) {
+    // live location is expired
+    return;
+  }
+
+  auto &live_location_task_id = d->pending_viewed_live_locations[m->message_id];
+  if (live_location_task_id != 0) {
+    return;
+  }
+
+  live_location_task_id = ++viewed_live_location_task_id_;
+  viewed_live_location_tasks_[live_location_task_id] = FullMessageId(d->dialog_id, m->message_id);
+  view_message_live_location_on_server(live_location_task_id);
+}
+
+void MessagesManager::view_message_live_location_on_server(int64 task_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = viewed_live_location_tasks_.find(task_id);
+  if (it == viewed_live_location_tasks_.end()) {
+    return;
+  }
+
+  auto full_message_id = it->second;
+  const Message *m = get_message_force(full_message_id, "view_message_live_location_on_server");
+  if (m == nullptr) {
+    // the message was deleted
+    viewed_live_location_tasks_.erase(it);
+    return;
+  }
+
+  auto live_period = get_message_content_live_location_period(m->content.get());
+  if (live_period <= G()->unix_time() - m->date + 1) {
+    // live location is expired
+    viewed_live_location_tasks_.erase(it);
+    return;
+  }
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), task_id](Unit result) {
+    send_closure(actor_id, &MessagesManager::on_message_live_location_viewed_on_server, task_id);
+  });
+  read_message_contents_on_server(full_message_id.get_dialog_id(), {m->message_id}, 0, std::move(promise), true);
+}
+
+void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = viewed_live_location_tasks_.find(task_id);
+  if (it == viewed_live_location_tasks_.end()) {
+    return;
+  }
+
+  // TODO schedule new server request in 60 seconds
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
@@ -29246,7 +29353,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        read_message_contents_on_server(dialog_id, std::move(log_event.message_ids_), event.id_);
+        read_message_contents_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer: {

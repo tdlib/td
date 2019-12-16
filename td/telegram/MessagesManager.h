@@ -1145,6 +1145,7 @@ class MessagesManager : public Actor {
     bool suffix_load_done_ = false;
     bool suffix_load_has_query_ = false;
 
+    std::unordered_map<MessageId, int64, MessageIdHash> pending_viewed_live_locations;  // message_id -> task_id
     std::unordered_set<MessageId, MessageIdHash> pending_viewed_message_ids;
 
     unique_ptr<Message> messages;
@@ -1675,7 +1676,8 @@ class MessagesManager : public Actor {
 
   bool read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source);
 
-  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id);
+  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id,
+                                       Promise<Unit> &&promise, bool skip_logevent = false);
 
   static int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type);
 
@@ -2197,6 +2199,12 @@ class MessagesManager : public Actor {
 
   void save_active_live_locations();
 
+  void on_message_live_location_viewed(Dialog *d, const Message *m);
+
+  void view_message_live_location_on_server(int64 task_id);
+
+  void on_message_live_location_viewed_on_server(int64 task_id);
+
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m);
@@ -2685,6 +2693,9 @@ class MessagesManager : public Actor {
   };
 
   CallsDbState calls_db_state_;
+
+  int64 viewed_live_location_task_id_ = 0;
+  std::unordered_map<int64, FullMessageId> viewed_live_location_tasks_;  // task_id -> task
 
   std::unordered_map<uint64, std::map<int64, Promise<Message *>>> yet_unsent_media_queues_;
 
