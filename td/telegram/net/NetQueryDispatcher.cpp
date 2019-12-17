@@ -324,7 +324,7 @@ void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
     return;
   }
 
-  LOG(INFO) << "Update: " << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
+  LOG(INFO) << "Update main DcId from " << main_dc_id_.load(std::memory_order_relaxed) << " to " << new_main_dc_id;
   if (is_dc_inited(main_dc_id_.load(std::memory_order_relaxed))) {
     send_closure_later(dcs_[main_dc_id_ - 1].main_session_, &SessionMultiProxy::update_main_flag, false);
   }

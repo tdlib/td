@@ -38,6 +38,9 @@ class Timeout final : public Actor {
   void set_timeout_in(double timeout) {
     Actor::set_timeout_in(timeout);
   }
+  void set_timeout_at(double timeout) {
+    Actor::set_timeout_at(timeout);
+  }
   void cancel_timeout() {
     if (has_timeout()) {
       Actor::cancel_timeout();
@@ -51,10 +54,6 @@ class Timeout final : public Actor {
 
   Callback callback_{};
   Data data_{};
-
-  void set_timeout_at(double timeout) {
-    Actor::set_timeout_at(timeout);
-  }
 
   void timeout_expired() override {
     CHECK(!has_timeout());

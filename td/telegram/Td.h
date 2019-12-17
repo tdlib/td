@@ -374,6 +374,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::registerUser &request);
 
+  void on_request(uint64 id, td_api::requestQrCodeAuthentication &request);
+
   void on_request(uint64 id, td_api::checkAuthenticationPassword &request);
 
   void on_request(uint64 id, const td_api::requestAuthenticationPasswordRecovery &request);
@@ -387,6 +389,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::destroy &request);
 
   void on_request(uint64 id, td_api::checkAuthenticationBotToken &request);
+
+  void on_request(uint64 id, td_api::confirmQrCodeAuthentication &request);
 
   void on_request(uint64 id, const td_api::getCurrentState &request);
 

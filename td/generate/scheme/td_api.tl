@@ -86,11 +86,14 @@ authorizationStateWaitTdlibParameters = AuthorizationState;
 //@description TDLib needs an encryption key to decrypt the local database @is_encrypted True, if the database is currently encrypted
 authorizationStateWaitEncryptionKey is_encrypted:Bool = AuthorizationState;
 
-//@description TDLib needs the user's phone number to authorize
+//@description TDLib needs the user's phone number to authorize. Call `setAuthenticationPhoneNumber` to provide the phone number, or use `requestQrCodeAuthentication`, or `checkAuthenticationBotToken` for other authentication options
 authorizationStateWaitPhoneNumber = AuthorizationState;
 
 //@description TDLib needs the user's authentication code to authorize @code_info Information about the authorization code that was sent
 authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState;
+
+//@description The user needs to confirm authorization on another logged in device by scanning a QR code with the provided link @link A tg:// URL for the QR code. The link will be updated frequently
+authorizationStateWaitOtherDeviceConfirmation link:string = AuthorizationState;
 
 //@description The user is unregistered and need to accept terms of service and enter their first name and last name to finish registration @terms_of_service Telegram terms of service
 authorizationStateWaitRegistration terms_of_service:termsOfService = AuthorizationState;
@@ -3012,6 +3015,9 @@ resendAuthenticationCode = Ok;
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code The verification code received via SMS, Telegram message, phone call, or flash call
 checkAuthenticationCode code:string = Ok;
 
+//@description Requests QR code authentication by scanning a QR code on another logged in device. Works only when the current authorization state is authorizationStateWaitPhoneNumber @other_user_ids List of user identifiers of other users currently using the client
+requestQrCodeAuthentication other_user_ids:vector<int32> = Ok;
+
 //@description Finishes user registration. Works only when the current authorization state is authorizationStateWaitRegistration
 //@first_name The first name of the user; 1-64 characters @last_name The last name of the user; 0-64 characters
 registerUser first_name:string last_name:string = Ok;
@@ -3036,6 +3042,10 @@ close = Ok;
 
 //@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed. After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent
 destroy = Ok;
+
+
+//@description Confirms QR code authentication on another device. Returns created session on success @link A link from a QR code. The link must be scanned by the in-app camera
+confirmQrCodeAuthentication link:string = Session;
 
 
 //@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially usefull if TDLib is run in a separate process. This is an offline method. Can be called before authorization

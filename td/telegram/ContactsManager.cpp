@@ -47,6 +47,7 @@
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -124,11 +125,50 @@ class GetAccountTtlQuery : public Td::ResultHandler {
   }
 };
 
+static td_api::object_ptr<td_api::session> convert_authorization_object(
+    tl_object_ptr<telegram_api::authorization> &&authorization) {
+  CHECK(authorization != nullptr);
+  bool is_current = (authorization->flags_ & telegram_api::authorization::CURRENT_MASK) != 0;
+  bool is_official_application = (authorization->flags_ & telegram_api::authorization::OFFICIAL_APP_MASK) != 0;
+  bool is_password_pending = (authorization->flags_ & telegram_api::authorization::PASSWORD_PENDING_MASK) != 0;
+
+  return td_api::make_object<td_api::session>(
+      authorization->hash_, is_current, is_password_pending, authorization->api_id_, authorization->app_name_,
+      authorization->app_version_, is_official_application, authorization->device_model_, authorization->platform_,
+      authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
+      authorization->country_, authorization->region_);
+}
+
+class AcceptLoginTokenQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::session>> promise_;
+
+ public:
+  explicit AcceptLoginTokenQuery(Promise<td_api::object_ptr<td_api::session>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &login_token) {
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::auth_acceptLoginToken(BufferSlice(login_token)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::auth_acceptLoginToken>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for AcceptLoginTokenQuery: " << to_string(result_ptr.ok());
+    promise_.set_value(convert_authorization_object(std::move(result_ptr.move_as_ok())));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAuthorizationsQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::sessions>> promise_;
-  static constexpr int32 AUTHORIZATION_FLAG_IS_CURRENT = 1 << 0;
-  static constexpr int32 AUTHORIZATION_FLAG_IS_OFFICIAL_APPLICATION = 1 << 1;
-  static constexpr int32 AUTHORIZATION_FLAG_IS_PASSWORD_PENDING = 1 << 2;
 
  public:
   explicit GetAuthorizationsQuery(Promise<tl_object_ptr<td_api::sessions>> &&promise) : promise_(std::move(promise)) {
@@ -147,21 +187,8 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAuthorizationsQuery: " << to_string(ptr);
 
-    auto results = make_tl_object<td_api::sessions>();
-    results->sessions_.reserve(ptr->authorizations_.size());
-    for (auto &authorization : ptr->authorizations_) {
-      CHECK(authorization != nullptr);
-      bool is_current = (authorization->flags_ & AUTHORIZATION_FLAG_IS_CURRENT) != 0;
-      bool is_official_application = (authorization->flags_ & AUTHORIZATION_FLAG_IS_OFFICIAL_APPLICATION) != 0;
-      bool is_password_pending = (authorization->flags_ & AUTHORIZATION_FLAG_IS_PASSWORD_PENDING) != 0;
-
-      results->sessions_.push_back(make_tl_object<td_api::session>(
-          authorization->hash_, is_current, is_password_pending, authorization->api_id_, authorization->app_name_,
-          authorization->app_version_, is_official_application, authorization->device_model_, authorization->platform_,
-          authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
-          authorization->country_, authorization->region_));
-    }
-
+    auto results =
+        make_tl_object<td_api::sessions>(transform(std::move(ptr->authorizations_), convert_authorization_object));
     std::sort(results->sessions_.begin(), results->sessions_.end(),
               [](const td_api::object_ptr<td_api::session> &lhs, const td_api::object_ptr<td_api::session> &rhs) {
                 if (lhs->is_current_ != rhs->is_current_) {
@@ -4110,6 +4137,19 @@ void ContactsManager::set_account_ttl(int32 account_ttl, Promise<Unit> &&promise
 
 void ContactsManager::get_account_ttl(Promise<int32> &&promise) const {
   td_->create_handler<GetAccountTtlQuery>(std::move(promise))->send();
+}
+
+void ContactsManager::confirm_qr_code_authentication(string link,
+                                                     Promise<td_api::object_ptr<td_api::session>> &&promise) {
+  Slice prefix("tg://login?");
+  if (!begins_with(to_lower(link), prefix)) {
+    return promise.set_error(Status::Error(400, "AUTH_TOKEN_INVALID"));
+  }
+  auto r_token = base64url_decode(Slice(link).substr(prefix.size()));
+  if (r_token.is_error()) {
+    return promise.set_error(Status::Error(400, "AUTH_TOKEN_INVALID"));
+  }
+  td_->create_handler<AcceptLoginTokenQuery>(std::move(promise))->send(r_token.ok());
 }
 
 void ContactsManager::get_active_sessions(Promise<tl_object_ptr<td_api::sessions>> &&promise) const {

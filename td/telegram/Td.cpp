@@ -3450,6 +3450,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::resendAuthenticationCode::ID:
     case td_api::checkAuthenticationCode::ID:
     case td_api::registerUser::ID:
+    case td_api::requestQrCodeAuthentication::ID:
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
     case td_api::recoverAuthenticationPassword::ID:
@@ -4957,6 +4958,11 @@ void Td::on_request(uint64 id, td_api::registerUser &request) {
                std::move(request.last_name_));
 }
 
+void Td::on_request(uint64 id, td_api::requestQrCodeAuthentication &request) {
+  send_closure(auth_manager_actor_, &AuthManager::request_qr_code_authentication, id,
+               std::move(request.other_user_ids_));
+}
+
 void Td::on_request(uint64 id, td_api::checkAuthenticationPassword &request) {
   CLEAN_INPUT_STRING(request.password_);
   send_closure(auth_manager_actor_, &AuthManager::check_password, id, std::move(request.password_));
@@ -4991,6 +4997,12 @@ void Td::on_request(uint64 id, const td_api::destroy &request) {
 void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
   CLEAN_INPUT_STRING(request.token_);
   send_closure(auth_manager_actor_, &AuthManager::check_bot_token, id, std::move(request.token_));
+}
+
+void Td::on_request(uint64 id, td_api::confirmQrCodeAuthentication &request) {
+  CLEAN_INPUT_STRING(request.link_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->confirm_qr_code_authentication(std::move(request.link_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {

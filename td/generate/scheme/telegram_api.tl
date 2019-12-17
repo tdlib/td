@@ -1076,8 +1076,6 @@ auth.loginToken#629f1980 expires:int token:bytes = auth.LoginToken;
 auth.loginTokenMigrateTo#68e9916 dc_id:int token:bytes = auth.LoginToken;
 auth.loginTokenSuccess#390d5c5e authorization:auth.Authorization = auth.LoginToken;
 
-auth.loginTokenInfo#5203303a dc_id:int auth_key_id:long device_model:string platform:string system_version:string api_id:int app_name:string app_version:string ip:string region:string = auth.LoginTokenInfo;
-
 account.contentSettings#57e28221 flags:# sensitive_enabled:flags.0?true sensitive_can_change:flags.1?true = account.ContentSettings;
 
 messages.inactiveChats#a927fec5 dates:Vector<int> chats:Vector<Chat> users:Vector<User> = messages.InactiveChats;
@@ -1109,8 +1107,7 @@ auth.cancelCode#1f040578 phone_number:string phone_code_hash:string = Bool;
 auth.dropTempAuthKeys#8e48a188 except_auth_keys:Vector<long> = Bool;
 auth.exportLoginToken#b1b41517 api_id:int api_hash:string except_ids:Vector<int> = auth.LoginToken;
 auth.importLoginToken#95ac5ce4 token:bytes = auth.LoginToken;
-auth.acceptLoginToken#42e731b9 token:bytes = Updates;
-auth.checkLoginToken#7d4fd4b0 token:bytes = auth.LoginTokenInfo;
+auth.acceptLoginToken#e894ad4d token:bytes = Authorization;
 
 account.registerDevice#68976c6f flags:# no_muted:flags.0?true token_type:int token:string app_sandbox:Bool secret:bytes other_uids:Vector<int> = Bool;
 account.unregisterDevice#3076c4bf token_type:int token:string other_uids:Vector<int> = Bool;

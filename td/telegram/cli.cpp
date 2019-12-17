@@ -1327,8 +1327,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::registerUser>(first_name, last_name));
     } else if (op == "cap") {
       send_request(td_api::make_object<td_api::checkAuthenticationPassword>(args));
-    } else if (op == "cab" || op == "cabt") {
+    } else if (op == "cabt") {
       send_request(td_api::make_object<td_api::checkAuthenticationBotToken>(args));
+    } else if (op == "qr") {
+      send_request(td_api::make_object<td_api::requestQrCodeAuthentication>(as_user_ids(args)));
+    } else if (op == "cqr") {
+      send_request(td_api::make_object<td_api::confirmQrCodeAuthentication>(args));
     } else if (op == "gcs") {
       send_request(td_api::make_object<td_api::getCurrentState>());
     } else if (op == "rapr") {

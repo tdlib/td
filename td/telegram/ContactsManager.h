@@ -260,6 +260,8 @@ class ContactsManager : public Actor {
   void set_account_ttl(int32 account_ttl, Promise<Unit> &&promise) const;
   void get_account_ttl(Promise<int32> &&promise) const;
 
+  void confirm_qr_code_authentication(string link, Promise<td_api::object_ptr<td_api::session>> &&promise);
+
   void get_active_sessions(Promise<tl_object_ptr<td_api::sessions>> &&promise) const;
   void terminate_session(int64 session_id, Promise<Unit> &&promise) const;
   void terminate_all_other_sessions(Promise<Unit> &&promise) const;

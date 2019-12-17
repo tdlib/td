@@ -623,7 +623,12 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
     LOG(INFO) << "Receive " << to_string(updates_ptr);
   }
   if (!td_->auth_manager_->is_authorized()) {
-    LOG(INFO) << "Ignore updates received before authorization or after logout";
+    if (updates_type == telegram_api::updateShort::ID &&
+        static_cast<const telegram_api::updateShort *>(updates_ptr.get())->update_->get_id() ==
+            telegram_api::updateLoginToken::ID) {
+      return td_->auth_manager_->on_update_login_token();
+    }
+    LOG(INFO) << "Ignore received before authorization or after logout " << to_string(updates_ptr);
     return;
   }
 
@@ -1975,12 +1980,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
   td_->messages_manager_->on_update_delete_scheduled_messages(DialogId(update->peer_), std::move(message_ids));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/) {
+  LOG(INFO) << "Receive updateLoginToken after authorization";
+}
+
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/) {
 }
 
 }  // namespace td
