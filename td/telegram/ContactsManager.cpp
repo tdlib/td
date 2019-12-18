@@ -7810,6 +7810,15 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
   return get_channel_full(channel_id);
 }
 
+void ContactsManager::for_each_secret_chat_with_user(UserId user_id, std::function<void(SecretChatId)> f) {
+  auto it = secret_chats_with_user_.find(user_id);
+  if (it != secret_chats_with_user_.end()) {
+    for (auto secret_chat_id : it->second) {
+      f(secret_chat_id);
+    }
+  }
+}
+
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
@@ -7836,21 +7845,17 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_name_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(user_id));
-    auto it = secret_chats_with_user_.find(user_id);
-    if (it != secret_chats_with_user_.end()) {
-      for (auto secret_chat_id : it->second) {
-        td_->messages_manager_->on_dialog_title_updated(DialogId(secret_chat_id));
-      }
-    }
+    for_each_secret_chat_with_user(user_id,
+                                   [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
+                                     messages_manager->on_dialog_title_updated(DialogId(secret_chat_id));
+                                   });
   }
   if (u->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(user_id));
-    auto it = secret_chats_with_user_.find(user_id);
-    if (it != secret_chats_with_user_.end()) {
-      for (auto secret_chat_id : it->second) {
-        td_->messages_manager_->on_dialog_photo_updated(DialogId(secret_chat_id));
-      }
-    }
+    for_each_secret_chat_with_user(user_id,
+                                   [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
+                                     messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
+                                   });
 
     add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
 
