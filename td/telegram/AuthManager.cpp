@@ -542,7 +542,12 @@ void AuthManager::on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken
 }
 
 void AuthManager::on_get_password_result(NetQueryPtr &result) {
-  auto r_password = fetch_result<telegram_api::account_getPassword>(result->ok());
+  Result<telegram_api::object_ptr<telegram_api::account_password>> r_password;
+  if (result->is_error()) {
+    r_password = std::move(result->error());
+  } else {
+    r_password = fetch_result<telegram_api::account_getPassword>(result->ok());
+  }
   if (r_password.is_error() && query_id_ != 0) {
     return on_query_error(r_password.move_as_error());
   }
@@ -796,7 +801,9 @@ void AuthManager::on_result(NetQueryPtr result) {
           on_query_error(std::move(result->error()));
           return;
         }
-        if (type != NetQueryType::RequestQrCode && type != NetQueryType::ImportQrCode) {
+        if (type != NetQueryType::RequestQrCode && type != NetQueryType::ImportQrCode &&
+            type != NetQueryType::GetPassword) {
+          LOG(INFO) << "Ignore error for net query of type " << static_cast<int32>(net_query_type_);
           return;
         }
       }

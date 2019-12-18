@@ -51,6 +51,10 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
   }
+  if (net_query->tl_constructor() == telegram_api::account_getPassword::ID && false) {
+    net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
+    return complete_net_query(std::move(net_query));
+  }
 
   if (net_query->is_ready()) {
     if (net_query->is_error()) {
