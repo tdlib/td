@@ -261,21 +261,17 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   other_user_ids_.clear();
   was_qr_code_request_ = false;
 
-  auto r_send_code = send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_);
-  if (r_send_code.is_error()) {
+  if (send_code_helper_.phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
     terms_of_service_ = TermsOfService();
-    r_send_code = send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_);
-    if (r_send_code.is_error()) {
-      return on_query_error(query_id, r_send_code.move_as_error());
-    }
   }
 
   on_new_query(query_id);
 
   start_net_query(NetQueryType::SendCode,
-                  G()->net_query_creator().create(create_storer(r_send_code.move_as_ok()), DcId::main(),
-                                                  NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+                  G()->net_query_creator().create(
+                      create_storer(send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_)),
+                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
 void AuthManager::resend_authentication_code(uint64 query_id) {

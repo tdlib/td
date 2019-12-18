@@ -25,8 +25,8 @@ class SendCodeHelper {
 
   using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 
-  Result<telegram_api::auth_sendCode> send_code(Slice phone_number, const Settings &settings, int32 api_id,
-                                                const string &api_hash);
+  telegram_api::auth_sendCode send_code(Slice phone_number, const Settings &settings, int32 api_id,
+                                        const string &api_hash);
 
   telegram_api::account_sendChangePhoneCode send_change_phone_code(Slice phone_number, const Settings &settings);
 

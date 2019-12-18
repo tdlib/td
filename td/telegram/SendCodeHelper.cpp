@@ -53,11 +53,8 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
                                                                false /*ignored*/);
 }
 
-Result<telegram_api::auth_sendCode> SendCodeHelper::send_code(Slice phone_number, const Settings &settings,
-                                                              int32 api_id, const string &api_hash) {
-  if (!phone_number_.empty()) {
-    return Status::Error(8, "Can't change phone");
-  }
+telegram_api::auth_sendCode SendCodeHelper::send_code(Slice phone_number, const Settings &settings, int32 api_id,
+                                                      const string &api_hash) {
   phone_number_ = phone_number.str();
   return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
