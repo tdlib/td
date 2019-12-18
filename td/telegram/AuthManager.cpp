@@ -625,10 +625,10 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
   on_query_ok();
 }
 
-void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_error_expected) {
+void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_from_current_query) {
   auto r_sign_in = fetch_result<telegram_api::auth_signIn>(result->ok());
   if (r_sign_in.is_error()) {
-    if (is_error_expected && query_id_ != 0) {
+    if (is_from_current_query && query_id_ != 0) {
       return on_query_error(r_sign_in.move_as_error());
     }
     return;
