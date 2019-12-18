@@ -6902,6 +6902,7 @@ void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_
 }
 
 bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
+  // doesn't include possibility of report from action bar
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return td_->contacts_manager_->can_report_user(dialog_id.get_user_id());
@@ -6937,6 +6938,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
   bool is_dialog_spam_report = false;
   bool can_report_spam = d->can_report_spam;
   if (reason->get_id() == td_api::chatReportReasonSpam::ID && message_ids.empty()) {
+    // report from action bar
     if (dialog_id.get_type() == DialogType::SecretChat) {
       auto user_dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
       user_d = get_dialog_force(user_dialog_id);
@@ -15067,7 +15069,20 @@ td_api::object_ptr<td_api::ChatList> MessagesManager::get_chat_list_object(Folde
   return td_api::make_object<td_api::chatListMain>();
 }
 
-td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) {
+td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+    if (!user_id.is_valid()) {
+      return nullptr;
+    }
+    const Dialog *user_d = get_dialog(DialogId(user_id));
+    if (user_d == nullptr) {
+      return nullptr;
+    }
+    return get_chat_action_bar_object(user_d);
+  }
+
   if (!d->know_action_bar) {
     if (d->know_can_report_spam && d->dialog_id.get_type() != DialogType::SecretChat && d->can_report_spam) {
       return td_api::make_object<td_api::chatActionBarReportSpam>();
@@ -22351,9 +22366,19 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d != nullptr);
   CHECK(d->messages == nullptr);
   auto chat_object = get_chat_object(d);
+  bool has_action_bar = chat_object->action_bar_ != nullptr;
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
+
+  if (has_action_bar && d->dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->for_each_secret_chat_with_user(
+        d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
+                                                                        get_chat_action_bar_object(d)));
+        });
+  }
 }
 
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
@@ -22551,6 +22576,15 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
   on_dialog_updated(d->dialog_id, "send_update_chat_action_bar");
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
+
+  if (d->dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->for_each_secret_chat_with_user(
+        d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
+                                                                        get_chat_action_bar_object(d)));
+        });
+  }
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {

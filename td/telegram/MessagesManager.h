@@ -2054,7 +2054,7 @@ class MessagesManager : public Actor {
 
   static td_api::object_ptr<td_api::ChatList> get_chat_list_object(FolderId folder_id);
 
-  static td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d);
+  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
