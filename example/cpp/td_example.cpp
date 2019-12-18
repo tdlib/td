@@ -261,6 +261,9 @@ class TdExample {
               send_query(td_api::make_object<td_api::checkAuthenticationPassword>(password),
                          create_authentication_query_handler());
             },
+            [this](td_api::authorizationStateWaitOtherDeviceConfirmation &state) {
+              std::cout << "Confirm this login link on another device: " << state.link_ << std::endl;
+            },
             [this](td_api::authorizationStateWaitPhoneNumber &) {
               std::cout << "Enter phone number: " << std::flush;
               std::string phone_number;
