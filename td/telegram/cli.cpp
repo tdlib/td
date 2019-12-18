@@ -56,6 +56,7 @@
 #include <queue>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 
 #ifdef USE_READLINE
 /* Standard readline include files. */
@@ -431,6 +432,23 @@ class CliClient final : public Actor {
     }
   }
 
+  static char get_delimiter(Slice str) {
+    std::unordered_set<char> chars;
+    for (auto c : trim(str)) {
+      if (c < '0' || c > '9') {
+        chars.insert(c);
+      }
+    }
+    if (chars.empty()) {
+      return ' ';
+    }
+    if (chars.size() == 1) {
+      return *chars.begin();
+    }
+    LOG(ERROR) << "Failed to determine delimiter in \"" << str << '"';
+    return ' ';
+  }
+
   int64 as_chat_id(Slice str) const {
     str = trim(str);
     if (str[0] == '@') {
@@ -459,8 +477,9 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatListMain>();
   }
 
-  vector<int64> as_chat_ids(Slice chat_ids, char delimiter = ' ') const {
-    return transform(full_split(trim(chat_ids), delimiter), [this](Slice str) { return as_chat_id(str); });
+  vector<int64> as_chat_ids(Slice chat_ids) const {
+    return transform(full_split(trim(chat_ids), get_delimiter(chat_ids)),
+                     [this](Slice str) { return as_chat_id(str); });
   }
 
   static int64 as_message_id(Slice str) {
@@ -471,8 +490,8 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
-  static vector<int64> as_message_ids(Slice message_ids, char delimiter = ' ') {
-    return transform(full_split(trim(message_ids), delimiter), as_message_id);
+  static vector<int64> as_message_ids(Slice message_ids) {
+    return transform(full_split(trim(message_ids), get_delimiter(message_ids)), as_message_id);
   }
 
   static int32 as_button_id(Slice str) {
@@ -495,8 +514,8 @@ class CliClient final : public Actor {
     return to_integer<int32>(str);
   }
 
-  vector<int32> as_user_ids(Slice user_ids, char delimiter = ' ') const {
-    return transform(full_split(user_ids, delimiter), [this](Slice str) { return as_user_id(str); });
+  vector<int32> as_user_ids(Slice user_ids) const {
+    return transform(full_split(user_ids, get_delimiter(user_ids)), [this](Slice str) { return as_user_id(str); });
   }
 
   static int32 as_basic_group_id(Slice str) {
@@ -602,8 +621,8 @@ class CliClient final : public Actor {
   }
 
   template <class T>
-  static vector<T> to_integers(Slice ids_string, char delimiter = ' ') {
-    return transform(transform(full_split(ids_string, delimiter), trim<Slice>), to_integer<T>);
+  static vector<T> to_integers(Slice ids_string) {
+    return transform(transform(full_split(ids_string, get_delimiter(ids_string)), trim<Slice>), to_integer<T>);
   }
 
   void on_result(uint64 generation, uint64 id, td_api::object_ptr<td_api::Object> result) {
@@ -1159,8 +1178,8 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::passportElementTypePassport>();
   }
 
-  static auto as_passport_element_types(Slice types, char delimiter = ',') {
-    return transform(full_split(types, delimiter), [](Slice str) { return as_passport_element_type(str); });
+  static auto as_passport_element_types(Slice types) {
+    return transform(full_split(types, get_delimiter(types)), [](Slice str) { return as_passport_element_type(str); });
   }
 
   static td_api::object_ptr<td_api::InputPassportElement> as_input_passport_element(string passport_element_type,
@@ -2182,8 +2201,8 @@ class CliClient final : public Actor {
       std::tie(chat_ids, args) = split(args);
       std::tie(exclude_chat_ids, chat_ids_limit) = split(args);
       send_request(td_api::make_object<td_api::optimizeStorage>(
-          10000000, -1, -1, 0, std::vector<td_api::object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids, ','),
-          as_chat_ids(exclude_chat_ids, ','), to_integer<int32>(chat_ids_limit)));
+          10000000, -1, -1, 0, std::vector<td_api::object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids),
+          as_chat_ids(exclude_chat_ids), to_integer<int32>(chat_ids_limit)));
     } else if (op == "clean_storage_default") {
       send_request(td_api::make_object<td_api::optimizeStorage>());
     } else if (op == "clean_photos") {
@@ -2206,7 +2225,7 @@ class CliClient final : public Actor {
       types.push_back(td_api::make_object<td_api::fileTypeAnimation>());
       types.push_back(td_api::make_object<td_api::fileTypeVideoNote>());
       types.push_back(td_api::make_object<td_api::fileTypeSecure>());
-      send_request(td_api::make_object<td_api::optimizeStorage>(0, -1, -1, 0, std::move(types), as_chat_ids(args, ','),
+      send_request(td_api::make_object<td_api::optimizeStorage>(0, -1, -1, 0, std::move(types), as_chat_ids(args),
                                                                 as_chat_ids(""), 20));
     } else if (op == "network") {
       send_request(td_api::make_object<td_api::getNetworkStatistics>());
@@ -2542,7 +2561,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(message_ids, revoke) = split(args);
 
-      send_request(td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids, ','),
+      send_request(td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids),
                                                                as_bool(revoke)));
     } else if (op == "fm" || op == "fmg" || op == "cm" || op == "cmg") {
       string chat_id;
@@ -3150,7 +3169,7 @@ class CliClient final : public Actor {
       if (trim(photo_path).empty()) {
         photo_path = sticker_file_ids_str;
       } else {
-        sticker_file_ids = to_integers<int32>(sticker_file_ids_str, ',');
+        sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
       }
 
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
@@ -3245,7 +3264,7 @@ class CliClient final : public Actor {
       if (trim(video_path).empty()) {
         video_path = sticker_file_ids_str;
       } else {
-        sticker_file_ids = to_integers<int32>(sticker_file_ids_str, ',');
+        sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
       }
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(as_input_file(video_path), nullptr,
@@ -3309,7 +3328,7 @@ class CliClient final : public Actor {
       string title;
       std::tie(user_ids_string, title) = split(args);
 
-      send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string, ','), title));
+      send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title));
     } else if (op == "cnch") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr));
     } else if (op == "cnsg") {
@@ -3410,7 +3429,7 @@ class CliClient final : public Actor {
       string user_ids;
 
       std::tie(chat_id, user_ids) = split(args);
-      send_request(td_api::make_object<td_api::addChatMembers>(as_chat_id(chat_id), as_user_ids(user_ids, ',')));
+      send_request(td_api::make_object<td_api::addChatMembers>(as_chat_id(chat_id), as_user_ids(user_ids)));
     } else if (op == "spolla") {
       string chat_id;
       string message_id;
@@ -3711,8 +3730,7 @@ class CliClient final : public Actor {
       string group_id;
       string notification_ids;
       std::tie(group_id, notification_ids) = split(args);
-      char delimiter = notification_ids.find(',') != string::npos ? ',' : ' ';
-      for (auto notification_id : to_integers<int32>(notification_ids, delimiter)) {
+      for (auto notification_id : to_integers<int32>(notification_ids)) {
         send_request(td_api::make_object<td_api::removeNotification>(to_integer<int32>(group_id), notification_id));
       }
     } else if (op == "rng") {
