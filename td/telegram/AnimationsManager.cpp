@@ -808,7 +808,7 @@ string AnimationsManager::get_animation_search_text(FileId file_id) const {
 }
 
 void AnimationsManager::after_get_difference() {
-  if (td_->is_online()) {
+  if (td_->is_online() && !td_->auth_manager_->is_bot()) {
     get_saved_animations(Auto());
   }
 }

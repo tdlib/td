@@ -1100,8 +1100,6 @@ void StickersManager::start_up() {
   add_sticker_set(animated_emoji_sticker_set_id_, animated_emoji_sticker_set_access_hash_);
   short_name_to_sticker_set_id_.emplace(animated_emoji_sticker_set_name_, animated_emoji_sticker_set_id_);
   G()->shared_config().set_option_string("animated_emoji_sticker_set_name", animated_emoji_sticker_set_name_);
-
-  td_->create_handler<ReloadAnimatedEmojiStickerSetQuery>()->send();
 }
 
 void StickersManager::tear_down() {
@@ -5300,6 +5298,9 @@ string StickersManager::remove_emoji_modifiers(string emoji) {
 }
 
 void StickersManager::after_get_difference() {
+  if (!td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (td_->is_online()) {
     get_installed_sticker_sets(false, Auto());
     get_installed_sticker_sets(true, Auto());
@@ -5307,6 +5308,7 @@ void StickersManager::after_get_difference() {
     get_recent_stickers(false, Auto());
     get_recent_stickers(true, Auto());
     get_favorite_stickers(Auto());
+    td_->create_handler<ReloadAnimatedEmojiStickerSetQuery>()->send();
   }
 }
 

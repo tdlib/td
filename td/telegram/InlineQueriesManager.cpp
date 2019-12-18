@@ -180,6 +180,9 @@ void InlineQueriesManager::on_drop_inline_query_result_timeout_callback(void *in
 }
 
 void InlineQueriesManager::after_get_difference() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (recently_used_bots_loaded_ < 2) {
     Promise<Unit> promise;
     load_recently_used_bots(promise);

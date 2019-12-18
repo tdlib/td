@@ -12904,6 +12904,9 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
 }
 
 void ContactsManager::after_get_difference() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   get_user(get_my_id(), 3, Promise<Unit>());
 }
 
