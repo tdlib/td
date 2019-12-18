@@ -10887,6 +10887,11 @@ Result<BotData> ContactsManager::get_bot_data(UserId user_id) const {
   return bot_data;
 }
 
+bool ContactsManager::is_user_status_exact(UserId user_id) const {
+  auto u = get_user(user_id);
+  return u != nullptr && !u->is_deleted && !u->is_bot && u->was_online > 0;
+}
+
 bool ContactsManager::can_report_user(UserId user_id) const {
   auto u = get_user(user_id);
   return u != nullptr && !u->is_deleted && u->is_bot && !u->is_support;

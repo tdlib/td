@@ -24035,7 +24035,21 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
     return promise.set_value(Unit());
   }
 
-  if (dialog_id.get_type() == DialogType::SecretChat) {
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
+    UserId user_id = dialog_type == DialogType::User
+                         ? dialog_id.get_user_id()
+                         : td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    if (!user_id.is_valid() || td_->contacts_manager_->is_user_bot(user_id) ||
+        td_->contacts_manager_->is_user_deleted(user_id)) {
+      return promise.set_value(Unit());
+    }
+    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
+      return promise.set_value(Unit());
+    }
+  }
+
+  if (dialog_type == DialogType::SecretChat) {
     tl_object_ptr<secret_api::SendMessageAction> send_action;
     switch (action->get_id()) {
       case td_api::chatActionCancel::ID:
