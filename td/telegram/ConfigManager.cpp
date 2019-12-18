@@ -488,16 +488,17 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
    private:
     void start_up() override {
       auto auth_data = std::make_shared<SimpleAuthData>(option_.get_dc_id());
-      int32 int_dc_id = option_.get_dc_id().get_raw_id();
+      int32 raw_dc_id = option_.get_dc_id().get_raw_id();
       auto session_callback = make_unique<SessionCallback>(actor_shared(this, 1), std::move(option_));
 
+      int32 int_dc_id = raw_dc_id;
       if (G()->is_test_dc()) {
         int_dc_id += 10000;
       }
-      session_ =
-          create_actor<Session>("ConfigSession", std::move(session_callback), std::move(auth_data), int_dc_id,
-                                false /*is_main*/, true /*use_pfs*/, false /*is_cdn*/, false /*need_destroy_auth_key*/,
-                                mtproto::AuthKey(), std::vector<mtproto::ServerSalt>());
+      session_ = create_actor<Session>("ConfigSession", std::move(session_callback), std::move(auth_data), raw_dc_id,
+                                       int_dc_id, false /*is_main*/, true /*use_pfs*/, false /*is_cdn*/,
+                                       false /*need_destroy_auth_key*/, mtproto::AuthKey(),
+                                       std::vector<mtproto::ServerSalt>());
       auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), DcId::empty(),
                                                    NetQuery::Type::Common, NetQuery::AuthFlag::Off,
                                                    NetQuery::GzipFlag::On, 60 * 60 * 24);

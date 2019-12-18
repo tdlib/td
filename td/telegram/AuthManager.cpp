@@ -543,14 +543,14 @@ void AuthManager::on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken
 
 void AuthManager::on_get_password_result(NetQueryPtr &result) {
   auto r_password = fetch_result<telegram_api::account_getPassword>(result->ok());
-  if (r_password.is_error()) {
+  if (r_password.is_error() && query_id_ != 0) {
     return on_query_error(r_password.move_as_error());
   }
-  auto password = r_password.move_as_ok();
+  auto password = r_password.is_ok() ? r_password.move_as_ok() : nullptr;
   LOG(INFO) << "Receive password info: " << to_string(password);
 
   wait_password_state_ = WaitPasswordState();
-  if (password->current_algo_ != nullptr) {
+  if (password != nullptr && password->current_algo_ != nullptr) {
     switch (password->current_algo_->get_id()) {
       case telegram_api::passwordKdfAlgoUnknown::ID:
         return on_query_error(Status::Error(400, "Application update is needed to log in"));
@@ -572,7 +572,10 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
         UNREACHABLE();
     }
   } else if (was_qr_code_request_) {
-    send_export_login_token_query();
+    imported_dc_id_ = -1;
+    login_code_retry_delay_ = td::clamp(2 * login_code_retry_delay_, 1, 60);
+    set_login_token_expires_at(Time::now() + login_code_retry_delay_);
+    return;
   } else {
     start_net_query(NetQueryType::SignIn,
                     G()->net_query_creator().create(
@@ -580,6 +583,11 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
                                                                 send_code_helper_.phone_code_hash().str(), code_)),
                         DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
     return;
+  }
+
+  if (imported_dc_id_ != -1) {
+    G()->net_query_dispatcher().set_main_dc_id(imported_dc_id_);
+    imported_dc_id_ = -1;
   }
 
   if (state_ == State::WaitPassword) {
@@ -594,7 +602,9 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
                                                     DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   } else {
     update_state(State::WaitPassword);
-    on_query_ok();
+    if (query_id_ != 0) {
+      on_query_ok();
+    }
   }
 }
 
@@ -759,9 +769,14 @@ void AuthManager::on_result(NetQueryPtr result) {
     if (result->is_error()) {
       if ((type == NetQueryType::SignIn || type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode) &&
           result->error().code() == 401 && result->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
+        auto dc_id = DcId::main();
+        if (type == NetQueryType::ImportQrCode) {
+          CHECK(DcId::is_valid(imported_dc_id_));
+          dc_id = DcId::internal(imported_dc_id_);
+        }
         start_net_query(NetQueryType::GetPassword,
-                        G()->net_query_creator().create(create_storer(telegram_api::account_getPassword()),
-                                                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+                        G()->net_query_creator().create(create_storer(telegram_api::account_getPassword()), dc_id,
+                                                        NetQuery::Type::Common, NetQuery::AuthFlag::Off));
         return;
       }
       if (result->error().message() == CSlice("PHONE_NUMBER_BANNED")) {

@@ -115,10 +115,10 @@ class GenAuthKeyActor : public Actor {
 
 }  // namespace detail
 
-Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id,
-                 bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
-                 std::vector<mtproto::ServerSalt> server_salts)
-    : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
+Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
+                 int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
+                 const mtproto::AuthKey &tmp_auth_key, std::vector<mtproto::ServerSalt> server_salts)
+    : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
   VLOG(dc) << "Start connection";
   need_destroy_ = need_destroy;
   if (need_destroy) {
@@ -141,7 +141,8 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   } while (session_id == 0);
   auth_data_.set_session_id(session_id);
   LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
-               << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for DC" << dc_id;
+               << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for "
+               << (is_main_ ? "main " : "") << "DC" << dc_id;
 
   callback_ = std::shared_ptr<Callback>(callback.release());
 
@@ -466,8 +467,7 @@ void Session::on_closed(Status status) {
 void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   // TODO: use unique_id
   // send updatesTooLong to force getDifference
-  LOG(INFO) << "New session " << unique_id << " created "
-            << " with first message_id " << first_id;
+  LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_id;
   if (is_main_) {
     LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
     telegram_api::updatesTooLong too_long_;
@@ -608,16 +608,6 @@ void Session::mark_as_unknown(uint64 id, Query *query) {
 Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) {
   // Steal authorization information.
   // It is a dirty hack, yep.
-  TlParser parser(packet.as_slice());
-  int32 ID = parser.fetch_int();
-  if (!parser.get_error()) {
-    if (ID == telegram_api::auth_authorization::ID) {
-      LOG(INFO) << "GOT AUTHORIZATION!";
-      auth_data_.set_auth_flag(true);
-      shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
-    }
-  }
-
   if (id == 0) {
     if (is_cdn_) {
       return Status::Error("Got update from CDN connection");
@@ -625,9 +615,13 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
     return_query(G()->net_query_creator().create_result(0, std::move(packet)));
     return Status::OK();
   }
+
+  TlParser parser(packet.as_slice());
+  int32 ID = parser.fetch_int();
+
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
-    LOG(DEBUG) << "DROP result to " << tag("request_id", format::as_hex(id)) << tag("tl", format::as_hex(ID));
+    LOG(DEBUG) << "Drop result to " << tag("request_id", format::as_hex(id)) << tag("tl", format::as_hex(ID));
 
     if (packet.size() > 16 * 1024) {
       dropped_size_ += packet.size();
@@ -640,9 +634,20 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
     }
     return Status::OK();
   }
+
   auth_data_.on_api_response();
   Query *query_ptr = &it->second;
   VLOG(net_query) << "Return query result " << query_ptr->query;
+
+  if (!parser.get_error()) {
+    if (ID == telegram_api::auth_authorization::ID || ID == telegram_api::auth_loginTokenSuccess::ID) {
+      if (query_ptr->query->tl_constructor() != telegram_api::auth_importAuthorization::ID) {
+        G()->net_query_dispatcher().set_main_dc_id(raw_dc_id_);
+      }
+      auth_data_.set_auth_flag(true);
+      shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
+    }
+  }
 
   cleanup_container(id, query_ptr);
   mark_as_known(id, query_ptr);

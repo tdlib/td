@@ -65,8 +65,8 @@ class Session final
     virtual void on_result(NetQueryPtr net_query) = 0;
   };
 
-  Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id, bool is_main,
-          bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
+  Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id, int32 dc_id,
+          bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
           std::vector<mtproto::ServerSalt> server_salts);
   void send(NetQueryPtr &&query);
   void on_network(bool network_flag, uint32 network_generation);
@@ -101,6 +101,7 @@ class Session final
   // Just re-ask answer_id each time we get information about it.
   // Though mtproto::Connection must ensure delivery of such query.
 
+  int32 raw_dc_id_;
   int32 dc_id_;
   enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;
   bool is_main_;

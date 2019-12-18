@@ -34,8 +34,9 @@ DcAuthManager::DcAuthManager(ActorShared<> parent) {
     auto main_dc_id = to_integer<int32>(s_main_dc_id);
     if (DcId::is_valid(main_dc_id)) {
       main_dc_id_ = DcId::internal(main_dc_id);
+      VLOG(dc) << "Init main DcId to " << main_dc_id_;
     } else {
-      LOG(ERROR) << "Receive invalid main dc id " << main_dc_id;
+      LOG(ERROR) << "Receive invalid main DcId " << main_dc_id;
     }
   }
 }
@@ -64,9 +65,12 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
   info.shared_auth_data = std::move(auth_data);
   auto state_was_auth = info.shared_auth_data->get_auth_key_state();
   info.auth_key_state = state_was_auth.first;
+  VLOG(dc) << "Add " << info.dc_id << " with auth key state " << info.auth_key_state
+           << " and was_auth = " << state_was_auth.second;
   was_auth_ |= state_was_auth.second;
   if (!main_dc_id_.is_exact()) {
     main_dc_id_ = info.dc_id;
+    VLOG(dc) << "Set main DcId to " << main_dc_id_;
   }
   info.shared_auth_data->add_auth_key_listener(make_unique<Listener>(actor_shared(this, info.dc_id.get_raw_id())));
   dcs_.emplace_back(std::move(info));
@@ -75,6 +79,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
 
 void DcAuthManager::update_main_dc(DcId new_main_dc_id) {
   main_dc_id_ = new_main_dc_id;
+  VLOG(dc) << "Update main DcId to " << main_dc_id_;
   loop();
 }
 
@@ -95,8 +100,8 @@ void DcAuthManager::update_auth_key_state() {
   int32 dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
   auto state_was_auth = dc.shared_auth_data->get_auth_key_state();
-  VLOG(dc) << "Update DC auth key state " << tag("dc_id", dc_id) << tag("old_auth_key_state", dc.auth_key_state)
-           << tag("new_auth_key_state", state_was_auth.first);
+  VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << state_was_auth.first
+           << " with was_auth = " << state_was_auth.second;
   dc.auth_key_state = state_was_auth.first;
   was_auth_ |= state_was_auth.second;
 
@@ -213,10 +218,10 @@ void DcAuthManager::destroy_loop() {
   }
 
   if (is_ready) {
-    LOG(INFO) << "Destroy auth keys loop is ready, all keys are destroyed";
+    VLOG(dc) << "Destroy auth keys loop is ready, all keys are destroyed";
     destroy_promise_.set_value(Unit());
   } else {
-    LOG(INFO) << "DC is not ready for destroying auth key";
+    VLOG(dc) << "DC is not ready for destroying auth key";
   }
 }
 
@@ -232,11 +237,13 @@ void DcAuthManager::loop() {
   }
   auto main_dc = find_dc(main_dc_id_.get_raw_id());
   if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
+    VLOG(dc) << "Main is " << main_dc_id_ << ", main auth key state is "
+             << (main_dc ? main_dc->auth_key_state : AuthKeyState::Empty) << ", was_auth = " << was_auth_;
     if (was_auth_) {
       G()->shared_config().set_option_boolean("auth", false);
       destroy_loop();
     }
-    VLOG(dc) << "Skip loop because auth state of main dc " << main_dc_id_.get_raw_id() << " is "
+    VLOG(dc) << "Skip loop because auth state of main DcId " << main_dc_id_.get_raw_id() << " is "
              << (main_dc != nullptr ? (PSTRING() << main_dc->auth_key_state) : "unknown");
 
     return;

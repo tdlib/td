@@ -1341,7 +1341,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::recoverAuthenticationPassword>(args));
     } else if (op == "lo" || op == "LogOut" || op == "logout") {
       send_request(td_api::make_object<td_api::logOut>());
-    } else if (op == "ra" || op == "destroy") {
+    } else if (op == "destroy") {
       send_request(td_api::make_object<td_api::destroy>());
     } else if (op == "reset") {
       td_client_.reset();
