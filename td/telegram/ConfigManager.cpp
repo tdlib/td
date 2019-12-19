@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ConfigManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
@@ -20,6 +21,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 
@@ -906,6 +908,10 @@ void ConfigManager::try_stop() {
 }
 
 void ConfigManager::request_config() {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (config_sent_cnt_ != 0) {
     return;
   }
@@ -913,6 +919,10 @@ void ConfigManager::request_config() {
 }
 
 void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   get_app_config_queries_.push_back(std::move(promise));
   if (get_app_config_queries_.size() == 1) {
     G()->net_query_dispatcher().dispatch_with_callback(
@@ -920,6 +930,24 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
                                         NetQuery::Type::Common, NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On,
                                         60 * 60 * 24),
         actor_shared(this, 1));
+  }
+}
+
+void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (!auth_manager->is_authorized() || auth_manager->is_bot()) {
+    return promise.set_value(Unit());
+  }
+
+  get_content_settings_queries_.push_back(std::move(promise));
+  if (get_content_settings_queries_.size() == 1) {
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(create_storer(telegram_api::account_getContentSettings())),
+        actor_shared(this, 2));
   }
 }
 
@@ -944,6 +972,28 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
 
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
+  if (token == 2) {
+    auto promises = std::move(get_content_settings_queries_);
+    get_content_settings_queries_.clear();
+    CHECK(!promises.empty());
+    auto result_ptr = fetch_result<telegram_api::account_getContentSettings>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+      return;
+    }
+
+    auto result = result_ptr.move_as_ok();
+    ConfigShared &shared_config = G()->shared_config();
+    shared_config.set_option_boolean("ignore_sensitive_content_restrictions", result->sensitive_enabled_);
+    shared_config.set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
+
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
+    return;
+  }
   if (token == 1) {
     auto promises = std::move(get_app_config_queries_);
     get_app_config_queries_.clear();
@@ -957,6 +1007,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
           promise.set_error(result_ptr.error().clone());
         }
       }
+      return;
     }
 
     auto result = result_ptr.move_as_ok();
@@ -1160,6 +1211,10 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   if (is_from_main_dc) {
     get_app_config(Auto());
+    if (!shared_config.have_option("can_ignore_sensitive_content_restrictions") ||
+        !shared_config.have_option("ignore_sensitive_content_restrictions")) {
+      get_content_settings(Auto());
+    }
   }
 }
 
@@ -1235,8 +1290,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   if (ignored_restriction_reasons.empty()) {
     shared_config.set_option_empty("ignored_restriction_reasons");
+
+    if (shared_config.get_option_boolean("ignore_sensitive_content_restrictions", true)) {
+      get_content_settings(Auto());
+    }
   } else {
     shared_config.set_option_string("ignored_restriction_reasons", ignored_restriction_reasons);
+
+    if (!shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+      get_content_settings(Auto());
+    }
   }
 }
 

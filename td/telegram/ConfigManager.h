@@ -85,6 +85,8 @@ class ConfigManager : public NetQueryCallback {
 
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
+  void get_content_settings(Promise<Unit> &&promise);
+
   void on_dc_options_update(DcOptions dc_options);
 
  private:
@@ -95,6 +97,7 @@ class ConfigManager : public NetQueryCallback {
   Timestamp expire_time_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
+  vector<Promise<Unit>> get_content_settings_queries_;
 
   void start_up() override;
   void hangup_shared() override;
