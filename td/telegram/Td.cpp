@@ -469,33 +469,6 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
   }
 };
 
-class GetAppConfigQuery : public Td::ResultHandler {
-  Promise<tl_object_ptr<td_api::JsonValue>> promise_;
-
- public:
-  explicit GetAppConfigQuery(Promise<tl_object_ptr<td_api::JsonValue>> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig()), DcId::main(),
-                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(convert_json_value_object(result));
-  }
-
-  void on_error(uint64 id, Status status) override {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SaveAppLogQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -7627,7 +7600,7 @@ void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
 void Td::on_request(uint64 id, const td_api::getApplicationConfig &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  create_handler<GetAppConfigQuery>(std::move(promise))->send();
+  send_closure(G()->config_manager(), &ConfigManager::get_app_config, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {

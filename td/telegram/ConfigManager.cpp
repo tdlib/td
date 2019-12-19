@@ -8,6 +8,7 @@
 
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JsonValue.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
@@ -867,12 +868,10 @@ ConfigManager::ConfigManager(ActorShared<> parent) : parent_(std::move(parent)) 
 }
 
 void ConfigManager::start_up() {
-  // TODO there are some problems when many ConfigRecoverers starts at the same time
-  // if (G()->parameters().use_file_db) {
   ref_cnt_++;
   config_recoverer_ = create_actor<ConfigRecoverer>("Recoverer", actor_shared());
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, load_dc_options_update());
-  // }
+
   auto expire_time = load_config_expire_time();
   if (expire_time.is_in_past()) {
     request_config();
@@ -886,27 +885,42 @@ void ConfigManager::hangup_shared() {
   ref_cnt_--;
   try_stop();
 }
+
 void ConfigManager::hangup() {
   ref_cnt_--;
   config_recoverer_.reset();
   try_stop();
 }
+
 void ConfigManager::loop() {
   if (expire_time_ && expire_time_.is_in_past()) {
     request_config();
     expire_time_ = {};
   }
 }
+
 void ConfigManager::try_stop() {
   if (ref_cnt_ == 0) {
     stop();
   }
 }
+
 void ConfigManager::request_config() {
   if (config_sent_cnt_ != 0) {
     return;
   }
   request_config_from_dc_impl(DcId::main());
+}
+
+void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
+  get_app_config_queries_.push_back(std::move(promise));
+  if (get_app_config_queries_.size() == 1) {
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig()), DcId::main(),
+                                        NetQuery::Type::Common, NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On,
+                                        60 * 60 * 24),
+        actor_shared(this, 1));
+  }
 }
 
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
@@ -925,10 +939,30 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   G()->net_query_dispatcher().dispatch_with_callback(
       G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), dc_id, NetQuery::Type::Common,
                                       NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On, 60 * 60 * 24),
-      actor_shared(this));
+      actor_shared(this, 0));
 }
 
 void ConfigManager::on_result(NetQueryPtr res) {
+  auto token = get_link_token();
+  if (token == 1) {
+    auto promises = std::move(get_app_config_queries_);
+    get_app_config_queries_.clear();
+    CHECK(!promises.empty());
+    auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+    }
+
+    auto result = result_ptr.move_as_ok();
+    for (auto &promise : promises) {
+      promise.set_value(convert_json_value_object(result));
+    }
+    return;
+  }
+
+  CHECK(token == 0);
   CHECK(config_sent_cnt_ > 0);
   config_sent_cnt_--;
   auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));
