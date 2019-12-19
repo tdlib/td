@@ -3789,6 +3789,8 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "dc_txt_domain_name";
     case 'e':
       return name == "edit_time_limit";
+    case 'i':
+      return name == "ignored_restriction_reasons";
     case 'l':
       return name == "language_pack_version";
     case 'm':

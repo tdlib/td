@@ -1170,6 +1170,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string wallet_blockchain_name;
   string wallet_config;
+  string ignored_restriction_reasons;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1193,6 +1194,29 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "ignore_restriction_reasons") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto reasons = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &reason : reasons) {
+            if (reason->get_id() == telegram_api::jsonString::ID) {
+              Slice reason_name = static_cast<telegram_api::jsonString *>(reason.get())->value_;
+              if (!reason_name.empty() && reason_name.find(',') == Slice::npos) {
+                if (!ignored_restriction_reasons.empty()) {
+                  ignored_restriction_reasons += ',';
+                }
+                ignored_restriction_reasons.append(reason_name.begin(), reason_name.end());
+              } else {
+                LOG(ERROR) << "Receive unexpected restriction reason " << reason_name;
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected restriction reason " << to_string(reason);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected ignore_restriction_reasons " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1208,6 +1232,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_string("default_ton_blockchain_name", wallet_blockchain_name);
     shared_config.set_option_string("default_ton_blockchain_config", wallet_config);
+  }
+  if (ignored_restriction_reasons.empty()) {
+    shared_config.set_option_empty("ignored_restriction_reasons");
+  } else {
+    shared_config.set_option_string("ignored_restriction_reasons", ignored_restriction_reasons);
   }
 }
 
