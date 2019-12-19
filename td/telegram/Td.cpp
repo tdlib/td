@@ -4981,10 +4981,12 @@ void Td::on_request(uint64 id, td_api::confirmQrCodeAuthentication &request) {
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
   vector<td_api::object_ptr<td_api::Update>> updates;
 
-  updates.push_back(td_api::make_object<td_api::updateOption>(
-      "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
   updates.push_back(
       td_api::make_object<td_api::updateOption>("online", make_tl_object<td_api::optionValueBoolean>(is_online_)));
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "unix_time", make_tl_object<td_api::optionValueInteger>(G()->unix_time())));
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
   for (auto &option : G()->shared_config().get_options()) {
     if (!is_internal_config_option(option.first)) {
       updates.push_back(td_api::make_object<td_api::updateOption>(
