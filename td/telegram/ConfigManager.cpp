@@ -1167,20 +1167,48 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   CHECK(config != nullptr);
   LOG(INFO) << "Receive app config " << to_string(config);
 
-  vector<tl_object_ptr<telegram_api::jsonObjectValue>> values;
+  vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
+  string wallet_blockchain_name;
+  string wallet_config;
   if (config->get_id() == telegram_api::jsonObject::ID) {
-    for (auto &value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
-      Slice key = value->key_;
-      if (key == "test") {
+    for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
+      Slice key = key_value->key_;
+      telegram_api::JSONValue *value = key_value->value_.get();
+      if (key == "test" || key == "wallet_enabled") {
+        continue;
+      }
+      if (key == "wallet_blockchain_name") {
+        if (value->get_id() == telegram_api::jsonString::ID) {
+          wallet_blockchain_name = std::move(static_cast<telegram_api::jsonString *>(value)->value_);
+        } else {
+          LOG(ERROR) << "Receive unexpected wallet_blockchain_name " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "wallet_config") {
+        if (value->get_id() == telegram_api::jsonString::ID) {
+          wallet_config = std::move(static_cast<telegram_api::jsonString *>(value)->value_);
+        } else {
+          LOG(ERROR) << "Receive unexpected wallet_config " << to_string(*value);
+        }
         continue;
       }
 
-      values.push_back(std::move(value));
+      new_values.push_back(std::move(key_value));
     }
   } else {
     LOG(ERROR) << "Receive wrong app config " << to_string(config);
   }
-  config = make_tl_object<telegram_api::jsonObject>(std::move(values));
+  config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
+
+  ConfigShared &shared_config = G()->shared_config();
+  if (wallet_config.empty()) {
+    shared_config.set_option_empty("default_ton_blockchain_config");
+    shared_config.set_option_empty("default_ton_blockchain_name");
+  } else {
+    shared_config.set_option_string("default_ton_blockchain_name", wallet_blockchain_name);
+    shared_config.set_option_string("default_ton_blockchain_config", wallet_config);
+  }
 }
 
 }  // namespace td
