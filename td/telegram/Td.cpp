@@ -7085,6 +7085,25 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (false && !is_bot && set_boolean_option("include_sponsored_chat_to_unread_count")) {
         return;
       }
+
+      if (!is_bot && request.name_ == "ignore_sensitive_content_restrictions") {
+        if (!G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+          return send_error_raw(id, 3, "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user");
+        }
+
+        if (value_constructor_id != td_api::optionValueBoolean::ID &&
+            value_constructor_id != td_api::optionValueEmpty::ID) {
+          return send_error_raw(id, 3, "Option \"ignore_sensitive_content_restrictions\" must have boolean value");
+        }
+
+        auto ignore_sensitive_content_restrictions =
+            value_constructor_id == td_api::optionValueBoolean::ID &&
+            static_cast<td_api::optionValueBoolean *>(request.value_.get())->value_;
+        CREATE_OK_REQUEST_PROMISE();
+        send_closure_later(config_manager_, &ConfigManager::set_content_settings, ignore_sensitive_content_restrictions,
+                           std::move(promise));
+        return;
+      }
       break;
     case 'l':
       if (!is_bot && set_string_option("language_pack_database_path", [](Slice value) { return true; })) {

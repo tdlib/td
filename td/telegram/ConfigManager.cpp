@@ -951,6 +951,26 @@ void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
   }
 }
 
+void ConfigManager::set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  auto &queries = set_content_settings_queries_[ignore_sensitive_content_restrictions];
+  queries.push_back(std::move(promise));
+  if (!is_set_content_settings_request_sent_) {
+    is_set_content_settings_request_sent_ = true;
+    int32 flags = 0;
+    if (ignore_sensitive_content_restrictions) {
+      flags |= telegram_api::account_setContentSettings::SENSITIVE_ENABLED_MASK;
+    }
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(
+            create_storer(telegram_api::account_setContentSettings(flags, false /*ignored*/))),
+        actor_shared(this, 3 + static_cast<uint64>(ignore_sensitive_content_restrictions)));
+  }
+}
+
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   save_dc_options_update(dc_options);
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
@@ -972,6 +992,34 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
 
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
+  if (token == 3 || token == 4) {
+    is_set_content_settings_request_sent_ = false;
+    bool ignore_sensitive_content_restrictions = (token == 4);
+    auto promises = std::move(set_content_settings_queries_[ignore_sensitive_content_restrictions]);
+    set_content_settings_queries_[ignore_sensitive_content_restrictions].clear();
+    CHECK(!promises.empty());
+    auto result_ptr = fetch_result<telegram_api::account_setContentSettings>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+    } else {
+      ConfigShared &shared_config = G()->shared_config();
+      if (shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+        shared_config.set_option_boolean("ignore_sensitive_content_restrictions",
+                                         ignore_sensitive_content_restrictions);
+      }
+
+      for (auto &promise : promises) {
+        promise.set_value(Unit());
+      }
+    }
+
+    if (!set_content_settings_queries_[!ignore_sensitive_content_restrictions].empty()) {
+      set_content_settings(!ignore_sensitive_content_restrictions, Auto());
+    }
+    return;
+  }
   if (token == 2) {
     auto promises = std::move(get_content_settings_queries_);
     get_content_settings_queries_.clear();

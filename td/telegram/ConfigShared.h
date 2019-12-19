@@ -41,7 +41,6 @@ class ConfigShared {
   void set_option_string(Slice name, Slice value);
 
   bool have_option(Slice name) const;
-  string get_option(Slice name) const;
   std::unordered_map<string, string> get_options(Slice prefix) const;
   std::unordered_map<string, string> get_options() const;
 
@@ -58,6 +57,8 @@ class ConfigShared {
   unique_ptr<Callback> callback_;
 
   bool set_option(Slice name, Slice value);
+
+  string get_option(Slice name) const;
 
   void on_option_updated(Slice name) const;
 };

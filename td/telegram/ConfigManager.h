@@ -87,6 +87,8 @@ class ConfigManager : public NetQueryCallback {
 
   void get_content_settings(Promise<Unit> &&promise);
 
+  void set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise);
+
   void on_dc_options_update(DcOptions dc_options);
 
  private:
@@ -98,6 +100,8 @@ class ConfigManager : public NetQueryCallback {
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
   vector<Promise<Unit>> get_content_settings_queries_;
+  vector<Promise<Unit>> set_content_settings_queries_[2];
+  bool is_set_content_settings_request_sent_ = false;
 
   void start_up() override;
   void hangup_shared() override;
