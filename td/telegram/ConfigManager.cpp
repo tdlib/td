@@ -951,13 +951,22 @@ void ConfigManager::on_result(NetQueryPtr res) {
     auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
     if (result_ptr.is_error()) {
       for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
+        if (!promise) {
+          promise.set_value(nullptr);
+        } else {
+          promise.set_error(result_ptr.error().clone());
+        }
       }
     }
 
     auto result = result_ptr.move_as_ok();
+    process_app_config(result);
     for (auto &promise : promises) {
-      promise.set_value(convert_json_value_object(result));
+      if (!promise) {
+        promise.set_value(nullptr);
+      } else {
+        promise.set_value(convert_json_value_object(result));
+      }
     }
     return;
   }
@@ -1014,7 +1023,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   bool is_from_main_dc = G()->net_query_dispatcher().main_dc_id().get_value() == config->this_dc_;
 
   LOG(INFO) << to_string(config);
-  auto reload_in = max(60 /* at least 60 seconds*/, config->expires_ - config->date_);
+  auto reload_in = clamp(config->expires_ - config->date_, 60, 86400);
   save_config_expire(Timestamp::in(reload_in));
   reload_in -= Random::fast(0, reload_in / 5);
   if (!is_from_main_dc) {
@@ -1148,6 +1157,30 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   //  shared_config.set_option_integer("push_chat_period_ms", config->push_chat_period_ms_);
   //  shared_config.set_option_integer("push_chat_limit", config->push_chat_limit_);
+
+  if (is_from_main_dc) {
+    get_app_config(Auto());
+  }
+}
+
+void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &config) {
+  CHECK(config != nullptr);
+  LOG(INFO) << "Receive app config " << to_string(config);
+
+  vector<tl_object_ptr<telegram_api::jsonObjectValue>> values;
+  if (config->get_id() == telegram_api::jsonObject::ID) {
+    for (auto &value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
+      Slice key = value->key_;
+      if (key == "test") {
+        continue;
+      }
+
+      values.push_back(std::move(value));
+    }
+  } else {
+    LOG(ERROR) << "Receive wrong app config " << to_string(config);
+  }
+  config = make_tl_object<telegram_api::jsonObject>(std::move(values));
 }
 
 }  // namespace td
