@@ -159,7 +159,7 @@ class AcceptLoginTokenQuery : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for AcceptLoginTokenQuery: " << to_string(result_ptr.ok());
-    promise_.set_value(convert_authorization_object(std::move(result_ptr.move_as_ok())));
+    promise_.set_value(convert_authorization_object(result_ptr.move_as_ok()));
   }
 
   void on_error(uint64 id, Status status) override {
