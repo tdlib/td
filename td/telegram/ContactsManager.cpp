@@ -12407,6 +12407,11 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     return;
   }
 
+  if (status.is_creator()) {
+    // to correctly calculate is_ownership_transferred in on_update_channel_status
+    get_channel_force(channel_id);
+  }
+
   Channel *c = add_channel(channel_id, "on_channel");
   if (c->status.is_banned()) {  // possibly uninited channel
     min_channels_.erase(channel_id);
