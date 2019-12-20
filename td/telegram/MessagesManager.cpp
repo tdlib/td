@@ -3455,7 +3455,7 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for update peer settings: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
-    td->messages_manager_->repair_dialog_action_bar(dialog_id_);
+    td->messages_manager_->repair_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3498,7 +3498,8 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive error for report encrypted spam: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportEncryptedSpamQuery");
     td->messages_manager_->repair_dialog_action_bar(
-        DialogId(td->contacts_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())));
+        DialogId(td->contacts_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())),
+        "ReportEncryptedSpamQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3547,7 +3548,7 @@ class ReportPeerQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for report peer: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
-    td->messages_manager_->repair_dialog_action_bar(dialog_id_);
+    td->messages_manager_->repair_dialog_action_bar(dialog_id_, "ReportPeerQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6761,11 +6762,12 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
   return true;
 }
 
-void MessagesManager::repair_dialog_action_bar(DialogId dialog_id) {
-  if (G()->close_flag() || !dialog_id.is_valid()) {
+void MessagesManager::repair_dialog_action_bar(DialogId dialog_id, const char *source) {
+  if (G()->close_flag() || !dialog_id.is_valid() || td_->auth_manager_->is_bot()) {
     return;
   }
 
+  LOG(INFO) << "Repair action bar in " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
       td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
@@ -14899,7 +14901,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       break;
     case DialogType::Chat:
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
-      repair_dialog_action_bar(dialog_id);
+      repair_dialog_action_bar(dialog_id, "open_dialog");
       break;
     case DialogType::Channel:
       if (!is_broadcast_channel(dialog_id)) {
@@ -14912,7 +14914,7 @@ void MessagesManager::open_dialog(Dialog *d) {
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
-      repair_dialog_action_bar(dialog_id);
+      repair_dialog_action_bar(dialog_id, "open_dialog");
       break;
     case DialogType::SecretChat: {
       // to repair dialog action bar
@@ -23653,7 +23655,7 @@ void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool
       } else {
         d->know_action_bar = false;
         if (have_input_peer(dialog_id, AccessRights::Read)) {
-          repair_dialog_action_bar(dialog_id);
+          repair_dialog_action_bar(dialog_id, "on_dialog_user_is_contact_updated");
         }
         // there is no need to change action bar
         on_dialog_updated(dialog_id, "on_dialog_user_is_contact_updated");
@@ -23678,7 +23680,7 @@ void MessagesManager::on_dialog_user_is_blocked_updated(DialogId dialog_id, bool
       } else {
         d->know_action_bar = false;
         if (have_input_peer(dialog_id, AccessRights::Read)) {
-          repair_dialog_action_bar(dialog_id);
+          repair_dialog_action_bar(dialog_id, "on_dialog_user_is_blocked_updated");
         }
         // there is no need to change action bar
         on_dialog_updated(dialog_id, "on_dialog_user_is_blocked_updated");
@@ -23702,7 +23704,7 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
       } else {
         d->know_action_bar = false;
         if (have_input_peer(dialog_id, AccessRights::Read)) {
-          repair_dialog_action_bar(dialog_id);
+          repair_dialog_action_bar(dialog_id, "on_dialog_user_is_deleted_updated");
         }
         // there is no need to change action bar
         on_dialog_updated(dialog_id, "on_dialog_user_is_deleted_updated");
@@ -27470,7 +27472,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
       }
     } else {
-      repair_dialog_action_bar(dialog_id);
+      repair_dialog_action_bar(dialog_id, "fix_new_dialog");
     }
   }
 

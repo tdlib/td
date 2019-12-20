@@ -693,7 +693,7 @@ class MessagesManager : public Actor {
 
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void repair_dialog_action_bar(DialogId dialog_id);
+  void repair_dialog_action_bar(DialogId dialog_id, const char *source);
 
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
                      const vector<MessageId> &message_ids, Promise<Unit> &&promise);
