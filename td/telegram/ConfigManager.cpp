@@ -956,6 +956,7 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
 
+  last_set_content_settings_ = ignore_sensitive_content_restrictions;
   auto &queries = set_content_settings_queries_[ignore_sensitive_content_restrictions];
   queries.push_back(std::move(promise));
   if (!is_set_content_settings_request_sent_) {
@@ -1005,7 +1006,8 @@ void ConfigManager::on_result(NetQueryPtr res) {
       }
     } else {
       ConfigShared &shared_config = G()->shared_config();
-      if (shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+      if (shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions") &&
+          last_set_content_settings_ == ignore_sensitive_content_restrictions) {
         shared_config.set_option_boolean("ignore_sensitive_content_restrictions",
                                          ignore_sensitive_content_restrictions);
       }
@@ -1016,7 +1018,15 @@ void ConfigManager::on_result(NetQueryPtr res) {
     }
 
     if (!set_content_settings_queries_[!ignore_sensitive_content_restrictions].empty()) {
-      set_content_settings(!ignore_sensitive_content_restrictions, Auto());
+      if (ignore_sensitive_content_restrictions == last_set_content_settings_) {
+        promises = std::move(set_content_settings_queries_[!ignore_sensitive_content_restrictions]);
+        set_content_settings_queries_[!ignore_sensitive_content_restrictions].clear();
+        for (auto &promise : promises) {
+          promise.set_value(Unit());
+        }
+      } else {
+        set_content_settings(!ignore_sensitive_content_restrictions, Auto());
+      }
     }
     return;
   }

@@ -102,6 +102,7 @@ class ConfigManager : public NetQueryCallback {
   vector<Promise<Unit>> get_content_settings_queries_;
   vector<Promise<Unit>> set_content_settings_queries_[2];
   bool is_set_content_settings_request_sent_ = false;
+  bool last_set_content_settings_ = false;
 
   void start_up() override;
   void hangup_shared() override;
