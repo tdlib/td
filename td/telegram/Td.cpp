@@ -3873,6 +3873,8 @@ void Td::on_config_option_updated(const string &name) {
     return send_closure(notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
   } else if (name == "notification_default_delay_ms") {
     return send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
+  } else if (name == "ignored_restriction_reasons") {
+    return send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
   } else if (is_internal_config_option(name)) {
     return;
   }

@@ -175,6 +175,8 @@ class ContactsManager : public Actor {
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
+  void on_ignored_restriction_reasons_changed();
+
   void on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants, bool from_update);
   void on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id, UserId user_id, int32 date, int32 version);
   void on_update_chat_description(ChatId chat_id, string &&description);
@@ -1417,6 +1419,9 @@ class ContactsManager : public Actor {
 
   vector<DialogNearby> users_nearby_;
   vector<DialogNearby> channels_nearby_;
+
+  std::unordered_set<UserId, UserIdHash> restricted_user_ids_;
+  std::unordered_set<ChannelId, ChannelIdHash> restricted_channel_ids_;
 
   vector<Contact> next_all_imported_contacts_;
   vector<size_t> imported_contacts_unique_id_;

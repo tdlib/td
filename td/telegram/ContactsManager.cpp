@@ -7875,6 +7875,13 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   if (u->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(user_id));
   }
+  if (!td_->auth_manager_->is_bot()) {
+    if (u->restriction_reasons.empty()) {
+      restricted_user_ids_.erase(user_id);
+    } else {
+      restricted_user_ids_.insert(user_id);
+    }
+  }
 
   u->is_name_changed = false;
   u->is_username_changed = false;
@@ -8042,6 +8049,14 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(channel_id));
   }
+  if (!td_->auth_manager_->is_bot()) {
+    if (c->restriction_reasons.empty()) {
+      restricted_channel_ids_.erase(channel_id);
+    } else {
+      restricted_channel_ids_.insert(channel_id);
+    }
+  }
+
   c->is_photo_changed = false;
   c->is_title_changed = false;
   c->is_default_permissions_changed = false;
@@ -9048,6 +9063,18 @@ void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
   if (user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
     user_full->need_phone_number_privacy_exception = need_phone_number_privacy_exception;
     user_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_ignored_restriction_reasons_changed() {
+  for (auto user_id : restricted_user_ids_) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateUser>(get_user_object(user_id, get_user(user_id))));
+  }
+  for (auto channel_id : restricted_channel_ids_) {
+    send_closure(
+        G()->td(), &Td::send_update,
+        td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, get_channel(channel_id))));
   }
 }
 

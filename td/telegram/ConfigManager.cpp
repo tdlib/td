@@ -992,7 +992,8 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
 }
 
 void ConfigManager::set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
-  G()->shared_config().set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
+  G()->shared_config().set_option_boolean("ignore_sensitive_content_restrictions",
+                                          ignore_sensitive_content_restrictions);
   bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
   if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
     get_app_config(Auto());
@@ -1351,6 +1352,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     shared_config.set_option_string("default_ton_blockchain_name", wallet_blockchain_name);
     shared_config.set_option_string("default_ton_blockchain_config", wallet_config);
   }
+
   if (ignored_restriction_reasons.empty()) {
     shared_config.set_option_empty("ignored_restriction_reasons");
 
