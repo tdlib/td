@@ -991,6 +991,14 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
       actor_shared(this, 0));
 }
 
+void ConfigManager::set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
+  G()->shared_config().set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
+  bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
+  if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
+    get_app_config(Auto());
+  }
+}
+
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
   if (token == 3 || token == 4) {
@@ -1005,11 +1013,9 @@ void ConfigManager::on_result(NetQueryPtr res) {
         promise.set_error(result_ptr.error().clone());
       }
     } else {
-      ConfigShared &shared_config = G()->shared_config();
-      if (shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions") &&
+      if (G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions") &&
           last_set_content_settings_ == ignore_sensitive_content_restrictions) {
-        shared_config.set_option_boolean("ignore_sensitive_content_restrictions",
-                                         ignore_sensitive_content_restrictions);
+        set_ignore_sensitive_content_restrictions(ignore_sensitive_content_restrictions);
       }
 
       for (auto &promise : promises) {
@@ -1043,9 +1049,8 @@ void ConfigManager::on_result(NetQueryPtr res) {
     }
 
     auto result = result_ptr.move_as_ok();
-    ConfigShared &shared_config = G()->shared_config();
-    shared_config.set_option_boolean("ignore_sensitive_content_restrictions", result->sensitive_enabled_);
-    shared_config.set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
+    set_ignore_sensitive_content_restrictions(result->sensitive_enabled_);
+    G()->shared_config().set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
 
     for (auto &promise : promises) {
       promise.set_value(Unit());
