@@ -939,7 +939,7 @@ void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
   }
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
-  if (!auth_manager->is_authorized() || auth_manager->is_bot()) {
+  if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
     return promise.set_value(Unit());
   }
 
