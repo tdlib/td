@@ -5098,7 +5098,7 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
   }
 
   if (!username.empty() && c->username.empty()) {
-    auto channel_full = get_channel_full(channel_id);
+    auto channel_full = get_channel_full(channel_id, "set_channel_username");
     if (channel_full != nullptr && !channel_full->can_set_username) {
       return promise.set_error(Status::Error(3, "Can't set supergroup username"));
     }
@@ -5130,7 +5130,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
     }
   }
 
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full(channel_id, "set_channel_sticker_set");
   if (channel_full != nullptr && !channel_full->can_set_sticker_set) {
     return promise.set_error(Status::Error(3, "Can't set supergroup sticker set"));
   }
@@ -5827,7 +5827,7 @@ string ContactsManager::get_chat_invite_link(ChatId chat_id) const {
 
 string ContactsManager::get_channel_invite_link(
     ChannelId channel_id) {  // should be non-const to update ChannelFull cache
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full(channel_id, "get_channel_invite_link");
   if (channel_full == nullptr) {
     auto it = channel_invite_links_.find(channel_id);
     return it == channel_invite_links_.end() ? string() : it->second;
@@ -7758,7 +7758,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   //  G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
   //  return;
 
-  if (get_channel_full(channel_id) != nullptr || value.empty()) {
+  if (get_channel_full(channel_id, "on_load_channel_full_from_database") != nullptr || value.empty()) {
     return;
   }
 
@@ -7793,7 +7793,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
     return nullptr;
   }
 
-  ChannelFull *channel_full = get_channel_full(channel_id);
+  ChannelFull *channel_full = get_channel_full(channel_id, "get_channel_full_force");
   if (channel_full != nullptr) {
     return channel_full;
   }
@@ -7807,7 +7807,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
   LOG(INFO) << "Trying to load full " << channel_id << " from database";
   on_load_channel_full_from_database(
       channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)));
-  return get_channel_full(channel_id);
+  return get_channel_full(channel_id, "get_channel_full_force");
 }
 
 void ContactsManager::for_each_secret_chat_with_user(UserId user_id, std::function<void(SecretChatId)> f) {
@@ -8540,7 +8540,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     if (!G()->close_flag()) {
-      auto channel = get_channel_full(channel_id);
+      auto channel = get_channel_full(channel_id, "on_get_channel_full");
       if (channel != nullptr) {
         if (channel->repair_request_version != 0 && channel->repair_request_version < channel->speculative_version) {
           LOG(INFO) << "Receive ChannelFull with request version " << channel->repair_request_version
@@ -11650,7 +11650,7 @@ const ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId 
   }
 }
 
-ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id) {
+ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id, const char *source) {
   auto p = channels_full_.find(channel_id);
   if (p == channels_full_.end()) {
     return nullptr;
@@ -11660,8 +11660,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channe
   if (channel_full->is_expired() && !td_->auth_manager_->is_bot()) {
     auto input_channel = get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), Auto(),
-                                "update channel_full cache");
+    send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), Auto(), source);
   }
 
   return channel_full;

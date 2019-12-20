@@ -9428,7 +9428,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
   // TODO logevent?
-  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
+  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Promise<Unit>());
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
