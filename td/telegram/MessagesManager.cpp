@@ -7044,6 +7044,11 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   if (d->can_report_spam == can_report_spam && d->can_add_contact == can_add_contact &&
       d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
       d->can_report_location == can_report_location) {
+    if (!d->know_action_bar || !d->know_can_report_spam) {
+      d->know_can_report_spam = true;
+      d->know_action_bar = true;
+      on_dialog_updated(d->dialog_id, "on_get_peer_settings");
+    }
     return;
   }
 
