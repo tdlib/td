@@ -55,12 +55,12 @@ class BackgroundManager : public Actor {
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
   BackgroundId on_get_background(BackgroundId expected_background_id, const string &expected_background_name,
-                                 telegram_api::object_ptr<telegram_api::wallPaper> wallpaper);
+                                 telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr);
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
   void on_uploaded_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
-                                   telegram_api::object_ptr<telegram_api::wallPaper> wallpaper,
+                                   telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
                                    Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -106,7 +106,11 @@ class BackgroundManager : public Actor {
 
   BackgroundId add_solid_background(int32 color);
 
+  BackgroundId add_solid_background(int32 color, bool is_default, bool is_dark);
+
   BackgroundId add_gradient_background(int32 top_color, int32 bottom_color);
+
+  BackgroundId add_gradient_background(int32 top_color, int32 bottom_color, bool is_default, bool is_dark);
 
   void add_background(const Background &background);
 

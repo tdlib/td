@@ -537,14 +537,18 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
 }
 
 BackgroundId BackgroundManager::add_solid_background(int32 color) {
+  return add_solid_background(color, false, (color & 0x808080) == 0);
+}
+
+BackgroundId BackgroundManager::add_solid_background(int32 color, bool is_default, bool is_dark) {
   CHECK(0 <= color && color < 0x1000000);
   BackgroundId background_id(static_cast<int64>(color) + 1);
 
   Background background;
   background.id = background_id;
   background.is_creator = true;
-  background.is_default = false;
-  background.is_dark = (color & 0x808080) == 0;
+  background.is_default = is_default;
+  background.is_dark = is_dark;
   background.type = BackgroundType(color);
   background.name = background.type.get_color_hex_string();
   add_background(background);
@@ -553,6 +557,12 @@ BackgroundId BackgroundManager::add_solid_background(int32 color) {
 }
 
 BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 bottom_color) {
+  return add_gradient_background(top_color, bottom_color, false,
+                                 (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0);
+}
+
+BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 bottom_color, bool is_default,
+                                                        bool is_dark) {
   CHECK(0 <= top_color && top_color < 0x1000000);
   CHECK(0 <= bottom_color && bottom_color < 0x1000000);
   BackgroundId background_id((static_cast<int64>(top_color) << 24) + bottom_color + 1);
@@ -560,8 +570,8 @@ BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 b
   Background background;
   background.id = background_id;
   background.is_creator = true;
-  background.is_default = false;
-  background.is_dark = (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0;
+  background.is_default = is_default;
+  background.is_dark = is_dark;
   background.type = BackgroundType(top_color, bottom_color);
   background.name =
       BackgroundType::get_color_hex_string(top_color) + "-" + BackgroundType::get_color_hex_string(bottom_color);
@@ -769,7 +779,7 @@ void BackgroundManager::do_upload_background_file(FileId file_id, const Backgrou
 }
 
 void BackgroundManager::on_uploaded_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
-                                                    telegram_api::object_ptr<telegram_api::wallPaper> wallpaper,
+                                                    telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
                                                     Promise<Unit> &&promise) {
   CHECK(wallpaper != nullptr);
 
@@ -781,6 +791,10 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
 
   auto background = get_background(background_id);
   CHECK(background != nullptr);
+  if (!background->file_id.is_valid()) {
+    td_->file_manager_->cancel_upload(file_id);
+    return promise.set_error(Status::Error(500, "Receive wrong uploaded background without file"));
+  }
   LOG_STATUS(td_->file_manager_->merge(background->file_id, file_id));
   set_background_id(background_id, type, for_dark_theme);
   promise.set_value(Unit());
@@ -937,9 +951,31 @@ string BackgroundManager::get_background_name_database_key(const string &name) {
 
 BackgroundId BackgroundManager::on_get_background(BackgroundId expected_background_id,
                                                   const string &expected_background_name,
-                                                  telegram_api::object_ptr<telegram_api::wallPaper> wallpaper) {
-  CHECK(wallpaper != nullptr);
+                                                  telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr) {
+  CHECK(wallpaper_ptr != nullptr);
 
+  if (wallpaper_ptr->get_id() == telegram_api::wallPaperNoFile::ID) {
+    auto wallpaper = move_tl_object_as<telegram_api::wallPaperNoFile>(wallpaper_ptr);
+
+    auto settings = std::move(wallpaper->settings_);
+    if (settings == nullptr) {
+      LOG(ERROR) << "Receive wallPaperNoFile without settings: " << to_string(wallpaper);
+      return BackgroundId();
+    }
+
+    bool has_color = (settings->flags_ & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0;
+    auto color = has_color ? settings->background_color_ : 0;
+    auto is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
+    auto is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
+
+    if ((settings->flags_ & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
+      return add_gradient_background(color, settings->second_background_color_, is_default, is_dark);
+    } else {
+      return add_solid_background(color, is_default, is_dark);
+    }
+  }
+
+  auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
   auto id = BackgroundId(wallpaper->id_);
   if (!id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
