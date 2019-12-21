@@ -106,6 +106,8 @@ class BackgroundManager : public Actor {
 
   BackgroundId add_solid_background(int32 color);
 
+  BackgroundId add_gradient_background(int32 top_color, int32 bottom_color);
+
   void add_background(const Background &background);
 
   Background *get_background_ref(BackgroundId background_id);

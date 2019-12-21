@@ -325,7 +325,8 @@ void BackgroundManager::start_up() {
       log_event_parse(logevent, logevent_string).ensure();
 
       CHECK(logevent.background_.id.is_valid());
-      bool needs_file_id = (logevent.background_.type.type != BackgroundType::Type::Solid);
+      bool needs_file_id = (logevent.background_.type.type != BackgroundType::Type::Solid &&
+                            logevent.background_.type.type != BackgroundType::Type::Gradient);
       if (logevent.background_.file_id.is_valid() != needs_file_id) {
         LOG(ERROR) << "Failed to load " << logevent.background_.id << " of " << logevent.background_.type;
         G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
@@ -393,6 +394,9 @@ Result<string> BackgroundManager::get_background_url(const string &name,
     case BackgroundType::Type::Solid:
       url += type.get_color_hex_string();
       return url;
+    case BackgroundType::Type::Gradient:
+      url += type.get_color_hex_string() + '-' + BackgroundType::get_color_hex_string(type.intensity);
+      return url;
     default:
       UNREACHABLE();
       return url;
@@ -427,15 +431,29 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     return BackgroundId();
   }
 
-  if (name.size() <= 6) {
-    for (auto c : name) {
+  if (name.size() <= 13) {
+    bool have_hyphen = false;
+    size_t hyphen_pos = 0;
+    for (size_t i = 0; i < name.size(); i++) {
+      auto c = name[i];
       if (!is_hex_digit(c)) {
-        promise.set_error(Status::Error(400, "WALLPAPER_INVALID"));
-        return BackgroundId();
+        if (c != '-' || have_hyphen || i > 6 || i + 7 < name.size()) {
+          promise.set_error(Status::Error(400, "WALLPAPER_INVALID"));
+          return BackgroundId();
+        }
+        have_hyphen = true;
+        hyphen_pos = i;
       }
     }
-    int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
-    auto background_id = add_solid_background(color);
+    BackgroundId background_id;
+    if (have_hyphen) {
+      int32 top_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(0, hyphen_pos)));
+      int32 bottom_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(hyphen_pos + 1)));
+      background_id = add_gradient_background(top_color, bottom_color);
+    } else {
+      int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
+      background_id = add_solid_background(color);
+    }
     promise.set_value(Unit());
     return background_id;
   }
@@ -468,14 +486,15 @@ void BackgroundManager::on_load_background_from_database(string name, string val
 
   loaded_from_database_backgrounds_.insert(name);
 
-  CHECK(name.size() > 6);
+  CHECK(name.size() > 13);
   if (name_to_background_id_.count(name) == 0 && !value.empty()) {
     LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
     Background background;
     auto status = log_event_parse(background, value);
-    if (status.is_error() || background.type.type == BackgroundType::Type::Solid || !background.file_id.is_valid() ||
+    if (status.is_error() || background.type.type == BackgroundType::Type::Solid ||
+        background.type.type == BackgroundType::Type::Gradient || !background.file_id.is_valid() ||
         !background.id.is_valid()) {
-      LOG(ERROR) << "Can't load bacground " << name << ": " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+      LOG(ERROR) << "Can't load background " << name << ": " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     } else {
       if (background.name != name) {
         LOG(ERROR) << "Expected background " << name << ", but received " << background.name;
@@ -533,6 +552,24 @@ BackgroundId BackgroundManager::add_solid_background(int32 color) {
   return background_id;
 }
 
+BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 bottom_color) {
+  CHECK(0 <= top_color && top_color < 0x1000000);
+  CHECK(0 <= bottom_color && bottom_color < 0x1000000);
+  BackgroundId background_id((static_cast<int64>(top_color) << 24) + bottom_color + 1);
+
+  Background background;
+  background.id = background_id;
+  background.is_creator = true;
+  background.is_default = false;
+  background.is_dark = (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0;
+  background.type = BackgroundType(top_color, bottom_color);
+  background.name =
+      BackgroundType::get_color_hex_string(top_color) + "-" + BackgroundType::get_color_hex_string(bottom_color);
+  add_background(background);
+
+  return background_id;
+}
+
 BackgroundId BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                                const td_api::BackgroundType *background_type, bool for_dark_theme,
                                                Promise<Unit> &&promise) {
@@ -551,6 +588,14 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
   auto type = r_type.move_as_ok();
   if (type.type == BackgroundType::Type::Solid) {
     auto background_id = add_solid_background(type.color);
+    if (set_background_id_[for_dark_theme] != background_id) {
+      set_background_id(background_id, type, for_dark_theme);
+    }
+    promise.set_value(Unit());
+    return background_id;
+  }
+  if (type.type == BackgroundType::Type::Gradient) {
+    auto background_id = add_gradient_background(type.color, type.intensity);
     if (set_background_id_[for_dark_theme] != background_id) {
       set_background_id(background_id, type, for_dark_theme);
     }
@@ -753,7 +798,7 @@ void BackgroundManager::remove_background(BackgroundId background_id, Promise<Un
                      std::move(promise));
       });
 
-  if (background->type.type == BackgroundType::Type::Solid) {
+  if (background->type.type == BackgroundType::Type::Solid || background->type.type == BackgroundType::Type::Gradient) {
     return query_promise.set_value(Unit());
   }
 
@@ -828,7 +873,7 @@ void BackgroundManager::add_background(const Background &background) {
 
     result->name = background.name;
 
-    if (result->name.size() > 6) {
+    if (result->name.size() > 13) {
       name_to_background_id_.emplace(result->name, result->id);
       loaded_from_database_backgrounds_.erase(result->name);  // don't needed anymore
     }
@@ -863,7 +908,7 @@ void BackgroundManager::add_background(const Background &background) {
     file_id_to_background_id_.emplace(result->file_id, result->id);
   } else {
     // if file_source_id is valid, then this is a new background with result->file_id == FileId()
-    // then background.file_id == FileId(), then this is a solid background, which can't have file_source_id
+    // then background.file_id == FileId(), then this is a solid or a gradient background, which can't have file_source_id
     CHECK(!file_source_id.is_valid());
   }
 }
@@ -903,7 +948,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   if (expected_background_id.is_valid() && id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
   }
-  if (wallpaper->slug_.size() <= 6 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000000)) {
+  if (wallpaper->slug_.size() <= 13 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000000000000)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }
@@ -943,7 +988,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     name_to_background_id_.emplace(expected_background_name, id);
   }
 
-  if (G()->parameters().use_file_db && background.name.size() > 6) {
+  if (G()->parameters().use_file_db && background.name.size() > 13) {
     LOG(INFO) << "Save " << id << " to database with name " << background.name;
     G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),
                                         log_event_store(background).as_slice().str(), Auto());

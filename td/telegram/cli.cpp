@@ -2102,6 +2102,9 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(-1));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0xABCDEF));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(0xABCDEF, 0xFEDCBA));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(0, 0));
+      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(-1, -1));
     } else if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
     } else if (op == "sbgd") {
@@ -2117,6 +2120,13 @@ class CliClient final : public Actor {
     } else if (op == "sbgs" || op == "sbgsd") {
       send_request(td_api::make_object<td_api::setBackground>(
           nullptr, td_api::make_object<td_api::backgroundTypeSolid>(to_integer<int32>(args)), op == "sbgsd"));
+    } else if (op == "sbgg" || op == "sbggd") {
+      string top_color;
+      string bottom_color;
+      std::tie(top_color, bottom_color) = split(args);
+      auto background_type = td_api::make_object<td_api::backgroundTypeGradient>(to_integer<int32>(top_color),
+                                                                                 to_integer<int32>(bottom_color));
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbggd"));
     } else if (op == "sbgwid" || op == "sbgwidd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),

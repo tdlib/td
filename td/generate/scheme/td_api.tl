@@ -2112,13 +2112,16 @@ backgroundTypePattern is_moving:Bool color:int32 intensity:int32 = BackgroundTyp
 //@description A solid background @color A color of the background in RGB24 format
 backgroundTypeSolid color:int32 = BackgroundType;
 
+//@description A gradient background @top_color A top color of the background in RGB24 format @bottom_color A bottom color of the background in RGB24 format
+backgroundTypeGradient top_color:int32 bottom_color:int32 = BackgroundType;
+
 
 //@description Describes a chat background
 //@id Unique background identifier
 //@is_default True, if this is one of default backgrounds
 //@is_dark True, if the background is dark and is recommended to be used with dark theme
 //@name Unique background name
-//@document Document with the background; may be null. Null only for solid backgrounds
+//@document Document with the background; may be null. Null only for solid and gradient backgrounds
 //@type Type of the background
 background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
 
@@ -3956,7 +3959,7 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes the background selected by the user; adds background to the list of installed backgrounds
-//@background The input background to use, null for solid backgrounds
+//@background The input background to use, null for solid and gradient backgrounds
 //@type Background type; null for default background. The method will return error 404 if type is null
 //@for_dark_theme True, if the background is chosen for dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;

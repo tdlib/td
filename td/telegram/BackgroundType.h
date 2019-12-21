@@ -16,7 +16,7 @@
 namespace td {
 
 struct BackgroundType {
-  enum class Type : int32 { Wallpaper, Pattern, Solid };
+  enum class Type : int32 { Wallpaper, Pattern, Solid, Gradient };
   Type type = Type::Solid;
   bool is_blurred = false;
   bool is_moving = false;
@@ -32,8 +32,13 @@ struct BackgroundType {
   }
   explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
   }
+  BackgroundType(int32 top_color, int32 bottom_color)
+      : type(Type::Gradient), color(top_color), intensity(bottom_color) {
+  }
 
   string get_color_hex_string() const;
+
+  static string get_color_hex_string(int32 color);
 };
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);

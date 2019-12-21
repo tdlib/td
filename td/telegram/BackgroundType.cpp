@@ -10,12 +10,16 @@
 
 namespace td {
 
-string BackgroundType::get_color_hex_string() const {
+string BackgroundType::get_color_hex_string(int32 color) {
   string result;
   for (int i = 20; i >= 0; i -= 4) {
     result += "0123456789abcdef"[(color >> i) & 0xf];
   }
   return result;
+}
+
+string BackgroundType::get_color_hex_string() const {
+  return get_color_hex_string(color);
 }
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
@@ -33,6 +37,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
                             << ' ' << type.intensity << ']';
     case BackgroundType::Type::Solid:
       return string_builder << "type Solid[" << type.get_color_hex_string() << ']';
+    case BackgroundType::Type::Gradient:
+      return string_builder << "type Gradient[" << type.get_color_hex_string() << '-'
+                            << type.get_color_hex_string(type.intensity) << ']';
     default:
       UNREACHABLE();
       return string_builder;
@@ -61,11 +68,22 @@ Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
       result = BackgroundType(solid->color_);
       break;
     }
+    case td_api::backgroundTypeGradient::ID: {
+      auto gradient = static_cast<const td_api::backgroundTypeGradient *>(type);
+      result = BackgroundType(gradient->top_color_, gradient->bottom_color_);
+      break;
+    }
     default:
       UNREACHABLE();
   }
-  if (result.intensity < 0 || result.intensity > 100) {
-    return Status::Error(400, "Wrong intensity value");
+  if (result.type == BackgroundType::Type::Gradient) {
+    if (result.intensity < 0 || result.intensity > 0xFFFFFF) {
+      return Status::Error(400, "Wrong bottom color value");
+    }
+  } else {
+    if (result.intensity < 0 || result.intensity > 100) {
+      return Status::Error(400, "Wrong intensity value");
+    }
   }
   if (result.color < 0 || result.color > 0xFFFFFF) {
     return Status::Error(400, "Wrong color value");
@@ -113,6 +131,8 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
       return td_api::make_object<td_api::backgroundTypePattern>(type.is_moving, type.color, type.intensity);
     case BackgroundType::Type::Solid:
       return td_api::make_object<td_api::backgroundTypeSolid>(type.color);
+    case BackgroundType::Type::Gradient:
+      return td_api::make_object<td_api::backgroundTypeGradient>(type.color, type.intensity);
     default:
       UNREACHABLE();
       return nullptr;
@@ -139,6 +159,7 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
       return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
                                                                         type.color, type.intensity);
     case BackgroundType::Type::Solid:
+    case BackgroundType::Type::Gradient:
     default:
       UNREACHABLE();
       return nullptr;
