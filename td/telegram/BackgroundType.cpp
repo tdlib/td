@@ -157,7 +157,7 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
     case BackgroundType::Type::Wallpaper:
     case BackgroundType::Type::Pattern:
       return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                        type.color, type.intensity);
+                                                                        type.color, 0, type.intensity, 0);
     case BackgroundType::Type::Solid:
     case BackgroundType::Type::Gradient:
     default:
