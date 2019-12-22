@@ -1271,6 +1271,11 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::messageSchedulingStateSendAtDate>(send_date);
   }
 
+  td_api::object_ptr<td_api::backgroundTypeGradient> get_gradient_background(int32 top_color, int32 bottom_color) {
+    auto gradient_info = td_api::make_object<td_api::gradientInfo>(top_color, bottom_color);
+    return td_api::make_object<td_api::backgroundTypeGradient>(std::move(gradient_info));
+  }
+
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
     if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Execute request: " << to_string(f);
@@ -2102,9 +2107,9 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(-1));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0xABCDEF));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(0xABCDEF, 0xFEDCBA));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(0, 0));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeGradient>(-1, -1));
+      send_get_background_url(get_gradient_background(0xABCDEF, 0xFEDCBA));
+      send_get_background_url(get_gradient_background(0, 0));
+      send_get_background_url(get_gradient_background(-1, -1));
     } else if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
     } else if (op == "sbgd") {
@@ -2124,8 +2129,7 @@ class CliClient final : public Actor {
       string top_color;
       string bottom_color;
       std::tie(top_color, bottom_color) = split(args);
-      auto background_type = td_api::make_object<td_api::backgroundTypeGradient>(to_integer<int32>(top_color),
-                                                                                 to_integer<int32>(bottom_color));
+      auto background_type = get_gradient_background(to_integer<int32>(top_color), to_integer<int32>(bottom_color));
       send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbggd"));
     } else if (op == "sbgwid" || op == "sbgwidd") {
       send_request(td_api::make_object<td_api::setBackground>(
