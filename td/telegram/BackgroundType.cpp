@@ -27,7 +27,7 @@ static BackgroundFill get_background_fill(const td_api::BackgroundFill *fill) {
     }
     case td_api::backgroundFillGradient::ID: {
       auto gradient = static_cast<const td_api::backgroundFillGradient *>(fill);
-      return BackgroundFill(gradient->top_color_, gradient->bottom_color_);
+      return BackgroundFill(gradient->top_color_, gradient->bottom_color_, gradient->rotation_angle_);
     }
     default:
       UNREACHABLE();
@@ -35,16 +35,43 @@ static BackgroundFill get_background_fill(const td_api::BackgroundFill *fill) {
   }
 }
 
-static string get_background_fill_color_hex_string(const BackgroundFill &fill) {
+static string get_background_fill_color_hex_string(const BackgroundFill &fill, bool is_first) {
   if (fill.is_solid()) {
     return get_color_hex_string(fill.top_color);
   } else {
-    return PSTRING() << get_color_hex_string(fill.top_color) << '-' << get_color_hex_string(fill.bottom_color);
+    string colors = PSTRING() << get_color_hex_string(fill.top_color) << '-' << get_color_hex_string(fill.bottom_color);
+    if (fill.rotation_angle != 0) {
+      colors += (PSTRING() << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle);
+    }
+    return colors;
   }
 }
 
+static bool is_valid_color(int32 color) {
+  return 0 <= color && color <= 0xFFFFFF;
+}
+
+static bool is_valid_intensity(int32 intensity) {
+  return 0 <= intensity && intensity <= 100;
+}
+
+int64 BackgroundFill::get_id() const {
+  CHECK(is_valid_color(top_color));
+  CHECK(is_valid_color(bottom_color));
+  CHECK(is_valid_rotation_angle(rotation_angle));
+  if (is_solid()) {
+    return static_cast<int64>(top_color) + 1;
+  }
+  return (rotation_angle / 45) * 0x1000001000001 + (static_cast<int64>(top_color) << 24) + bottom_color + (1 << 24) + 1;
+}
+
+bool BackgroundFill::is_valid_id(int64 id) {
+  return 0 < id && id < 0x8000008000008;
+}
+
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
-  return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color;
+  return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color &&
+         lhs.rotation_angle == rhs.rotation_angle;
 }
 
 string BackgroundType::get_link() const {
@@ -68,7 +95,7 @@ string BackgroundType::get_link() const {
     }
     case BackgroundType::Type::Pattern: {
       string link = PSTRING() << "intensity=" << intensity
-                              << "&bg_color=" << get_background_fill_color_hex_string(fill);
+                              << "&bg_color=" << get_background_fill_color_hex_string(fill, false);
       if (!mode.empty()) {
         link += "&mode=";
         link += mode;
@@ -76,7 +103,7 @@ string BackgroundType::get_link() const {
       return link;
     }
     case BackgroundType::Type::Fill:
-      return get_background_fill_color_hex_string(fill);
+      return get_background_fill_color_hex_string(fill, true);
     default:
       UNREACHABLE();
       return string();
@@ -104,14 +131,6 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const Background
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
   return string_builder << "type " << type.type << '[' << type.get_link() << ']';
-}
-
-static bool is_valid_color(int32 color) {
-  return 0 <= color && color <= 0xFFFFFF;
-}
-
-static bool is_valid_intensity(int32 intensity) {
-  return 0 <= intensity && intensity <= 100;
 }
 
 Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
@@ -150,6 +169,9 @@ Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
   }
   if (!is_valid_color(result.fill.bottom_color)) {
     return Status::Error(400, "Wrong bottom color value");
+  }
+  if (!BackgroundFill::is_valid_rotation_angle(result.fill.rotation_angle)) {
+    return Status::Error(400, "Wrong rotation angle value");
   }
   return result;
 }
@@ -190,7 +212,7 @@ static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(con
   if (fill.is_solid()) {
     return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color);
   }
-  return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color);
+  return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color, fill.rotation_angle);
 }
 
 td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type) {
@@ -225,8 +247,9 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
   if (type.is_server()) {
-    return telegram_api::make_object<telegram_api::wallPaperSettings>(
-        flags, false /*ignored*/, false /*ignored*/, type.fill.top_color, type.fill.bottom_color, type.intensity, 0);
+    return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                      type.fill.top_color, type.fill.bottom_color,
+                                                                      type.intensity, type.fill.rotation_angle);
   }
 
   UNREACHABLE();

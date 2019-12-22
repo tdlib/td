@@ -2102,7 +2102,8 @@ pushReceiverId id:int64 = PushReceiverId;
 backgroundFillSolid color:int32 = BackgroundFill;
 
 //@description Describes a gradient fill of a background @top_color A top color of the background in the RGB24 format @bottom_color A bottom color of the background in the RGB24 format
-backgroundFillGradient top_color:int32 bottom_color:int32 = BackgroundFill;
+//@rotation_angle Rotation angle of the gradient, in degrees; 0-359. Must be always divisible by 45
+backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 = BackgroundFill;
 
 
 //@class BackgroundType @description Describes a type of a background

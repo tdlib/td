@@ -18,15 +18,25 @@ namespace td {
 struct BackgroundFill {
   int32 top_color = 0;
   int32 bottom_color = 0;
+  int32 rotation_angle = 0;
 
   BackgroundFill() = default;
   explicit BackgroundFill(int32 solid_color) : top_color(solid_color), bottom_color(solid_color) {
   }
-  BackgroundFill(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
+  BackgroundFill(int32 top_color, int32 bottom_color, int32 rotation_angle)
+      : top_color(top_color), bottom_color(bottom_color), rotation_angle(rotation_angle) {
   }
 
   bool is_solid() const {
     return top_color == bottom_color;
+  }
+
+  int64 get_id() const;
+
+  static bool is_valid_id(int64 id);
+
+  static bool is_valid_rotation_angle(int32 rotation_angle) {
+    return 0 <= rotation_angle && rotation_angle < 360 && rotation_angle % 45 == 0;
   }
 };
 

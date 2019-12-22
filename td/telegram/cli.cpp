@@ -1277,7 +1277,8 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::backgroundTypeFill> get_gradient_background(int32 top_color, int32 bottom_color) {
-    auto gradient = td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color);
+    auto gradient =
+        td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color, Random::fast(0, 7) * 45);
     return td_api::make_object<td_api::backgroundTypeFill>(std::move(gradient));
   }
 

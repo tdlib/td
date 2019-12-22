@@ -29,6 +29,7 @@ void store(const BackgroundType &type, StorerT &storer) {
     store(type.fill.top_color, storer);
     if (is_gradient) {
       store(type.fill.bottom_color, storer);
+      store(type.fill.rotation_angle, storer);
     }
   }
   if (has_intensity) {
@@ -53,6 +54,7 @@ void parse(BackgroundType &type, ParserT &parser) {
     parse(type.fill.top_color, parser);
     if (is_gradient) {
       parse(type.fill.bottom_color, parser);
+      parse(type.fill.rotation_angle, parser);
     } else {
       type.fill.bottom_color = type.fill.top_color;
     }

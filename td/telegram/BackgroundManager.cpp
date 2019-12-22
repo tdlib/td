@@ -390,6 +390,10 @@ void BackgroundManager::reload_background(BackgroundId background_id, int64 acce
       telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), std::move(promise));
 }
 
+static bool is_background_name_local(Slice name) {
+  return name.size() <= 6 || name.find('?') <= 13u;
+}
+
 BackgroundId BackgroundManager::search_background(const string &name, Promise<Unit> &&promise) {
   auto it = name_to_background_id_.find(name);
   if (it != name_to_background_id_.end()) {
@@ -402,13 +406,22 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     return BackgroundId();
   }
 
-  if (name.size() <= 13) {
+  if (is_background_name_local(name)) {
+    Slice fill_colors = name;
+    Slice parameters;
+    auto parameters_pos = fill_colors.find('?');
+    if (parameters_pos != Slice::npos) {
+      parameters = fill_colors.substr(parameters_pos + 1);
+      fill_colors = fill_colors.substr(0, parameters_pos);
+    }
+    CHECK(fill_colors.size() <= 13u);
+
     bool have_hyphen = false;
     size_t hyphen_pos = 0;
-    for (size_t i = 0; i < name.size(); i++) {
-      auto c = name[i];
+    for (size_t i = 0; i < fill_colors.size(); i++) {
+      auto c = fill_colors[i];
       if (!is_hex_digit(c)) {
-        if (c != '-' || have_hyphen || i > 6 || i + 7 < name.size()) {
+        if (c != '-' || have_hyphen || i > 6 || i + 7 < fill_colors.size()) {
           promise.set_error(Status::Error(400, "WALLPAPER_INVALID"));
           return BackgroundId();
         }
@@ -419,11 +432,21 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
 
     BackgroundFill fill;
     if (have_hyphen) {
-      int32 top_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(0, hyphen_pos)));
-      int32 bottom_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(hyphen_pos + 1)));
-      fill = BackgroundFill(top_color, bottom_color);
+      int32 top_color = static_cast<int32>(hex_to_integer<uint32>(fill_colors.substr(0, hyphen_pos)));
+      int32 bottom_color = static_cast<int32>(hex_to_integer<uint32>(fill_colors.substr(hyphen_pos + 1)));
+      int32 rotation_angle = 0;
+
+      Slice prefix("rotation=");
+      if (begins_with(parameters, prefix)) {
+        rotation_angle = to_integer<int32>(parameters.substr(prefix.size()));
+        if (!BackgroundFill::is_valid_rotation_angle(rotation_angle)) {
+          rotation_angle = 0;
+        }
+      }
+
+      fill = BackgroundFill(top_color, bottom_color, rotation_angle);
     } else {
-      int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
+      int32 color = static_cast<int32>(hex_to_integer<uint32>(fill_colors));
       fill = BackgroundFill(color);
     }
     auto background_id = add_fill_background(fill);
@@ -459,7 +482,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
 
   loaded_from_database_backgrounds_.insert(name);
 
-  CHECK(name.size() > 13);
+  CHECK(!is_background_name_local(name));
   if (name_to_background_id_.count(name) == 0 && !value.empty()) {
     LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
     Background background;
@@ -513,11 +536,7 @@ BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill) 
 }
 
 BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark) {
-  CHECK(0 <= fill.top_color && fill.top_color < 0x1000000);
-  CHECK(0 <= fill.bottom_color && fill.bottom_color < 0x1000000);
-  int64 id = fill.is_solid() ? static_cast<int64>(fill.top_color) + 1
-                             : (static_cast<int64>(fill.top_color) << 24) + fill.bottom_color + (1 << 24) + 1;
-  BackgroundId background_id(id);
+  BackgroundId background_id(fill.get_id());
 
   Background background;
   background.id = background_id;
@@ -831,7 +850,7 @@ void BackgroundManager::add_background(const Background &background) {
 
     result->name = background.name;
 
-    if (result->name.size() > 13) {
+    if (!is_background_name_local(result->name)) {
       name_to_background_id_.emplace(result->name, result->id);
       loaded_from_database_backgrounds_.erase(result->name);  // don't needed anymore
     }
@@ -914,7 +933,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
 
     BackgroundFill fill = BackgroundFill(color);
     if ((settings->flags_ & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-      fill = BackgroundFill(color, settings->second_background_color_);
+      fill = BackgroundFill(color, settings->second_background_color_, settings->rotation_);
     }
     return add_fill_background(fill, is_default, is_dark);
   }
@@ -928,7 +947,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   if (expected_background_id.is_valid() && id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
   }
-  if (wallpaper->slug_.size() <= 13 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000001000000)) {
+  if (is_background_name_local(wallpaper->slug_) || BackgroundFill::is_valid_id(wallpaper->id_)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }
@@ -968,7 +987,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     name_to_background_id_.emplace(expected_background_name, id);
   }
 
-  if (G()->parameters().use_file_db && background.name.size() > 13) {
+  if (G()->parameters().use_file_db && !is_background_name_local(background.name)) {
     LOG(INFO) << "Save " << id << " to database with name " << background.name;
     G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),
                                         log_event_store(background).as_slice().str(), Auto());
