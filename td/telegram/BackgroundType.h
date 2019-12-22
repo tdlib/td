@@ -22,6 +22,10 @@ struct GradientInfo {
   GradientInfo() = default;
   GradientInfo(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
   }
+
+  bool is_solid() const {
+    return top_color == bottom_color;
+  }
 };
 
 bool operator==(const GradientInfo &lhs, const GradientInfo &rhs);
@@ -44,7 +48,8 @@ struct BackgroundType {
   }
   explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
   }
-  BackgroundType(GradientInfo gradient) : type(Type::Gradient), gradient(gradient) {
+  BackgroundType(GradientInfo gradient)
+      : type(gradient.is_solid() ? Type::Solid : Type::Gradient), color(gradient.top_color), gradient(gradient) {
   }
 
   bool is_server() const {

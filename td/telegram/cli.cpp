@@ -1271,9 +1271,14 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::messageSchedulingStateSendAtDate>(send_date);
   }
 
-  td_api::object_ptr<td_api::backgroundTypeGradient> get_gradient_background(int32 top_color, int32 bottom_color) {
-    auto gradient_info = td_api::make_object<td_api::gradientInfo>(top_color, bottom_color);
-    return td_api::make_object<td_api::backgroundTypeGradient>(std::move(gradient_info));
+  td_api::object_ptr<td_api::backgroundTypeFill> get_solid_background(int32 color) {
+    auto solid = td_api::make_object<td_api::backgroundFillSolid>(color);
+    return td_api::make_object<td_api::backgroundTypeFill>(std::move(solid));
+  }
+
+  td_api::object_ptr<td_api::backgroundTypeFill> get_gradient_background(int32 top_color, int32 bottom_color) {
+    auto gradient = td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color);
+    return td_api::make_object<td_api::backgroundTypeFill>(std::move(gradient));
   }
 
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
@@ -2104,9 +2109,9 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(false, 0, 0));
       send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(true, 0xFFFFFF, 100));
       send_get_background_url(td_api::make_object<td_api::backgroundTypePattern>(true, 0xABCDEF, 49));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(-1));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0xABCDEF));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeSolid>(0x1000000));
+      send_get_background_url(get_solid_background(-1));
+      send_get_background_url(get_solid_background(0xABCDEF));
+      send_get_background_url(get_solid_background(0x1000000));
       send_get_background_url(get_gradient_background(0xABCDEF, 0xFEDCBA));
       send_get_background_url(get_gradient_background(0, 0));
       send_get_background_url(get_gradient_background(-1, -1));
@@ -2123,8 +2128,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
           td_api::make_object<td_api::backgroundTypePattern>(true, 0xabcdef, 49), op == "sbgpd"));
     } else if (op == "sbgs" || op == "sbgsd") {
-      send_request(td_api::make_object<td_api::setBackground>(
-          nullptr, td_api::make_object<td_api::backgroundTypeSolid>(to_integer<int32>(args)), op == "sbgsd"));
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, get_solid_background(to_integer<int32>(args)),
+                                                              op == "sbgsd"));
     } else if (op == "sbgg" || op == "sbggd") {
       string top_color;
       string bottom_color;

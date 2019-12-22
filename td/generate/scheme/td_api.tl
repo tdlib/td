@@ -2096,8 +2096,13 @@ deviceTokenTizenPush reg_id:string = DeviceToken;
 pushReceiverId id:int64 = PushReceiverId;
 
 
-//@description Describes a gradient background @top_color A top color of the background in the RGB24 format @bottom_color A bottom color of the background in the RGB24 format 
-gradientInfo top_color:int32 bottom_color:int32 = GradientInfo;
+//@class BackgroundFill @description Describes a fill of a background
+
+//@description Describes a solid fill of a background @color A color of the background in the RGB24 format
+backgroundFillSolid color:int32 = BackgroundFill;
+
+//@description Describes a gradient fill of a background @top_color A top color of the background in the RGB24 format @bottom_color A bottom color of the background in the RGB24 format
+backgroundFillGradient top_color:int32 bottom_color:int32 = BackgroundFill;
 
 
 //@class BackgroundType @description Describes a type of a background
@@ -2113,11 +2118,8 @@ backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 //@intensity Intensity of the pattern when it is shown above the main background color, 0-100
 backgroundTypePattern is_moving:Bool color:int32 intensity:int32 = BackgroundType;
 
-//@description A solid background @color A color of the background in the RGB24 format
-backgroundTypeSolid color:int32 = BackgroundType;
-
-//@description A gradient background @gradient Gradient description
-backgroundTypeGradient gradient:gradientInfo = BackgroundType;
+//@description A filled background @fill Background fill description
+backgroundTypeFill fill:BackgroundFill = BackgroundType;
 
 
 //@description Describes a chat background

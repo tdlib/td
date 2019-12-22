@@ -18,6 +18,23 @@ static string get_color_hex_string(int32 color) {
   return result;
 }
 
+static GradientInfo get_gradient_info(const td_api::BackgroundFill *fill) {
+  CHECK(fill != nullptr);
+  switch (fill->get_id()) {
+    case td_api::backgroundFillSolid::ID: {
+      auto solid = static_cast<const td_api::backgroundFillSolid *>(fill);
+      return GradientInfo(solid->color_, solid->color_);
+    }
+    case td_api::backgroundFillGradient::ID: {
+      auto gradient = static_cast<const td_api::backgroundFillGradient *>(fill);
+      return GradientInfo(gradient->top_color_, gradient->bottom_color_);
+    }
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
 bool operator==(const GradientInfo &lhs, const GradientInfo &rhs) {
   return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color;
 }
@@ -110,17 +127,12 @@ Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
       result = BackgroundType(pattern->is_moving_, pattern->color_, pattern->intensity_);
       break;
     }
-    case td_api::backgroundTypeSolid::ID: {
-      auto solid = static_cast<const td_api::backgroundTypeSolid *>(type);
-      result = BackgroundType(solid->color_);
-      break;
-    }
-    case td_api::backgroundTypeGradient::ID: {
-      auto gradient = static_cast<const td_api::backgroundTypeGradient *>(type);
-      if (gradient->gradient_ == nullptr) {
-        return Status::Error(400, "Gradient info must not be empty");
+    case td_api::backgroundTypeFill::ID: {
+      auto fill = static_cast<const td_api::backgroundTypeFill *>(type);
+      if (fill->fill_ == nullptr) {
+        return Status::Error(400, "Fill info must not be empty");
       }
-      result = BackgroundType(GradientInfo(gradient->gradient_->top_color_, gradient->gradient_->bottom_color_));
+      result = BackgroundType(get_gradient_info(fill->fill_.get()));
       break;
     }
     default:
@@ -173,8 +185,15 @@ BackgroundType get_background_type(bool is_pattern,
   }
 }
 
-static td_api::object_ptr<td_api::gradientInfo> get_gradient_info_object(const GradientInfo &gradient) {
-  return td_api::make_object<td_api::gradientInfo>(gradient.top_color, gradient.bottom_color);
+static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(int32 color) {
+  return td_api::make_object<td_api::backgroundFillSolid>(color);
+}
+
+static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(const GradientInfo &gradient) {
+  if (gradient.is_solid()) {
+    return get_background_fill_object(gradient.top_color);
+  }
+  return td_api::make_object<td_api::backgroundFillGradient>(gradient.top_color, gradient.bottom_color);
 }
 
 td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type) {
@@ -184,9 +203,9 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
     case BackgroundType::Type::Pattern:
       return td_api::make_object<td_api::backgroundTypePattern>(type.is_moving, type.color, type.intensity);
     case BackgroundType::Type::Solid:
-      return td_api::make_object<td_api::backgroundTypeSolid>(type.color);
+      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(type.color));
     case BackgroundType::Type::Gradient:
-      return td_api::make_object<td_api::backgroundTypeGradient>(get_gradient_info_object(type.gradient));
+      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(type.gradient));
     default:
       UNREACHABLE();
       return nullptr;
