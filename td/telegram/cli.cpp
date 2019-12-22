@@ -2148,6 +2148,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
           get_solid_pattern_background(0xABCDEF, 49, true), op == "sbgpd"));
+    } else if (op == "sbggp" || op == "sbggpd") {
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
+          get_gradient_pattern_background(0xABCDEF, 0xFE, 51, false), op == "sbggpd"));
     } else if (op == "sbgs" || op == "sbgsd") {
       send_request(td_api::make_object<td_api::setBackground>(nullptr, get_solid_background(to_integer<int32>(args)),
                                                               op == "sbgsd"));

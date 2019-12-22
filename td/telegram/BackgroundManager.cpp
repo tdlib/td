@@ -568,9 +568,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
   auto type = r_type.move_as_ok();
   if (type.type == BackgroundType::Type::Fill) {
     auto background_id = add_fill_background(type.fill);
-    if (set_background_id_[for_dark_theme] != background_id) {
-      set_background_id(background_id, type, for_dark_theme);
-    }
+    set_background_id(background_id, type, for_dark_theme);
     promise.set_value(Unit());
     return background_id;
   }
@@ -612,6 +610,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
 
 BackgroundId BackgroundManager::set_background(BackgroundId background_id, const BackgroundType &type,
                                                bool for_dark_theme, Promise<Unit> &&promise) {
+  LOG(INFO) << "Set " << background_id << " with " << type;
   auto *background = get_background(background_id);
   if (background == nullptr) {
     promise.set_error(Status::Error(400, "Background to set not found"));
@@ -621,7 +620,7 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, const
     promise.set_error(Status::Error(400, "Background type mismatch"));
     return BackgroundId();
   }
-  if (set_background_id_[for_dark_theme] == background_id) {
+  if (set_background_id_[for_dark_theme] == background_id && set_background_type_[for_dark_theme] == type) {
     promise.set_value(Unit());
     return background_id;
   }
@@ -818,6 +817,8 @@ void BackgroundManager::on_reset_background(Result<Unit> &&result, Promise<Unit>
 }
 
 void BackgroundManager::add_background(const Background &background) {
+  LOG(INFO) << "Add " << background.id << " of " << background.type;
+
   CHECK(background.id.is_valid());
   auto *result = &backgrounds_[background.id];
 
