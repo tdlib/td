@@ -522,7 +522,7 @@ BackgroundId BackgroundManager::add_solid_background(int32 color, bool is_defaul
   background.is_default = is_default;
   background.is_dark = is_dark;
   background.type = BackgroundType(color);
-  background.name = background.type.get_color_hex_string();
+  background.name = background.type.get_link();
   add_background(background);
 
   return background_id;
@@ -546,7 +546,7 @@ BackgroundId BackgroundManager::add_gradient_background(const GradientInfo &grad
   background.is_default = is_default;
   background.is_dark = is_dark;
   background.type = BackgroundType(gradient_info);
-  background.name = gradient_info.get_colors_hex_string();
+  background.name = background.type.get_link();
   add_background(background);
 
   return background_id;

@@ -15,8 +15,6 @@
 
 namespace td {
 
-string get_color_hex_string(int32 color);
-
 struct GradientInfo {
   int32 top_color = 0;
   int32 bottom_color = 0;
@@ -24,8 +22,6 @@ struct GradientInfo {
   GradientInfo() = default;
   GradientInfo(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
   }
-
-  string get_colors_hex_string() const;
 };
 
 bool operator==(const GradientInfo &lhs, const GradientInfo &rhs);
@@ -56,8 +52,6 @@ struct BackgroundType {
   }
 
   string get_link() const;
-
-  string get_color_hex_string() const;
 };
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);

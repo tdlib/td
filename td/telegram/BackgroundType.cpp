@@ -10,7 +10,7 @@
 
 namespace td {
 
-string get_color_hex_string(int32 color) {
+static string get_color_hex_string(int32 color) {
   string result;
   for (int i = 20; i >= 0; i -= 4) {
     result += "0123456789abcdef"[(color >> i) & 0xf];
@@ -18,16 +18,8 @@ string get_color_hex_string(int32 color) {
   return result;
 }
 
-string GradientInfo::get_colors_hex_string() const {
-  return PSTRING() << get_color_hex_string(top_color) << '-' << get_color_hex_string(bottom_color);
-}
-
 bool operator==(const GradientInfo &lhs, const GradientInfo &rhs) {
   return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color;
-}
-
-string BackgroundType::get_color_hex_string() const {
-  return td::get_color_hex_string(color);
 }
 
 string BackgroundType::get_link() const {
@@ -50,7 +42,7 @@ string BackgroundType::get_link() const {
       return string();
     }
     case BackgroundType::Type::Pattern: {
-      string link = PSTRING() << "intensity=" << intensity << "&bg_color=" << get_color_hex_string();
+      string link = PSTRING() << "intensity=" << intensity << "&bg_color=" << get_color_hex_string(color);
       if (!mode.empty()) {
         link += "&mode=";
         link += mode;
@@ -58,9 +50,10 @@ string BackgroundType::get_link() const {
       return link;
     }
     case BackgroundType::Type::Solid:
-      return get_color_hex_string();
+      return get_color_hex_string(color);
     case BackgroundType::Type::Gradient:
-      return gradient.get_colors_hex_string();
+      return PSTRING() << get_color_hex_string(gradient.top_color) << '-'
+                       << get_color_hex_string(gradient.bottom_color);
     default:
       UNREACHABLE();
       return string();
