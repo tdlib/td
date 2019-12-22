@@ -11926,14 +11926,18 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   auto &list = get_dialog_list(folder_id);
   if (from_dialog_list) {
     if (dialogs.empty()) {
-      // if there is no more dialogs on the server
+      // if there are no more dialogs on the server
       max_dialog_date = MAX_DIALOG_DATE;
     }
     if (list.last_server_dialog_date_ < max_dialog_date) {
       list.last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
     } else {
-      LOG(ERROR) << "Last server dialog date didn't increased";
+      LOG(ERROR) << "Last server dialog date didn't increased from " << list.last_server_dialog_date_ << " to "
+                 << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
+                 << folder_id << ". Know about order of " << list.ordered_dialogs_.size()
+                 << " chats, last_dialog_date = " << list.last_dialog_date_
+                 << ", last_loaded_database_dialog_date = " << list.last_loaded_database_dialog_date_;
     }
   }
   if (from_pinned_dialog_list) {
