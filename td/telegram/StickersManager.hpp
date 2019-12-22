@@ -229,7 +229,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->is_masks = is_masks;
       sticker_set->is_animated = is_animated;
 
-      short_name_to_sticker_set_id_.emplace(clean_username(sticker_set->short_name), sticker_set_id);
+      short_name_to_sticker_set_id_.emplace(clean_username(sticker_set->short_name), StickerSetId(sticker_set_id));
       on_update_sticker_set(sticker_set, is_installed, is_archived, false, true);
     } else {
       if (sticker_set->title != title) {
