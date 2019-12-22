@@ -28,6 +28,8 @@ struct GradientInfo {
   string get_colors_hex_string() const;
 };
 
+bool operator==(const GradientInfo &lhs, const GradientInfo &rhs);
+
 struct BackgroundType {
   enum class Type : int32 { Wallpaper, Pattern, Solid, Gradient };
   Type type = Type::Solid;
@@ -48,6 +50,12 @@ struct BackgroundType {
   }
   BackgroundType(GradientInfo gradient) : type(Type::Gradient), gradient(gradient) {
   }
+
+  bool is_server() const {
+    return type == Type::Wallpaper || type == Type::Pattern;
+  }
+
+  string get_link() const;
 
   string get_color_hex_string() const;
 };

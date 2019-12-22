@@ -361,46 +361,18 @@ void BackgroundManager::get_backgrounds(Promise<Unit> &&promise) {
 Result<string> BackgroundManager::get_background_url(const string &name,
                                                      td_api::object_ptr<td_api::BackgroundType> background_type) const {
   TRY_RESULT(type, get_background_type(background_type.get()));
-
-  vector<string> modes;
-  if (type.is_blurred) {
-    modes.emplace_back("blur");
+  auto url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
+  auto link = type.get_link();
+  if (type.is_server()) {
+    url += name;
+    if (!link.empty()) {
+      url += '?';
+      url += link;
+    }
+  } else {
+    url += link;
   }
-  if (type.is_moving) {
-    modes.emplace_back("motion");
-  }
-  string mode = implode(modes, '+');
-
-  string url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
-  switch (type.type) {
-    case BackgroundType::Type::Wallpaper:
-      url += name;
-      if (!mode.empty()) {
-        url += "?mode=";
-        url += mode;
-      }
-      return url;
-    case BackgroundType::Type::Pattern:
-      url += name;
-      url += "?intensity=";
-      url += to_string(type.intensity);
-      url += "&bg_color=";
-      url += type.get_color_hex_string();
-      if (!mode.empty()) {
-        url += "&mode=";
-        url += mode;
-      }
-      return url;
-    case BackgroundType::Type::Solid:
-      url += type.get_color_hex_string();
-      return url;
-    case BackgroundType::Type::Gradient:
-      url += type.gradient.get_colors_hex_string();
-      return url;
-    default:
-      UNREACHABLE();
-      return url;
-  }
+  return url;
 }
 
 void BackgroundManager::reload_background_from_server(
@@ -612,6 +584,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
     promise.set_value(Unit());
     return background_id;
   }
+  CHECK(type.is_server());
 
   if (input_background == nullptr) {
     promise.set_error(Status::Error(400, "Input background must be non-empty"));
@@ -812,7 +785,7 @@ void BackgroundManager::remove_background(BackgroundId background_id, Promise<Un
                      std::move(promise));
       });
 
-  if (background->type.type == BackgroundType::Type::Solid || background->type.type == BackgroundType::Type::Gradient) {
+  if (!background->type.is_server()) {
     return query_promise.set_value(Unit());
   }
 

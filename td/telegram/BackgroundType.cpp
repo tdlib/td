@@ -22,31 +22,74 @@ string GradientInfo::get_colors_hex_string() const {
   return PSTRING() << get_color_hex_string(top_color) << '-' << get_color_hex_string(bottom_color);
 }
 
+bool operator==(const GradientInfo &lhs, const GradientInfo &rhs) {
+  return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color;
+}
+
 string BackgroundType::get_color_hex_string() const {
   return td::get_color_hex_string(color);
 }
 
-bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
-  return lhs.type == rhs.type && lhs.is_blurred == rhs.is_blurred && lhs.is_moving == rhs.is_moving &&
-         lhs.color == rhs.color && lhs.intensity == rhs.intensity;
+string BackgroundType::get_link() const {
+  string mode;
+  if (is_blurred) {
+    mode = "blur";
+  }
+  if (is_moving) {
+    if (!mode.empty()) {
+      mode += '+';
+    }
+    mode += "motion";
+  }
+
+  switch (type) {
+    case BackgroundType::Type::Wallpaper: {
+      if (!mode.empty()) {
+        return PSTRING() << "mode=" << mode;
+      }
+      return string();
+    }
+    case BackgroundType::Type::Pattern: {
+      string link = PSTRING() << "intensity=" << intensity << "&bg_color=" << get_color_hex_string();
+      if (!mode.empty()) {
+        link += "&mode=";
+        link += mode;
+      }
+      return link;
+    }
+    case BackgroundType::Type::Solid:
+      return get_color_hex_string();
+    case BackgroundType::Type::Gradient:
+      return gradient.get_colors_hex_string();
+    default:
+      UNREACHABLE();
+      return string();
+  }
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
-  switch (type.type) {
+bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
+  return lhs.type == rhs.type && lhs.is_blurred == rhs.is_blurred && lhs.is_moving == rhs.is_moving &&
+         lhs.color == rhs.color && lhs.intensity == rhs.intensity && lhs.gradient == rhs.gradient;
+}
+
+static StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType::Type &type) {
+  switch (type) {
     case BackgroundType::Type::Wallpaper:
-      return string_builder << "type Wallpaper[" << (type.is_blurred ? "blurred" : "") << ' '
-                            << (type.is_moving ? "moving" : "") << ']';
+      return string_builder << "Wallpaper";
     case BackgroundType::Type::Pattern:
-      return string_builder << "type Pattern[" << (type.is_moving ? "moving" : "") << ' ' << type.get_color_hex_string()
-                            << ' ' << type.intensity << ']';
+      return string_builder << "Pattern";
     case BackgroundType::Type::Solid:
-      return string_builder << "type Solid[" << type.get_color_hex_string() << ']';
+      return string_builder << "Solid";
     case BackgroundType::Type::Gradient:
-      return string_builder << "type Gradient[" << type.gradient.get_colors_hex_string() << ']';
+      return string_builder << "Gradient";
     default:
       UNREACHABLE();
       return string_builder;
   }
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
+  return string_builder << "type " << type.type << '[' << type.get_link() << ']';
 }
 
 static bool is_valid_color(int32 color) {
@@ -171,17 +214,13 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
   if (type.intensity) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
-  switch (type.type) {
-    case BackgroundType::Type::Wallpaper:
-    case BackgroundType::Type::Pattern:
-      return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                        type.color, 0, type.intensity, 0);
-    case BackgroundType::Type::Solid:
-    case BackgroundType::Type::Gradient:
-    default:
-      UNREACHABLE();
-      return nullptr;
+  if (type.is_server()) {
+    return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                      type.color, 0, type.intensity, 0);
   }
+
+  UNREACHABLE();
+  return nullptr;
 }
 
 }  // namespace td
