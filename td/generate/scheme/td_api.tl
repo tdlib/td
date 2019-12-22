@@ -2128,7 +2128,7 @@ backgroundTypeFill fill:BackgroundFill = BackgroundType;
 //@is_default True, if this is one of default backgrounds
 //@is_dark True, if the background is dark and is recommended to be used with dark theme
 //@name Unique background name
-//@document Document with the background; may be null. Null only for solid and gradient backgrounds
+//@document Document with the background; may be null. Null only for filled backgrounds
 //@type Type of the background
 background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
 
@@ -3967,7 +3967,7 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes the background selected by the user; adds background to the list of installed backgrounds
-//@background The input background to use, null for solid and gradient backgrounds
+//@background The input background to use, null for filled backgrounds
 //@type Background type; null for default background. The method will return error 404 if type is null
 //@for_dark_theme True, if the background is chosen for dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;

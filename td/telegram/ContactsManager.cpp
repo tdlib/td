@@ -5216,7 +5216,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
       return promise.set_error(Status::Error(400, "Chat is not a channel"));
     }
     if (!c->status.is_administrator() || !c->status.can_change_info_and_settings()) {
-      return promise.set_error(Status::Error(400, "Have not enough rights in the channel"));
+      return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
     }
 
     broadcast_input_channel = td_->contacts_manager_->get_input_channel(broadcast_channel_id);
@@ -5245,7 +5245,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
       return promise.set_error(Status::Error(400, "Discussion chat is not a supergroup"));
     }
     if (!c->status.is_administrator() || !c->status.can_pin_messages()) {
-      return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+      return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
     }
 
     group_input_channel = td_->contacts_manager_->get_input_channel(group_channel_id);
@@ -5285,7 +5285,7 @@ void ContactsManager::set_channel_location(DialogId dialog_id, const DialogLocat
     return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
   }
   if (!c->status.is_creator()) {
-    return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+    return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
   }
 
   td_->create_handler<EditLocationQuery>(std::move(promise))->send(channel_id, location);
@@ -5317,7 +5317,7 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
     return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
   }
   if (!get_channel_permissions(c).can_restrict_members()) {
-    return promise.set_error(Status::Error(400, "Have not enough rights in the supergroup"));
+    return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
   }
 
   td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
