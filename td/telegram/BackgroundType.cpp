@@ -147,7 +147,10 @@ Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern = static_cast<const td_api::backgroundTypePattern *>(type);
-      result = BackgroundType(pattern->is_moving_, pattern->color_, pattern->intensity_);
+      if (pattern->fill_ == nullptr) {
+        return Status::Error(400, "Fill info must not be empty");
+      }
+      result = BackgroundType(pattern->is_moving_, get_background_fill(pattern->fill_.get()), pattern->intensity_);
       break;
     }
     case td_api::backgroundTypeFill::ID: {
@@ -180,12 +183,14 @@ BackgroundType get_background_type(bool is_pattern,
                                    telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
   bool is_blurred = false;
   bool is_moving = false;
-  int32 color = 0;
+  BackgroundFill fill;
   int32 intensity = 0;
   if (settings) {
     auto flags = settings->flags_;
     is_blurred = (flags & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
     is_moving = (flags & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
+
+    int32 color = 0;
     if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
       color = settings->background_color_;
       if (!is_valid_color(color)) {
@@ -193,6 +198,24 @@ BackgroundType get_background_type(bool is_pattern,
         color = 0;
       }
     }
+    if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
+      int32 second_color = settings->background_color_;
+      if (!is_valid_color(second_color)) {
+        LOG(ERROR) << "Receive " << to_string(settings);
+        second_color = 0;
+      }
+
+      int32 rotation_angle = settings->rotation_;
+      if (!BackgroundFill::is_valid_rotation_angle(rotation_angle)) {
+        LOG(ERROR) << "Receive " << to_string(settings);
+        rotation_angle = 0;
+      }
+
+      fill = BackgroundFill(color, second_color, rotation_angle);
+    } else {
+      fill = BackgroundFill(color);
+    }
+
     if ((flags & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
       intensity = settings->intensity_;
       if (!is_valid_intensity(intensity)) {
@@ -202,7 +225,7 @@ BackgroundType get_background_type(bool is_pattern,
     }
   }
   if (is_pattern) {
-    return BackgroundType(is_moving, color, intensity);
+    return BackgroundType(is_moving, fill, intensity);
   } else {
     return BackgroundType(is_blurred, is_moving);
   }
@@ -220,7 +243,8 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
     case BackgroundType::Type::Wallpaper:
       return td_api::make_object<td_api::backgroundTypeWallpaper>(type.is_blurred, type.is_moving);
     case BackgroundType::Type::Pattern:
-      return td_api::make_object<td_api::backgroundTypePattern>(type.is_moving, type.fill.top_color, type.intensity);
+      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(type.fill), type.intensity,
+                                                                type.is_moving);
     case BackgroundType::Type::Fill:
       return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(type.fill));
     default:

@@ -54,8 +54,8 @@ struct BackgroundType {
   BackgroundType(bool is_blurred, bool is_moving)
       : type(Type::Wallpaper), is_blurred(is_blurred), is_moving(is_moving) {
   }
-  BackgroundType(bool is_moving, int32 color, int32 intensity)
-      : type(Type::Pattern), is_moving(is_moving), fill(color), intensity(intensity) {
+  BackgroundType(bool is_moving, const BackgroundFill &fill, int32 intensity)
+      : type(Type::Pattern), is_moving(is_moving), intensity(intensity), fill(fill) {
   }
   BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
   }
