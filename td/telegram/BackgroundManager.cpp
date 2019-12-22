@@ -395,7 +395,7 @@ Result<string> BackgroundManager::get_background_url(const string &name,
       url += type.get_color_hex_string();
       return url;
     case BackgroundType::Type::Gradient:
-      url += type.get_color_hex_string() + '-' + BackgroundType::get_color_hex_string(type.intensity);
+      url += type.gradient.get_colors_hex_string();
       return url;
     default:
       UNREACHABLE();
@@ -449,7 +449,7 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
     if (have_hyphen) {
       int32 top_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(0, hyphen_pos)));
       int32 bottom_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(hyphen_pos + 1)));
-      background_id = add_gradient_background(top_color, bottom_color);
+      background_id = add_gradient_background(GradientInfo(top_color, bottom_color));
     } else {
       int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
       background_id = add_solid_background(color);
@@ -556,25 +556,25 @@ BackgroundId BackgroundManager::add_solid_background(int32 color, bool is_defaul
   return background_id;
 }
 
-BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 bottom_color) {
-  return add_gradient_background(top_color, bottom_color, false,
-                                 (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0);
+BackgroundId BackgroundManager::add_gradient_background(const GradientInfo &gradient_info) {
+  return add_gradient_background(
+      gradient_info, false, (gradient_info.top_color & 0x808080) == 0 && (gradient_info.bottom_color & 0x808080) == 0);
 }
 
-BackgroundId BackgroundManager::add_gradient_background(int32 top_color, int32 bottom_color, bool is_default,
+BackgroundId BackgroundManager::add_gradient_background(const GradientInfo &gradient_info, bool is_default,
                                                         bool is_dark) {
-  CHECK(0 <= top_color && top_color < 0x1000000);
-  CHECK(0 <= bottom_color && bottom_color < 0x1000000);
-  BackgroundId background_id((static_cast<int64>(top_color) << 24) + bottom_color + 1);
+  CHECK(0 <= gradient_info.top_color && gradient_info.top_color < 0x1000000);
+  CHECK(0 <= gradient_info.bottom_color && gradient_info.bottom_color < 0x1000000);
+  BackgroundId background_id((static_cast<int64>(gradient_info.top_color) << 24) + gradient_info.bottom_color +
+                             (1 << 24) + 1);
 
   Background background;
   background.id = background_id;
   background.is_creator = true;
   background.is_default = is_default;
   background.is_dark = is_dark;
-  background.type = BackgroundType(top_color, bottom_color);
-  background.name =
-      BackgroundType::get_color_hex_string(top_color) + "-" + BackgroundType::get_color_hex_string(bottom_color);
+  background.type = BackgroundType(gradient_info);
+  background.name = gradient_info.get_colors_hex_string();
   add_background(background);
 
   return background_id;
@@ -605,7 +605,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
     return background_id;
   }
   if (type.type == BackgroundType::Type::Gradient) {
-    auto background_id = add_gradient_background(type.color, type.intensity);
+    auto background_id = add_gradient_background(type.gradient);
     if (set_background_id_[for_dark_theme] != background_id) {
       set_background_id(background_id, type, for_dark_theme);
     }
@@ -969,7 +969,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     auto is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
 
     if ((settings->flags_ & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-      return add_gradient_background(color, settings->second_background_color_, is_default, is_dark);
+      return add_gradient_background(GradientInfo(color, settings->second_background_color_), is_default, is_dark);
     } else {
       return add_solid_background(color, is_default, is_dark);
     }
@@ -984,7 +984,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   if (expected_background_id.is_valid() && id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
   }
-  if (wallpaper->slug_.size() <= 13 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000000000000)) {
+  if (wallpaper->slug_.size() <= 13 || (0 < wallpaper->id_ && wallpaper->id_ <= 0x1000001000000)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }

@@ -108,9 +108,9 @@ class BackgroundManager : public Actor {
 
   BackgroundId add_solid_background(int32 color, bool is_default, bool is_dark);
 
-  BackgroundId add_gradient_background(int32 top_color, int32 bottom_color);
+  BackgroundId add_gradient_background(const GradientInfo &gradient_info);
 
-  BackgroundId add_gradient_background(int32 top_color, int32 bottom_color, bool is_default, bool is_dark);
+  BackgroundId add_gradient_background(const GradientInfo &gradient_info, bool is_default, bool is_dark);
 
   void add_background(const Background &background);
 

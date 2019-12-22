@@ -15,6 +15,19 @@
 
 namespace td {
 
+string get_color_hex_string(int32 color);
+
+struct GradientInfo {
+  int32 top_color = 0;
+  int32 bottom_color = 0;
+
+  GradientInfo() = default;
+  GradientInfo(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
+  }
+
+  string get_colors_hex_string() const;
+};
+
 struct BackgroundType {
   enum class Type : int32 { Wallpaper, Pattern, Solid, Gradient };
   Type type = Type::Solid;
@@ -22,6 +35,7 @@ struct BackgroundType {
   bool is_moving = false;
   int32 color = 0;
   int32 intensity = 0;
+  GradientInfo gradient;
 
   BackgroundType() = default;
   BackgroundType(bool is_blurred, bool is_moving)
@@ -32,13 +46,10 @@ struct BackgroundType {
   }
   explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
   }
-  BackgroundType(int32 top_color, int32 bottom_color)
-      : type(Type::Gradient), color(top_color), intensity(bottom_color) {
+  BackgroundType(GradientInfo gradient) : type(Type::Gradient), gradient(gradient) {
   }
 
   string get_color_hex_string() const;
-
-  static string get_color_hex_string(int32 color);
 };
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);

@@ -13,6 +13,22 @@
 namespace td {
 
 template <class StorerT>
+void store(const GradientInfo &gradient, StorerT &storer) {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  store(gradient.top_color, storer);
+  store(gradient.bottom_color, storer);
+}
+
+template <class ParserT>
+void parse(GradientInfo &gradient, ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  parse(gradient.top_color, parser);
+  parse(gradient.bottom_color, parser);
+}
+
+template <class StorerT>
 void store(const BackgroundType &type, StorerT &storer) {
   bool has_color = type.color != 0;
   bool has_intensity = type.intensity != 0;
@@ -28,6 +44,9 @@ void store(const BackgroundType &type, StorerT &storer) {
   }
   if (has_intensity) {
     store(type.intensity, storer);
+  }
+  if (type.type == BackgroundType::Type::Gradient) {
+    store(type.gradient, storer);
   }
 }
 
@@ -47,6 +66,9 @@ void parse(BackgroundType &type, ParserT &parser) {
   }
   if (has_intensity) {
     parse(type.intensity, parser);
+  }
+  if (type.type == BackgroundType::Type::Gradient) {
+    parse(type.gradient, parser);
   }
 }
 
