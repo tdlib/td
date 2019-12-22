@@ -325,8 +325,7 @@ void BackgroundManager::start_up() {
       log_event_parse(logevent, logevent_string).ensure();
 
       CHECK(logevent.background_.id.is_valid());
-      bool needs_file_id = (logevent.background_.type.type != BackgroundType::Type::Solid &&
-                            logevent.background_.type.type != BackgroundType::Type::Gradient);
+      bool needs_file_id = logevent.background_.type.type != BackgroundType::Type::Fill;
       if (logevent.background_.file_id.is_valid() != needs_file_id) {
         LOG(ERROR) << "Failed to load " << logevent.background_.id << " of " << logevent.background_.type;
         G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
@@ -417,15 +416,17 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
         hyphen_pos = i;
       }
     }
-    BackgroundId background_id;
+
+    BackgroundFill fill;
     if (have_hyphen) {
       int32 top_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(0, hyphen_pos)));
       int32 bottom_color = static_cast<int32>(hex_to_integer<uint32>(name.substr(hyphen_pos + 1)));
-      background_id = add_gradient_background(GradientInfo(top_color, bottom_color));
+      fill = BackgroundFill(top_color, bottom_color);
     } else {
       int32 color = static_cast<int32>(hex_to_integer<uint32>(name));
-      background_id = add_solid_background(color);
+      fill = BackgroundFill(color);
     }
+    auto background_id = add_fill_background(fill);
     promise.set_value(Unit());
     return background_id;
   }
@@ -463,8 +464,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
     LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
     Background background;
     auto status = log_event_parse(background, value);
-    if (status.is_error() || background.type.type == BackgroundType::Type::Solid ||
-        background.type.type == BackgroundType::Type::Gradient || !background.file_id.is_valid() ||
+    if (status.is_error() || background.type.type == BackgroundType::Type::Fill || !background.file_id.is_valid() ||
         !background.id.is_valid()) {
       LOG(ERROR) << "Can't load background " << name << ": " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     } else {
@@ -508,44 +508,23 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
   return std::move(file_id);
 }
 
-BackgroundId BackgroundManager::add_solid_background(int32 color) {
-  return add_solid_background(color, false, (color & 0x808080) == 0);
+BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill) {
+  return add_fill_background(fill, false, (fill.top_color & 0x808080) == 0 && (fill.bottom_color & 0x808080) == 0);
 }
 
-BackgroundId BackgroundManager::add_solid_background(int32 color, bool is_default, bool is_dark) {
-  CHECK(0 <= color && color < 0x1000000);
-  BackgroundId background_id(static_cast<int64>(color) + 1);
+BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark) {
+  CHECK(0 <= fill.top_color && fill.top_color < 0x1000000);
+  CHECK(0 <= fill.bottom_color && fill.bottom_color < 0x1000000);
+  int64 id = fill.is_solid() ? static_cast<int64>(fill.top_color) + 1
+                             : (static_cast<int64>(fill.top_color) << 24) + fill.bottom_color + (1 << 24) + 1;
+  BackgroundId background_id(id);
 
   Background background;
   background.id = background_id;
   background.is_creator = true;
   background.is_default = is_default;
   background.is_dark = is_dark;
-  background.type = BackgroundType(color);
-  background.name = background.type.get_link();
-  add_background(background);
-
-  return background_id;
-}
-
-BackgroundId BackgroundManager::add_gradient_background(const GradientInfo &gradient_info) {
-  return add_gradient_background(
-      gradient_info, false, (gradient_info.top_color & 0x808080) == 0 && (gradient_info.bottom_color & 0x808080) == 0);
-}
-
-BackgroundId BackgroundManager::add_gradient_background(const GradientInfo &gradient_info, bool is_default,
-                                                        bool is_dark) {
-  CHECK(0 <= gradient_info.top_color && gradient_info.top_color < 0x1000000);
-  CHECK(0 <= gradient_info.bottom_color && gradient_info.bottom_color < 0x1000000);
-  BackgroundId background_id((static_cast<int64>(gradient_info.top_color) << 24) + gradient_info.bottom_color +
-                             (1 << 24) + 1);
-
-  Background background;
-  background.id = background_id;
-  background.is_creator = true;
-  background.is_default = is_default;
-  background.is_dark = is_dark;
-  background.type = BackgroundType(gradient_info);
+  background.type = BackgroundType(fill);
   background.name = background.type.get_link();
   add_background(background);
 
@@ -568,16 +547,8 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
   }
 
   auto type = r_type.move_as_ok();
-  if (type.type == BackgroundType::Type::Solid) {
-    auto background_id = add_solid_background(type.color);
-    if (set_background_id_[for_dark_theme] != background_id) {
-      set_background_id(background_id, type, for_dark_theme);
-    }
-    promise.set_value(Unit());
-    return background_id;
-  }
-  if (type.type == BackgroundType::Type::Gradient) {
-    auto background_id = add_gradient_background(type.gradient);
+  if (type.type == BackgroundType::Type::Fill) {
+    auto background_id = add_fill_background(type.fill);
     if (set_background_id_[for_dark_theme] != background_id) {
       set_background_id(background_id, type, for_dark_theme);
     }
@@ -895,7 +866,7 @@ void BackgroundManager::add_background(const Background &background) {
     file_id_to_background_id_.emplace(result->file_id, result->id);
   } else {
     // if file_source_id is valid, then this is a new background with result->file_id == FileId()
-    // then background.file_id == FileId(), then this is a solid or a gradient background, which can't have file_source_id
+    // then background.file_id == FileId(), then this is a fill background, which can't have file_source_id
     CHECK(!file_source_id.is_valid());
   }
 }
@@ -941,11 +912,11 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     auto is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
     auto is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
 
+    BackgroundFill fill = BackgroundFill(color);
     if ((settings->flags_ & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-      return add_gradient_background(GradientInfo(color, settings->second_background_color_), is_default, is_dark);
-    } else {
-      return add_solid_background(color, is_default, is_dark);
+      fill = BackgroundFill(color, settings->second_background_color_);
     }
+    return add_fill_background(fill, is_default, is_dark);
   }
 
   auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);

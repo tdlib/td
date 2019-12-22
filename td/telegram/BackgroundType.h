@@ -15,12 +15,14 @@
 
 namespace td {
 
-struct GradientInfo {
+struct BackgroundFill {
   int32 top_color = 0;
   int32 bottom_color = 0;
 
-  GradientInfo() = default;
-  GradientInfo(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
+  BackgroundFill() = default;
+  explicit BackgroundFill(int32 solid_color) : top_color(solid_color), bottom_color(solid_color) {
+  }
+  BackgroundFill(int32 top_color, int32 bottom_color) : top_color(top_color), bottom_color(bottom_color) {
   }
 
   bool is_solid() const {
@@ -28,28 +30,24 @@ struct GradientInfo {
   }
 };
 
-bool operator==(const GradientInfo &lhs, const GradientInfo &rhs);
+bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
 
 struct BackgroundType {
-  enum class Type : int32 { Wallpaper, Pattern, Solid, Gradient };
-  Type type = Type::Solid;
+  enum class Type : int32 { Wallpaper, Pattern, Fill };
+  Type type = Type::Fill;
   bool is_blurred = false;
   bool is_moving = false;
-  int32 color = 0;
   int32 intensity = 0;
-  GradientInfo gradient;
+  BackgroundFill fill;
 
   BackgroundType() = default;
   BackgroundType(bool is_blurred, bool is_moving)
       : type(Type::Wallpaper), is_blurred(is_blurred), is_moving(is_moving) {
   }
   BackgroundType(bool is_moving, int32 color, int32 intensity)
-      : type(Type::Pattern), is_moving(is_moving), color(color), intensity(intensity) {
+      : type(Type::Pattern), is_moving(is_moving), fill(color), intensity(intensity) {
   }
-  explicit BackgroundType(int32 color) : type(Type::Solid), color(color) {
-  }
-  BackgroundType(GradientInfo gradient)
-      : type(gradient.is_solid() ? Type::Solid : Type::Gradient), color(gradient.top_color), gradient(gradient) {
+  BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
   }
 
   bool is_server() const {

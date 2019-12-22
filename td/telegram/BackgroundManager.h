@@ -104,13 +104,9 @@ class BackgroundManager : public Actor {
 
   void send_update_selected_background(bool for_dark_theme) const;
 
-  BackgroundId add_solid_background(int32 color);
+  BackgroundId add_fill_background(const BackgroundFill &fill);
 
-  BackgroundId add_solid_background(int32 color, bool is_default, bool is_dark);
-
-  BackgroundId add_gradient_background(const GradientInfo &gradient_info);
-
-  BackgroundId add_gradient_background(const GradientInfo &gradient_info, bool is_default, bool is_dark);
+  BackgroundId add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark);
 
   void add_background(const Background &background);
 
