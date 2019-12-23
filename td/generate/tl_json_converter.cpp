@@ -33,14 +33,13 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
   sb << "  auto jo = jv.enter_object();\n";
   sb << "  jo(\"@type\", \"" << tl::simple::gen_cpp_name(constructor->name) << "\");\n";
   for (auto &arg : constructor->args) {
-    auto field = tl::simple::gen_cpp_field_name(arg.name);
-    // TODO: or as null
+    auto field_name = tl::simple::gen_cpp_field_name(arg.name);
     bool is_custom = arg.type->type == tl::simple::Type::Custom;
 
+    auto object = PSTRING() << "object." << field_name;
     if (is_custom) {
-      sb << "  if (object." << field << ") {\n  ";
+      sb << "  if (" << object << ") {\n  ";
     }
-    auto object = PSTRING() << "object." << tl::simple::gen_cpp_field_name(arg.name);
     if (arg.type->type == tl::simple::Type::Bytes) {
       object = PSTRING() << "base64_encode(" << object << ")";
     } else if (arg.type->type == tl::simple::Type::Bool) {
@@ -51,8 +50,9 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
                arg.type->vector_value_type->type == tl::simple::Type::Int64) {
       object = PSTRING() << "JsonVectorInt64{" << object << "}";
     }
-    if (arg.type->type == tl::simple::Type::Int64 || arg.type->type == tl::simple::Type::Vector ||
-        arg.type->type == tl::simple::Type::Custom) {
+    if (is_custom) {
+      sb << "  jo(\"" << arg.name << "\", ToJson(*" << object << "));\n";
+    } else if (arg.type->type == tl::simple::Type::Int64 || arg.type->type == tl::simple::Type::Vector) {
       sb << "  jo(\"" << arg.name << "\", ToJson(" << object << "));\n";
     } else {
       sb << "  jo(\"" << arg.name << "\", " << object << ");\n";
