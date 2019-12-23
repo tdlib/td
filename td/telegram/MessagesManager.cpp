@@ -11098,6 +11098,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     edit_date = 0;
   }
 
+  if (hide_edit_date && td_->auth_manager_->is_bot()) {
+    hide_edit_date = false;
+  }
+
   int32 ttl = message_info.ttl;
   auto content_type = message_info.content->get_type();
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // should be calculated before TTL is adjusted
