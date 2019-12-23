@@ -1065,11 +1065,11 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 void StickersManager::start_up() {
   // add animated emoji sticker set
   if (G()->is_test_dc()) {
-    animated_emoji_sticker_set_id_ = StickerSetId(1258816259751954);
+    animated_emoji_sticker_set_id_ = StickerSetId(td::int64(1258816259751954));
     animated_emoji_sticker_set_access_hash_ = 4879754868529595811;
     animated_emoji_sticker_set_name_ = "emojies";
   } else {
-    animated_emoji_sticker_set_id_ = StickerSetId(1258816259751983);
+    animated_emoji_sticker_set_id_ = StickerSetId(td::int64(1258816259751983));
     animated_emoji_sticker_set_access_hash_ = 5100237018658464041;
     animated_emoji_sticker_set_name_ = "animatedemojies";
   }
