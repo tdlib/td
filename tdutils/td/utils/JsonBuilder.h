@@ -301,6 +301,13 @@ class JsonScope {
   JsonScope &operator<<(double x) {
     return *this << JsonFloat(x);
   }
+  template <size_t N>
+  JsonScope &operator<<(const char (&x)[N]) {
+    return *this << JsonString(Slice(x));
+  }
+  JsonScope &operator<<(const char *x) {
+    return *this << JsonString(Slice(x));
+  }
   JsonScope &operator<<(Slice x) {
     return *this << JsonString(x);
   }
