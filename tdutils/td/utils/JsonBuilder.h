@@ -289,9 +289,7 @@ class JsonScope {
     *sb_ << x;
     return *this;
   }
-  JsonScope &operator<<(bool x) {
-    return *this << JsonBool(x);
-  }
+  JsonScope &operator<<(bool x) = delete;
   JsonScope &operator<<(int32 x) {
     return *this << JsonInt(x);
   }

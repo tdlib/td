@@ -30,6 +30,7 @@ struct JsonInt64 {
 inline void to_json(JsonValueScope &jv, const JsonInt64 json_int64) {
   jv << JsonString(PSLICE() << json_int64.value);
 }
+
 struct JsonVectorInt64 {
   const std::vector<int64> &value;
 };

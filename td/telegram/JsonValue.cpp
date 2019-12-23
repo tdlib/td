@@ -148,7 +148,7 @@ class JsonableJsonValue : public Jsonable {
         *scope << JsonNull();
         break;
       case td_api::jsonValueBoolean::ID:
-        *scope << static_cast<const td_api::jsonValueBoolean *>(json_value_)->value_;
+        *scope << JsonBool(static_cast<const td_api::jsonValueBoolean *>(json_value_)->value_);
         break;
       case td_api::jsonValueNumber::ID:
         *scope << static_cast<const td_api::jsonValueNumber *>(json_value_)->value_;
