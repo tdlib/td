@@ -10954,11 +10954,13 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (is_scheduled) {
         is_content_read = false;
       }
+      auto new_source = PSTRING() << FullMessageId(message_info.dialog_id, message_info.message_id) << " from "
+                                  << source;
       message_info.content = get_message_content(
           td_,
           get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
                            true, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
-                           "parse_telegram_api_message"),
+                           new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
           &message_info.ttl);
       message_info.reply_markup =

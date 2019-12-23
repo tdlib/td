@@ -2670,11 +2670,14 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                bool skip_new_entities, int32 send_date, const char *source) {
   auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
+  auto debug_message_text = message_text;
+  auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
     if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message from " << source << " with content \""
-                 << message_text << "\" sent at " << send_date << " with entities " << format::as_array(entities);
+      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " with content \""
+                 << debug_message_text << "\" -> \"" << message_text << "\" sent at " << send_date << " with entities "
+                 << format::as_array(debug_entities) << " -> " << format::as_array(entities);
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();
