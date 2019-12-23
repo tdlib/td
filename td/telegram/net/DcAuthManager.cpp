@@ -18,7 +18,6 @@
 
 #include "td/telegram/telegram_api.h"
 
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 

@@ -11,7 +11,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 
-#include <tuple>
 #include <utility>
 
 REGISTER_TESTS(json)

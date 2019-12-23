@@ -57,7 +57,7 @@ struct BackgroundType {
   BackgroundType(bool is_moving, const BackgroundFill &fill, int32 intensity)
       : type(Type::Pattern), is_moving(is_moving), intensity(intensity), fill(fill) {
   }
-  BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
+  explicit BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
   }
 
   bool is_server() const {

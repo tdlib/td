@@ -7,6 +7,7 @@
 #include "td/telegram/BackgroundType.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

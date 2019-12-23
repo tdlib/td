@@ -18,6 +18,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

@@ -23,7 +23,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
-#include "td/telegram/UniqueId.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -31,6 +30,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
@@ -488,7 +488,7 @@ void AuthManager::on_request_qr_code_result(NetQueryPtr &result, bool is_import)
   if (query_id_ != 0) {
     on_query_error(std::move(status));
   } else {
-    login_code_retry_delay_ = td::clamp(2 * login_code_retry_delay_, 1, 60);
+    login_code_retry_delay_ = clamp(2 * login_code_retry_delay_, 1, 60);
     set_login_token_expires_at(Time::now() + login_code_retry_delay_);
   }
 }
@@ -574,7 +574,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     }
   } else if (was_qr_code_request_) {
     imported_dc_id_ = -1;
-    login_code_retry_delay_ = td::clamp(2 * login_code_retry_delay_, 1, 60);
+    login_code_retry_delay_ = clamp(2 * login_code_retry_delay_, 1, 60);
     set_login_token_expires_at(Time::now() + login_code_retry_delay_);
     return;
   } else {
