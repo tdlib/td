@@ -6420,7 +6420,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (have_access_hash) {  // access_hash must be updated before photo
     auto access_hash = user->access_hash_;
     bool is_min_access_hash = !is_received && ((flags & USER_FLAG_HAS_PHONE_NUMBER) == 0);
-    if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash)) {
+    if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash || u->access_hash == -1)) {
       LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << "/"
                  << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
       u->access_hash = access_hash;
