@@ -9873,9 +9873,9 @@ void ContactsManager::remove_linked_channel_id(ChannelId channel_id) {
 
   auto it = linked_channel_ids_.find(channel_id);
   if (it != linked_channel_ids_.end()) {
-    auto channel_id = it->second;
+    auto linked_channel_id = it->second;
     linked_channel_ids_.erase(it);
-    linked_channel_ids_.erase(channel_id);
+    linked_channel_ids_.erase(linked_channel_id);
   }
 }
 
