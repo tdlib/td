@@ -50,6 +50,8 @@ namespace {
 constexpr int64 MAX_FILE_SIZE = 1500 * (1 << 20) /* 1500MB */;
 }  // namespace
 
+int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+
 StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource source) {
   switch (source) {
     case FileLocationSource::None:
@@ -62,6 +64,30 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource sour
       return string_builder << "Database";
     case FileLocationSource::FromServer:
       return string_builder << "Server";
+    default:
+      UNREACHABLE();
+      return string_builder << "Unknown";
+  }
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, FileManager::Query::Type type) {
+  switch (type) {
+    case FileManager::Query::Type::UploadByHash:
+      return string_builder << "UploadByHash";
+    case FileManager::Query::Type::UploadWaitFileReference:
+      return string_builder << "UploadWaitFileReference";
+    case FileManager::Query::Type::Upload:
+      return string_builder << "Upload";
+    case FileManager::Query::Type::DownloadWaitFileReferece:
+      return string_builder << "DownloadWaitFileReferece";
+    case FileManager::Query::Type::DownloadReloadDialog:
+      return string_builder << "DownloadReloadDialog";
+    case FileManager::Query::Type::Download:
+      return string_builder << "Download";
+    case FileManager::Query::Type::SetContent:
+      return string_builder << "SetContent";
+    case FileManager::Query::Type::Generate:
+      return string_builder << "Generate";
     default:
       UNREACHABLE();
       return string_builder << "Unknown";
@@ -91,8 +117,6 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
   }
   return {};
 }
-
-int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
 
 FileNode *FileNodePtr::operator->() const {
   return get();
@@ -1859,7 +1883,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
 
   node->set_download_priority(FROM_BYTES_PRIORITY);
 
-  QueryId id = queries_container_.create(Query{file_id, Query::SetContent});
+  QueryId id = queries_container_.create(Query{file_id, Query::Type::SetContent});
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full.value().file_type_,
@@ -2125,7 +2149,7 @@ void FileManager::run_download(FileNodePtr node) {
 
   if (node->need_reload_photo_ && file_view.may_reload_photo()) {
     LOG(INFO) << "Reload photo from file " << node->main_file_id_;
-    QueryId id = queries_container_.create(Query{file_id, Query::DownloadReloadDialog});
+    QueryId id = queries_container_.create(Query{file_id, Query::Type::DownloadReloadDialog});
     node->download_id_ = id;
     context_->reload_photo(file_view.remote_location().get_source(),
                            PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
@@ -2146,7 +2170,7 @@ void FileManager::run_download(FileNodePtr node) {
   // If file reference is needed
   if (!file_view.has_active_download_remote_location()) {
     VLOG(file_references) << "Do not have valid file_reference for file " << file_id;
-    QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
+    QueryId id = queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->download_was_update_file_reference_) {
       on_error(id, Status::Error("Can't download file: have no valid file reference"));
@@ -2168,7 +2192,7 @@ void FileManager::run_download(FileNodePtr node) {
     return;
   }
 
-  QueryId id = queries_container_.create(Query{file_id, Query::Download});
+  QueryId id = queries_container_.create(Query{file_id, Query::Type::Download});
   node->download_id_ = id;
   node->is_download_started_ = false;
   LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
@@ -2511,7 +2535,7 @@ void FileManager::run_generate(FileNodePtr node) {
     return;
   }
 
-  QueryId id = queries_container_.create(Query{file_id, Query::Generate});
+  QueryId id = queries_container_.create(Query{file_id, Query::Type::Generate});
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
                node->suggested_name(), [file_manager = this, id] {
@@ -2612,7 +2636,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   if (file_view.has_alive_remote_location() && !file_view.has_active_upload_remote_location() &&
       file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
       file_view.get_type() != FileType::Background) {
-    QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
+    QueryId id = queries_container_.create(Query{file_id, Query::Type::UploadWaitFileReference});
     node->upload_id_ = id;
     if (node->upload_was_update_file_reference_) {
       on_error(id, Status::Error("Can't upload file: have no valid file reference"));
@@ -2629,7 +2653,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
   if (!node->remote_.partial && node->get_by_hash_) {
     LOG(INFO) << "Get file " << node->main_file_id_ << " by hash";
-    QueryId id = queries_container_.create(Query{file_id, Query::UploadByHash});
+    QueryId id = queries_container_.create(Query{file_id, Query::Type::UploadByHash});
     node->upload_id_ = id;
 
     send_closure(file_load_manager_, &FileLoadManager::upload_by_hash, id, node->local_.full(), node->size_,
@@ -2640,7 +2664,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
   td::remove_if(bad_parts, [](auto part_id) { return part_id < 0; });
 
-  QueryId id = queries_container_.create(Query{file_id, Query::Upload});
+  QueryId id = queries_container_.create(Query{file_id, Query::Type::Upload});
   node->upload_id_ = id;
   send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_.partial_or_empty(),
                file_view.expected_size(true), node->encryption_key_, new_priority, std::move(bad_parts));
@@ -3427,7 +3451,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
     return;
   }
 
-  if (query.type_ == Query::UploadByHash && !G()->close_flag()) {
+  if (query.type_ == Query::Type::UploadByHash && !G()->close_flag()) {
     LOG(INFO) << "Upload By Hash failed: " << status << ", restart upload";
     node->get_by_hash_ = false;
     run_upload(node, {});
@@ -3436,7 +3460,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
   on_error_impl(node, query.type_, was_active, std::move(status));
 }
 
-void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type, bool was_active, Status status) {
+void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status) {
   SCOPE_EXIT {
     try_flush_node(node, "on_error");
   };

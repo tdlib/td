@@ -485,12 +485,14 @@ class FileManager : public FileLoadManager::Callback {
                                bool force);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
+
   using FileNodeId = int32;
+
   using QueryId = FileLoadManager::QueryId;
   class Query {
    public:
     FileId file_id_;
-    enum Type : int32 {
+    enum class Type : int32 {
       UploadByHash,
       UploadWaitFileReference,
       Upload,
@@ -501,6 +503,9 @@ class FileManager : public FileLoadManager::Callback {
       Generate
     } type_;
   };
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, Query::Type type);
+
   struct FileIdInfo {
     FileNodeId node_id_{0};
     bool send_updates_flag_{false};
