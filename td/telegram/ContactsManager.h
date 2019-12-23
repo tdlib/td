@@ -1102,6 +1102,9 @@ class ContactsManager : public Actor {
   void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                            vector<UserId> &&bot_user_ids);
 
+  void remove_linked_channel_id(ChannelId channel_id);
+  ChannelId get_linked_channel_id(ChannelId channel_id) const;
+
   static bool speculative_add_count(int32 &count, int32 new_count);
 
   void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
@@ -1419,6 +1422,8 @@ class ContactsManager : public Actor {
 
   vector<DialogNearby> users_nearby_;
   vector<DialogNearby> channels_nearby_;
+
+  std::unordered_map<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
   std::unordered_set<UserId, UserIdHash> restricted_user_ids_;
   std::unordered_set<ChannelId, ChannelIdHash> restricted_channel_ids_;

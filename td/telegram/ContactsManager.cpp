@@ -3722,9 +3722,9 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
       return true;
     }
     if (!from_linked && c->has_linked_channel) {
-      auto channel_full = get_channel_full(channel_id);
-      if (channel_full == nullptr || have_input_peer_channel(get_channel(channel_full->linked_channel_id),
-                                                             channel_full->linked_channel_id, access_rights, true)) {
+      auto linked_channel_id = get_linked_channel_id(channel_id);
+      if (linked_channel_id.is_valid() &&
+          have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
         return true;
       }
     }
@@ -9866,8 +9866,42 @@ void ContactsManager::on_update_channel_full_invite_link(
   }
 }
 
+void ContactsManager::remove_linked_channel_id(ChannelId channel_id) {
+  if (!channel_id.is_valid()) {
+    return;
+  }
+
+  auto it = linked_channel_ids_.find(channel_id);
+  if (it != linked_channel_ids_.end()) {
+    auto channel_id = it->second;
+    linked_channel_ids_.erase(it);
+    linked_channel_ids_.erase(channel_id);
+  }
+}
+
+ChannelId ContactsManager::get_linked_channel_id(ChannelId channel_id) const {
+  auto channel_full = get_channel_full(channel_id);
+  if (channel_full != nullptr) {
+    return channel_full->linked_channel_id;
+  }
+
+  auto it = linked_channel_ids_.find(channel_id);
+  if (it != linked_channel_ids_.end()) {
+    return it->second;
+  }
+
+  return ChannelId();
+}
+
 void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                                ChannelId linked_channel_id) {
+  remove_linked_channel_id(channel_id);
+  remove_linked_channel_id(linked_channel_id);
+  if (channel_id.is_valid() && linked_channel_id.is_valid()) {
+    linked_channel_ids_[channel_id] = linked_channel_id;
+    linked_channel_ids_[linked_channel_id] = channel_id;
+  }
+
   if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id) {
     if (channel_full->linked_channel_id.is_valid()) {
       // remove link from a previously linked channel_full
