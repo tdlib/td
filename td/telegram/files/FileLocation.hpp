@@ -68,7 +68,9 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
   using td::store;
-  store(key.id_, storer);
+  if (!is_unique) {
+    store(key.id_, storer);
+  }
   store(key.volume_id_, storer);
   store(key.local_id_, storer);
 }
@@ -207,7 +209,7 @@ void FullRemoteFileLocation::AsKey::store(StorerT &storer) const {
   store(key.key_type(), storer);
   key.variant_.visit([&](auto &&value) {
     using td::store;
-    store(value.as_key(), storer);
+    store(value.as_key(false), storer);
   });
 }
 
@@ -252,7 +254,7 @@ void FullRemoteFileLocation::AsUnique::store(StorerT &storer) const {
   store(type, storer);
   key.variant_.visit([&](auto &&value) {
     using td::store;
-    store(value.as_key(), storer);
+    store(value.as_key(true), storer);
   });
 }
 

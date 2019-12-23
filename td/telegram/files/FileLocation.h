@@ -92,12 +92,13 @@ struct PhotoRemoteFileLocation {
 
   struct AsKey {
     const PhotoRemoteFileLocation &key;
+    bool is_unique;
 
     template <class StorerT>
     void store(StorerT &storer) const;
   };
-  AsKey as_key() const {
-    return AsKey{*this};
+  AsKey as_key(bool is_unique) const {
+    return AsKey{*this, is_unique};
   }
 
   bool operator<(const PhotoRemoteFileLocation &other) const {
@@ -128,7 +129,7 @@ struct WebRemoteFileLocation {
     template <class StorerT>
     void store(StorerT &storer) const;
   };
-  AsKey as_key() const {
+  AsKey as_key(bool /*is_unique*/) const {
     return AsKey{*this};
   }
 
@@ -159,7 +160,7 @@ struct CommonRemoteFileLocation {
     template <class StorerT>
     void store(StorerT &storer) const;
   };
-  AsKey as_key() const {
+  AsKey as_key(bool /*is_unique*/) const {
     return AsKey{*this};
   }
 
