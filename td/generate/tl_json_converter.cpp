@@ -51,7 +51,12 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
                arg.type->vector_value_type->type == tl::simple::Type::Int64) {
       object = PSTRING() << "JsonVectorInt64{" << object << "}";
     }
-    sb << "  jo(\"" << arg.name << "\", ToJson(" << object << "));\n";
+    if (arg.type->type == tl::simple::Type::Int64 || arg.type->type == tl::simple::Type::Vector ||
+        arg.type->type == tl::simple::Type::Custom) {
+      sb << "  jo(\"" << arg.name << "\", ToJson(" << object << "));\n";
+    } else {
+      sb << "  jo(\"" << arg.name << "\", " << object << ");\n";
+    }
     if (is_custom) {
       sb << "  }\n";
     }
