@@ -923,6 +923,11 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
 
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager != nullptr && auth_manager->is_bot()) {
+    return promise.set_value(nullptr);
+  }
+
   get_app_config_queries_.push_back(std::move(promise));
   if (get_app_config_queries_.size() == 1) {
     G()->net_query_dispatcher().dispatch_with_callback(
