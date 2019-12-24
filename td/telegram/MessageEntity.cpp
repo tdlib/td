@@ -1471,7 +1471,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
       continue;
     }
 
-    Slice reserved_characters("_*[]()~`>#+=|{}.!");
+    Slice reserved_characters("_*[]()~`>#+-=|{}.!");
     if (!nested_entities.empty()) {
       switch (nested_entities.back().type) {
         case MessageEntity::Type::Code:

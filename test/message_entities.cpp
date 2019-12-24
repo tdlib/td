@@ -872,7 +872,7 @@ static void check_parse_markdown(td::string text, td::Slice error_message) {
 }
 
 TEST(MessageEntities, parse_markdown) {
-  td::Slice reserved_characters("]()>#+=|{}.!");
+  td::Slice reserved_characters("]()>#+-=|{}.!");
   td::Slice begin_characters("_*[~`");
   for (char c = 1; c < 126; c++) {
     if (begin_characters.find(c) != td::Slice::npos) {
