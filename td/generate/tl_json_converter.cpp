@@ -224,10 +224,15 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
   sb << "namespace td {\n";
   sb << "namespace td_api {\n";
   if (is_header) {
+    sb << "\nStatus from_json(tl_object_ptr<Function> &to, td::JsonValue from);\n";
     sb << "\nvoid to_json(JsonValueScope &jv, const Object &object);\n";
     sb << "\nvoid to_json(JsonValueScope &jv, const Function &object);\n\n";
   } else {
     sb << R"ABCD(
+Status from_json(tl_object_ptr<Function> &to, td::JsonValue from) {
+  return td::from_json(to, std::move(from));
+}
+
 template <class T>
 auto lazy_to_json(JsonValueScope &jv, const T &t) -> decltype(td_api::to_json(jv, t)) {
   return td_api::to_json(jv, t);

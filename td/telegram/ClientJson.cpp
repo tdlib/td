@@ -9,8 +9,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api_json.h"
 
-#include "td/tl/tl_json.h"
-
 #include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
