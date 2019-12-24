@@ -218,10 +218,36 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
     sb << "#include \"td/utils/common.h\"\n";
     sb << "#include \"td/utils/Slice.h\"\n\n";
 
+    sb << "#include <functional>\n";
     sb << "#include <unordered_map>\n\n";
   }
   sb << "namespace td {\n";
-  sb << "namespace td_api{\n\n";
+  sb << "namespace td_api {\n";
+  if (is_header) {
+    sb << "\nvoid to_json(JsonValueScope &jv, const Object &object);\n";
+    sb << "\nvoid to_json(JsonValueScope &jv, const Function &object);\n\n";
+  } else {
+    sb << R"ABCD(
+template <class T>
+auto lazy_to_json(JsonValueScope &jv, const T &t) -> decltype(td_api::to_json(jv, t)) {
+  return td_api::to_json(jv, t);
+}
+
+template <class T>
+void lazy_to_json(std::reference_wrapper<JsonValueScope>, const T &t) {
+  UNREACHABLE();
+}
+
+void to_json(JsonValueScope &jv, const Object &object) {
+  downcast_call(const_cast<Object &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
+}
+
+void to_json(JsonValueScope &jv, const Function &object) {
+  downcast_call(const_cast<Function &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
+}
+
+)ABCD";
+  }
   gen_tl_constructor_from_string(sb, schema, is_header, mode);
   gen_from_json(sb, schema, is_header, mode);
   gen_to_json(sb, schema, is_header, mode);

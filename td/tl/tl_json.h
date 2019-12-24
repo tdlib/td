@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/tl/TlObject.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -15,10 +17,6 @@
 #include "td/utils/Status.h"
 #include "td/utils/tl_storers.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/td_api.hpp"
-
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -40,24 +38,6 @@ inline void to_json(JsonValueScope &jv, const JsonVectorInt64 &vec) {
   for (auto &value : vec.value) {
     ja.enter_value() << ToJson(JsonInt64{value});
   }
-}
-
-template <class T>
-auto lazy_to_json(JsonValueScope &jv, const T &t) -> decltype(td_api::to_json(jv, t)) {
-  return td_api::to_json(jv, t);
-}
-
-template <class T>
-void lazy_to_json(std::reference_wrapper<JsonValueScope>, const T &t) {
-  UNREACHABLE();
-}
-
-inline void to_json(JsonValueScope &jv, const td_api::Object &object) {
-  td_api::downcast_call(const_cast<td_api::Object &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
-}
-inline void to_json(JsonValueScope &jv, const td_api::Function &object) {
-  td_api::downcast_call(const_cast<td_api::Function &>(object),
-                        [&jv](const auto &object) { lazy_to_json(jv, object); });
 }
 
 template <class T>
