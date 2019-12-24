@@ -17341,7 +17341,7 @@ Result<int32> MessagesManager::get_message_schedule_date(
 
   switch (scheduling_state->get_id()) {
     case td_api::messageSchedulingStateSendWhenOnline::ID:
-      return int32(SCHEDULE_WHEN_ONLINE_DATE);
+      return static_cast<int32>(SCHEDULE_WHEN_ONLINE_DATE);
     case td_api::messageSchedulingStateSendAtDate::ID: {
       auto send_at_date = td_api::move_object_as<td_api::messageSchedulingStateSendAtDate>(scheduling_state);
       auto send_date = send_at_date->send_date_;
