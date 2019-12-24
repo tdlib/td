@@ -47,7 +47,7 @@ static string make_chunked(string str) {
   auto v = rand_split(str);
   string res;
   for (auto &s : v) {
-    res += PSTRING() << format::as_hex_dump(int(s.size()));
+    res += PSTRING() << format::as_hex_dump(static_cast<int32>(s.size()));
     res += "\r\n";
     res += s;
     res += "\r\n";

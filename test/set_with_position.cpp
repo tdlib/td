@@ -233,7 +233,7 @@ static void test_speed() {
   std::vector<unique_ptr<Set>> sets(total_size);
   for (size_t i = 0; i < sets.size(); i++) {
     sets[i] = make_unique<Set>();
-    sets[i]->add(int(i));
+    sets[i]->add(narrow_cast<int>(i));
   }
   for (size_t d = 1; d < sets.size(); d *= 2) {
     for (size_t i = 0; i < sets.size(); i += 2 * d) {

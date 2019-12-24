@@ -40,7 +40,7 @@ Status Socks5::wait_greeting_response() {
   auto buffer_slice = buf.read_as_buffer_slice(2);
   auto slice = buffer_slice.as_slice();
   if (slice[0] != '\x05') {
-    return Status::Error(PSLICE() << "Unsupported socks protocol version " << int(slice[0]));
+    return Status::Error(PSLICE() << "Unsupported socks protocol version " << static_cast<int>(slice[0]));
   }
   auto authentication_method = slice[1];
   if (authentication_method == '\0') {
@@ -83,7 +83,8 @@ Status Socks5::wait_password_response() {
   auto buffer_slice = buf.read_as_buffer_slice(2);
   auto slice = buffer_slice.as_slice();
   if (slice[0] != '\x01') {
-    return Status::Error(PSLICE() << "Unsupported socks subnegotiation protocol version " << int(slice[0]));
+    return Status::Error(PSLICE() << "Unsupported socks subnegotiation protocol version "
+                                  << static_cast<int>(slice[0]));
   }
   if (slice[1] != '\x00') {
     return Status::Error("Wrong username or password");
