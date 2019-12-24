@@ -442,7 +442,7 @@ class FileManager {
 
   init() {
     this.idb = new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(this.instanceName);
+      const request = indexedDB.open(this.instanceName);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
