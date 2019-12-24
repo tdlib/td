@@ -119,7 +119,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
                  int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
                  const mtproto::AuthKey &tmp_auth_key, std::vector<mtproto::ServerSalt> server_salts)
     : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
-  VLOG(dc) << "Start connection";
+  VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy);
   need_destroy_ = need_destroy;
   if (need_destroy) {
     use_pfs = false;

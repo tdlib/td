@@ -42,6 +42,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numeric>
 #include <tuple>
 #include <utility>
 
@@ -1383,6 +1384,12 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
       x_node->remote_.full.value().get_dc_id() != y_node->remote_.full.value().get_dc_id()) {
     LOG(WARNING) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
                  << x_node->remote_.full.value();
+  }
+  auto count_local = [](auto &node) {
+    return std::accumulate(node->file_ids_.begin(), node->file_ids_.end(), 0,
+                           [](const auto &x, const auto &y) { return x + (y.get_remote() != 0); });
+  };
+  if (count_local(x_node) + count_local(y_node) > 100) {
   }
 
   FileNodePtr nodes[] = {x_node, y_node, x_node};

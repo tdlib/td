@@ -71,14 +71,30 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   td_db_ = std::move(td_db_ptr);
 
   string save_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
-  auto default_time_difference = Clocks::system() - Time::now();
+  string save_system_time_str = td_db()->get_binlog_pmc()->get("system_time");
+  auto system_time = Clocks::system();
+  auto default_time_difference = system_time - Time::now();
   if (save_diff_str.empty()) {
     server_time_difference_ = default_time_difference;
     server_time_difference_was_updated_ = false;
   } else {
     double save_diff;
     unserialize(save_diff, save_diff_str).ensure();
+
+    double save_system_time;
+    if (save_system_time_str.empty()) {
+      save_system_time = 0;
+    } else {
+      unserialize(save_system_time, save_system_time_str).ensure();
+    }
+
     double diff = save_diff + default_time_difference;
+    if (save_system_time > system_time) {
+      double time_backwards_fix = save_system_time - system_time;
+      LOG(WARNING) << "Fix system time which went backwards: " << format::as_time(time_backwards_fix) << " "
+                   << tag("saved_system_time", save_system_time) << tag("system_time", system_time);
+      diff += time_backwards_fix;
+    }
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
     server_time_difference_ = diff;
     server_time_difference_was_updated_ = false;
@@ -97,8 +113,19 @@ void Global::update_server_time_difference(double diff) {
     // diff = server_time - Time::now
     // save_diff = server_time - Clocks::system
     double save_diff = diff + Time::now() - Clocks::system();
-    auto str = serialize(save_diff);
-    td_db()->get_binlog_pmc()->set("server_time_difference", str);
+
+    td_db()->get_binlog_pmc()->set("server_time_difference", serialize(save_diff));
+    save_system_time();
+  }
+}
+
+void Global::save_system_time() {
+  auto t = Time::now();
+  if (system_time_saved_at_.load(std::memory_order_relaxed) + 10 < t) {
+    system_time_saved_at_ = t;
+    double save_system_time = Clocks::system();
+    LOG(INFO) << "Save system time";
+    td_db()->get_binlog_pmc()->set("system_time", serialize(save_system_time));
   }
 }
 
