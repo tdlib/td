@@ -2583,11 +2583,11 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@max_photo_file_size Maximum size of a photo file to be auto-downloaded
 //@max_video_file_size Maximum size of a video file to be auto-downloaded
 //@max_other_file_size Maximum size of other file types to be auto-downloaded
+//@video_upload_bitrate Suggested maximum bitrate for uploaded videos
 //@preload_large_videos True, if the beginning of videos needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
-//@max_video_upload_bitrate Maximum suggested bitrate for uploaded videos
-autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int32 max_other_file_size:int32 max_video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
+autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int32 max_other_file_size:int32 video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
 
 //@description Contains auto-download settings presets for the user
 //@low Preset with lowest settings; supposed to be used by default when roaming

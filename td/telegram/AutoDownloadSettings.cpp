@@ -76,7 +76,7 @@ telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_auto_down
   }
   return telegram_api::make_object<telegram_api::autoDownloadSettings>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, settings.max_photo_file_size,
-      settings.max_video_file_size, settings.max_other_file_size, settings.max_video_upload_bitrate);
+      settings.max_video_file_size, settings.max_other_file_size, settings.video_upload_bitrate);
 }
 
 class SaveAutoDownloadSettingsQuery : public Td::ResultHandler {
@@ -119,7 +119,7 @@ AutoDownloadSettings get_auto_download_settings(const td_api::object_ptr<td_api:
   result.max_photo_file_size = settings->max_photo_file_size_;
   result.max_video_file_size = settings->max_video_file_size_;
   result.max_other_file_size = settings->max_other_file_size_;
-  result.max_video_upload_bitrate = settings->max_video_upload_bitrate_;
+  result.video_upload_bitrate = settings->video_upload_bitrate_;
   result.is_enabled = settings->is_auto_download_enabled_;
   result.preload_large_videos = settings->preload_large_videos_;
   result.preload_next_audio = settings->preload_next_audio_;
