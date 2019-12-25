@@ -24833,7 +24833,8 @@ void MessagesManager::set_dialog_participant_status(DialogId dialog_id, UserId u
 
 DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id,
                                                           bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive GetChatMember request to get " << user_id << " in " << dialog_id;
+  LOG(INFO) << "Receive GetChatMember request to get " << user_id << " in " << dialog_id << " with random_id "
+            << random_id;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return DialogParticipant();

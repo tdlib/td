@@ -11954,7 +11954,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
 DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id,
                                                            bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to get " << user_id << " as member of " << channel_id;
+  LOG(INFO) << "Trying to get " << user_id << " as member of " << channel_id << " with random_id " << random_id;
   if (random_id != 0) {
     // request has already been sent before
     auto it = received_channel_participant_.find(random_id);
@@ -11989,11 +11989,13 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   } while (random_id == 0 || received_channel_participant_.find(random_id) != received_channel_participant_.end());
   received_channel_participant_[random_id];  // reserve place for result
 
-  LOG(DEBUG) << "Get info about " << user_id << " membership in the " << channel_id;
+  LOG(DEBUG) << "Get info about " << user_id << " membership in the " << channel_id << " with random_id " << random_id;
 
   auto on_result_promise = PromiseCreator::lambda(
       [this, random_id, promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
         // ResultHandlers are cleared before managers, so it is safe to capture this
+        LOG(INFO) << "Receive a member of a channel with random_id " << random_id;
+
         auto it = received_channel_participant_.find(random_id);
         CHECK(it != received_channel_participant_.end());
 
