@@ -409,7 +409,7 @@ class Global : public ActorContext {
   std::atomic<double> dns_time_difference_{0.0};
   std::atomic<bool> dns_time_difference_was_updated_{false};
   std::atomic<bool> close_flag_{false};
-  std::atomic<double> system_time_saved_at_{0.0};
+  std::atomic<double> system_time_saved_at_{-1e10};
 
   std::vector<std::shared_ptr<NetStatsCallback>> net_stats_file_callbacks_;
 
