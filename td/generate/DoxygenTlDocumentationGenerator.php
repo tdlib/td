@@ -38,6 +38,11 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
     protected function escapeDocumentation($doc)
     {
         $doc = htmlspecialchars($doc);
+        $doc = preg_replace_callback('/&quot;((http|https|tg):\/\/[^" ]*)&quot;/',
+            function ($quoted_link)
+            {
+                return "&quot;<a href=\"".$quoted_link[1]."\">".$quoted_link[1]."</a>&quot;";
+            }, $doc);
         $doc = str_replace('*/', '*&#47;', $doc);
         $doc = str_replace('#', '\#', $doc);
         return $doc;
