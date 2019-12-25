@@ -61,7 +61,7 @@ void Global::set_mtproto_header(unique_ptr<MtprotoHeader> mtproto_header) {
   mtproto_header_ = std::move(mtproto_header);
 }
 
-struct Diff {
+struct ServerTimeDiff {
   double diff;
   double system_time;
 
@@ -97,9 +97,8 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   auto default_time_difference = system_time - Time::now();
   if (saved_diff_str.empty()) {
     server_time_difference_ = default_time_difference;
-    server_time_difference_was_updated_ = false;
   } else {
-    Diff saved_diff;
+    ServerTimeDiff saved_diff;
     unserialize(saved_diff, saved_diff_str).ensure();
 
     double diff = saved_diff.diff + default_time_difference;
@@ -111,8 +110,8 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
     }
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
     server_time_difference_ = diff;
-    server_time_difference_was_updated_ = false;
   }
+  server_time_difference_was_updated_ = false;
   dns_time_difference_ = default_time_difference;
   dns_time_difference_was_updated_ = false;
 
@@ -142,7 +141,7 @@ void Global::do_save_server_time_difference() {
   double system_time = Clocks::system();
   double fixed_diff = server_time_difference_ + Time::now() - system_time;
 
-  Diff diff;
+  ServerTimeDiff diff;
   diff.diff = fixed_diff;
   diff.system_time = system_time;
   td_db()->get_binlog_pmc()->set("server_time_difference", serialize(diff));
