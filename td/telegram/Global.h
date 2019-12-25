@@ -124,9 +124,6 @@ class Global : public ActorContext {
     return *shared_config_;
   }
 
-  double from_server_time(double date) const {
-    return date - get_server_time_difference();
-  }
   double to_server_time(double now) const {
     return now + get_server_time_difference();
   }
@@ -137,10 +134,10 @@ class Global : public ActorContext {
     return to_server_time(Time::now_cached());
   }
   int32 unix_time() const {
-    return static_cast<int32>(server_time());
+    return to_unix_time(server_time());
   }
   int32 unix_time_cached() const {
-    return static_cast<int32>(server_time_cached());
+    return to_unix_time(server_time_cached());
   }
 
   void update_server_time_difference(double diff);
@@ -425,6 +422,8 @@ class Global : public ActorContext {
   static int64 get_location_key(double latitude, double longitude);
 
   std::unordered_map<int64, int64> location_access_hashes_;
+
+  static int32 to_unix_time(double server_time);
 
   void do_save_server_time_difference();
 
