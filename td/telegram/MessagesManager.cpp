@@ -20265,14 +20265,14 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   } else {
     LOG_IF(ERROR, td_->contacts_manager_->have_min_channel(channel_id)) << "Receive forward from min channel";
     dialog_id = DialogId(channel_id);
-    force_create_dialog(dialog_id, "message forward info");
+    force_create_dialog(dialog_id, "message forward info", true);
     if (sender_user_id.is_valid()) {
       LOG(ERROR) << "Receive valid sender user id in message forward header: " << oneline(to_string(forward_header));
       sender_user_id = UserId();
     }
   }
   if (from_dialog_id.is_valid()) {
-    force_create_dialog(from_dialog_id, "message forward from info");
+    force_create_dialog(from_dialog_id, "message forward from info", true);
   }
 
   return td::make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, dialog_id, message_id,
@@ -23770,7 +23770,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   if (dialog_id.is_valid()) {
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (td_->auth_manager_->is_bot()) {
-        force_create_dialog(dialog_id, "search public dialog");
+        force_create_dialog(dialog_id, "search public dialog", true);
       } else {
         const Dialog *d = get_dialog_force(dialog_id);
         if (!is_dialog_inited(d)) {
@@ -23784,7 +23784,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
     } else {
       // bot username maybe known despite there is no access_hash
       if (force || dialog_id.get_type() != DialogType::User) {
-        force_create_dialog(dialog_id, "search public dialog");
+        force_create_dialog(dialog_id, "search public dialog", true);
         promise.set_value(Unit());
         return dialog_id;
       }
@@ -27259,7 +27259,8 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
   return it->second;
 }
 
-void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source, bool force_update_dialog_pos) {
+void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access,
+                                          bool force_update_dialog_pos) {
   LOG_CHECK(dialog_id.is_valid()) << source;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -27319,12 +27320,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       if (!have_dialog_info(dialog_id)) {
         LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source << ", but forced to create it";
-      } else {
-        LOG_IF(ERROR,
-               Slice(source) != Slice("message forward info") && Slice(source) != Slice("message forward from info") &&
-                   Slice(source) != Slice("on_new_callback_query") && Slice(source) != Slice("search public dialog") &&
-                   Slice(source) != Slice("create new secret chat") && !force_update_dialog_pos)
-            << "Have no access to " << dialog_id << " received from " << source << ", but forced to create it";
+      } else if (!expect_no_access) {
+        LOG(ERROR) << "Have no access to " << dialog_id << " received from " << source << ", but forced to create it";
       }
     }
   } else if (force_update_dialog_pos) {

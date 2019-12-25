@@ -747,7 +747,8 @@ class MessagesManager : public Actor {
   void on_get_channel_difference(DialogId dialog_id, int32 request_pts, int32 request_limit,
                                  tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr);
 
-  void force_create_dialog(DialogId dialog_id, const char *source, bool force_update_dialog_pos = false);
+  void force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access = false,
+                           bool force_update_dialog_pos = false);
 
   void send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
 

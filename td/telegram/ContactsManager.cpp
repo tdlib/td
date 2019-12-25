@@ -3721,7 +3721,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
     if (!c->username.empty() || c->has_location) {
       return true;
     }
-    if (!from_linked && c->has_linked_channel) {
+    if (!from_linked) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
       if (linked_channel_id.is_valid() &&
           have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
@@ -8089,7 +8089,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   } else if (!from_database && c->was_member != is_member) {
     DialogId dialog_id(channel_id);
     send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update channel",
-                       true);
+                       true, true);
   }
   c->had_read_access = have_read_access;
   c->was_member = is_member;
@@ -8117,7 +8117,7 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
 
     DialogId dialog_id(secret_chat_id);
     send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update secret chat",
-                       true);
+                       true, true);
     if (c->is_state_changed) {
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_secret_chat_state, secret_chat_id,
                          c->state);
@@ -8229,7 +8229,8 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
   channel_full->is_changed = false;
   if (channel_full->need_send_update) {
     if (channel_full->linked_channel_id.is_valid()) {
-      td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full");
+      td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full",
+                                                  true);
     }
 
     send_closure(
