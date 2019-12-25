@@ -144,8 +144,8 @@ class Global : public ActorContext {
   }
 
   void update_server_time_difference(double diff);
-  void save_system_time();
-  void do_save_server_time_difference();
+
+  void save_server_time();
 
   double get_server_time_difference() const {
     return server_time_difference_.load(std::memory_order_relaxed);
@@ -425,6 +425,8 @@ class Global : public ActorContext {
   static int64 get_location_key(double latitude, double longitude);
 
   std::unordered_map<int64, int64> location_access_hashes_;
+
+  void do_save_server_time_difference();
 
   void do_close(Promise<> on_finish, bool destroy_flag);
 };

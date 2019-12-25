@@ -577,7 +577,7 @@ void ConnectionCreator::on_online(bool online_flag) {
 }
 
 void ConnectionCreator::on_pong(size_t hash) {
-  G()->save_system_time();
+  G()->save_server_time();
   if (active_proxy_id_ != 0) {
     auto now = G()->unix_time();
     int32 &last_used = proxy_last_used_date_[active_proxy_id_];
@@ -1007,7 +1007,7 @@ void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtp
 
 void ConnectionCreator::client_wakeup(size_t hash) {
   LOG(INFO) << tag("hash", format::as_hex(hash)) << " wakeup";
-  G()->save_system_time();
+  G()->save_server_time();
   client_loop(clients_[hash]);
 }
 

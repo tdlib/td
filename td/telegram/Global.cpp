@@ -127,7 +127,7 @@ void Global::update_server_time_difference(double diff) {
   }
 }
 
-void Global::save_system_time() {
+void Global::save_server_time() {
   auto t = Time::now();
   if (system_time_saved_at_.load(std::memory_order_relaxed) + 10 < t) {
     system_time_saved_at_ = t;
