@@ -145,6 +145,7 @@ class Global : public ActorContext {
 
   void update_server_time_difference(double diff);
   void save_system_time();
+  void do_save_server_time_difference();
 
   double get_server_time_difference() const {
     return server_time_difference_.load(std::memory_order_relaxed);

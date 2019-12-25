@@ -61,6 +61,28 @@ void Global::set_mtproto_header(unique_ptr<MtprotoHeader> mtproto_header) {
   mtproto_header_ = std::move(mtproto_header);
 }
 
+struct Diff {
+  double diff;
+  double system_time;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using td::store;
+    store(diff, storer);
+    store(system_time, storer);
+  }
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using td::parse;
+    parse(diff, parser);
+    if (parser.get_left_len() != 0) {
+      parse(system_time, parser);
+    } else {
+      system_time = 0;
+    }
+  }
+};
+
 Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) {
   parameters_ = parameters;
 
@@ -70,29 +92,21 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   td_ = td;
   td_db_ = std::move(td_db_ptr);
 
-  string save_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
-  string save_system_time_str = td_db()->get_binlog_pmc()->get("system_time");
+  string saved_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
   auto system_time = Clocks::system();
   auto default_time_difference = system_time - Time::now();
-  if (save_diff_str.empty()) {
+  if (saved_diff_str.empty()) {
     server_time_difference_ = default_time_difference;
     server_time_difference_was_updated_ = false;
   } else {
-    double save_diff;
-    unserialize(save_diff, save_diff_str).ensure();
+    Diff saved_diff;
+    unserialize(saved_diff, saved_diff_str).ensure();
 
-    double save_system_time;
-    if (save_system_time_str.empty()) {
-      save_system_time = 0;
-    } else {
-      unserialize(save_system_time, save_system_time_str).ensure();
-    }
-
-    double diff = save_diff + default_time_difference;
-    if (save_system_time > system_time) {
-      double time_backwards_fix = save_system_time - system_time;
+    double diff = saved_diff.diff + default_time_difference;
+    if (saved_diff.system_time > system_time) {
+      double time_backwards_fix = saved_diff.system_time - system_time;
       LOG(WARNING) << "Fix system time which went backwards: " << format::as_time(time_backwards_fix) << " "
-                   << tag("saved_system_time", save_system_time) << tag("system_time", system_time);
+                   << tag("saved_system_time", saved_diff.system_time) << tag("system_time", system_time);
       diff += time_backwards_fix;
     }
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
@@ -109,13 +123,7 @@ void Global::update_server_time_difference(double diff) {
   if (!server_time_difference_was_updated_ || server_time_difference_ < diff) {
     server_time_difference_ = diff;
     server_time_difference_was_updated_ = true;
-
-    // diff = server_time - Time::now
-    // save_diff = server_time - Clocks::system
-    double save_diff = diff + Time::now() - Clocks::system();
-
-    td_db()->get_binlog_pmc()->set("server_time_difference", serialize(save_diff));
-    save_system_time();
+    do_save_server_time_difference();
   }
 }
 
@@ -123,10 +131,21 @@ void Global::save_system_time() {
   auto t = Time::now();
   if (system_time_saved_at_.load(std::memory_order_relaxed) + 10 < t) {
     system_time_saved_at_ = t;
-    double save_system_time = Clocks::system();
-    LOG(INFO) << "Save system time";
-    td_db()->get_binlog_pmc()->set("system_time", serialize(save_system_time));
+    do_save_server_time_difference();
   }
+}
+
+void Global::do_save_server_time_difference() {
+  LOG(INFO) << "Save server time difference";
+  // diff = server_time - Time::now
+  // fixed_diff = server_time - Clocks::system
+  double system_time = Clocks::system();
+  double fixed_diff = server_time_difference_ + Time::now() - system_time;
+
+  Diff diff;
+  diff.diff = fixed_diff;
+  diff.system_time = system_time;
+  td_db()->get_binlog_pmc()->set("server_time_difference", serialize(diff));
 }
 
 void Global::update_dns_time_difference(double diff) {
