@@ -2774,13 +2774,39 @@ static bool need_message_text_changed_warning(const MessageText *old_content, co
     // server has deleted first entity and ltrim the message
     return false;
   }
-  for (auto &entity : new_content->text.entities) {
-    if (entity.type == MessageEntity::Type::PhoneNumber) {
-      // TODO remove after find_phone_numbers is implemented
-      return false;
+  return true;
+}
+
+static bool need_message_entities_changed_warning(const vector<MessageEntity> &old_entities,
+                                                  const vector<MessageEntity> &new_entities) {
+  size_t old_pos = 0;
+  size_t new_pos = 0;
+  // compare entities, skipping some known to be different
+  while (old_pos < old_entities.size() || new_pos < new_entities.size()) {
+    // TODO remove after find_phone_numbers is implemented
+    while (new_pos < new_entities.size() && new_entities[new_pos].type == MessageEntity::Type::PhoneNumber) {
+      new_pos++;
+    }
+
+    if (old_pos < old_entities.size() && new_pos < new_entities.size() &&
+        old_entities[old_pos] == new_entities[new_pos]) {
+      old_pos++;
+      new_pos++;
+      continue;
+    }
+
+    if (old_pos < old_entities.size() && old_entities[old_pos].type == MessageEntity::Type::MentionName) {
+      // server could delete sime MentionName entities
+      old_pos++;
+      continue;
+    }
+
+    if (old_pos < old_entities.size() || new_pos < new_entities.size()) {
+      return true;
     }
   }
-  return true;
+
+  return false;
 }
 
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
@@ -2804,7 +2830,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->text.entities != new_->text.entities) {
         const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_) &&
-            old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
+            old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT &&
+            need_message_entities_changed_warning(old_->text.entities, new_->text.entities)) {
           LOG(WARNING) << "Entities has changed from "
                        << to_string(get_message_content_object(old_content, td, -1, false)) << ". New content is "
                        << to_string(get_message_content_object(new_content, td, -1, false));
