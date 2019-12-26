@@ -1943,6 +1943,10 @@ class MessagesManager : public Actor {
 
   void repair_server_dialog_total_count(FolderId folder_id);
 
+  void repair_secret_chat_total_count(FolderId folder_id);
+
+  void on_get_secret_chat_total_count(FolderId folder_id, int32 total_count);
+
   void recalc_unread_count(FolderId folder_id);
 
   td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object(
