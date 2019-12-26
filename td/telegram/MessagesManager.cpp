@@ -9584,7 +9584,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
   int32 dialog_muted_count = 0;
   int32 dialog_marked_count = 0;
   int32 dialog_muted_marked_count = 0;
-  for (auto &dialog_date : list.ordered_server_dialogs_) {
+  for (const auto &dialog_date : list.ordered_server_dialogs_) {
     auto dialog_id = dialog_date.get_dialog_id();
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
@@ -27987,6 +27987,14 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   bool has_unread_counter = need_unread_counter(new_order);
   bool is_removed_from_folder = new_order == DEFAULT_ORDER;
   bool is_added_to_folder = d->order == DEFAULT_ORDER;
+
+  if (is_removed_from_folder) {
+    list.in_memory_total_count_--;
+  } else if (is_added_to_folder) {
+    list.in_memory_total_count_++;
+  }
+  CHECK(static_cast<int32>(list.ordered_dialogs_.size()) <= list.in_memory_total_count_);
+  CHECK(static_cast<size_t>(list.in_memory_total_count_) <= list.ordered_server_dialogs_.size());
 
   if (!is_loaded_from_database && had_unread_counter != has_unread_counter && !td_->auth_manager_->is_bot()) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
