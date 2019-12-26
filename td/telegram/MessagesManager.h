@@ -1213,7 +1213,9 @@ class MessagesManager : public Actor {
     int32 unread_dialog_muted_count_ = 0;
     int32 unread_dialog_marked_count_ = 0;
     int32 unread_dialog_muted_marked_count_ = 0;
-    int32 in_memory_total_count_ = 0;
+    int32 in_memory_dialog_total_count_ = 0;
+    int32 server_dialog_total_count_ = -1;
+    int32 secret_chat_total_count_ = -1;
 
     std::set<DialogDate> ordered_dialogs_;         // all dialogs with date <= last_dialog_date_
     std::set<DialogDate> ordered_server_dialogs_;  // all known dialogs, including with default order
@@ -1936,6 +1938,8 @@ class MessagesManager : public Actor {
   vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
 
   static bool need_unread_counter(int64 dialog_order);
+
+  static int32 get_dialog_total_count(const DialogList &list);
 
   void recalc_unread_count(FolderId folder_id);
 

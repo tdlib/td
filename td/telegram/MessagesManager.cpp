@@ -9564,6 +9564,16 @@ bool MessagesManager::need_unread_counter(int64 dialog_order) {
   return dialog_order != DEFAULT_ORDER;
 }
 
+int32 MessagesManager::get_dialog_total_count(const DialogList &list) {
+  if (list.server_dialog_total_count_ != -1 && list.secret_chat_total_count_ != -1) {
+    return list.server_dialog_total_count_ + list.secret_chat_total_count_;
+  }
+  if (list.last_dialog_date_ == MAX_DIALOG_DATE) {
+    return list.in_memory_dialog_total_count_;
+  }
+  return list.in_memory_dialog_total_count_ + 1;
+}
+
 void MessagesManager::recalc_unread_count(FolderId folder_id) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
@@ -9578,19 +9588,21 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
   list.is_message_unread_count_inited_ = true;
   list.is_dialog_unread_count_inited_ = true;
 
-  int32 total_count = 0;
-  int32 muted_count = 0;
+  int32 message_total_count = 0;
+  int32 message_muted_count = 0;
   int32 dialog_total_count = 0;
   int32 dialog_muted_count = 0;
   int32 dialog_marked_count = 0;
   int32 dialog_muted_marked_count = 0;
+  int32 server_dialog_total_count = 0;
+  int32 secret_chat_total_count = 0;
   for (const auto &dialog_date : list.ordered_server_dialogs_) {
     auto dialog_id = dialog_date.get_dialog_id();
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     int unread_count = d->server_unread_count + d->local_unread_count;
     if (need_unread_counter(d->order) && (unread_count > 0 || d->is_marked_as_unread)) {
-      total_count += unread_count;
+      message_total_count += unread_count;
       dialog_total_count++;
       if (unread_count == 0 && d->is_marked_as_unread) {
         dialog_marked_count++;
@@ -9598,23 +9610,39 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
 
       LOG(DEBUG) << "Have " << unread_count << " messages in " << dialog_id;
       if (is_dialog_muted(d)) {
-        muted_count += unread_count;
+        message_muted_count += unread_count;
         dialog_muted_count++;
         if (unread_count == 0 && d->is_marked_as_unread) {
           dialog_muted_marked_count++;
         }
       }
     }
+    if (d->order != DEFAULT_ORDER) {
+      if (dialog_id.get_type() == DialogType::SecretChat) {
+        secret_chat_total_count++;
+      } else {
+        server_dialog_total_count++;
+      }
+    }
   }
 
-  if (list.unread_message_total_count_ != total_count || list.unread_message_muted_count_ != muted_count) {
-    list.unread_message_total_count_ = total_count;
-    list.unread_message_muted_count_ = muted_count;
+  if (list.unread_message_total_count_ != message_total_count ||
+      list.unread_message_muted_count_ != message_muted_count) {
+    list.unread_message_total_count_ = message_total_count;
+    list.unread_message_muted_count_ = message_muted_count;
     send_update_unread_message_count(folder_id, DialogId(), true, "recalc_unread_count");
+  }
+
+  auto old_dialog_total_count = get_dialog_total_count(list);
+  if (list.last_dialog_date_ == MAX_DIALOG_DATE && (server_dialog_total_count != list.server_dialog_total_count_ ||
+                                                    secret_chat_total_count != list.secret_chat_total_count_)) {
+    list.server_dialog_total_count_ = server_dialog_total_count;
+    list.secret_chat_total_count_ = secret_chat_total_count;
   }
   if (list.unread_dialog_total_count_ != dialog_total_count || list.unread_dialog_muted_count_ != dialog_muted_count ||
       list.unread_dialog_marked_count_ != dialog_marked_count ||
-      list.unread_dialog_muted_marked_count_ != dialog_muted_marked_count) {
+      list.unread_dialog_muted_marked_count_ != dialog_muted_marked_count ||
+      old_dialog_total_count != get_dialog_total_count(list)) {
     list.unread_dialog_total_count_ = dialog_total_count;
     list.unread_dialog_muted_count_ = dialog_muted_count;
     list.unread_dialog_marked_count_ = dialog_marked_count;
@@ -27988,13 +28016,25 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   bool is_removed_from_folder = new_order == DEFAULT_ORDER;
   bool is_added_to_folder = d->order == DEFAULT_ORDER;
 
-  if (is_removed_from_folder) {
-    list.in_memory_total_count_--;
-  } else if (is_added_to_folder) {
-    list.in_memory_total_count_++;
+  auto old_dialog_total_count = get_dialog_total_count(list);
+  if (is_removed_from_folder || is_added_to_folder) {
+    int32 delta = is_removed_from_folder ? -1 : 1;
+    list.in_memory_dialog_total_count_ += delta;
+    if (!is_loaded_from_database) {
+      int32 &total_count = dialog_id.get_type() == DialogType::SecretChat ? list.secret_chat_total_count_
+                                                                          : list.server_dialog_total_count_;
+      if (total_count != -1) {
+        total_count += delta;
+        if (total_count < 0) {
+          LOG(ERROR) << "Total chat count became negative after leaving " << dialog_id;
+          total_count = 0;
+        }
+      }
+    }
   }
-  CHECK(static_cast<int32>(list.ordered_dialogs_.size()) <= list.in_memory_total_count_);
-  CHECK(static_cast<size_t>(list.in_memory_total_count_) <= list.ordered_server_dialogs_.size());
+  bool need_update_unread_chat_count = old_dialog_total_count != get_dialog_total_count(list);
+  CHECK(static_cast<int32>(list.ordered_dialogs_.size()) <= list.in_memory_dialog_total_count_);
+  CHECK(static_cast<size_t>(list.in_memory_dialog_total_count_) <= list.ordered_server_dialogs_.size());
 
   if (!is_loaded_from_database && had_unread_counter != has_unread_counter && !td_->auth_manager_->is_bot()) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
@@ -28030,6 +28070,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
           list.unread_dialog_muted_marked_count_ += delta;
         }
       }
+      need_update_unread_chat_count = false;
       send_update_unread_chat_count(d->folder_id, dialog_id, true, change_source);
     }
 
@@ -28044,6 +28085,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       remove_all_dialog_notifications(d, true, "set_dialog_order 2");
       clear_active_dialog_actions(dialog_id);
     }
+  }
+  if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
+    send_update_unread_chat_count(d->folder_id, dialog_id, true, "changed total_count");
   }
 
   d->order = new_order;
@@ -28094,7 +28138,11 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
     }
 
     if (list.last_dialog_date_ == MAX_DIALOG_DATE) {
+      bool need_update_unread_chat_count = list.server_dialog_total_count_ == -1 || list.secret_chat_total_count_ == -1;
       recalc_unread_count(folder_id);
+      if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
+        send_update_unread_chat_count(folder_id, DialogId(), true, "update_last_dialog_date");
+      }
     }
   }
 
@@ -30159,9 +30207,9 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
     }
   }
 
-  return td_api::make_object<td_api::updateUnreadChatCount>(get_chat_list_object(folder_id), unread_count,
-                                                            unread_unmuted_count, unread_marked_count,
-                                                            unread_unmuted_marked_count);
+  return td_api::make_object<td_api::updateUnreadChatCount>(
+      get_chat_list_object(folder_id), get_dialog_total_count(list), unread_count, unread_unmuted_count,
+      unread_marked_count, unread_unmuted_marked_count);
 }
 
 void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

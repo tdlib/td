@@ -2894,9 +2894,10 @@ updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_co
 
 //@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if a message database is used
 //@chat_list The chat list with changed number of unread messages
+//@total_count Approximate total number of chats in the chat list
 //@unread_count Total number of unread chats @unread_unmuted_count Total number of unread unmuted chats
 //@marked_as_unread_count Total number of chats marked as unread @marked_as_unread_unmuted_count Total number of unmuted chats marked as unread
-updateUnreadChatCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
+updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
