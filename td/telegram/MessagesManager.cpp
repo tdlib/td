@@ -7679,6 +7679,16 @@ void MessagesManager::after_get_difference() {
   }
 
   load_notification_settings();
+
+  if (!td_->auth_manager_->is_bot()) {
+    auto folder_id = FolderId::archive();
+    auto &list = get_dialog_list(folder_id);
+    if (!list.is_dialog_unread_count_inited_) {
+      get_dialogs(folder_id, MIN_DIALOG_DATE, 1, false, PromiseCreator::lambda([folder_id](Unit) {
+                    LOG(INFO) << "Inited total chat count in " << folder_id;
+                  }));
+    }
+  }
 }
 
 MessagesManager::MessagesInfo MessagesManager::on_get_messages(
@@ -9634,7 +9644,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
   if (!list.need_unread_count_recalc_) {
     return;
   }
-  LOG(INFO) << "Recalculate unread counts";
+  LOG(INFO) << "Recalculate unread counts in " << folder_id;
   list.need_unread_count_recalc_ = false;
   list.is_message_unread_count_inited_ = true;
   list.is_dialog_unread_count_inited_ = true;
