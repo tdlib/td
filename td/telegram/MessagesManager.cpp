@@ -22613,8 +22613,10 @@ void MessagesManager::send_update_unread_chat_count(FolderId folder_id, DialogId
   int32 unread_unmuted_count = list.unread_dialog_total_count_ - list.unread_dialog_muted_count_;
   int32 unread_unmuted_marked_count = list.unread_dialog_marked_count_ - list.unread_dialog_muted_marked_count_;
   LOG(INFO) << (need_postpone ? "Postpone" : "Send") << " updateUnreadChatCount in " << folder_id << " to "
-            << list.unread_dialog_total_count_ << '/' << unread_unmuted_count << '/' << list.unread_dialog_marked_count_
-            << '/' << unread_unmuted_marked_count << " from " << source << " and " << dialog_id;
+            << list.in_memory_dialog_total_count_ << '/' << list.server_dialog_total_count_ << '+'
+            << list.secret_chat_total_count_ << '/' << list.unread_dialog_total_count_ << '/' << unread_unmuted_count
+            << '/' << list.unread_dialog_marked_count_ << '/' << unread_unmuted_marked_count << " from " << source
+            << " and " << dialog_id;
   if (need_postpone) {
     postponed_unread_chat_count_updates_.insert(folder_id);
   } else {
