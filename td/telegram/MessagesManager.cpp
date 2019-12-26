@@ -9566,12 +9566,23 @@ bool MessagesManager::need_unread_counter(int64 dialog_order) {
 
 int32 MessagesManager::get_dialog_total_count(const DialogList &list) {
   if (list.server_dialog_total_count_ != -1 && list.secret_chat_total_count_ != -1) {
-    return list.server_dialog_total_count_ + list.secret_chat_total_count_;
+    return std::max(list.server_dialog_total_count_ + list.secret_chat_total_count_,
+                    list.in_memory_dialog_total_count_);
   }
   if (list.last_dialog_date_ == MAX_DIALOG_DATE) {
     return list.in_memory_dialog_total_count_;
   }
   return list.in_memory_dialog_total_count_ + 1;
+}
+
+void MessagesManager::repair_server_dialog_total_count(FolderId folder_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  send_closure(td_->create_net_actor<GetDialogListActor>(Promise<Unit>()), &GetDialogListActor::send, folder_id,
+               2147483647, ServerMessageId(), DialogId(), 1,
+               get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
 }
 
 void MessagesManager::recalc_unread_count(FolderId folder_id) {
@@ -11966,12 +11977,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (list.last_server_dialog_date_ < max_dialog_date) {
       list.last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
-    } else {
+    } else if (promise) {
       LOG(ERROR) << "Last server dialog date didn't increased from " << list.last_server_dialog_date_ << " to "
                  << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
                  << folder_id << ". Know about order of " << list.ordered_dialogs_.size()
                  << " chats, last_dialog_date = " << list.last_dialog_date_
                  << ", last_loaded_database_dialog_date = " << list.last_loaded_database_dialog_date_;
+    }
+    if (total_count < narrow_cast<int32>(dialogs.size())) {
+      LOG(ERROR) << "Receive chat total_count = " << total_count << ", but " << dialogs.size() << " chats";
+      total_count = narrow_cast<int32>(dialogs.size());
     }
   }
   if (from_pinned_dialog_list) {
@@ -11987,6 +12002,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     MessageId last_message_id(ServerMessageId(dialog->top_message_));
     if (!last_message_id.is_valid() && from_dialog_list) {
       // skip dialogs without messages
+      total_count--;
       continue;
     }
 
@@ -12125,6 +12141,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
     }
     being_added_dialog_id_ = DialogId();
+  }
+  if (from_dialog_list) {
+    CHECK(total_count >= 0);
+    if (list.server_dialog_total_count_ != total_count) {
+      auto old_dialog_total_count = get_dialog_total_count(list);
+      list.server_dialog_total_count_ = total_count;
+      if (list.is_dialog_unread_count_inited_ && old_dialog_total_count != get_dialog_total_count(list)) {
+        send_update_unread_chat_count(folder_id, DialogId(), true, "on_get_dialogs");
+      }
+    }
   }
   if (from_pinned_dialog_list) {
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialogs(folder_id));

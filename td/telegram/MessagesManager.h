@@ -1941,6 +1941,8 @@ class MessagesManager : public Actor {
 
   static int32 get_dialog_total_count(const DialogList &list);
 
+  void repair_server_dialog_total_count(FolderId folder_id);
+
   void recalc_unread_count(FolderId folder_id);
 
   td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object(
