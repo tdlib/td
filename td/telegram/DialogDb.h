@@ -51,6 +51,8 @@ class DialogDbSyncInterface {
 
   virtual Result<NotificationGroupKey> get_notification_group(NotificationGroupId notification_group_id) = 0;
 
+  virtual Result<int32> get_secret_chat_count(FolderId folder_id) = 0;
+
   virtual Status begin_transaction() = 0;
   virtual Status commit_transaction() = 0;
 };
@@ -86,6 +88,8 @@ class DialogDbAsyncInterface {
 
   virtual void get_notification_group(NotificationGroupId notification_group_id,
                                       Promise<NotificationGroupKey> promise) = 0;
+
+  virtual void get_secret_chat_count(FolderId folder_id, Promise<int32> promise) = 0;
 
   virtual void close(Promise<> promise) = 0;
 };
