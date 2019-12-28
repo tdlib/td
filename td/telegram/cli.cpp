@@ -1828,10 +1828,10 @@ class CliClient final : public Actor {
                                                                    to_integer<int32>(limit), nullptr));
     } else if (op == "SM") {
       string chat_id;
+      string filter;
+      string limit;
       string offset_message_id;
       string offset;
-      string limit;
-      string filter;
 
       std::tie(chat_id, args) = split(args);
       std::tie(filter, args) = split(args);
