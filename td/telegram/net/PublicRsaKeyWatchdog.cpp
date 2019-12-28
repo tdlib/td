@@ -98,6 +98,7 @@ void PublicRsaKeyWatchdog::sync(BufferSlice cdn_config_serialized) {
     return;
   }
   cdn_config_ = r_keys.move_as_ok();
+  LOG(INFO) << "Receive " << to_string(cdn_config_);
   for (auto &key : keys_) {
     sync_key(key);
   }
@@ -114,6 +115,7 @@ void PublicRsaKeyWatchdog::sync_key(std::shared_ptr<PublicRsaKeyShared> &key) {
         LOG(ERROR) << r_rsa.error();
         continue;
       }
+      LOG(INFO) << "Add CDN " << key->dc_id() << " key with fingerprint " << r_rsa.ok().get_fingerprint();
       key->add_rsa(r_rsa.move_as_ok());
     }
   }
