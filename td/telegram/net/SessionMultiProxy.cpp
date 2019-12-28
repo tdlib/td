@@ -111,7 +111,7 @@ void SessionMultiProxy::start_up() {
 }
 
 bool SessionMultiProxy::get_pfs_flag() const {
-  return use_pfs_;
+  return use_pfs_ && !is_cdn_;
 }
 
 void SessionMultiProxy::init() {
