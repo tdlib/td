@@ -5221,11 +5221,13 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
-void MessagesManager::on_update_include_sponsored_dialog_to_unread_count(bool include_sponsored_dialog) {
+void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
   }
+
+  bool include_sponsored_dialog = G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
   if (include_sponsored_dialog_to_unread_count_ == include_sponsored_dialog) {
     return;
   }
@@ -5253,6 +5255,30 @@ void MessagesManager::on_update_include_sponsored_dialog_to_unread_count(bool in
   }
   if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
     send_update_unread_chat_count(d->dialog_id, true, "on_update_include_sponsored_dialog_to_unread_count");
+  }
+}
+
+void MessagesManager::on_disable_pinned_message_notifications_changed() {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  bool disable_pinned_message_notifications =
+      G()->shared_config().get_option_boolean("disable_pinned_message_notifications");
+  if (disable_pinned_message_notifications_ == disable_pinned_message_notifications) {
+    return;
+  }
+
+  disable_pinned_message_notifications_ = disable_pinned_message_notifications;
+
+  if (disable_pinned_message_notifications_) {
+    for (auto &dialog : dialogs_) {
+      Dialog *d = dialog.second.get();
+      if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid()) {
+        set_dialog_pinned_message_notification(d, MessageId());
+      }
+    }
   }
 }
 
@@ -8695,6 +8721,8 @@ void MessagesManager::start_up() {
   always_wait_for_mailbox();
 
   start_time_ = Time::now();
+
+  on_disable_pinned_message_notifications_changed();
 
   include_sponsored_dialog_to_unread_count_ =
       G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
@@ -21089,7 +21117,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (*need_update) {
     if (message_content_type == MessageContentType::PinMessage &&
-        !get_message_content_pinned_message_id(message->content.get()).is_valid()) {
+        (disable_pinned_message_notifications_ ||
+         !get_message_content_pinned_message_id(message->content.get()).is_valid())) {
       // treat message pin without pinned message as ordinary message
       message->contains_mention = false;
     }
@@ -22177,6 +22206,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->notification_settings.mute_until = 0;
   } else {
     update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
+  }
+  if (disable_pinned_message_notifications_ && d->mention_notification_group.group_id.is_valid() &&
+      d->pinned_message_notification_message_id.is_valid()) {
+    set_dialog_pinned_message_notification(d, MessageId());
   }
 
   auto pending_it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);
