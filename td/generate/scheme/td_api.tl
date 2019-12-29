@@ -3540,7 +3540,8 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 
-//@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed @chat_id Chat identifier @notification_settings New notification settings for the chat
+//@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed
+//@chat_id Chat identifier @notification_settings New notification settings for the chat. If the chat is muted for more than 1 week, it is considered to be muted forever
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") non-secret chats and the same number of secret chats in the main/archive chat list @chat_id Chat identifier @is_pinned New value of is_pinned
