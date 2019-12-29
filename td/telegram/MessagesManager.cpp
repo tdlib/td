@@ -6596,6 +6596,7 @@ void MessagesManager::after_get_difference() {
     send_update_unread_chat_count(DialogId(), false, "after_get_difference");
   }
 
+  vector<FullMessageId> update_message_ids_to_delete;
   for (auto &it : update_message_ids_) {
     // this is impossible for ordinary chats because updates coming during getDifference have already been applied
     auto dialog_id = it.first.get_dialog_id();
@@ -6608,6 +6609,19 @@ void MessagesManager::after_get_difference() {
       // fallthrough
       case DialogType::User:
       case DialogType::Chat:
+        if (!have_message({dialog_id, it.second})) {
+          // The sent message has already been deleted by the user or sent to inaccessible channel.
+          // The sent message may never be received, but we will need updateMessageId in case the message is received
+          // to delete it from the server and to not add to the chat.
+          // But if the chat is inaccessible, then likely we will be unable to delete the message from server and
+          // will delete it from the chat just after it is added. So we remove updateMessageId for such messages in
+          // order to not check them over and over.
+          if (!have_input_peer(dialog_id, AccessRights::Read)) {
+            update_message_ids_to_delete.push_back(it.first);
+          }
+          break;
+        }
+
         LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << it.first
                    << " but not receive corresponding message. " << td_->updates_manager_->get_state();
         if (dialog_id.get_type() != DialogType::Channel) {
@@ -6630,6 +6644,9 @@ void MessagesManager::after_get_difference() {
         UNREACHABLE();
         break;
     }
+  }
+  for (auto full_message_id : update_message_ids_to_delete) {
+    update_message_ids_.erase(full_message_id);
   }
 
   if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
