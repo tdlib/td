@@ -15131,7 +15131,8 @@ void MessagesManager::close_dialog(Dialog *d) {
 
   for (auto &it : d->pending_viewed_live_locations) {
     auto live_location_task_id = it.second;
-    CHECK(viewed_live_location_tasks_.erase(live_location_task_id) > 0);
+    auto erased_count = viewed_live_location_tasks_.erase(live_location_task_id);
+    CHECK(erased_count > 0);
   }
   d->pending_viewed_live_locations.clear();
 
@@ -16393,19 +16394,16 @@ void MessagesManager::view_message_live_location_on_server(int64 task_id) {
   }
 
   auto full_message_id = it->second;
-  const Message *m = get_message_force(full_message_id, "view_message_live_location_on_server");
-  if (m == nullptr) {
-    // the message was deleted
+  Dialog *d = get_dialog(full_message_id.get_dialog_id());
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "view_message_live_location_on_server");
+  if (m == nullptr || get_message_content_live_location_period(m->content.get()) <= G()->unix_time() - m->date + 1) {
+    // the message was deleted or live location is expired
     viewed_live_location_tasks_.erase(it);
+    auto erased_count = d->pending_viewed_live_locations.erase(full_message_id.get_message_id());
+    CHECK(erased_count > 0);
     return;
   }
 
-  auto live_period = get_message_content_live_location_period(m->content.get());
-  if (live_period <= G()->unix_time() - m->date + 1) {
-    // live location is expired
-    viewed_live_location_tasks_.erase(it);
-    return;
-  }
   view_message_live_location_on_server_impl(task_id, full_message_id);
 }
 
