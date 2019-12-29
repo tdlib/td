@@ -8585,7 +8585,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
-      sticker_set_id = td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true);
+      sticker_set_id =
+          td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true, "on_get_channel_full");
     }
 
     ChannelFull *channel = add_channel_full(channel_id);

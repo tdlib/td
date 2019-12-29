@@ -240,7 +240,8 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
         case telegram_api::recentMeUrlStickerSet::ID: {
           auto url = move_tl_object_as<telegram_api::recentMeUrlStickerSet>(url_ptr);
           result->url_ = std::move(url->url_);
-          auto sticker_set_id = td->stickers_manager_->on_get_sticker_set_covered(std::move(url->set_), false);
+          auto sticker_set_id =
+              td->stickers_manager_->on_get_sticker_set_covered(std::move(url->set_), false, "recentMeUrlStickerSet");
           if (!sticker_set_id.is_valid()) {
             LOG(ERROR) << "Receive invalid sticker set";
             result = nullptr;

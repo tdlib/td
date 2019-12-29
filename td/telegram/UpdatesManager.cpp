@@ -1879,7 +1879,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePrivacy> update
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, bool /*force_apply*/) {
-  td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), std::move(update->stickerset_), true);
+  td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), std::move(update->stickerset_), true,
+                                                      "updateNewStickerSet");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> update, bool /*force_apply*/) {
