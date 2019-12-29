@@ -2647,6 +2647,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
   bool was_encrypted = false;
   for (auto &key : encryption_keys) {
+    VLOG(notifications) << "Have key " << key.first;
     // VLOG(notifications) << "Have key " << key.first << ": \"" << format::escaped(key.second) << '"';
     if (key.first == receiver_id) {
       if (!key.second.empty()) {
