@@ -15510,6 +15510,9 @@ Status MessagesManager::set_dialog_notification_settings(
   if (current_settings == nullptr) {
     return Status::Error(6, "Wrong chat identifier specified");
   }
+  if (dialog_id == get_my_dialog_id()) {
+    return Status::Error(6, "Notification settings of the Saved Messages chat can't be changed");
+  }
 
   TRY_RESULT(new_settings, ::td::get_dialog_notification_settings(std::move(notification_settings),
                                                                   current_settings->silent_send_message));

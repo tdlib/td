@@ -525,8 +525,8 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
-//@from_chat_id For messages forwarded to the chat with the current user (saved messages) or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
-//@from_message_id For messages forwarded to the chat with the current user (saved messages) or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
+//@from_chat_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
+//@from_message_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 
@@ -3540,7 +3540,7 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 
-//@description Changes the notification settings of a chat @chat_id Chat identifier @notification_settings New notification settings for the chat
+//@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed @chat_id Chat identifier @notification_settings New notification settings for the chat
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") non-secret chats and the same number of secret chats in the main/archive chat list @chat_id Chat identifier @is_pinned New value of is_pinned
