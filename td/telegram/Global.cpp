@@ -93,7 +93,7 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   td_db_ = std::move(td_db_ptr);
 
   string saved_diff_str = td_db()->get_binlog_pmc()->get("server_time_difference");
-  auto system_time = max(1577285000.0, Clocks::system());
+  auto system_time = Clocks::system();
   auto default_time_difference = system_time - Time::now();
   if (saved_diff_str.empty()) {
     server_time_difference_ = default_time_difference;
