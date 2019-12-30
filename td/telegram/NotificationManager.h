@@ -307,9 +307,10 @@ class NotificationManager : public Actor {
   Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
-                                     string sender_name, int32 date, bool contains_mention, bool initial_is_silent,
-                                     bool is_silent, string loc_key, string arg, Photo photo, Document document,
-                                     NotificationId notification_id, uint64 logevent_id, Promise<Unit> promise);
+                                     string sender_name, int32 date, bool is_from_scheduled, bool contains_mention,
+                                     bool initial_is_silent, bool is_silent, string loc_key, string arg, Photo photo,
+                                     Document document, NotificationId notification_id, uint64 logevent_id,
+                                     Promise<Unit> promise);
 
   void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
                                       string arg, Photo photo, Document document, uint64 logevent_id,

@@ -771,8 +771,9 @@ class MessagesManager : public Actor {
   };
   Result<MessagePushNotificationInfo> get_message_push_notification_info(DialogId dialog_id, MessageId message_id,
                                                                          int64 random_id, UserId sender_user_id,
-                                                                         int32 date, bool contains_mention,
-                                                                         bool is_pinned, bool is_from_binlog);
+                                                                         int32 date, bool is_from_scheduled,
+                                                                         bool contains_mention, bool is_pinned,
+                                                                         bool is_from_binlog);
 
   struct MessageNotificationGroup {
     DialogId dialog_id;

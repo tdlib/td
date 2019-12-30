@@ -21315,11 +21315,11 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
 }
 
 Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_message_push_notification_info(
-    DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, int32 date, bool contains_mention,
-    bool is_pinned, bool is_from_binlog) {
+    DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, int32 date,
+    bool is_from_scheduled, bool contains_mention, bool is_pinned, bool is_from_binlog) {
   init();
 
-  if (dialog_id == get_my_dialog_id()) {
+  if (!is_from_scheduled && dialog_id == get_my_dialog_id()) {
     return Status::Error("Ignore notification in chat with self");
   }
   if (td_->auth_manager_->is_bot()) {

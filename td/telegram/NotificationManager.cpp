@@ -3381,10 +3381,11 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
                                    std::move(arg), std::move(attached_photo), std::move(attached_document), 0,
                                    std::move(promise));
   } else {
+    bool is_from_scheduled = has_json_object_field(custom, "schedule");
     bool is_silent = has_json_object_field(custom, "silent");
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
-                                  std::move(sender_name), sent_date, contains_mention, is_silent, is_silent,
-                                  std::move(loc_key), std::move(arg), std::move(attached_photo),
+                                  std::move(sender_name), sent_date, is_from_scheduled, contains_mention, is_silent,
+                                  is_silent, std::move(loc_key), std::move(arg), std::move(attached_photo),
                                   std::move(attached_document), NotificationId(), 0, std::move(promise));
   }
   return Status::OK();
@@ -3398,6 +3399,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
   UserId sender_user_id_;
   string sender_name_;
   int32 date_;
+  bool is_from_scheduled_;
   bool contains_mention_;
   bool is_silent_;
   string loc_key_;
@@ -3425,6 +3427,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     STORE_FLAG(has_arg);
     STORE_FLAG(has_photo);
     STORE_FLAG(has_document);
+    STORE_FLAG(is_from_scheduled_);
     END_STORE_FLAGS();
     td::store(dialog_id_, storer);
     if (has_message_id) {
@@ -3472,6 +3475,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     PARSE_FLAG(has_arg);
     PARSE_FLAG(has_photo);
     PARSE_FLAG(has_document);
+    PARSE_FLAG(is_from_scheduled_);
     END_PARSE_FLAGS();
     td::parse(dialog_id_, parser);
     if (has_message_id) {
@@ -3505,15 +3509,14 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
   }
 };
 
-void NotificationManager::add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
-                                                        UserId sender_user_id, string sender_name, int32 date,
-                                                        bool contains_mention, bool initial_is_silent, bool is_silent,
-                                                        string loc_key, string arg, Photo photo, Document document,
-                                                        NotificationId notification_id, uint64 logevent_id,
-                                                        Promise<Unit> promise) {
+void NotificationManager::add_message_push_notification(
+    DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, string sender_name, int32 date,
+    bool is_from_scheduled, bool contains_mention, bool initial_is_silent, bool is_silent, string loc_key, string arg,
+    Photo photo, Document document, NotificationId notification_id, uint64 logevent_id, Promise<Unit> promise) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
-      dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned, logevent_id != 0);
+      dialog_id, message_id, random_id, sender_user_id, date, is_from_scheduled, contains_mention, is_pinned,
+      logevent_id != 0);
   if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id << " sent by " << sender_user_id << " at " << date << ": " << r_info.error();
@@ -3568,8 +3571,9 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     AddMessagePushNotificationLogEvent logevent{
-        dialog_id,         message_id, random_id, sender_user_id, sender_name, date,           contains_mention,
-        initial_is_silent, loc_key,    arg,       photo,          document,    notification_id};
+        dialog_id,         message_id,       random_id,         sender_user_id, sender_name, date,
+        is_from_scheduled, contains_mention, initial_is_silent, loc_key,        arg,         photo,
+        document,          notification_id};
     auto storer = LogEventStorerImpl<AddMessagePushNotificationLogEvent>(logevent);
     logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification, storer);
   }
@@ -4039,9 +4043,9 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         add_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
-            log_event.sender_name_, log_event.date_, log_event.contains_mention_, log_event.is_silent_, true,
-            log_event.loc_key_, log_event.arg_, log_event.photo_, log_event.document_, log_event.notification_id_,
-            event.id_, PromiseCreator::lambda([](Result<Unit> result) {
+            log_event.sender_name_, log_event.date_, log_event.is_from_scheduled_, log_event.contains_mention_,
+            log_event.is_silent_, true, log_event.loc_key_, log_event.arg_, log_event.photo_, log_event.document_,
+            log_event.notification_id_, event.id_, PromiseCreator::lambda([](Result<Unit> result) {
               if (result.is_error() && result.error().code() != 200 && result.error().code() != 406) {
                 LOG(ERROR) << "Receive error " << result.error() << ", while processing message push notification";
               }
