@@ -9324,7 +9324,15 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   return false;
 }
 
-int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) {
+bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Message *m) const {
+  if (m->is_from_scheduled) {
+    return true;
+  }
+  return !m->is_outgoing && dialog_id != get_my_dialog_id();
+}
+
+int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id,
+                                                              MessageType type) const {
   CHECK(!max_message_id.is_scheduled());
   MessagesConstIterator it(d, max_message_id);
   if (*it == nullptr || (*it)->message_id != max_message_id) {
@@ -9333,7 +9341,7 @@ int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, Message
 
   int32 unread_count = type == MessageType::Server ? d->server_unread_count : d->local_unread_count;
   while (*it != nullptr && (*it)->message_id > d->last_read_inbox_message_id) {
-    if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
+    if (has_incoming_notification(d->dialog_id, *it) && (*it)->message_id.get_type() == type) {
       unread_count--;
     }
     --it;
@@ -9347,12 +9355,12 @@ int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, Message
 }
 
 int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
-                                                          int32 hint_unread_count) {
+                                                          int32 hint_unread_count) const {
   CHECK(!max_message_id.is_scheduled());
   int32 unread_count = 0;
   MessagesConstIterator it(d, MessageId::max());
   while (*it != nullptr && (*it)->message_id > max_message_id) {
-    if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
+    if (has_incoming_notification(d->dialog_id, *it) && (*it)->message_id.get_type() == type) {
       unread_count++;
     }
     --it;
@@ -9385,7 +9393,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
 }
 
 int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
-                                             int32 hint_unread_count) {
+                                             int32 hint_unread_count) const {
   CHECK(!max_message_id.is_scheduled());
   if (d->is_empty) {
     return 0;
@@ -9493,12 +9501,9 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
 
-    bool is_saved_messages = dialog_id == get_my_dialog_id();
-    int32 server_unread_count =
-        is_saved_messages ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
-    int32 local_unread_count = d->local_unread_count == 0 || is_saved_messages
-                                   ? 0
-                                   : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
+    int32 server_unread_count = calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
+    int32 local_unread_count =
+        d->local_unread_count == 0 ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
 
     if (server_unread_count < 0) {
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
@@ -12724,7 +12729,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       set_dialog_reply_markup(d, MessageId());
     }
     // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
-    if (!result->is_outgoing && message_id > d->last_read_inbox_message_id && d->dialog_id != get_my_dialog_id() &&
+    if (has_incoming_notification(d->dialog_id, result.get()) && message_id > d->last_read_inbox_message_id &&
         d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
@@ -22119,7 +22124,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
-  if (m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
+  if (!has_incoming_notification(d->dialog_id, m) || td_->auth_manager_->is_bot()) {
     return true;
   }
 
@@ -26258,7 +26263,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (*need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
-    if (!message->is_outgoing && dialog_id != get_my_dialog_id()) {
+    if (has_incoming_notification(dialog_id, message.get())) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       if (message_id.is_server()) {
@@ -26269,8 +26274,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
                                             source);
     } else {
-      // if outgoing message has id one greater than last_read_inbox_message_id than definitely there is no
-      // unread incoming message before it
+      // if non-scheduled outgoing message has id one greater than last_read_inbox_message_id then definitely there are no
+      // unread incoming messages before it
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
           message_id.get_server_message_id().get() == d->last_read_inbox_message_id.get_server_message_id().get() + 1) {
@@ -27480,11 +27485,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   auto dialog_id = d->dialog_id;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (dialog_id == get_my_dialog_id()) {
-        d->last_read_inbox_message_id = MessageId::max();
-        d->is_last_read_inbox_message_id_inited = true;
-        d->last_read_outbox_message_id = MessageId::max();
-        d->is_last_read_outbox_message_id_inited = true;
+      if (dialog_id == get_my_dialog_id() && d->last_read_inbox_message_id == MessageId::max() &&
+          d->last_read_outbox_message_id == MessageId::max()) {
+        d->last_read_inbox_message_id = d->last_new_message_id;
+        d->last_read_outbox_message_id = d->last_new_message_id;
       }
       break;
     case DialogType::Chat:

@@ -1685,12 +1685,14 @@ class MessagesManager : public Actor {
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id,
                                        Promise<Unit> &&promise, bool skip_logevent = false);
 
-  static int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type);
+  bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
-  static int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
-                                                  int32 hint_unread_count);
+  int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) const;
 
-  static int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type, int32 hint_unread_count);
+  int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
+                                           int32 hint_unread_count) const;
+
+  int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type, int32 hint_unread_count) const;
 
   void repair_server_unread_count(DialogId dialog_id, int32 unread_count);
 
