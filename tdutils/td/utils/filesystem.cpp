@@ -18,8 +18,23 @@
 
 namespace td {
 
-// TODO remove copypaste
-Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
+namespace {
+
+template <class T>
+T create_empty(size_t size);
+
+template <>
+string create_empty<string>(size_t size) {
+  return string(size, '\0');
+}
+
+template <>
+BufferSlice create_empty<BufferSlice>(size_t size) {
+  return BufferSlice{size};
+}
+
+template <class T>
+Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
   TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
   if (size == -1) {
     size = from_file.get_size();
@@ -31,7 +46,7 @@ Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
     return Status::Error("Failed to read file: invalid offset");
   }
   size -= offset;
-  BufferSlice content{narrow_cast<size_t>(size)};
+  auto content = create_empty<T>(narrow_cast<size_t>(size));
   TRY_RESULT(got_size, from_file.pread(as_slice(content), offset));
   if (got_size != static_cast<size_t>(size)) {
     return Status::Error("Failed to read file");
@@ -40,25 +55,14 @@ Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
   return std::move(content);
 }
 
-Result<std::string> read_file_str(CSlice path, int64 size, int64 offset) {
-  TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
-  if (size == -1) {
-    size = from_file.get_size();
-  }
-  if (size < 0) {
-    return Status::Error("Failed to read file: invalid size");
-  }
-  if (offset < 0 || offset > size) {
-    return Status::Error("Failed to read file: invalid offset");
-  }
-  size -= offset;
-  std::string content(narrow_cast<size_t>(size), '\0');
-  TRY_RESULT(got_size, from_file.pread(content, offset));
-  if (got_size != static_cast<size_t>(size)) {
-    return Status::Error("Failed to read file");
-  }
-  from_file.close();
-  return std::move(content);
+}  // namespace
+
+Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
+  return read_file_impl<BufferSlice>(path, size, offset);
+}
+
+Result<string> read_file_str(CSlice path, int64 size, int64 offset) {
+  return read_file_impl<string>(path, size, offset);
 }
 
 // Very straightforward function. Don't expect much of it.

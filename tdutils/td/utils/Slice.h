@@ -308,4 +308,12 @@ inline MutableSlice as_slice(MutableSlice slice) {
   return slice;
 }
 
+inline Slice as_slice(const string &str) {
+  return str;
+}
+
+inline MutableSlice as_slice(string &str) {
+  return str;
+}
+
 }  // namespace td
