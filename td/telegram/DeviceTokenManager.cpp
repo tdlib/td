@@ -110,7 +110,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
     string_builder << ", sandboxed";
   }
   if (token_info.encrypt) {
-    string_builder << ", encrypted";
+    string_builder << ", encrypted with ID " << token_info.encryption_key_id;
   }
   return string_builder;
 }
@@ -327,7 +327,7 @@ void DeviceTokenManager::start_up() {
       }
       token.token = serialized.substr(1);
     }
-    LOG(INFO) << "GET device token " << token_type << "--->" << token;
+    LOG(INFO) << "Have device token " << token_type << "--->" << token;
     if (token.state == TokenInfo::State::Sync && !token.token.empty()) {
       token.state = TokenInfo::State::Register;
     }

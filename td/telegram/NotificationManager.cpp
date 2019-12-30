@@ -2645,10 +2645,10 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   }
 
   auto receiver_id = r_receiver_id.move_as_ok();
-  VLOG(notifications) << "Process push notification \"" << format::escaped(payload)
-                      << "\" with receiver_id = " << receiver_id;
-
   auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
+  VLOG(notifications) << "Process push notification \"" << format::escaped(payload)
+                      << "\" with receiver_id = " << receiver_id << " and " << encryption_keys.size()
+                      << " encryption keys";
   bool was_encrypted = false;
   for (auto &key : encryption_keys) {
     VLOG(notifications) << "Have key " << key.first;
