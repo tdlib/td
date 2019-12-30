@@ -453,7 +453,8 @@ void AuthManager::tear_down() {
 }
 
 bool AuthManager::is_bot() const {
-  return is_authorized() && is_bot_;
+  return is_bot_ && (state_ == State::Ok || state_ == State::LoggingOut || state_ == State::DestroyingKeys ||
+                     state_ == State::Closing);
 }
 
 void AuthManager::set_is_bot(bool is_bot) {
