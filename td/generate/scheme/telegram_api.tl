@@ -1086,6 +1086,7 @@ baseThemeClassic#c3a12462 = BaseTheme;
 baseThemeDay#fbd81688 = BaseTheme;
 baseThemeNight#b7b31ea8 = BaseTheme;
 baseThemeTinted#6d5f77ee = BaseTheme;
+baseThemeArctic#5b11125a = BaseTheme;
 
 inputThemeSettings#bd507cd1 flags:# base_theme:BaseTheme accent_color:int message_top_color:flags.0?int message_bottom_color:flags.0?int wallpaper:flags.1?InputWallPaper wallpaper_settings:flags.1?WallPaperSettings = InputThemeSettings;
 
@@ -1184,6 +1185,7 @@ account.getTheme#8d9d742b format:string theme:InputTheme document_id:long = Them
 account.getThemes#285946f8 format:string hash:int = account.Themes;
 account.setContentSettings#b574b16b flags:# sensitive_enabled:flags.0?true = Bool;
 account.getContentSettings#8b9b4dae = account.ContentSettings;
+account.getMultiWallPapers#65ad71dc wallpapers:Vector<InputWallPaper> = Vector<WallPaper>;
 
 users.getUsers#d91a548 id:Vector<InputUser> = Vector<User>;
 users.getFullUser#ca30a5b1 id:InputUser = UserFull;
