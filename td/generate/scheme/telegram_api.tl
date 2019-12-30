@@ -1064,7 +1064,6 @@ restrictionReason#d072acb4 platform:string reason:string text:string = Restricti
 inputTheme#3c5693e9 id:long access_hash:long = InputTheme;
 inputThemeSlug#f5890df1 slug:string = InputTheme;
 
-themeDocumentNotModified#483d270c = Theme;
 theme#28f1114 flags:# creator:flags.0?true default:flags.1?true id:long access_hash:long slug:string title:string document:flags.2?Document settings:flags.3?ThemeSettings installs_count:int = Theme;
 
 account.themesNotModified#f41eb622 = account.Themes;
