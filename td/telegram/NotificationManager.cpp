@@ -512,6 +512,9 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
 }
 
 void NotificationManager::try_reuse_notification_group_id(NotificationGroupId group_id) {
+  if (is_disabled()) {
+    return;
+  }
   if (!group_id.is_valid()) {
     return;
   }
@@ -1933,25 +1936,37 @@ void NotificationManager::on_notification_group_size_max_changed() {
 }
 
 void NotificationManager::on_online_cloud_timeout_changed() {
+  if (is_disabled()) {
+    return;
+  }
+
   online_cloud_timeout_ms_ =
       G()->shared_config().get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS);
   VLOG(notifications) << "Set online_cloud_timeout_ms to " << online_cloud_timeout_ms_;
 }
 
 void NotificationManager::on_notification_cloud_delay_changed() {
+  if (is_disabled()) {
+    return;
+  }
+
   notification_cloud_delay_ms_ =
       G()->shared_config().get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS);
   VLOG(notifications) << "Set notification_cloud_delay_ms to " << notification_cloud_delay_ms_;
 }
 
 void NotificationManager::on_notification_default_delay_changed() {
+  if (is_disabled()) {
+    return;
+  }
+
   notification_default_delay_ms_ =
       G()->shared_config().get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS);
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
 void NotificationManager::process_push_notification(string payload, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
+  if (is_disabled()) {
     promise.set_value(Unit());
     return;
   }
