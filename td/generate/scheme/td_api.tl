@@ -164,7 +164,7 @@ file id:int32 size:int32 expected_size:int32 local:localFile remote:remoteFile =
 //@description A file defined by its unique ID @id Unique file identifier
 inputFileId id:int32 = InputFile;
 
-//@description A file defined by its remote ID. The remote ID is guaranteed to work only if it was received after TDLib launch and the corresponding file is still accessible to the user.
+//@description A file defined by its remote ID. The remote ID is guaranteed to be usable only if the corresponding file is still accessible to the user and known to TDLib.
 //-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If a file database is disabled, then the corresponding object with the file must be preloaded by the client
 //@id Remote file identifier
 inputFileRemote id:string = InputFile;
@@ -776,7 +776,7 @@ replyMarkupShowKeyboard rows:vector<vector<keyboardButton>> resize_keyboard:Bool
 replyMarkupInlineKeyboard rows:vector<vector<inlineKeyboardButton>> = ReplyMarkup;
 
 
-//@class LoginUrlInfo @description Contains information about an inline button of type inlineKeyboardButtonTypeLoginUrl returned by the method getLoginUrlInfo
+//@class LoginUrlInfo @description Contains information about an inline button of type inlineKeyboardButtonTypeLoginUrl
 
 //@description An HTTP url needs to be open @url The URL to open @skip_confirm True, if there is no need to show an ordinary open URL confirm
 loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
@@ -2102,7 +2102,7 @@ pushReceiverId id:int64 = PushReceiverId;
 backgroundFillSolid color:int32 = BackgroundFill;
 
 //@description Describes a gradient fill of a background @top_color A top color of the background in the RGB24 format @bottom_color A bottom color of the background in the RGB24 format
-//@rotation_angle Rotation angle of the gradient, in degrees; 0-359. Must be always divisible by 45
+//@rotation_angle Clockwise rotation angle of the gradient, in degrees; 0-359. Should be always divisible by 45
 backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 = BackgroundFill;
 
 
@@ -2113,7 +2113,7 @@ backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 =
 //@is_moving True, if the background needs to be slightly moved when device is tilted
 backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 
-//@description A PNG or TGV (deflated subset of SVG) pattern to be combined with the background fill chosen by the user
+//@description A PNG or TGV (gzipped subset of SVG with mime-type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user
 //@fill Description of the background fill
 //@intensity Intensity of the pattern when it is shown above the filled background, 0-100
 //@is_moving True, if the background needs to be slightly moved when device is tilted
@@ -2676,7 +2676,7 @@ deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
 //@class TextParseMode @description Describes the way the text should be parsed for TextEntities
 
 //@description The text should be parsed in markdown-style
-//@version Version of the parser, 0 - Bot API 1.0 parser, 1 - Bot API 4.5 rules with underline, strikethrough and nested entities support
+//@version Version of the parser: 0 or 1 - Bot API Markdown parse mode, 2 - Bot API MarkdownV2 parse mode
 textParseModeMarkdown version:int32 = TextParseMode;
 
 //@description The text should be parsed in HTML-style
@@ -2762,7 +2762,7 @@ updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 //@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @order New value of the chat order
 updateChatLastMessage chat_id:int53 last_message:message order:int64 = Update;
 
-//@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned or updateChatDraftMessage might be sent @chat_id Chat identifier @order New value of the order
+//@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned, updateChatDraftMessage, or updateChatIsSponsored might be sent @chat_id Chat identifier @order New value of the order
 updateChatOrder chat_id:int53 order:int64 = Update;
 
 //@description A chat was pinned or unpinned @chat_id Chat identifier @is_pinned New value of is_pinned @order New value of the chat order
@@ -3381,7 +3381,7 @@ editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup capti
 //@description Edits the reply markup of an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup
 editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup = Ok;
 
-//@description Edits the time when a scheduled message will be sent @chat_id The chat the message belongs to @message_id Identifier of the message @scheduling_state The new message scheduling state. Pass null to send the message immediately
+//@description Edits the time when a scheduled message will be sent. Scheduling state of all messages in the same album or forwarded together with the message will be also changed @chat_id The chat the message belongs to @message_id Identifier of the message @scheduling_state The new message scheduling state. Pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
@@ -3522,7 +3522,7 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Moves a chat to a different chat list @chat_id Chat identifier @chat_list New chat list of the chat
+//@description Moves a chat to a different chat list. Current chat list of the chat must ne non-null @chat_id Chat identifier @chat_list New chat list of the chat
 setChatChatList chat_id:int53 chat_list:ChatList = Ok;
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
@@ -3717,7 +3717,7 @@ unblockUser user_id:int32 = Ok;
 getBlockedUsers offset:int32 limit:int32 = Users;
 
 
-//@description Adds a user to the contact list or edits an existing contact by their user identifiers @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
+//@description Adds a user to the contact list or edits an existing contact by their user identifier @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
 //@share_phone_number True, if the new contact needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field UserFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
 addContact contact:contact share_phone_number:Bool = Ok;
 

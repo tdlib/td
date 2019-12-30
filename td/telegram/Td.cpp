@@ -7811,10 +7811,10 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
         return parse_html(request.text_);
       case td_api::textParseModeMarkdown::ID: {
         auto version = static_cast<const td_api::textParseModeMarkdown *>(request.parse_mode_.get())->version_;
-        if (version == 0) {
+        if (version == 0 || version == 1) {
           return parse_markdown(request.text_);
         }
-        if (version == 1) {
+        if (version == 2) {
           return parse_markdown_v2(request.text_);
         }
         return Status::Error("Wrong Markdown version specified");
