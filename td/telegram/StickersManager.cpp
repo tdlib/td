@@ -1611,6 +1611,7 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
   std::unordered_map<int64, FileId> document_id_to_sticker_id;
 
   s->sticker_ids.clear();
+  bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : documents) {
     auto sticker_id = on_get_sticker_document(std::move(document_ptr), false);
     if (!sticker_id.second.is_valid()) {
@@ -1618,32 +1619,36 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
     }
 
     s->sticker_ids.push_back(sticker_id.second);
-    document_id_to_sticker_id.insert(sticker_id);
+    if (!is_bot) {
+      document_id_to_sticker_id.insert(sticker_id);
+    }
   }
   if (static_cast<int>(s->sticker_ids.size()) != s->sticker_count) {
     LOG(ERROR) << "Wrong sticker set size specified";
     s->sticker_count = static_cast<int>(s->sticker_ids.size());
   }
 
-  s->emoji_stickers_map_.clear();
-  s->sticker_emojis_map_.clear();
-  for (auto &pack : packs) {
-    vector<FileId> stickers;
-    stickers.reserve(pack->documents_.size());
-    for (int64 document_id : pack->documents_) {
-      auto it = document_id_to_sticker_id.find(document_id);
-      if (it == document_id_to_sticker_id.end()) {
-        LOG(ERROR) << "Can't find document with id " << document_id;
-        continue;
-      }
+  if (!is_bot) {
+    s->emoji_stickers_map_.clear();
+    s->sticker_emojis_map_.clear();
+    for (auto &pack : packs) {
+      vector<FileId> stickers;
+      stickers.reserve(pack->documents_.size());
+      for (int64 document_id : pack->documents_) {
+        auto it = document_id_to_sticker_id.find(document_id);
+        if (it == document_id_to_sticker_id.end()) {
+          LOG(ERROR) << "Can't find document with id " << document_id;
+          continue;
+        }
 
-      stickers.push_back(it->second);
-      s->sticker_emojis_map_[it->second].push_back(pack->emoticon_);
-    }
-    auto &sticker_ids = s->emoji_stickers_map_[remove_emoji_modifiers(pack->emoticon_)];
-    for (auto sticker_id : stickers) {
-      if (std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
-        sticker_ids.push_back(sticker_id);
+        stickers.push_back(it->second);
+        s->sticker_emojis_map_[it->second].push_back(pack->emoticon_);
+      }
+      auto &sticker_ids = s->emoji_stickers_map_[remove_emoji_modifiers(pack->emoticon_)];
+      for (auto sticker_id : stickers) {
+        if (std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
+          sticker_ids.push_back(sticker_id);
+        }
       }
     }
   }
