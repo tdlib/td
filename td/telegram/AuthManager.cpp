@@ -102,7 +102,7 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::WaitCode:
       return send_code_helper_.get_authorization_state_wait_code();
     case State::WaitQrCodeConfirmation:
-      return make_tl_object<td_api::authorizationStateWaitOtherDeviceConfirmation>("tg://login?" +
+      return make_tl_object<td_api::authorizationStateWaitOtherDeviceConfirmation>("tg://login?token=" +
                                                                                    base64url_encode(login_token_));
     case State::WaitPassword:
       return make_tl_object<td_api::authorizationStateWaitPassword>(

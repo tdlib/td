@@ -4141,7 +4141,7 @@ void ContactsManager::get_account_ttl(Promise<int32> &&promise) const {
 
 void ContactsManager::confirm_qr_code_authentication(string link,
                                                      Promise<td_api::object_ptr<td_api::session>> &&promise) {
-  Slice prefix("tg://login?");
+  Slice prefix("tg://login?token=");
   if (!begins_with(to_lower(link), prefix)) {
     return promise.set_error(Status::Error(400, "AUTH_TOKEN_INVALID"));
   }
