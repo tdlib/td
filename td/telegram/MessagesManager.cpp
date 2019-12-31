@@ -11339,6 +11339,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   bool need_update_dialog_pos = false;
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
+  bool need_add_active_live_location = false;
   LOG(INFO) << "Found old " << old_message_id << " by " << FullMessageId{dialog_id, message_id};
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     Dialog *d = get_dialog(dialog_id);
@@ -11409,7 +11410,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     send_update_message_send_succeeded(d, old_message_id, new_message.get());
 
     if (!message_id.is_scheduled()) {
-      try_add_active_live_location(dialog_id, new_message.get());
+      need_add_active_live_location = true;
 
       // add_message_to_dialog will not update counts, because need_update == false
       update_message_count_by_index(d, +1, new_message.get());
@@ -11436,6 +11437,10 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   }
 
   CHECK(d != nullptr);
+
+  if (need_add_active_live_location) {
+    try_add_active_live_location(dialog_id, m);
+  }
 
   auto pcc_it = pending_created_dialogs_.find(dialog_id);
   if (from_update && pcc_it != pending_created_dialogs_.end()) {
