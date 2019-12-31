@@ -16296,6 +16296,9 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (m->content->get_type() != MessageContentType::LiveLocation || m->message_id.is_scheduled() ||
       m->message_id.is_local() || m->via_bot_user_id.is_valid() || m->forward_info != nullptr) {
     return;
@@ -16310,6 +16313,9 @@ void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Mes
 }
 
 void MessagesManager::add_active_live_location(FullMessageId full_message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (!active_live_location_full_message_ids_.insert(full_message_id).second) {
     return;
   }
