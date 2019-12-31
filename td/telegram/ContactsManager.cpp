@@ -7611,6 +7611,7 @@ string ContactsManager::get_bot_info_database_value(const BotInfo *bot_info) {
 }
 
 void ContactsManager::on_load_bot_info_from_database(UserId user_id, string value, bool send_update) {
+  CHECK(G()->parameters().use_chat_info_db);
   LOG(INFO) << "Successfully loaded bot info for " << user_id << " of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_bot_info_database_key(user_id), Auto());
   //  return;
@@ -9110,7 +9111,9 @@ void ContactsManager::drop_user_full(UserId user_id) {
   drop_user_photos(user_id, false);
 
   bot_infos_.erase(user_id);
-  G()->td_db()->get_sqlite_pmc()->erase(get_bot_info_database_key(user_id), Auto());
+  if (G()->parameters().use_chat_info_db) {
+    G()->td_db()->get_sqlite_pmc()->erase(get_bot_info_database_key(user_id), Auto());
+  }
 
   auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
