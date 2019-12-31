@@ -16327,6 +16327,10 @@ void MessagesManager::add_active_live_location(FullMessageId full_message_id) {
 
   // TODO add timer for live location expiration
 
+  if (!G()->parameters().use_message_db) {
+    return;
+  }
+
   if (are_active_live_location_messages_loaded_) {
     save_active_live_locations();
   } else {
