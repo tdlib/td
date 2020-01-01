@@ -10045,6 +10045,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       on_get_chat(std::move(chat_invite_already->chat_), "chatInviteAlready");
 
       CHECK(chat_id == ChatId() || channel_id == ChannelId());
+      CHECK(invite_link_info != nullptr);
       invite_link_info->chat_id = chat_id;
       invite_link_info->channel_id = channel_id;
 
@@ -10058,6 +10059,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
     }
     case telegram_api::chatInvite::ID: {
       auto chat_invite = move_tl_object_as<telegram_api::chatInvite>(chat_invite_ptr);
+      CHECK(invite_link_info != nullptr);
       invite_link_info->chat_id = ChatId();
       invite_link_info->channel_id = ChannelId();
       invite_link_info->title = chat_invite->title_;
