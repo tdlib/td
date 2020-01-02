@@ -8454,7 +8454,7 @@ bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status,
 
 bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
-    return false;
+    return true;
   }
   if (m->message_id.is_local()) {
     return false;
