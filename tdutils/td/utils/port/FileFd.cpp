@@ -206,6 +206,12 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
   }
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+  if (flags & Write) {
+    DWORD bytes_returned = 0;
+    DeviceIoControl(handle, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &bytes_returned, nullptr);
+  }
+#endif
   auto native_fd = NativeFd(handle);
   if (flags & Append) {
     LARGE_INTEGER offset;
