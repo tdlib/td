@@ -734,6 +734,12 @@ TEST(MessageEntities, fix_formatted_text) {
     check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false,
                              false);
   }
+
+  for (td::string text : {"\t", "\r", "\n", "\t ", "\r ", "\n "}) {
+    for (auto type : {td::MessageEntity::Type::Bold, td::MessageEntity::Type::TextUrl}) {
+      check_fix_formatted_text(text, {{type, 0, 1, "http://telegram.org/"}}, "", {}, true, false, false, true);
+    }
+  }
 }
 
 static void check_parse_html(td::string text, const td::string &result, const td::vector<td::MessageEntity> &entities) {
@@ -813,6 +819,15 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟&lt;<i>a</    >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i>a</i   >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<b></b>", "🏟 🏟<", {});
+  check_parse_html("<i>\t</i>", "\t", {{td::MessageEntity::Type::Italic, 0, 1}});
+  check_parse_html("<i>\r</i>", "\r", {{td::MessageEntity::Type::Italic, 0, 1}});
+  check_parse_html("<i>\n</i>", "\n", {{td::MessageEntity::Type::Italic, 0, 1}});
+  check_parse_html("<a href=telegram.org>\t</a>", "\t",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_html("<a href=telegram.org>\r</a>", "\r",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
+  check_parse_html("<a href=telegram.org>\n</a>", "\n",
+                   {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
   check_parse_html("<code><i><b> </b></i></code><i><b><code> </code></b></i>", "  ",
                    {{td::MessageEntity::Type::Code, 0, 1},
                     {td::MessageEntity::Type::Bold, 0, 1},

@@ -2526,6 +2526,10 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   int32 last_non_whitespace_utf16_offset = -1;
 
   for (size_t pos = 0; pos <= text.size(); pos++) {
+    while (current_entity < entities.size() && utf16_offset >= entities[current_entity].offset &&
+           entities[current_entity].length == 0) {
+      nested_entities_stack.push_back(&entities[current_entity++]);
+    }
     while (!nested_entities_stack.empty()) {
       auto *entity = nested_entities_stack.back();
       auto entity_end = entity->offset + entity->length;
@@ -2590,6 +2594,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
 
   TRY_RESULT(result, clean_input_string_with_entities(text, entities));
 
+  // now entities are still sorted by offset and length, but not type,
+  // because some characters could be deleted and some entities bacame to end together
+
   size_t last_non_whitespace_pos;
   int32 last_non_whitespace_utf16_offset;
   std::tie(last_non_whitespace_pos, last_non_whitespace_utf16_offset) = remove_invalid_entities(result, entities);
@@ -2600,6 +2607,10 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       return Status::OK();
     }
     return Status::Error(3, "Message must be non-empty");
+  }
+
+  if (!std::is_sorted(entities.begin(), entities.end())) {
+    std::sort(entities.begin(), entities.end());  // re-sort entities if needed after removal of some characters
   }
 
   if (for_draft) {
