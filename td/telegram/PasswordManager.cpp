@@ -10,7 +10,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-#include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/DhHandshake.h"
@@ -24,9 +23,6 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
-
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"  // TODO: this file is already included. Why?
 
 namespace td {
 

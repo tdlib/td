@@ -45,7 +45,7 @@
 #include <clocale>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>  // for strcmp
+#include <cstring>
 #include <ctime>
 #include <iostream>
 #include <limits>
