@@ -237,13 +237,19 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
 
   NetQueryPtr net_query;
   if (!use_cdn_) {
+    int32 flags = 0;
+#if !TD_EMSCRIPTEN
+    // CDN is supported, unless we use domains instead of IPs from a browser
+    flags |= telegram_api::upload_getFile::CDN_SUPPORTED_MASK;
+#endif
     DcId dc_id = remote_.is_web() ? G()->get_webfile_dc_id() : remote_.get_dc_id();
     net_query = G()->net_query_creator().create(
         UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Default)),
         remote_.is_web()
             ? create_storer(telegram_api::upload_getWebFile(remote_.as_input_web_file_location(),
                                                             static_cast<int32>(part.offset), static_cast<int32>(size)))
-            : create_storer(telegram_api::upload_getFile(0, false /*ignored*/, remote_.as_input_file_location(),
+            : create_storer(telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/,
+                                                         remote_.as_input_file_location(),
                                                          static_cast<int32>(part.offset), static_cast<int32>(size))),
         dc_id, is_small_ ? NetQuery::Type::DownloadSmall : NetQuery::Type::Download);
   } else {
