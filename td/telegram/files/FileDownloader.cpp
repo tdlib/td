@@ -117,6 +117,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.limit = limit_;
   return res;
 }
+
 Status FileDownloader::on_ok(int64 size) {
   auto dir = get_files_dir(remote_.file_type_);
 
@@ -140,6 +141,7 @@ Status FileDownloader::on_ok(int64 size) {
   callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size, !only_check_);
   return Status::OK();
 }
+
 void FileDownloader::on_error(Status status) {
   fd_.close();
   callback_->on_error(std::move(status));
@@ -217,6 +219,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
 
   return false;
 }
+
 Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32 part_count) {
   if (encryption_key_.is_secret()) {
     part.size = (part.size + 15) & ~15;  // fix for last part
@@ -354,12 +357,14 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   TRY_STATUS(acquire_fd());
   LOG(INFO) << "Got " << slice.size() << " bytes at offset " << part.offset << " for \"" << path_ << '"';
   TRY_RESULT(written, fd_.pwrite(slice, part.offset));
+  LOG(INFO) << "Written " << written << " bytes";
   // may write less than part.size, when size of downloadable file is unknown
   if (written != slice.size()) {
     return Status::Error("Failed to save file part to the file");
   }
   return written;
 }
+
 void FileDownloader::on_progress(Progress progress) {
   if (progress.is_ready) {
     // do not send partial location. will lead to wrong local_size
