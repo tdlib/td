@@ -200,7 +200,7 @@ BackgroundType get_background_type(bool is_pattern,
       }
     }
     if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-      int32 second_color = settings->background_color_;
+      int32 second_color = settings->second_background_color_;
       if (!is_valid_color(second_color)) {
         LOG(ERROR) << "Receive " << to_string(settings);
         second_color = 0;
