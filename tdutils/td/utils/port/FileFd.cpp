@@ -480,6 +480,11 @@ Result<int64> FileFd::get_size() const {
   return s.size_;
 }
 
+Result<int64> FileFd::get_real_size() const {
+  TRY_RESULT(s, stat());
+  return s.real_size_;
+}
+
 #if TD_PORT_WINDOWS
 static uint64 filetime_to_unix_time_nsec(LONGLONG filetime) {
   const auto FILETIME_UNIX_TIME_DIFF = 116444736000000000ll;
@@ -510,6 +515,11 @@ Result<Stat> FileFd::stat() const {
     return OS_ERROR("Get FileStandardInfo failed");
   }
   res.size_ = standard_info.EndOfFile.QuadPart;
+  res.real_size_ = standard_info.AllocationSize.QuadPart;
+
+  if (res.size_ != 0 && res.real_size_ <= 0 ) {
+    res.real_size_ = res.size_; // just in case
+  }
 
   return res;
 #endif

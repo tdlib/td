@@ -50,10 +50,14 @@ class FileFd {
 
   PollableFdInfo &get_poll_info();
   const PollableFdInfo &get_poll_info() const;
+
   void close();
+
   bool empty() const;
 
   Result<int64> get_size() const;
+
+  Result<int64> get_real_size() const;
 
   Result<Stat> stat() const;
 
