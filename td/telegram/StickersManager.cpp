@@ -1894,9 +1894,12 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->is_official = is_official;
       s->is_changed = true;
     }
-    LOG_IF(ERROR, s->is_animated != is_animated)
-        << "Animated type of " << set_id << "/" << s->short_name << " has changed from " << s->is_animated << " to "
-        << is_animated << " from " << source;
+    if (s->is_animated != is_animated) {
+      LOG(ERROR) << "Animated type of " << set_id << "/" << s->short_name << " has changed from " << s->is_animated
+                 << " to " << is_animated << " from " << source;
+      s->is_animated = is_animated;
+      s->is_changed = true;
+    }
     LOG_IF(ERROR, s->is_masks != is_masks) << "Masks type of " << set_id << "/" << s->short_name << " has changed from "
                                            << s->is_masks << " to " << is_masks << " from " << source;
   }
