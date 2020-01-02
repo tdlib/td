@@ -512,7 +512,7 @@ Result<FileSize> get_file_size(const FileFd &file_fd) {
 Result<int64> FileFd::get_size() const {
 #if TD_PORT_POSIX
   TRY_RESULT(s, stat());
-#else if TD_PORT_WINDOWS
+#elif TD_PORT_WINDOWS
   TRY_RESULT(s, get_file_size(*this));
 #endif
   return s.size_;
@@ -521,7 +521,7 @@ Result<int64> FileFd::get_size() const {
 Result<int64> FileFd::get_real_size() const {
 #if TD_PORT_POSIX
   TRY_RESULT(s, stat());
-#else if TD_PORT_WINDOWS
+#elif TD_PORT_WINDOWS
   TRY_RESULT(s, get_file_size(*this));
 #endif
   return s.real_size_;
