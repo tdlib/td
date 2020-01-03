@@ -102,7 +102,7 @@ TEST(Port, SparseFiles) {
   ASSERT_EQ(0, fd.get_size().move_as_ok());
   ASSERT_EQ(0, fd.get_real_size().move_as_ok());
   int64 offset = 100000000;
-  fd.pwrite("a", offset);
+  fd.pwrite("a", offset).ensure();
   ASSERT_EQ(offset + 1, fd.get_size().move_as_ok());
   auto real_size = fd.get_real_size().move_as_ok();
   if (real_size == offset + 1) {
