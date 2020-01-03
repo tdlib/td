@@ -544,6 +544,18 @@ int64 FileView::size() const {
   return node_->size_;
 }
 
+int64 FileView::get_allocated_local_size() const {
+  auto file_path = path();
+  if (file_path.empty()) {
+    return 0;
+  }
+  auto r_stat = stat(file_path);
+  if (r_stat.is_error()) {
+    return 0;
+  }
+  return r_stat.ok().real_size_;
+}
+
 int64 FileView::expected_size(bool may_guess) const {
   if (node_->size_ != 0) {
     return node_->size_;
@@ -2008,8 +2020,8 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
       LOG(INFO) << "Unlink file " << file_id << " at " << file_view.local_location().path_;
       clear_from_pmc(node);
 
+      context_->on_new_file(-file_view.get_allocated_local_size(), -1);
       unlink(file_view.local_location().path_).ignore();
-      context_->on_new_file(-file_view.size(), -1);
       node->drop_local_location();
       try_flush_node(node, "delete_file 1");
     }
@@ -3264,7 +3276,7 @@ void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &
     LOG(ERROR) << "Can't register local file after download: " << r_new_file_id.error();
   } else {
     if (is_new) {
-      context_->on_new_file(size, 1);
+      context_->on_new_file(get_file_view(r_new_file_id.ok()).get_allocated_local_size(), 1);
     }
     LOG_STATUS(merge(r_new_file_id.ok(), file_id));
   }
@@ -3431,7 +3443,7 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
 
   FileView file_view(file_node);
   if (!file_view.has_generate_location() || !begins_with(file_view.generate_location().conversion_, "#file_id#")) {
-    context_->on_new_file(file_view.size(), 1);
+    context_->on_new_file(file_view.get_allocated_local_size(), 1);
   }
 
   run_upload(file_node, {});

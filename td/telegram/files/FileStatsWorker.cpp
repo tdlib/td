@@ -126,7 +126,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
 
       FsFileInfo info;
       info.path = path.str();
-      info.size = stat.size_;
+      info.size = stat.real_size_;
       info.file_type = file_type;
       info.atime_nsec = stat.atime_nsec_;
       info.mtime_nsec = stat.mtime_nsec_;

@@ -271,6 +271,8 @@ class FileView {
   int64 remote_size() const;
   string path() const;
 
+  int64 get_allocated_local_size() const;
+
   bool can_download_from_server() const;
   bool can_generate() const;
   bool can_delete() const;

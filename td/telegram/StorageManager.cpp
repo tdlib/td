@@ -170,7 +170,7 @@ int64 StorageManager::get_file_size(CSlice path) {
     return 0;
   }
 
-  auto size = r_info.ok().size_;
+  auto size = r_info.ok().real_size_;
   LOG(DEBUG) << "Add file \"" << path << "\" of size " << size << " to fast storage statistics";
   return size;
 }

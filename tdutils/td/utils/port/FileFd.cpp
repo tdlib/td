@@ -499,8 +499,9 @@ Result<FileSize> get_file_size(const FileFd &file_fd) {
   res.size_ = standard_info.EndOfFile.QuadPart;
   res.real_size_ = standard_info.AllocationSize.QuadPart;
 
-  if (res.size_ > 0 && res.real_size_ <= 0) {
-    res.real_size_ = res.size_;  // just in case
+  if (res.size_ > 0 && res.real_size_ <= 0) {  // just in case
+    LOG(ERROR) << "Fix real file size from " << res.real_size_ << " to " << res.size_;
+    res.real_size_ = res.size_;
   }
 
   return res;
