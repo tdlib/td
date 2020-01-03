@@ -10,6 +10,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/FileFd.h"
 #include "td/utils/Random.h"
 #include "td/utils/SharedSlice.h"
 
@@ -87,6 +88,18 @@ BufferSlice gen_random_prefix(int64 data_size) {
   CHECK((buff.size() + data_size) % 16 == 0);
   return buff;
 }
+
+class FileDataView : public DataView {
+ public:
+  FileDataView(FileFd &fd, int64 size);
+
+  int64 size() const override;
+  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+
+ private:
+  FileFd &fd_;
+  int64 size_;
+};
 
 FileDataView::FileDataView(FileFd &fd, int64 size) : fd_(fd), size_(size) {
 }

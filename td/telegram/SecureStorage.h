@@ -9,7 +9,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/port/FileFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
@@ -73,18 +72,6 @@ class DataView {
   virtual int64 size() const = 0;
   virtual Result<BufferSlice> pread(int64 offset, int64 size) const = 0;
   virtual ~DataView() = default;
-};
-
-class FileDataView : public DataView {
- public:
-  FileDataView(FileFd &fd, int64 size);
-
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
-
- private:
-  FileFd &fd_;
-  int64 size_;
 };
 
 class BufferSliceDataView : public DataView {
