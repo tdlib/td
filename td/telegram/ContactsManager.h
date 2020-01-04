@@ -264,6 +264,9 @@ class ContactsManager : public Actor {
   void set_account_ttl(int32 account_ttl, Promise<Unit> &&promise) const;
   void get_account_ttl(Promise<int32> &&promise) const;
 
+  static td_api::object_ptr<td_api::session> convert_authorization_object(
+      tl_object_ptr<telegram_api::authorization> &&authorization);
+
   void confirm_qr_code_authentication(string link, Promise<td_api::object_ptr<td_api::session>> &&promise);
 
   void get_active_sessions(Promise<tl_object_ptr<td_api::sessions>> &&promise) const;
