@@ -323,6 +323,18 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     return promise.set_error(Status::Error(400, "Method can be used by bots only"));
   }
 
+  if (!switch_pm_text.empty()) {
+    if (switch_pm_parameter.empty()) {
+      return promise.set_error(Status::Error(400, "Can't use empty switch_pm_parameter"));
+    }
+    if (switch_pm_parameter.size() > 64) {
+      return promise.set_error(Status::Error(400, "Too long switch_pm_parameter specified"));
+    }
+    if (!is_base64url(switch_pm_parameter)) {
+      return promise.set_error(Status::Error(400, "Unallowed characters in switch_pm_parameter are used"));
+    }
+  }
+
   vector<tl_object_ptr<telegram_api::InputBotInlineResult>> results;
 
   bool is_gallery = false;
