@@ -941,3 +941,13 @@ install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmak
 # Add SOVERSION to shared libraries
 set_property(TARGET tdclient PROPERTY SOVERSION ${TDLib_VERSION})
 set_property(TARGET tdjson PROPERTY SOVERSION ${TDLib_VERSION})
+
+# Create pkg config files
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/tdjson.pc.in ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/tdjson.pc @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/tdjson_static.pc.in ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/tdjson_static.pc @ONLY)
+install(
+  FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/tdjson.pc
+  ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/tdjson_static.pc
+  DESTINATION lib/pkgconfig
+)

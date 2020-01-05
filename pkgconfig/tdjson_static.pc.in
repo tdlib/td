@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: tdjson_static
+Description: Telegram Library JSON
+Version: @PROJECT_VERSION@
+Requires: openssl
+Libs: -L${libdir} -ltdjson_static
+Cflags: -I${includedir}
