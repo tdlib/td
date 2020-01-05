@@ -79,6 +79,9 @@ void AuthManager::tear_down() {
 }
 
 bool AuthManager::is_bot() const {
+  if (net_query_id_ != 0 && net_query_type_ == NetQueryType::BotAuthentication) {
+    return true;
+  }
   return is_bot_ && (state_ == State::Ok || state_ == State::LoggingOut || state_ == State::DestroyingKeys ||
                      state_ == State::Closing);
 }

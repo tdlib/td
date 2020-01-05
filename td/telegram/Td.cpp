@@ -3338,7 +3338,7 @@ void Td::on_alarm_timeout(int64 alarm_id) {
 }
 
 void Td::on_online_updated(bool force, bool send_update) {
-  if (close_flag_ >= 2 || auth_manager_->is_bot() || !auth_manager_->is_authorized()) {
+  if (close_flag_ >= 2 || !auth_manager_->is_authorized() || auth_manager_->is_bot()) {
     return;
   }
   if (force || is_online_) {
