@@ -1785,7 +1785,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_poll->question_.empty()) {
         return Status::Error(400, "Poll question must be non-empty");
       }
-      if (input_poll->question_.size() > MAX_POLL_QUESTION_LENGTH) {
+      if (utf8_length(input_poll->question_) > MAX_POLL_QUESTION_LENGTH) {
         return Status::Error(400, PSLICE() << "Poll question length must not exceed " << MAX_POLL_QUESTION_LENGTH);
       }
       if (input_poll->options_.size() <= 1) {
@@ -1801,7 +1801,7 @@ static Result<InputMessageContent> create_input_message_content(
         if (option.empty()) {
           return Status::Error(400, "Poll options must be non-empty");
         }
-        if (option.size() > MAX_POLL_OPTION_LENGTH) {
+        if (utf8_length(option) > MAX_POLL_OPTION_LENGTH) {
           return Status::Error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
         }
       }
