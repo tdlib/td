@@ -46,9 +46,9 @@ public:
   }
 
   /// <summary>
-  /// Changes maximum size of TDLib log file.
+  /// Changes the maximum size of TDLib log file.
   /// </summary>
-  /// <param name="maxFileSize">Maximum size of the file to where the internal TDLib log is written
+  /// <param name="maxFileSize">The maximum size of the file to where the internal TDLib log is written
   /// before the file will be auto-rotated. Must be positive. Defaults to 10 MB.</param>
   [DEPRECATED_ATTRIBUTE("SetMaxFileSize is deprecated, please use Telegram.Td.Api.SetLogStream request instead.")]
   static void SetMaxFileSize(std::int64_t maxFileSize) {

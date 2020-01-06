@@ -316,7 +316,10 @@ function split_file($file, $chunks, $undo) {
 }
 
 if (in_array('--help', $argv) || in_array('-h', $argv)) {
-    echo "Usage: php SplitSource.php [OPTION]...\nSplits some source files to reduce maximum RAM needed for compiling a single file.\n  -u, --undo Undo all source code changes.\n  -h, --help Show this help.\n";
+    echo "Usage: php SplitSource.php [OPTION]...\n".
+         "Splits some source files to reduce a maximum amount of RAM needed for compiling a single file.\n".
+         "  -u, --undo Undo all source code changes.\n".
+         "  -h, --help Show this help.\n";
     exit(2);
 }
 

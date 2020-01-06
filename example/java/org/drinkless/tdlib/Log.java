@@ -41,10 +41,10 @@ public final class Log {
     public static native boolean setFilePath(String filePath);
 
     /**
-     * Changes maximum size of TDLib log file.
+     * Changes the maximum size of TDLib log file.
      *
      * @deprecated As of TDLib 1.4.0 in favor of {@link TdApi.SetLogStream}, to be removed in the future.
-     * @param maxFileSize Maximum size of the file to where the internal TDLib log is written
+     * @param maxFileSize The maximum size of the file to where the internal TDLib log is written
      *                    before the file will be auto-rotated. Must be positive. Defaults to 10 MB.
      */
     @Deprecated

@@ -361,7 +361,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
     return result;
   }
 
-  // now we need to choose up to (100 - percent_sum) options with minimum total gap, such that
+  // now we need to choose up to (100 - percent_sum) options with a minimum total gap, such that
   // any two options with the same voter_count are chosen or not chosen simultaneously
   struct Option {
     int32 pos = -1;

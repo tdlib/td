@@ -38,11 +38,11 @@ class Log {
   static bool set_file_path(std::string file_path);
 
   /**
-   * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
+   * Sets the maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
    * Unused if log is not written to a file. Defaults to 10 MB.
    *
    * \deprecated Use synchronous td::td_api::setLogStream request instead.
-   * \param[in]  max_file_size Maximum size of the file to where the internal TDLib log is written before the file
+   * \param[in]  max_file_size The maximum size of the file to where the internal TDLib log is written before the file
    *                           will be auto-rotated. Should be positive.
    */
   static void set_max_file_size(std::int64_t max_file_size);

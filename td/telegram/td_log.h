@@ -33,11 +33,11 @@ extern "C" {
 TDJSON_DEPRECATED_EXPORT int td_set_log_file_path(const char *file_path);
 
 /**
- * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
+ * Sets the maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
  * Unused if log is not written to a file. Defaults to 10 MB.
  *
  * \deprecated Use synchronous setLogStream request instead.
- * \param[in]  max_file_size Maximum size of the file to where the internal TDLib log is written before the file
+ * \param[in]  max_file_size The maximum size of the file to where the internal TDLib log is written before the file
  *                           will be auto-rotated. Should be positive.
  */
 TDJSON_DEPRECATED_EXPORT void td_set_log_max_file_size(long long max_file_size);

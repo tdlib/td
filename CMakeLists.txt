@@ -79,7 +79,7 @@ set(MEMPROF "" CACHE STRING "Use one of \"ON\", \"FAST\" or \"SAFE\" to enable m
 Works under macOS and Linux when compiled using glibc. \
 In FAST mode stack is unwinded only using frame pointers, which may fail. \
 In SAFE mode stack is unwinded using backtrace function from execinfo.h, which may be very slow. \
-By default both methods are used to achieve maximum speed and accuracy")
+By default both methods are used to achieve the maximum speed and accuracy")
 
 if (EMSCRIPTEN)
   # use prebuilt zlib
