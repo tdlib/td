@@ -109,6 +109,14 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
                      << tag("saved_system_time", saved_diff.system_time) << tag("system_time", system_time);
       }
       diff += time_backwards_fix;
+    } else {
+      const double MAX_TIME_FORWARD = 367 * 86400;  // if more than 1 year has passed, the session is logged out anyway
+      if (saved_diff.system_time + MAX_TIME_FORWARD < system_time) {
+        double time_forward_fix = system_time - (saved_diff.system_time + MAX_TIME_FORWARD);
+        LOG(WARNING) << "Fix system time which went forward: " << format::as_time(time_forward_fix) << " "
+                     << tag("saved_system_time", saved_diff.system_time) << tag("system_time", system_time);
+        diff -= time_forward_fix;
+      }
     }
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
     server_time_difference_ = diff;
@@ -160,8 +168,6 @@ void Global::update_dns_time_difference(double diff) {
 }
 
 double Global::get_dns_time_difference() const {
-  // rely that was updated flag is monotonic. Currenly it is true. If it stops being monitonic at some point it won't
-  // lead to problems anyway.
   bool dns_flag = dns_time_difference_was_updated_;
   double dns_diff = dns_time_difference_;
   bool server_flag = server_time_difference_was_updated_;
