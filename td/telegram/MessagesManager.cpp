@@ -22740,10 +22740,14 @@ void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog
   }
 
   td_->contacts_manager_->for_each_secret_chat_with_user(
-      d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
-                                                                      get_chat_action_bar_object(d)));
+      d->dialog_id.get_user_id(), [this, user_d = d](SecretChatId secret_chat_id) {
+        DialogId dialog_id(secret_chat_id);
+        auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
+        if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
+          send_closure(
+              G()->td(), &Td::send_update,
+              td_api::make_object<td_api::updateChatActionBar>(dialog_id.get(), get_chat_action_bar_object(user_d)));
+        }
       });
 }
 
