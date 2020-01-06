@@ -3484,8 +3484,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     try_flush_node(node, "on_error");
   };
   if (status.code() != 1 && !G()->close_flag()) {
-    LOG(WARNING) << "Failed to upload/download/generate file " << node->main_file_id_ << ": " << status
-                 << ". Query type = " << type << ". File type is " << FileView(node).get_type();
+    LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type " << FileView(node).get_type()
+                 << ": " << status;
     if (status.code() == 0) {
       // Remove partial locations
       if (node->local_.type() == LocalFileLocation::Type::Partial &&
