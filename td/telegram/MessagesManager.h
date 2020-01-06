@@ -1918,6 +1918,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_chat_list(const Dialog *d) const;
 
+  void send_update_secret_chats_with_user_action_bar(const Dialog *d) const;
+
   void send_update_chat_action_bar(const Dialog *d);
 
   void send_update_chat_has_scheduled_messages(Dialog *d);

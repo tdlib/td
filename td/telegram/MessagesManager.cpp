@@ -22537,13 +22537,8 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
 
-  if (has_action_bar && d->dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->for_each_secret_chat_with_user(
-        d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
-          send_closure(G()->td(), &Td::send_update,
-                       td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
-                                                                        get_chat_action_bar_object(d)));
-        });
+  if (has_action_bar) {
+    send_update_secret_chats_with_user_action_bar(d);
   }
 }
 
@@ -22739,6 +22734,19 @@ void MessagesManager::send_update_chat_chat_list(const Dialog *d) const {
                make_tl_object<td_api::updateChatChatList>(d->dialog_id.get(), get_chat_list_object(d)));
 }
 
+void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog *d) const {
+  if (d->dialog_id.get_type() != DialogType::User) {
+    return;
+  }
+
+  td_->contacts_manager_->for_each_secret_chat_with_user(
+      d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
+                                                                      get_chat_action_bar_object(d)));
+      });
+}
+
 void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_action_bar";
@@ -22746,14 +22754,7 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
 
-  if (d->dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->for_each_secret_chat_with_user(
-        d->dialog_id.get_user_id(), [this, d](SecretChatId secret_chat_id) {
-          send_closure(G()->td(), &Td::send_update,
-                       td_api::make_object<td_api::updateChatActionBar>(DialogId(secret_chat_id).get(),
-                                                                        get_chat_action_bar_object(d)));
-        });
-  }
+  send_update_secret_chats_with_user_action_bar(d);
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
