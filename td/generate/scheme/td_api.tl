@@ -69,12 +69,12 @@ textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 //@description Contains a list of text entities @entities List of text entities
 textEntities entities:vector<textEntity> = TextEntities;
 
-//@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect each other.
-//-Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline and Strikethrough entities can contain and to be contained in any other entities. All other entities can't contain each other
+//@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect with each other.
+//-Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline and Strikethrough entities can contain and to be contained in all other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
-//@description Contains Telegram terms of service @text Text of the terms of service @min_user_age Minimum age of a user to be able to accept the terms; 0 if any @show_popup True, if a blocking popup with terms of service must be shown to the user
+//@description Contains Telegram terms of service @text Text of the terms of service @min_user_age The minimum age of a user to be able to accept the terms; 0 if any @show_popup True, if a blocking popup with terms of service must be shown to the user
 termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfService;
 
 
@@ -165,7 +165,7 @@ file id:int32 size:int32 expected_size:int32 local:localFile remote:remoteFile =
 inputFileId id:int32 = InputFile;
 
 //@description A file defined by its remote ID. The remote ID is guaranteed to be usable only if the corresponding file is still accessible to the user and known to TDLib.
-//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If a file database is disabled, then the corresponding object with the file must be preloaded by the client
+//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the client
 //@id Remote file identifier
 inputFileRemote id:string = InputFile;
 
@@ -293,7 +293,7 @@ botCommand command:string description:string = BotCommand;
 botInfo description:string commands:vector<botCommand> = BotInfo;
 
 
-//@description Represents a location of a chat @location The location @address Location address; 1-64 characters, as defined by the chat owner
+//@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner
 chatLocation location:location address:string = ChatLocation;
 
 
@@ -450,8 +450,8 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel; custom title will be always empty
 //@member_count Member count; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was found through SearchPublicChats
-//@has_linked_chat True, if the channel has a discussion group, or the supergroup is a discussion group for a channel
-//@has_location True, if the supergroup has a chat location
+//@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
+//@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
@@ -466,7 +466,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
-//@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is a discussion group; 0 if none or unknown
+//@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is the designated discussion group; 0 if none or unknown
 //@slow_mode_delay Delay between consecutive sent messages for non-administrator supergroup members, in seconds
 //@slow_mode_delay_expires_in Time left before next message can be sent in the supergroup, in seconds. An updateSupergroupFullInfo update is not triggered when value of this field changes, but both new and old values are non-zero
 //@can_get_members True, if members of the chat can be retrieved
@@ -476,7 +476,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
-//@location Location of the supergroup; may be null
+//@location Location to which the supergroup is connected; may be null
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
@@ -658,7 +658,7 @@ chatListArchive = ChatList;
 //@pinned_message_id Identifier of the pinned message in the chat; 0 if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
-//@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
+//@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if the message database is used
 chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings action_bar:ChatActionBar pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
@@ -1701,7 +1701,7 @@ callDiscardReasonDisconnected = CallDiscardReason;
 callDiscardReasonHungUp = CallDiscardReason;
 
 
-//@description Specifies the supported call protocols @udp_p2p True, if UDP peer-to-peer connections are supported @udp_reflector True, if connection through UDP reflectors is supported @min_layer Minimum supported API layer; use 65 @max_layer Maximum supported API layer; use 65
+//@description Specifies the supported call protocols @udp_p2p True, if UDP peer-to-peer connections are supported @udp_reflector True, if connection through UDP reflectors is supported @min_layer The minimum supported API layer; use 65 @max_layer The maximum supported API layer; use 65
 callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 = CallProtocol;
 
 //@description Describes the address of UDP reflectors @id Reflector identifier @ip IPv4 reflector address @ipv6 IPv6 reflector address @port Reflector port number @peer_tag Connection peer tag
@@ -2399,7 +2399,7 @@ userPrivacySettingAllowCalls = UserPrivacySetting;
 //@description A privacy setting for managing whether peer-to-peer connections can be used for calls
 userPrivacySettingAllowPeerToPeerCalls = UserPrivacySetting;
 
-//@description A privacy setting for managing whether the user can be found by its phone number. Checked only if the phone number is not known to the other user. Can be set only to "Allow contacts" or "Allow all"
+//@description A privacy setting for managing whether the user can be found by their phone number. Checked only if the phone number is not known to the other user. Can be set only to "Allow contacts" or "Allow all"
 userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 
 
@@ -2455,7 +2455,7 @@ chatReportReasonChildAbuse = ChatReportReason;
 //@description The chat contains copyrighted content
 chatReportReasonCopyright = ChatReportReason;
 
-//@description The chat has unrelated location
+//@description The location-based chat is unrelated to its stated location
 chatReportReasonUnrelatedLocation = ChatReportReason;
 
 //@description A custom reason provided by the user @text Report text
@@ -2580,10 +2580,10 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 
 //@description Contains auto-download settings
 //@is_auto_download_enabled True, if the auto-download is enabled
-//@max_photo_file_size Maximum size of a photo file to be auto-downloaded
-//@max_video_file_size Maximum size of a video file to be auto-downloaded
-//@max_other_file_size Maximum size of other file types to be auto-downloaded
-//@video_upload_bitrate Suggested maximum bitrate for uploaded videos
+//@max_photo_file_size The maximum size of a photo file to be auto-downloaded
+//@max_video_file_size The maximum size of a video file to be auto-downloaded
+//@max_other_file_size The maximum size of other file types to be auto-downloaded
+//@video_upload_bitrate The maximum suggested bitrate for uploaded videos
 //@preload_large_videos True, if the beginning of videos needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
@@ -2824,7 +2824,7 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 //@added_notifications List of added group notifications, sorted by notification ID @removed_notification_ids Identifiers of removed group notifications, sorted by notification ID
 updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
-//@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
+//@description Contains active notifications that was shown on previous application launches. This update is sent only if the message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
 
 //@description Describes whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifications
@@ -2888,11 +2888,11 @@ updateCall call:call = Update;
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
 updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRules = Update;
 
-//@description Number of unread messages in a chat list has changed. This update is sent only if a message database is used @chat_list The chat list with changed number of unread messages
+//@description Number of unread messages in a chat list has changed. This update is sent only if the message database is used @chat_list The chat list with changed number of unread messages
 //@unread_count Total number of unread messages @unread_unmuted_count Total number of unread messages in unmuted chats
 updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 = Update;
 
-//@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if a message database is used
+//@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if the message database is used
 //@chat_list The chat list with changed number of unread messages
 //@total_count Approximate total number of chats in the chat list
 //@unread_count Total number of unread chats @unread_unmuted_count Total number of unread unmuted chats
@@ -2975,7 +2975,7 @@ updates updates:vector<Update> = Updates;
 //@description The log is written to stderr or an OS specific log
 logStreamDefault = LogStream;
 
-//@description The log is written to a file @path Path to the file to where the internal TDLib log will be written @max_file_size Maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
+//@description The log is written to a file @path Path to the file to where the internal TDLib log will be written @max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
 logStreamFile path:string max_file_size:int53 = LogStream;
 
 //@description The log is written nowhere
@@ -3147,7 +3147,7 @@ getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 getFile file_id:int32 = File;
 
 //@description Returns information about a file by its remote ID; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
-//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If a file database is disabled, then the corresponding object with the file must be preloaded by the client
+//-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the client
 //@remote_file_id Remote identifier of the file to get @file_type File type, if known
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
@@ -3164,16 +3164,16 @@ searchPublicChat username:string = Chat;
 //@description Searches public chats by looking for specified query in their username and title. Currently only private chats, supergroups and channels can be public. Returns a meaningful number of results. Returns nothing if the length of the searched username prefix is less than 5. Excludes private chats with contacts and chats from the chat list from the results @query Query to search for
 searchPublicChats query:string = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the chat list @query Query to search for. If the query is empty, returns up to 20 recently found chats @limit Maximum number of chats to be returned
+//@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the chat list @query Query to search for. If the query is empty, returns up to 20 recently found chats @limit The maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the chat list @query Query to search for @limit Maximum number of chats to be returned
+//@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the chat list @query Query to search for @limit The maximum number of chats to be returned
 searchChatsOnServer query:string limit:int32 = Chats;
 
 //@description Returns a list of users and location-based supergroups nearby. The list of users nearby will be updated for 60 seconds after the request by the updates updateUsersNearby. The request should be sent again every 25 seconds with adjusted location to not miss new chats @location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
-//@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit Maximum number of chats to be returned; up to 30
+//@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 
 //@description Removes a chat from the list of frequently used chats. Supported only if the chat info database is enabled @category Category of frequently used chats @chat_id Chat identifier
@@ -3194,7 +3194,7 @@ checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 //@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
 getCreatedPublicChats type:PublicChatType = Chats;
 
-//@description Checks whether a maximum number of owned public chats is reached. Returns corresponding error if the limit was reached @type Type of the public chats, for which to check the limit
+//@description Checks whether the maximum number of owned public chats has been reached. Returns corresponding error if the limit was reached @type Type of the public chats, for which to check the limit
 checkCreatedPublicChatsLimit type:PublicChatType = Ok;
 
 //@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Basic group chats need to be first upgraded to supergroups before they can be set as a discussion group
@@ -3204,7 +3204,7 @@ getSuitableDiscussionChats = Chats;
 getInactiveSupergroupChats = Chats;
 
 
-//@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
+//@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit The maximum number of chats to be returned; up to 100
 getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 
 
@@ -3245,7 +3245,7 @@ searchMessages chat_list:ChatList query:string offset_date:int32 offset_chat_id:
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
 //@from_search_id The identifier from the result of a previous request, use 0 to get results from the last message
-//@limit Maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
+//@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter A filter for the content of messages in the search results
 searchSecretMessages chat_id:int53 query:string from_search_id:int64 limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
@@ -3254,7 +3254,7 @@ searchSecretMessages chat_id:int53 query:string from_search_id:int64 limit:int32
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached @only_missed If true, returns only messages with missed calls
 searchCallMessages from_message_id:int53 limit:int32 only_missed:Bool = Messages;
 
-//@description Returns information about the recent locations of chat members that were sent to the chat. Returns up to 1 location message per user @chat_id Chat identifier @limit Maximum number of messages to be returned
+//@description Returns information about the recent locations of chat members that were sent to the chat. Returns up to 1 location message per user @chat_id Chat identifier @limit The maximum number of messages to be returned
 searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 
 //@description Returns all active live locations that should be updated by the client. The list is persistent across application restarts only if the message database is used
@@ -3273,7 +3273,7 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
 
-//@description Removes a group of active notifications. Needs to be called only if the notification group is removed by the current user @notification_group_id Notification group identifier @max_notification_id Maximum identifier of removed notifications
+//@description Removes a group of active notifications. Needs to be called only if the notification group is removed by the current user @notification_group_id Notification group identifier @max_notification_id The maximum identifier of removed notifications
 removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
@@ -3713,7 +3713,7 @@ blockUser user_id:int32 = Ok;
 //@description Removes a user from the blacklist @user_id User identifier
 unblockUser user_id:int32 = Ok;
 
-//@description Returns users that were blocked by the current user @offset Number of users to skip in the result; must be non-negative @limit Maximum number of users to return; up to 100
+//@description Returns users that were blocked by the current user @offset Number of users to skip in the result; must be non-negative @limit The maximum number of users to return; up to 100
 getBlockedUsers offset:int32 limit:int32 = Users;
 
 
@@ -3727,7 +3727,7 @@ importContacts contacts:vector<contact> = ImportedContacts;
 //@description Returns all user contacts
 getContacts = Users;
 
-//@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; may be empty to return all contacts @limit Maximum number of users to be returned
+//@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; may be empty to return all contacts @limit The maximum number of users to be returned
 searchContacts query:string limit:int32 = Users;
 
 //@description Removes users from the contact list @user_ids Identifiers of users to be deleted
@@ -3744,24 +3744,24 @@ changeImportedContacts contacts:vector<contact> = ImportedContacts;
 clearImportedContacts = Ok;
 
 
-//@description Shares a phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber @user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
+//@description Shares the phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber @user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
 sharePhoneNumber user_id:int32 = Ok;
 
 
-//@description Returns the profile photos of a user. The result of this query may be outdated: some photos might have been deleted already @user_id User identifier @offset The number of photos to skip; must be non-negative @limit Maximum number of photos to be returned; up to 100
+//@description Returns the profile photos of a user. The result of this query may be outdated: some photos might have been deleted already @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
 getUserProfilePhotos user_id:int32 offset:int32 limit:int32 = UserProfilePhotos;
 
 
-//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is not empty, favorite and recently used stickers may also be returned @emoji String representation of emoji. If empty, returns all known installed stickers @limit Maximum number of stickers to be returned
+//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is not empty, favorite and recently used stickers may also be returned @emoji String representation of emoji. If empty, returns all known installed stickers @limit The maximum number of stickers to be returned
 getStickers emoji:string limit:int32 = Stickers;
 
-//@description Searches for stickers from public sticker sets that correspond to a given emoji @emoji String representation of emoji; must be non-empty @limit Maximum number of stickers to be returned
+//@description Searches for stickers from public sticker sets that correspond to a given emoji @emoji String representation of emoji; must be non-empty @limit The maximum number of stickers to be returned
 searchStickers emoji:string limit:int32 = Stickers;
 
 //@description Returns a list of installed sticker sets @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets
 getInstalledStickerSets is_masks:Bool = StickerSets;
 
-//@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit Maximum number of sticker sets to return
+//@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return
 getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
 //@description Returns a list of trending sticker sets
@@ -3776,7 +3776,7 @@ getStickerSet set_id:int64 = StickerSet;
 //@description Searches for a sticker set by its name @name Name of the sticker set
 searchStickerSet name:string = StickerSet;
 
-//@description Searches for installed sticker sets by looking for specified query in their title and name @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets @query Query to search for @limit Maximum number of sticker sets to return
+//@description Searches for installed sticker sets by looking for specified query in their title and name @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets @query Query to search for @limit The maximum number of sticker sets to return
 searchInstalledStickerSets is_masks:Bool query:string limit:int32 = StickerSets;
 
 //@description Searches for ordinary sticker sets by looking for specified query in their title and name. Excludes installed sticker sets from the results @query Query to search for
@@ -3839,7 +3839,7 @@ removeSavedAnimation animation:InputFile = Ok;
 getRecentInlineBots = Users;
 
 
-//@description Searches for recently used hashtags by their prefix @prefix Hashtag prefix to search for @limit Maximum number of hashtags to be returned
+//@description Searches for recently used hashtags by their prefix @prefix Hashtag prefix to search for @limit The maximum number of hashtags to be returned
 searchHashtags prefix:string limit:int32 = Hashtags;
 
 //@description Removes a hashtag from the list of recently used hashtags @hashtag Hashtag to delete
@@ -3927,7 +3927,7 @@ closeSecretChat secret_chat_id:int32 = Ok;
 
 
 //@description Returns a list of service actions taken by chat members and administrators in the last 48 hours. Available only for supergroups and channels. Requires administrator rights. Returns results in reverse chronological order (i. e., in order of decreasing event_id)
-//@chat_id Chat identifier @query Search query by which to filter events @from_event_id Identifier of an event from which to return results. Use 0 to get results from the latest events @limit Maximum number of events to return; up to 100
+//@chat_id Chat identifier @query Search query by which to filter events @from_event_id Identifier of an event from which to return results. Use 0 to get results from the latest events @limit The maximum number of events to return; up to 100
 //@filters The types of events to return. By default, all types will be returned @user_ids User identifiers by which to filter events. By default, events relating to all users will be returned
 getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filters:chatEventLogFilters user_ids:vector<int32> = ChatEvents;
 
@@ -4061,7 +4061,7 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
 
-//@description Returns storage usage statistics. Can be called before authorization @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
+//@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
 getStorageStatistics chat_limit:int32 = StorageStatistics;
 
 //@description Quickly returns approximate storage usage statistics. Can be called before authorization
@@ -4278,7 +4278,7 @@ setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
 getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 
 //@description Adds a message to TDLib internal log. This is an offline method. Can be called before authorization. Can be called synchronously
-//@verbosity_level Minimum verbosity level needed for the message to be logged, 0-1023 @text Text of a message to log
+//@verbosity_level The minimum verbosity level needed for the message to be logged, 0-1023 @text Text of a message to log
 addLogMessage verbosity_level:int32 text:string = Ok;
 
 
@@ -4301,7 +4301,7 @@ testSquareInt x:int32 = TestInt;
 //@description Sends a simple network request to the Telegram servers; for testing only. Can be called before authorization
 testNetwork = Ok;
 //@description Sends a simple network request to the Telegram servers via proxy; for testing only. Can be called before authorization @server Proxy server IP address @port Proxy server port @type Proxy type
-//@dc_id Identifier of a datacenter, with which to test connection @timeout Maximum overall timeout for the request
+//@dc_id Identifier of a datacenter, with which to test connection @timeout The maximum overall timeout for the request
 testProxy server:string port:int32 type:ProxyType dc_id:int32 timeout:double = Ok;
 //@description Forces an updates.getDifference call to the Telegram servers; for testing only
 testGetDifference = Ok;
