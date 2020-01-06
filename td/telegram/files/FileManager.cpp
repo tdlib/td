@@ -79,8 +79,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileManager::Query::Typ
       return string_builder << "UploadWaitFileReference";
     case FileManager::Query::Type::Upload:
       return string_builder << "Upload";
-    case FileManager::Query::Type::DownloadWaitFileReferece:
-      return string_builder << "DownloadWaitFileReferece";
+    case FileManager::Query::Type::DownloadWaitFileReference:
+      return string_builder << "DownloadWaitFileReference";
     case FileManager::Query::Type::DownloadReloadDialog:
       return string_builder << "DownloadReloadDialog";
     case FileManager::Query::Type::Download:
@@ -2189,7 +2189,7 @@ void FileManager::run_download(FileNodePtr node) {
   // If file reference is needed
   if (!file_view.has_active_download_remote_location()) {
     VLOG(file_references) << "Do not have valid file_reference for file " << file_id;
-    QueryId id = queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReferece});
+    QueryId id = queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReference});
     node->download_id_ = id;
     if (node->download_was_update_file_reference_) {
       on_error(id, Status::Error("Can't download file: have no valid file reference"));

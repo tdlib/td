@@ -499,7 +499,7 @@ class FileManager : public FileLoadManager::Callback {
       UploadByHash,
       UploadWaitFileReference,
       Upload,
-      DownloadWaitFileReferece,
+      DownloadWaitFileReference,
       DownloadReloadDialog,
       Download,
       SetContent,
