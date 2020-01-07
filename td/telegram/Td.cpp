@@ -4376,14 +4376,11 @@ Status Td::init(DbKey key) {
   // 1. Actors must receive all binlog events before other queries.
   //
   // -- All actors have one "entry point". So there is only one way to send query to them. So all queries are ordered
-  // for  each Actor.
-  //
+  // for each Actor.
   //
   // 2. An actor must not make some decisions before all binlog events are processed.
   // For example, SecretChatActor must not send RequestKey, before it receives logevent with RequestKey and understands
   // that RequestKey was already sent.
-  //
-  // -- G()->wait_binlog_replay_finish(Promise<>);
   //
   // 3. During replay of binlog some queries may be sent to other actors. They shouldn't process such events before all
   // their binlog events are processed. So actor may receive some old queries. It must be in it's actual state in
@@ -4403,8 +4400,6 @@ Status Td::init(DbKey key) {
   send_closure_later(notification_manager_actor_, &NotificationManager::on_binlog_events,
                      std::move(events.to_notification_manager));
 
-  // NB: be very careful. This notification may be received before all binlog events are.
-  G()->on_binlog_replay_finish();
   send_closure(secret_chats_manager_, &SecretChatsManager::binlog_replay_finish);
 
   VLOG(td_init) << "Ping datacenter";

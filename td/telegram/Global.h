@@ -12,7 +12,6 @@
 #include "td/telegram/TdParameters.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/Condition.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
@@ -337,14 +336,6 @@ class Global : public ActorContext {
 #endif
   }
 
-  void wait_binlog_replay_finish(Promise<> promise) {
-    binlog_replay_finish_.wait(std::move(promise));
-  }
-
-  void on_binlog_replay_finish() {
-    binlog_replay_finish_.set_true();
-  }
-
   void set_close_flag() {
     close_flag_ = true;
   }
@@ -371,7 +362,6 @@ class Global : public ActorContext {
   std::shared_ptr<DhConfig> dh_config_;
 
   unique_ptr<TdDb> td_db_;
-  Condition binlog_replay_finish_;
 
   ActorId<Td> td_;
   ActorId<AnimationsManager> animations_manager_;
