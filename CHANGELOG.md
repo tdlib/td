@@ -70,7 +70,7 @@ Changes in 1.6.0:
 * Improved support for chat backgrounds:
   - Added the classes `backgroundFillSolid` for solid color backgrounds and `backgroundFillGradient` for
     gradient backgrounds.
-  - Added support for TGV (gzipped subset of SVG with mime-type "application/x-tgwallpattern") background patterns
+  - Added support for TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") background patterns
     in addition to PNG patterns. Background pattern thumbnails are still always in PNG format.
   - Replaced the field `color` in the class `backgroundTypePattern` with the field `fill` of type `BackgroundFill`.
   - Replaced the class `backgroundTypeSolid` with the class `backgroundTypeFill`.

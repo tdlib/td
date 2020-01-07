@@ -17484,8 +17484,10 @@ Result<int32> MessagesManager::get_message_schedule_date(
   }
 
   switch (scheduling_state->get_id()) {
-    case td_api::messageSchedulingStateSendWhenOnline::ID:
-      return static_cast<int32>(SCHEDULE_WHEN_ONLINE_DATE);
+    case td_api::messageSchedulingStateSendWhenOnline::ID: {
+      auto send_date = SCHEDULE_WHEN_ONLINE_DATE;
+      return send_date;
+    }
     case td_api::messageSchedulingStateSendAtDate::ID: {
       auto send_at_date = td_api::move_object_as<td_api::messageSchedulingStateSendAtDate>(scheduling_state);
       auto send_date = send_at_date->send_date_;
@@ -26299,8 +26301,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
                                             source);
     } else {
-      // if non-scheduled outgoing message has id one greater than last_read_inbox_message_id then definitely there are no
-      // unread incoming messages before it
+      // if non-scheduled outgoing message has id one greater than last_read_inbox_message_id,
+      // then definitely there are no unread incoming messages before it
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
           message_id.get_server_message_id().get() == d->last_read_inbox_message_id.get_server_message_id().get() + 1) {

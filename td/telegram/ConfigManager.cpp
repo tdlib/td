@@ -55,7 +55,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
-#include <functional>
 #include <memory>
 #include <utility>
 
@@ -203,8 +202,7 @@ Result<SimpleConfig> decode_config(Slice input) {
 template <class F>
 static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, int32 scheduler_id, string url,
                                          string host, std::vector<std::pair<string, string>> headers, bool prefer_ipv6,
-                                         F &&get_config,
-                                         string content = string(), string content_type = string()) {
+                                         F &&get_config, string content = string(), string content_type = string()) {
   VLOG(config_recoverer) << "Request simple config from " << url;
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
@@ -243,7 +241,8 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
                          << "v2/config.txt";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", {},
-                                prefer_ipv6, [](auto &http_query) -> Result<string> { return http_query.content_.str(); });
+                                prefer_ipv6,
+                                [](auto &http_query) -> Result<string> { return http_query.content_.str(); });
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,

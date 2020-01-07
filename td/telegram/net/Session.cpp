@@ -250,8 +250,6 @@ void Session::on_bind_result(NetQueryPtr query) {
     if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
       bool has_immunity =
           !G()->is_server_time_reliable() || G()->server_time() - auth_data_.get_main_auth_key().created_at() < 60;
-      LOG(ERROR) << G()->is_server_time_reliable() << " "
-                 << G()->server_time() - auth_data_.get_auth_key().created_at();
       if (!use_pfs_) {
         if (has_immunity) {
           LOG(WARNING) << "Do not drop main key, because it was created too recently";
@@ -262,7 +260,7 @@ void Session::on_bind_result(NetQueryPtr query) {
         }
       } else {
         if (has_immunity) {
-          LOG(WARNING) << "Do not check validate main key, because it was created too recently";
+          LOG(WARNING) << "Do not validate main key, because it was created too recently";
         } else {
           need_check_main_key_ = true;
           auth_data_.set_use_pfs(false);
@@ -274,15 +272,12 @@ void Session::on_bind_result(NetQueryPtr query) {
     auto r_flag = fetch_result<telegram_api::auth_bindTempAuthKey>(query->ok());
     if (r_flag.is_error()) {
       status = r_flag.move_as_error();
-    } else {
-      auto flag = r_flag.move_as_ok();
-      if (!flag) {
-        status = Status::Error("Returned false");
-      }
+    } else if (!r_flag.ok()) {
+      status = Status::Error("Returned false");
     }
   }
   if (status.is_ok()) {
-    LOG(INFO) << "BOUND!" << tag("tmp_id", auth_data_.get_tmp_auth_key().id());
+    LOG(INFO) << "Bound temp auth key " << auth_data_.get_tmp_auth_key().id();
     auth_data_.on_bind();
     on_tmp_auth_key_updated();
   } else {
@@ -331,7 +326,6 @@ void Session::on_result(NetQueryPtr query) {
     return on_check_key_result(std::move(query));
   }
   query->clear();
-  return;
 }
 
 void Session::return_query(NetQueryPtr &&query) {
@@ -491,9 +485,8 @@ void Session::on_closed(Status status) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
     } else {
+      // log out if has error and or 1 minute is passed from start, or 1 minute has passed since auth_key creation
       if (!use_pfs_) {
-        // Logout if has error and or 1 minute is passed from start, or 1 minute has passed
-        // since auth_key creation
         auth_data_.set_use_pfs(true);
       } else if (need_check_main_key_) {
         LOG(WARNING) << "Invalidate main key";
@@ -503,7 +496,7 @@ void Session::on_closed(Status status) {
     }
   }
 
-  // resend all queries without ack.
+  // resend all queries without ack
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
     if (!it->second.ack && it->second.connection_id == current_info_->connection_id) {
       // container vector leak otherwise
