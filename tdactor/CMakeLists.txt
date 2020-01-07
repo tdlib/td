@@ -19,7 +19,6 @@ set(TDACTOR_SOURCE
   td/actor/impl/Event.h
   td/actor/impl/Scheduler-decl.h
   td/actor/impl/Scheduler.h
-  td/actor/Condition.h
   td/actor/MultiPromise.h
   td/actor/PromiseFuture.h
   td/actor/SchedulerLocalStorage.h
