@@ -112,10 +112,10 @@ class Session final
   uint32 network_generation_ = 0;
   bool online_flag_ = false;
   bool connection_online_flag_ = false;
-  uint64 tmp_auth_key_id_ = 0;
-  uint64 auth_key_id_ = 0;
-  uint64 last_bind_id_ = 0;
-  uint64 last_check_id_ = 0;
+  uint64 being_binded_tmp_auth_key_id_ = 0;
+  uint64 being_checked_main_auth_key_id_ = 0;
+  uint64 last_bind_query_id_ = 0;
+  uint64 last_check_query_id_ = 0;
   double last_activity_timestamp_ = 0;
   size_t dropped_size_ = 0;
 

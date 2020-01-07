@@ -241,10 +241,10 @@ void Session::send(NetQueryPtr &&query) {
 }
 
 void Session::on_bind_result(NetQueryPtr query) {
-  LOG(INFO) << "ANSWER TO BindKey" << query;
+  LOG(INFO) << "Receive answer to BindKey: " << query;
   Status status;
-  tmp_auth_key_id_ = 0;
-  last_bind_id_ = 0;
+  being_binded_tmp_auth_key_id_ = 0;
+  last_bind_query_id_ = 0;
   if (query->is_error()) {
     status = std::move(query->error());
     if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
@@ -291,10 +291,10 @@ void Session::on_bind_result(NetQueryPtr query) {
 }
 
 void Session::on_check_key_result(NetQueryPtr query) {
-  LOG(INFO) << "ANSWER TO GetNearestDc" << query;
+  LOG(INFO) << "Receive answer to GetNearestDc: " << query;
   Status status;
-  auth_key_id_ = 0;
-  last_check_id_ = 0;
+  being_checked_main_auth_key_id_ = 0;
+  last_check_query_id_ = 0;
   if (query->is_error()) {
     status = std::move(query->error());
   } else {
@@ -319,10 +319,10 @@ void Session::on_check_key_result(NetQueryPtr query) {
 
 void Session::on_result(NetQueryPtr query) {
   CHECK(UniqueId::extract_type(query->id()) == UniqueId::BindKey);
-  if (last_bind_id_ == query->id()) {
+  if (last_bind_query_id_ == query->id()) {
     return on_bind_result(std::move(query));
   }
-  if (last_check_id_ == query->id()) {
+  if (last_check_query_id_ == query->id()) {
     return on_check_key_result(std::move(query));
   }
   query->clear();
@@ -1084,7 +1084,7 @@ void Session::connection_close(ConnectionInfo *info) {
   CHECK(info->state == ConnectionInfo::State::Empty);
 }
 bool Session::need_send_check_main_key() const {
-  return need_check_main_key_ && auth_data_.get_main_auth_key().id() != auth_key_id_;
+  return need_check_main_key_ && auth_data_.get_main_auth_key().id() != being_checked_main_auth_key_id_;
 }
 
 bool Session::connection_send_check_main_key(ConnectionInfo *info) {
@@ -1092,14 +1092,15 @@ bool Session::connection_send_check_main_key(ConnectionInfo *info) {
     return false;
   }
   uint64 key_id = auth_data_.get_main_auth_key().id();
-  if (key_id == auth_key_id_) {
+  if (key_id == being_checked_main_auth_key_id_) {
     return false;
   }
   CHECK(info->state != ConnectionInfo::State::Empty);
   LOG(INFO) << "Check main key";
-  auth_key_id_ = key_id;
-  last_check_id_ = UniqueId::next(UniqueId::BindKey);
-  NetQueryPtr query = G()->net_query_creator().create(last_check_id_, create_storer(telegram_api::help_getNearestDc()));
+  being_checked_main_auth_key_id_ = key_id;
+  last_check_query_id_ = UniqueId::next(UniqueId::BindKey);
+  NetQueryPtr query =
+      G()->net_query_creator().create(last_check_query_id_, create_storer(telegram_api::help_getNearestDc()));
   query->dispatch_ttl = 0;
   query->set_callback(actor_shared(this));
   connection_send_query(info, std::move(query));
@@ -1108,7 +1109,8 @@ bool Session::connection_send_check_main_key(ConnectionInfo *info) {
 }
 
 bool Session::need_send_bind_key() const {
-  return auth_data_.use_pfs() && !auth_data_.get_bind_flag() && auth_data_.get_tmp_auth_key().id() != tmp_auth_key_id_;
+  return auth_data_.use_pfs() && !auth_data_.get_bind_flag() &&
+         auth_data_.get_tmp_auth_key().id() != being_binded_tmp_auth_key_id_;
 }
 bool Session::need_send_query() const {
   return !close_flag_ && !need_check_main_key_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) &&
@@ -1118,11 +1120,11 @@ bool Session::need_send_query() const {
 bool Session::connection_send_bind_key(ConnectionInfo *info) {
   CHECK(info->state != ConnectionInfo::State::Empty);
   uint64 key_id = auth_data_.get_tmp_auth_key().id();
-  if (key_id == tmp_auth_key_id_) {
+  if (key_id == being_binded_tmp_auth_key_id_) {
     return false;
   }
-  tmp_auth_key_id_ = key_id;
-  last_bind_id_ = UniqueId::next(UniqueId::BindKey);
+  being_binded_tmp_auth_key_id_ = key_id;
+  last_bind_query_id_ = UniqueId::next(UniqueId::BindKey);
 
   int64 perm_auth_key_id = auth_data_.get_main_auth_key().id();
   int64 nonce = Random::secure_int64();
@@ -1133,7 +1135,7 @@ bool Session::connection_send_bind_key(ConnectionInfo *info) {
 
   LOG(INFO) << "Bind key: " << tag("tmp", key_id) << tag("perm", static_cast<uint64>(perm_auth_key_id));
   NetQueryPtr query = G()->net_query_creator().create(
-      last_bind_id_,
+      last_bind_query_id_,
       create_storer(telegram_api::auth_bindTempAuthKey(perm_auth_key_id, nonce, expires_at, std::move(encrypted))));
   query->dispatch_ttl = 0;
   query->set_callback(actor_shared(this));
