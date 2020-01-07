@@ -1,3 +1,174 @@
+Changes in 1.6.0:
+
+* Added support for multiple chat lists. Currently, only two chat lists Main and Archive are supported:
+  - Added the class `ChatList`, which represents a chat list and could be `chatListMain` or `chatListArchive`.
+  - Added the field `chat_list` to the class `chat`, denoting the chat list to which the chat belongs.
+  - Added the parameter `chat_list` to the methods `getChats`, `searchMessages` and `setPinnedChats`.
+  - Added the field `chat_list` to the updates `updateUnreadMessageCount` and `updateUnreadChatCount`.
+  - Added the field `total_count` to the update `updateUnreadChatCount`, containing the total number of chats in
+    the list.
+  - Added the update `updateChatChatList`, which is sent after a chat is moved to or from a chat list.
+  - Added the method `setChatChatList`, which can be used to move a chat between chat lists.
+  - Added the option `pinned_archived_chat_count_max` for the maximum number of pinned chats in the Archive chat list.
+* Added support for scheduled messages:
+  - Added the classes `messageSchedulingStateSendAtDate` and `messageSchedulingStateSendWhenOnline`,
+    representing the scheduling state of a message.
+  - Added the field `scheduling_state` to the class `message`, which allows to distinguish between scheduled and
+    ordinary messages.
+  - The update `updateNewMessage` can now contain a scheduled message and must be handled appropriately.
+  - The updates `updateMessageContent`, `updateDeleteMessages`, `updateMessageViews`, `updateMessageSendSucceeded`,
+    `updateMessageSendFailed`, and `updateMessageSendAcknowledged` can now contain identifiers of scheduled messages.
+  - Added the class `sendMessageOptions`, which contains options for sending messages,
+    including the scheduling state of the messages.
+  - Replaced the parameters `disable_notification` and `from_background` in the methods `sendMessage`,
+    `sendMessageAlbum`, `sendInlineQueryResultMessage`, and `forwardMessages` with the new field `options` of
+    the type `sendMessageOptions`.
+  - Added the method `editMessageSchedulingState`, which can be used to reschedule a message or send it immediately.
+  - Added the method `getChatScheduledMessages`, which returns all scheduled messages in a chat.
+  - Added the field `has_scheduled_messages` to the class `chat`.
+  - Added the update `updateChatHasScheduledMessages`, which is sent whenever the field `has_scheduled_messages`
+    changes in a chat.
+  - Added support for reminders in Saved Messages and notifications about other sent scheduled messages in
+    the [Notification API](https://core.telegram.org/tdlib/notification-api/).
+* Added support for adding users without a known phone number to the list of contacts:
+  - Added the method `addContact` for adding or renaming contacts without a known phone number.
+  - Added the field `need_phone_number_privacy_exception` to the class `userFullInfo`, containing the default value for
+    the second parameter of the method `addContact`.
+  - Added the fields `is_contact` and `is_mutual_contact` to the class `user`.
+  - Removed the class `LinkState` and the fields `outgoing_link` and `incoming_link` from the class `user`.
+* Improved support for the top chat action bar:
+  - Added the class `ChatActionBar`, representing all possible types of the action bar.
+  - Added the field `action_bar` to the class `chat`.
+  - Removed the legacy class `chatReportSpamState`.
+  - Removed the legacy methods `getChatReportSpamState` and `changeChatReportSpamState`.
+  - Added the update `updateChatActionBar`.
+  - Added the method `removeChatActionBar`, which allows to dismiss the action bar.
+  - Added the method `sharePhoneNumber`, allowing to share the phone number of the current user with a mutual contact.
+  - Added the new reason `chatReportReasonUnrelatedLocation` for reporting location-based groups unrelated to
+    their stated location.
+* Improved support for text entities:
+  - Added the new types of text entities `textEntityTypeUnderline` and `textEntityTypeStrikethrough`.
+  - Added support for nested entities. Entities can be nested, but must not mutually intersect with each other.
+    Pre, Code and PreCode entities can't contain other entities. Bold, Italic, Underline and Strikethrough entities can
+    contain and be contained in all other entities. All other entities can't contain each other.
+  - Added the field `version` to the method `textParseModeMarkdown`. Versions 0 and 1 correspond to Bot API Markdown
+    parse mode, version 2 to Bot API MarkdownV2 parse mode with underline, strikethrough and nested entities support.
+  - The new entity types and nested entities are supported in secret chats also if its layer is at least 101.
+* Clarified in the documentation that file remote ID is guaranteed to be usable only if the corresponding file is
+  still accessible to the user and is known to TDLib. For example, if the file is from a message, then the message
+  must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with
+  the file must be preloaded by the client.
+* Added support for administrator custom titles:
+  - Added the field `custom_title` to `chatMemberStatusCreator` and `chatMemberStatusAdministrator` classes.
+  - Added the classes `chatAdministrator` and `chatAdministrators`, containing user identifiers along with
+    their custom administrator title and owner status.
+  - Replaced the result type of the method `getChatAdministrators` with `chatAdministrators`.
+* Improved Instant View support:
+  - Added the new web page block `pageBlockVoiceNote`.
+  - Changed value of invisible cells in `pageBlockTableCell` to null.
+  - Added the field `is_cached` to the class `richTextUrl`.
+* Improved support for chat backgrounds:
+  - Added the classes `backgroundFillSolid` for solid color backgrounds and `backgroundFillGradient` for
+    gradient backgrounds.
+  - Added support for TGV (gzipped subset of SVG with mime-type "application/x-tgwallpattern") background patterns
+    in addition to PNG patterns. Background pattern thumbnails are still always in PNG format.
+  - Replaced the field `color` in the class `backgroundTypePattern` with the field `fill` of type `BackgroundFill`.
+  - Replaced the class `backgroundTypeSolid` with the class `backgroundTypeFill`.
+* Added support for discussion groups for channel chats:
+  - Added the field `linked_chat_id` to the class `supergroupFullInfo` containing the identifier of a discussion
+    supergroup for the channel, or a channel, for which the supergroup is the designated discussion supergroup.
+  - Added the field `has_linked_chat` to the class `supergroup`.
+  - Added the method `getSuitableDiscussionChats`, which returns a list of chats which can be assigned as
+    a discussion group for a channel by the current user.
+  - Added the method `setChatDiscussionGroup`, which can be used to add or remove a discussion group from a channel.
+  - Added the class `chatEventLinkedChatChanged` representing a change of the linked chat in the chat event log.
+* Added support for slow mode in supergroups:
+  - Added the field `is_slow_mode_enabled` to the class `supergroup`.
+  - Added the field `slow_mode_delay` to the class `supergroupFullInfo`.
+  - Added the method `setChatSlowModeDelay`, which can be used to change the slow mode delay setting in a supergroup.
+  - Added the class `chatEventSlowModeDelayChanged` representing a change of the slow mode delay setting in
+    the chat event log.
+* Improved privacy settings support:
+  - Added the classes `userPrivacySettingRuleAllowChatMembers` and `userPrivacySettingRuleRestrictChatMembers`
+    to include or exclude all group members in a privacy setting rule.
+  - Added the class `userPrivacySettingShowPhoneNumber` for managing the visibility of the user's phone number.
+  - Added the class `userPrivacySettingAllowFindingByPhoneNumber` for managing whether the user can be found by
+    their phone number.
+* Added the method `checkCreatedPublicChatsLimit` for checking whether the maximum number of owned public chats
+  has been reached.
+* Added support for transferring ownership of supergroup and channel chats:
+  - Added the method `transferChatOwnership`.
+  - Added the class `CanTransferOwnershipResult` and the method `canTransferOwnership` for checking
+    whether chat ownership can be transferred from the current session.
+* Added support for location-based supergroups:
+  - Added the class `chatLocation`, which contains the location to which the supergroup is connected.
+  - Added the field `has_location` to the class `supergroup`.
+  - Added the field `location` to the class `supergroupFullInfo`.
+  - Added the ability to create location-based supergroups via the new field `location` in
+    the method `createNewSupergroupChat`.
+  - Added the method `setChatLocation`, which allows to change location of location-based supergroups.
+  - Added the field `can_set_location` to the class `supergroupFullInfo`.
+  - Added the class `PublicChatType`, which can be one of `publicChatTypeHasUsername` or
+    `publicChatTypeIsLocationBased`.
+  - Added the parameter `type` to the method `getCreatedPublicChats`, which allows to get location-based supergroups
+    owned by the user.
+  - Supported location-based supergroups as public chats where appropriate.
+  - Added the class `chatEventLocationChanged` representing a change of the location of a chat in the chat event log.
+* Added support for searching chats and users nearby:
+  - Added the classes `chatNearby` and `chatsNearby`, containing information about chats along with
+    the distance to them.
+  - Added the method `searchChatsNearby`, which returns chats and users nearby.
+  - Added the update `updateUsersNearby`, which is sent 60 seconds after a successful `searchChatsNearby` request.
+* Improved support for inline keyboard buttons of the type `inlineKeyboardButtonTypeLoginUrl`:
+  - Added the class `LoginUrlInfo` and the method `getLoginUrlInfo`, which allows to get information about
+    an inline button of the type `inlineKeyboardButtonTypeLoginUrl`.
+  - Added the method `getLoginUrl` for automatic authorization on the target website.
+* Improved support for content restrictions:
+  - The field `restriction_reason` in the classes `user` and `channel` now contains only a human-readable description
+    why access must be restricted. It is non-empty if and only if access to the chat needs to be restricted.
+  - Added the field `restriction_reason` to the class `message`. It is non-empty if and only if access to the message
+    needs to be restricted.
+  - Added the writable option `ignore_platform_restrictions`, which can be set in non-store apps to ignore restrictions
+    specific to the currently used operating system.
+  - Added the writable option `ignore_sensitive_content_restrictions`, which can be set to show sensitive content on
+    all user devices. `getOption("ignore_sensitive_content_restrictions")` can be used to fetch the actual value of
+    the option, the option will not be immediately updated after a change from another device.
+  - Added the read-only option `can_ignore_sensitive_content_restrictions`, which can be used to check, whether
+    the option `ignore_sensitive_content_restrictions` can be changed.
+* Added support for QR code authentication for already registered users:
+  - Added the authorization state `authorizationStateWaitOtherDeviceConfirmation`.
+  - Added the method `requestQrCodeAuthentication`, which can be used in the `authorizationStateWaitPhoneNumber` state
+    instead of the method `setAuthenticationPhoneNumber` to request QR code authentication.
+  - Added the method `confirmQrCodeAuthentication` for authentication confirmation from another device.
+* Added the update `updateMessageLiveLocationViewed`, which is supposed to trigger an edit of the corresponding
+  live location.
+* Added the method `getInactiveSupergroupChats`, to be used when the user receives a CHANNELS_TOO_MUCH error after
+  reaching the limit on the number of joined supergroup and channel chats.
+* Added the field `unique_id` to the class `remoteFile`, which can be used to identify the same file for
+  different users.
+* Added the new category of top chat list `topChatCategoryForwardChats`.
+* Added the read-only option `animated_emoji_sticker_set_name`, containing name of a sticker set with animated emojis.
+* Added the read-only option `unix_time`, containing an estimation of the current Unix timestamp.
+  The option will not be updated automatically unless the difference between the previous estimation and
+  the locally available monotonic clocks changes significantly.
+* Added the field `is_silent` to the class `notification`, so silent notifications can be shown with
+  the appropriate mark.
+* Added the field `video_upload_bitrate` to the class `autoDownloadSettings`.
+* Disallowed to call `setChatNotificationSettings` method on the chat with self, which never worked.
+* Added support for integration with TON Blockchain. For a complete integration use `tonlib` from
+  https://github.com/ton-blockchain/ton:
+  - Added the option `default_ton_blockchain_config`, containing the default TON Blockchain config. If empty,
+    TON integration is disabled, otherwise the config needs to be passed to tonlib.
+  - Added the option `default_ton_blockchain_name`, containing the default TON Blockchain name.
+    The blockchain name needs to be passed to tonlib.
+  - Added the class `tonLiteServerResponse` and the method `sendTonLiteServerRequest`, which allows to send requests to
+    a TON Blockchain Lite Server through Telegram servers.
+  - Added the class `tonWalletPasswordSalt` and the method `getTonWalletPasswordSalt`, which can be used
+    to harden protection of the locally stored TON Blockchain private key.
+  - Added support for `ton://` URLs in messages and inline keyboard buttons.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.5.0:
 
 * Changed authorization workflow:
