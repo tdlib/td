@@ -314,10 +314,6 @@ class Global : public ActorContext {
 
   DcId get_webfile_dc_id() const;
 
-#if !TD_HAVE_ATOMIC_SHARED_PTR
-  std::mutex dh_config_mutex_;
-#endif
-
   std::shared_ptr<DhConfig> get_dh_config() {
 #if !TD_HAVE_ATOMIC_SHARED_PTR
     std::lock_guard<std::mutex> guard(dh_config_mutex_);
@@ -327,6 +323,7 @@ class Global : public ActorContext {
     return atomic_load(&dh_config_);
 #endif
   }
+
   void set_dh_config(std::shared_ptr<DhConfig> new_dh_config) {
 #if !TD_HAVE_ATOMIC_SHARED_PTR
     std::lock_guard<std::mutex> guard(dh_config_mutex_);
@@ -391,12 +388,17 @@ class Global : public ActorContext {
   int32 slow_net_scheduler_id_;
 
   std::atomic<bool> store_all_files_in_files_directory_{false};
+
   std::atomic<double> server_time_difference_{0.0};
   std::atomic<bool> server_time_difference_was_updated_{false};
   std::atomic<double> dns_time_difference_{0.0};
   std::atomic<bool> dns_time_difference_was_updated_{false};
   std::atomic<bool> close_flag_{false};
   std::atomic<double> system_time_saved_at_{-1e10};
+
+#if !TD_HAVE_ATOMIC_SHARED_PTR
+  std::mutex dh_config_mutex_;
+#endif
 
   std::vector<std::shared_ptr<NetStatsCallback>> net_stats_file_callbacks_;
 
