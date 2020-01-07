@@ -724,10 +724,12 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
     class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<ConnectionData> promise,
-                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback, bool use_connection_token)
+                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback, bool use_connection_token,
+                        bool was_connected)
           : promise_(std::move(promise))
           , stats_callback_(std::move(stats_callback))
-          , use_connection_token_(use_connection_token) {
+          , use_connection_token_(use_connection_token)
+          , was_connected_(was_connected) {
       }
       void set_result(Result<SocketFd> result) override {
         if (result.is_error()) {
@@ -756,13 +758,14 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
      private:
       Promise<ConnectionData> promise_;
       StateManager::ConnectionToken connection_token_;
-      bool was_connected_{false};
       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback_;
       bool use_connection_token_;
+      bool was_connected_{false};
     };
     LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "TLS"))
               << ": " << debug_str;
-    auto callback = make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token);
+    auto callback = make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token,
+                                          !proxy.use_socks5_proxy());
     if (proxy.use_socks5_proxy()) {
       return ActorOwn<>(create_actor<Socks5>(PSLICE() << actor_name_prefix << "Socks5", std::move(socket_fd),
                                              mtproto_ip, proxy.user().str(), proxy.password().str(),
