@@ -129,6 +129,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   shared_auth_data_ = std::move(shared_auth_data);
   auth_data_.set_use_pfs(use_pfs);
   auth_data_.set_main_auth_key(shared_auth_data_->get_auth_key());
+  //auth_data_.break_main_auth_key();
   auth_data_.set_server_time_difference(shared_auth_data_->get_server_time_difference());
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), Time::now());
   if (use_pfs && !tmp_auth_key.empty()) {
@@ -140,6 +141,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
   } while (session_id == 0);
   auth_data_.set_session_id(session_id);
+  use_pfs_ = use_pfs;
   LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
                << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for "
                << (is_main_ ? "main " : "") << "DC" << dc_id;
@@ -238,19 +240,36 @@ void Session::send(NetQueryPtr &&query) {
   loop();
 }
 
-void Session::on_result(NetQueryPtr query) {
-  CHECK(UniqueId::extract_type(query->id()) == UniqueId::BindKey);
-  if (last_bind_id_ != query->id()) {
-    query->clear();
-    return;
-  }
-
+void Session::on_bind_result(NetQueryPtr query) {
   LOG(INFO) << "ANSWER TO BindKey" << query;
   Status status;
   tmp_auth_key_id_ = 0;
   last_bind_id_ = 0;
   if (query->is_error()) {
     status = std::move(query->error());
+    if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
+      bool has_immunity =
+          !G()->is_server_time_reliable() || G()->server_time() - auth_data_.get_main_auth_key().created_at() < 60;
+      LOG(ERROR) << G()->is_server_time_reliable() << " "
+                 << G()->server_time() - auth_data_.get_auth_key().created_at();
+      if (!use_pfs_) {
+        if (has_immunity) {
+          LOG(WARNING) << "Do not drop main key, because it was created too recently";
+        } else {
+          LOG(WARNING) << "Drop main key because check with temporary key failed";
+          auth_data_.drop_main_auth_key();
+          on_auth_key_updated();
+        }
+      } else {
+        if (has_immunity) {
+          LOG(WARNING) << "Do not check validate main key, because it was created too recently";
+        } else {
+          need_check_main_key_ = true;
+          auth_data_.set_use_pfs(false);
+          LOG(WARNING) << "Got ENCRYPTED_MESSAGE_INVALID error, validate main key";
+        }
+      }
+    }
   } else {
     auto r_flag = fetch_result<telegram_api::auth_bindTempAuthKey>(query->ok());
     if (r_flag.is_error()) {
@@ -268,9 +287,51 @@ void Session::on_result(NetQueryPtr query) {
     on_tmp_auth_key_updated();
   } else {
     LOG(ERROR) << "BindKey failed: " << status;
+    connection_close(&main_connection_);
+    connection_close(&long_poll_connection_);
   }
+
   query->clear();
   yield();
+}
+
+void Session::on_check_key_result(NetQueryPtr query) {
+  LOG(INFO) << "ANSWER TO GetNearestDc" << query;
+  Status status;
+  auth_key_id_ = 0;
+  last_check_id_ = 0;
+  if (query->is_error()) {
+    status = std::move(query->error());
+  } else {
+    auto r_flag = fetch_result<telegram_api::help_getNearestDc>(query->ok());
+    if (r_flag.is_error()) {
+      status = r_flag.move_as_error();
+    }
+  }
+  if (status.is_ok()) {
+    LOG(INFO) << "Check main key ok";
+    need_check_main_key_ = false;
+    auth_data_.set_use_pfs(true);
+  } else {
+    LOG(ERROR) << "Check main key failed: " << status;
+    connection_close(&main_connection_);
+    connection_close(&long_poll_connection_);
+  }
+
+  query->clear();
+  yield();
+}
+
+void Session::on_result(NetQueryPtr query) {
+  CHECK(UniqueId::extract_type(query->id()) == UniqueId::BindKey);
+  if (last_bind_id_ == query->id()) {
+    return on_bind_result(std::move(query));
+  }
+  if (last_check_id_ == query->id()) {
+    return on_check_key_result(std::move(query));
+  }
+  query->clear();
+  return;
 }
 
 void Session::return_query(NetQueryPtr &&query) {
@@ -429,6 +490,16 @@ void Session::on_closed(Status status) {
     } else if (need_destroy_) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
+    } else {
+      if (!use_pfs_) {
+        // Logout if has error and or 1 minute is passed from start, or 1 minute has passed
+        // since auth_key creation
+        auth_data_.set_use_pfs(true);
+      } else if (need_check_main_key_) {
+        LOG(WARNING) << "Invalidate main key";
+        auth_data_.drop_main_auth_key();
+        on_auth_key_updated();
+      }
     }
   }
 
@@ -1019,14 +1090,38 @@ void Session::connection_close(ConnectionInfo *info) {
   info->connection->force_close(static_cast<mtproto::SessionConnection::Callback *>(this));
   CHECK(info->state == ConnectionInfo::State::Empty);
 }
+bool Session::need_send_check_main_key() const {
+  return need_check_main_key_ && auth_data_.get_main_auth_key().id() != auth_key_id_;
+}
+
+bool Session::connection_send_check_main_key(ConnectionInfo *info) {
+  if (!need_check_main_key_) {
+    return false;
+  }
+  uint64 key_id = auth_data_.get_main_auth_key().id();
+  if (key_id == auth_key_id_) {
+    return false;
+  }
+  CHECK(info->state != ConnectionInfo::State::Empty);
+  LOG(INFO) << "Check main key";
+  auth_key_id_ = key_id;
+  last_check_id_ = UniqueId::next(UniqueId::BindKey);
+  NetQueryPtr query = G()->net_query_creator().create(last_check_id_, create_storer(telegram_api::help_getNearestDc()));
+  query->dispatch_ttl = 0;
+  query->set_callback(actor_shared(this));
+  connection_send_query(info, std::move(query));
+
+  return true;
+}
 
 bool Session::need_send_bind_key() const {
   return auth_data_.use_pfs() && !auth_data_.get_bind_flag() && auth_data_.get_tmp_auth_key().id() != tmp_auth_key_id_;
 }
 bool Session::need_send_query() const {
-  return !close_flag_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) && !pending_queries_.empty() &&
-         !can_destroy_auth_key();
+  return !close_flag_ && !need_check_main_key_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) &&
+         !pending_queries_.empty() && !can_destroy_auth_key();
 }
+
 bool Session::connection_send_bind_key(ConnectionInfo *info) {
   CHECK(info->state != ConnectionInfo::State::Empty);
   uint64 key_id = auth_data_.get_tmp_auth_key().id();
@@ -1213,6 +1308,10 @@ void Session::loop() {
         if (need_send_bind_key()) {
           // send auth.bindTempAuthKey
           connection_send_bind_key(&main_connection_);
+          need_flush = true;
+        }
+        if (need_send_check_main_key()) {
+          connection_send_check_main_key(&main_connection_);
           need_flush = true;
         }
       }

@@ -123,6 +123,12 @@ class Global : public ActorContext {
     return *shared_config_;
   }
 
+  bool is_server_time_reliable() const {
+    return server_time_difference_was_updated_;
+  }
+  double from_server_time(double date) const {
+    return date - get_server_time_difference();
+  }
   double to_server_time(double now) const {
     return now + get_server_time_difference();
   }

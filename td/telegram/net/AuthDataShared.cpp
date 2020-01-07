@@ -106,7 +106,9 @@ class AuthDataSharedImpl : public AuthDataShared {
   }
 
   void log_auth_key(const mtproto::AuthKey &auth_key) {
-    LOG(WARNING) << dc_id_ << " " << tag("auth_key_id", auth_key.id()) << tag("state", get_auth_key_state(auth_key));
+    LOG(WARNING) << dc_id_ << " " << tag("auth_key_id", auth_key.id()) << tag("state", get_auth_key_state(auth_key))
+                 << tag("created_at", auth_key.created_at());
+    ;
   }
 };
 

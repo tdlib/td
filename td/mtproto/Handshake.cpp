@@ -213,6 +213,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   if (mode_ == Mode::Temp) {
     auth_key.set_expires_at(expires_at_);
   }
+  auth_key.set_created_at(dh_inner_data.server_time_);
 
   server_salt = as<int64>(new_nonce.raw) ^ as<int64>(server_nonce.raw);
 

@@ -60,6 +60,9 @@ class AuthData {
   void set_main_auth_key(AuthKey auth_key) {
     main_auth_key_ = std::move(auth_key);
   }
+  void break_main_auth_key() {
+    main_auth_key_.break_key();
+  }
   const AuthKey &get_main_auth_key() const {
     // CHECK(has_main_auth_key());
     return main_auth_key_;

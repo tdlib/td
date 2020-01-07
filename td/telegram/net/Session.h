@@ -113,7 +113,9 @@ class Session final
   bool online_flag_ = false;
   bool connection_online_flag_ = false;
   uint64 tmp_auth_key_id_ = 0;
+  uint64 auth_key_id_ = 0;
   uint64 last_bind_id_ = 0;
+  uint64 last_check_id_ = 0;
   double last_activity_timestamp_ = 0;
   size_t dropped_size_ = 0;
 
@@ -148,6 +150,8 @@ class Session final
 
   std::shared_ptr<Callback> callback_;
   mtproto::AuthData auth_data_;
+  bool use_pfs_{false};
+  bool need_check_main_key_{false};
   TempAuthKeyWatchdog::RegisteredAuthKey registered_temp_auth_key_;
   std::shared_ptr<AuthDataShared> shared_auth_data_;
   bool close_flag_ = false;
@@ -229,8 +233,13 @@ class Session final
   bool need_send_query() const;
   bool can_destroy_auth_key() const;
   bool connection_send_bind_key(ConnectionInfo *info);
+  bool need_send_check_main_key() const;
+  bool connection_send_check_main_key(ConnectionInfo *info);
 
   void on_result(NetQueryPtr query) override;
+
+  void on_bind_result(NetQueryPtr query);
+  void on_check_key_result(NetQueryPtr query);
 
   void start_up() override;
   void loop() override;
