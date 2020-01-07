@@ -129,7 +129,9 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   shared_auth_data_ = std::move(shared_auth_data);
   auth_data_.set_use_pfs(use_pfs);
   auth_data_.set_main_auth_key(shared_auth_data_->get_auth_key());
-  //auth_data_.break_main_auth_key();
+  if (!is_main && false) {
+    auth_data_.break_main_auth_key();
+  }
   auth_data_.set_server_time_difference(shared_auth_data_->get_server_time_difference());
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), Time::now());
   if (use_pfs && !tmp_auth_key.empty()) {
@@ -242,9 +244,10 @@ void Session::send(NetQueryPtr &&query) {
 
 void Session::on_bind_result(NetQueryPtr query) {
   LOG(INFO) << "Receive answer to BindKey: " << query;
-  Status status;
   being_binded_tmp_auth_key_id_ = 0;
   last_bind_query_id_ = 0;
+
+  Status status;
   if (query->is_error()) {
     status = std::move(query->error());
     if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
@@ -280,6 +283,8 @@ void Session::on_bind_result(NetQueryPtr query) {
     LOG(INFO) << "Bound temp auth key " << auth_data_.get_tmp_auth_key().id();
     auth_data_.on_bind();
     on_tmp_auth_key_updated();
+  } else if (status.error().message() == "DispatchTtlError") {
+    LOG(INFO) << "Resend bind auth key " << auth_data_.get_tmp_auth_key().id() << " request after DispatchTtlError";
   } else {
     LOG(ERROR) << "BindKey failed: " << status;
     connection_close(&main_connection_);
@@ -292,9 +297,10 @@ void Session::on_bind_result(NetQueryPtr query) {
 
 void Session::on_check_key_result(NetQueryPtr query) {
   LOG(INFO) << "Receive answer to GetNearestDc: " << query;
-  Status status;
   being_checked_main_auth_key_id_ = 0;
   last_check_query_id_ = 0;
+
+  Status status;
   if (query->is_error()) {
     status = std::move(query->error());
   } else {
@@ -303,7 +309,7 @@ void Session::on_check_key_result(NetQueryPtr query) {
       status = r_flag.move_as_error();
     }
   }
-  if (status.is_ok()) {
+  if (status.is_ok() || status.error().code() != -404) {
     LOG(INFO) << "Check main key ok";
     need_check_main_key_ = false;
     auth_data_.set_use_pfs(true);
@@ -477,7 +483,7 @@ void Session::on_closed(Status status) {
       on_tmp_auth_key_updated();
       yield();
     } else if (is_cdn_) {
-      LOG(WARNING) << "Invalidate cdn tmp_key";
+      LOG(WARNING) << "Invalidate CDN tmp_key";
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
       on_session_failed(std::move(status));
