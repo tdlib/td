@@ -129,9 +129,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   shared_auth_data_ = std::move(shared_auth_data);
   auth_data_.set_use_pfs(use_pfs);
   auth_data_.set_main_auth_key(shared_auth_data_->get_auth_key());
-  if (!is_main && false) {
-    auth_data_.break_main_auth_key();
-  }
+  // auth_data_.break_main_auth_key();
   auth_data_.set_server_time_difference(shared_auth_data_->get_server_time_difference());
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), Time::now());
   if (use_pfs && !tmp_auth_key.empty()) {
@@ -493,15 +491,14 @@ void Session::on_closed(Status status) {
     } else {
       // log out if has error and or 1 minute is passed from start, or 1 minute has passed since auth_key creation
       if (!use_pfs_) {
-        LOG(WARNING) << "Use pfs to check main key";
+        LOG(WARNING) << "Use PFS to check main key";
         auth_data_.set_use_pfs(true);
-        yield();
       } else if (need_check_main_key_) {
         LOG(WARNING) << "Invalidate main key";
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
-        yield();
       }
+      yield();
     }
   }
 
@@ -761,7 +758,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
     return;
   }
 
-  LOG(DEBUG) << "Session::on_error " << tag("id", id) << tag("error_code", error_code)
+  LOG(DEBUG) << "Session::on_message_result_error " << tag("id", id) << tag("error_code", error_code)
              << tag("msg", message.as_slice());
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
