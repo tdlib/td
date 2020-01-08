@@ -23,9 +23,9 @@ class HttpQuery {
 
   std::vector<BufferSlice> container_;
   Type type_ = Type::EMPTY;
+  int32 code_ = 0;
   MutableSlice url_path_;
   std::vector<std::pair<MutableSlice, MutableSlice>> args_;
-  int code_ = 0;
   MutableSlice reason_;
 
   bool keep_alive_ = true;

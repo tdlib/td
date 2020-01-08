@@ -31,8 +31,8 @@
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
-#if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/HttpQuery.h"
+#if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/SslStream.h"
 #include "td/net/Wget.h"
 #endif
@@ -55,6 +55,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -199,10 +200,10 @@ Result<SimpleConfig> decode_config(Slice input) {
   return std::move(config);
 }
 
-template <class F>
 static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, int32 scheduler_id, string url,
                                          string host, std::vector<std::pair<string, string>> headers, bool prefer_ipv6,
-                                         F &&get_config, string content = string(), string content_type = string()) {
+                                         std::function<Result<string>(HttpQuery &)> get_config,
+                                         string content = string(), string content_type = string()) {
   VLOG(config_recoverer) << "Request simple config from " << url;
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
@@ -242,7 +243,7 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", {},
                                 prefer_ipv6,
-                                [](auto &http_query) -> Result<string> { return http_query.content_.str(); });
+                                [](HttpQuery &http_query) -> Result<string> { return http_query.content_.str(); });
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,
@@ -252,7 +253,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
   if (name.empty()) {
     name = is_test ? "tapv3.stel.com" : "apv3.stel.com";
   }
-  auto get_config = [](auto &http_query) -> Result<string> {
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.content_));
     if (json.type() != JsonValue::Type::Object) {
       return Status::Error("Expected JSON object");
@@ -320,7 +321,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
       "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/"
       "firebase:fetch?key=AIzaSyC2-kAkpDsroixRXw-sTw-Wfqo4NxjMwwM";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  auto get_config = [](auto &http_query) -> Result<string> {
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
     if (json.type() != JsonValue::Type::Object) {
       return Status::Error("Expected JSON object");
@@ -342,7 +343,7 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
 
   string url = "https://reserve-5a846.firebaseio.com/ipconfigv3.json";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  auto get_config = [](auto &http_query) -> Result<string> {
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
     return http_query.get_arg("content").str();
   };
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "reserve-5a846.firebaseio.com", {},
@@ -358,7 +359,7 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
 
   string url = "https://www.google.com/v1/projects/reserve-5a846/databases/(default)/documents/ipconfig/v3";
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  auto get_config = [](auto &http_query) -> Result<string> {
+  auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("fields")));
     if (json.type() != JsonValue::Type::Object) {
       return Status::Error("Expected JSON object");
