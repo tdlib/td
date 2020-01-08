@@ -220,7 +220,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
   return false;
 }
 
-Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32 part_count) {
+Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32 part_count, int64 streaming_offset) {
   if (encryption_key_.is_secret()) {
     part.size = (part.size + 15) & ~15;  // fix for last part
   }
@@ -240,7 +240,9 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
     int32 flags = 0;
 #if !TD_EMSCRIPTEN
     // CDN is supported, unless we use domains instead of IPs from a browser
-    flags |= telegram_api::upload_getFile::CDN_SUPPORTED_MASK;
+    if (streaming_offset == 0) {
+      flags |= telegram_api::upload_getFile::CDN_SUPPORTED_MASK;
+    }
 #endif
     DcId dc_id = remote_.is_web() ? G()->get_webfile_dc_id() : remote_.get_dc_id();
     net_query = G()->net_query_creator().create(

@@ -247,7 +247,7 @@ void FileUploader::after_start_parts() {
   try_release_fd();
 }
 
-Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 part_count) {
+Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 part_count, int64 streaming_offset) {
   auto padded_size = part.size;
   if (encryption_key_.is_secret()) {
     padded_size = (padded_size + 15) & ~15;

@@ -63,7 +63,8 @@ class FileUploader : public FileLoader {
   void on_error(Status status) override;
   Status before_start_parts() override;
   void after_start_parts() override;
-  Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count) override TD_WARN_UNUSED_RESULT;
+  Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count,
+                                                  int64 streaming_offset) override TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
   void on_progress(Progress progress) override;
   FileLoader::Callback *get_callback() override;

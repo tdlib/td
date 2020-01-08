@@ -194,7 +194,7 @@ Status FileLoader::do_loop() {
     VLOG(files) << "Start part " << tag("id", part.id) << tag("size", part.size);
     resource_state_.start_use(static_cast<int64>(part.size));
 
-    TRY_RESULT(query_flag, start_part(part, parts_manager_.get_part_count()));
+    TRY_RESULT(query_flag, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
     NetQueryPtr query;
     bool is_blocking;
     std::tie(query, is_blocking) = std::move(query_flag);

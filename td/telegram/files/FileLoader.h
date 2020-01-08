@@ -69,7 +69,8 @@ class FileLoader : public FileLoaderActor {
   virtual Status before_start_parts() {
     return Status::OK();
   }
-  virtual Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int part_count) TD_WARN_UNUSED_RESULT = 0;
+  virtual Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int part_count,
+                                                          int64 streaming_offset) TD_WARN_UNUSED_RESULT = 0;
   virtual void after_start_parts() {
   }
   virtual Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT = 0;
