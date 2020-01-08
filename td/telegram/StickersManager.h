@@ -613,6 +613,7 @@ class StickersManager : public Actor {
   std::unordered_map<string, vector<string>> emoji_language_codes_;
   std::unordered_map<string, int32> emoji_language_code_versions_;
   std::unordered_map<string, double> emoji_language_code_last_difference_times_;
+  std::unordered_set<string> reloaded_emoji_keywords_;
   std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
   std::unordered_map<int64, string> emoji_suggestions_urls_;
