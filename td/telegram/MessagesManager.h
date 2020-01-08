@@ -1060,6 +1060,7 @@ class MessagesManager : public Actor {
     int32 pending_last_message_date = 0;
     MessageId pending_last_message_id;
     MessageId max_notification_message_id;
+    MessageId last_edited_message_id;
     uint32 scheduled_messages_sync_generation = 0;
 
     MessageId max_added_message_id;

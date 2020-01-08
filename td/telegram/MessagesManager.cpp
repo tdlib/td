@@ -6379,6 +6379,7 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
   const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot()) {
+    d->last_edited_message_id = m->message_id;
     send_update_message_edited(dialog_id, m);
   }
   update_used_hashtags(dialog_id, m);
@@ -12318,6 +12319,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages with pending web pages
   // don't want to unload message with active reply markup
   // don't want to unload pinned message
+  // don't want to unload last edited message, because server can send updateEditChannelMessage again
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
   FullMessageId full_message_id{d->dialog_id, m->message_id};
@@ -12325,7 +12327,8 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
          waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty() &&
-         m->message_id != d->reply_markup_message_id && m->message_id != d->pinned_message_id;
+         m->message_id != d->reply_markup_message_id && m->message_id != d->pinned_message_id &&
+         m->message_id != d->last_edited_message_id;
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -27239,6 +27242,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
 
   if (is_edited && !td_->auth_manager_->is_bot()) {
+    d->last_edited_message_id = message_id;
     send_update_message_edited(dialog_id, old_message);
   }
 
