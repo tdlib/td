@@ -224,6 +224,7 @@ function split_file($file, $chunks, $undo) {
             'std::reverse' => 'algorithm',
             'std::rotate' => 'algorithm',
             'std::sort' => 'algorithm',
+            'std::abs' => 'cmath',
             'std::numeric_limits' => 'limits',
             'std::make_shared' => 'memory',
             'std::shared_ptr' => 'memory',

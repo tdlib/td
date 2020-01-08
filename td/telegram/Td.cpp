@@ -121,6 +121,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/utf8.h"
 
+#include <cmath>
 #include <limits>
 #include <tuple>
 #include <type_traits>
@@ -3309,6 +3310,17 @@ void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
   send_closure_later(td_id, &Td::on_alarm_timeout, alarm_id);
 }
 
+void Td::on_update_server_time_difference() {
+  auto diff = G()->get_server_time_difference();
+  if (std::abs(diff - last_sent_server_time_difference_) < 0.5) {
+    return;
+  }
+
+  last_sent_server_time_difference_ = diff;
+  send_update(td_api::make_object<td_api::updateOption>(
+      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
+}
+
 void Td::on_alarm_timeout(int64 alarm_id) {
   if (alarm_id == ONLINE_ALARM_ID) {
     on_online_updated(false, true);
@@ -4304,7 +4316,11 @@ Status Td::init(DbKey key) {
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
   VLOG(td_init) << "Successfully inited database";
+
   G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
+  last_sent_server_time_difference_ = G()->get_server_time_difference();
+  send_update(td_api::make_object<td_api::updateOption>(
+      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
 
   init_options_and_network();
 
@@ -4676,6 +4692,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateTrendingStickerSets::ID:
       VLOG(td_requests) << "Sending update: updateTrendingStickerSets { ... }";
       break;
+    case td_api::updateOption::ID / 2:
     case td_api::updateChatReadInbox::ID / 2:
     case td_api::updateUnreadMessageCount::ID / 2:
     case td_api::updateUnreadChatCount::ID / 2:

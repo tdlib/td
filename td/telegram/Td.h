@@ -106,7 +106,9 @@ class Td final : public NetQueryCallback {
   void schedule_get_terms_of_service(int32 expires_in);
 
   void on_result(NetQueryPtr query) override;
-  void on_connection_state_changed(StateManager::State new_state);
+
+  void on_update_server_time_difference();
+
   void on_authorization_lost();
 
   void on_online_updated(bool force, bool send_update);
@@ -186,6 +188,7 @@ class Td final : public NetQueryCallback {
     ResultHandler(const ResultHandler &) = delete;
     ResultHandler &operator=(const ResultHandler &) = delete;
     virtual ~ResultHandler() = default;
+
     virtual void on_result(NetQueryPtr query);
     virtual void on_result(uint64 id, BufferSlice packet) {
       UNREACHABLE();
@@ -197,7 +200,7 @@ class Td final : public NetQueryCallback {
     friend class Td;
 
    protected:
-    void send_query(NetQueryPtr);
+    void send_query(NetQueryPtr query);
 
     Td *td = nullptr;
 
@@ -229,6 +232,8 @@ class Td final : public NetQueryCallback {
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
   static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
+
+  void on_connection_state_changed(StateManager::State new_state);
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);
@@ -276,6 +281,8 @@ class Td final : public NetQueryCallback {
   MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
   TermsOfService pending_terms_of_service_;
+
+  double last_sent_server_time_difference_ = 1e100;
 
   struct DownloadInfo {
     int32 offset = -1;

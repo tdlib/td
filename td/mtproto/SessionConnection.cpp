@@ -331,7 +331,7 @@ Status SessionConnection::on_packet(const MsgInfo &info,
 
     InvalidContainer = 64
   };
-  Slice common = " BUG! CALL FOR A DEVELOPER! Session will be closed";
+  Slice common = ". BUG! CALL FOR A DEVELOPER! Session will be closed";
   switch (bad_msg_notification.error_code_) {
     case MsgIdTooLow: {
       LOG(WARNING) << bad_info << ": MessageId is too low. Message will be re-sent";
@@ -340,18 +340,18 @@ Status SessionConnection::on_packet(const MsgInfo &info,
       break;
     }
     case MsgIdTooHigh: {
-      LOG(ERROR) << bad_info << ": MessageId is too high. Session will be closed";
+      LOG(WARNING) << bad_info << ": MessageId is too high. Session will be closed";
       // All this queries will be re-sent by parent
       to_send_.clear();
       callback_->on_session_failed(Status::Error("MessageId is too high"));
       return Status::Error("MessageId is too high");
     }
     case MsgIdMod4: {
-      LOG(ERROR) << bad_info << ": MessageId is not divisible by 4." << common;
+      LOG(ERROR) << bad_info << ": MessageId is not divisible by 4" << common;
       return Status::Error("MessageId is not divisible by 4");
     }
     case MsgIdCollision: {
-      LOG(ERROR) << bad_info << ": Container and older message MessageId collision." << common;
+      LOG(ERROR) << bad_info << ": Container and older message MessageId collision" << common;
       return Status::Error("Container and older message MessageId collision");
     }
 
@@ -362,29 +362,29 @@ Status SessionConnection::on_packet(const MsgInfo &info,
     }
 
     case SeqNoTooLow: {
-      LOG(ERROR) << bad_info << ": SeqNo is too low." << common;
+      LOG(ERROR) << bad_info << ": SeqNo is too low" << common;
       return Status::Error("SeqNo is too low");
     }
     case SeqNoTooHigh: {
-      LOG(ERROR) << bad_info << ": SeqNo is too high." << common;
+      LOG(ERROR) << bad_info << ": SeqNo is too high" << common;
       return Status::Error("SeqNo is too high");
     }
     case SeqNoNotEven: {
-      LOG(ERROR) << bad_info << ": SeqNo is not even for an irrelevant message." << common;
+      LOG(ERROR) << bad_info << ": SeqNo is not even for an irrelevant message" << common;
       return Status::Error("SeqNo is not even for an irrelevant message");
     }
     case SeqNoNotOdd: {
-      LOG(ERROR) << bad_info << ": SeqNo is not odd for an irrelevant message." << common;
+      LOG(ERROR) << bad_info << ": SeqNo is not odd for an irrelevant message" << common;
       return Status::Error("SeqNo is not odd for an irrelevant message");
     }
 
     case InvalidContainer: {
-      LOG(ERROR) << bad_info << ": Invalid Contailer." << common;
+      LOG(ERROR) << bad_info << ": Invalid Contailer" << common;
       return Status::Error("Invalid Contailer");
     }
 
     default: {
-      LOG(ERROR) << bad_info << ": Unknown error [code:" << bad_msg_notification.error_code_ << "]." << common;
+      LOG(ERROR) << bad_info << ": Unknown error [code:" << bad_msg_notification.error_code_ << "]" << common;
       return Status::Error("Unknown error code");
     }
   }
