@@ -142,6 +142,7 @@ Changes in 1.6.0:
   - Added the method `confirmQrCodeAuthentication` for authentication confirmation from another device.
 * Added the update `updateMessageLiveLocationViewed`, which is supposed to trigger an edit of the corresponding
   live location.
+* Added the parameter `input_language_code` to the method `searchEmojis`.
 * Added the method `getInactiveSupergroupChats`, to be used when the user receives a CHANNELS_TOO_MUCH error after
   reaching the limit on the number of joined supergroup and channel chats.
 * Added the field `unique_id` to the class `remoteFile`, which can be used to identify the same file for
