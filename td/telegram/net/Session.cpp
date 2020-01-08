@@ -493,11 +493,14 @@ void Session::on_closed(Status status) {
     } else {
       // log out if has error and or 1 minute is passed from start, or 1 minute has passed since auth_key creation
       if (!use_pfs_) {
+        LOG(WARNING) << "Use pfs to check main key";
         auth_data_.set_use_pfs(true);
+        yield();
       } else if (need_check_main_key_) {
         LOG(WARNING) << "Invalidate main key";
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
+        yield();
       }
     }
   }

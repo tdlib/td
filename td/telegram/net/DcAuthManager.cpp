@@ -157,6 +157,10 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
   if (dc.auth_key_state == AuthKeyState::OK) {
     return;
   }
+  if (dc.state == DcInfo::State::Ok) {
+    LOG(WARNING) << "Lost key in " << dc.dc_id << ", restart dc_loop";
+    dc.state = DcInfo::State::Waiting;
+  }
   CHECK(dc.shared_auth_data);
   switch (dc.state) {
     case DcInfo::State::Waiting: {
