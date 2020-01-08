@@ -564,9 +564,9 @@ class FastPingTestActor : public Actor {
       unique_ptr<mtproto::AuthData> auth_data;
       if (iteration_ % 2 == 0) {
         auth_data = make_unique<mtproto::AuthData>();
-        auth_data->set_tmp_auth_key(handshake_->auth_key);
-        auth_data->set_server_time_difference(handshake_->server_time_diff);
-        auth_data->set_server_salt(handshake_->server_salt, Time::now());
+        auth_data->set_tmp_auth_key(handshake_->release_auth_key());
+        auth_data->set_server_time_difference(handshake_->get_server_time_diff());
+        auth_data->set_server_salt(handshake_->get_server_salt(), Time::now());
         auth_data->set_future_salts({mtproto::ServerSalt{0u, 1e20, 1e30}}, Time::now());
         auth_data->set_use_pfs(true);
         uint64 session_id = 0;

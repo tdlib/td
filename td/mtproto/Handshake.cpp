@@ -182,7 +182,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
     return Status::Error("Server nonce mismatch");
   }
 
-  server_time_diff = dh_inner_data.server_time_ - Time::now();
+  server_time_diff_ = dh_inner_data.server_time_ - Time::now();
 
   DhHandshake handshake;
   handshake.set_config(dh_inner_data.g_, dh_inner_data.dh_prime_);
@@ -209,13 +209,13 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   mtproto_api::set_client_DH_params set_client_dh_params(nonce, server_nonce, encrypted_data);
   send(connection, create_storer(set_client_dh_params));
 
-  auth_key = AuthKey(auth_key_params.first, std::move(auth_key_params.second));
+  auth_key_ = AuthKey(auth_key_params.first, std::move(auth_key_params.second));
   if (mode_ == Mode::Temp) {
-    auth_key.set_expires_at(expires_at_);
+    auth_key_.set_expires_at(expires_at_);
   }
-  auth_key.set_created_at(dh_inner_data.server_time_);
+  auth_key_.set_created_at(dh_inner_data.server_time_);
 
-  server_salt = as<int64>(new_nonce.raw) ^ as<int64>(server_nonce.raw);
+  server_salt_ = as<int64>(new_nonce.raw) ^ as<int64>(server_nonce.raw);
 
   state_ = DHGenResponse;
   return Status::OK();
@@ -289,7 +289,7 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
   return Status::OK();
 }
 
-Status AuthKeyHandshake::on_message(Slice message, Callback *connection, Context *context) {
+Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) {
   Status status = [&] {
     switch (state_) {
       case ResPQ:

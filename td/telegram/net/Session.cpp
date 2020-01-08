@@ -1166,13 +1166,13 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
       info.handshake_ = std::move(handshake);
     } else {
       if (is_main) {
-        auth_data_.set_main_auth_key(std::move(handshake->auth_key));
+        auth_data_.set_main_auth_key(handshake->release_auth_key());
         on_auth_key_updated();
       } else {
+        auth_data_.set_tmp_auth_key(handshake->release_auth_key());
         if (is_main_) {
-          registered_temp_auth_key_ = TempAuthKeyWatchdog::register_auth_key_id(handshake->auth_key.id());
+          registered_temp_auth_key_ = TempAuthKeyWatchdog::register_auth_key_id(auth_data_.get_tmp_auth_key().id());
         }
-        auth_data_.set_tmp_auth_key(std::move(handshake->auth_key));
         on_tmp_auth_key_updated();
       }
       LOG(WARNING) << "Update auth key in session_id " << auth_data_.get_session_id() << " to "
@@ -1182,10 +1182,10 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
 
       // Salt of temporary key is different salt. Do not rewrite it
       if (auth_data_.use_pfs() ^ is_main) {
-        auth_data_.set_server_salt(handshake->server_salt, Time::now_cached());
+        auth_data_.set_server_salt(handshake->get_server_salt(), Time::now_cached());
         on_server_salt_updated();
       }
-      if (auth_data_.update_server_time_difference(handshake->server_time_diff)) {
+      if (auth_data_.update_server_time_difference(handshake->get_server_time_diff())) {
         on_server_time_difference_updated();
       }
       LOG(INFO) << "Got " << (is_main ? "main" : "tmp") << " auth key";

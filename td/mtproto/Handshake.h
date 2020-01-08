@@ -27,6 +27,8 @@ class AuthKeyHandshakeContext {
 };
 
 class AuthKeyHandshake {
+  enum class Mode { Unknown, Main, Temp };
+
  public:
   class Callback {
    public:
@@ -36,20 +38,6 @@ class AuthKeyHandshake {
     virtual ~Callback() = default;
     virtual void send_no_crypto(const Storer &storer) = 0;
   };
-  using Context = AuthKeyHandshakeContext;
-  enum class Mode { Unknown, Main, Temp };
-  AuthKey auth_key;
-  double server_time_diff = 0;
-  uint64 server_salt = 0;
-
-  bool is_ready_for_start() const;
-  Status start_main(Callback *connection) TD_WARN_UNUSED_RESULT;
-  Status start_tmp(Callback *connection, int32 expires_in) TD_WARN_UNUSED_RESULT;
-
-  bool is_ready_for_message(const UInt128 &message_nonce) const;
-
-  bool is_ready_for_finish() const;
-  void on_finish();
 
   AuthKeyHandshake(int32 dc_id, int32 expires_in) {
     dc_id_ = dc_id;
@@ -60,21 +48,48 @@ class AuthKeyHandshake {
       expires_in_ = expires_in;
     }
   }
+
+  bool is_ready_for_start() const;
+  Status start_main(Callback *connection) TD_WARN_UNUSED_RESULT;
+  Status start_tmp(Callback *connection, int32 expires_in) TD_WARN_UNUSED_RESULT;
+
+  bool is_ready_for_message(const UInt128 &message_nonce) const;
+
+  bool is_ready_for_finish() const;
+  void on_finish();
+
   void init_main() {
     clear();
     mode_ = Mode::Main;
   }
+
   void init_temp(int32 expires_in) {
     clear();
     mode_ = Mode::Temp;
     expires_in_ = expires_in;
   }
+
   void resume(Callback *connection);
-  Status on_message(Slice message, Callback *connection, Context *context) TD_WARN_UNUSED_RESULT;
+
+  Status on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) TD_WARN_UNUSED_RESULT;
+
   bool is_ready() const {
     return is_ready_for_finish();
   }
+
   void clear();
+
+  AuthKey release_auth_key() {
+    return std::move(auth_key_);
+  }
+
+  double get_server_time_diff() const {
+    return server_time_diff_;
+  }
+
+  uint64 get_server_salt() const {
+    return server_salt_;
+  }
 
  private:
   using State = enum { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
@@ -83,6 +98,10 @@ class AuthKeyHandshake {
   int32 dc_id_ = 0;
   int32 expires_in_ = 0;
   double expires_at_ = 0;
+
+  AuthKey auth_key_;
+  double server_time_diff_ = 0;
+  uint64 server_salt_ = 0;
 
   UInt128 nonce;
   UInt128 server_nonce;
