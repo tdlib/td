@@ -32,6 +32,7 @@ template <>
 BufferSlice create_empty<BufferSlice>(size_t size) {
   return BufferSlice{size};
 }
+
 template <>
 SecureString create_empty<SecureString>(size_t size) {
   return SecureString{size};

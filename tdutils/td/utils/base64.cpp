@@ -66,6 +66,14 @@ string base64_encode_impl(Slice input) {
   return base64;
 }
 
+string base64_encode(Slice input) {
+  return base64_encode_impl<false>(input);
+}
+
+string base64url_encode(Slice input) {
+  return base64_encode_impl<true>(input);
+}
+
 template <bool is_url>
 Result<Slice> base64_drop_padding(Slice base64) {
   size_t padding_length = 0;
@@ -85,9 +93,7 @@ Result<Slice> base64_drop_padding(Slice base64) {
   return base64;
 }
 
-template <bool is_url, class F>
-Status base64_do_decode(Slice base64, F &&append) {
-  auto table = get_character_table<is_url>();
+static Status do_base64_decode_impl(Slice base64, const unsigned char *table, char *ptr) {
   for (size_t i = 0; i < base64.size();) {
     size_t left = min(base64.size() - i, static_cast<size_t>(4));
     int c = 0;
@@ -98,58 +104,57 @@ Status base64_do_decode(Slice base64, F &&append) {
       }
       c |= value << ((3 - t) * 6);
     }
-    append(static_cast<char>(static_cast<unsigned char>(c >> 16)));  // implementation-defined
+    *ptr++ = static_cast<char>(static_cast<unsigned char>(c >> 16));  // implementation-defined
     if (left == 2) {
       if ((c & ((1 << 16) - 1)) != 0) {
         return Status::Error("Wrong padding in the string");
       }
     } else {
-      append(static_cast<char>(static_cast<unsigned char>(c >> 8)));  // implementation-defined
+      *ptr++ = static_cast<char>(static_cast<unsigned char>(c >> 8));  // implementation-defined
       if (left == 3) {
         if ((c & ((1 << 8) - 1)) != 0) {
           return Status::Error("Wrong padding in the string");
         }
       } else {
-        append(static_cast<char>(static_cast<unsigned char>(c)));  // implementation-defined
+        *ptr++ = static_cast<char>(static_cast<unsigned char>(c));  // implementation-defined
       }
     }
   }
   return Status::OK();
 }
 
-Result<string> base64_decode(Slice base64) {
-  TRY_RESULT_ASSIGN(base64, base64_drop_padding<false>(base64));
+template <class T>
+static T create_empty(size_t size);
 
-  string output;
-  output.reserve((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
-  TRY_STATUS(base64_do_decode<false>(base64, [&output](char c) { output += c; }));
-  return output;
+template <>
+string create_empty<string>(size_t size) {
+  return string(size, '\0');
+}
+
+template <>
+SecureString create_empty<SecureString>(size_t size) {
+  return SecureString{size};
+}
+
+template <bool is_url, class T>
+static Result<T> base64_decode_impl(Slice base64) {
+  TRY_RESULT_ASSIGN(base64, base64_drop_padding<is_url>(base64));
+
+  T result = create_empty<T>(base64.size() / 4 * 3 + ((base64.size() & 3) + 1) / 2);
+  TRY_STATUS(do_base64_decode_impl(base64, get_character_table<is_url>(), as_mutable_slice(result).begin()));
+  return result;
+}
+
+Result<string> base64_decode(Slice base64) {
+  return base64_decode_impl<false, string>(base64);
 }
 
 Result<SecureString> base64_decode_secure(Slice base64) {
-  TRY_RESULT_ASSIGN(base64, base64_drop_padding<false>(base64));
-
-  SecureString output((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
-  char *ptr = output.as_mutable_slice().begin();
-  TRY_STATUS(base64_do_decode<false>(base64, [&ptr](char c) { *ptr++ = c; }));
-  return std::move(output);
-}
-
-string base64_encode(Slice input) {
-  return base64_encode_impl<false>(input);
-}
-
-string base64url_encode(Slice input) {
-  return base64_encode_impl<true>(input);
+  return base64_decode_impl<false, SecureString>(base64);
 }
 
 Result<string> base64url_decode(Slice base64) {
-  TRY_RESULT_ASSIGN(base64, base64_drop_padding<true>(base64));
-
-  string output;
-  output.reserve((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
-  TRY_STATUS(base64_do_decode<true>(base64, [&output](char c) { output += c; }));
-  return output;
+  return base64_decode_impl<true, string>(base64);
 }
 
 template <bool is_url>
