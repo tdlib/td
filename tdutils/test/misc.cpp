@@ -231,6 +231,9 @@ TEST(Misc, base64) {
   ASSERT_TRUE(base64_encode("      /'.;.';≤.];,].',[.;/,.;/]/..;!@#!*(%?::;!%\";") ==
               "ICAgICAgLycuOy4nO+KJpC5dOyxdLicsWy47LywuOy9dLy4uOyFAIyEqKCU/"
               "Ojo7ISUiOw==");
+  ASSERT_TRUE(base64url_encode("ab><") == "YWI-PA");
+  ASSERT_TRUE(base64url_encode("ab><c") == "YWI-PGM");
+  ASSERT_TRUE(base64url_encode("ab><cd") == "YWI-PGNk");
 }
 
 template <class T>
