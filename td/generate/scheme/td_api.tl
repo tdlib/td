@@ -3017,7 +3017,7 @@ setTdlibParameters parameters:tdlibParameters = Ok;
 checkDatabaseEncryptionKey encryption_key:bytes = Ok;
 
 //@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
-//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitCode or authorizationStateWaitPassword
+//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
 //@phone_number The phone number of the user, in international format @settings Settings for the authentication of the user's phone number
 setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = Ok;
 
