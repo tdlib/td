@@ -5796,8 +5796,7 @@ void ContactsManager::export_channel_invite_link(ChannelId channel_id, Promise<U
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
-  auto it = invite_link_infos_.find(invite_link);
-  if (it != invite_link_infos_.end()) {
+  if (invite_link_infos_.count(invite_link) > 0) {
     return promise.set_value(Unit());
   }
 
@@ -10023,11 +10022,6 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
 
 void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
                                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr) {
-  auto &invite_link_info = invite_link_infos_[invite_link];
-  if (invite_link_info == nullptr) {
-    invite_link_info = make_unique<InviteLinkInfo>();
-  }
-
   CHECK(chat_invite_ptr != nullptr);
   switch (chat_invite_ptr->get_id()) {
     case telegram_api::chatInviteAlready::ID: {
@@ -10045,7 +10039,10 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       on_get_chat(std::move(chat_invite_already->chat_), "chatInviteAlready");
 
       CHECK(chat_id == ChatId() || channel_id == ChannelId());
-      CHECK(invite_link_info != nullptr);
+      auto &invite_link_info = invite_link_infos_[invite_link];
+      if (invite_link_info == nullptr) {
+        invite_link_info = make_unique<InviteLinkInfo>();
+      }
       invite_link_info->chat_id = chat_id;
       invite_link_info->channel_id = channel_id;
 
@@ -10059,22 +10056,28 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
     }
     case telegram_api::chatInvite::ID: {
       auto chat_invite = move_tl_object_as<telegram_api::chatInvite>(chat_invite_ptr);
-      CHECK(invite_link_info != nullptr);
+      vector<UserId> participant_user_ids;
+      for (auto &user : chat_invite->participants_) {
+        auto user_id = get_user_id(user);
+        if (!user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid " << user_id;
+          continue;
+        }
+
+        on_get_user(std::move(user), "chatInvite");
+        participant_user_ids.push_back(user_id);
+      }
+
+      auto &invite_link_info = invite_link_infos_[invite_link];
+      if (invite_link_info == nullptr) {
+        invite_link_info = make_unique<InviteLinkInfo>();
+      }
       invite_link_info->chat_id = ChatId();
       invite_link_info->channel_id = ChannelId();
       invite_link_info->title = chat_invite->title_;
       invite_link_info->photo = get_photo(td_->file_manager_.get(), std::move(chat_invite->photo_), DialogId());
       invite_link_info->participant_count = chat_invite->participants_count_;
-      invite_link_info->participant_user_ids.clear();
-      for (auto &user : chat_invite->participants_) {
-        auto user_id = get_user_id(user);
-        if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << user_id;
-        } else {
-          on_get_user(std::move(user), "chatInvite");
-        }
-        invite_link_info->participant_user_ids.push_back(user_id);
-      }
+      invite_link_info->participant_user_ids = std::move(participant_user_ids);
       invite_link_info->is_chat = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) == 0;
       invite_link_info->is_channel = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) != 0;
 
