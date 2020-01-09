@@ -17,6 +17,22 @@ namespace td {
 //TODO: fix copypaste
 
 static const char *const symbols64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char *const url_symbols64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+template <bool is_url>
+static const unsigned char *get_character_table() {
+  static unsigned char char_to_value[256];
+  static bool is_inited = [] {
+    auto characters = is_url ? url_symbols64 : symbols64;
+    std::fill(std::begin(char_to_value), std::end(char_to_value), static_cast<unsigned char>(64));
+    for (unsigned char i = 0; i < 64; i++) {
+      char_to_value[static_cast<size_t>(characters[i])] = i;
+    }
+    return true;
+  }();
+  CHECK(is_inited);
+  return char_to_value;
+}
 
 string base64_encode(Slice input) {
   string base64;
@@ -46,18 +62,6 @@ string base64_encode(Slice input) {
   return base64;
 }
 
-static unsigned char char_to_value[256];
-static void init_base64_table() {
-  static bool is_inited = [] {
-    std::fill(std::begin(char_to_value), std::end(char_to_value), static_cast<unsigned char>(64));
-    for (unsigned char i = 0; i < 64; i++) {
-      char_to_value[static_cast<size_t>(symbols64[i])] = i;
-    }
-    return true;
-  }();
-  CHECK(is_inited);
-}
-
 Result<Slice> base64_drop_padding(Slice base64) {
   if ((base64.size() & 3) != 0) {
     return Status::Error("Wrong string length");
@@ -76,11 +80,12 @@ Result<Slice> base64_drop_padding(Slice base64) {
 
 template <class F>
 Status base64_do_decode(Slice base64, F &&append) {
+  auto table = get_character_table<false>();
   for (size_t i = 0; i < base64.size();) {
     size_t left = min(base64.size() - i, static_cast<size_t>(4));
     int c = 0;
     for (size_t t = 0; t < left; t++) {
-      auto value = char_to_value[base64.ubegin()[i++]];
+      auto value = table[base64.ubegin()[i++]];
       if (value == 64) {
         return Status::Error("Wrong character in the string");
       }
@@ -106,8 +111,6 @@ Status base64_do_decode(Slice base64, F &&append) {
 }
 
 Result<string> base64_decode(Slice base64) {
-  init_base64_table();
-
   TRY_RESULT_ASSIGN(base64, base64_drop_padding(base64));
 
   string output;
@@ -117,8 +120,6 @@ Result<string> base64_decode(Slice base64) {
 }
 
 Result<SecureString> base64_decode_secure(Slice base64) {
-  init_base64_table();
-
   TRY_RESULT_ASSIGN(base64, base64_drop_padding(base64));
 
   SecureString output(((base64.size() + 3) >> 2) * 3);
@@ -130,8 +131,6 @@ Result<SecureString> base64_decode_secure(Slice base64) {
   }
   return SecureString(output.as_slice().substr(0, size));
 }
-
-static const char *const url_symbols64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 string base64url_encode(Slice input) {
   string base64;
@@ -157,21 +156,7 @@ string base64url_encode(Slice input) {
   return base64;
 }
 
-static unsigned char url_char_to_value[256];
-static void init_base64url_table() {
-  static bool is_inited = [] {
-    std::fill(std::begin(url_char_to_value), std::end(url_char_to_value), static_cast<unsigned char>(64));
-    for (unsigned char i = 0; i < 64; i++) {
-      url_char_to_value[static_cast<size_t>(url_symbols64[i])] = i;
-    }
-    return true;
-  }();
-  CHECK(is_inited);
-}
-
 Result<string> base64url_decode(Slice base64) {
-  init_base64url_table();
-
   size_t padding_length = 0;
   while (!base64.empty() && base64.back() == '=') {
     base64.remove_suffix(1);
@@ -185,13 +170,14 @@ Result<string> base64url_decode(Slice base64) {
     return Status::Error("Wrong string length");
   }
 
+  auto table = get_character_table<true>();
   string output;
   output.reserve(((base64.size() + 3) >> 2) * 3);
   for (size_t i = 0; i < base64.size();) {
     size_t left = min(base64.size() - i, static_cast<size_t>(4));
     int c = 0;
     for (size_t t = 0; t < left; t++) {
-      auto value = url_char_to_value[base64.ubegin()[i++]];
+      auto value = table[base64.ubegin()[i++]];
       if (value == 64) {
         return Status::Error("Wrong character in the string");
       }
@@ -214,17 +200,6 @@ Result<string> base64url_decode(Slice base64) {
     }
   }
   return output;
-}
-
-template <bool is_url>
-static const unsigned char *get_character_table() {
-  if (is_url) {
-    init_base64url_table();
-    return url_char_to_value;
-  } else {
-    init_base64_table();
-    return char_to_value;
-  }
 }
 
 template <bool is_url>
@@ -295,11 +270,11 @@ bool is_base64url_characters(Slice input) {
 }
 
 string base64_filter(Slice input) {
+  auto table = get_character_table<false>();
   string res;
   res.reserve(input.size());
-  init_base64_table();
   for (auto c : input) {
-    if (char_to_value[static_cast<unsigned char>(c)] != 64 || c == '=') {
+    if (table[static_cast<unsigned char>(c)] != 64 || c == '=') {
       res += c;
     }
   }
