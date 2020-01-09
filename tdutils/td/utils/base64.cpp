@@ -217,6 +217,17 @@ Result<string> base64url_decode(Slice base64) {
 }
 
 template <bool is_url>
+static const unsigned char *get_character_table() {
+  if (is_url) {
+    init_base64url_table();
+    return url_char_to_value;
+  } else {
+    init_base64_table();
+    return char_to_value;
+  }
+}
+
+template <bool is_url>
 static bool is_base64_impl(Slice input) {
   size_t padding_length = 0;
   while (!input.empty() && input.back() == '=') {
@@ -233,14 +244,7 @@ static bool is_base64_impl(Slice input) {
     return false;
   }
 
-  unsigned char *table;
-  if (is_url) {
-    init_base64url_table();
-    table = url_char_to_value;
-  } else {
-    init_base64_table();
-    table = char_to_value;
-  }
+  auto table = get_character_table<is_url>();
   for (auto c : input) {
     if (table[static_cast<unsigned char>(c)] == 64) {
       return false;
@@ -269,6 +273,25 @@ bool is_base64(Slice input) {
 
 bool is_base64url(Slice input) {
   return is_base64_impl<true>(input);
+}
+
+template <bool is_url>
+static bool is_base64_characters_impl(Slice input) {
+  auto table = get_character_table<is_url>();
+  for (auto c : input) {
+    if (table[static_cast<unsigned char>(c)] == 64) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool is_base64_characters(Slice input) {
+  return is_base64_characters_impl<false>(input);
+}
+
+bool is_base64url_characters(Slice input) {
+  return is_base64_characters_impl<true>(input);
 }
 
 string base64_filter(Slice input) {

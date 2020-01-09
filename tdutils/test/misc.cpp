@@ -183,6 +183,30 @@ TEST(Misc, base64) {
   ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
   ASSERT_TRUE(is_base64url("====") == false);
 
+  ASSERT_TRUE(is_base64_characters("dGVzdA==") == false);
+  ASSERT_TRUE(is_base64_characters("dGVzdB==") == false);
+  ASSERT_TRUE(is_base64_characters("dGVzdA=") == false);
+  ASSERT_TRUE(is_base64_characters("dGVzdA") == true);
+  ASSERT_TRUE(is_base64_characters("dGVz") == true);
+  ASSERT_TRUE(is_base64_characters("") == true);
+  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
+  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
+  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == false);
+  ASSERT_TRUE(is_base64_characters("====") == false);
+
+  ASSERT_TRUE(is_base64url_characters("dGVzdA==") == false);
+  ASSERT_TRUE(is_base64url_characters("dGVzdB==") == false);
+  ASSERT_TRUE(is_base64url_characters("dGVzdA=") == false);
+  ASSERT_TRUE(is_base64url_characters("dGVzdA") == true);
+  ASSERT_TRUE(is_base64url_characters("dGVz") == true);
+  ASSERT_TRUE(is_base64url_characters("") == true);
+  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
+  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") == false);
+  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
+  ASSERT_TRUE(is_base64url_characters("====") == false);
+
   for (int l = 0; l < 300000; l += l / 20 + l / 1000 * 500 + 1) {
     for (int t = 0; t < 10; t++) {
       string s = rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
