@@ -478,8 +478,10 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
           page->document = std::move(parsed_document);
         }
       }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_DOCUMENTS) {
-        for (auto &document : web_page->documents_) {
+      for (auto &attribute : web_page->attributes_) {
+        CHECK(attribute != nullptr);
+        page->documents.clear();
+        for (auto &document : attribute->documents_) {
           int32 document_id = document->get_id();
           if (document_id == telegram_api::document::ID) {
             auto parsed_document = td_->documents_manager_->on_get_document(
@@ -489,6 +491,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
           }
         }
+        // TODO attribute->settings_
       }
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_INSTANT_VIEW) {
         on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
