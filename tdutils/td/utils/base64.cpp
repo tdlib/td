@@ -121,7 +121,7 @@ Result<string> base64_decode(Slice base64) {
   TRY_RESULT_ASSIGN(base64, base64_drop_padding<false>(base64));
 
   string output;
-  output.reserve(((base64.size() + 3) >> 2) * 3);
+  output.reserve((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
   TRY_STATUS(base64_do_decode<false>(base64, [&output](char c) { output += c; }));
   return output;
 }
@@ -129,14 +129,10 @@ Result<string> base64_decode(Slice base64) {
 Result<SecureString> base64_decode_secure(Slice base64) {
   TRY_RESULT_ASSIGN(base64, base64_drop_padding<false>(base64));
 
-  SecureString output(((base64.size() + 3) >> 2) * 3);
+  SecureString output((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
   char *ptr = output.as_mutable_slice().begin();
   TRY_STATUS(base64_do_decode<false>(base64, [&ptr](char c) { *ptr++ = c; }));
-  size_t size = ptr - output.as_mutable_slice().begin();
-  if (size == output.size()) {
-    return std::move(output);
-  }
-  return SecureString(output.as_slice().substr(0, size));
+  return std::move(output);
 }
 
 string base64_encode(Slice input) {
@@ -151,7 +147,7 @@ Result<string> base64url_decode(Slice base64) {
   TRY_RESULT_ASSIGN(base64, base64_drop_padding<true>(base64));
 
   string output;
-  output.reserve(((base64.size() + 3) >> 2) * 3);
+  output.reserve((base64.size() >> 2) * 3 + (((base64.size() & 3) + 1) >> 1));
   TRY_STATUS(base64_do_decode<true>(base64, [&output](char c) { output += c; }));
   return output;
 }

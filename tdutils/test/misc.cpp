@@ -223,6 +223,10 @@ TEST(Misc, base64) {
       decoded = base64_decode(encoded);
       ASSERT_TRUE(decoded.is_ok());
       ASSERT_TRUE(decoded.ok() == s);
+
+      auto decoded_secure = base64_decode_secure(encoded);
+      ASSERT_TRUE(decoded_secure.is_ok());
+      ASSERT_TRUE(decoded_secure.ok().as_slice() == s);
     }
   }
 
