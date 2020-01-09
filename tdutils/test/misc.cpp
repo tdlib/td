@@ -163,7 +163,9 @@ TEST(Misc, base64) {
   ASSERT_TRUE(is_base64("dGVzdB==") == false);
   ASSERT_TRUE(is_base64("dGVzdA=") == false);
   ASSERT_TRUE(is_base64("dGVzdA") == false);
+  ASSERT_TRUE(is_base64("dGVzd") == false);
   ASSERT_TRUE(is_base64("dGVz") == true);
+  ASSERT_TRUE(is_base64("dGVz====") == false);
   ASSERT_TRUE(is_base64("") == true);
   ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
   ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
@@ -175,7 +177,9 @@ TEST(Misc, base64) {
   ASSERT_TRUE(is_base64url("dGVzdB==") == false);
   ASSERT_TRUE(is_base64url("dGVzdA=") == false);
   ASSERT_TRUE(is_base64url("dGVzdA") == true);
+  ASSERT_TRUE(is_base64url("dGVzd") == false);
   ASSERT_TRUE(is_base64url("dGVz") == true);
+  ASSERT_TRUE(is_base64url("dGVz====") == false);
   ASSERT_TRUE(is_base64url("") == true);
   ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
   ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") == false);
