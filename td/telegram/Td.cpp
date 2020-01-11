@@ -3679,8 +3679,9 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
     return td_api::make_object<td_api::error>(400, "Request is empty");
   }
 
-  bool need_logging = [&] {
-    switch (function->get_id()) {
+  auto function_id = function->get_id();
+  bool need_logging = [function_id] {
+    switch (function_id) {
       case td_api::parseTextEntities::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
@@ -3700,6 +3701,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
 
   td_api::object_ptr<td_api::Object> response;
   downcast_call(*function, [&response](auto &request) { response = Td::do_static_request(request); });
+  LOG_CHECK(response != nullptr) << function_id;
 
   if (need_logging) {
     VLOG(td_requests) << "Sending result for static request: " << to_string(response);
