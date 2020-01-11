@@ -142,7 +142,7 @@ static Result<T> base64_decode_impl(Slice base64) {
 
   T result = create_empty<T>(base64.size() / 4 * 3 + ((base64.size() & 3) + 1) / 2);
   TRY_STATUS(do_base64_decode_impl(base64, get_character_table<is_url>(), as_mutable_slice(result).begin()));
-  return result;
+  return std::move(result);
 }
 
 Result<string> base64_decode(Slice base64) {
