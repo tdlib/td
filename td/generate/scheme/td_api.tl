@@ -211,6 +211,15 @@ maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPo
 pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
 
 
+//@class PollType @description Describes the type of a poll
+
+//@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
+pollTypeRegular allow_multiple_answers:Bool = PollType;
+
+//@description A quiz, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option
+pollTypeQuiz correct_option_id:int32 = PollType;
+
+
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4"
 //@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null @animation File containing the animation
@@ -257,8 +266,10 @@ venue location:location title:string address:string provider:string id:string ty
 //@param_description Game description @photo Game photo @animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options @total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
-poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 is_closed:Bool = Poll;
+//@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options
+//@total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
+//@is_anonymous True, if the poll is anonymous @type Type of the poll
+poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 is_closed:Bool is_anonymous:Bool type:PollType = Poll;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
@@ -269,7 +280,7 @@ profilePhoto id:int64 small:file big:file = ProfilePhoto;
 chatPhoto small:file big:file = ChatPhoto;
 
 
-//@class UserType @description Represents the type of the user. The following types are possible: regular users, deleted users and bots
+//@class UserType @description Represents the type of a user. The following types are possible: regular users, deleted users and bots
 
 //@description A regular user
 userTypeRegular = UserType;
@@ -972,9 +983,13 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 webPageInstantView page_blocks:vector<PageBlock> version:int32 url:string is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
-//@description Describes a web page preview @url Original URL of the link @display_url URL to display
+//@description Describes a web page preview
+//@url Original URL of the link
+//@display_url URL to display
 //@type Type of the web page. Can be: article, photo, audio, video, document, profile, app, or something else
-//@site_name Short name of the site (e.g., Google Docs, App Store) @title Title of the content @param_description Description of the content
+//@site_name Short name of the site (e.g., Google Docs, App Store)
+//@title Title of the content
+//@param_description Description of the content
 //@photo Image representing the content; may be null
 //@embed_url URL to show in the embedded preview
 //@embed_type MIME type of the embedded preview, (e.g., text/html or video/mp4)
@@ -1302,50 +1317,50 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 //@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
 messageText text:formattedText web_page:webPage = MessageContent;
 
-//@description An animation message (GIF-style). @animation Message content @caption Animation caption @is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
+//@description An animation message (GIF-style). @animation The animation description @caption Animation caption @is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
 messageAnimation animation:animation caption:formattedText is_secret:Bool = MessageContent;
 
-//@description An audio message @audio Message content @caption Audio caption
+//@description An audio message @audio The audio description @caption Audio caption
 messageAudio audio:audio caption:formattedText = MessageContent;
 
-//@description A document message (general file) @document Message content @caption Document caption
+//@description A document message (general file) @document The document description @caption Document caption
 messageDocument document:document caption:formattedText = MessageContent;
 
-//@description A photo message @photo Message content @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
+//@description A photo message @photo The photo description @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An expired photo message (self-destructed after TTL has elapsed)
 messageExpiredPhoto = MessageContent;
 
-//@description A sticker message @sticker Message content
+//@description A sticker message @sticker The sticker description
 messageSticker sticker:sticker = MessageContent;
 
-//@description A video message @video Message content @caption Video caption @is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
+//@description A video message @video The video description @caption Video caption @is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An expired video message (self-destructed after TTL has elapsed)
 messageExpiredVideo = MessageContent;
 
-//@description A video note message @video_note Message content @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
+//@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
 messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;
 
-//@description A voice note message @voice_note Message content @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
+//@description A voice note message @voice_note The voice note description @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
 messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;
 
-//@description A message with a location @location Message content @live_period Time relative to the message sent date until which the location can be updated, in seconds
+//@description A message with a location @location The location description @live_period Time relative to the message sent date until which the location can be updated, in seconds
 //@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
 messageLocation location:location live_period:int32 expires_in:int32 = MessageContent;
 
-//@description A message with information about a venue @venue Message content
+//@description A message with information about a venue @venue The venue description
 messageVenue venue:venue = MessageContent;
 
-//@description A message with a user contact @contact Message content
+//@description A message with a user contact @contact The contact description
 messageContact contact:contact = MessageContent;
 
-//@description A message with a game @game Game
+//@description A message with a game @game The game description
 messageGame game:game = MessageContent;
 
-//@description A message with a poll @poll Poll
+//@description A message with a poll @poll The poll description
 messagePoll poll:poll = MessageContent;
 
 //@description A message with an invoice from a bot @title Product title @param_description Product description @photo Product photo; may be null @currency Currency for the product price @total_amount Product total price in the minimal quantity of the currency
@@ -1548,7 +1563,8 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to private or secret chats @question Poll question, 1-255 characters @options List of poll answer options, 2-10 strings 1-100 characters each
-inputMessagePoll question:string options:vector<string> = InputMessageContent;
+//@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll
+inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType = InputMessageContent;
 
 //@description A forwarded message @from_chat_id Identifier for the chat this forwarded message came from @message_id Identifier of the message to forward
 //@in_game_share True, if a game message should be shared within a launched game; applies only to game messages
@@ -2106,7 +2122,7 @@ backgroundFillSolid color:int32 = BackgroundFill;
 backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 = BackgroundFill;
 
 
-//@class BackgroundType @description Describes a type of a background
+//@class BackgroundType @description Describes the type of a background
 
 //@description A wallpaper in JPEG format
 //@is_blurred True, if the wallpaper must be downscaled to fit in 450x450 square and then box-blurred with radius 12
@@ -2283,7 +2299,7 @@ notificationTypeNewCall call_id:int32 = NotificationType;
 notificationTypeNewPushMessage message_id:int53 sender_user_id:int32 content:PushMessageContent = NotificationType;
 
 
-//@class NotificationGroupType @description Describes type of notifications in the group
+//@class NotificationGroupType @description Describes the type of notifications in a notification group
 
 //@description A group containing notifications of type notificationTypeNewMessage and notificationTypeNewPushMessage with ordinary unread messages
 notificationGroupTypeMessages = NotificationGroupType;
@@ -2683,7 +2699,7 @@ textParseModeMarkdown version:int32 = TextParseMode;
 textParseModeHTML = TextParseMode;
 
 
-//@class ProxyType @description Describes the type of the proxy server
+//@class ProxyType @description Describes the type of a proxy server
 
 //@description A SOCKS5 proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
 proxyTypeSocks5 username:string password:string = ProxyType;
@@ -3411,8 +3427,8 @@ getJsonValue json:string = JsonValue;
 getJsonString json_value:JsonValue = Text;
 
 
-//@description Changes user answer to a poll @chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
-//@option_ids 0-based identifiers of options, chosen by the user. Currently user can't choose more than 1 option
+//@description Changes the user answer to a poll. A quiz poll can be answered only once @chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@option_ids 0-based identifiers of options, chosen by the user. User can choose more than 1 option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 
 //@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set

@@ -57,8 +57,7 @@ class GetPollResultsQuery : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't reget poll, because have no read access to " << dialog_id_;
-      // do not signal error to PollManager
-      return;
+      return promise_.set_value(nullptr);
     }
 
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
@@ -151,7 +150,8 @@ class StopPollActor : public NetActorOnce {
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>();
     poll->flags_ |= telegram_api::poll::CLOSED_MASK;
-    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(std::move(poll));
+    auto input_media =
+        telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll), vector<BufferSlice>());
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0)));
@@ -473,15 +473,23 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       poll_options[i]->vote_percentage_ = vote_percentage[i];
     }
   }
+  td_api::object_ptr<td_api::PollType> poll_type;
+  if (poll->is_quiz) {
+    poll_type = td_api::make_object<td_api::pollTypeQuiz>(poll->correct_option_id);
+  } else {
+    poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers);
+  }
+
   return td_api::make_object<td_api::poll>(poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
-                                           poll->is_closed);
+                                           poll->is_closed, poll->is_anonymous, std::move(poll_type));
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
   return telegram_api::make_object<telegram_api::pollAnswer>(poll_option.text, BufferSlice(poll_option.data));
 }
 
-PollId PollManager::create_poll(string &&question, vector<string> &&options) {
+PollId PollManager::create_poll(string &&question, vector<string> &&options, bool is_anonymous,
+                                bool allow_multiple_answers, bool is_quiz, int32 correct_option_id, bool is_closed) {
   auto poll = make_unique<Poll>();
   poll->question = std::move(question);
   int pos = '0';
@@ -491,6 +499,11 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options) {
     option.data = string(1, narrow_cast<char>(pos++));
     poll->options.push_back(std::move(option));
   }
+  poll->is_anonymous = is_anonymous;
+  poll->allow_multiple_answers = allow_multiple_answers;
+  poll->is_quiz = is_quiz;
+  poll->correct_option_id = correct_option_id;
+  poll->is_closed = is_closed;
 
   PollId poll_id(--current_local_poll_id_);
   CHECK(is_local_poll_id(poll_id));
@@ -536,6 +549,12 @@ bool PollManager::get_poll_is_closed(PollId poll_id) const {
   return poll->is_closed;
 }
 
+bool PollManager::get_poll_is_anonymous(PollId poll_id) const {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  return poll->is_anonymous;
+}
+
 string PollManager::get_poll_search_text(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -550,11 +569,11 @@ string PollManager::get_poll_search_text(PollId poll_id) const {
 
 void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                                   Promise<Unit> &&promise) {
-  if (option_ids.size() > 1) {
-    return promise.set_error(Status::Error(400, "Can't choose more than 1 option"));
-  }
+  std::sort(option_ids.begin(), option_ids.end());
+  option_ids.erase(std::unique(option_ids.begin(), option_ids.end()), option_ids.end());
+
   if (is_local_poll_id(poll_id)) {
-    return promise.set_error(Status::Error(5, "Poll can't be answered"));
+    return promise.set_error(Status::Error(400, "Poll can't be answered"));
   }
 
   auto poll = get_poll(poll_id);
@@ -562,11 +581,18 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
   if (poll->is_closed) {
     return promise.set_error(Status::Error(400, "Can't answer closed poll"));
   }
+  if (!poll->allow_multiple_answers && option_ids.size() > 1) {
+    return promise.set_error(Status::Error(400, "Can't choose more than 1 option in the poll"));
+  }
+  if (poll->is_quiz && option_ids.empty()) {
+    return promise.set_error(Status::Error(400, "Can't retract vote in a quiz"));
+  }
+
   vector<string> options;
   for (auto &option_id : option_ids) {
     auto index = static_cast<size_t>(option_id);
     if (index >= poll->options.size()) {
-      return promise.set_error(Status::Error(400, "Invalid option id specified"));
+      return promise.set_error(Status::Error(400, "Invalid option ID specified"));
     }
     options.push_back(poll->options[index].data);
   }
@@ -809,16 +835,19 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
                                       Result<tl_object_ptr<telegram_api::Updates>> result) {
   if (result.is_error()) {
-    if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
+    if (!get_poll_is_closed(poll_id) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
       auto timeout = get_polling_timeout();
       LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
       update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);
     }
     return;
   }
+  if (result.ok() == nullptr) {
+    return;
+  }
   if (generation != current_generation_) {
     LOG(INFO) << "Receive possibly outdated result of " << poll_id << ", reget it";
-    if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
+    if (!get_poll_is_closed(poll_id) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
       update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
     }
     return;
@@ -845,8 +874,30 @@ void PollManager::on_online() {
 tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return telegram_api::make_object<telegram_api::inputMediaPoll>(telegram_api::make_object<telegram_api::poll>(
-      0, 0, false /* ignored */, poll->question, transform(poll->options, get_input_poll_option)));
+
+  int32 poll_flags = 0;
+  if (!poll->is_anonymous) {
+    poll_flags |= telegram_api::poll::PUBLIC_VOTERS_MASK;
+  }
+  if (poll->allow_multiple_answers) {
+    poll_flags |= telegram_api::poll::MULTIPLE_CHOICE_MASK;
+  }
+  if (poll->is_quiz) {
+    poll_flags |= telegram_api::poll::QUIZ_MASK;
+  }
+
+  int32 flags = 0;
+  vector<BufferSlice> correct_answers;
+  if (poll->is_quiz) {
+    flags |= telegram_api::inputMediaPoll::CORRECT_ANSWERS_MASK;
+    correct_answers.push_back(BufferSlice(poll->options[poll->correct_option_id].data));
+  }
+  return telegram_api::make_object<telegram_api::inputMediaPoll>(
+      flags,
+      telegram_api::make_object<telegram_api::poll>(0, flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                    false /*ignored*/, poll->question,
+                                                    transform(poll->options, get_input_poll_option)),
+      std::move(correct_answers));
 }
 
 vector<PollManager::PollOption> PollManager::get_poll_options(
@@ -917,6 +968,25 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->is_closed = is_closed;
       is_changed = true;
     }
+    bool is_anonymous = (poll_server->flags_ & telegram_api::poll::PUBLIC_VOTERS_MASK) == 0;
+    if (is_anonymous != poll->is_anonymous) {
+      poll->is_anonymous = is_anonymous;
+      is_changed = true;
+    }
+    bool allow_multiple_answers = (poll_server->flags_ & telegram_api::poll::MULTIPLE_CHOICE_MASK) != 0;
+    bool is_quiz = (poll_server->flags_ & telegram_api::poll::QUIZ_MASK) != 0;
+    if (is_quiz && allow_multiple_answers) {
+      LOG(ERROR) << "Receive quiz " << poll_id << " allowing multiple answers";
+      allow_multiple_answers = false;
+    }
+    if (allow_multiple_answers != poll->allow_multiple_answers) {
+      poll->allow_multiple_answers = allow_multiple_answers;
+      is_changed = true;
+    }
+    if (is_quiz != poll->is_quiz) {
+      poll->is_quiz = is_quiz;
+      is_changed = true;
+    }
   }
 
   CHECK(poll_results != nullptr);
@@ -930,7 +1000,9 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     is_changed = true;
   }
-  for (auto &poll_result : poll_results->results_) {
+  int32 correct_option_id = -1;
+  for (size_t i = 0; i < poll_results->results_.size(); i++) {
+    auto &poll_result = poll_results->results_[i];
     Slice data = poll_result->option_.as_slice();
     for (auto &option : poll->options) {
       if (option.data != data) {
@@ -942,6 +1014,13 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           option.is_chosen = is_chosen;
           is_changed = true;
         }
+      }
+      bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
+      if (is_correct) {
+        if (correct_option_id != -1) {
+          LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << i;
+        }
+        correct_option_id = static_cast<int32>(i);
       }
       if (poll_result->voters_ != option.voter_count) {
         option.voter_count = poll_result->voters_;
@@ -977,6 +1056,18 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
                  << poll->total_voter_count << " voters in " << poll_id;
       poll->total_voter_count = max_total_voter_count;
     }
+  }
+  if (poll->is_quiz) {
+    if (correct_option_id == -1) {
+      LOG(ERROR) << "Have no correct option in quiz " << poll_id;
+      correct_option_id = 0;
+    }
+    if (poll->correct_option_id != correct_option_id) {
+      poll->correct_option_id = correct_option_id;
+      is_changed = true;
+    }
+  } else if (correct_option_id != -1) {
+    LOG(ERROR) << "Receive correct option " << correct_option_id << " in quiz " << poll_id;
   }
 
   if (!td_->auth_manager_->is_bot() && !poll->is_closed) {

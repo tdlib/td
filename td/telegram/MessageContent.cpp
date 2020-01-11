@@ -1806,8 +1806,34 @@ static Result<InputMessageContent> create_input_message_content(
         }
       }
 
-      content = make_unique<MessagePoll>(
-          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->options_)));
+      bool allow_multiple_answers = false;
+      bool is_quiz = false;
+      int32 correct_option_id = -1;
+      if (input_poll->type_ == nullptr) {
+        return Status::Error(400, "Poll type must not be empty");
+      }
+      switch (input_poll->type_->get_id()) {
+        case td_api::pollTypeRegular::ID: {
+          auto type = td_api::move_object_as<td_api::pollTypeRegular>(input_poll->type_);
+          allow_multiple_answers = type->allow_multiple_answers_;
+          break;
+        }
+        case td_api::pollTypeQuiz::ID: {
+          auto type = td_api::move_object_as<td_api::pollTypeQuiz>(input_poll->type_);
+          is_quiz = true;
+          correct_option_id = type->correct_option_id_;
+          if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
+            return Status::Error(400, "Wrong correct option ID specified");
+          }
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+
+      content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
+          std::move(input_poll->question_), std::move(input_poll->options_), input_poll->is_anonymous_,
+          allow_multiple_answers, is_quiz, correct_option_id, false));
       break;
     }
     default:
@@ -2722,6 +2748,15 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return td->poll_manager_->get_poll_is_closed(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return true;
+  }
+}
+
+bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id);
     default:
       return true;
   }

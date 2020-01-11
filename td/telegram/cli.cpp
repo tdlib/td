@@ -3194,14 +3194,21 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude),
                                                                               to_integer<int32>(period)));
-    } else if (op == "spoll") {
+    } else if (op == "spoll" || op == "spollm" || op == "squiz") {
       string chat_id;
       string question;
       std::tie(chat_id, args) = split(args);
       std::tie(question, args) = split(args);
       auto options = full_split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options)));
+      td_api::object_ptr<td_api::PollType> poll_type;
+      if (op == "squiz") {
+        poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1));
+      } else {
+        poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
+      }
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), true,
+                                                                          std::move(poll_type)));
     } else if (op == "sp" || op == "spcaption" || op == "spttl") {
       string chat_id;
       string photo_path;

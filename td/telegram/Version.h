@@ -8,7 +8,7 @@
 
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 108;
+constexpr int32 MTPROTO_LAYER = 109;
 
 enum class Version : int32 {
   Initial,
@@ -35,6 +35,7 @@ enum class Version : int32 {
   AddVideoCallsSupport,
   AddPhotoSizeSource,
   AddFolders,
+  SupportPolls2_0,
   Next
 };
 
