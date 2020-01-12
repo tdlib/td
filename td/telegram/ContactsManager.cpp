@@ -12721,8 +12721,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       u->is_received, std::move(type), u->language_code);
 }
 
-vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {
-  return transform(user_ids, [this](UserId user_id) { return get_user_id_object(user_id, "get_user_ids_object"); });
+vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {
+  return transform(user_ids, [this, source](UserId user_id) { return get_user_id_object(user_id, source); });
 }
 
 tl_object_ptr<td_api::users> ContactsManager::get_users_object(int32 total_count,
@@ -12730,7 +12730,7 @@ tl_object_ptr<td_api::users> ContactsManager::get_users_object(int32 total_count
   if (total_count == -1) {
     total_count = narrow_cast<int32>(user_ids.size());
   }
-  return td_api::make_object<td_api::users>(total_count, get_user_ids_object(user_ids));
+  return td_api::make_object<td_api::users>(total_count, get_user_ids_object(user_ids, "get_users_object"));
 }
 
 tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(UserId user_id) const {
@@ -12961,7 +12961,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     invite_link_photo = as_dialog_photo(invite_link_info->photo);
     photo = &invite_link_photo;
     participant_count = invite_link_info->participant_count;
-    member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids);
+    member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
     is_public = invite_link_info->is_public;
 
     if (invite_link_info->is_chat) {

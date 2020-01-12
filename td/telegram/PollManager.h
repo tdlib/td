@@ -12,6 +12,7 @@
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -95,6 +96,7 @@ class PollManager : public Actor {
   struct Poll {
     string question;
     vector<PollOption> options;
+    vector<UserId> recent_voter_user_ids;
     int32 total_voter_count = 0;
     int32 correct_option_id = -1;
     bool is_anonymous = true;

@@ -43,11 +43,13 @@ template <class StorerT>
 void PollManager::Poll::store(StorerT &storer) const {
   using ::td::store;
   bool is_public = !is_anonymous;
+  bool has_recent_voters = !recent_voter_user_ids.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed);
   STORE_FLAG(is_public);
   STORE_FLAG(allow_multiple_answers);
   STORE_FLAG(is_quiz);
+  STORE_FLAG(has_recent_voters);
   END_STORE_FLAGS();
 
   store(question, storer);
@@ -56,17 +58,22 @@ void PollManager::Poll::store(StorerT &storer) const {
   if (is_quiz) {
     store(correct_option_id, storer);
   }
+  if (has_recent_voters) {
+    store(recent_voter_user_ids, storer);
+  }
 }
 
 template <class ParserT>
 void PollManager::Poll::parse(ParserT &parser) {
   using ::td::parse;
   bool is_public;
+  bool has_recent_voters;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed);
   PARSE_FLAG(is_public);
   PARSE_FLAG(allow_multiple_answers);
   PARSE_FLAG(is_quiz);
+  PARSE_FLAG(has_recent_voters);
   END_PARSE_FLAGS();
   is_anonymous = !is_public;
 
@@ -78,6 +85,9 @@ void PollManager::Poll::parse(ParserT &parser) {
     if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(options.size())) {
       parser.set_error("Wrong correct_option_id");
     }
+  }
+  if (has_recent_voters) {
+    parse(recent_voter_user_ids, parser);
   }
 }
 

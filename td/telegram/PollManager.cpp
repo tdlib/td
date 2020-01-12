@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
@@ -287,6 +288,9 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     if (status.is_error()) {
       LOG(FATAL) << status << ": " << format::as_hex_dump<4>(Slice(value));
     }
+    for (auto &user_id : result->recent_voter_user_ids) {
+      td_->contacts_manager_->have_user_force(user_id);
+    }
     polls_[poll_id] = std::move(result);
   }
 }
@@ -480,8 +484,10 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers);
   }
 
-  return td_api::make_object<td_api::poll>(poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
-                                           poll->is_closed, poll->is_anonymous, std::move(poll_type));
+  return td_api::make_object<td_api::poll>(
+      poll_id.get(), poll->question, std::move(poll_options), total_voter_count, poll->is_closed, poll->is_anonymous,
+      td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids, "get_poll_object"),
+      std::move(poll_type));
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -1068,6 +1074,23 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   } else if (correct_option_id != -1) {
     LOG(ERROR) << "Receive correct option " << correct_option_id << " in quiz " << poll_id;
+  }
+  vector<UserId> recent_voter_user_ids;
+  for (auto &user_id_int : poll_results->recent_voters_) {
+    UserId user_id(user_id_int);
+    if (user_id.is_valid()) {
+      recent_voter_user_ids.push_back(user_id);
+    } else {
+      LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id;
+    }
+  }
+  if (poll->is_anonymous && !recent_voter_user_ids.empty()) {
+    LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_user_ids;
+    recent_voter_user_ids.clear();
+  }
+  if (recent_voter_user_ids != poll->recent_voter_user_ids) {
+    poll->recent_voter_user_ids = std::move(recent_voter_user_ids);
+    is_changed = true;
   }
 
   if (!td_->auth_manager_->is_bot() && !poll->is_closed) {

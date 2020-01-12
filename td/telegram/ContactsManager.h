@@ -485,7 +485,7 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id) const;
 
-  vector<int32> get_user_ids_object(const vector<UserId> &user_ids) const;
+  vector<int32> get_user_ids_object(const vector<UserId> &user_ids, const char *source) const;
 
   tl_object_ptr<td_api::users> get_users_object(int32 total_count, const vector<UserId> &user_ids) const;
 

@@ -4501,7 +4501,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChatCreate: {
       const MessageChatCreate *m = static_cast<const MessageChatCreate *>(content);
       return make_tl_object<td_api::messageBasicGroupChatCreate>(
-          m->title, td->contacts_manager_->get_user_ids_object(m->participant_user_ids));
+          m->title, td->contacts_manager_->get_user_ids_object(m->participant_user_ids, "MessageChatCreate"));
     }
     case MessageContentType::ChatChangeTitle: {
       const MessageChatChangeTitle *m = static_cast<const MessageChatChangeTitle *>(content);
@@ -4517,7 +4517,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageUnsupported>();
     case MessageContentType::ChatAddUsers: {
       const MessageChatAddUsers *m = static_cast<const MessageChatAddUsers *>(content);
-      return make_tl_object<td_api::messageChatAddMembers>(td->contacts_manager_->get_user_ids_object(m->user_ids));
+      return make_tl_object<td_api::messageChatAddMembers>(
+          td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageChatAddUsers"));
     }
     case MessageContentType::ChatJoinedByLink:
       return make_tl_object<td_api::messageChatJoinByLink>();
