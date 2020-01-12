@@ -2139,7 +2139,7 @@ backgrounds backgrounds:vector<background> = Backgrounds;
 //@class InputBackground @description Contains information about background to set
 
 //@description A background from a local file
-//@background Background file to use. Only inputFileLocal and inputFileGenerated are supported. The file nust be in JPEG format for wallpapers and in PNG format for patterns
+//@background Background file to use. Only inputFileLocal and inputFileGenerated are supported. The file must be in JPEG format for wallpapers and in PNG format for patterns
 inputBackgroundLocal background:InputFile = InputBackground;
 
 //@description A background from the server @background_id The background identifier
@@ -3060,7 +3060,7 @@ destroy = Ok;
 confirmQrCodeAuthentication link:string = Session;
 
 
-//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially usefull if TDLib is run in a separate process. This is an offline method. Can be called before authorization
+//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially useful if TDLib is run in a separate process. This is an offline method. Can be called before authorization
 getCurrentState = Updates;
 
 
@@ -3658,7 +3658,7 @@ cancelUploadFile file_id:int32 = Ok;
 //@generation_id The identifier of the generation process @offset The offset from which to write the data to the file @data The data to write
 writeGeneratedFilePart generation_id:int64 offset:int32 data:bytes = Ok;
 
-//@description Informs TDLib on a file generation prograss
+//@description Informs TDLib on a file generation progress
 //@generation_id The identifier of the generation process
 //@expected_size Expected size of the generated file, in bytes; 0 if unknown
 //@local_prefix_size The number of bytes already generated
@@ -3922,7 +3922,7 @@ getSupergroupMembers supergroup_id:int32 filter:SupergroupMembersFilter offset:i
 deleteSupergroup supergroup_id:int32 = Ok;
 
 
-//@description Closes a secret chat, effectively transfering its state to secretChatStateClosed @secret_chat_id Secret chat identifier
+//@description Closes a secret chat, effectively transferring its state to secretChatStateClosed @secret_chat_id Secret chat identifier
 closeSecretChat secret_chat_id:int32 = Ok;
 
 
@@ -3974,7 +3974,7 @@ searchBackground name:string = Background;
 //@for_dark_theme True, if the background is chosen for dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 
-//@description Removes background from the list of installed backgrounds @background_id The background indentifier
+//@description Removes background from the list of installed backgrounds @background_id The background identifier
 removeBackground background_id:int64 = Ok;
 
 //@description Resets list of installed backgrounds to its default value
