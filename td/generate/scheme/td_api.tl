@@ -216,7 +216,7 @@ pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is
 //@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
 pollTypeRegular allow_multiple_answers:Bool = PollType;
 
-//@description A quiz, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option
+//@description A quiz, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered quiz
 pollTypeQuiz correct_option_id:int32 = PollType;
 
 

@@ -82,7 +82,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   parse(total_voter_count, parser);
   if (is_quiz) {
     parse(correct_option_id, parser);
-    if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(options.size())) {
+    if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(options.size())) {
       parser.set_error("Wrong correct_option_id");
     }
   }
@@ -138,7 +138,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     parse(options, parser);
     if (is_quiz) {
       parse(correct_option_id, parser);
-      if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(options.size())) {
+      if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(options.size())) {
         parser.set_error("Wrong correct_option_id");
       }
     }

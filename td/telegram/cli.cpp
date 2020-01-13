@@ -3194,7 +3194,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude),
                                                                               to_integer<int32>(period)));
-    } else if (op == "spoll" || op == "spollm" || op == "squiz") {
+    } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
       string chat_id;
       string question;
       std::tie(chat_id, args) = split(args);
@@ -3207,7 +3207,7 @@ class CliClient final : public Actor {
       } else {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
       }
-      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), true,
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), op != "spollp",
                                                                           std::move(poll_type)));
     } else if (op == "sp" || op == "spcaption" || op == "spttl") {
       string chat_id;

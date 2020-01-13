@@ -528,7 +528,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
   td_api::object_ptr<td_api::PollType> poll_type;
   if (poll->is_quiz) {
-    poll_type = td_api::make_object<td_api::pollTypeQuiz>(poll->correct_option_id);
+    auto correct_option_id = is_local_poll_id(poll_id) ? -1 : poll->correct_option_id;
+    poll_type = td_api::make_object<td_api::pollTypeQuiz>(correct_option_id);
   } else {
     poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers);
   }
@@ -1113,8 +1114,8 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
-      telegram_api::make_object<telegram_api::poll>(0, flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                    false /*ignored*/, poll->question,
+      telegram_api::make_object<telegram_api::poll>(0, poll_flags, false /*ignored*/, false /*ignored*/,
+                                                    false /*ignored*/, false /*ignored*/, poll->question,
                                                     transform(poll->options, get_input_poll_option)),
       std::move(correct_answers));
 }
@@ -1223,7 +1224,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   for (size_t i = 0; i < poll_results->results_.size(); i++) {
     auto &poll_result = poll_results->results_[i];
     Slice data = poll_result->option_.as_slice();
-    for (size_t option_index = 0; option_index < poll->options.size(); i++) {
+    for (size_t option_index = 0; option_index < poll->options.size(); option_index++) {
       auto &option = poll->options[option_index];
       if (option.data != data) {
         continue;
@@ -1280,16 +1281,12 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   }
   if (poll->is_quiz) {
-    if (correct_option_id == -1) {
-      LOG(ERROR) << "Have no correct option in quiz " << poll_id;
-      correct_option_id = 0;
-    }
     if (poll->correct_option_id != correct_option_id) {
       poll->correct_option_id = correct_option_id;
       is_changed = true;
     }
   } else if (correct_option_id != -1) {
-    LOG(ERROR) << "Receive correct option " << correct_option_id << " in quiz " << poll_id;
+    LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
   }
   vector<UserId> recent_voter_user_ids;
   for (auto &user_id_int : poll_results->recent_voters_) {
