@@ -1310,7 +1310,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     is_changed = true;
   }
 
-  if (!td_->auth_manager_->is_bot() && !poll->is_closed) {
+  if (!is_bot && !poll->is_closed) {
     auto timeout = get_polling_timeout();
     LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
     update_poll_timeout_.set_timeout_in(poll_id.get(), timeout);
@@ -1323,6 +1323,35 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
   }
   return poll_id;
+}
+
+void PollManager::on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options) {
+  if (!poll_id.is_valid()) {
+    LOG(ERROR) << "Receive updateMessagePollVote about invalid " << poll_id;
+    return;
+  }
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive updateMessagePollVote from invalid " << user_id;
+    return;
+  }
+  if (!td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  vector<int32> option_ids;
+  for (auto &option : options) {
+    auto slice = option.as_slice();
+    if (slice.size() != 1 || slice[0] < '0' || slice[0] > '9') {
+      LOG(ERROR) << "Receive updateMessagePollVote with unexpected option \"" << format::escaped(slice) << '"';
+      return;
+    }
+    option_ids.push_back(static_cast<int32>(slice[0] - '0'));
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updatePollAnswer>(
+                   poll_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_get_poll_vote"),
+                   std::move(option_ids)));
 }
 
 void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {

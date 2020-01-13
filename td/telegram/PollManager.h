@@ -71,6 +71,8 @@ class PollManager : public Actor {
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
                      tl_object_ptr<telegram_api::pollResults> &&poll_results);
 
+  void on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options);
+
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
 
   void on_binlog_events(vector<BinlogEvent> &&events);

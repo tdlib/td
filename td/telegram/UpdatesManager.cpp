@@ -1980,6 +1980,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
   td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, bool /*force_apply*/) {
+  td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), UserId(update->user_id_), std::move(update->options_));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, bool /*force_apply*/) {
   td_->messages_manager_->on_get_message(std::move(update->message_), true, false, true, true, true,
                                          "updateNewScheduledMessage");

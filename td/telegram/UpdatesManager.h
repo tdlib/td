@@ -281,6 +281,7 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateDeleteScheduledMessages> update, bool /*force_apply*/);

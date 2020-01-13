@@ -2981,6 +2981,9 @@ updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 //@description Information about a poll was updated; for bots only @poll New data about the poll
 updatePoll poll:poll = Update;
 
+//@description Informs bot about a user changed their answer to a poll @poll_id Unique poll identifier @user_id The user changed their answer to a poll @option_ids 0-based identifiers of answer options, chosen by the user
+updatePollAnswer poll_id:int64 user_id:int32 option_ids:vector<int32> = Update;
+
 
 //@description Contains a list of updates @updates List of updates
 updates updates:vector<Update> = Updates;
