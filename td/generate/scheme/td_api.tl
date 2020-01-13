@@ -3427,9 +3427,15 @@ getJsonValue json:string = JsonValue;
 getJsonString json_value:JsonValue = Text;
 
 
-//@description Changes the user answer to a poll. A quiz poll can be answered only once @chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
-//@option_ids 0-based identifiers of options, chosen by the user. User can choose more than 1 option only is the poll allows multiple answers
+//@description Changes the user answer to a poll. A quiz poll can be answered only once
+//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
+
+//@description Returns users voted for the specified option in a non-anonymous polls. For the optimal performance the number of returned users is chosen by the library
+//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@option_id 0-based identifier of the answer option @offset Number of users to skip in the result; must be non-negative
+getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 = Users;
 
 //@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set
 //@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll @reply_markup The new message reply markup; for bots only

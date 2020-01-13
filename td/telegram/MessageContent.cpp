@@ -429,7 +429,7 @@ class MessageChatSetTtl : public MessageContent {
 
 class MessageUnsupported : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 4;
+  static constexpr int32 CURRENT_VERSION = 5;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -2774,18 +2774,26 @@ void set_message_content_web_page_id(MessageContent *content, WebPageId web_page
   static_cast<MessageText *>(content)->web_page_id = web_page_id;
 }
 
-void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessageId full_message_id,
+void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->set_poll_answer(static_cast<MessagePoll *>(content)->poll_id, full_message_id,
+  td->poll_manager_->set_poll_answer(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                      std::move(option_ids), std::move(promise));
 }
 
-void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id,
+void get_message_content_poll_voters(Td *td, const MessageContent *content, FullMessageId full_message_id,
+                                     int32 option_id, int32 offset,
+                                     Promise<std::pair<int32, vector<UserId>>> &&promise) {
+  CHECK(content->get_type() == MessageContentType::Poll);
+  td->poll_manager_->get_poll_voters(static_cast<const MessagePoll *>(content)->poll_id, full_message_id, option_id,
+                                     offset, std::move(promise));
+}
+
+void stop_message_content_poll(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->stop_poll(static_cast<MessagePoll *>(content)->poll_id, full_message_id, std::move(reply_markup),
-                               std::move(promise));
+  td->poll_manager_->stop_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
+                               std::move(reply_markup), std::move(promise));
 }
 
 static void merge_location_access_hash(const Location &first, const Location &second) {

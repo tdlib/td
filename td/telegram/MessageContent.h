@@ -190,10 +190,14 @@ WebPageId get_message_content_web_page_id(const MessageContent *content);
 
 void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id);
 
-void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessageId full_message_id,
+void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
-void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id,
+void get_message_content_poll_voters(Td *td, const MessageContent *content, FullMessageId full_message_id,
+                                     int32 option_id, int32 offset,
+                                     Promise<std::pair<int32, vector<UserId>>> &&promise);
+
+void stop_message_content_poll(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
 
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,

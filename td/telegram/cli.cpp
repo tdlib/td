@@ -3489,6 +3489,17 @@ class CliClient final : public Actor {
       std::tie(message_id, option_ids) = split(args);
       send_request(td_api::make_object<td_api::setPollAnswer>(as_chat_id(chat_id), as_message_id(message_id),
                                                               to_integers<int32>(option_ids)));
+    } else if (op == "gpollv") {
+      string chat_id;
+      string message_id;
+      string option_id;
+      string offset;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, args) = split(args);
+      std::tie(option_id, offset) = split(args);
+      send_request(td_api::make_object<td_api::getPollVoters>(as_chat_id(chat_id), as_message_id(message_id),
+                                                              to_integer<int32>(option_id), to_integer<int32>(offset)));
     } else if (op == "stoppoll") {
       string chat_id;
       string message_id;

@@ -2595,7 +2595,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   TRY_RESULT(result, clean_input_string_with_entities(text, entities));
 
   // now entities are still sorted by offset and length, but not type,
-  // because some characters could be deleted and some entities bacame to end together
+  // because some characters could be deleted and after that some entities begin to share a common end
 
   size_t last_non_whitespace_pos;
   int32 last_non_whitespace_utf16_offset;
