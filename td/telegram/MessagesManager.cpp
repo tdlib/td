@@ -17654,6 +17654,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
+  CHECK(content != nullptr);
 
   bool is_scheduled = options.schedule_date != 0;
   DialogId dialog_id = d->dialog_id;
@@ -19734,6 +19735,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
   cancel_edit_message_media(dialog_id, m, "Cancelled by new editMessageMedia request");
 
   m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), false);
+  CHECK(m->edited_content != nullptr);
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
   m->edit_generation = ++current_message_edit_generation_;
   m->edit_promise = std::move(promise);
@@ -29179,6 +29181,9 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m,
                                                                  uint64 logevent_id) {
   CHECK(logevent_id != 0);
+  CHECK(m != nullptr);
+  CHECK(m->content != nullptr);
+
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << " to resend a message";
@@ -29416,6 +29421,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
             m->date = now;
           }
           m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);
+          CHECK(m->content != nullptr);
           m->have_previous = true;
           m->have_next = true;
 
