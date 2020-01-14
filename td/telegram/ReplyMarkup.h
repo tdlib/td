@@ -17,7 +17,14 @@ namespace td {
 
 struct KeyboardButton {
   // append only
-  enum class Type : int32 { Text, RequestPhoneNumber, RequestLocation };
+  enum class Type : int32 {
+    Text,
+    RequestPhoneNumber,
+    RequestLocation,
+    RequestPoll,
+    RequestPollQuiz,
+    RequestPollRegular
+  };
   Type type;
   string text;
 };

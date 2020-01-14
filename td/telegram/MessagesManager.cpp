@@ -17785,8 +17785,9 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
   auto content_type = content->get_type();
   switch (dialog_type) {
     case DialogType::User:
-      if (content_type == MessageContentType::Poll && !is_forward && !td_->auth_manager_->is_bot() && !is_via_bot) {
-        return Status::Error(400, "Polls can't be sent to private chats");
+      if (content_type == MessageContentType::Poll && !is_forward && !td_->auth_manager_->is_bot() && !is_via_bot &&
+          !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id()) && dialog_id != get_my_dialog_id()) {
+        return Status::Error(400, "Polls can't be sent to the private chat");
       }
       break;
     case DialogType::Chat:

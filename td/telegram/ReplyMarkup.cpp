@@ -41,6 +41,15 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardBu
     case KeyboardButton::Type::RequestLocation:
       string_builder << "RequestLocation";
       break;
+    case KeyboardButton::Type::RequestPoll:
+      string_builder << "RequestPoll";
+      break;
+    case KeyboardButton::Type::RequestPollQuiz:
+      string_builder << "RequestPollQuiz";
+      break;
+    case KeyboardButton::Type::RequestPollRegular:
+      string_builder << "RequestPollRegular";
+      break;
     default:
       UNREACHABLE();
   }
@@ -172,6 +181,20 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
     case telegram_api::keyboardButtonRequestGeoLocation::ID: {
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonRequestGeoLocation>(keyboard_button_ptr);
       button.type = KeyboardButton::Type::RequestLocation;
+      button.text = std::move(keyboard_button->text_);
+      break;
+    }
+    case telegram_api::keyboardButtonRequestPoll::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonRequestPoll>(keyboard_button_ptr);
+      if (keyboard_button->flags_ & telegram_api::keyboardButtonRequestPoll::QUIZ_MASK) {
+        if (keyboard_button->quiz_) {
+          button.type = KeyboardButton::Type::RequestPollQuiz;
+        } else {
+          button.type = KeyboardButton::Type::RequestPollRegular;
+        }
+      } else {
+        button.type = KeyboardButton::Type::RequestPoll;
+      }
       button.text = std::move(keyboard_button->text_);
       break;
     }
@@ -346,16 +369,33 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       break;
     case td_api::keyboardButtonTypeRequestPhoneNumber::ID:
       if (!request_buttons_allowed) {
-        return Status::Error(400, "Phone number can be requested in a private chats only");
+        return Status::Error(400, "Phone number can be requested in private chats only");
       }
       current_button.type = KeyboardButton::Type::RequestPhoneNumber;
       break;
     case td_api::keyboardButtonTypeRequestLocation::ID:
       if (!request_buttons_allowed) {
-        return Status::Error(400, "Location can be requested in a private chats only");
+        return Status::Error(400, "Location can be requested in private chats only");
       }
       current_button.type = KeyboardButton::Type::RequestLocation;
       break;
+    case td_api::keyboardButtonTypeRequestPoll::ID: {
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Poll can be requested in private chats only");
+      }
+      auto *request_poll = static_cast<const td_api::keyboardButtonTypeRequestPoll *>(button->type_.get());
+      if (request_poll->force_quiz_ && request_poll->force_regular_) {
+        return Status::Error(400, "Can't force quiz mode and regular poll simultaneously");
+      }
+      if (request_poll->force_quiz_) {
+        current_button.type = KeyboardButton::Type::RequestPollQuiz;
+      } else if (request_poll->force_regular_) {
+        current_button.type = KeyboardButton::Type::RequestPollRegular;
+      } else {
+        current_button.type = KeyboardButton::Type::RequestPoll;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -560,6 +600,12 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_keyboard_button(const Key
       return make_tl_object<telegram_api::keyboardButtonRequestPhone>(keyboard_button.text);
     case KeyboardButton::Type::RequestLocation:
       return make_tl_object<telegram_api::keyboardButtonRequestGeoLocation>(keyboard_button.text);
+    case KeyboardButton::Type::RequestPoll:
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(0, false, keyboard_button.text);
+    case KeyboardButton::Type::RequestPollQuiz:
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, true, keyboard_button.text);
+    case KeyboardButton::Type::RequestPollRegular:
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, false, keyboard_button.text);
     default:
       UNREACHABLE();
       return nullptr;
@@ -673,6 +719,15 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       break;
     case KeyboardButton::Type::RequestLocation:
       type = make_tl_object<td_api::keyboardButtonTypeRequestLocation>();
+      break;
+    case KeyboardButton::Type::RequestPoll:
+      type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(false, false);
+      break;
+    case KeyboardButton::Type::RequestPollQuiz:
+      type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(false, true);
+      break;
+    case KeyboardButton::Type::RequestPollRegular:
+      type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(true, false);
       break;
     default:
       UNREACHABLE();
