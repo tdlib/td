@@ -4031,7 +4031,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 }
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               bool for_forward, bool remove_caption) {
+                                               MessageContentDupType type) {
   CHECK(content != nullptr);
 
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
@@ -4051,6 +4051,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
   if (to_secret) {
     thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
   }
+  auto remove_caption = type == MessageContentDupType::CopyWithoutCaption;
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));
@@ -4095,7 +4096,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Invoice:
       return make_unique<MessageInvoice>(*static_cast<const MessageInvoice *>(content));
     case MessageContentType::LiveLocation:
-      if (to_secret || for_forward) {
+      if (to_secret || type != MessageContentDupType::Send) {
         return make_unique<MessageLocation>(Location(static_cast<const MessageLiveLocation *>(content)->location));
       } else {
         return make_unique<MessageLiveLocation>(*static_cast<const MessageLiveLocation *>(content));

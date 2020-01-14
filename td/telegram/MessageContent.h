@@ -221,8 +221,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl);
 
+enum class MessageContentDupType : int32 { Send, Forward, Copy, CopyWithoutCaption };
+
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               bool for_forward, bool remove_caption = false);
+                                               MessageContentDupType type);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action,
                                                       DialogId owner_dialog_id, MessageId reply_to_message_id);

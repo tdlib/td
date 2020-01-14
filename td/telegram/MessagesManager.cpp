@@ -18236,9 +18236,10 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   // there must be no errors after get_message_to_send call
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
-                                   dup_message_content(td_, dialog_id, message_content.content.get(), false),
-                                   &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
+  Message *m = get_message_to_send(
+      d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+      dup_message_content(td_, dialog_id, message_content.content.get(), MessageContentDupType::Send),
+      &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -18296,8 +18297,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
       return Status::Error(400, "Can't copy message");
     }
 
-    unique_ptr<MessageContent> content =
-        dup_message_content(td_, dialog_id, copied_message->content.get(), true, input_message->remove_caption_);
+    unique_ptr<MessageContent> content = dup_message_content(
+        td_, dialog_id, copied_message->content.get(),
+        input_message->remove_caption_ ? MessageContentDupType::CopyWithoutCaption : MessageContentDupType::Copy);
     if (content == nullptr) {
       return Status::Error(400, "Can't copy message content");
     }
@@ -18423,9 +18425,10 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<MessageId> result;
   bool need_update_dialog_pos = false;
   for (auto &message_content : message_contents) {
-    Message *m = get_message_to_send(d, reply_to_message_id, send_message_options,
-                                     dup_message_content(td_, dialog_id, message_content.first.get(), false),
-                                     &need_update_dialog_pos);
+    Message *m = get_message_to_send(
+        d, reply_to_message_id, send_message_options,
+        dup_message_content(td_, dialog_id, message_content.first.get(), MessageContentDupType::Send),
+        &need_update_dialog_pos);
     result.push_back(m->message_id);
     auto ttl = message_content.second;
     if (ttl > 0) {
@@ -19168,9 +19171,10 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true));
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
-                                   dup_message_content(td_, dialog_id, content->message_content.get(), false),
-                                   &need_update_dialog_pos, nullptr, true);
+  Message *m = get_message_to_send(
+      d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+      dup_message_content(td_, dialog_id, content->message_content.get(), MessageContentDupType::Send),
+      &need_update_dialog_pos, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -19734,7 +19738,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
 
   cancel_edit_message_media(dialog_id, m, "Cancelled by new editMessageMedia request");
 
-  m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), false);
+  m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send);
   CHECK(m->edited_content != nullptr);
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
   m->edit_generation = ++current_message_edit_generation_;
@@ -20654,8 +20658,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     bool need_copy = !message_id.is_server() || to_secret || send_copy;
-    unique_ptr<MessageContent> content =
-        dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), true, need_copy && remove_caption);
+    auto type = need_copy ? (remove_caption ? MessageContentDupType::CopyWithoutCaption : MessageContentDupType::Copy)
+                          : MessageContentDupType::Forward;
+    unique_ptr<MessageContent> content = dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type);
     if (content == nullptr) {
       LOG(INFO) << "Can't forward " << message_id;
       continue;
@@ -20885,7 +20890,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     const Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
 
-    unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, m->content.get(), false);
+    unique_ptr<MessageContent> content =
+        dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
     if (content == nullptr) {
       LOG(INFO) << "Can't resend " << m->message_id;
       continue;
@@ -29266,7 +29272,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(dependencies);
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), false);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -29331,7 +29337,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(dependencies);
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), false);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -29420,7 +29426,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
             set_message_id(m, get_next_yet_unsent_message_id(to_dialog));
             m->date = now;
           }
-          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);
+          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), MessageContentDupType::Forward);
           CHECK(m->content != nullptr);
           m->have_previous = true;
           m->have_next = true;
