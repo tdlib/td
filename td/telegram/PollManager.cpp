@@ -535,9 +535,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
 
   return td_api::make_object<td_api::poll>(
-      poll_id.get(), poll->question, std::move(poll_options), total_voter_count, poll->is_closed, poll->is_anonymous,
-      td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids, "get_poll_object"),
-      std::move(poll_type));
+      poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
+      td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids, "get_poll_object"), poll->is_anonymous,
+      std::move(poll_type), poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {

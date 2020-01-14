@@ -267,9 +267,9 @@ venue location:location title:string address:string provider:string id:string ty
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
 //@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options
-//@total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
-//@is_anonymous True, if the poll is anonymous @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous @type Type of the poll
-poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 is_closed:Bool is_anonymous:Bool recent_voter_user_ids:vector<int32> type:PollType = Poll;
+//@total_voter_count Total number of voters, participating in the poll @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
+//@is_anonymous True, if the poll is anonymous @type Type of the poll @is_closed True, if the poll is closed
+poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int32> is_anonymous:Bool type:PollType is_closed:Bool = Poll;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
@@ -2978,10 +2978,10 @@ updateNewCustomEvent event:string = Update;
 //@description A new incoming query; for bots only @id The query identifier @data JSON-serialized query data @timeout Query timeout
 updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 
-//@description Information about a poll was updated; for bots only @poll New data about the poll
+//@description A poll was updated; for bots only @poll New data about the poll
 updatePoll poll:poll = Update;
 
-//@description Informs bot about a user changed their answer to a poll @poll_id Unique poll identifier @user_id The user changed their answer to a poll @option_ids 0-based identifiers of answer options, chosen by the user
+//@description A user changed the answer to a poll; for bots only @poll_id Unique poll identifier @user_id The user, who changed the answer to the poll @option_ids 0-based identifiers of answer options, chosen by the user
 updatePollAnswer poll_id:int64 user_id:int32 option_ids:vector<int32> = Update;
 
 
