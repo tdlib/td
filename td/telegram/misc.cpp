@@ -281,18 +281,15 @@ string get_emoji_fingerprint(uint64 num) {
 Result<string> check_url(Slice url) {
   bool is_tg = false;
   bool is_ton = false;
-  if (begins_with(url, "tg://")) {
-    url.remove_prefix(5);
-    is_tg = true;
-  } else if (begins_with(url, "tg:")) {
+  if (begins_with(url, "tg:")) {
     url.remove_prefix(3);
     is_tg = true;
-  } else if (begins_with(url, "ton://")) {
-    url.remove_prefix(6);
-    is_ton = true;
   } else if (begins_with(url, "ton:")) {
     url.remove_prefix(4);
     is_ton = true;
+  }
+  if ((is_tg || is_ton) && begins_with(url, "//")) {
+    url.remove_prefix(2);
   }
   TRY_RESULT(http_url, parse_url(url));
   if (is_tg || is_ton) {
