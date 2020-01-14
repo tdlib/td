@@ -19433,9 +19433,11 @@ bool MessagesManager::can_resend_message(const Message *m) {
     // via bot message
     if (content_type == MessageContentType::Game &&
         !get_message_content_game_bot_user_id(m->content.get()).is_valid()) {
-      // TODO implement resending via_bot messages other than games
       return false;
     }
+
+    // resend via_bot message as an ordinary message if error code is 429
+    // TODO support other error codes
   }
 
   if (content_type == MessageContentType::ChatSetTtl || content_type == MessageContentType::ScreenshotTaken) {
