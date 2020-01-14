@@ -1289,12 +1289,14 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
   }
   vector<UserId> recent_voter_user_ids;
-  for (auto &user_id_int : poll_results->recent_voters_) {
-    UserId user_id(user_id_int);
-    if (user_id.is_valid()) {
-      recent_voter_user_ids.push_back(user_id);
-    } else {
-      LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id;
+  if (!td_->auth_manager_->is_bot()) {
+    for (auto &user_id_int : poll_results->recent_voters_) {
+      UserId user_id(user_id_int);
+      if (user_id.is_valid()) {
+        recent_voter_user_ids.push_back(user_id);
+      } else {
+        LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id;
+      }
     }
   }
   if (poll->is_anonymous && !recent_voter_user_ids.empty()) {
