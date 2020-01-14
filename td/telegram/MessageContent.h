@@ -178,9 +178,9 @@ vector<UserId> get_message_content_added_user_ids(const MessageContent *content)
 
 UserId get_message_content_deleted_user_id(const MessageContent *content);
 
-UserId get_message_content_game_bot_user_id(const MessageContent *content);
-
 int32 get_message_content_live_location_period(const MessageContent *content);
+
+UserId get_message_content_game_bot_user_id(const MessageContent *content);
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
 
@@ -221,7 +221,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl);
 
-enum class MessageContentDupType : int32 { Send, Forward, Copy, CopyWithoutCaption };
+enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, CopyWithoutCaption };
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type);

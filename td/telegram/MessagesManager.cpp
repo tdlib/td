@@ -17767,8 +17767,8 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
   return Status::OK();
 }
 
-Status MessagesManager::can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
-                                                 bool is_via_bot) const {
+Status MessagesManager::can_send_message_content(DialogId dialog_id, const MessageContent *content,
+                                                 bool is_forward) const {
   auto dialog_type = dialog_id.get_type();
   int32 secret_chat_layer = std::numeric_limits<int32>::max();
   if (dialog_type == DialogType::SecretChat) {
@@ -17786,7 +17786,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
   auto content_type = content->get_type();
   switch (dialog_type) {
     case DialogType::User:
-      if (content_type == MessageContentType::Poll && !is_forward && !td_->auth_manager_->is_bot() && !is_via_bot &&
+      if (content_type == MessageContentType::Poll && !is_forward && !td_->auth_manager_->is_bot() &&
           !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id()) && dialog_id != get_my_dialog_id()) {
         return Status::Error(400, "Polls can't be sent to the private chat");
       }
@@ -17845,9 +17845,6 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
 
       if (!can_send_games) {
         return Status::Error(400, "Not enough rights to send games to the chat");
-      }
-      if (!is_forward && !is_via_bot && !get_message_content_game_bot_user_id(content).is_valid()) {
-        return Status::Error(400, "Games can't be copied");
       }
       break;
     case MessageContentType::Invoice:
@@ -19168,12 +19165,12 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
 
   TRY_STATUS(can_use_send_message_options(send_message_options, content->message_content, 0));
-  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true));
+  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
 
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
       d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
-      dup_message_content(td_, dialog_id, content->message_content.get(), MessageContentDupType::Send),
+      dup_message_content(td_, dialog_id, content->message_content.get(), MessageContentDupType::SendViaBot),
       &need_update_dialog_pos, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
@@ -20678,17 +20675,13 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    auto content_type = content->get_type();
-    bool is_game = content_type == MessageContentType::Game;
     if (need_copy) {
-      if (is_game && !get_message_content_game_bot_user_id(content.get()).is_valid()) {
-        LOG(INFO) << "Can't copy game from " << message_id;
-        continue;
-      }
       copied_messages.push_back({std::move(content), forwarded_message->disable_web_page_preview, i});
       continue;
     }
 
+    auto content_type = content->get_type();
+    bool is_game = content_type == MessageContentType::Game;
     unique_ptr<MessageForwardInfo> forward_info;
     if (!is_game && content_type != MessageContentType::Audio) {
       DialogId saved_from_dialog_id;
@@ -20900,13 +20893,6 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     auto can_send_status = can_send_message_content(dialog_id, content.get(), false);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't resend " << m->message_id << ": " << can_send_status.message();
-      continue;
-    }
-
-    if (content->get_type() == MessageContentType::Game &&
-        !get_message_content_game_bot_user_id(content.get()).is_valid()) {
-      // must not happen
-      LOG(ERROR) << "Can't resend game from " << m->message_id;
       continue;
     }
 
@@ -29337,7 +29323,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(dependencies);
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {

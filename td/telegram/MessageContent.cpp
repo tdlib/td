@@ -4091,15 +4091,22 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
-    case MessageContentType::Game:
-      return make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
+    case MessageContentType::Game: {
+      auto result = make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
+      if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
+          !result->game.get_bot_user_id().is_valid()) {
+        LOG(INFO) << "Can't send/copy game without bot_user_id";
+        return nullptr;
+      }
+      return std::move(result);
+    }
     case MessageContentType::Invoice:
       return make_unique<MessageInvoice>(*static_cast<const MessageInvoice *>(content));
     case MessageContentType::LiveLocation:
-      if (to_secret || type != MessageContentDupType::Send) {
-        return make_unique<MessageLocation>(Location(static_cast<const MessageLiveLocation *>(content)->location));
-      } else {
+      if (!to_secret && (type == MessageContentDupType::Send || type == MessageContentDupType::SendViaBot)) {
         return make_unique<MessageLiveLocation>(*static_cast<const MessageLiveLocation *>(content));
+      } else {
+        return make_unique<MessageLocation>(Location(static_cast<const MessageLiveLocation *>(content)->location));
       }
     case MessageContentType::Location:
       return make_unique<MessageLocation>(*static_cast<const MessageLocation *>(content));
@@ -5088,6 +5095,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::PassportDataReceived:
       break;
     case MessageContentType::Poll:
+      // no need to add poll dependencies, because they are forcely loaded with the poll
       break;
     default:
       UNREACHABLE();
