@@ -22,6 +22,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -875,7 +876,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
     return promise.set_value({poll->options[option_id].voter_count, std::move(result)});
   }
 
-  if (poll->options[option_id].voter_count == 0) {
+  if (poll->options[option_id].voter_count == 0 || (voters.next_offset.empty() && cur_offset > 0)) {
     return promise.set_value({0, vector<UserId>()});
   }
 
@@ -927,20 +928,39 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id,
   }
 
   vector<UserId> user_ids;
-  for (auto &voter : vote_list->votes_) {
-    UserId user_id(voter->user_id_);
+  for (auto &user_vote : vote_list->votes_) {
+    UserId user_id;
+    downcast_call(*user_vote, [&user_id](auto &voter) { user_id = UserId(voter.user_id_); });
     if (!user_id.is_valid()) {
       LOG(ERROR) << "Receive " << user_id << " as voter in " << poll_id;
       continue;
     }
-    if (voter->option_ != poll->options[option_id].data) {
-      LOG(ERROR) << "Receive " << user_id << " in " << poll_id << " voted for unexpected option";
-      continue;
-    }
 
-    voters.voter_user_ids.push_back(user_id);
-    user_ids.push_back(user_id);
+    switch (user_vote->get_id()) {
+      case telegram_api::messageUserVote::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messageUserVote>(user_vote);
+        if (voter->option_ != poll->options[option_id].data) {
+          continue;
+        }
+
+        user_ids.push_back(user_id);
+        break;
+      }
+      case telegram_api::messageUserVoteInputOption::ID:
+        user_ids.push_back(user_id);
+        break;
+      case telegram_api::messageUserVoteMultiple::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messageUserVoteMultiple>(user_vote);
+        if (!td::contains(voter->options_, poll->options[option_id].data)) {
+          continue;
+        }
+
+        user_ids.push_back(user_id);
+        break;
+      }
+    }
   }
+  voters.voter_user_ids.insert(voters.voter_user_ids.end(), user_ids.begin(), user_ids.end());
 
   for (auto &promise : promises) {
     promise.set_value({vote_list->count_, vector<UserId>(user_ids)});
