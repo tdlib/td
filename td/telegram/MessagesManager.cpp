@@ -17787,7 +17787,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
   switch (dialog_type) {
     case DialogType::User:
       if (content_type == MessageContentType::Poll && !is_forward && !td_->auth_manager_->is_bot() &&
-          !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id()) && dialog_id != get_my_dialog_id()) {
+          !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
         return Status::Error(400, "Polls can't be sent to the private chat");
       }
       break;
