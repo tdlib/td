@@ -4170,6 +4170,14 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
       return std::move(result);
     }
+    case MessageContentType::Poll: {
+      auto result = make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
+      if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
+          !td->poll_manager_->has_input_media(result->poll_id)) {
+        return nullptr;
+      }
+      return std::move(result);
+    }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
@@ -4218,8 +4226,6 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
-    case MessageContentType::Poll:
-      return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:

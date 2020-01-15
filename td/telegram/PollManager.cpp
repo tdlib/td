@@ -1111,6 +1111,12 @@ void PollManager::on_online() {
   }
 }
 
+bool PollManager::has_input_media(PollId poll_id) const {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  return !poll->is_quiz || poll->correct_option_id >= 0;
+}
+
 tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -1130,6 +1136,8 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   vector<BufferSlice> correct_answers;
   if (poll->is_quiz) {
     flags |= telegram_api::inputMediaPoll::CORRECT_ANSWERS_MASK;
+    CHECK(poll->correct_option_id >= 0);
+    CHECK(static_cast<size_t>(poll->correct_option_id) < poll->options.size());
     correct_answers.push_back(BufferSlice(poll->options[poll->correct_option_id].data));
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(

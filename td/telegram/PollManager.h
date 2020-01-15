@@ -66,6 +66,8 @@ class PollManager : public Actor {
 
   void stop_local_poll(PollId poll_id);
 
+  bool has_input_media(PollId poll_id) const;
+
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
 
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
