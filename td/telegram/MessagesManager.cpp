@@ -24243,7 +24243,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       return promise.set_value(Unit());
     }
     if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
-      return promise.set_value(Unit());
+      // return promise.set_value(Unit());
     }
   }
 
