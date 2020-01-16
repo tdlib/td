@@ -17511,7 +17511,7 @@ Result<int32> MessagesManager::get_message_schedule_date(
   }
 }
 
-tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) {
+tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) const {
   CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
     return td_api::make_object<td_api::messageSendingStatePending>();
@@ -19416,7 +19416,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   return false;
 }
 
-bool MessagesManager::can_resend_message(const Message *m) {
+bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
       m->send_error_message != "SCHEDULE_TOO_MUCH") {
     return false;
@@ -19431,8 +19431,7 @@ bool MessagesManager::can_resend_message(const Message *m) {
   auto content_type = m->content->get_type();
   if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     // via bot message
-    if (content_type == MessageContentType::Game &&
-        !get_message_content_game_bot_user_id(m->content.get()).is_valid()) {
+    if (!can_have_input_media(td_, m->content.get())) {
       return false;
     }
 

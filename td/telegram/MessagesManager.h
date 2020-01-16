@@ -1533,7 +1533,7 @@ class MessagesManager : public Actor {
   Status can_send_message_content(DialogId dialog_id, const MessageContent *content,
                                   bool is_forward) const TD_WARN_UNUSED_RESULT;
 
-  static bool can_resend_message(const Message *m);
+  bool can_resend_message(const Message *m) const;
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
@@ -1932,7 +1932,7 @@ class MessagesManager : public Actor {
 
   static Result<int32> get_message_schedule_date(td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);
 
-  static tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m);
+  tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
 

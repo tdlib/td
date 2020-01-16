@@ -142,6 +142,8 @@ unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl);
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 
+bool can_have_input_media(const Td *td, const MessageContent *content);
+
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                         BufferSlice thumbnail, int32 layer);
@@ -179,8 +181,6 @@ vector<UserId> get_message_content_added_user_ids(const MessageContent *content)
 UserId get_message_content_deleted_user_id(const MessageContent *content);
 
 int32 get_message_content_live_location_period(const MessageContent *content);
-
-UserId get_message_content_game_bot_user_id(const MessageContent *content);
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
 

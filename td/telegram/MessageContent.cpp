@@ -1955,6 +1955,58 @@ Result<InputMessageContent> get_input_message_content(
                                       std::move(thumbnail), std::move(sticker_file_ids));
 }
 
+bool can_have_input_media(const Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Game:
+      return static_cast<const MessageGame *>(content)->game.has_input_media();
+    case MessageContentType::Poll:
+      return td->poll_manager_->has_input_media(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Unsupported:
+    case MessageContentType::ChatCreate:
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
+    case MessageContentType::ChatDeletePhoto:
+    case MessageContentType::ChatDeleteHistory:
+    case MessageContentType::ChatAddUsers:
+    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatDeleteUser:
+    case MessageContentType::ChatMigrateTo:
+    case MessageContentType::ChannelCreate:
+    case MessageContentType::ChannelMigrateFrom:
+    case MessageContentType::PinMessage:
+    case MessageContentType::GameScore:
+    case MessageContentType::ScreenshotTaken:
+    case MessageContentType::ChatSetTtl:
+    case MessageContentType::Call:
+    case MessageContentType::PaymentSuccessful:
+    case MessageContentType::ContactRegistered:
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
+    case MessageContentType::CustomServiceAction:
+    case MessageContentType::WebsiteConnected:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+      return false;
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Contact:
+    case MessageContentType::Document:
+    case MessageContentType::Invoice:
+    case MessageContentType::LiveLocation:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Sticker:
+    case MessageContentType::Text:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+    case MessageContentType::VideoNote:
+    case MessageContentType::VoiceNote:
+      return true;
+    default:
+      UNREACHABLE();
+  }
+}
+
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                         BufferSlice thumbnail, int32 layer) {
@@ -2015,9 +2067,11 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
       auto m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
     }
-    case MessageContentType::LiveLocation:
+    case MessageContentType::Call:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
+    case MessageContentType::LiveLocation:
+    case MessageContentType::Poll:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -2042,7 +2096,6 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
-    case MessageContentType::Poll:
       break;
     default:
       UNREACHABLE();
@@ -2131,6 +2184,9 @@ static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(co
 static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
     tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) {
+  if (!can_have_input_media(td, content)) {
+    return nullptr;
+  }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
@@ -2150,9 +2206,6 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Game: {
       auto m = static_cast<const MessageGame *>(content);
-      if (!m->game.has_input_media()) {
-        return nullptr;
-      }
       return m->game.get_input_media_game(td);
     }
     case MessageContentType::Invoice: {
@@ -2175,9 +2228,6 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Poll: {
       auto m = static_cast<const MessagePoll *>(content);
-      if (!td->poll_manager_->has_input_media(m->poll_id)) {
-        return nullptr;
-      }
       return td->poll_manager_->get_input_media(m->poll_id);
     }
     case MessageContentType::Sticker: {
@@ -2735,15 +2785,6 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
       return static_cast<const MessageLiveLocation *>(content)->period;
     default:
       return 0;
-  }
-}
-
-UserId get_message_content_game_bot_user_id(const MessageContent *content) {
-  switch (content->get_type()) {
-    case MessageContentType::Game:
-      return static_cast<const MessageGame *>(content)->game.get_bot_user_id();
-    default:
-      return UserId();
   }
 }
 
@@ -4036,6 +4077,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type) {
   CHECK(content != nullptr);
+  if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
+      !can_have_input_media(td, content)) {
+    return nullptr;
+  }
 
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
   auto fix_file_id = [dialog_id, to_secret, file_manager = td->file_manager_.get()](FileId file_id) {
@@ -4094,15 +4139,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
-    case MessageContentType::Game: {
-      auto result = make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
-      if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
-          !result->game.has_input_media()) {
-        LOG(INFO) << "Can't send/copy game without bot_user_id";
-        return nullptr;
-      }
-      return std::move(result);
-    }
+    case MessageContentType::Game:
+      return make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
     case MessageContentType::Invoice:
       return make_unique<MessageInvoice>(*static_cast<const MessageInvoice *>(content));
     case MessageContentType::LiveLocation:
@@ -4173,14 +4211,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
       return std::move(result);
     }
-    case MessageContentType::Poll: {
-      auto result = make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
-      if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
-          !td->poll_manager_->has_input_media(result->poll_id)) {
-        return nullptr;
-      }
-      return std::move(result);
-    }
+    case MessageContentType::Poll:
+      return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
@@ -4909,6 +4941,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ChatSetTtl:
     case MessageContentType::Call:
     case MessageContentType::PaymentSuccessful:
+    case MessageContentType::ContactRegistered:
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:
     case MessageContentType::CustomServiceAction:
