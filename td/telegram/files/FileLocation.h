@@ -331,10 +331,6 @@ class FullRemoteFileLocation {
     }
   }
 
-  void clear_file_reference() {
-    file_reference_.clear();
-  }
-
   bool delete_file_reference(Slice bad_file_reference) {
     if (file_reference_ != FileReferenceView::invalid_file_reference() && file_reference_ == bad_file_reference) {
       file_reference_ = FileReferenceView::invalid_file_reference().str();
