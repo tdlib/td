@@ -1360,26 +1360,22 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
   return res;
 }
 
-static auto as_jsonable(const SecureDataCredentials &credentials) {
+static auto as_jsonable_data(const SecureDataCredentials &credentials) {
   return json_object([&credentials](auto &o) {
     o("data_hash", base64_encode(credentials.hash));
     o("secret", base64_encode(credentials.secret));
   });
 }
 
-static auto as_jsonable(const SecureFileCredentials &credentials) {
+static auto as_jsonable_file(const SecureFileCredentials &credentials) {
   return json_object([&credentials](auto &o) {
     o("file_hash", base64_encode(credentials.hash));
     o("secret", base64_encode(credentials.secret));
   });
 }
 
-static auto as_jsonable(const vector<SecureFileCredentials> &files) {
-  return json_array([&files](auto &arr) {
-    for (auto &file : files) {
-      arr(as_jsonable(file));
-    }
-  });
+static auto as_jsonable_files(const vector<SecureFileCredentials> &files) {
+  return json_array(files, as_jsonable_file);
 }
 
 static Slice secure_value_type_as_slice(SecureValueType type) {
@@ -1428,22 +1424,22 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
 
           o(secure_value_type_as_slice(cred.type), json_object([&cred](auto &o) {
               if (cred.data) {
-                o("data", as_jsonable(cred.data.value()));
+                o("data", as_jsonable_data(cred.data.value()));
               }
               if (!cred.files.empty()) {
-                o("files", as_jsonable(cred.files));
+                o("files", as_jsonable_files(cred.files));
               }
               if (cred.front_side) {
-                o("front_side", as_jsonable(cred.front_side.value()));
+                o("front_side", as_jsonable_file(cred.front_side.value()));
               }
               if (cred.reverse_side) {
-                o("reverse_side", as_jsonable(cred.reverse_side.value()));
+                o("reverse_side", as_jsonable_file(cred.reverse_side.value()));
               }
               if (cred.selfie) {
-                o("selfie", as_jsonable(cred.selfie.value()));
+                o("selfie", as_jsonable_file(cred.selfie.value()));
               }
               if (!cred.translations.empty()) {
-                o("translation", as_jsonable(cred.translations));
+                o("translation", as_jsonable_files(cred.translations));
               }
             }));
         }

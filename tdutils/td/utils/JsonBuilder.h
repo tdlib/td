@@ -801,6 +801,7 @@ class JsonObjectImpl : Jsonable {
  private:
   F f_;
 };
+
 template <class F>
 auto json_object(F &&f) {
   return JsonObjectImpl<F>(std::forward<F>(f));
