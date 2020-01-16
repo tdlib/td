@@ -18522,7 +18522,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   } else {
     auto input_media = get_input_media(content, td_, m->ttl, false);
     if (input_media == nullptr) {
-      if (content_type == MessageContentType::Game) {
+      if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
         return;
       }
       if (content_type == MessageContentType::Photo) {

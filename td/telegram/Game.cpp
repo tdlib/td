@@ -97,6 +97,10 @@ tl_object_ptr<td_api::game> Game::get_game_object(Td *td) const {
       td->animations_manager_->get_animation_object(animation_file_id_, "get_game_object"));
 }
 
+bool Game::has_input_media() const {
+  return bot_user_id_.is_valid();
+}
+
 tl_object_ptr<telegram_api::inputMediaGame> Game::get_input_media_game(const Td *td) const {
   auto input_user = td->contacts_manager_->get_input_user(bot_user_id_);
   CHECK(input_user != nullptr);

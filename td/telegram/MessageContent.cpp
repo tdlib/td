@@ -2150,7 +2150,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Game: {
       auto m = static_cast<const MessageGame *>(content);
-      if (!m->game.get_bot_user_id().is_valid()) {
+      if (!m->game.has_input_media()) {
         return nullptr;
       }
       return m->game.get_input_media_game(td);
@@ -2173,6 +2173,13 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       auto m = static_cast<const MessagePhoto *>(content);
       return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl);
     }
+    case MessageContentType::Poll: {
+      auto m = static_cast<const MessagePoll *>(content);
+      if (!td->poll_manager_->has_input_media(m->poll_id)) {
+        return nullptr;
+      }
+      return td->poll_manager_->get_input_media(m->poll_id);
+    }
     case MessageContentType::Sticker: {
       auto m = static_cast<const MessageSticker *>(content);
       return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
@@ -2192,10 +2199,6 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::VoiceNote: {
       auto m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
-    }
-    case MessageContentType::Poll: {
-      auto m = static_cast<const MessagePoll *>(content);
-      return td->poll_manager_->get_input_media(m->poll_id);
     }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
@@ -4094,7 +4097,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Game: {
       auto result = make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
       if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
-          !result->game.get_bot_user_id().is_valid()) {
+          !result->game.has_input_media()) {
         LOG(INFO) << "Can't send/copy game without bot_user_id";
         return nullptr;
       }

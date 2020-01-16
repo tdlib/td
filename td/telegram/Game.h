@@ -65,6 +65,8 @@ class Game {
 
   tl_object_ptr<td_api::game> get_game_object(Td *td) const;
 
+  bool has_input_media() const;
+
   tl_object_ptr<telegram_api::inputMediaGame> get_input_media_game(const Td *td) const;
 
   template <class StorerT>
