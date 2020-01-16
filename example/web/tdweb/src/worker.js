@@ -981,7 +981,7 @@ class TdClient {
   }
 
   prepareFile(file) {
-    const pid = file.remote.id;
+    const pid = file.remote.unique_id ? file.remote.unique_id : file.remote.id;
     if (!pid) {
       return file;
     }
