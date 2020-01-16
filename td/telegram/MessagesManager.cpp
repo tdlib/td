@@ -26401,6 +26401,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
+    cancel_user_dialog_action(dialog_id, m);
   }
 
   Message *result_message = treap_insert_message(&d->messages, std::move(message));
