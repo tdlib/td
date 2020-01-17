@@ -1263,13 +1263,15 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           option.is_chosen = is_chosen;
           is_changed = true;
         }
-      }
-      bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
-      if (is_correct) {
-        if (correct_option_id != -1) {
-          LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << i;
+        bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
+        if (is_correct) {
+          if (correct_option_id != -1) {
+            LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << i;
+          }
+          correct_option_id = static_cast<int32>(i);
         }
-        correct_option_id = static_cast<int32>(i);
+      } else {
+        correct_option_id = poll->correct_option_id;
       }
 
       if (poll_result->voters_ < 0) {
