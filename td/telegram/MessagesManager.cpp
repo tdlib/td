@@ -14047,6 +14047,9 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise
     force_create_dialog(dialog_id, "on_get_message_link_dialog");
   } else {
     dialog_id = resolve_dialog_username(info.username);
+    if (dialog_id.is_valid()) {
+      force_create_dialog(dialog_id, "on_get_message_link_dialog", true);
+    }
   }
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
