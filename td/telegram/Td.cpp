@@ -7265,7 +7265,7 @@ void Td::on_request(uint64 id, td_api::getPollVoters &request) {
         }
       });
   messages_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.option_id_,
-                                     request.offset_, std::move(query_promise));
+                                     request.offset_, request.limit_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::stopPoll &request) {

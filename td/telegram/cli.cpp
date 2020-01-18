@@ -3494,12 +3494,15 @@ class CliClient final : public Actor {
       string message_id;
       string option_id;
       string offset;
+      string limit;
 
       std::tie(chat_id, args) = split(args);
       std::tie(message_id, args) = split(args);
-      std::tie(option_id, offset) = split(args);
+      std::tie(option_id, args) = split(args);
+      std::tie(offset, limit) = split(args);
       send_request(td_api::make_object<td_api::getPollVoters>(as_chat_id(chat_id), as_message_id(message_id),
-                                                              to_integer<int32>(option_id), to_integer<int32>(offset)));
+                                                              to_integer<int32>(option_id), to_integer<int32>(offset),
+                                                              to_integer<int32>(limit)));
     } else if (op == "stoppoll") {
       string chat_id;
       string message_id;

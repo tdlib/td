@@ -58,7 +58,7 @@ class PollManager : public Actor {
   void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
-  void get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset,
+  void get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset, int32 limit,
                        Promise<std::pair<int32, vector<UserId>>> &&promise);
 
   void stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
@@ -124,7 +124,7 @@ class PollManager : public Actor {
     bool was_invalidated = false;  // the list needs to be invalidated when voters are changed
   };
 
-  static constexpr int32 MAX_GET_POLL_VOTERS = 20;  // server side limit
+  static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server side limit
 
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
@@ -179,7 +179,7 @@ class PollManager : public Actor {
 
   PollOptionVoters &get_poll_option_voters(const Poll *poll, PollId poll_id, int32 option_id);
 
-  void on_get_poll_voters(PollId poll_id, int32 option_id,
+  void on_get_poll_voters(PollId poll_id, int32 option_id, int32 limit,
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,

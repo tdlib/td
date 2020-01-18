@@ -839,12 +839,18 @@ PollManager::PollOptionVoters &PollManager::get_poll_option_voters(const Poll *p
 }
 
 void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset,
-                                  Promise<std::pair<int32, vector<UserId>>> &&promise) {
+                                  int32 limit, Promise<std::pair<int32, vector<UserId>>> &&promise) {
   if (is_local_poll_id(poll_id)) {
     return promise.set_error(Status::Error(400, "Poll results can't be received"));
   }
   if (offset < 0) {
     return promise.set_error(Status::Error(400, "Invalid offset specified"));
+  }
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_GET_POLL_VOTERS) {
+    limit = MAX_GET_POLL_VOTERS;
   }
 
   auto poll = get_poll(poll_id);
@@ -870,7 +876,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
   }
   if (offset < cur_offset) {
     vector<UserId> result;
-    for (int32 i = offset; i != cur_offset && i - offset < MAX_GET_POLL_VOTERS; i++) {
+    for (int32 i = offset; i != cur_offset && i - offset < limit; i++) {
       result.push_back(voters.voter_user_ids[i]);
     }
     return promise.set_value({poll->options[option_id].voter_count, std::move(result)});
@@ -885,16 +891,15 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
     return;
   }
 
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id](
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id, limit](
                                                   Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
-    send_closure(actor_id, &PollManager::on_get_poll_voters, poll_id, option_id, std::move(result));
+    send_closure(actor_id, &PollManager::on_get_poll_voters, poll_id, option_id, limit, std::move(result));
   });
   td_->create_handler<GetPollVotersQuery>(std::move(query_promise))
-      ->send(poll_id, full_message_id, BufferSlice(poll->options[option_id].data), voters.next_offset,
-             MAX_GET_POLL_VOTERS);
+      ->send(poll_id, full_message_id, BufferSlice(poll->options[option_id].data), voters.next_offset, max(limit, 15));
 }
 
-void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id,
+void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, int32 limit,
                                      Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -961,6 +966,9 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id,
     }
   }
   voters.voter_user_ids.insert(voters.voter_user_ids.end(), user_ids.begin(), user_ids.end());
+  if (static_cast<int32>(user_ids.size()) > limit) {
+    user_ids.resize(limit);
+  }
 
   for (auto &promise : promises) {
     promise.set_value({vote_list->count_, vector<UserId>(user_ids)});

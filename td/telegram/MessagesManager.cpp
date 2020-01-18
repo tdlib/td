@@ -30122,7 +30122,7 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   set_message_content_poll_answer(td_, m->content.get(), full_message_id, std::move(option_ids), std::move(promise));
 }
 
-void MessagesManager::get_poll_voters(FullMessageId full_message_id, int32 option_id, int32 offset,
+void MessagesManager::get_poll_voters(FullMessageId full_message_id, int32 option_id, int32 offset, int32 limit,
                                       Promise<std::pair<int32, vector<UserId>>> &&promise) {
   auto m = get_message_force(full_message_id, "get_poll_voters");
   if (m == nullptr) {
@@ -30141,7 +30141,7 @@ void MessagesManager::get_poll_voters(FullMessageId full_message_id, int32 optio
     return promise.set_error(Status::Error(5, "Poll results can't be received"));
   }
 
-  get_message_content_poll_voters(td_, m->content.get(), full_message_id, option_id, offset, std::move(promise));
+  get_message_content_poll_voters(td_, m->content.get(), full_message_id, option_id, offset, limit, std::move(promise));
 }
 
 void MessagesManager::stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,

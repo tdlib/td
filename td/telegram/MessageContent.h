@@ -194,7 +194,7 @@ void set_message_content_poll_answer(Td *td, const MessageContent *content, Full
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
 void get_message_content_poll_voters(Td *td, const MessageContent *content, FullMessageId full_message_id,
-                                     int32 option_id, int32 offset,
+                                     int32 option_id, int32 offset, int32 limit,
                                      Promise<std::pair<int32, vector<UserId>>> &&promise);
 
 void stop_message_content_poll(Td *td, const MessageContent *content, FullMessageId full_message_id,
