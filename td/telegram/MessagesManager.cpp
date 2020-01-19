@@ -26748,7 +26748,10 @@ void MessagesManager::delete_message_files(DialogId dialog_id, const Message *m)
 }
 
 bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId file_id) const {
-  auto full_message_ids = td_->file_reference_manager_->get_some_message_file_sources(file_id);
+  auto main_file_id = td_->file_manager_->get_file_view(file_id).file_id();
+  auto full_message_ids = td_->file_reference_manager_->get_some_message_file_sources(main_file_id);
+  LOG(INFO) << "Receive " << full_message_ids << " as sources for file " << main_file_id << "/" << file_id << " from "
+            << full_message_id;
   for (auto other_full_messsage_id : full_message_ids) {
     if (other_full_messsage_id != full_message_id) {
       return false;
