@@ -12049,6 +12049,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   }
 
   auto &list = get_dialog_list(folder_id);
+  bool need_recalc_unread_count =
+      list.last_server_dialog_date_ == MIN_DIALOG_DATE && (from_dialog_list || from_pinned_dialog_list);
   if (from_dialog_list) {
     if (dialogs.empty()) {
       // if there are no more dialogs on the server
@@ -12263,6 +12265,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
   promise.set_value(Unit());
+
+  if (need_recalc_unread_count) {
+    recalc_unread_count(folder_id);
+  }
 }
 
 void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
@@ -28246,7 +28252,8 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
   list.last_dialog_date_ = list.last_server_dialog_date_;  // std::min
   CHECK(old_last_dialog_date <= list.last_dialog_date_);
 
-  LOG(INFO) << "Update last dialog date from " << old_last_dialog_date << " to " << list.last_dialog_date_;
+  LOG(INFO) << "Update last dialog date in " << folder_id << " from " << old_last_dialog_date << " to "
+            << list.last_dialog_date_;
   LOG(INFO) << "Know about " << list.ordered_server_dialogs_.size() << " chats";
 
   if (old_last_dialog_date != list.last_dialog_date_) {
