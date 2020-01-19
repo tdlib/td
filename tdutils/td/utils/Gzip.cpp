@@ -33,9 +33,9 @@ class Gzip::Impl {
 };
 
 Status Gzip::init_encode() {
-  CHECK(mode_ == Empty);
+  CHECK(mode_ == Mode::Empty);
   init_common();
-  mode_ = Encode;
+  mode_ = Mode::Encode;
   int ret = deflateInit2(&impl_->stream_, 6, Z_DEFLATED, 15, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
   if (ret != Z_OK) {
     return Status::Error(PSLICE() << "zlib deflate init failed: " << ret);
@@ -44,9 +44,9 @@ Status Gzip::init_encode() {
 }
 
 Status Gzip::init_decode() {
-  CHECK(mode_ == Empty);
+  CHECK(mode_ == Mode::Empty);
   init_common();
-  mode_ = Decode;
+  mode_ = Mode::Decode;
   int ret = inflateInit2(&impl_->stream_, MAX_WBITS + 32);
   if (ret != Z_OK) {
     return Status::Error(PSLICE() << "zlib inflate init failed: " << ret);
@@ -76,19 +76,19 @@ void Gzip::set_output(MutableSlice output) {
 Result<Gzip::State> Gzip::run() {
   while (true) {
     int ret;
-    if (mode_ == Decode) {
+    if (mode_ == Mode::Decode) {
       ret = inflate(&impl_->stream_, Z_NO_FLUSH);
     } else {
       ret = deflate(&impl_->stream_, close_input_flag_ ? Z_FINISH : Z_NO_FLUSH);
     }
 
     if (ret == Z_OK) {
-      return Running;
+      return State::Running;
     }
     if (ret == Z_STREAM_END) {
       // TODO(now): fail if input is not empty;
       clear();
-      return Done;
+      return State::Done;
     }
     clear();
     return Status::Error(PSLICE() << "zlib error " << ret);
@@ -119,12 +119,12 @@ void Gzip::init_common() {
 }
 
 void Gzip::clear() {
-  if (mode_ == Decode) {
+  if (mode_ == Mode::Decode) {
     inflateEnd(&impl_->stream_);
-  } else if (mode_ == Encode) {
+  } else if (mode_ == Mode::Encode) {
     deflateEnd(&impl_->stream_);
   }
-  mode_ = Empty;
+  mode_ = Mode::Empty;
 }
 
 Gzip::Gzip() : impl_(make_unique<Impl>()) {
@@ -168,7 +168,7 @@ BufferSlice gzdecode(Slice s) {
       return BufferSlice();
     }
     auto state = r_state.ok();
-    if (state == Gzip::Done) {
+    if (state == Gzip::State::Done) {
       message.confirm_append(gzip.flush_output());
       break;
     }
@@ -197,7 +197,7 @@ BufferSlice gzencode(Slice s, double k) {
     return BufferSlice();
   }
   auto state = r_state.ok();
-  if (state != Gzip::Done) {
+  if (state != Gzip::State::Done) {
     return BufferSlice();
   }
   message.confirm_append(gzip.flush_output());

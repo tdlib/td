@@ -44,9 +44,9 @@ Result<int> OptionsParser::run(int argc, char *argv[]) {
   char buff[1024];
   StringBuilder sb(MutableSlice{buff, sizeof(buff)});
   for (auto &opt : options_) {
-    CHECK(opt.type != Option::OptionalArg);
+    CHECK(opt.type != Option::Type::OptionalArg);
     sb << opt.short_key;
-    if (opt.type == Option::Arg) {
+    if (opt.type == Option::Type::Arg) {
       sb << ":";
     }
   }
@@ -63,7 +63,7 @@ Result<int> OptionsParser::run(int argc, char *argv[]) {
     option o;
     o.flag = nullptr;
     o.val = opt.short_key;
-    o.has_arg = opt.type == Option::Arg ? required_argument : no_argument;
+    o.has_arg = opt.type == Option::Type::Arg ? required_argument : no_argument;
     o.name = opt.long_key.c_str();
     long_options.push_back(o);
   }
@@ -84,7 +84,7 @@ Result<int> OptionsParser::run(int argc, char *argv[]) {
     for (auto &opt : options_) {
       if (opt.short_key == opt_i) {
         Slice arg;
-        if (opt.type == Option::Arg) {
+        if (opt.type == Option::Type::Arg) {
           arg = Slice(optarg);
         }
         auto status = opt.arg_callback(arg);
@@ -112,13 +112,13 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionsParser &o) {
     if (!opt.long_key.empty()) {
       sb << "|--" << opt.long_key;
     }
-    if (opt.type == OptionsParser::Option::OptionalArg) {
+    if (opt.type == OptionsParser::Option::Type::OptionalArg) {
       sb << "[";
     }
-    if (opt.type != OptionsParser::Option::NoArg) {
+    if (opt.type != OptionsParser::Option::Type::NoArg) {
       sb << "<arg>";
     }
-    if (opt.type == OptionsParser::Option::OptionalArg) {
+    if (opt.type == OptionsParser::Option::Type::OptionalArg) {
       sb << "]";
     }
     sb << "\t" << opt.description;

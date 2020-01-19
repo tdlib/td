@@ -50,7 +50,7 @@ static MutableSlice urldecode_inplace(MutableSlice str, bool decode_plus_sign_as
 
 void HttpReader::init(ChainBufferReader *input, size_t max_post_size, size_t max_files) {
   input_ = input;
-  state_ = ReadHeaders;
+  state_ = State::ReadHeaders;
   headers_read_length_ = 0;
   content_length_ = 0;
   query_ = nullptr;
@@ -67,7 +67,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
   }
   size_t need_size = input_->size() + 1;
   while (true) {
-    if (state_ != ReadHeaders) {
+    if (state_ != State::ReadHeaders) {
       flow_source_.wakeup();
       if (flow_sink_.is_ready() && flow_sink_.status().is_error()) {
         if (!temp_file_.empty()) {
@@ -81,7 +81,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
       }
     }
     switch (state_) {
-      case ReadHeaders: {
+      case State::ReadHeaders: {
         auto result = split_header();
         if (result.is_error() || result.ok() != 0) {
           return result;
@@ -107,7 +107,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 
         if (content_encoding_.empty()) {
         } else if (content_encoding_ == "gzip" || content_encoding_ == "deflate") {
-          gzip_flow_ = GzipByteFlow(Gzip::Decode);
+          gzip_flow_ = GzipByteFlow(Gzip::Mode::Decode);
           gzip_flow_.set_max_output_size(MAX_FILE_SIZE);
           *source >> gzip_flow_;
           source = &gzip_flow_;
@@ -125,7 +125,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         }
 
         if (content_type_lowercased_.find("multipart/form-data") != string::npos) {
-          state_ = ReadMultipartFormData;
+          state_ = State::ReadMultipartFormData;
 
           const char *p = std::strstr(content_type_lowercased_.c_str(), "boundary");
           if (p == nullptr) {
@@ -154,21 +154,21 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
           }
 
           boundary_ = "\r\n--" + boundary.str();
-          form_data_parse_state_ = SkipPrologue;
+          form_data_parse_state_ = FormDataParseState::SkipPrologue;
           form_data_read_length_ = 0;
           form_data_skipped_length_ = 0;
         } else if (content_type_lowercased_.find("application/x-www-form-urlencoded") != string::npos ||
                    content_type_lowercased_.find("application/json") != string::npos) {
-          state_ = ReadArgs;
+          state_ = State::ReadArgs;
         } else {
           form_data_skipped_length_ = 0;
-          state_ = ReadContent;
+          state_ = State::ReadContent;
         }
         continue;
       }
-      case ReadContent: {
+      case State::ReadContent: {
         if (content_->size() > max_post_size_) {
-          state_ = ReadContentToFile;
+          state_ = State::ReadContentToFile;
           continue;
         }
         if (flow_sink_.is_ready()) {
@@ -180,7 +180,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 
         return need_size;
       }
-      case ReadContentToFile: {
+      case State::ReadContentToFile: {
         // save content to a file
         if (temp_file_.empty()) {
           auto file = open_temp_file("file");
@@ -201,7 +201,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 
         return need_size;
       }
-      case ReadArgs: {
+      case State::ReadArgs: {
         auto size = content_->size();
         if (size > MAX_TOTAL_PARAMETERS_LENGTH - total_parameters_length_) {
           return Status::Error(413, "Request Entity Too Large: too much parameters");
@@ -227,7 +227,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 
         return need_size;
       }
-      case ReadMultipartFormData: {
+      case State::ReadMultipartFormData: {
         TRY_RESULT(result, parse_multipart_form_data());
         if (result) {
           break;
@@ -249,16 +249,16 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 // returns false if need more data
 Result<bool> HttpReader::parse_multipart_form_data() {
   while (true) {
-    LOG(DEBUG) << "Parsing multipart form data in state " << form_data_parse_state_;
+    LOG(DEBUG) << "Parsing multipart form data in state " << static_cast<int32>(form_data_parse_state_);
     switch (form_data_parse_state_) {
-      case SkipPrologue:
+      case FormDataParseState::SkipPrologue:
         if (find_boundary(content_->clone(), {boundary_.c_str() + 2, boundary_.size() - 2}, form_data_read_length_)) {
           size_t to_skip = form_data_read_length_ + (boundary_.size() - 2);
           content_->advance(to_skip);
           form_data_skipped_length_ += to_skip;
           form_data_read_length_ = 0;
 
-          form_data_parse_state_ = ReadPartHeaders;
+          form_data_parse_state_ = FormDataParseState::ReadPartHeaders;
           continue;
         }
 
@@ -266,7 +266,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
         form_data_skipped_length_ += form_data_read_length_;
         form_data_read_length_ = 0;
         return false;
-      case ReadPartHeaders:
+      case FormDataParseState::ReadPartHeaders:
         if (find_boundary(content_->clone(), "\r\n\r\n", form_data_read_length_)) {
           total_headers_length_ += form_data_read_length_;
           if (total_headers_length_ > MAX_TOTAL_HEADERS_LENGTH) {
@@ -382,11 +382,11 @@ Result<bool> HttpReader::parse_multipart_form_data() {
 
             // don't need to save headers for files
             file_field_name_ = field_name_.str();
-            form_data_parse_state_ = ReadFile;
+            form_data_parse_state_ = FormDataParseState::ReadFile;
           } else {
             // save headers for query parameters. They contain header names
             query_->container_.push_back(std::move(headers));
-            form_data_parse_state_ = ReadPartValue;
+            form_data_parse_state_ = FormDataParseState::ReadPartValue;
           }
 
           continue;
@@ -396,7 +396,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
           return Status::Error(431, "Request Header Fields Too Large: total headers size exceeded");
         }
         return false;
-      case ReadPartValue:
+      case FormDataParseState::ReadPartValue:
         if (find_boundary(content_->clone(), boundary_, form_data_read_length_)) {
           if (total_parameters_length_ + form_data_read_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
             return Status::Error(413, "Request Entity Too Large: too much parameters in form data");
@@ -421,7 +421,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
             query_->args_.emplace_back(field_name_, value);
           }
 
-          form_data_parse_state_ = CheckForLastBoundary;
+          form_data_parse_state_ = FormDataParseState::CheckForLastBoundary;
           continue;
         }
         CHECK(content_->size() < form_data_read_length_ + boundary_.size());
@@ -430,7 +430,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
           return Status::Error(413, "Request Entity Too Large: too much parameters in form data");
         }
         return false;
-      case ReadFile: {
+      case FormDataParseState::ReadFile: {
         if (find_boundary(content_->clone(), boundary_, form_data_read_length_)) {
           auto file_part = content_->cut_head(form_data_read_length_).move_as_buffer_slice();
           content_->advance(boundary_.size());
@@ -442,7 +442,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
           query_->files_.emplace_back(file_field_name_, file_name_, field_content_type_, file_size_, temp_file_name_);
           close_temp_file();
 
-          form_data_parse_state_ = CheckForLastBoundary;
+          form_data_parse_state_ = FormDataParseState::CheckForLastBoundary;
           continue;
         }
 
@@ -455,7 +455,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
         TRY_STATUS(save_file_part(std::move(file_part)));
         return false;
       }
-      case CheckForLastBoundary: {
+      case FormDataParseState::CheckForLastBoundary: {
         if (content_->size() < 2) {
           // need more data
           return false;
@@ -467,13 +467,13 @@ Result<bool> HttpReader::parse_multipart_form_data() {
         if (x[0] == '-' && x[1] == '-') {
           content_->advance(2);
           form_data_skipped_length_ += 2;
-          form_data_parse_state_ = SkipEpilogue;
+          form_data_parse_state_ = FormDataParseState::SkipEpilogue;
         } else {
-          form_data_parse_state_ = ReadPartHeaders;
+          form_data_parse_state_ = FormDataParseState::ReadPartHeaders;
         }
         continue;
       }
-      case SkipEpilogue: {
+      case FormDataParseState::SkipEpilogue: {
         size_t size = content_->size();
         LOG(DEBUG) << "Skipping epilogue. Have " << size << " bytes";
         content_->advance(size);

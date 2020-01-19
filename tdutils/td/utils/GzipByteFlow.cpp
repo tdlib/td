@@ -52,7 +52,7 @@ void GzipByteFlow::loop() {
       return finish(r_state.move_as_error());
     }
     auto state = r_state.ok();
-    if (state == Gzip::Done) {
+    if (state == Gzip::State::Done) {
       on_output_updated();
       return consume_input();
     }

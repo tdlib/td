@@ -259,12 +259,12 @@ class CancellablePromise : public PromiseT {
 
 template <class ValueT, class FunctionOkT, class FunctionFailT>
 class LambdaPromise : public PromiseInterface<ValueT> {
-  enum OnFail { None, Ok, Fail };
+  enum class OnFail { None, Ok, Fail };
 
  public:
   void set_value(ValueT &&value) override {
     ok_(std::move(value));
-    on_fail_ = None;
+    on_fail_ = OnFail::None;
   }
   void set_error(Status &&error) override {
     do_error(std::move(error));
@@ -279,13 +279,15 @@ class LambdaPromise : public PromiseInterface<ValueT> {
 
   template <class FromOkT, class FromFailT>
   LambdaPromise(FromOkT &&ok, FromFailT &&fail, bool use_ok_as_fail)
-      : ok_(std::forward<FromOkT>(ok)), fail_(std::forward<FromFailT>(fail)), on_fail_(use_ok_as_fail ? Ok : Fail) {
+      : ok_(std::forward<FromOkT>(ok))
+      , fail_(std::forward<FromFailT>(fail))
+      , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail) {
   }
 
  private:
   FunctionOkT ok_;
   FunctionFailT fail_;
-  OnFail on_fail_ = None;
+  OnFail on_fail_ = OnFail::None;
 
   template <class FuncT, class ArgT = detail::get_arg_t<FuncT>>
   std::enable_if_t<std::is_assignable<ArgT, Status>::value> do_error_impl(FuncT &func, Status &&status) {
@@ -299,16 +301,16 @@ class LambdaPromise : public PromiseInterface<ValueT> {
 
   void do_error(Status &&error) {
     switch (on_fail_) {
-      case None:
+      case OnFail::None:
         break;
-      case Ok:
+      case OnFail::Ok:
         do_error_impl(ok_, std::move(error));
         break;
-      case Fail:
+      case OnFail::Fail:
         fail_(std::move(error));
         break;
     }
-    on_fail_ = None;
+    on_fail_ = OnFail::None;
   }
 };
 

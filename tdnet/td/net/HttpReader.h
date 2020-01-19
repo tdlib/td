@@ -46,7 +46,8 @@ class HttpReader {
   size_t max_post_size_ = 0;
   size_t max_files_ = 0;
 
-  enum { ReadHeaders, ReadContent, ReadContentToFile, ReadArgs, ReadMultipartFormData } state_;
+  enum class State { ReadHeaders, ReadContent, ReadContentToFile, ReadArgs, ReadMultipartFormData };
+  State state_ = State::ReadHeaders;
   size_t headers_read_length_ = 0;
   size_t content_length_ = 0;
   ChainBufferReader *input_ = nullptr;
@@ -68,14 +69,15 @@ class HttpReader {
   string boundary_;
   size_t form_data_read_length_ = 0;
   size_t form_data_skipped_length_ = 0;
-  enum {
+  enum class FormDataParseState : int32 {
     SkipPrologue,
     ReadPartHeaders,
     ReadPartValue,
     ReadFile,
     CheckForLastBoundary,
     SkipEpilogue
-  } form_data_parse_state_;
+  };
+  FormDataParseState form_data_parse_state_ = FormDataParseState::SkipPrologue;
   MutableSlice field_name_;
   string file_field_name_;
   string field_content_type_;

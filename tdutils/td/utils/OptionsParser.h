@@ -18,7 +18,7 @@ namespace td {
 class OptionsParser {
   class Option {
    public:
-    enum Type { NoArg, Arg, OptionalArg };
+    enum class Type { NoArg, Arg, OptionalArg };
     Type type;
     char short_key;
     std::string long_key;

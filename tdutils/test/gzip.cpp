@@ -42,8 +42,8 @@ TEST(Gzip, flow) {
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   td::ByteFlowSource source(&input);
-  td::GzipByteFlow gzip_flow(td::Gzip::Encode);
-  gzip_flow = td::GzipByteFlow(td::Gzip::Encode);
+  td::GzipByteFlow gzip_flow(td::Gzip::Mode::Encode);
+  gzip_flow = td::GzipByteFlow(td::Gzip::Mode::Encode);
   td::ByteFlowSink sink;
 
   source >> gzip_flow >> sink;
@@ -70,7 +70,7 @@ TEST(Gzip, flow_error) {
   auto input_writer = td::ChainBufferWriter();
   auto input = input_writer.extract_reader();
   td::ByteFlowSource source(&input);
-  td::GzipByteFlow gzip_flow(td::Gzip::Decode);
+  td::GzipByteFlow gzip_flow(td::Gzip::Mode::Decode);
   td::ByteFlowSink sink;
 
   source >> gzip_flow >> sink;
@@ -92,10 +92,10 @@ TEST(Gzip, encode_decode_flow) {
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   td::ByteFlowSource source(&input);
-  td::GzipByteFlow gzip_encode_flow(td::Gzip::Encode);
-  td::GzipByteFlow gzip_decode_flow(td::Gzip::Decode);
-  td::GzipByteFlow gzip_encode_flow2(td::Gzip::Encode);
-  td::GzipByteFlow gzip_decode_flow2(td::Gzip::Decode);
+  td::GzipByteFlow gzip_encode_flow(td::Gzip::Mode::Encode);
+  td::GzipByteFlow gzip_decode_flow(td::Gzip::Mode::Decode);
+  td::GzipByteFlow gzip_encode_flow2(td::Gzip::Mode::Encode);
+  td::GzipByteFlow gzip_decode_flow2(td::Gzip::Mode::Decode);
   td::ByteFlowSink sink;
   source >> gzip_encode_flow >> gzip_decode_flow >> gzip_encode_flow2 >> gzip_decode_flow2 >> sink;
 

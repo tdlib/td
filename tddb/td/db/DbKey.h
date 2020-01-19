@@ -12,42 +12,49 @@
 namespace td {
 
 class DbKey {
- public:
-  enum Type { Empty, RawKey, Password };
+  enum class Type { Empty, RawKey, Password };
 
   Type type() const {
     return type_;
   }
+
+ public:
   bool is_empty() const {
-    return type_ == Empty;
+    return type_ == Type::Empty;
   }
+
   bool is_raw_key() const {
-    return type_ == RawKey;
+    return type_ == Type::RawKey;
   }
+
   bool is_password() const {
-    return type_ == Password;
+    return type_ == Type::Password;
   }
+
   CSlice data() const {
     return data_;
   }
+
   static DbKey raw_key(string raw_key) {
     DbKey res;
-    res.type_ = RawKey;
+    res.type_ = Type::RawKey;
     res.data_ = std::move(raw_key);
     return res;
   }
+
   static DbKey password(string password) {
     DbKey res;
-    res.type_ = Password;
+    res.type_ = Type::Password;
     res.data_ = std::move(password);
     return res;
   }
+
   static DbKey empty() {
     return DbKey();
   }
 
  private:
-  Type type_{Empty};
+  Type type_{Type::Empty};
   string data_;
 };
 

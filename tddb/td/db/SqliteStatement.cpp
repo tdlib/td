@@ -169,11 +169,11 @@ SqliteStatement::Datatype SqliteStatement::view_datatype(int id) {
 
 void SqliteStatement::reset() {
   sqlite3_reset(stmt_.get());
-  state_ = Start;
+  state_ = State::Start;
 }
 
 Status SqliteStatement::step() {
-  if (state_ == Finish) {
+  if (state_ == State::Finish) {
     return Status::Error("One has to reset statement");
   }
   VLOG(sqlite) << "Start step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
@@ -182,14 +182,14 @@ Status SqliteStatement::step() {
   VLOG(sqlite) << "Finish step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
                << tag("database", db_.get());
   if (rc == SQLITE_ROW) {
-    state_ = GotRow;
+    state_ = State::GotRow;
     return Status::OK();
   }
+
+  state_ = State::Finish;
   if (rc == SQLITE_DONE) {
-    state_ = Finish;
     return Status::OK();
   }
-  state_ = Finish;
   return last_error();
 }
 

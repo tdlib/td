@@ -24,11 +24,11 @@ class Gzip {
   Gzip &operator=(Gzip &&other);
   ~Gzip();
 
-  enum Mode { Empty, Encode, Decode };
+  enum class Mode { Empty, Encode, Decode };
   Status init(Mode mode) TD_WARN_UNUSED_RESULT {
-    if (mode == Encode) {
+    if (mode == Mode::Encode) {
       return init_encode();
-    } else if (mode == Decode) {
+    } else if (mode == Mode::Decode) {
       return init_decode();
     }
     clear();
@@ -79,7 +79,7 @@ class Gzip {
     return res;
   }
 
-  enum State { Running, Done };
+  enum class State { Running, Done };
   Result<State> run() TD_WARN_UNUSED_RESULT;
 
  private:
@@ -89,7 +89,7 @@ class Gzip {
   size_t input_size_ = 0;
   size_t output_size_ = 0;
   bool close_input_flag_ = false;
-  Mode mode_ = Empty;
+  Mode mode_ = Mode::Empty;
 
   void init_common();
   void clear();

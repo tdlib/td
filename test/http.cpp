@@ -356,11 +356,11 @@ TEST(Http, gzip_chunked_flow) {
   auto str = rand_string('a', 'z', 1000000);
   auto parts = rand_split(make_chunked(gzencode(str).as_slice().str()));
 
-  td::ChainBufferWriter input_writer;
+  ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   ByteFlowSource source(&input);
   HttpChunkedByteFlow chunked_flow;
-  GzipByteFlow gzip_flow(Gzip::Decode);
+  GzipByteFlow gzip_flow(Gzip::Mode::Decode);
   ByteFlowSink sink;
   source >> chunked_flow >> gzip_flow >> sink;
 

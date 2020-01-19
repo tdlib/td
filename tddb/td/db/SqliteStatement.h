@@ -44,10 +44,10 @@ class SqliteStatement {
   Result<string> explain();
 
   bool can_step() const {
-    return state_ != Finish;
+    return state_ != State::Finish;
   }
   bool has_row() const {
-    return state_ == GotRow;
+    return state_ == State::GotRow;
   }
   bool empty() const {
     return !stmt_;
@@ -72,7 +72,8 @@ class SqliteStatement {
     void operator()(sqlite3_stmt *stmt);
   };
 
-  enum { Start, GotRow, Finish } state_ = Start;
+  enum class State { Start, GotRow, Finish };
+  State state_ = State::Start;
 
   std::unique_ptr<sqlite3_stmt, StmtDeleter> stmt_;
   std::shared_ptr<detail::RawSqliteDb> db_;
