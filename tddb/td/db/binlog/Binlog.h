@@ -41,7 +41,6 @@ class BinlogEventsBuffer;
 class Binlog {
  public:
   enum Error : int { WrongPassword = -1 };
-  static bool IGNORE_ERASE_HACK;
   Binlog();
   Binlog(const Binlog &other) = delete;
   Binlog &operator=(const Binlog &other) = delete;
