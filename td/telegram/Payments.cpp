@@ -486,7 +486,7 @@ class ClearSavedInfoQuery : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-
+/*
 class SendLiteRequestQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonLiteServerResponse>> promise_;
 
@@ -514,7 +514,7 @@ class SendLiteRequestQuery : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-
+*/
 bool operator==(const LabeledPricePart &lhs, const LabeledPricePart &rhs) {
   return lhs.label == rhs.label && lhs.amount == rhs.amount;
 }
@@ -896,9 +896,9 @@ void delete_saved_order_info(Promise<Unit> &&promise) {
 void delete_saved_credentials(Promise<Unit> &&promise) {
   G()->td().get_actor_unsafe()->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
 }
-
+/*
 void send_ton_lite_server_request(Slice request, Promise<td_api::object_ptr<td_api::tonLiteServerResponse>> &&promise) {
   G()->td().get_actor_unsafe()->create_handler<SendLiteRequestQuery>(std::move(promise))->send(BufferSlice{request});
 }
-
+*/
 }  // namespace td

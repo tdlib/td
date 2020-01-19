@@ -1627,10 +1627,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteSavedOrderInfo>());
     } else if (op == "dsc") {
       send_request(td_api::make_object<td_api::deleteSavedCredentials>());
-    } else if (op == "stlsr") {
-      send_request(td_api::make_object<td_api::sendTonLiteServerRequest>());
-    } else if (op == "gtwps") {
-      send_request(td_api::make_object<td_api::getTonWalletPasswordSalt>());
+      // } else if (op == "stlsr") {
+      //   send_request(td_api::make_object<td_api::sendTonLiteServerRequest>());
+      // } else if (op == "gtwps") {
+      //   send_request(td_api::make_object<td_api::getTonWalletPasswordSalt>());
     } else if (op == "gpr") {
       send_request(td_api::make_object<td_api::getUserPrivacySettingRules>(get_user_privacy_setting(args)));
     } else if (op == "spr") {

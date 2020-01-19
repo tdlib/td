@@ -734,7 +734,7 @@ void PasswordManager::drop_cached_secret() {
   LOG(INFO) << "Drop passport secret";
   secret_ = optional<secure_storage::Secret>();
 }
-
+/*
 void PasswordManager::get_ton_wallet_password_salt(Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>> promise) {
   if (!ton_wallet_password_salt_.empty()) {
     return promise.set_value(td_api::make_object<td_api::tonWalletPasswordSalt>(ton_wallet_password_salt_));
@@ -768,7 +768,7 @@ void PasswordManager::on_get_ton_wallet_password_salt(
     }
   }
 }
-
+*/
 void PasswordManager::timeout_expired() {
   if (Time::now() >= secret_expire_date_) {
     drop_cached_secret();

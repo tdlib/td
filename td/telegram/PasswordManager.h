@@ -89,7 +89,7 @@ class PasswordManager : public NetQueryCallback {
 
   static TempPasswordState get_temp_password_state_sync();
 
-  void get_ton_wallet_password_salt(Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>> promise);
+  // void get_ton_wallet_password_salt(Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>> promise);
 
  private:
   static constexpr size_t MIN_NEW_SALT_SIZE = 8;
@@ -162,8 +162,8 @@ class PasswordManager : public NetQueryCallback {
 
   int32 last_code_length_ = 0;
 
-  string ton_wallet_password_salt_;
-  vector<Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>>> get_ton_wallet_password_salt_queries_;
+  // string ton_wallet_password_salt_;
+  // vector<Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>>> get_ton_wallet_password_salt_queries_;
 
   static Result<secure_storage::Secret> decrypt_secure_secret(
       Slice password, tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> algo_ptr, Slice secret, int64 secret_id);
@@ -191,7 +191,7 @@ class PasswordManager : public NetQueryCallback {
                                Promise<TempPasswordState> promise);
   void on_finish_create_temp_password(Result<TempPasswordState> result, bool dummy);
 
-  void on_get_ton_wallet_password_salt(Result<telegram_api::object_ptr<telegram_api::wallet_secretSalt>> result);
+  // void on_get_ton_wallet_password_salt(Result<telegram_api::object_ptr<telegram_api::wallet_secretSalt>> result);
 
   void on_result(NetQueryPtr query) override;
 

@@ -156,17 +156,7 @@ Changes in 1.6.0:
   the appropriate mark.
 * Added the field `video_upload_bitrate` to the class `autoDownloadSettings`.
 * Disallowed to call `setChatNotificationSettings` method on the chat with self, which never worked.
-* Added support for integration with TON Blockchain. For a complete integration use `tonlib` from
-  https://github.com/ton-blockchain/ton:
-  - Added the option `default_ton_blockchain_config`, containing the default TON Blockchain config. If empty,
-    TON integration is disabled, otherwise the config needs to be passed to tonlib.
-  - Added the option `default_ton_blockchain_name`, containing the default TON Blockchain name.
-    The blockchain name needs to be passed to tonlib.
-  - Added the class `tonLiteServerResponse` and the method `sendTonLiteServerRequest`, which allows to send requests to
-    a TON Blockchain Lite Server through Telegram servers.
-  - Added the class `tonWalletPasswordSalt` and the method `getTonWalletPasswordSalt`, which can be used
-    to harden protection of the locally stored TON Blockchain private key.
-  - Added support for `ton://` URLs in messages and inline keyboard buttons.
+* Added support for `ton://` URLs in messages and inline keyboard buttons.
 
 -----------------------------------------------------------------------------------------------------------------------
 
