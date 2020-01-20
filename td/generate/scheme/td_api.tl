@@ -216,7 +216,7 @@ pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is
 //@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
 pollTypeRegular allow_multiple_answers:Bool = PollType;
 
-//@description A quiz, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered quiz
+//@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
 pollTypeQuiz correct_option_id:int32 = PollType;
 
 
@@ -735,7 +735,7 @@ keyboardButtonTypeRequestPhoneNumber = KeyboardButtonType;
 //@description A button that sends the user's location when pressed; available only in private chats
 keyboardButtonTypeRequestLocation = KeyboardButtonType;
 
-//@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls should be allowed to create @force_quiz If true, only quiz mode polls should be allowed to create
+//@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
 
@@ -3426,7 +3426,7 @@ getJsonValue json:string = JsonValue;
 getJsonString json_value:JsonValue = Text;
 
 
-//@description Changes the user answer to a poll. A quiz poll can be answered only once
+//@description Changes the user answer to a poll. A poll in quiz mode can be answered only once
 //@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
 //@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
