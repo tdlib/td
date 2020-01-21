@@ -1833,7 +1833,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
           std::move(input_poll->question_), std::move(input_poll->options_), input_poll->is_anonymous_,
-          allow_multiple_answers, is_quiz, correct_option_id, false));
+          allow_multiple_answers, is_quiz, correct_option_id, input_poll->is_closed_));
       break;
     }
     default:

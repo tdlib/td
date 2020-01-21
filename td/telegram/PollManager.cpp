@@ -1139,6 +1139,9 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   if (poll->is_quiz) {
     poll_flags |= telegram_api::poll::QUIZ_MASK;
   }
+  if (poll->is_closed) {
+    poll_flags |= telegram_api::poll::CLOSED_MASK;
+  }
 
   int32 flags = 0;
   vector<BufferSlice> correct_answers;
