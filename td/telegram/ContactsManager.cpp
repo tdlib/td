@@ -9440,6 +9440,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
         c->has_location = false;
         update_channel(c, channel_id);
       }
+      on_update_channel_linked_channel_id(channel_id, ChannelId());
     }
     invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
