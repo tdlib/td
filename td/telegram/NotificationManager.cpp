@@ -2833,6 +2833,11 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
         return "MESSAGE_POLL";
       }
       break;
+    case 'Q':
+      if (loc_key == "MESSAGE_QUIZ") {
+        return "MESSAGE_QUIZ";
+      }
+      break;
     case 'R':
       if (loc_key == "MESSAGE_ROUND") {
         return "MESSAGE_VIDEO_NOTE";
@@ -2863,6 +2868,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
     case 'U':
       if (loc_key == "PINNED_AUDIO") {
         return "PINNED_MESSAGE_VOICE_NOTE";
+      }
+      if (loc_key == "PINNED_QUIZ") {
+        return "PINNED_MESSAGE_QUIZ";
       }
       if (loc_key == "CHAT_RETURNED") {
         return "MESSAGE_CHAT_ADD_MEMBERS_RETURNED";

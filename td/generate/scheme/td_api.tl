@@ -2230,8 +2230,8 @@ pushMessageContentLocation is_live:Bool is_pinned:Bool = PushMessageContent;
 //@description A photo message @photo Message content; may be null @caption Photo caption @is_secret True, if the photo is secret @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentPhoto photo:photo caption:string is_secret:Bool is_pinned:Bool = PushMessageContent;
 
-//@description A message with a poll @question Poll question @is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentPoll question:string is_pinned:Bool = PushMessageContent;
+//@description A message with a poll @question Poll question @is_regular True, if the poll is regular and not in quiz mode @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentPoll question:string is_regular:Bool is_pinned:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;

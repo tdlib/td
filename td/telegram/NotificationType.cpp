@@ -262,7 +262,12 @@ class NotificationTypePushMessage : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false);
         }
         if (key == "MESSAGE_POLL") {
-          return td_api::make_object<td_api::pushMessageContentPoll>(arg, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
+        }
+        break;
+      case 'Q':
+        if (key == "MESSAGE_QUIZ") {
+          return td_api::make_object<td_api::pushMessageContentPoll>(arg, false, is_pinned);
         }
         break;
       case 'S':
