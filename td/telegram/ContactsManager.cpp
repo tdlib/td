@@ -2975,6 +2975,8 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (have_access_hash) {
     parse(access_hash, parser);
+  } else {
+    is_min_access_hash = true;
   }
   if (has_photo) {
     parse(photo, parser);
@@ -6418,7 +6420,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   User *u = add_user(user_id, "on_get_user");
   if (have_access_hash) {  // access_hash must be updated before photo
     auto access_hash = user->access_hash_;
-    bool is_min_access_hash = !is_received && ((flags & USER_FLAG_HAS_PHONE_NUMBER) == 0);
+    bool is_min_access_hash = !is_received && !((flags & USER_FLAG_HAS_PHONE_NUMBER) != 0 && user->phone_.empty());
     if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash || u->access_hash == -1)) {
       LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << "/"
                  << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
@@ -6427,7 +6429,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       u->need_save_to_database = true;
     }
   }
-  if (is_received) {
+  if (is_received || !user->phone_.empty()) {
     on_update_user_phone_number(u, user_id, std::move(user->phone_));
   }
   on_update_user_photo(u, user_id, std::move(user->photo_), source);
@@ -6520,7 +6522,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_deleted != u->is_deleted) {
     u->is_deleted = is_deleted;
 
-    LOG(DEBUG) << "User.is_deleted has changed for " << user_id;
+    LOG(DEBUG) << "User.is_deleted has changed for " << user_id << " to " << u->is_deleted;
     u->is_is_deleted_changed = true;
     u->is_changed = true;
   }
@@ -6531,7 +6533,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (u->language_code != user->lang_code_ && !user->lang_code_.empty()) {
     u->language_code = user->lang_code_;
 
-    LOG(DEBUG) << "Language code has changed for " << user_id;
+    LOG(DEBUG) << "Language code has changed for " << user_id << " to " << u->language_code;
     u->is_changed = true;
   }
 
