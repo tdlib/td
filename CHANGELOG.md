@@ -54,6 +54,18 @@ Changes in 1.6.0:
   - Added the field `version` to the method `textParseModeMarkdown`. Versions 0 and 1 correspond to Bot API Markdown
     parse mode, version 2 to Bot API MarkdownV2 parse mode with underline, strikethrough and nested entities support.
   - The new entity types and nested entities are supported in secret chats also if its layer is at least 101.
+* Added support for native non-anonymous, multiple answer, and quiz-style polls:
+  - Added support for quiz-style polls, which has exactly one correct answer option and can be answered only once.
+  - Added support for regular polls, which allows multiple answers.
+  - Added the classes `pollTypeRegular` and `pollTypeQuiz`, representing the possible types of a poll.
+  - Added the field `type` to the classes `poll` and `inputMessagePoll`.
+  - Added support for non-anonymous polls with visible votes by adding the field `is_anonymous` to the classes `poll`
+    and `inputMessagePoll`.
+  - Added the method `getPollVoters`, returning users that voted for the specified option in a non-anonymous poll.
+  - Added the new reply markup keyboard button `keyboardButtonTypeRequestPoll`.
+  - Added the field `is_regular` to the class `pushMessageContentPoll`.
+  - Added the update `updatePollAnswer` for bots only.
+  - Added the field `is_closed` to the class `inputMessagePoll`, which can be used by bots to send a closed poll.
 * Clarified in the documentation that file remote ID is guaranteed to be usable only if the corresponding file is
   still accessible to the user and is known to TDLib. For example, if the file is from a message, then the message
   must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with
