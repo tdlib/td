@@ -1334,6 +1334,7 @@ messages.getScheduledMessages#bdbb0464 peer:InputPeer id:Vector<int> = messages.
 messages.sendScheduledMessages#bd38850a peer:InputPeer id:Vector<int> = Updates;
 messages.deleteScheduledMessages#59ae2b16 peer:InputPeer id:Vector<int> = Updates;
 messages.getPollVotes#b86e380e flags:# peer:InputPeer id:int option:flags.0?bytes offset:flags.1?string limit:int = messages.VotesList;
+messages.toggleStickerSets#b5052fea flags:# uninstall:flags.0?true archive:flags.1?true unarchive:flags.2?true stickersets:Vector<InputStickerSet> = Bool;
 
 updates.getState#edd4882a = updates.State;
 updates.getDifference#25939651 flags:# pts:int pts_total_limit:flags.0?int date:int qts:int = updates.Difference;
