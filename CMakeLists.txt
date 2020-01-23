@@ -4,7 +4,7 @@ project(TDLib VERSION 1.5.5 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
-endif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+endif()
 
 if (POLICY CMP0054)
   # do not expand quoted arguments
@@ -255,7 +255,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_custom_target(prepare_cross_compiling DEPENDS tl_generate_common tdmime_auto tl_generate_json)
   if (TD_ENABLE_DOTNET)
     add_custom_target(remove_cpp_documentation
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMAND remove_documentation ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
       COMMENT "Remove C++ documentation from sources"
       DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
@@ -709,7 +709,7 @@ else()
 endif()
 
 add_custom_target(git_commit ALL
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   COMMAND ${GIT_COMMIT_CMD}
   COMMENT "Generate git_commit.h"
 )
@@ -913,8 +913,8 @@ add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
 install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore TdStatic EXPORT TdTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
 )
@@ -922,26 +922,26 @@ install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient
 install(EXPORT TdTargets
   FILE TdTargets.cmake
   NAMESPACE Td::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Td
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
 )
 
-install(FILES ${TD_JSON_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h DESTINATION include/td/telegram)
+install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION include/td/telegram)
 install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION include/td/telegram)
 install(FILES td/tl/TlObject.h DESTINATION include/td/tl)
-install(FILES ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp DESTINATION include/td/telegram)
+install(FILES "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp" DESTINATION include/td/telegram)
 if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION include/td/tl)
 endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("TdConfigVersion.cmake"
-  VERSION ${TDLib_VERSION}
+  VERSION "${TDLib_VERSION}"
   COMPATIBILITY ExactVersion
 )
 install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmake"
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Td
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
 )
 
 # Add SOVERSION to shared libraries
-set_property(TARGET tdclient PROPERTY SOVERSION ${TDLib_VERSION})
-set_property(TARGET tdjson PROPERTY SOVERSION ${TDLib_VERSION})
+set_property(TARGET tdclient PROPERTY SOVERSION "${TDLib_VERSION}")
+set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
