@@ -110,7 +110,7 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
                      << tag("saved_system_time", saved_diff.system_time) << tag("system_time", system_time);
       }
       diff += time_backwards_fix;
-    } else {
+    } else if (saved_diff.system_time != 0) {
       const double MAX_TIME_FORWARD = 367 * 86400;  // if more than 1 year has passed, the session is logged out anyway
       if (saved_diff.system_time + MAX_TIME_FORWARD < system_time) {
         double time_forward_fix = system_time - (saved_diff.system_time + MAX_TIME_FORWARD);
