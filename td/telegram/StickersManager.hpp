@@ -229,25 +229,25 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->is_masks = is_masks;
       sticker_set->is_animated = is_animated;
 
-      short_name_to_sticker_set_id_.emplace(clean_username(sticker_set->short_name), StickerSetId(sticker_set_id));
+      short_name_to_sticker_set_id_.emplace(clean_username(sticker_set->short_name), sticker_set->id);
       on_update_sticker_set(sticker_set, is_installed, is_archived, false, true);
     } else {
       if (sticker_set->title != title) {
-        LOG(INFO) << "Title of " << sticker_set_id << " has changed";
+        LOG(INFO) << "Title of " << sticker_set->id << " has changed";
       }
       if (sticker_set->short_name != short_name) {
-        LOG(ERROR) << "Short name of " << sticker_set_id << " has changed from \"" << short_name << "\" to \""
+        LOG(ERROR) << "Short name of " << sticker_set->id << " has changed from \"" << short_name << "\" to \""
                    << sticker_set->short_name << "\"";
       }
       if (sticker_set->sticker_count != sticker_count || sticker_set->hash != hash) {
         sticker_set->is_loaded = false;
       }
       if (sticker_set->is_animated != is_animated) {
-        LOG(ERROR) << "Is animated of " << sticker_set_id << " has changed from \"" << is_animated << "\" to \""
+        LOG(ERROR) << "Is animated of " << sticker_set->id << " has changed from \"" << is_animated << "\" to \""
                    << sticker_set->is_animated << "\"";
       }
       if (sticker_set->is_masks != is_masks) {
-        LOG(ERROR) << "Is masks of " << sticker_set_id << " has changed from \"" << is_masks << "\" to \""
+        LOG(ERROR) << "Is masks of " << sticker_set->id << " has changed from \"" << is_masks << "\" to \""
                    << sticker_set->is_masks << "\"";
       }
     }

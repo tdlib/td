@@ -4407,7 +4407,7 @@ Status Td::init(DbKey key) {
   // that RequestKey was already sent.
   //
   // 3. During replay of binlog some queries may be sent to other actors. They shouldn't process such events before all
-  // their binlog events are processed. So actor may receive some old queries. It must be in it's actual state in
+  // their binlog events are processed. So actor may receive some old queries. It must be in its actual state in
   // orded to handle them properly.
   //
   // -- Use send_closure_later, so actors don't even start process binlog events, before all binlog events are sent
