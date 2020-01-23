@@ -16345,7 +16345,7 @@ void MessagesManager::add_active_live_location(FullMessageId full_message_id) {
 
   if (are_active_live_location_messages_loaded_) {
     save_active_live_locations();
-  } else {
+  } else if (load_active_live_location_messages_queries_.empty()) {
     // load active live locations and save after that
     get_active_live_location_messages(Auto());
   }
