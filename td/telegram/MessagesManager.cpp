@@ -16296,7 +16296,7 @@ void MessagesManager::on_load_active_live_location_full_message_ids_from_databas
 
   on_load_active_live_location_messages_finished();
 
-  if (!new_full_message_ids.empty()) {
+  if (!new_full_message_ids.empty() || old_full_message_ids.size() != active_live_location_full_message_ids_.size()) {
     save_active_live_locations();
   }
 }
