@@ -5,6 +5,12 @@ project(TDLib VERSION 1.5.5 LANGUAGES CXX C)
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
+if (NOT DEFINED CMAKE_INSTALL_BINDIR)
+  set(CMAKE_INSTALL_BINDIR "bin")
+endif()
+if (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
+  set(CMAKE_INSTALL_INCLUDEDIR "include")
+endif()
 
 if (POLICY CMP0054)
   # do not expand quoted arguments
@@ -915,8 +921,8 @@ add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore TdStatic EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
 install(EXPORT TdTargets
@@ -925,12 +931,12 @@ install(EXPORT TdTargets
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
 )
 
-install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION include/td/telegram)
-install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION include/td/telegram)
-install(FILES td/tl/TlObject.h DESTINATION include/td/tl)
-install(FILES "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp" DESTINATION include/td/telegram)
+install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+install(FILES td/tl/TlObject.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
+install(FILES "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
 if (TD_ENABLE_JNI)
-  install(FILES td/tl/tl_jni_object.h DESTINATION include/td/tl)
+  install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
 endif()
 
 include(CMakePackageConfigHelpers)

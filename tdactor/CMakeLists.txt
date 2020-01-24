@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
+if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
+  set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
 #SOURCE SETS
 set(TDACTOR_SOURCE
   td/actor/impl/ConcurrentScheduler.cpp
@@ -52,6 +56,4 @@ endif()
 install(TARGETS tdactor EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
 )
