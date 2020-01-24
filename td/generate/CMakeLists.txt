@@ -7,7 +7,7 @@ endif()
 file(MAKE_DIRECTORY auto/td/telegram)
 file(MAKE_DIRECTORY auto/td/mtproto)
 
-set(TL_TD_AUTO_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/auto PARENT_SCOPE)
+set(TL_TD_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto PARENT_SCOPE)
 
 set(TL_TD_AUTO
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/mtproto/mtproto_api.cpp

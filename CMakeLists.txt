@@ -301,7 +301,6 @@ endif()
 
 get_directory_property(HAS_PARENT PARENT_DIRECTORY)
 if (HAS_PARENT)
-  set(TL_TD_AUTO_INCLUDES ${TL_TD_AUTO_INCLUDES} PARENT_SCOPE)
   set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE)
   set(TL_TD_JSON_AUTO ${TL_TD_JSON_AUTO} PARENT_SCOPE)
   set(TD_TEST_SOURCE ${TD_TEST_SOURCE} PARENT_SCOPE)
@@ -740,7 +739,7 @@ endif()
 
 # tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
 add_library(tdcore STATIC ${TDLIB_SOURCE})
-target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>)
+target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 
@@ -766,7 +765,7 @@ endif()
 add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
 target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
+  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
 )
 target_link_libraries(tdclient PRIVATE tdcore)
 
@@ -785,7 +784,7 @@ if (TD_ENABLE_DOTNET)
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
   target_link_libraries(tddotnet PRIVATE tdclient tdutils)
   target_include_directories(tddotnet PUBLIC
-    $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
+    $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
   )
   if (NOT CMAKE_CROSSCOMPILING)
     add_dependencies(tddotnet generate_dotnet_api)
@@ -805,7 +804,7 @@ endif()
 add_library(tdc STATIC EXCLUDE_FROM_ALL ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h)
 target_include_directories(tdc PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>)
+  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_link_libraries(tdc PRIVATE tdclient tdutils)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdc tl_generate_c)
@@ -814,7 +813,7 @@ endif()
 add_library(tdjson_private STATIC ${TL_TD_JSON} td/telegram/ClientJson.cpp td/telegram/ClientJson.h)
 target_include_directories(tdjson_private PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>)
+  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_link_libraries(tdjson_private PUBLIC tdclient tdutils)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdjson_private tl_generate_common tl_generate_json)
@@ -934,7 +933,7 @@ install(EXPORT TdTargets
 install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
 install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
 install(FILES td/tl/TlObject.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
-install(FILES "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
 if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
 endif()
