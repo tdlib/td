@@ -26931,7 +26931,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   bool need_send_update = false;
   bool is_new_available = new_message->content->get_type() != MessageContentType::ChatDeleteHistory;
   bool replace_legacy = (old_message->legacy_layer != 0 &&
-                         (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer));
+                         (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer)) ||
+                        old_message->content->get_type() == MessageContentType::Unsupported;
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
       LOG_IF(ERROR, !is_scheduled && !new_message->is_outgoing && dialog_id != get_my_dialog_id())
@@ -27181,7 +27182,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         // MessageGame and MessageInvoice reply markup can be generated server side
         // some forwards retain their reply markup
         if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice &&
-            old_message->forward_info == nullptr) {
+            old_message->forward_info == nullptr && !replace_legacy) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup
                      << ", message content type is " << old_message->content->get_type() << '/'
                      << new_message->content->get_type();
