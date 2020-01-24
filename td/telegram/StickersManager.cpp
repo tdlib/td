@@ -2022,7 +2022,8 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
     }
   }
   if (static_cast<int>(s->sticker_ids.size()) != s->sticker_count) {
-    LOG(ERROR) << "Wrong sticker set size specified in " << set_id << " from " << source;
+    LOG(ERROR) << "Wrong sticker set size " << s->sticker_count << " instead of " << s->sticker_ids.size()
+               << " specified in " << set_id << " from " << source;
     s->sticker_count = static_cast<int>(s->sticker_ids.size());
   }
 
