@@ -1274,6 +1274,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           option.is_chosen = is_chosen;
           is_changed = true;
         }
+      }
+      if (!is_min || poll->is_closed) {
         bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
         if (is_correct) {
           if (correct_option_id != -1) {
