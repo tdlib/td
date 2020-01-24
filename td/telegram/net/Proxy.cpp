@@ -17,6 +17,9 @@ Result<Proxy> Proxy::from_td_api(string server, int port, td_api::ProxyType *pro
   if (server.empty()) {
     return Status::Error(400, "Server name can't be empty");
   }
+  if (server.size() > 255) {
+    return Status::Error(400, "Server name is too long");
+  }
   if (port <= 0 || port > 65535) {
     return Status::Error(400, "Wrong port number");
   }

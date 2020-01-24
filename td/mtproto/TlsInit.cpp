@@ -157,7 +157,7 @@ class TlsHelloContext {
     return grease_.size();
   }
   Slice get_domain() const {
-    return domain_;
+    return Slice(domain_).substr(0, 255);
   }
 
  private:
