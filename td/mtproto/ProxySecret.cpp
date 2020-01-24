@@ -24,6 +24,9 @@ Result<ProxySecret> ProxySecret::from_link(Slice encoded_secret) {
 }
 
 Result<ProxySecret> ProxySecret::from_binary(Slice raw_unchecked_secret) {
+  if (raw_unchecked_secret.size() > 17 + 255) {
+    return Status::Error(400, "Too long secret");
+  }
   if (raw_unchecked_secret.size() == 16 ||
       (raw_unchecked_secret.size() == 17 && static_cast<unsigned char>(raw_unchecked_secret[0]) == 0xdd) ||
       (raw_unchecked_secret.size() >= 18 && static_cast<unsigned char>(raw_unchecked_secret[0]) == 0xee)) {
