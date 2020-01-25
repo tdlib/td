@@ -6,6 +6,8 @@
 //
 #include "td/mtproto/TlsInit.h"
 
+#include "td/mtproto/ProxySecret.h"
+
 #include "td/utils/as.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/common.h"
@@ -157,7 +159,7 @@ class TlsHelloContext {
     return grease_.size();
   }
   Slice get_domain() const {
-    return Slice(domain_).substr(0, 255);
+    return Slice(domain_).substr(0, ProxySecret::MAX_DOMAIN_LENGTH);
   }
 
  private:
@@ -225,7 +227,7 @@ class TlsHelloCalcLength {
   }
 
   Result<size_t> finish() {
-    if (size_ > 515) {
+    if (size_ > 514) {
       on_error(Status::Error("Too long for zero padding"));
     }
     if (size_ < 11 + 32) {
