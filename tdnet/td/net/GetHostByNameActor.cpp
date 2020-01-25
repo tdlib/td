@@ -53,8 +53,8 @@ class GoogleDnsResolver : public Actor {
     });
     wget_ = create_actor<Wget>(
         "GoogleDnsResolver", std::move(wget_promise),
-        PSTRING() << "https://www.google.com/resolve?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
-        std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl, prefer_ipv6_,
+        PSTRING() << "https://dns.google/resolve?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
+        std::vector<std::pair<string, string>>({{"Host", "dns.google"}}), timeout, ttl, prefer_ipv6_,
         SslStream::VerifyPeer::Off);
   }
 

@@ -288,7 +288,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
                                         bool is_test, int32 scheduler_id) {
-  return get_simple_config_dns("www.google.com/resolve", "dns.google.com", std::move(promise), shared_config, is_test,
+  return get_simple_config_dns("dns.google/resolve", "dns.google", std::move(promise), shared_config, is_test,
                                scheduler_id);
 }
 
