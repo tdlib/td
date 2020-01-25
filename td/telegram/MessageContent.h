@@ -208,6 +208,9 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id);
 
+void reregister_message_content(Td *td, const MessageContent *old_content, const MessageContent *new_content,
+                                FullMessageId full_message_id);
+
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id);
 
 unique_ptr<MessageContent> get_secret_message_content(

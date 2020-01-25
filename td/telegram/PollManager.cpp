@@ -304,7 +304,7 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
   }
 
   for (auto full_message_id : it->second) {
-    td_->messages_manager_->on_update_message_content(full_message_id);
+    td_->messages_manager_->on_external_update_message_content(full_message_id);
   }
 }
 

@@ -3486,6 +3486,29 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
   }
 }
 
+void reregister_message_content(Td *td, const MessageContent *old_content, const MessageContent *new_content,
+                                FullMessageId full_message_id) {
+  if (full_message_id.get_message_id().is_scheduled()) {
+    return;
+  }
+  auto old_content_type = old_content->get_type();
+  auto new_content_type = new_content->get_type();
+  if (old_content_type == new_content_type) {
+    switch (old_content_type) {
+      case MessageContentType::Poll:
+        if (static_cast<const MessagePoll *>(old_content)->poll_id ==
+            static_cast<const MessagePoll *>(new_content)->poll_id) {
+          return;
+        }
+        break;
+      default:
+        return;
+    }
+  }
+  unregister_message_content(td, old_content, full_message_id);
+  register_message_content(td, new_content, full_message_id);
+}
+
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
   if (full_message_id.get_message_id().is_scheduled()) {
     return;

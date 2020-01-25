@@ -5744,15 +5744,17 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
   promise.set_value(Unit());
 }
 
-void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
+void MessagesManager::on_external_update_message_content(FullMessageId full_message_id) {
   const Dialog *d = get_dialog(full_message_id.get_dialog_id());
   CHECK(d != nullptr);
   const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), live_location_date,
-                              m->is_content_secret, "on_update_message_content");
-  on_message_changed(d, m, true, "on_update_message_content");
+                              m->is_content_secret, "on_external_update_message_content");
+  if (m->message_id == d->last_message_id) {
+    send_update_chat_last_message_impl(d, "on_external_update_message_content");
+  }
 }
 
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
@@ -11870,18 +11872,16 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     return;
   }
 
-  unregister_message_content(td_, m->content.get(), full_message_id);
-
   bool need_update = false;
   bool is_content_changed = false;
   merge_message_contents(td_, m->content.get(), new_content.get(), need_message_changed_warning(m), dialog_id, false,
                          is_content_changed, need_update);
 
   if (is_content_changed || need_update) {
+    reregister_message_content(td_, m->content.get(), new_content.get(), full_message_id);
     m->content = std::move(new_content);
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
-  register_message_content(td_, m->content.get(), full_message_id);
   if (need_update) {
     send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
                                 "on_update_sent_text_message");
@@ -11914,10 +11914,12 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
   CHECK(content->get_type() == MessageContentType::Text);
 
   if (!have_web_page) {
+    unregister_message_content(td_, content, full_message_id);
     set_message_content_web_page_id(content, WebPageId());
-    // don't need to send an update
+    register_message_content(td_, content, full_message_id);
 
-    on_message_changed(d, m, true, "on_update_message_web_page");
+    // don't need to send an update, because the web page was pending
+    on_message_changed(d, m, false, "on_update_message_web_page");
     return;
   }
 
@@ -27333,12 +27335,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
 
   if (is_content_changed || need_update) {
     if (is_message_in_dialog) {
-      unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
+      reregister_message_content(td_, old_content.get(), new_content.get(), {dialog_id, old_message->message_id});
     }
     old_content = std::move(new_content);
-    if (is_message_in_dialog) {
-      register_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
-    }
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
