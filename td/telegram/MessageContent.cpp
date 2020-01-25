@@ -3475,9 +3475,6 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 }
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
-  if (full_message_id.get_message_id().is_scheduled()) {
-    return;
-  }
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
@@ -3488,9 +3485,6 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
 
 void reregister_message_content(Td *td, const MessageContent *old_content, const MessageContent *new_content,
                                 FullMessageId full_message_id) {
-  if (full_message_id.get_message_id().is_scheduled()) {
-    return;
-  }
   auto old_content_type = old_content->get_type();
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
@@ -3510,9 +3504,6 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 }
 
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
-  if (full_message_id.get_message_id().is_scheduled()) {
-    return;
-  }
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);

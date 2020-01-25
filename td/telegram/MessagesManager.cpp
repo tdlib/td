@@ -12853,6 +12853,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   cancel_send_deleted_message(d->dialog_id, result.get(), is_permanently_deleted);
 
+  unregister_message_content(td_, result->content.get(), {d->dialog_id, message_id});
+
   return result;
 }
 
@@ -26573,6 +26575,8 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   reget_message_from_server_if_needed(dialog_id, m);
 
   add_message_file_sources(dialog_id, m);
+
+  register_message_content(td_, m->content.get(), {dialog_id, m->message_id});
 
   if (from_update) {
     update_sent_message_contents(dialog_id, m);
