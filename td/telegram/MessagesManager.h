@@ -266,7 +266,7 @@ class MessagesManager : public Actor {
   void on_update_sent_text_message(int64 random_id, tl_object_ptr<telegram_api::MessageMedia> message_media,
                                    vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities);
 
-  void on_update_message_web_page(FullMessageId full_message_id, bool have_web_page);
+  void delete_pending_message_web_page(FullMessageId full_message_id);
 
   void on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<telegram_api::Dialog>> &&dialog_folders,
                       int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -2625,8 +2625,6 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, uint64, DialogIdHash> get_dialog_query_logevent_id_;
 
   std::unordered_map<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
-
-  std::unordered_set<FullMessageId, FullMessageIdHash> waiting_for_web_page_messages_;
 
   struct ActiveDialogAction {
     UserId user_id;

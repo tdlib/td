@@ -11888,43 +11888,21 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
 }
 
-void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, bool have_web_page) {
-  waiting_for_web_page_messages_.erase(full_message_id);
+void MessagesManager::delete_pending_message_web_page(FullMessageId full_message_id) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
-  if (d == nullptr) {
-    LOG(INFO) << "Can't find " << dialog_id;
-    // dialog can be not yet added
-    return;
-  }
+  CHECK(d != nullptr);
   Message *m = get_message(d, full_message_id.get_message_id());
-  if (m == nullptr) {
-    // message can be already deleted
-    return;
-  }
-  CHECK(m->date > 0);
+  CHECK(m != nullptr);
 
   MessageContent *content = m->content.get();
-  auto old_web_page_id = get_message_content_web_page_id(content);
-  if (!old_web_page_id.is_valid()) {
-    // webpage has already been received as empty
-    LOG_IF(ERROR, have_web_page) << "Receive earlier not received web page";
-    return;
-  }
-  CHECK(content->get_type() == MessageContentType::Text);
+  unregister_message_content(td_, content, full_message_id);
+  remove_message_content_web_page(content);
+  register_message_content(td_, content, full_message_id);
 
-  if (!have_web_page) {
-    unregister_message_content(td_, content, full_message_id);
-    set_message_content_web_page_id(content, WebPageId());
-    register_message_content(td_, content, full_message_id);
+  // don't need to send an updateMessageContent, because the web page was pending
 
-    // don't need to send an update, because the web page was pending
-    on_message_changed(d, m, false, "on_update_message_web_page");
-    return;
-  }
-
-  send_update_message_content(dialog_id, m->message_id, content, m->date, m->is_content_secret,
-                              "on_update_message_web_page");
+  on_message_changed(d, m, false, "delete_pending_message_web_page");
 }
 
 void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<telegram_api::Dialog>> &&dialog_folders,
@@ -12324,7 +12302,6 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   CHECK(m->message_id.is_valid());
   // don't want to unload messages from opened dialogs
   // don't want to unload messages to which there are replies in yet unsent messages
-  // don't want to unload messages with pending web pages
   // don't want to unload message with active reply markup
   // don't want to unload pinned message
   // don't want to unload last edited message, because server can send updateEditChannelMessage again
@@ -12334,9 +12311,8 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
-         waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty() &&
-         m->message_id != d->reply_markup_message_id && m->message_id != d->pinned_message_id &&
-         m->message_id != d->last_edited_message_id;
+         d->suffix_load_queries_.empty() && m->message_id != d->reply_markup_message_id &&
+         m->message_id != d->pinned_message_id && m->message_id != d->last_edited_message_id;
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -17152,12 +17128,6 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     message->from_database = true;
 
     auto old_message = get_message(d, message->message_id);
-    if (old_message == nullptr) {
-      auto web_page_id = get_message_content_web_page_id(message->content.get());
-      if (web_page_id.is_valid()) {
-        td_->web_pages_manager_->have_web_page_force(web_page_id);
-      }
-    }
     Message *m = old_message ? old_message
                              : add_message_to_dialog(d, std::move(message), false, &need_update,
                                                      &need_update_dialog_pos, "on_get_history_from_database");
@@ -17463,10 +17433,6 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
       continue;
     }
 
-    auto web_page_id = get_message_content_web_page_id(message->content.get());
-    if (web_page_id.is_valid()) {
-      td_->web_pages_manager_->have_web_page_force(web_page_id);
-    }
     bool need_update = false;
     Message *m = add_scheduled_message_to_dialog(d, std::move(message), false, &need_update,
                                                  "on_get_scheduled_messages_from_database");
@@ -25948,13 +25914,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  auto web_page_id = get_message_content_web_page_id(message->content.get());
-  if (web_page_id.is_valid() && !td_->web_pages_manager_->have_web_page(web_page_id)) {
-    waiting_for_web_page_messages_.emplace(dialog_id, message_id);
-    send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page,
-                 FullMessageId{dialog_id, message_id}, web_page_id);
-  }
-
   if (*need_update && message_id <= d->last_new_message_id) {
     *need_update = false;
   }
@@ -26525,13 +26484,6 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
                << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding message of unexpected type";
     return nullptr;
-  }
-
-  auto web_page_id = get_message_content_web_page_id(message->content.get());
-  if (web_page_id.is_valid() && !td_->web_pages_manager_->have_web_page(web_page_id)) {
-    waiting_for_web_page_messages_.emplace(dialog_id, message_id);
-    send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page,
-                 FullMessageId{dialog_id, message_id}, web_page_id);
   }
 
   {

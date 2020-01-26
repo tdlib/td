@@ -13,7 +13,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
-#include "td/telegram/Photo.h"
+#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/WebPageId.h"
 
 #include "td/actor/actor.h"
@@ -47,7 +47,9 @@ class WebPagesManager : public Actor {
 
   void on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database);
 
-  void wait_for_pending_web_page(FullMessageId full_message_id, WebPageId web_page_id);
+  void register_web_page(WebPageId web_page_id, FullMessageId full_message_id);
+
+  void unregister_web_page(WebPageId web_page_id, FullMessageId full_message_id);
 
   bool have_web_page(WebPageId web_page_id) const;
 
@@ -111,7 +113,7 @@ class WebPagesManager : public Actor {
   static bool need_use_old_instant_view(const WebPageInstantView &new_instant_view,
                                         const WebPageInstantView &old_instant_view);
 
-  void update_messages_content(WebPageId web_page_id, bool have_web_page);
+  void on_web_page_changed(WebPageId web_page_id, bool have_web_page);
 
   const WebPage *get_web_page(WebPageId web_page_id) const;
 
@@ -181,7 +183,8 @@ class WebPagesManager : public Actor {
   };
   std::unordered_map<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
-  std::unordered_map<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> pending_web_pages_;
+  std::unordered_map<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
+
   std::unordered_map<WebPageId, std::unordered_map<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash>
       pending_get_web_pages_;
 

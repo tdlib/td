@@ -186,9 +186,7 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
 
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
-WebPageId get_message_content_web_page_id(const MessageContent *content);
-
-void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id);
+void remove_message_content_web_page(MessageContent *content);
 
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);

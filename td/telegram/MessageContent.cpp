@@ -2807,16 +2807,11 @@ bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *c
   }
 }
 
-WebPageId get_message_content_web_page_id(const MessageContent *content) {
-  if (content->get_type() == MessageContentType::Text) {
-    return static_cast<const MessageText *>(content)->web_page_id;
-  }
-  return WebPageId();
-}
-
-void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id) {
+void remove_message_content_web_page(MessageContent *content) {
   CHECK(content->get_type() == MessageContentType::Text);
-  static_cast<MessageText *>(content)->web_page_id = web_page_id;
+  auto &web_page_id = static_cast<MessageText *>(content)->web_page_id;
+  CHECK(web_page_id.is_valid());
+  web_page_id = WebPageId();
 }
 
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
@@ -3476,6 +3471,9 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
   switch (content->get_type()) {
+    case MessageContentType::Text:
+      return td->web_pages_manager_->register_web_page(static_cast<const MessageText *>(content)->web_page_id,
+                                                       full_message_id);
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
     default:
@@ -3489,6 +3487,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
     switch (old_content_type) {
+      case MessageContentType::Text:
+        if (static_cast<const MessageText *>(old_content)->web_page_id ==
+            static_cast<const MessageText *>(new_content)->web_page_id) {
+          return;
+        }
+        break;
       case MessageContentType::Poll:
         if (static_cast<const MessagePoll *>(old_content)->poll_id ==
             static_cast<const MessagePoll *>(new_content)->poll_id) {
@@ -3505,6 +3509,9 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
   switch (content->get_type()) {
+    case MessageContentType::Text:
+      return td->web_pages_manager_->unregister_web_page(static_cast<const MessageText *>(content)->web_page_id,
+                                                         full_message_id);
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
     default:
