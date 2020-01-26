@@ -56,6 +56,14 @@ void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   }
 }
 
+bool operator==(const Document &lhs, const Document &rhs) {
+  return lhs.type == rhs.type && lhs.file_id == rhs.file_id;
+}
+
+bool operator!=(const Document &lhs, const Document &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const Document::Type &document_type) {
   switch (document_type) {
     case Document::Type::Unknown:

@@ -361,6 +361,16 @@ class WebPagesManager::WebPage {
       instant_view.is_v2 = true;
     }
   }
+
+  friend bool operator==(const WebPage &lhs, const WebPage &rhs) {
+    return lhs.url == rhs.url && lhs.display_url == rhs.display_url && lhs.type == rhs.type &&
+           lhs.site_name == rhs.site_name && lhs.title == rhs.title && lhs.description == rhs.description &&
+           lhs.photo == rhs.photo && lhs.type == rhs.type && lhs.embed_url == rhs.embed_url &&
+           lhs.embed_type == rhs.embed_type && lhs.embed_dimensions == rhs.embed_dimensions &&
+           lhs.duration == rhs.duration && lhs.author == rhs.author && lhs.document == rhs.document &&
+           lhs.documents == rhs.documents && lhs.instant_view.is_empty == rhs.instant_view.is_empty &&
+           lhs.instant_view.is_v2 == rhs.instant_view.is_v2;
+  }
 };
 
 WebPagesManager::WebPagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -518,7 +528,12 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   auto &page = web_pages_[web_page_id];
   auto old_file_ids = get_web_page_file_ids(page.get());
   WebPageInstantView old_instant_view;
+  bool is_changed = true;
   if (page != nullptr) {
+    if (*page == *web_page) {
+      is_changed = false;
+    }
+
     old_instant_view = std::move(page->instant_view);
     web_page->logevent_id = page->logevent_id;
   } else {
@@ -539,6 +554,10 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   }
 
   on_get_web_page_by_url(page->url, web_page_id, from_database);
+
+  if (!is_changed) {
+    return;
+  }
 
   update_messages_content(web_page_id, true);
 
@@ -626,15 +645,17 @@ bool WebPagesManager::need_use_old_instant_view(const WebPageInstantView &new_in
 }
 
 void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database) {
+  auto &cached_web_page_id = url_to_web_page_id_[url];
   if (!from_database && G()->parameters().use_message_db) {
     if (web_page_id.is_valid()) {
-      G()->td_db()->get_sqlite_pmc()->set(get_web_page_url_database_key(url), to_string(web_page_id.get()), Auto());
+      if (cached_web_page_id != web_page_id) {  //not already saved
+        G()->td_db()->get_sqlite_pmc()->set(get_web_page_url_database_key(url), to_string(web_page_id.get()), Auto());
+      }
     } else {
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_url_database_key(url), Auto());
     }
   }
 
-  auto &cached_web_page_id = url_to_web_page_id_[url];
   if (cached_web_page_id.is_valid() && web_page_id.is_valid() && web_page_id != cached_web_page_id) {
     LOG(ERROR) << "Url \"" << url << "\" preview is changed from " << cached_web_page_id << " to " << web_page_id;
   }

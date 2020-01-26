@@ -35,6 +35,10 @@ struct Document {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 };
 
+bool operator==(const Document &lhs, const Document &rhs);
+
+bool operator!=(const Document &lhs, const Document &rhs);
+
 StringBuilder &operator<<(StringBuilder &string_builder, const Document::Type &document_type);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Document &document);
