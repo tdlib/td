@@ -46,7 +46,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogCategory.h"
-#include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/WebPageId.h"
@@ -29055,8 +29054,7 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
   bool is_forward = m->forward_info != nullptr || m->had_forward_info;
   if (m->via_bot_user_id.is_valid() && !is_forward) {
     // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
-    send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
-                 DialogId(m->via_bot_user_id), m->date);
+    on_dialog_used(TopDialogCategory::BotInline, DialogId(m->via_bot_user_id), m->date);
   }
 
   if (is_forward) {
@@ -29064,7 +29062,7 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
     if (last_forward_date < m->date) {
       TopDialogCategory category =
           dialog_type == DialogType::User ? TopDialogCategory::ForwardUsers : TopDialogCategory::ForwardChats;
-      send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
+      on_dialog_used(category, dialog_id, m->date);
       last_forward_date = m->date;
     }
   }
@@ -29103,7 +29101,7 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
       UNREACHABLE();
   }
   if (category != TopDialogCategory::Size) {
-    send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, m->date);
+    on_dialog_used(category, dialog_id, m->date);
   }
 }
 
