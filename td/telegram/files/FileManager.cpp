@@ -3522,7 +3522,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     node->set_generate_location(nullptr);
   }
 
-  if (status.message() == "FILE_ID_INVALID" && FileView(node).may_reload_photo()) {
+  if ((status.message() == "FILE_ID_INVALID" || status.message() == "LOCATION_INVALID") &&
+      FileView(node).may_reload_photo()) {
     node->need_reload_photo_ = true;
     run_download(node);
     return;
