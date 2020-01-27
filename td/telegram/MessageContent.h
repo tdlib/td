@@ -268,4 +268,6 @@ StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet
 
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
+void update_used_hashtags(Td *td, const MessageContent *content);
+
 }  // namespace td

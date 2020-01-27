@@ -20,7 +20,6 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
@@ -29014,33 +29013,8 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
       m->via_bot_user_id.is_valid() || m->hide_via_bot || m->forward_info != nullptr || m->had_forward_info) {
     return;
   }
-  const FormattedText *text = get_message_content_text(m->content.get());
-  if (text == nullptr || text->text.empty()) {
-    return;
-  }
-  const unsigned char *ptr = Slice(text->text).ubegin();
-  const unsigned char *end = Slice(text->text).uend();
-  int32 utf16_pos = 0;
-  for (auto &entity : text->entities) {
-    if (entity.type != MessageEntity::Type::Hashtag) {
-      continue;
-    }
-    while (utf16_pos < entity.offset && ptr < end) {
-      utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags");
-    }
-    CHECK(utf16_pos == entity.offset);
-    auto from = ptr;
 
-    while (utf16_pos < entity.offset + entity.length && ptr < end) {
-      utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags 2");
-    }
-    CHECK(utf16_pos == entity.offset + entity.length);
-    auto to = ptr;
-
-    send_closure(td_->hashtag_hints_, &HashtagHints::hashtag_used, Slice(from + 1, to).str());
-  }
+  ::td::update_used_hashtags(td_, m->content.get());
 }
 
 void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
