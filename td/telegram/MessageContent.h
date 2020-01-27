@@ -16,6 +16,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -29,6 +30,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+
+#include <utility>
 
 namespace td {
 

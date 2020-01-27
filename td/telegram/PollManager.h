@@ -18,11 +18,13 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace td {
 

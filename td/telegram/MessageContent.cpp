@@ -64,6 +64,7 @@
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 
@@ -73,6 +74,7 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
