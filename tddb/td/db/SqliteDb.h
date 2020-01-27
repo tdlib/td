@@ -81,7 +81,7 @@ class SqliteDb {
   }
   std::shared_ptr<detail::RawSqliteDb> raw_;
 
-  bool is_encrypted();
+  Status check_encryption();
 };
 
 }  // namespace td
