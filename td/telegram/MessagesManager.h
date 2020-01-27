@@ -24,7 +24,6 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
@@ -74,11 +73,15 @@ namespace td {
 
 struct BinlogEvent;
 
-class Td;
+class DraftMessage;
+
+struct InputMessageContent;
+
+class MessageContent;
 
 class MultiSequenceDispatcher;
 
-class DraftMessage;
+class Td;
 
 class dummyUpdate : public telegram_api::Update {
  public:
