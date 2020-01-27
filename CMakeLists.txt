@@ -380,6 +380,7 @@ set(TDLIB_SOURCE
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
   td/telegram/DelayDispatcher.cpp
+  td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
   td/telegram/DhCache.cpp
   td/telegram/DialogAdministrator.cpp

@@ -7535,7 +7535,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   Dependencies dependencies;
   dependencies.user_ids.insert(user_id);
-  td_->messages_manager_->resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   if (user_full->need_phone_number_privacy_exception && is_user_contact(user_id)) {
     user_full->need_phone_number_privacy_exception = false;
@@ -7705,7 +7705,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     dependencies.user_ids.insert(participant.user_id);
     dependencies.user_ids.insert(participant.inviter_user_id);
   }
-  td_->messages_manager_->resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   for (auto &participant : chat_full->participants) {
     get_bot_info_force(participant.user_id);
@@ -7778,10 +7778,10 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   Dependencies dependencies;
   dependencies.channel_ids.insert(channel_id);
-  td_->messages_manager_->add_dialog_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
+  MessagesManager::add_dialog_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
-  td_->messages_manager_->resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   for (auto &user_id : channel_full->bot_user_ids) {
     get_bot_info_force(user_id);

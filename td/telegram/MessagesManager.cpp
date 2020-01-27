@@ -49,7 +49,6 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/WebPageId.h"
-#include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
@@ -12874,7 +12873,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&
       add_dialog_dependencies(dependencies, dialog_id);
     }
   }
-  resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   for (auto dialog_id : dialog_ids) {
     if (dialog_id.is_valid()) {
@@ -17164,7 +17163,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     is_first = false;
     pos++;
   }
-  resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   if (!added_new_message && !only_local && dialog_id.get_type() != DialogType::SecretChat) {
     if (from_the_end) {
@@ -17441,7 +17440,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
       added_message_ids.push_back(m->message_id);
     }
   }
-  resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   for (auto message_id : added_message_ids) {
     send_update_new_message(d, get_message(d, message_id));
@@ -18120,40 +18119,6 @@ void MessagesManager::add_dialog_dependencies(Dependencies &dependencies, Dialog
       break;
     default:
       UNREACHABLE();
-  }
-}
-
-void MessagesManager::resolve_dependencies_force(const Dependencies &dependencies) {
-  for (auto user_id : dependencies.user_ids) {
-    if (user_id.is_valid() && !td_->contacts_manager_->have_user_force(user_id)) {
-      LOG(ERROR) << "Can't find " << user_id;
-    }
-  }
-  for (auto chat_id : dependencies.chat_ids) {
-    if (chat_id.is_valid() && !td_->contacts_manager_->have_chat_force(chat_id)) {
-      LOG(ERROR) << "Can't find " << chat_id;
-    }
-  }
-  for (auto channel_id : dependencies.channel_ids) {
-    if (channel_id.is_valid() && !td_->contacts_manager_->have_channel_force(channel_id)) {
-      LOG(ERROR) << "Can't find " << channel_id;
-    }
-  }
-  for (auto secret_chat_id : dependencies.secret_chat_ids) {
-    if (secret_chat_id.is_valid() && !td_->contacts_manager_->have_secret_chat_force(secret_chat_id)) {
-      LOG(ERROR) << "Can't find " << secret_chat_id;
-    }
-  }
-  for (auto dialog_id : dependencies.dialog_ids) {
-    if (dialog_id.is_valid() && !have_dialog_force(dialog_id)) {
-      LOG(ERROR) << "Can't find " << dialog_id;
-      force_create_dialog(dialog_id, "resolve_dependencies_force");
-    }
-  }
-  for (auto web_page_id : dependencies.web_page_ids) {
-    if (web_page_id.is_valid()) {
-      td_->web_pages_manager_->have_web_page_force(web_page_id);
-    }
   }
 }
 
@@ -25713,7 +25678,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   Dependencies dependencies;
   add_message_dependencies(dependencies, d->dialog_id, m.get());
-  resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   m->have_previous = false;
   m->have_next = false;
@@ -28339,7 +28304,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
-  resolve_dependencies_force(dependencies);
+  resolve_dependencies_force(td_, dependencies);
 
   return d;
 }
@@ -29227,7 +29192,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
 
@@ -29255,7 +29220,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         auto bot_user_id = log_event.bot_user_id;
         if (!td_->contacts_manager_->have_user_force(bot_user_id)) {
@@ -29292,7 +29257,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot);
 
@@ -29320,7 +29285,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -29347,7 +29312,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         for (auto &m : messages) {
           add_message_dependencies(dependencies, to_dialog_id, m.get());
         }
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         Dialog *to_dialog = get_dialog_force(to_dialog_id);
         if (to_dialog == nullptr) {
@@ -29775,7 +29740,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        resolve_dependencies_force(dependencies);
+        resolve_dependencies_force(td_, dependencies);
 
         get_dialog_force(dialog_id);  // load it if exists
 

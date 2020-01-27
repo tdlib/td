@@ -17,6 +17,8 @@
 
 namespace td {
 
+class Td;
+
 struct Dependencies {
   std::unordered_set<UserId, UserIdHash> user_ids;
   std::unordered_set<ChatId, ChatIdHash> chat_ids;
@@ -25,5 +27,7 @@ struct Dependencies {
   std::unordered_set<DialogId, DialogIdHash> dialog_ids;
   std::unordered_set<WebPageId, WebPageIdHash> web_page_ids;
 };
+
+void resolve_dependencies_force(Td *td, const Dependencies &dependencies);
 
 }  // namespace td

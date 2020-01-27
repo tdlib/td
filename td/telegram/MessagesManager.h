@@ -824,8 +824,6 @@ class MessagesManager : public Actor {
 
   static void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
 
-  void resolve_dependencies_force(const Dependencies &dependencies);
-
   ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
 
  private:
