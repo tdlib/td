@@ -35,7 +35,6 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 
@@ -7894,13 +7893,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
   if (u->is_deleted) {
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());
-    /*
-    DialogId dialog_id(user_id);
-    for (auto category : {TopDialogCategory::Correspondent, TopDialogCategory::BotPM, TopDialogCategory::BotInline}) {
-      send_closure(G()->top_dialog_manager(), &TopDialogManager::delete_dialog, category, dialog_id,
-                   get_input_peer_user(user_id, AccessRights::Read));
-    }
-    */
   }
 
   LOG(DEBUG) << "Update " << user_id << ": need_save_to_database = " << u->need_save_to_database

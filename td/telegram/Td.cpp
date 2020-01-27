@@ -80,6 +80,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/VideoNotesManager.h"

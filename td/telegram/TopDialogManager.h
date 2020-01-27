@@ -9,11 +9,11 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/DialogId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/TopDialogCategory.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Time.h"
@@ -22,39 +22,6 @@
 #include <utility>
 
 namespace td {
-
-enum class TopDialogCategory : int32 {
-  Correspondent,
-  BotPM,
-  BotInline,
-  Group,
-  Channel,
-  Call,
-  ForwardUsers,
-  ForwardChats,
-  Size
-};
-
-inline TopDialogCategory top_dialog_category_from_td_api(const td_api::TopChatCategory &category) {
-  switch (category.get_id()) {
-    case td_api::topChatCategoryUsers::ID:
-      return TopDialogCategory::Correspondent;
-    case td_api::topChatCategoryBots::ID:
-      return TopDialogCategory::BotPM;
-    case td_api::topChatCategoryInlineBots::ID:
-      return TopDialogCategory::BotInline;
-    case td_api::topChatCategoryGroups::ID:
-      return TopDialogCategory::Group;
-    case td_api::topChatCategoryChannels::ID:
-      return TopDialogCategory::Channel;
-    case td_api::topChatCategoryCalls::ID:
-      return TopDialogCategory::Call;
-    case td_api::topChatCategoryForwardChats::ID:
-      return TopDialogCategory::ForwardUsers;
-    default:
-      UNREACHABLE();
-  }
-}
 
 class TopDialogManager : public NetQueryCallback {
  public:
