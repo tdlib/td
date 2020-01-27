@@ -91,7 +91,7 @@ You can also see [JTDLib](https://github.com/ErnyTech/JTDLib) for another exampl
 <a name="kotlin"></a>
 ## Using TDLib in Kotlin projects
 
-TDLib can be used from the Kotlin/JVM programming language through same way as in [JAVA](#java).
+TDLib can be used from the Kotlin/JVM programming language through same way as in [Java](#java).
 
 You can also use [ktd](https://github.com/whyoleg/ktd) library with kotlin specific bindings.
 

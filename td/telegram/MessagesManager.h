@@ -1069,11 +1069,6 @@ class MessagesManager : public Actor {
     MessageId being_updated_last_new_message_id;
     MessageId being_updated_last_database_message_id;
     MessageId being_deleted_message_id;
-    const char *debug_being_deleted_message_id_source = "";
-    bool debug_being_added_need_update = false;   // TODO remove
-    MessageId debug_preloaded_pinned_message_id;  // TODO remove
-    MessageId debug_added_pinned_message_id;      // TODO remove
-    const char *debug_add_message_to_dialog_fail_reason = "";
 
     NotificationGroupInfo message_notification_group;
     NotificationGroupInfo mention_notification_group;

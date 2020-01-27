@@ -12578,10 +12578,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     return nullptr;
   }
 
-  LOG_CHECK(!d->being_deleted_message_id.is_valid()) << d->being_deleted_message_id << " " << message_id << " "
-                                                     << d->debug_being_deleted_message_id_source << " " << source;
+  LOG_CHECK(!d->being_deleted_message_id.is_valid())
+      << d->being_deleted_message_id << " " << message_id << " " << source;
   d->being_deleted_message_id = message_id;
-  d->debug_being_deleted_message_id_source = source;
 
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
@@ -12708,7 +12707,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   auto result = treap_delete_message(v);
 
   d->being_deleted_message_id = MessageId();
-  d->debug_being_deleted_message_id_source = "";
 
   if (!only_from_memory) {
     if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
@@ -25810,7 +25808,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message_id.is_server()) {
       if (d->being_added_message_id.is_valid()) {
         // if a too new message not from update has failed to preload before being_added_message_id was set,
-        // then it should fail to load event after it is set and last_new_message_id has changed
+        // then it should fail to load even after it is set and last_new_message_id has changed
         max_message_id = d->being_updated_last_new_message_id;
       } else {
         max_message_id = d->last_new_message_id;
@@ -26012,19 +26010,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   // there must be no two recursive calls to add_message_to_dialog
   LOG_CHECK(!d->being_added_message_id.is_valid())
       << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
-      << d->debug_being_added_need_update << " " << d->pinned_message_notification_message_id << " "
-      << preloaded_pinned_message_id << " " << d->debug_preloaded_pinned_message_id << " "
-      << d->debug_added_pinned_message_id << " " << d->debug_add_message_to_dialog_fail_reason << " " << source;
-  LOG_CHECK(!d->being_deleted_message_id.is_valid()) << d->being_deleted_message_id << " " << message_id << " "
-                                                     << d->debug_being_deleted_message_id_source << " " << source;
+      << d->pinned_message_notification_message_id << " " << preloaded_pinned_message_id << " " << source;
+  LOG_CHECK(!d->being_deleted_message_id.is_valid())
+      << d->being_deleted_message_id << " " << message_id << " " << source;
 
   d->being_added_message_id = message_id;
   d->being_updated_last_new_message_id = d->last_new_message_id;
   d->being_updated_last_database_message_id = d->last_database_message_id;
-  d->debug_being_added_need_update = *need_update;
-  d->debug_preloaded_pinned_message_id = preloaded_pinned_message_id;
-  d->debug_added_pinned_message_id = added_pinned_message_id;
-  d->debug_add_message_to_dialog_fail_reason = add_error_reason;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
