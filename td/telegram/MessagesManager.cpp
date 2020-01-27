@@ -25990,7 +25990,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   MessageId added_pinned_message_id;      // TODO remove
   MessageId preloaded_pinned_message_id;  // TODO remove
-  const char *add_error_reason = "";
   if (*need_update) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     added_pinned_message_id = pinned_message_id;
@@ -25998,7 +25997,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       preloaded_pinned_message_id = pinned_message_id;
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
-    add_error_reason = debug_add_message_to_dialog_fail_reason_;
 
     if (d->pinned_message_notification_message_id.is_valid() &&
         have_message_force({dialog_id, d->pinned_message_notification_message_id},
