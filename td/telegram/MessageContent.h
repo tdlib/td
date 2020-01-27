@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
@@ -29,7 +30,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
-#include "td/utils/StringBuilder.h"
 
 #include <utility>
 
@@ -40,53 +40,6 @@ struct Photo;
 class Td;
 
 class MultiPromiseActor;
-
-enum class MessageContentType : int32 {
-  None = -1,
-  Text,
-  Animation,
-  Audio,
-  Document,
-  Photo,
-  Sticker,
-  Video,
-  VoiceNote,
-  Contact,
-  Location,
-  Venue,
-  ChatCreate,
-  ChatChangeTitle,
-  ChatChangePhoto,
-  ChatDeletePhoto,
-  ChatDeleteHistory,
-  ChatAddUsers,
-  ChatJoinedByLink,
-  ChatDeleteUser,
-  ChatMigrateTo,
-  ChannelCreate,
-  ChannelMigrateFrom,
-  PinMessage,
-  Game,
-  GameScore,
-  ScreenshotTaken,
-  ChatSetTtl,
-  Unsupported,
-  Call,
-  Invoice,
-  PaymentSuccessful,
-  VideoNote,
-  ContactRegistered,
-  ExpiredPhoto,
-  ExpiredVideo,
-  LiveLocation,
-  CustomServiceAction,
-  WebsiteConnected,
-  PassportDataSent,
-  PassportDataReceived,
-  Poll
-};
-
-StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
 
 // Do not forget to update merge_message_contents when one of the inheritors of this class changes
 class MessageContent {
@@ -162,15 +115,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
-bool is_allowed_media_group_content(MessageContentType content_type);
-
 bool can_forward_message_content(const MessageContent *content);
-
-bool is_secret_message_content(int32 ttl, MessageContentType content_type);
-
-bool is_service_message_content(MessageContentType content_type);
-
-bool can_have_message_content_caption(MessageContentType content_type);
 
 bool update_opened_message_content(MessageContent *content);
 

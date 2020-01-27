@@ -420,6 +420,7 @@ set(TDLIB_SOURCE
   td/telegram/Location.cpp
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
+  td/telegram/MessageContentType.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageId.cpp
   td/telegram/MessagesDb.cpp
@@ -582,6 +583,7 @@ set(TDLIB_SOURCE
   td/telegram/logevent/SecretChatEvent.h
   td/telegram/Logging.h
   td/telegram/MessageContent.h
+  td/telegram/MessageContentType.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
   td/telegram/MessagesDb.h
