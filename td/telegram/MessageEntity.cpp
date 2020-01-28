@@ -2679,13 +2679,13 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
 
 FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                               bool skip_new_entities, int32 send_date, const char *source) {
+                               bool skip_new_entities, int32 send_date, bool from_album, const char *source) {
   auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
   auto debug_message_text = message_text;
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
-    if (send_date == 0 || send_date > 1579219200) {  // approximate fix date
+    if (!from_album && (send_date == 0 || send_date > 1579219200)) {  // approximate fix date
       LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " with content \""
                  << debug_message_text << "\" -> \"" << message_text << "\" sent at " << send_date << " with entities "
                  << format::as_array(debug_entities) << " -> " << format::as_array(entities);

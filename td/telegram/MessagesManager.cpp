@@ -26,6 +26,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
@@ -5444,7 +5445,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
   auto message_text =
       get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_),
-                       skip_new_entities, date, "on_update_service_notification");
+                       skip_new_entities, date, false, "on_update_service_notification");
   auto content = get_message_content(
       td_, std::move(message_text), std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
@@ -11074,7 +11075,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           td_,
           get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
                            true, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
-                           new_source.c_str()),
+                           message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
           &message_info.ttl);
       message_info.reply_markup =
@@ -11860,9 +11861,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   const FormattedText *old_message_text = get_message_content_text(m->content.get());
   CHECK(old_message_text != nullptr);
-  FormattedText new_message_text =
-      get_message_text(td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true,
-                       m->forward_info ? m->forward_info->date : m->date, "on_update_sent_text_message");
+  FormattedText new_message_text = get_message_text(
+      td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true,
+      m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
   auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
   if (new_content->get_type() != MessageContentType::Text) {
