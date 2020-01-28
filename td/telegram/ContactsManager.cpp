@@ -9469,6 +9469,7 @@ void ContactsManager::on_get_channel_participants_success(
 
   vector<DialogParticipant> result;
   for (auto &participant_ptr : participants) {
+    auto debug_participant = to_string(participant_ptr);
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
     if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
         (filter.is_administrators() && !result.back().status.is_administrator()) ||
@@ -9480,7 +9481,7 @@ void ContactsManager::on_get_channel_participants_success(
                         (filter.is_contacts() && result.back().user_id == get_my_id());
       if (!skip_error) {
         LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter << " in " << channel_id
-                   << " with offset " << offset << " and limit " << limit;
+                   << " with offset " << offset << " and limit " << limit << ": " << oneline(debug_participant);
       }
       result.pop_back();
       total_count--;
