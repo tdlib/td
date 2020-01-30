@@ -243,6 +243,10 @@ if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
   # see http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579
   add_cxx_compiler_flag("-Wno-redundant-move")
 endif()
+if (CLANG AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5))
+  # https://stackoverflow.com/questions/26744556/warning-returning-a-captured-reference-from-a-lambda
+  add_cxx_compiler_flag("-Wno-return-stack-address")
+endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
