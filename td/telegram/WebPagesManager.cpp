@@ -1285,20 +1285,20 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   std::unordered_map<int64, FileId> videos;
   std::unordered_map<int64, FileId> voice_notes;
   std::unordered_map<int64, FileId> others;
-  auto get_map = [&](Document::Type document_type) -> std::unordered_map<int64, FileId> & {
+  auto get_map = [&](Document::Type document_type) {
     switch (document_type) {
       case Document::Type::Animation:
-        return animations;
+        return &animations;
       case Document::Type::Audio:
-        return audios;
+        return &audios;
       case Document::Type::General:
-        return documents;
+        return &documents;
       case Document::Type::Video:
-        return videos;
+        return &videos;
       case Document::Type::VoiceNote:
-        return voice_notes;
+        return &voice_notes;
       default:
-        return others;
+        return &others;
     }
   };
 
@@ -1308,7 +1308,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       auto document_id = document->id_;
       auto parsed_document = td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id);
       if (!parsed_document.empty()) {
-        get_map(parsed_document.type).emplace(document_id, parsed_document.file_id);
+        get_map(parsed_document.type)->emplace(document_id, parsed_document.file_id);
       }
     }
   }
@@ -1320,7 +1320,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   auto add_document = [&](const Document &document) {
     auto file_view = td_->file_manager_->get_file_view(document.file_id);
     if (file_view.has_remote_location()) {
-      get_map(document.type).emplace(file_view.remote_location().get_id(), document.file_id);
+      get_map(document.type)->emplace(file_view.remote_location().get_id(), document.file_id);
     } else {
       LOG(ERROR) << document.type << " has no remote location";
     }
