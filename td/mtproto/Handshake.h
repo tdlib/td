@@ -79,6 +79,10 @@ class AuthKeyHandshake {
 
   void clear();
 
+  const AuthKey &get_auth_key() const {
+    return auth_key_;
+  }
+
   AuthKey release_auth_key() {
     return std::move(auth_key_);
   }
