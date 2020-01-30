@@ -527,6 +527,7 @@ class FastPingTestActor : public Actor {
   void got_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, int32 dummy) {
     if (r_raw_connection.is_error()) {
       *result_ = r_raw_connection.move_as_error();
+      LOG(INFO) << "Receive " << *result_ << " instead of a connection";
       return stop();
     }
     connection_ = r_raw_connection.move_as_ok();
@@ -536,6 +537,7 @@ class FastPingTestActor : public Actor {
   void got_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake, int32 dummy) {
     if (r_handshake.is_error()) {
       *result_ = r_handshake.move_as_error();
+      LOG(INFO) << "Receive " << *result_ << " instead of a handshake";
       return stop();
     }
     handshake_ = r_handshake.move_as_ok();
@@ -544,8 +546,8 @@ class FastPingTestActor : public Actor {
 
   void got_raw_connection(Result<unique_ptr<mtproto::RawConnection>> r_connection) {
     if (r_connection.is_error()) {
-      Scheduler::instance()->finish();
       *result_ = r_connection.move_as_error();
+      LOG(INFO) << "Receive " << *result_ << " instead of a handshake";
       return stop();
     }
     connection_ = r_connection.move_as_ok();
@@ -558,7 +560,6 @@ class FastPingTestActor : public Actor {
     if (handshake_ && connection_) {
       LOG(INFO) << "Iteration " << iteration_;
       if (iteration_ == 6) {
-        Scheduler::instance()->finish();
         return stop();
       }
       unique_ptr<mtproto::AuthData> auth_data;
@@ -583,6 +584,10 @@ class FastPingTestActor : public Actor {
           }),
           ActorShared<>());
     }
+  }
+
+  void tear_down() override {
+    Scheduler::instance()->finish();
   }
 };
 
@@ -647,7 +652,12 @@ TEST(Mtproto, TlsTransport) {
 
         const std::string domain = "www.google.com";
         IPAddress ip_address;
-        ip_address.init_host_port(domain, 443).ensure();
+        auto resolve_status = ip_address.init_host_port(domain, 443);
+        if (resolve_status.is_error()) {
+          LOG(ERROR) << resolve_status;
+          Scheduler::instance()->finish();
+          return;
+        }
         SocketFd fd = SocketFd::open(ip_address).move_as_ok();
         create_actor<mtproto::TlsInit>("TlsInit", std::move(fd), domain, "0123456789secret", make_unique<Callback>(),
                                        ActorShared<>(), Clocks::system() - Time::now())
