@@ -434,4 +434,6 @@ inline Global *G_impl(const char *file, int line) {
   return static_cast<Global *>(context);
 }
 
+double get_server_time();
+
 }  // namespace td

@@ -36,13 +36,12 @@ inline Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit
 
 template <class StorerT>
 void store_time(double time_at, StorerT &storer) {
-  double server_time = storer.context()->server_time();
   if (time_at == 0) {
     store(-1.0, storer);
   } else {
     double time_left = max(time_at - Time::now(), 0.0);
     store(time_left, storer);
-    store(server_time, storer);
+    store(get_server_time(), storer);
   }
 }
 
