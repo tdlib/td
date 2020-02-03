@@ -19,7 +19,13 @@ cd <path to vcpkg>
 cd <path to TDLib sources>/example/csharp
 mkdir build
 cd build
-cmake -DTD_ENABLE_DOTNET=ON -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>\scripts\buildsystems\vcpkg.cmake ../../..
+cmake -A Win32 -DTD_ENABLE_DOTNET=ON -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>/scripts/buildsystems/vcpkg.cmake ../../..
+cmake --build . --config Release
+cmake --build . --config Debug
+cd ..
+mkdir build64
+cd build64
+cmake -A x64 -DTD_ENABLE_DOTNET=ON -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>/scripts/buildsystems/vcpkg.cmake ../../..
 cmake --build . --config Release
 cmake --build . --config Debug
 ```
