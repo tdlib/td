@@ -8808,11 +8808,11 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   u->is_photo_inited = true;
-  LOG_IF(ERROR, u->access_hash == -1) << "Update profile photo of " << user_id << " without access hash from "
-                                      << source;
   ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
 
   if (new_photo != u->photo) {
+    LOG_IF(ERROR, u->access_hash == -1 && new_photo.small_file_id.is_valid())
+        << "Update profile photo of " << user_id << " without access hash from " << source;
     u->photo = new_photo;
     u->is_photo_changed = true;
     LOG(DEBUG) << "Photo has changed for " << user_id;
