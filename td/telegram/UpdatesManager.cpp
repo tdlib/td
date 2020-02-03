@@ -1095,8 +1095,13 @@ void UpdatesManager::after_get_difference() {
   }
 
   if (postponed_updates_.size()) {
-    VLOG(get_difference) << "Begin to apply postponed updates";
+    VLOG(get_difference) << "Begin to apply " << postponed_updates_.size() << " postponed updates";
     while (!postponed_updates_.empty()) {
+      if (running_get_difference_) {
+        VLOG(get_difference) << "Finish to apply postponed updates with " << postponed_updates_.size()
+                             << " updates left, because forced to run getDifference";
+        return;
+      }
       auto it = postponed_updates_.begin();
       auto updates = std::move(it->second.updates);
       auto updates_seq_begin = it->second.seq_begin;
@@ -1104,10 +1109,6 @@ void UpdatesManager::after_get_difference() {
       // ignore it->second.date, because it may be too old
       postponed_updates_.erase(it);
       on_pending_updates(std::move(updates), updates_seq_begin, updates_seq_end, 0, "postponed updates");
-      if (running_get_difference_) {
-        VLOG(get_difference) << "Finish to apply postponed updates because forced to run getDifference";
-        return;
-      }
     }
     VLOG(get_difference) << "Finish to apply postponed updates";
   }
