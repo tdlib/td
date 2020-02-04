@@ -1173,16 +1173,23 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       }
 
       // for channels we can try to replace unacceptable update with updateChannelTooLong
-      // don't do that for service messages, because they can be about bot's kicking
-      if (message_ptr != nullptr && (*message_ptr)->get_id() != telegram_api::messageService::ID) {
+      if (message_ptr != nullptr) {
         auto dialog_id = td_->messages_manager_->get_message_dialog_id(*message_ptr);
         if (dialog_id.get_type() == DialogType::Channel) {
-          LOG(INFO) << "Replace update about new message with updateChannelTooLong in " << dialog_id;
           auto channel_id = dialog_id.get_channel_id();
           if (td_->contacts_manager_->have_channel_force(channel_id)) {
-            update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
-                telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts);
-            continue;
+            if (td_->messages_manager_->is_old_channel_update(dialog_id, pts)) {
+              // the update will be ignored anyway, so there is no reason to replace it or force get_difference
+              LOG(INFO) << "Allow an outdated unacceptable update from " << source;
+              continue;
+            }
+            if ((*message_ptr)->get_id() != telegram_api::messageService::ID) {
+              // don't replace service messages, because they can be about bot's kicking
+              LOG(INFO) << "Replace update about new message with updateChannelTooLong in " << dialog_id;
+              update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
+                  telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts);
+              continue;
+            }
           }
         } else {
           LOG(ERROR) << "Update is not from a channel: " << to_string(update);

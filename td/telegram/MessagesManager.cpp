@@ -6127,7 +6127,7 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
                                                  int32 new_pts, int32 pts_count, const char *source,
-                                                 bool is_postponed_udpate) {
+                                                 bool is_postponed_update) {
   LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
   CHECK(update != nullptr);
   CHECK(dialog_id.get_type() == DialogType::Channel);
@@ -6166,7 +6166,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   } else {
     int32 old_pts = d->pts;
     if (new_pts <= old_pts) {  // very old or unuseful update
-      if (new_pts < old_pts - 19999 && !is_postponed_udpate) {
+      if (new_pts < old_pts - 19999 && !is_postponed_update) {
         // restore channel pts after delete_first_messages
         LOG(ERROR) << "Restore pts in " << d->dialog_id << " from " << source << " after delete_first_messages from "
                    << old_pts << " to " << new_pts << " is temporarily disabled, pts_count = " << pts_count
@@ -6243,6 +6243,13 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
   CHECK(new_pts > d->pts);
   set_channel_pts(d, new_pts, source);
+}
+
+bool MessagesManager::is_old_channel_update(DialogId dialog_id, int32 new_pts) {
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+
+  const Dialog *d = get_dialog_force(dialog_id);
+  return new_pts <= (d == nullptr ? load_channel_pts(dialog_id) : d->pts);
 }
 
 void MessagesManager::set_get_difference_timeout(double timeout) {

@@ -663,6 +663,8 @@ class MessagesManager : public Actor {
   void add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                   int32 pts_count, const char *source, bool is_postponed_update = false);
 
+  bool is_old_channel_update(DialogId dialog_id, int32 new_pts);
+
   bool is_update_about_username_change_received(DialogId dialog_id) const;
 
   void on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids);
