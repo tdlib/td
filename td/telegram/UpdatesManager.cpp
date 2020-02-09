@@ -189,6 +189,9 @@ void UpdatesManager::fill_get_difference_gap(void *td) {
 
 void UpdatesManager::fill_gap(void *td, const char *source) {
   CHECK(td != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
 
   LOG(WARNING) << "Filling gap in " << source << " by running getDifference";
