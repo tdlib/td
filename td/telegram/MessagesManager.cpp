@@ -7894,7 +7894,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id > first_received_message_id)
-  //      << "Receive message " << first_received_message_id << ", but first chat message is " << d->first_message_id;
+  //      << "Receive " << first_received_message_id << ", but first chat message is " << d->first_message_id;
 
   bool need_update_database_message_ids =
       last_added_message_id.is_valid() && (from_the_end || (last_added_message_id >= d->first_database_message_id &&
@@ -17106,7 +17106,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
     if (message->message_id >= debug_cur_message_id) {
       // TODO move to ERROR
-      LOG(FATAL) << "Receive message " << message->message_id << " after " << debug_cur_message_id
+      LOG(FATAL) << "Receive " << message->message_id << " after " << debug_cur_message_id
                  << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
                  << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
       break;
@@ -27734,7 +27734,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       break;
     case DialogType::Chat:
       if (d->last_read_inbox_message_id < d->last_read_outbox_message_id) {
-        LOG(INFO) << "Have last read outbox message " << d->last_read_outbox_message_id << " in " << dialog_id
+        LOG(INFO) << "Last read outbox message is " << d->last_read_outbox_message_id << " in " << dialog_id
                   << ", but last read inbox message is " << d->last_read_inbox_message_id;
         // can't fix last_read_inbox_message_id by last_read_outbox_message_id because last_read_outbox_message_id is
         // just a message identifier not less than an identifier of last read outgoing message and less than
@@ -27791,7 +27791,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << " with last " << d->mention_notification_group.last_notification_id << " sent at "
                       << d->mention_notification_group.last_notification_date << ", max removed "
                       << d->mention_notification_group.max_removed_notification_id << "/"
-                      << d->mention_notification_group.max_removed_message_id << " and pinned message "
+                      << d->mention_notification_group.max_removed_message_id << " and pinned "
                       << d->pinned_message_notification_message_id;
   VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
                       << ", last_new_message_id = " << d->last_new_message_id
