@@ -14586,14 +14586,14 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
         });
   }
 
-  send_update_dialog_notification_settings_query(dialog_id, std::move(promise));
+  send_update_dialog_notification_settings_query(d, std::move(promise));
 }
 
-void MessagesManager::send_update_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  auto d = get_dialog(dialog_id);
+void MessagesManager::send_update_dialog_notification_settings_query(const Dialog *d, Promise<Unit> &&promise) {
   CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use SequenceDispatcher
-  td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))->send(dialog_id, d->notification_settings);
+  td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))
+      ->send(d->dialog_id, d->notification_settings);
 }
 
 void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
@@ -21228,8 +21228,7 @@ void MessagesManager::on_dialog_updated(DialogId dialog_id, const char *source) 
 void MessagesManager::send_update_new_message(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-
-  LOG(INFO) << "Send updateNewMessage for " << m->message_id << " in " << d->dialog_id;
+  CHECK(d->is_update_new_chat_sent);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m)));
 }
@@ -22420,6 +22419,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
 
 void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const {
   CHECK(m != nullptr);
+  CHECK(d->is_update_new_chat_sent);
   d->yet_unsent_message_id_to_persistent_message_id.emplace(old_message_id, m->message_id);
   send_closure(
       G()->td(), &Td::send_update,

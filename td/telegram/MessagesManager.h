@@ -2258,7 +2258,7 @@ class MessagesManager : public Actor {
 
   void update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog);
 
-  void send_update_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
+  void send_update_dialog_notification_settings_query(const Dialog *d, Promise<Unit> &&promise);
 
   void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
