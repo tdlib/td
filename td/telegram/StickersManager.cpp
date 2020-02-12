@@ -3509,7 +3509,7 @@ void StickersManager::reorder_installed_sticker_sets(bool is_masks, const vector
 
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::inputSticker *sticker) {
   if (sticker == nullptr) {
-    return Status::Error(3, "Input sticker shouldn't be empty");
+    return Status::Error(3, "Input sticker must not be empty");
   }
 
   if (!clean_input_string(sticker->emojis_)) {

@@ -4928,6 +4928,7 @@ void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::
     td_->messages_manager_->force_create_dialog(dialog_id, "on_update_peer_located");
 
     if (from_update) {
+      CHECK(dialog_type == DialogType::User);
       bool is_found = false;
       for (auto &dialog_nearby : users_nearby_) {
         if (dialog_nearby.dialog_id == dialog_id) {
@@ -4941,11 +4942,16 @@ void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::
       }
       if (!is_found) {
         users_nearby_.emplace_back(dialog_id, distance);
+        all_users_nearby_.insert(dialog_id.get_user_id());
         need_update = true;
       }
     } else {
-      auto &dialogs_nearby = dialog_type == DialogType::User ? users_nearby_ : channels_nearby_;
-      dialogs_nearby.emplace_back(dialog_id, distance);
+      if (dialog_type == DialogType::User) {
+        users_nearby_.emplace_back(dialog_id, distance);
+        all_users_nearby_.insert(dialog_id.get_user_id());
+      } else {
+        channels_nearby_.emplace_back(dialog_id, distance);
+      }
     }
   }
   if (need_update) {
@@ -10966,7 +10972,7 @@ bool ContactsManager::is_user_status_exact(UserId user_id) const {
 
 bool ContactsManager::can_report_user(UserId user_id) const {
   auto u = get_user(user_id);
-  return u != nullptr && !u->is_deleted && u->is_bot && !u->is_support;
+  return u != nullptr && !u->is_deleted && !u->is_support && (u->is_bot || all_users_nearby_.count(user_id) != 0);
 }
 
 const ContactsManager::User *ContactsManager::get_user(UserId user_id) const {

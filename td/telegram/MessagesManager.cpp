@@ -6942,7 +6942,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
   }
 
   if (reason == nullptr) {
-    return promise.set_error(Status::Error(3, "Reason shouldn't be empty"));
+    return promise.set_error(Status::Error(3, "Reason must not be empty"));
   }
 
   Dialog *user_d = d;

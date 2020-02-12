@@ -1425,6 +1425,7 @@ class ContactsManager : public Actor {
 
   vector<DialogNearby> users_nearby_;
   vector<DialogNearby> channels_nearby_;
+  std::unordered_set<UserId, UserIdHash> all_users_nearby_;
 
   std::unordered_map<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
