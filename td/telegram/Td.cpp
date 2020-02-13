@@ -7337,6 +7337,13 @@ void Td::on_request(uint64 id, td_api::answerPreCheckoutQuery &request) {
   answer_pre_checkout_query(request.pre_checkout_query_id_, request.error_message_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getBankCardInfo &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.bank_card_number_);
+  CREATE_REQUEST_PROMISE();
+  get_bank_card_info(request.bank_card_number_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetPaymentFormRequest, request.chat_id_, request.message_id_);

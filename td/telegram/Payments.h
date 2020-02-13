@@ -154,6 +154,8 @@ void delete_saved_order_info(Promise<Unit> &&promise);
 
 void delete_saved_credentials(Promise<Unit> &&promise);
 
+void get_bank_card_info(const string &bank_card_number, Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise);
+
 // void send_ton_lite_server_request(Slice request, Promise<td_api::object_ptr<td_api::tonLiteServerResponse>> &&promise);
 
 }  // namespace td

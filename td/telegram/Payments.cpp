@@ -486,6 +486,37 @@ class ClearSavedInfoQuery : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
+
+class GetBankCardInfoQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::bankCardInfo>> promise_;
+
+ public:
+  explicit GetBankCardInfoQuery(Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &bank_card_number) {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::payments_getBankCardData(bank_card_number)),
+                                               G()->get_webfile_dc_id()));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::payments_getBankCardData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto response = result_ptr.move_as_ok();
+    auto actions = transform(response->open_urls_, [](auto &open_url) {
+      return td_api::make_object<td_api::bankCardActionOpenUrl>(open_url->name_, open_url->url_);
+    });
+    promise_.set_value(td_api::make_object<td_api::bankCardInfo>(response->title_, std::move(actions)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
 /*
 class SendLiteRequestQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonLiteServerResponse>> promise_;
@@ -895,6 +926,10 @@ void delete_saved_order_info(Promise<Unit> &&promise) {
 
 void delete_saved_credentials(Promise<Unit> &&promise) {
   G()->td().get_actor_unsafe()->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
+}
+
+void get_bank_card_info(const string &bank_card_number, Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise) {
+  G()->td().get_actor_unsafe()->create_handler<GetBankCardInfoQuery>(std::move(promise))->send(bank_card_number);
 }
 /*
 void send_ton_lite_server_request(Slice request, Promise<td_api::object_ptr<td_api::tonLiteServerResponse>> &&promise) {

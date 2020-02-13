@@ -1011,6 +1011,13 @@ webPageInstantView page_blocks:vector<PageBlock> version:int32 url:string is_rtl
 webPage url:string display_url:string type:string site_name:string title:string description:string photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
 
 
+//@description Describes an action associated with a bank card number @text Action text @url The URL to be opened
+bankCardActionOpenUrl text:string url:string = BankCardActionOpenUrl;
+
+//@description Information about a bank card @title Title of the bank card description @actions Actions that can be done with the bank card number
+bankCardInfo title:string actions:vector<bankCardActionOpenUrl> = BankCardInfo;
+
+
 //@description Describes an address @country_code A two-letter ISO 3166-1 alpha-2 country code @state State, if applicable @city City @street_line1 First line of the address @street_line2 Second line of the address @postal_code Address postal code
 address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
 
@@ -1466,7 +1473,7 @@ textEntityTypeEmailAddress = TextEntityType;
 //@description A phone number
 textEntityTypePhoneNumber = TextEntityType;
 
-//@description A bank card number
+//@description A bank card number. The getBankCardInfo method can be used to get information about the bank card
 textEntityTypeBankCardNumber = TextEntityType;
 
 //@description A bold text
@@ -4126,6 +4133,10 @@ getAutoDownloadSettingsPresets = AutoDownloadSettingsPresets;
 
 //@description Sets auto-download settings @settings New user auto-download settings @type Type of the network for which the new settings are applied
 setAutoDownloadSettings settings:autoDownloadSettings type:NetworkType = Ok;
+
+
+//@description Returns information about a bank card @bank_card_number The bank card number
+getBankCardInfo bank_card_number:string = BankCardInfo;
 
 
 //@description Returns one of the available Telegram Passport elements @type Telegram Passport element type @password Password of the current user

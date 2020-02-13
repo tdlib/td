@@ -1572,6 +1572,8 @@ class CliClient final : public Actor {
       std::tie(secret, other_user_ids_str) = split(args);
       send_request(td_api::make_object<td_api::registerDevice>(
           td_api::make_object<td_api::deviceTokenWebPush>(endpoint, key, secret), as_user_ids(other_user_ids_str)));
+    } else if (op == "gbci") {
+      send_request(td_api::make_object<td_api::getBankCardInfo>(args));
     } else if (op == "gpf") {
       string chat_id;
       string message_id;
