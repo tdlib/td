@@ -5438,11 +5438,45 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   return get_dialog(service_notifications_dialog_id);
 }
 
+void MessagesManager::save_auth_notification_ids() {
+  auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
+  vector<string> ids;
+  for (auto &it : auth_notification_id_date_) {
+    auto date = it.second;
+    if (date < min_date) {
+      continue;
+    }
+    ids.push_back(it.first);
+    ids.push_back(to_string(date));
+  }
+
+  if (ids.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase("auth_notification_ids");
+    return;
+  }
+
+  G()->td_db()->get_binlog_pmc()->set("auth_notification_ids", implode(ids, ','));
+}
+
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                                      bool skip_new_entities, Promise<Unit> &&promise) {
   int32 ttl = 0;
   bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
+  if (date <= 0) {
+    LOG(ERROR) << "Receive message date " << date << " in " << to_string(update);
+    return;
+  }
+  bool is_auth_notification = begins_with(update->type_, "auth");
+  if (is_auth_notification) {
+    auto &old_date = auth_notification_id_date_[update->type_.substr(4)];
+    if (date <= old_date) {
+      LOG(INFO) << "Skip already applied " << to_string(update);
+      return;
+    }
+    old_date = date;
+  }
+
   auto message_text =
       get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_),
                        skip_new_entities, date, false, "on_update_service_notification");
@@ -5450,6 +5484,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
       td_, std::move(message_text), std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
+
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateServiceNotification>(
@@ -5460,6 +5495,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     CHECK(d != nullptr);
     auto dialog_id = d->dialog_id;
     CHECK(dialog_id.get_type() == DialogType::User);
+
     auto new_message = make_unique<Message>();
     set_message_id(new_message, get_next_local_message_id(d));
     new_message->sender_user_id = dialog_id.get_user_id();
@@ -5484,6 +5520,10 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     }
   }
   promise.set_value(Unit());
+
+  if (is_auth_notification) {
+    save_auth_notification_ids();
+  }
 }
 
 void MessagesManager::on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update) {
@@ -10398,6 +10438,26 @@ void MessagesManager::init() {
     }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
+
+  auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
+  if (!auth_notification_ids_string.empty()) {
+    VLOG(notifications) << "Load auth_notification_ids = " << auth_notification_ids_string;
+    auto ids = full_split(auth_notification_ids_string, ',');
+    CHECK(ids.size() % 2 == 0);
+    bool is_changed = false;
+    auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
+    for (size_t i = 0; i < ids.size(); i += 2) {
+      auto date = to_integer_safe<int32>(ids[i + 1]).ok();
+      if (date < min_date) {
+        is_changed = true;
+        continue;
+      }
+      auth_notification_id_date_.emplace(std::move(ids[i]), date);
+    }
+    if (is_changed) {
+      save_auth_notification_ids();
+    }
+  }
 
   /*
   FI LE *f = std::f open("error.txt", "r");

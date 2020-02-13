@@ -1451,6 +1451,7 @@ class MessagesManager : public Actor {
 
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
+  static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
@@ -2372,6 +2373,8 @@ class MessagesManager : public Actor {
 
   Dialog *get_service_notifications_dialog();
 
+  void save_auth_notification_ids();
+
   static MessageId get_next_message_id(Dialog *d, MessageType type);
 
   static MessageId get_next_local_message_id(Dialog *d);
@@ -2736,6 +2739,8 @@ class MessagesManager : public Actor {
   };
 
   std::unordered_map<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
+
+  std::unordered_map<string, int32> auth_notification_id_date_;
 
   uint32 scheduled_messages_sync_generation_ = 1;
 
