@@ -1254,24 +1254,6 @@ class EditMessageReplyMarkupRequest : public RequestOnceActor {
   }
 };
 
-class EditMessageSchedulingStateRequest : public RequestOnceActor {
-  FullMessageId full_message_id_;
-  td_api::object_ptr<td_api::MessageSchedulingState> scheduling_state_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_message_scheduling_state(full_message_id_, std::move(scheduling_state_),
-                                                         std::move(promise));
-  }
-
- public:
-  EditMessageSchedulingStateRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
-                                    td_api::object_ptr<td_api::MessageSchedulingState> scheduling_state)
-      : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , scheduling_state_(std::move(scheduling_state)) {
-  }
-};
-
 class SetGameScoreRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   bool edit_message_;
@@ -2932,29 +2914,6 @@ class SetBackgroundRequest : public RequestActor<> {
       , input_background_(std::move(input_background))
       , background_type_(std::move(background_type))
       , for_dark_theme_(for_dark_theme) {
-  }
-};
-
-class RemoveBackgroundRequest : public RequestOnceActor {
-  BackgroundId background_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->background_manager_->remove_background(background_id_, std::move(promise));
-  }
-
- public:
-  RemoveBackgroundRequest(ActorShared<Td> td, uint64 request_id, int64 background_id)
-      : RequestOnceActor(std::move(td), request_id), background_id_(background_id) {
-  }
-};
-
-class ResetBackgroundsRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    td->background_manager_->reset_backgrounds(std::move(promise));
-  }
-
- public:
-  ResetBackgroundsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
   }
 };
 
@@ -5565,8 +5524,9 @@ void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(EditMessageSchedulingStateRequest, request.chat_id_, request.message_id_,
-                 std::move(request.scheduling_state_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_message_scheduling_state({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                   std::move(request.scheduling_state_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
@@ -7268,12 +7228,14 @@ void Td::on_request(uint64 id, td_api::setBackground &request) {
 
 void Td::on_request(uint64 id, const td_api::removeBackground &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(RemoveBackgroundRequest, request.background_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  background_manager_->remove_background(BackgroundId(request.background_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(ResetBackgroundsRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  background_manager_->reset_backgrounds(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
