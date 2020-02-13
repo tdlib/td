@@ -12099,7 +12099,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
   }
 
   if (channel_full != nullptr && !channel_full->is_expired() && !channel_full->can_get_participants) {
-    promise.set_error(Status::Error(3, "Supergroup members are unavailable"));
+    promise.set_error(Status::Error(3, "Member list is inaccessible"));
     return result;
   }
 
