@@ -21,7 +21,7 @@ class RSA {
   RSA clone() const;
   int64 get_fingerprint() const;
   size_t size() const;
-  size_t encrypt(unsigned char *from, size_t from_len, unsigned char *to) const;
+  size_t encrypt(unsigned char *from, size_t from_len, size_t max_from_len, unsigned char *to, size_t to_len) const;
 
   void decrypt(Slice from, MutableSlice to) const;
 
