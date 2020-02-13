@@ -643,31 +643,6 @@ class TestProxyRequest : public RequestOnceActor {
   }
 };
 
-class GetAccountTtlRequest : public RequestActor<int32> {
-  int32 account_ttl_;
-
-  void do_run(Promise<int32> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(account_ttl_));
-      return;
-    }
-
-    td->contacts_manager_->get_account_ttl(std::move(promise));
-  }
-
-  void do_set_result(int32 &&result) override {
-    account_ttl_ = result;
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::accountTtl>(account_ttl_));
-  }
-
- public:
-  GetAccountTtlRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
 class GetActiveSessionsRequest : public RequestActor<tl_object_ptr<td_api::sessions>> {
   tl_object_ptr<td_api::sessions> sessions_;
 
@@ -5163,7 +5138,15 @@ void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
 
 void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetAccountTtlRequest);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::accountTtl>(result.ok()));
+    }
+  });
+  contacts_manager_->get_account_ttl(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
