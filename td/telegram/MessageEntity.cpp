@@ -64,6 +64,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "Cashtag";
     case MessageEntity::Type::PhoneNumber:
       return string_builder << "PhoneNumber";
+    case MessageEntity::Type::BankCardNumber:
+      return string_builder << "BankCardNumber";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -119,6 +121,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeCashtag>();
     case MessageEntity::Type::PhoneNumber:
       return make_tl_object<td_api::textEntityTypePhoneNumber>();
+    case MessageEntity::Type::BankCardNumber:
+      return make_tl_object<td_api::textEntityTypeBankCardNumber>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -403,6 +407,11 @@ static vector<Slice> match_cashtags(Slice str) {
 
     result.emplace_back(cashtag_begin - 1, cashtag_end);
   }
+  return result;
+}
+
+static vector<Slice> match_bank_card_numbers(Slice str) {
+  vector<Slice> result;
   return result;
 }
 
@@ -1010,6 +1019,10 @@ vector<Slice> find_cashtags(Slice str) {
   return match_cashtags(str);
 }
 
+vector<Slice> find_bank_card_numbers(Slice str) {
+  return match_bank_card_numbers(str);
+}
+
 vector<std::pair<Slice, bool>> find_urls(Slice str) {
   vector<std::pair<Slice, bool>> result;
   for (auto url : match_urls(str)) {
@@ -1132,6 +1145,13 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     }
 
     // TODO find_phone_numbers
+
+    auto bank_card_numbers = find_bank_card_numbers(text);
+    for (auto &bank_card_number : bank_card_numbers) {
+      entities.emplace_back(MessageEntity::Type::BankCardNumber,
+                            narrow_cast<int32>(bank_card_number.begin() - text.begin()),
+                            narrow_cast<int32>(bank_card_numbers.size()));
+    }
   }
 
   auto urls = find_urls(text);
@@ -1270,6 +1290,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::Cashtag:
         break;
       case MessageEntity::Type::PhoneNumber:
+        break;
+      case MessageEntity::Type::BankCardNumber:
         break;
       default:
         UNREACHABLE();
@@ -1955,6 +1977,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
       case MessageEntity::Type::EmailAddress:
       case MessageEntity::Type::Cashtag:
       case MessageEntity::Type::PhoneNumber:
+      case MessageEntity::Type::BankCardNumber:
         continue;
       case MessageEntity::Type::Bold:
         result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
@@ -2023,6 +2046,10 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::BotCommand:
         break;
+      case MessageEntity::Type::PhoneNumber:
+        break;
+      case MessageEntity::Type::BankCardNumber:
+        break;
       case MessageEntity::Type::Url:
         result.push_back(make_tl_object<secret_api::messageEntityUrl>(entity.offset, entity.length));
         break;
@@ -2065,8 +2092,6 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::MentionName:
         break;
-      case MessageEntity::Type::PhoneNumber:
-        break;
       default:
         UNREACHABLE();
     }
@@ -2091,6 +2116,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       case td_api::textEntityTypeEmailAddress::ID:
       case td_api::textEntityTypeCashtag::ID:
       case td_api::textEntityTypePhoneNumber::ID:
+      case td_api::textEntityTypeBankCardNumber::ID:
         break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
@@ -2180,6 +2206,12 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         auto entity_bot_command = static_cast<const telegram_api::messageEntityBotCommand *>(entity.get());
         entities.emplace_back(MessageEntity::Type::BotCommand, entity_bot_command->offset_,
                               entity_bot_command->length_);
+        break;
+      }
+      case telegram_api::messageEntityBankCard::ID: {
+        auto entity_bank_card = static_cast<const telegram_api::messageEntityBankCard *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity_bank_card->offset_,
+                              entity_bank_card->length_);
         break;
       }
       case telegram_api::messageEntityUrl::ID: {
@@ -2290,6 +2322,9 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
         break;
       case secret_api::messageEntityBotCommand::ID:
         // skip all bot commands in secret chats
+        break;
+      case secret_api::messageEntityBankCard::ID:
+        // skip, will find it ourselves
         break;
       case secret_api::messageEntityUrl::ID: {
         auto entity_url = static_cast<const secret_api::messageEntityUrl *>(entity.get());

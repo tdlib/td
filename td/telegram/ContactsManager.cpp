@@ -772,9 +772,13 @@ class SearchDialogsNearbyQuery : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const Location &location) {
+  void send(const Location &location, bool from_background) {
+    int32 flags = 0;
+    if (from_background) {
+      flags |= telegram_api::contacts_getLocated::BACKGROUND_MASK;
+    }
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::contacts_getLocated(location.get_input_geo_point()))));
+        create_storer(telegram_api::contacts_getLocated(flags, false /*ignored*/, location.get_input_geo_point(), 0))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4824,7 +4828,7 @@ void ContactsManager::search_dialogs_nearby(const Location &location,
                                                   Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
     send_closure(actor_id, &ContactsManager::on_get_dialogs_nearby, std::move(result), std::move(promise));
   });
-  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location);
+  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, false);
 }
 
 vector<td_api::object_ptr<td_api::chatNearby>> ContactsManager::get_chats_nearby_object(
@@ -4880,11 +4884,18 @@ void ContactsManager::on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::U
                                                              get_chats_nearby_object(channels_nearby_)));
 }
 
-void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers,
+void ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers,
                                              bool from_update) {
   auto now = G()->unix_time();
   bool need_update = false;
-  for (auto &peer_located : peers) {
+  for (auto &peer_located_ptr : peers) {
+    if (peer_located_ptr->get_id() == telegram_api::peerSelfLocated::ID) {
+      // auto peer_self_located = telegram_api::move_object_as<telegram_api::peerSelfLocated>(peer_located_ptr);
+      continue;
+    }
+
+    CHECK(peer_located_ptr->get_id() == telegram_api::peerLocated::ID);
+    auto peer_located = telegram_api::move_object_as<telegram_api::peerLocated>(peer_located_ptr);
     DialogId dialog_id(peer_located->peer_);
     int32 expires_at = peer_located->expires_;
     int32 distance = peer_located->distance_;

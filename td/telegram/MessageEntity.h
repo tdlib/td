@@ -45,7 +45,8 @@ class MessageEntity {
     PhoneNumber,
     Underline,
     Strikethrough,
-    BlockQuote
+    BlockQuote,
+    BankCardNumber
   };
   Type type;
   int32 offset;
@@ -135,6 +136,7 @@ vector<Slice> find_mentions(Slice str);
 vector<Slice> find_bot_commands(Slice str);
 vector<Slice> find_hashtags(Slice str);
 vector<Slice> find_cashtags(Slice str);
+vector<Slice> find_bank_card_numbers(Slice str);
 bool is_email_address(Slice str);
 vector<std::pair<Slice, bool>> find_urls(Slice str);  // slice + is_email_address
 

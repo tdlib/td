@@ -95,6 +95,7 @@ messageEntityTextUrl#76a6d327 offset:int length:int url:string = MessageEntity;
 messageEntityMentionName#352dca58 offset:int length:int user_id:int = MessageEntity;
 messageEntityPhone#9b69e34b offset:int length:int = MessageEntity;
 messageEntityCashtag#4c4e743f offset:int length:int = MessageEntity;
+messageEntityBankCard#761e6af4 offset:int length:int = MessageEntity;
 inputStickerSetShortName#861cc8a0 short_name:string = InputStickerSet;
 inputStickerSetEmpty#ffb62b95 = InputStickerSet;
 decryptedMessageMediaVenue#8a0df56f lat:double long:double title:string address:string provider:string venue_id:string = DecryptedMessageMedia;

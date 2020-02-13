@@ -196,7 +196,7 @@ class ContactsManager : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
-  void on_update_peer_located(vector<tl_object_ptr<telegram_api::peerLocated>> &&peers, bool from_update);
+  void on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access);
