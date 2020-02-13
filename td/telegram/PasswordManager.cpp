@@ -83,7 +83,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
   auto p_bn = BigNum::from_binary(p);
   auto B_bn = BigNum::from_binary(B);
   auto zero = BigNum::from_decimal("0").move_as_ok();
-  if (BigNum::compare(zero, B_bn) != -1 || BigNum::compare(B_bn, p_bn) != -1 || B.size() != 256) {
+  if (BigNum::compare(zero, B_bn) != -1 || BigNum::compare(B_bn, p_bn) != -1 || B.size() < 248 || B.size() > 256) {
     LOG(ERROR) << "Receive invalid value of B(" << B.size() << "): " << B_bn << " " << p_bn;
     return make_tl_object<telegram_api::inputCheckPasswordEmpty>();
   }
@@ -105,7 +105,8 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
   BigNum::mod_exp(A_bn, g_bn, a_bn, p_bn, ctx);
   string A = A_bn.to_binary(256);
 
-  string u = sha256(PSLICE() << A << B);
+  string B_pad(256 - B.size(), '\0');
+  string u = sha256(PSLICE() << A << B_pad << B);
   auto u_bn = BigNum::from_binary(u);
   string k = sha256(PSLICE() << p << g_padded);
   auto k_bn = BigNum::from_binary(k);
@@ -133,7 +134,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
   for (size_t i = 0; i < h1.size(); i++) {
     h1[i] = static_cast<char>(static_cast<unsigned char>(h1[i]) ^ static_cast<unsigned char>(h2[i]));
   }
-  auto M = sha256(PSLICE() << h1 << sha256(client_salt) << sha256(server_salt) << A << B << K);
+  auto M = sha256(PSLICE() << h1 << sha256(client_salt) << sha256(server_salt) << A << B_pad << B << K);
 
   LOG(INFO) << "End input password SRP hash calculation";
   return make_tl_object<telegram_api::inputCheckPasswordSRP>(id, BufferSlice(A), BufferSlice(M));
