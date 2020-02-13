@@ -272,10 +272,11 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
 };
 
 class SendCustomRequestQuery : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::customRequestResult>> promise_;
 
  public:
-  explicit SendCustomRequestQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit SendCustomRequestQuery(Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(const string &method, const string &parameters) {
@@ -290,7 +291,7 @@ class SendCustomRequestQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    promise_.set_value(std::move(result->data_));
+    promise_.set_value(td_api::make_object<td_api::customRequestResult>(result->data_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -640,58 +641,6 @@ class TestProxyRequest : public RequestOnceActor {
       , proxy_(std::move(proxy))
       , dc_id_(static_cast<int16>(dc_id))
       , timeout_(timeout) {
-  }
-};
-
-class GetActiveSessionsRequest : public RequestActor<tl_object_ptr<td_api::sessions>> {
-  tl_object_ptr<td_api::sessions> sessions_;
-
-  void do_run(Promise<tl_object_ptr<td_api::sessions>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(sessions_));
-      return;
-    }
-
-    td->contacts_manager_->get_active_sessions(std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::sessions> &&result) override {
-    sessions_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(sessions_ != nullptr);
-    send_result(std::move(sessions_));
-  }
-
- public:
-  GetActiveSessionsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
-class GetConnectedWebsitesRequest : public RequestActor<tl_object_ptr<td_api::connectedWebsites>> {
-  tl_object_ptr<td_api::connectedWebsites> connected_websites_;
-
-  void do_run(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(connected_websites_));
-      return;
-    }
-
-    td->contacts_manager_->get_connected_websites(std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::connectedWebsites> &&result) override {
-    connected_websites_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(connected_websites_ != nullptr);
-    send_result(std::move(connected_websites_));
-  }
-
- public:
-  GetConnectedWebsitesRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
   }
 };
 
@@ -2906,163 +2855,6 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
   }
 };
 
-class GetPaymentFormRequest : public RequestActor<tl_object_ptr<td_api::paymentForm>> {
-  FullMessageId full_message_id_;
-
-  tl_object_ptr<td_api::paymentForm> payment_form_;
-
-  void do_run(Promise<tl_object_ptr<td_api::paymentForm>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(payment_form_));
-      return;
-    }
-
-    td->messages_manager_->get_payment_form(full_message_id_, std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::paymentForm> &&result) override {
-    payment_form_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(payment_form_ != nullptr);
-    send_result(std::move(payment_form_));
-  }
-
- public:
-  GetPaymentFormRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
-      : RequestActor(std::move(td), request_id), full_message_id_(DialogId(dialog_id), MessageId(message_id)) {
-  }
-};
-
-class ValidateOrderInfoRequest : public RequestActor<tl_object_ptr<td_api::validatedOrderInfo>> {
-  FullMessageId full_message_id_;
-  tl_object_ptr<td_api::orderInfo> order_info_;
-  bool allow_save_;
-
-  tl_object_ptr<td_api::validatedOrderInfo> validated_order_info_;
-
-  void do_run(Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(validated_order_info_));
-      return;
-    }
-
-    td->messages_manager_->validate_order_info(full_message_id_, std::move(order_info_), allow_save_,
-                                               std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::validatedOrderInfo> &&result) override {
-    validated_order_info_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(validated_order_info_ != nullptr);
-    send_result(std::move(validated_order_info_));
-  }
-
- public:
-  ValidateOrderInfoRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
-                           tl_object_ptr<td_api::orderInfo> order_info, bool allow_save)
-      : RequestActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , order_info_(std::move(order_info))
-      , allow_save_(allow_save) {
-  }
-};
-
-class SendPaymentFormRequest : public RequestActor<tl_object_ptr<td_api::paymentResult>> {
-  FullMessageId full_message_id_;
-  string order_info_id_;
-  string shipping_option_id_;
-  tl_object_ptr<td_api::InputCredentials> credentials_;
-
-  tl_object_ptr<td_api::paymentResult> payment_result_;
-
-  void do_run(Promise<tl_object_ptr<td_api::paymentResult>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(payment_result_));
-      return;
-    }
-
-    td->messages_manager_->send_payment_form(full_message_id_, order_info_id_, shipping_option_id_, credentials_,
-                                             std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::paymentResult> &&result) override {
-    payment_result_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(payment_result_ != nullptr);
-    send_result(std::move(payment_result_));
-  }
-
- public:
-  SendPaymentFormRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id, string order_info_id,
-                         string shipping_option_id, tl_object_ptr<td_api::InputCredentials> credentials)
-      : RequestActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , order_info_id_(std::move(order_info_id))
-      , shipping_option_id_(std::move(shipping_option_id))
-      , credentials_(std::move(credentials)) {
-  }
-};
-
-class GetPaymentReceiptRequest : public RequestActor<tl_object_ptr<td_api::paymentReceipt>> {
-  FullMessageId full_message_id_;
-
-  tl_object_ptr<td_api::paymentReceipt> payment_receipt_;
-
-  void do_run(Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(payment_receipt_));
-      return;
-    }
-
-    td->messages_manager_->get_payment_receipt(full_message_id_, std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::paymentReceipt> &&result) override {
-    payment_receipt_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(payment_receipt_ != nullptr);
-    send_result(std::move(payment_receipt_));
-  }
-
- public:
-  GetPaymentReceiptRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
-      : RequestActor(std::move(td), request_id), full_message_id_(DialogId(dialog_id), MessageId(message_id)) {
-  }
-};
-
-class GetSavedOrderInfoRequest : public RequestActor<tl_object_ptr<td_api::orderInfo>> {
-  tl_object_ptr<td_api::orderInfo> order_info_;
-
-  void do_run(Promise<tl_object_ptr<td_api::orderInfo>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(order_info_));
-      return;
-    }
-
-    get_saved_order_info(std::move(promise));
-  }
-
-  void do_set_result(tl_object_ptr<td_api::orderInfo> &&result) override {
-    order_info_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(std::move(order_info_));
-  }
-
- public:
-  GetSavedOrderInfoRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
 class GetSupportUserRequest : public RequestActor<> {
   UserId user_id_;
 
@@ -3166,115 +2958,6 @@ class ResetBackgroundsRequest : public RequestOnceActor {
   }
 };
 
-class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
-  string referrer_;
-
-  tl_object_ptr<td_api::tMeUrls> urls_;
-
-  void do_run(Promise<tl_object_ptr<td_api::tMeUrls>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(urls_));
-      return;
-    }
-
-    td->create_handler<GetRecentMeUrlsQuery>(std::move(promise))->send(referrer_);
-  }
-
-  void do_set_result(tl_object_ptr<td_api::tMeUrls> &&result) override {
-    urls_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(urls_ != nullptr);
-    send_result(std::move(urls_));
-  }
-
- public:
-  GetRecentlyVisitedTMeUrlsRequest(ActorShared<Td> td, uint64 request_id, string referrer)
-      : RequestActor(std::move(td), request_id), referrer_(std::move(referrer)) {
-  }
-};
-
-class SendCustomRequestRequest : public RequestActor<string> {
-  string method_;
-  string parameters_;
-
-  string request_result_;
-
-  void do_run(Promise<string> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(request_result_));
-      return;
-    }
-
-    td->create_handler<SendCustomRequestQuery>(std::move(promise))->send(method_, parameters_);
-  }
-
-  void do_set_result(string &&result) override {
-    request_result_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::customRequestResult>(request_result_));
-  }
-
- public:
-  SendCustomRequestRequest(ActorShared<Td> td, uint64 request_id, string &&method, string &&parameters)
-      : RequestActor(std::move(td), request_id), method_(method), parameters_(parameters) {
-  }
-};
-
-class GetCountryCodeRequest : public RequestActor<string> {
-  string country_code_;
-
-  void do_run(Promise<string> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(country_code_));
-      return;
-    }
-
-    td->create_handler<GetNearestDcQuery>(std::move(promise))->send();
-  }
-
-  void do_set_result(string &&result) override {
-    country_code_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::text>(country_code_));
-  }
-
- public:
-  GetCountryCodeRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
-class GetInviteTextRequest : public RequestActor<string> {
-  string text_;
-
-  void do_run(Promise<string> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(text_));
-      return;
-    }
-
-    td->create_handler<GetInviteTextQuery>(std::move(promise))->send();
-  }
-
-  void do_set_result(string &&result) override {
-    text_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::text>(text_));
-  }
-
- public:
-  GetInviteTextRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
-/** Td **/
 Td::Td(unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
 
@@ -5184,7 +4867,8 @@ void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
 
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetActiveSessionsRequest);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_active_sessions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateSession &request) {
@@ -5201,7 +4885,8 @@ void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request)
 
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetConnectedWebsitesRequest);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_connected_websites(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
@@ -7329,13 +7014,15 @@ void Td::on_request(uint64 id, td_api::getBankCardInfo &request) {
 
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetPaymentFormRequest, request.chat_id_, request.message_id_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::validateOrderInfo &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ValidateOrderInfoRequest, request.chat_id_, request.message_id_, std::move(request.order_info_),
-                 request.allow_save_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->validate_order_info({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                         std::move(request.order_info_), request.allow_save_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
@@ -7345,18 +7032,23 @@ void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
   if (request.credentials_ == nullptr) {
     return send_error_raw(id, 400, "Input payments credentials must not be empty");
   }
-  CREATE_REQUEST(SendPaymentFormRequest, request.chat_id_, request.message_id_, std::move(request.order_info_id_),
-                 std::move(request.shipping_option_id_), std::move(request.credentials_));
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->send_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                       request.order_info_id_, request.shipping_option_id_, request.credentials_,
+                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentReceipt &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetPaymentReceiptRequest, request.chat_id_, request.message_id_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_payment_receipt({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                         std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedOrderInfo &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetSavedOrderInfoRequest);
+  CREATE_REQUEST_PROMISE();
+  get_saved_order_info(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedOrderInfo &request) {
@@ -7587,7 +7279,8 @@ void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);
-  CREATE_REQUEST(GetRecentlyVisitedTMeUrlsRequest, std::move(request.referrer_));
+  CREATE_REQUEST_PROMISE();
+  create_handler<GetRecentMeUrlsQuery>(std::move(promise))->send(request.referrer_);
 }
 
 void Td::on_request(uint64 id, td_api::setBotUpdatesStatus &request) {
@@ -7601,7 +7294,8 @@ void Td::on_request(uint64 id, td_api::sendCustomRequest &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.method_);
   CLEAN_INPUT_STRING(request.parameters_);
-  CREATE_REQUEST(SendCustomRequestRequest, std::move(request.method_), std::move(request.parameters_));
+  CREATE_REQUEST_PROMISE();
+  create_handler<SendCustomRequestQuery>(std::move(promise))->send(request.method_, request.parameters_);
 }
 
 void Td::on_request(uint64 id, td_api::answerCustomQuery &request) {
@@ -7659,12 +7353,28 @@ void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
-  CREATE_NO_ARGS_REQUEST(GetCountryCodeRequest);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  create_handler<GetNearestDcQuery>(std::move(query_promise))->send();
 }
 
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetInviteTextRequest);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  create_handler<GetInviteTextQuery>(std::move(query_promise))->send();
 }
 
 void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
