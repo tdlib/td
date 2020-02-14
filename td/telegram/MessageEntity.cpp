@@ -412,6 +412,34 @@ static vector<Slice> match_cashtags(Slice str) {
 
 static vector<Slice> match_bank_card_numbers(Slice str) {
   vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  // '/[\d- ]{13,}/'
+
+  while (true) {
+    while (ptr != end && (*ptr < '0' || *ptr > '9')) {
+      ptr++;
+    }
+    if (ptr == end) {
+      break;
+    }
+
+    auto card_number_begin = ptr;
+    size_t digit_count = 0;
+    while (ptr != end && (('0' <= *ptr && *ptr <= '9') || *ptr == ' ' || *ptr == '-')) {
+      digit_count += static_cast<size_t>('0' <= *ptr && *ptr <= '9');
+      ptr++;
+    }
+    auto card_number_end = ptr;
+    auto card_number_size = card_number_end - card_number_begin;
+    if (digit_count < 13 || digit_count > 19 || card_number_size > 19 + 18) {
+      continue;
+    }
+
+    result.emplace_back(card_number_begin, card_number_end);
+  }
   return result;
 }
 
@@ -644,6 +672,60 @@ static vector<Slice> match_urls(Slice str) {
   }
 
   return result;
+}
+
+static bool is_valid_bank_card(Slice str) {
+  const size_t MIN_CARD_LENGTH = 13;
+  const size_t MAX_CARD_LENGTH = 19;
+  char digits[MAX_CARD_LENGTH];
+  size_t digit_count = 0;
+  for (auto c : str) {
+    if ('0' <= c && c <= '9') {
+      CHECK(digit_count < MAX_CARD_LENGTH);
+      digits[digit_count++] = c;
+    }
+  }
+  CHECK(digit_count >= MIN_CARD_LENGTH);
+
+  // Luhn algorithm
+  int32 sum = 0;
+  for (size_t i = digit_count; i > 0; i--) {
+    int32 digit = digits[i - 1] - '0';
+    if ((digit_count - i) % 2 == 0) {
+      sum += digit;
+    } else {
+      sum += (digit < 5 ? 2 * digit : 2 * digit - 9);
+    }
+  }
+  if (sum % 10 != 0) {
+    return false;
+  }
+
+  int32 prefix1 = (digits[0] - '0');
+  int32 prefix2 = prefix1 * 10 + (digits[1] - '0');
+  int32 prefix3 = prefix2 * 10 + (digits[2] - '0');
+  int32 prefix4 = prefix3 * 10 + (digits[3] - '0');
+  if (prefix1 == 4) {
+    // Visa
+    return digit_count == 13 || digit_count == 16 || digit_count == 18 || digit_count == 19;
+  }
+  if ((51 <= prefix2 && prefix2 <= 55) || (2221 <= prefix4 && prefix4 <= 2720)) {
+    // mastercard
+    return digit_count == 16;
+  }
+  if (prefix2 == 34 || prefix2 == 37) {
+    // American Express
+    return digit_count == 15;
+  }
+  if (prefix2 == 62 || prefix2 == 81) {
+    // UnionPay
+    return digit_count >= 16;
+  }
+  if (2200 <= prefix4 && prefix4 <= 2204) {
+    // MIR
+    return digit_count == 16;
+  }
+  return true;  // skip length check
 }
 
 bool is_email_address(Slice str) {
@@ -1020,7 +1102,13 @@ vector<Slice> find_cashtags(Slice str) {
 }
 
 vector<Slice> find_bank_card_numbers(Slice str) {
-  return match_bank_card_numbers(str);
+  vector<Slice> result;
+  for (auto bank_card : match_bank_card_numbers(str)) {
+    if (is_valid_bank_card(bank_card)) {
+      result.emplace_back(bank_card);
+    }
+  }
+  return result;
 }
 
 vector<std::pair<Slice, bool>> find_urls(Slice str) {
@@ -1150,7 +1238,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     for (auto &bank_card_number : bank_card_numbers) {
       entities.emplace_back(MessageEntity::Type::BankCardNumber,
                             narrow_cast<int32>(bank_card_number.begin() - text.begin()),
-                            narrow_cast<int32>(bank_card_numbers.size()));
+                            narrow_cast<int32>(bank_card_number.size()));
     }
   }
 
