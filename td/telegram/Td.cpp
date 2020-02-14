@@ -6758,6 +6758,10 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
                            std::move(promise));
         return;
       }
+      if (set_boolean_option("is_location_visible")) {
+        contacts_manager_->set_location_visibility();
+        return;
+      }
       break;
     case 'l':
       if (!is_bot && set_string_option("language_pack_database_path", [](Slice value) { return true; })) {

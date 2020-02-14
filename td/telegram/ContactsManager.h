@@ -196,7 +196,7 @@ class ContactsManager : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
-  void on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
+  int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access);
@@ -312,6 +312,8 @@ class ContactsManager : public Actor {
   void share_phone_number(UserId user_id, Promise<Unit> &&promise);
 
   void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
+
+  void set_location_visibility();
 
   void set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise);
 
@@ -1238,6 +1240,14 @@ class ContactsManager : public Actor {
   void on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::Updates>> result,
                              Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
 
+  void try_send_set_location_visibility_query();
+
+  void on_set_location_visibility_expire_date(int32 set_expire_date, int32 error_code);
+
+  void set_location_visibility_expire_date(int32 expire_date);
+
+  void update_is_location_visible();
+
   static bool is_channel_public(const Channel *c);
 
   static bool is_valid_invite_link(const string &invite_link);
@@ -1426,6 +1436,11 @@ class ContactsManager : public Actor {
   vector<DialogNearby> users_nearby_;
   vector<DialogNearby> channels_nearby_;
   std::unordered_set<UserId, UserIdHash> all_users_nearby_;
+
+  int32 location_visibility_expire_date_ = 0;
+  int32 pending_location_visibility_expire_date_ = -1;
+  bool is_set_location_visibility_request_sent_ = false;
+  Location last_user_location_;
 
   std::unordered_map<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
