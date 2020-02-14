@@ -4852,6 +4852,20 @@ void ContactsManager::search_dialogs_nearby(const Location &location,
   td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, false, -1);
 }
 
+void ContactsManager::set_location(const Location &location, Promise<Unit> &&promise) {
+  if (location.empty()) {
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
+  }
+  last_user_location_ = location;
+  try_send_set_location_visibility_query();
+
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
+        promise.set_value(Unit());
+      });
+  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, true, -1);
+}
+
 vector<td_api::object_ptr<td_api::chatNearby>> ContactsManager::get_chats_nearby_object(
     const vector<DialogNearby> &dialogs_nearby) {
   return transform(dialogs_nearby, [](const DialogNearby &dialog_nearby) {

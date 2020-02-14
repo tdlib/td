@@ -3701,6 +3701,12 @@ class CliClient final : public Actor {
 
       std::tie(latitude, longitude) = split(args);
       send_request(td_api::make_object<td_api::searchChatsNearby>(as_location(latitude, longitude)));
+    } else if (op == "sloc") {
+      string latitude;
+      string longitude;
+
+      std::tie(latitude, longitude) = split(args);
+      send_request(td_api::make_object<td_api::setLocation>(as_location(latitude, longitude)));
     } else if (op == "sco") {
       string limit;
       string query;

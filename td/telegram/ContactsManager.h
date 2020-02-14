@@ -313,6 +313,8 @@ class ContactsManager : public Actor {
 
   void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
 
+  void set_location(const Location &location, Promise<Unit> &&promise);
+
   void set_location_visibility();
 
   void set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise);

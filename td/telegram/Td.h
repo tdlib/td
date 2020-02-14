@@ -781,6 +781,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setUsername &request);
 
+  void on_request(uint64 id, const td_api::setLocation &request);
+
   void on_request(uint64 id, td_api::setProfilePhoto &request);
 
   void on_request(uint64 id, const td_api::deleteProfilePhoto &request);

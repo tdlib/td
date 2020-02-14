@@ -6170,6 +6170,12 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
   contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setLocation &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_location(Location(request.location_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

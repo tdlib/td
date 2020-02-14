@@ -3901,6 +3901,9 @@ setBio bio:string = Ok;
 //@description Changes the username of the current user. If something changes, updateUser will be sent @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
+//@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
+setLocation location:location = Ok;
+
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format @settings Settings for the authentication of the user's phone number
 changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
