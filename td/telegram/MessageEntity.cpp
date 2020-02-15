@@ -440,7 +440,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     while (!is_digit(card_number_end[-1])) {
       card_number_end--;
     }
-    auto card_number_size = card_number_end - card_number_begin;
+    auto card_number_size = static_cast<size_t>(card_number_end - card_number_begin);
     if (card_number_size > 2 * digit_count - 1) {
       continue;
     }
