@@ -419,7 +419,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
   // '/[\d- ]{13,}/'
 
   while (true) {
-    while (ptr != end && (*ptr < '0' || *ptr > '9')) {
+    while (ptr != end && !is_digit(*ptr)) {
       ptr++;
     }
     if (ptr == end) {
@@ -428,13 +428,20 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
 
     auto card_number_begin = ptr;
     size_t digit_count = 0;
-    while (ptr != end && (('0' <= *ptr && *ptr <= '9') || *ptr == ' ' || *ptr == '-')) {
-      digit_count += static_cast<size_t>('0' <= *ptr && *ptr <= '9');
+    while (ptr != end && (is_digit(*ptr) || *ptr == ' ' || *ptr == '-')) {
+      digit_count += static_cast<size_t>(is_digit(*ptr));
       ptr++;
     }
+    if (digit_count < 13 || digit_count > 19) {
+      continue;
+    }
+
     auto card_number_end = ptr;
+    while (!is_digit(card_number_end[-1])) {
+      card_number_end--;
+    }
     auto card_number_size = card_number_end - card_number_begin;
-    if (digit_count < 13 || digit_count > 19 || card_number_size > 19 + 18) {
+    if (card_number_size > 2 * digit_count - 1) {
       continue;
     }
 
@@ -680,7 +687,7 @@ static bool is_valid_bank_card(Slice str) {
   char digits[MAX_CARD_LENGTH];
   size_t digit_count = 0;
   for (auto c : str) {
-    if ('0' <= c && c <= '9') {
+    if (is_digit(c)) {
       CHECK(digit_count < MAX_CARD_LENGTH);
       digits[digit_count++] = c;
     }

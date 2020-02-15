@@ -164,6 +164,46 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
 }
 
+static void check_bank_card_number(const td::string &str, const td::vector<td::string> &expected) {
+  auto result_slice = td::find_bank_card_numbers(str);
+  td::vector<td::string> result;
+  for (auto &it : result_slice) {
+    result.push_back(it.str());
+  }
+  if (result != expected) {
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
+  }
+}
+
+TEST(MessageEntities, bank_card_number) {
+  check_bank_card_number("", {});
+  check_bank_card_number("123456789015", {});
+  check_bank_card_number("1234567890120", {});
+  check_bank_card_number("1234567890121", {});
+  check_bank_card_number("1234567890122", {});
+  check_bank_card_number("1234567890123", {});
+  check_bank_card_number("1234567890124", {});
+  check_bank_card_number("1234567890125", {});
+  check_bank_card_number("1234567890126", {});
+  check_bank_card_number("1234567890127", {});
+  check_bank_card_number("1234567890128", {"1234567890128"});
+  check_bank_card_number("1234567890129", {});
+  check_bank_card_number("12345678901500", {"12345678901500"});
+  check_bank_card_number("123456789012800", {"123456789012800"});
+  check_bank_card_number("1234567890151800", {"1234567890151800"});
+  check_bank_card_number("12345678901280000", {"12345678901280000"});
+  check_bank_card_number("123456789015009100", {"123456789015009100"});
+  check_bank_card_number("1234567890128000000", {"1234567890128000000"});
+  check_bank_card_number("12345678901500910000", {});
+  check_bank_card_number(" - - - -1 - -- 2 - - -- 34 - - - 56- - 7890150000  - - - -", {});
+  check_bank_card_number(" - - - -1 - -- 234 - - 56- - 7890150000  - - - -", {"1 - -- 234 - - 56- - 7890150000"});
+  check_bank_card_number("4916-3385-0608-2832; 5280 9342 8317 1080 ;345936346788903",
+                         {"4916-3385-0608-2832", "5280 9342 8317 1080", "345936346788903"});
+  check_bank_card_number("4556728228023269,4916141675244747020,49161416752447470,4556728228023269",
+                         {"4556728228023269", "4916141675244747020", "4556728228023269"});
+}
+
 static void check_is_email_address(const td::string &str, bool expected) {
   bool result = td::is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";
