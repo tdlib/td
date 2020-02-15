@@ -7,11 +7,13 @@
 #include "td/telegram/Client.h"
 #include "td/telegram/td_api.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <utility>
@@ -34,9 +36,34 @@ int main(int argc, char **argv) {
 
   td::vector<std::pair<td::string, td::td_api::object_ptr<td::td_api::testProxy>>> requests;
 
-  auto add_proxy = [&requests](const td::string &arg) {
+  auto add_proxy = [&requests](td::string arg) {
     if (arg.empty()) {
       return;
+    }
+
+    std::size_t offset = 0;
+    if (arg[0] == '[') {
+      auto end_ipv6_pos = arg.find(']');
+      if (end_ipv6_pos == td::string::npos) {
+        td::TsCerr() << "Error: failed to find end of IPv6 address in \"" << arg << "\"\n";
+        usage();
+      }
+      offset = end_ipv6_pos;
+    }
+    if (std::count(arg.begin() + offset, arg.end(), ':') == 3) {
+      auto secret_domain_pos = arg.find(':', arg.find(':', offset) + 1) + 1;
+      auto domain_pos = arg.find(':', secret_domain_pos);
+      auto secret = arg.substr(secret_domain_pos, domain_pos - secret_domain_pos);
+      auto domain = arg.substr(domain_pos + 1);
+      auto r_decoded_secret = td::hex_decode(secret);
+      if (r_decoded_secret.is_error()) {
+        r_decoded_secret = td::base64url_decode(secret);
+        if (r_decoded_secret.is_error()) {
+          td::TsCerr() << "Error: failed to find proxy port and secret in \"" << arg << "\"\n";
+          usage();
+        }
+      }
+      arg = arg.substr(0, secret_domain_pos) + td::base64url_encode(r_decoded_secret.ok() + domain);
     }
 
     auto secret_pos = arg.rfind(':');
@@ -57,6 +84,9 @@ int main(int argc, char **argv) {
     }
     auto port = r_port.move_as_ok();
     auto server = arg.substr(0, port_pos);
+    if (server[0] == '[' && server.back() == ']') {
+      server = server.substr(1, server.size() - 2);
+    }
 
     if (server.empty() || port <= 0 || port > 65536 || secret.empty()) {
       td::TsCerr() << "Error: proxy address to check is in wrong format: \"" << arg << "\"\n";
