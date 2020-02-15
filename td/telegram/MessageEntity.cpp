@@ -1206,40 +1206,22 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
   vector<MessageEntity> entities;
 
   if (!only_urls) {
-    auto mentions = find_mentions(text);
-    for (auto &mention : mentions) {
-      entities.emplace_back(MessageEntity::Type::Mention, narrow_cast<int32>(mention.begin() - text.begin()),
-                            narrow_cast<int32>(mention.size()));
-    }
-
-    if (!skip_bot_commands) {
-      auto bot_commands = find_bot_commands(text);
-      for (auto &bot_command : bot_commands) {
-        entities.emplace_back(MessageEntity::Type::BotCommand, narrow_cast<int32>(bot_command.begin() - text.begin()),
-                              narrow_cast<int32>(bot_command.size()));
+    auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities)(Slice)) mutable {
+      auto new_entities = find_entities(text);
+      for (auto &entity : new_entities) {
+        auto offset = narrow_cast<int32>(entity.begin() - text.begin());
+        auto length = narrow_cast<int32>(entity.size());
+        entities.emplace_back(type, offset, length);
       }
+    };
+    add_entities(MessageEntity::Type::Mention, find_mentions);
+    if (!skip_bot_commands) {
+      add_entities(MessageEntity::Type::BotCommand, find_bot_commands);
     }
-
-    auto hashtags = find_hashtags(text);
-    for (auto &hashtag : hashtags) {
-      entities.emplace_back(MessageEntity::Type::Hashtag, narrow_cast<int32>(hashtag.begin() - text.begin()),
-                            narrow_cast<int32>(hashtag.size()));
-    }
-
-    auto cashtags = find_cashtags(text);
-    for (auto &cashtag : cashtags) {
-      entities.emplace_back(MessageEntity::Type::Cashtag, narrow_cast<int32>(cashtag.begin() - text.begin()),
-                            narrow_cast<int32>(cashtag.size()));
-    }
-
+    add_entities(MessageEntity::Type::Hashtag, find_hashtags);
+    add_entities(MessageEntity::Type::Cashtag, find_cashtags);
     // TODO find_phone_numbers
-
-    auto bank_card_numbers = find_bank_card_numbers(text);
-    for (auto &bank_card_number : bank_card_numbers) {
-      entities.emplace_back(MessageEntity::Type::BankCardNumber,
-                            narrow_cast<int32>(bank_card_number.begin() - text.begin()),
-                            narrow_cast<int32>(bank_card_number.size()));
-    }
+    add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
   }
 
   auto urls = find_urls(text);
