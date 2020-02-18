@@ -26056,13 +26056,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  MessageId added_pinned_message_id;      // TODO remove
-  MessageId preloaded_pinned_message_id;  // TODO remove
-  if (*need_update) {
+  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent())) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
-    added_pinned_message_id = pinned_message_id;
     if (pinned_message_id.is_valid() && have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
-      preloaded_pinned_message_id = pinned_message_id;
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
 
@@ -26076,7 +26072,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   // there must be no two recursive calls to add_message_to_dialog
   LOG_CHECK(!d->being_added_message_id.is_valid())
       << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
-      << d->pinned_message_notification_message_id << " " << preloaded_pinned_message_id << " " << source;
+      << d->pinned_message_notification_message_id << " " << d->last_new_message_id << " " << source;
   LOG_CHECK(!d->being_deleted_message_id.is_valid())
       << d->being_deleted_message_id << " " << message_id << " " << source;
 
