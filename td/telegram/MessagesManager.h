@@ -2012,9 +2012,9 @@ class MessagesManager : public Actor {
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
 
-  void set_dialog_pinned_message_notification(Dialog *d, MessageId message_id);
+  void set_dialog_pinned_message_notification(Dialog *d, MessageId message_id, const char *source);
 
-  void remove_dialog_pinned_message_notification(Dialog *d);
+  void remove_dialog_pinned_message_notification(Dialog *d, const char *source);
 
   void remove_dialog_mention_notifications(Dialog *d);
 

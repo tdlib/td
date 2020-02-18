@@ -6505,11 +6505,11 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     *current_settings = new_settings;
 
     if (!was_muted && is_dialog_muted(d)) {
-      remove_all_dialog_notifications(d, false, "save_scope_notification_settings");
+      remove_all_dialog_notifications(d, false, "update_dialog_notification_settings 2");
     }
     if (is_dialog_pinned_message_notifications_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
         d->pinned_message_notification_message_id.is_valid()) {
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "update_dialog_notification_settings 3");
     }
     if (was_dialog_mentions_disabled != is_dialog_mention_notifications_disabled(d)) {
       if (was_dialog_mentions_disabled) {
@@ -6555,7 +6555,7 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
         if (d->notification_settings.use_default_disable_pinned_message_notifications &&
             d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
             get_dialog_notification_setting_scope(d->dialog_id) == scope) {
-          remove_dialog_pinned_message_notification(d);
+          remove_dialog_pinned_message_notification(d, "update_scope_notification_settings");
         }
       }
     }
@@ -9855,7 +9855,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
         d->pinned_message_notification_message_id <= d->last_read_inbox_message_id) {
       // remove pinned message notification when it is read
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "set_dialog_last_read_inbox_message_id 2");
     }
   }
 
@@ -11804,7 +11804,7 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
   }
 }
 
-void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageId message_id) {
+void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   CHECK(!message_id.is_scheduled());
   auto old_message_id = d->pinned_message_notification_message_id;
@@ -11814,24 +11814,23 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
   VLOG(notifications) << "Change pinned message notification in " << d->dialog_id << " from " << old_message_id
                       << " to " << message_id;
   if (old_message_id.is_valid()) {
-    auto m = get_message_force(d, old_message_id, "set_dialog_pinned_message_notification");
+    auto m = get_message_force(d, old_message_id, source);
     if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
       // Can't remove pinned_message_notification_message_id  before the call,
       // because the notification needs to be still active inside remove_message_notification_id
       remove_message_notification_id(d, m, true, false, true);
-      on_message_changed(d, m, false, "set_dialog_pinned_message_notification");
+      on_message_changed(d, m, false, source);
     } else {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->mention_notification_group.group_id, old_message_id, false,
-                         "set_dialog_pinned_message_notification 2");
+                         d->mention_notification_group.group_id, old_message_id, false, source);
     }
   }
   d->pinned_message_notification_message_id = message_id;
-  on_dialog_updated(d->dialog_id, "set_dialog_pinned_message_notification");
+  on_dialog_updated(d->dialog_id, source);
 }
 
-void MessagesManager::remove_dialog_pinned_message_notification(Dialog *d) {
-  set_dialog_pinned_message_notification(d, MessageId());
+void MessagesManager::remove_dialog_pinned_message_notification(Dialog *d, const char *source) {
+  set_dialog_pinned_message_notification(d, MessageId(), source);
 }
 
 void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
@@ -12477,7 +12476,8 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   m->notification_id = NotificationId();
   if (d->pinned_message_notification_message_id == m->message_id && is_permanent &&
       !ignore_pinned_message_notification_removal) {
-    remove_dialog_pinned_message_notification(d);  // must be called after notification_id is removed
+    remove_dialog_pinned_message_notification(
+        d, "remove_message_notification_id");  // must be called after notification_id is removed
   }
   if (group_info.last_notification_id == notification_id) {
     // last notification is deleted, need to find new last notification
@@ -21389,14 +21389,14 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
   if (have_settings && mute_until > date) {
     if (is_new_pinned) {
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "get_message_push_notification_info");
     }
     return Status::Error("Ignore notification in muted chat");
   }
 
   if (is_dialog_message_notification_disabled(settings_dialog_id, date)) {
     if (is_new_pinned) {
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "get_message_push_notification_info");
     }
     return Status::Error("Ignore notification in chat, because notifications are disabled in the chat");
   }
@@ -21409,7 +21409,8 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
 
   if (message_id.is_valid() && message_id > d->max_notification_message_id) {
     if (is_new_pinned) {
-      set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId());
+      set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId(),
+                                             "get_message_push_notification_info");
     }
     d->max_notification_message_id = message_id;
     on_dialog_updated(dialog_id, "set_max_notification_message_id");
@@ -21592,7 +21593,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
       }
     }
   } else {
-    remove_dialog_pinned_message_notification(d);
+    remove_dialog_pinned_message_notification(d, "try_add_pinned_message_notification");
   }
 }
 
@@ -22249,7 +22250,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (!is_active) {
     VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
     if (is_pinned) {
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "add_new_message_notification");
     }
     return false;
   }
@@ -22272,7 +22273,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
     if (is_pinned) {
-      remove_dialog_pinned_message_notification(d);
+      remove_dialog_pinned_message_notification(d, "add_new_message_notification");
     }
     return false;
   }
@@ -22352,7 +22353,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                                                  "add_new_message_notification 3");
   CHECK(is_changed);
   if (is_pinned) {
-    set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId());
+    set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId(),
+                                           "add_new_message_notification");
   }
   if (!m->notification_id.is_valid()) {
     // protection from accidental notification_id removal in set_dialog_pinned_message_notification
@@ -26649,7 +26651,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
   }
   if (d->pinned_message_notification_message_id.is_valid() &&
       d->pinned_message_notification_message_id <= max_message_id) {
-    remove_dialog_pinned_message_notification(d);
+    remove_dialog_pinned_message_notification(d, "delete_all_dialog_messages_from_database");
   }
   remove_message_dialog_notifications(d, max_message_id, false, source);
   remove_message_dialog_notifications(d, max_message_id, true, source);
