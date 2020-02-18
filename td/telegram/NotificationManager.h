@@ -388,6 +388,7 @@ class NotificationManager : public Actor {
     NotificationGroupId group_id;
     NotificationId notification_id;
     UserId sender_user_id;
+    string sender_name;
   };
   std::unordered_map<FullMessageId, TemporaryNotification, FullMessageIdHash> temporary_notifications_;
   std::unordered_map<NotificationId, FullMessageId, NotificationIdHash> temporary_notification_message_ids_;

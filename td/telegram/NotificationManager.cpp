@@ -3247,10 +3247,11 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (sender_photo != nullptr) {
       flags |= telegram_api::user::PHOTO_MASK;
     }
+    auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, sender_name,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name,
         string(), string(), string(), std::move(sender_photo), nullptr, 0, Auto(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
   }
@@ -3570,11 +3571,12 @@ void NotificationManager::add_message_push_notification(
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
     int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
+    auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, sender_name, string(),
-        string(), string(), nullptr, nullptr, 0, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, user_name, string(), string(),
+        string(), nullptr, nullptr, 0, Auto(), string(), string());
     td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");
   }
 
@@ -3593,7 +3595,8 @@ void NotificationManager::add_message_push_notification(
   if (logevent_id != 0) {
     VLOG(notifications) << "Register temporary " << notification_id << " with logevent " << logevent_id;
     temporary_notification_logevent_ids_[notification_id] = logevent_id;
-    temporary_notifications_[FullMessageId(dialog_id, message_id)] = {group_id, notification_id, sender_user_id};
+    temporary_notifications_[FullMessageId(dialog_id, message_id)] = {group_id, notification_id, sender_user_id,
+                                                                      sender_name};
     temporary_notification_message_ids_[notification_id] = FullMessageId(dialog_id, message_id);
   }
   push_notification_promises_[notification_id].push_back(std::move(promise));
@@ -3601,14 +3604,15 @@ void NotificationManager::add_message_push_notification(
   auto group_type = info.group_type;
   auto settings_dialog_id = info.settings_dialog_id;
   VLOG(notifications) << "Add message push " << notification_id << " of type " << loc_key << " for " << message_id
-                      << "/" << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
-                      << " with arg " << arg << ", photo " << photo << " and document " << document << " to "
-                      << group_id << " of type " << group_type << " with settings from " << settings_dialog_id;
+                      << "/" << random_id << " in " << dialog_id << ", sent by " << sender_user_id << "/\""
+                      << sender_name << "\" at " << date << " with arg " << arg << ", photo " << photo
+                      << " and document " << document << " to " << group_id << " of type " << group_type
+                      << " with settings from " << settings_dialog_id;
 
   add_notification(group_id, group_type, dialog_id, date, settings_dialog_id, initial_is_silent, is_silent, 0,
                    notification_id,
-                   create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg),
-                                                        std::move(photo), std::move(document)),
+                   create_new_push_message_notification(sender_user_id, sender_name, message_id, std::move(loc_key),
+                                                        std::move(arg), std::move(photo), std::move(document)),
                    "add_message_push_notification");
 }
 
@@ -3701,6 +3705,7 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
   auto group_id = it->second.group_id;
   auto notification_id = it->second.notification_id;
   auto sender_user_id = it->second.sender_user_id;
+  auto sender_name = it->second.sender_name;
   CHECK(group_id.is_valid());
   CHECK(notification_id.is_valid());
 
@@ -3725,9 +3730,10 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
 
   push_notification_promises_[notification_id].push_back(std::move(promise));
 
-  edit_notification(group_id, notification_id,
-                    create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg),
-                                                         std::move(photo), std::move(document)));
+  edit_notification(
+      group_id, notification_id,
+      create_new_push_message_notification(sender_user_id, std::move(sender_name), message_id, std::move(loc_key),
+                                           std::move(arg), std::move(photo), std::move(document)));
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {

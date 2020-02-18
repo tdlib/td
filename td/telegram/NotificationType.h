@@ -59,8 +59,8 @@ unique_ptr<NotificationType> create_new_secret_chat_notification();
 
 unique_ptr<NotificationType> create_new_call_notification(CallId call_id);
 
-unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, MessageId message_id,
-                                                                  string key, string arg, Photo photo,
-                                                                  Document document);
+unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, string sender_name,
+                                                                  MessageId message_id, string key, string arg,
+                                                                  Photo photo, Document document);
 
 }  // namespace td

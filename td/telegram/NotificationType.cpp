@@ -321,25 +321,28 @@ class NotificationTypePushMessage : public NotificationType {
     auto sender_user_id = G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(
         sender_user_id_, "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
-        message_id_.get(), sender_user_id, get_push_message_content_object(key_, arg_, photo_, document_));
+        message_id_.get(), sender_user_id, sender_name_,
+        get_push_message_content_object(key_, arg_, photo_, document_));
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
-    return string_builder << "NewPushMessageNotification[" << sender_user_id_ << ", " << message_id_ << ", " << key_
-                          << ", " << arg_ << ", " << photo_ << ", " << document_ << ']';
+    return string_builder << "NewPushMessageNotification[" << sender_user_id_ << "/\"" << sender_name_ << "\", "
+                          << message_id_ << ", " << key_ << ", " << arg_ << ", " << photo_ << ", " << document_ << ']';
   }
 
   UserId sender_user_id_;
   MessageId message_id_;
+  string sender_name_;
   string key_;
   string arg_;
   Photo photo_;
   Document document_;
 
  public:
-  NotificationTypePushMessage(UserId sender_user_id, MessageId message_id, string key, string arg, Photo photo,
-                              Document document)
+  NotificationTypePushMessage(UserId sender_user_id, string sender_name, MessageId message_id, string key, string arg,
+                              Photo photo, Document document)
       : sender_user_id_(std::move(sender_user_id))
+      , sender_name_(std::move(sender_name))
       , message_id_(message_id)
       , key_(std::move(key))
       , arg_(std::move(arg))
@@ -360,11 +363,12 @@ unique_ptr<NotificationType> create_new_call_notification(CallId call_id) {
   return make_unique<NotificationTypeCall>(call_id);
 }
 
-unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, MessageId message_id,
-                                                                  string key, string arg, Photo photo,
-                                                                  Document document) {
-  return td::make_unique<NotificationTypePushMessage>(sender_user_id, message_id, std::move(key), std::move(arg),
-                                                      std::move(photo), std::move(document));
+unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, string sender_name,
+                                                                  MessageId message_id, string key, string arg,
+                                                                  Photo photo, Document document) {
+  return td::make_unique<NotificationTypePushMessage>(sender_user_id, std::move(sender_name), message_id,
+                                                      std::move(key), std::move(arg), std::move(photo),
+                                                      std::move(document));
 }
 
 }  // namespace td
