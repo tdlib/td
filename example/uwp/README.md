@@ -10,7 +10,7 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 * Install `zlib` and `openssl` for all UWP architectures using `vcpkg`:
 ```
 cd <path to vcpkg>
-.\vcpkg.exe install openssl:arm-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
+.\vcpkg.exe install openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
