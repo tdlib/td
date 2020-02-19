@@ -12238,7 +12238,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           read_inbox_max_message_id == d->last_read_inbox_message_id.get_prev_server_message_id()) {
         read_inbox_max_message_id = d->last_read_inbox_message_id;
       }
-      if (d->need_repair_server_unread_count && d->last_read_inbox_message_id <= read_inbox_max_message_id) {
+      if (d->need_repair_server_unread_count && (d->last_read_inbox_message_id <= read_inbox_max_message_id ||
+                                                 d->order == 0 || !have_input_peer(dialog_id, AccessRights::Read))) {
         LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
                   << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
         d->need_repair_server_unread_count = false;
@@ -12259,7 +12260,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           previous_message_id = read_inbox_max_message_id;
           repair_server_unread_count(dialog_id, d->server_unread_count);
         }
-      } else {
+      }
+      if (!d->need_repair_server_unread_count) {
         previous_repaired_read_inbox_max_message_id_.erase(dialog_id);
       }
       if ((d->server_unread_count != dialog->unread_count_ &&
@@ -15980,7 +15982,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
       }
     });
   }
-  if (d->need_repair_server_unread_count) {
+  if (d->need_repair_server_unread_count && d->order != 0) {
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
@@ -27858,7 +27860,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
 
-  if (d->need_repair_server_unread_count) {
+  if (d->need_repair_server_unread_count && d->order != 0) {
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
