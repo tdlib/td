@@ -7373,6 +7373,15 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
   } else {
     CHECK(!c->is_saved);  // channel can't be saved before load completes
     CHECK(!c->is_being_saved);
+    if (c->participant_count == 0) {
+      Channel temp_c;
+      log_event_parse(temp_c, value).ensure();
+      if (temp_c.participant_count != 0) {
+        c->participant_count = temp_c.participant_count;
+        send_closure(G()->td(), &Td::send_update,
+                     make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
+      }
+    }
     auto new_value = get_channel_database_value(c);
     if (value != new_value) {
       save_channel_to_database_impl(c, channel_id, std::move(new_value));
