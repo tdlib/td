@@ -15002,8 +15002,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
   if (need_read && max_message_id > d->last_read_inbox_message_id) {
     MessageId last_read_message_id = max_message_id;
     MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
-    read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages");
-
     if (dialog_id.get_type() != DialogType::SecretChat) {
       if (last_read_message_id.get_prev_server_message_id().get() >
           prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
@@ -15014,6 +15012,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         read_history_on_server(d, last_read_message_id);
       }
     }
+    // read history on server after sending server request to not repair unread_count early
+    read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages");
   }
   if (need_read && d->is_marked_as_unread) {
     set_dialog_is_marked_as_unread(d, false);
