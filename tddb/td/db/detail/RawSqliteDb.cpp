@@ -9,7 +9,6 @@
 #include "sqlite/sqlite3.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
@@ -17,8 +16,8 @@
 namespace td {
 namespace detail {
 
-Status RawSqliteDb::last_error(sqlite3 *db) {
-  return Status::Error(Slice(sqlite3_errmsg(db)));
+Status RawSqliteDb::last_error(sqlite3 *db, CSlice path) {
+  return Status::Error(PSLICE() << Slice(sqlite3_errmsg(db)) << " for database \"" << path << '"');
 }
 
 Status RawSqliteDb::destroy(Slice path) {
@@ -26,7 +25,7 @@ Status RawSqliteDb::destroy(Slice path) {
   with_db_path(path, [&](auto path) {
     unlink(path).ignore();
     if (!stat(path).is_error()) {
-      error = Status::Error(PSLICE() << "Failed to delete " << tag("path", path));
+      error = Status::Error(PSLICE() << "Failed to delete file \"" << path << '"');
     }
   });
   return error;
@@ -39,12 +38,12 @@ Status RawSqliteDb::last_error() {
     destroy(path_).ignore();
   }
 
-  return last_error(db_);
+  return last_error(db_, path());
 }
 
 RawSqliteDb::~RawSqliteDb() {
   auto rc = sqlite3_close(db_);
-  LOG_IF(FATAL, rc != SQLITE_OK) << last_error(db_);
+  LOG_IF(FATAL, rc != SQLITE_OK) << last_error(db_, path());
 }
 
 }  // namespace detail

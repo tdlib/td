@@ -19,9 +19,9 @@ SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key)
       if (r_db.is_error()) {
         auto r_stat = stat(path);
         if (r_stat.is_error()) {
-          LOG(FATAL) << "Can't open database " << path << " (" << r_stat.error() << "): " << r_db.error();
+          LOG(FATAL) << "Can't open database (" << r_stat.error() << "): " << r_db.error();
         } else {
-          LOG(FATAL) << "Can't open database " << path << " of size " << r_stat.ok().size_ << ": " << r_db.error();
+          LOG(FATAL) << "Can't open database of size " << r_stat.ok().size_ << ": " << r_db.error();
         }
       }
       auto db = r_db.move_as_ok();

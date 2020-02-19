@@ -42,7 +42,7 @@ class RawSqliteDb {
   }
 
   Status last_error();
-  static Status last_error(sqlite3 *db);
+  static Status last_error(sqlite3 *db, CSlice path);
 
   bool on_begin() {
     begin_cnt_++;

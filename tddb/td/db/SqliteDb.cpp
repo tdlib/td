@@ -63,7 +63,7 @@ Status SqliteDb::init(CSlice path, bool *was_created) {
   int rc = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE /*| SQLITE_OPEN_SHAREDCACHE*/,
                            nullptr);
   if (rc != SQLITE_OK) {
-    auto res = Status::Error(PSLICE() << "Failed to open database: " << detail::RawSqliteDb::last_error(db));
+    auto res = Status::Error(PSLICE() << "Failed to open database: " << detail::RawSqliteDb::last_error(db, path));
     sqlite3_close(db);
     return res;
   }
@@ -98,7 +98,7 @@ Status SqliteDb::exec(CSlice cmd) {
   VLOG(sqlite) << "Finish exec " << tag("query", cmd) << tag("database", raw_->db());
   if (rc != SQLITE_OK) {
     CHECK(msg != nullptr);
-    return Status::Error(PSLICE() << tag("query", cmd) << " failed: " << msg);
+    return Status::Error(PSLICE() << tag("query", cmd) << " to database \"" << raw_->path() << "\" failed: " << msg);
   }
   CHECK(msg == nullptr);
   return Status::OK();
@@ -126,7 +126,7 @@ Result<int32> SqliteDb::user_version() {
   TRY_RESULT(get_version_stmt, get_statement("PRAGMA user_version"));
   TRY_STATUS(get_version_stmt.step());
   if (!get_version_stmt.has_row()) {
-    return Status::Error("PRAGMA user_version failed");
+    return Status::Error(PSLICE() << "PRAGMA user_version failed for database \"" << raw_->path() << '"');
   }
   return get_version_stmt.view_int32(0);
 }
@@ -159,7 +159,7 @@ Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key) {
   TRY_STATUS(db.init(path));
   if (!db_key.is_empty()) {
     if (db.check_encryption().is_ok()) {
-      return Status::Error("No key is needed");
+      return Status::Error(PSLICE() << "No key is needed for database \"" << path << '"');
     }
     auto key = db_key_to_sqlcipher_key(db_key);
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA key = " << key));
