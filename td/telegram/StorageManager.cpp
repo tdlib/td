@@ -42,13 +42,19 @@ void StorageManager::start_up() {
   load_fast_stat();
 }
 
-void StorageManager::on_new_file(int64 size, int32 cnt) {
-  LOG(INFO) << "Add " << cnt << " file of size " << size << " to fast storage statistics";
+void StorageManager::on_new_file(int64 size, int64 real_size, int32 cnt) {
+  LOG(INFO) << "Add " << cnt << " file of size " << size << " with real size " << real_size
+            << " to fast storage statistics";
   fast_stat_.cnt += cnt;
-  fast_stat_.size += size;
+#if TD_WINDOWS
+  auto add_size = size;
+#else
+  auto add_size = real_size;
+#endif
+  fast_stat_.size += add_size;
 
   if (fast_stat_.cnt < 0 || fast_stat_.size < 0) {
-    LOG(ERROR) << "Wrong fast stat after adding size " << size << " and cnt " << cnt;
+    LOG(ERROR) << "Wrong fast stat after adding size " << add_size << " and cnt " << cnt;
     fast_stat_ = FileTypeStat();
   }
   save_fast_stat();

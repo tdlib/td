@@ -4178,8 +4178,8 @@ void Td::init_file_manager() {
     explicit FileManagerContext(Td *td) : td_(td) {
     }
 
-    void on_new_file(int64 size, int32 cnt) final {
-      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, cnt);
+    void on_new_file(int64 size, int64 real_size, int32 cnt) final {
+      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, real_size, cnt);
     }
 
     void on_file_updated(FileId file_id) final {

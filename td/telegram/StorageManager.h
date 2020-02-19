@@ -38,7 +38,7 @@ class StorageManager : public Actor {
   void run_gc(FileGcParameters parameters, Promise<FileStats> promise);
   void update_use_storage_optimizer();
 
-  void on_new_file(int64 size, int32 cnt);
+  void on_new_file(int64 size, int64 real_size, int32 cnt);
 
  private:
   static constexpr uint32 GC_EACH = 60 * 60 * 24;  // 1 day
