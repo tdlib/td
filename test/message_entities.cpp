@@ -717,13 +717,13 @@ TEST(MessageEntities, fix_formatted_text) {
       td::vector<td::MessageEntity> entities;
       entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       td::vector<td::MessageEntity> fixed_entities;
-      if (length > 0 && offset >= 0 && static_cast<size_t>(length + offset) > str.size()) {
+      if (length < 0 || offset < 0 || (length > 0 && static_cast<size_t>(length + offset) > str.size())) {
         check_fix_formatted_text(str, entities, true, false, false, false);
         check_fix_formatted_text(str, entities, false, false, false, true);
         continue;
       }
 
-      if (length > 0 && offset >= 0 && (length >= 2 || offset != 3)) {
+      if (length > 0 && (length >= 2 || offset != 3)) {
         fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       }
       check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);

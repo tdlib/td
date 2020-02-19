@@ -1135,17 +1135,12 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
-// keeps nested, but removes mutually intersecting and empty entities
+// keeps nested, but removes mutually intersecting entities
 // entities must be pre-sorted
 static void remove_unallowed_entities(vector<MessageEntity> &entities) {
   vector<const MessageEntity *> nested_entities_stack;
   size_t left_entities = 0;
   for (size_t i = 0; i < entities.size(); i++) {
-    if (entities[i].offset < 0 || entities[i].length <= 0 || entities[i].offset > 1000000 ||
-        entities[i].length > 1000000) {
-      continue;
-    }
-
     while (!nested_entities_stack.empty() &&
            entities[i].offset >= nested_entities_stack.back()->offset + nested_entities_stack.back()->length) {
       // remove non-intersecting entities from the stack
@@ -1196,17 +1191,6 @@ static void remove_intersecting_entities(vector<MessageEntity> &entities) {
     }
   }
   entities.erase(entities.begin() + left_entities, entities.end());
-}
-
-static void fix_entities(vector<MessageEntity> &entities) {
-  if (entities.empty()) {
-    // fast path
-    return;
-  }
-
-  std::sort(entities.begin(), entities.end());
-
-  remove_unallowed_entities(entities);
 }
 
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool only_urls) {
@@ -2702,7 +2686,20 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
-  fix_entities(entities);
+  for (auto &entity : entities) {
+    if (entity.offset < 0 || entity.offset > 1000000) {
+      return Status::Error(400, PSLICE() << "Receive an entity with incorrect offset " << entity.offset);
+    }
+    if (entity.length < 0 || entity.length > 1000000) {
+      return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
+    }
+  }
+  td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
+
+  if (!entities.empty()) {
+    std::sort(entities.begin(), entities.end());
+    remove_unallowed_entities(entities);
+  }
 
   TRY_RESULT(result, clean_input_string_with_entities(text, entities));
 
