@@ -9464,8 +9464,11 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
 }
 
 void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count) {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || !have_input_peer(dialog_id, AccessRights::Read)) {
     return;
+  }
+  if (pending_read_history_timeout_.has_timeout(dialog_id.get())) {
+    return;  // postpone until read history request is sent
   }
 
   LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count;
@@ -12231,13 +12234,36 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
         d->need_repair_server_unread_count) {
-      if (d->need_repair_server_unread_count) {
+      if (d->last_read_inbox_message_id.is_valid() && !d->last_read_inbox_message_id.is_server() &&
+          read_inbox_max_message_id == d->last_read_inbox_message_id.get_prev_server_message_id()) {
+        read_inbox_max_message_id = d->last_read_inbox_message_id;
+      }
+      if (d->need_repair_server_unread_count && d->last_read_inbox_message_id <= read_inbox_max_message_id) {
         LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
                   << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
         d->need_repair_server_unread_count = false;
-        on_dialog_updated(dialog_id, "repair dialog server unread count");
+        on_dialog_updated(dialog_id, "repaired dialog server unread count");
       }
-      if (d->server_unread_count != dialog->unread_count_ ||
+      if (d->need_repair_server_unread_count) {
+        auto &previous_message_id = previous_repaired_read_inbox_max_message_id_[dialog_id];
+        if (previous_message_id >= read_inbox_max_message_id) {
+          // protect from sending the request in a loop
+          LOG(ERROR) << "Failed to repair server unread count in " << dialog_id
+                     << ", because receive read_inbox_max_message_id = " << read_inbox_max_message_id << " after "
+                     << previous_message_id << ", but messages are read up to " << d->last_read_inbox_message_id;
+          d->need_repair_server_unread_count = false;
+          on_dialog_updated(dialog_id, "failed to repair dialog server unread count");
+        } else {
+          LOG(INFO) << "Have last_read_inbox_message_id = " << d->last_read_inbox_message_id << ", but received only "
+                    << read_inbox_max_message_id << " from the server, trying to repair server unread count again";
+          previous_message_id = read_inbox_max_message_id;
+          repair_server_unread_count(dialog_id, d->server_unread_count);
+        }
+      } else {
+        previous_repaired_read_inbox_max_message_id_.erase(dialog_id);
+      }
+      if ((d->server_unread_count != dialog->unread_count_ &&
+           d->last_read_inbox_message_id == read_inbox_max_message_id) ||
           d->last_read_inbox_message_id < read_inbox_max_message_id) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
                                               d->local_unread_count, true, "on_get_dialogs");
@@ -15953,6 +15979,9 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
         send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, generation);
       }
     });
+  }
+  if (d->need_repair_server_unread_count) {
+    repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
   if (!max_message_id.is_valid()) {
@@ -27829,7 +27858,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
 
-  if (d->need_repair_server_unread_count && have_input_peer(dialog_id, AccessRights::Read)) {
+  if (d->need_repair_server_unread_count) {
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }

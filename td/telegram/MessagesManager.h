@@ -2742,6 +2742,8 @@ class MessagesManager : public Actor {
 
   std::unordered_map<string, int32> auth_notification_id_date_;
 
+  std::unordered_map<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
+
   uint32 scheduled_messages_sync_generation_ = 1;
 
   DialogId sponsored_dialog_id_;
