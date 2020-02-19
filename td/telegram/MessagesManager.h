@@ -1104,6 +1104,7 @@ class MessagesManager : public Actor {
     bool is_pinned_message_id_inited = false;
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
+    bool need_repair_channel_server_unread_count = false;
     bool is_marked_as_unread = false;
     bool last_sent_has_scheduled_messages = false;
     bool has_scheduled_server_messages = false;

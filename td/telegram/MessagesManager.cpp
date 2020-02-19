@@ -4347,6 +4347,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(can_report_location);
     STORE_FLAG(has_scheduled_server_messages);
     STORE_FLAG(has_scheduled_database_messages);
+    STORE_FLAG(need_repair_channel_server_unread_count);
     END_STORE_FLAGS();
   }
 
@@ -4507,6 +4508,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(can_report_location);
     PARSE_FLAG(has_scheduled_server_messages);
     PARSE_FLAG(has_scheduled_database_messages);
+    PARSE_FLAG(need_repair_channel_server_unread_count);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -9495,9 +9497,12 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     // there is no unread count in left channels
     return;
   }
+  if (!d->need_repair_channel_server_unread_count) {
+    d->need_repair_channel_server_unread_count = true;
+    on_dialog_updated(d->dialog_id, "repair_channel_server_unread_count");
+  }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
-  // TODO logevent?
   td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Promise<Unit>());
 }
 
@@ -9511,6 +9516,11 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
+    if (d->need_repair_channel_server_unread_count) {
+      d->need_repair_channel_server_unread_count = false;
+      on_dialog_updated(dialog_id, "read_history_inbox");
+    }
+
     // there can be updateReadHistoryInbox up to message 0, if messages where read and then all messages where deleted
     if (!max_message_id.is_valid() && max_message_id != MessageId()) {
       LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
@@ -27867,6 +27877,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (d->need_repair_server_unread_count && d->order != 0) {
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
+  }
+  if (d->need_repair_channel_server_unread_count) {
+    repair_channel_server_unread_count(d);
   }
 
   update_dialog_pos(d, false, "fix_new_dialog 7", true, is_loaded_from_database);
