@@ -28766,6 +28766,10 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     }
   }
 
+  if (d->last_read_inbox_message_id.is_valid() && !d->last_read_inbox_message_id.is_server() &&
+      read_inbox_max_message_id == d->last_read_inbox_message_id.get_prev_server_message_id()) {
+    read_inbox_max_message_id = d->last_read_inbox_message_id;
+  }
   if (d->server_unread_count != server_unread_count || d->last_read_inbox_message_id != read_inbox_max_message_id) {
     set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, server_unread_count, d->local_unread_count,
                                           false, "on_get_channel_dialog 50");
