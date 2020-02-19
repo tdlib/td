@@ -342,8 +342,8 @@ class NotificationTypePushMessage : public NotificationType {
   NotificationTypePushMessage(UserId sender_user_id, string sender_name, MessageId message_id, string key, string arg,
                               Photo photo, Document document)
       : sender_user_id_(std::move(sender_user_id))
-      , sender_name_(std::move(sender_name))
       , message_id_(message_id)
+      , sender_name_(std::move(sender_name))
       , key_(std::move(key))
       , arg_(std::move(arg))
       , photo_(std::move(photo))
