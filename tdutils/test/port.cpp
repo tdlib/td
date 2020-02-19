@@ -105,7 +105,7 @@ TEST(Port, SparseFiles) {
   fd.pwrite("a", offset).ensure();
   ASSERT_EQ(offset + 1, fd.get_size().move_as_ok());
   auto real_size = fd.get_real_size().move_as_ok();
-  if (real_size == offset + 1) {
+  if (real_size >= offset + 1) {
     LOG(ERROR) << "File system doesn't support sparse files, rewind during streaming can be slow";
   }
   unlink(path).ensure();
