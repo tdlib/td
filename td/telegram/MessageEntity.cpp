@@ -1146,13 +1146,36 @@ static void check_non_intersecting(const vector<MessageEntity> &entities) {
   }
 }
 
-static int32 get_entity_type_mask(MessageEntity::Type type) {
+static constexpr int32 get_entity_type_mask(MessageEntity::Type type) {
   return 1 << static_cast<int32>(type);
 }
 
+static constexpr int32 get_splittable_entities_mask() {
+  return get_entity_type_mask(MessageEntity::Type::Bold) | get_entity_type_mask(MessageEntity::Type::Italic) |
+         get_entity_type_mask(MessageEntity::Type::Underline) |
+         get_entity_type_mask(MessageEntity::Type::Strikethrough);
+}
+
+static constexpr int32 get_blockquote_entities_mask() {
+  return get_entity_type_mask(MessageEntity::Type::BlockQuote);
+}
+
+static constexpr int32 get_continuous_entities_mask() {
+  return get_entity_type_mask(MessageEntity::Type::Mention) | get_entity_type_mask(MessageEntity::Type::Hashtag) |
+         get_entity_type_mask(MessageEntity::Type::BotCommand) | get_entity_type_mask(MessageEntity::Type::Url) |
+         get_entity_type_mask(MessageEntity::Type::EmailAddress) | get_entity_type_mask(MessageEntity::Type::TextUrl) |
+         get_entity_type_mask(MessageEntity::Type::MentionName) | get_entity_type_mask(MessageEntity::Type::Cashtag) |
+         get_entity_type_mask(MessageEntity::Type::PhoneNumber) |
+         get_entity_type_mask(MessageEntity::Type::BankCardNumber);
+}
+
+static constexpr int32 get_pre_entities_mask() {
+  return get_entity_type_mask(MessageEntity::Type::Pre) | get_entity_type_mask(MessageEntity::Type::Code) |
+         get_entity_type_mask(MessageEntity::Type::PreCode);
+}
+
 static int32 is_splittable_entity(MessageEntity::Type type) {
-  return type == MessageEntity::Type::Bold || type == MessageEntity::Type::Italic ||
-         type == MessageEntity::Type::Underline || type == MessageEntity::Type::Strikethrough;
+  return (get_entity_type_mask(type) & get_splittable_entities_mask()) != 0;
 }
 
 static int32 is_blockquote_entity(MessageEntity::Type type) {
@@ -1160,15 +1183,11 @@ static int32 is_blockquote_entity(MessageEntity::Type type) {
 }
 
 static int32 is_continuous_entity(MessageEntity::Type type) {
-  return type == MessageEntity::Type::Mention || type == MessageEntity::Type::Hashtag ||
-         type == MessageEntity::Type::BotCommand || type == MessageEntity::Type::Url ||
-         type == MessageEntity::Type::EmailAddress || type == MessageEntity::Type::TextUrl ||
-         type == MessageEntity::Type::MentionName || type == MessageEntity::Type::Cashtag ||
-         type == MessageEntity::Type::PhoneNumber || type == MessageEntity::Type::BankCardNumber;
+  return (get_entity_type_mask(type) & get_continuous_entities_mask()) != 0;
 }
 
 static int32 is_pre_entity(MessageEntity::Type type) {
-  return type == MessageEntity::Type::Pre || type == MessageEntity::Type::Code || type == MessageEntity::Type::PreCode;
+  return (get_entity_type_mask(type) & get_pre_entities_mask()) != 0;
 }
 
 static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 4;
@@ -1215,9 +1234,14 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
         // Pre and Code can't contain nested entities
         return false;
       }
-      if (is_continuous_entity(parent_type) &&
-          (is_pre_entity(entity.type) || is_continuous_entity(entity.type) || is_blockquote_entity(entity.type))) {
-        // continuous can't contain other continuous and blockquote
+      // parents are not pre after this point
+      if (is_pre_entity(entity.type) && (nested_entity_type_mask & ~get_blockquote_entities_mask()) != 0) {
+        // Pre and Code can't be contained in other entities, except blockquote
+        return false;
+      }
+      if ((is_continuous_entity(entity.type) || is_blockquote_entity(entity.type)) &&
+          (nested_entity_type_mask & get_continuous_entities_mask()) != 0) {
+        // continuous and blockquote can't be contained in continuous
         return false;
       }
     }
@@ -1225,7 +1249,7 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
     if (is_splittable_entity(entity.type)) {
       auto index = get_splittable_entity_type_index(entity.type);
       if (end_pos[index] >= entity.offset) {
-        // the entities may be need to merged
+        // the entities can be merged
         return false;
       }
       end_pos[index] = entity.offset + entity.length;
@@ -2788,11 +2812,11 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
         auto index = get_splittable_entity_type_index(type);
         if (end_pos[index] != 0 && begin_pos[index] < offset) {
           if (end_pos[index] <= offset) {
-            result.emplace_back(type, begin_pos[index], end_pos[index]);
+            result.emplace_back(type, begin_pos[index], end_pos[index] - begin_pos[index]);
             begin_pos[index] = 0;
             end_pos[index] = 0;
           } else {
-            result.emplace_back(type, begin_pos[index], offset);
+            result.emplace_back(type, begin_pos[index], offset - begin_pos[index]);
             begin_pos[index] = offset;
           }
         }
@@ -2826,7 +2850,7 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
       result.resize(old_size);
     }
   }
-  add_entities(std::numeric_limits<size_t>::max());
+  add_entities(std::numeric_limits<int32>::max());
   entities = std::move(result);
   // entities are sorted only by offset now, re-sort if needed
   if (!std::is_sorted(entities.begin(), entities.end())) {
