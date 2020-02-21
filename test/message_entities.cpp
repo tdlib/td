@@ -884,9 +884,9 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text("example.com", {}, "example.com", {{td::MessageEntity::Type::Url, 0, 11}});
 
   for (size_t i = 0; i < 100000; i++) {
-    str = td::string(td::Random::fast(10, 30), 'a');
+    str = td::string(td::Random::fast(1, 20), 'a');
 
-    auto n = td::Random::fast(1, 10);
+    auto n = td::Random::fast(1, 20);
     td::vector<td::MessageEntity> entities;
     for (int j = 0; j < n; j++) {
       td::int32 type = td::Random::fast(0, 16);
@@ -898,7 +898,27 @@ TEST(MessageEntities, fix_formatted_text) {
       td::int32 length = td::Random::fast(0, max_length);
       entities.emplace_back(static_cast<td::MessageEntity::Type>(type), offset, length);
     }
+
+    auto get_type_mask = [](std::size_t length, const td::vector<td::MessageEntity> &entities) {
+      td::vector<td::int32> result(length);
+      for (auto &entity : entities) {
+        for (auto pos = 0; pos < entity.length; pos++) {
+          result[entity.offset + pos] |= 1 << static_cast<td::int32>(entity.type);
+        }
+      }
+      return result;
+    };
+    auto old_type_mask = get_type_mask(str.size(), entities);
     ASSERT_TRUE(td::fix_formatted_text(str, entities, false, true, true, false).is_ok());
+    auto new_type_mask = get_type_mask(str.size(), entities);
+    auto spliitable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15);
+    for (std::size_t pos = 0; pos < str.size(); pos++) {
+      if ((new_type_mask[pos] & ((1 << 7) | (1 << 8) | (1 << 9))) != 0) {  // pre
+        ASSERT_EQ(new_type_mask[pos] & spliitable_mask, 0);
+      } else {
+        ASSERT_EQ(new_type_mask[pos] & spliitable_mask, old_type_mask[pos] & spliitable_mask);
+      }
+    }
   }
 }
 
