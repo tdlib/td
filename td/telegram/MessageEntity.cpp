@@ -2585,6 +2585,8 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
 // like clean_input_string but also fixes entities
 // entities must be sorted, can be nested, but must not intersect each other
 static Result<string> clean_input_string_with_entities(const string &text, vector<MessageEntity> &entities) {
+  check_is_sorted(entities);
+
   struct EntityInfo {
     MessageEntity *entity;
     int32 utf16_skipped_before;
@@ -2799,7 +2801,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
 // enitities must contain only splittable entities
 void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
   check_is_sorted(entities);
-  check_non_intersecting(other_entities);
+  check_is_sorted(other_entities);
 
   int32 begin_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
   int32 end_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
@@ -2842,16 +2844,30 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
     }
     flush_entities(end_offset);
   };
-  for (auto &other_entity : other_entities) {
-    add_entities(other_entity.offset);
-    auto old_size = result.size();
-    add_entities(other_entity.offset + other_entity.length);
-    if (is_pre_entity(other_entity.type)) {
-      result.resize(old_size);
+
+  vector<const MessageEntity *> nested_entities_stack;
+  auto add_offset = [&](int32 offset) {
+    while (!nested_entities_stack.empty() &&
+           offset >= nested_entities_stack.back()->offset + nested_entities_stack.back()->length) {
+      // remove non-intersecting entities from the stack
+      auto old_size = result.size();
+      add_entities(nested_entities_stack.back()->offset + nested_entities_stack.back()->length);
+      if (is_pre_entity(nested_entities_stack.back()->type)) {
+        result.resize(old_size);
+      }
+      nested_entities_stack.pop_back();
     }
+
+    add_entities(offset);
+  };
+  for (auto &other_entity : other_entities) {
+    add_offset(other_entity.offset);
+    nested_entities_stack.push_back(&other_entity);
   }
-  add_entities(std::numeric_limits<int32>::max());
+  add_offset(std::numeric_limits<int32>::max());
+
   entities = std::move(result);
+
   // entities are sorted only by offset now, re-sort if needed
   if (!std::is_sorted(entities.begin(), entities.end())) {
     std::sort(entities.begin(), entities.end());
@@ -2884,18 +2900,16 @@ static void fix_entities(vector<MessageEntity> &entities) {
 
   if (!blockquote_entities.empty()) {
     remove_intersecting_entities(blockquote_entities);  // blockquote entities can't intersect each other
-    split_entities(splittable_entities, blockquote_entities);
 
     // blockquote entities can contain continuous entities, but can't intersect them in the other ways
     remove_entities_intersecting_blockquote(continuous_entities, blockquote_entities);
-  }
 
-  split_entities(splittable_entities, continuous_entities);  // split by remaining continuous entities
-
-  if (!blockquote_entities.empty()) {
     combine(continuous_entities, std::move(blockquote_entities));
     std::sort(continuous_entities.begin(), continuous_entities.end());
   }
+
+  // must be called once to not merge some adjacent entities
+  split_entities(splittable_entities, continuous_entities);
 
   if (splittable_entities.empty()) {
     splittable_entities = std::move(continuous_entities);

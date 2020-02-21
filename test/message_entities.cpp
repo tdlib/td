@@ -10,6 +10,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 #include "td/utils/utf8.h"
@@ -879,6 +880,26 @@ TEST(MessageEntities, fix_formatted_text) {
                            "abc", {{td::MessageEntity::Type::BlockQuote, 1, 1}});
   check_fix_formatted_text("abc", {{td::MessageEntity::Type::BlockQuote, 0, 3}, {td::MessageEntity::Type::Pre, 1, 1}},
                            "abc", {{td::MessageEntity::Type::BlockQuote, 0, 3}, {td::MessageEntity::Type::Pre, 1, 1}});
+
+  check_fix_formatted_text("example.com", {}, "example.com", {{td::MessageEntity::Type::Url, 0, 11}});
+
+  for (size_t i = 0; i < 100000; i++) {
+    str = td::string(td::Random::fast(10, 30), 'a');
+
+    auto n = td::Random::fast(1, 10);
+    td::vector<td::MessageEntity> entities;
+    for (int j = 0; j < n; j++) {
+      td::int32 type = td::Random::fast(0, 16);
+      td::int32 offset = td::Random::fast(0, static_cast<int>(str.size()) - 1);
+      auto max_length = static_cast<int>(str.size() - offset);
+      if ((i & 1) != 0 && max_length > 4) {
+        max_length = 4;
+      }
+      td::int32 length = td::Random::fast(0, max_length);
+      entities.emplace_back(static_cast<td::MessageEntity::Type>(type), offset, length);
+    }
+    ASSERT_TRUE(td::fix_formatted_text(str, entities, false, true, true, false).is_ok());
+  }
 }
 
 static void check_parse_html(td::string text, const td::string &result, const td::vector<td::MessageEntity> &entities) {
