@@ -9,6 +9,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/StateManager.h"
@@ -213,8 +214,12 @@ void NetStatsManager::start_up() {
   auto since_str = G()->td_db()->get_binlog_pmc()->get("net_stats_since");
   if (!since_str.empty()) {
     auto since = to_integer<int32>(since_str);
+    auto authorization_date = G()->shared_config().get_option_integer("authorization_date");
     if (unix_time < since) {
       since_total_ = unix_time;
+      G()->td_db()->get_binlog_pmc()->set("net_stats_since", to_string(since_total_));
+    } else if (since < authorization_date - 3600) {
+      since_total_ = authorization_date;
       G()->td_db()->get_binlog_pmc()->set("net_stats_since", to_string(since_total_));
     } else {
       since_total_ = since;
