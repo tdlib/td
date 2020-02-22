@@ -7373,7 +7373,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
   } else {
     CHECK(!c->is_saved);  // channel can't be saved before load completes
     CHECK(!c->is_being_saved);
-    if (c->participant_count == 0) {
+    if (c->participant_count == 0 && !value.empty()) {
       Channel temp_c;
       log_event_parse(temp_c, value).ensure();
       if (temp_c.participant_count != 0) {
