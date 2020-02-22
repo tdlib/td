@@ -398,6 +398,8 @@ class Global : public ActorContext {
   std::atomic<bool> dns_time_difference_was_updated_{false};
   std::atomic<bool> close_flag_{false};
   std::atomic<double> system_time_saved_at_{-1e10};
+  double saved_diff_ = 0.0;
+  double saved_system_time_ = 0.0;
 
 #if !TD_HAVE_ATOMIC_SHARED_PTR
   std::mutex dh_config_mutex_;
@@ -418,7 +420,7 @@ class Global : public ActorContext {
 
   std::unordered_map<int64, int64> location_access_hashes_;
 
-  static int32 to_unix_time(double server_time);
+  int32 to_unix_time(double server_time) const;
 
   void do_save_server_time_difference();
 
