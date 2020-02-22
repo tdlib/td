@@ -24266,6 +24266,27 @@ RestrictedRights MessagesManager::get_dialog_permissions(DialogId dialog_id) con
   }
 }
 
+bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
+  if (is_broadcast_channel(dialog_id)) {
+    return true;
+  }
+
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
+    UserId user_id = dialog_type == DialogType::User
+                         ? dialog_id.get_user_id()
+                         : td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    if (!user_id.is_valid() || td_->contacts_manager_->is_user_bot(user_id) ||
+        td_->contacts_manager_->is_user_deleted(user_id)) {
+      return true;
+    }
+    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
+      // return true;
+    }
+  }
+  return false;
+}
+
 void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action,
                                          Promise<Unit> &&promise) {
   if (action == nullptr) {
@@ -24284,25 +24305,11 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
     return promise.set_value(Unit());
   }
 
-  if (is_broadcast_channel(dialog_id)) {
+  if (is_dialog_action_unneded(dialog_id)) {
     return promise.set_value(Unit());
   }
 
-  auto dialog_type = dialog_id.get_type();
-  if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
-    UserId user_id = dialog_type == DialogType::User
-                         ? dialog_id.get_user_id()
-                         : td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-    if (!user_id.is_valid() || td_->contacts_manager_->is_user_bot(user_id) ||
-        td_->contacts_manager_->is_user_deleted(user_id)) {
-      return promise.set_value(Unit());
-    }
-    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
-      // return promise.set_value(Unit());
-    }
-  }
-
-  if (dialog_type == DialogType::SecretChat) {
+  if (dialog_id.get_type() == DialogType::SecretChat) {
     tl_object_ptr<secret_api::SendMessageAction> send_action;
     switch (action->get_id()) {
       case td_api::chatActionCancel::ID:
@@ -26195,7 +26202,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
-      if (!td_->auth_manager_->is_bot() && !is_broadcast_channel(dialog_id)) {
+      if (!td_->auth_manager_->is_bot() && !is_dialog_action_unneded(dialog_id)) {
         pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 1.0);
       }
     }

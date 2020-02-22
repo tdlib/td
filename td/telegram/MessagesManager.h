@@ -2043,6 +2043,8 @@ class MessagesManager : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
+  bool is_dialog_action_unneded(DialogId dialog_id) const;
+
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
