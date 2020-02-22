@@ -775,7 +775,7 @@ target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
 )
-target_link_libraries(tdclient PRIVATE tdcore)
+target_link_libraries(tdclient PUBLIC tdcore)
 
 if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
