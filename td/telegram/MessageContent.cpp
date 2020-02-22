@@ -3174,20 +3174,22 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
   return false;
 }
 
-void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
+                              const char *source) {
   switch (content->get_type()) {
     case MessageContentType::Text:
       return td->web_pages_manager_->register_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                       full_message_id);
+                                                       full_message_id, source);
     case MessageContentType::Poll:
-      return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
+      return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
+                                              source);
     default:
       return;
   }
 }
 
 void reregister_message_content(Td *td, const MessageContent *old_content, const MessageContent *new_content,
-                                FullMessageId full_message_id) {
+                                FullMessageId full_message_id, const char *source) {
   auto old_content_type = old_content->get_type();
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
@@ -3208,17 +3210,19 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
         return;
     }
   }
-  unregister_message_content(td, old_content, full_message_id);
-  register_message_content(td, new_content, full_message_id);
+  unregister_message_content(td, old_content, full_message_id, source);
+  register_message_content(td, new_content, full_message_id, source);
 }
 
-void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
+                                const char *source) {
   switch (content->get_type()) {
     case MessageContentType::Text:
       return td->web_pages_manager_->unregister_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                         full_message_id);
+                                                         full_message_id, source);
     case MessageContentType::Poll:
-      return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
+      return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
+                                                source);
     default:
       return;
   }
