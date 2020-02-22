@@ -694,7 +694,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
   if (proxy.use_mtproto_proxy()) {
     extra.debug_str = PSTRING() << "MTProto " << proxy_ip_address << extra.debug_str;
 
-    LOG(INFO) << "Create: " << extra.debug_str;
+    VLOG(connections) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy_ip_address);
   }
 
@@ -704,11 +704,11 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
     extra.mtproto_ip = info.option->get_ip_address();
     extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP")) << ' '
                                 << proxy_ip_address << " --> " << extra.mtproto_ip << extra.debug_str;
-    LOG(INFO) << "Create: " << extra.debug_str;
+    VLOG(connections) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy_ip_address);
   } else {
     extra.debug_str = PSTRING() << info.option->get_ip_address() << extra.debug_str;
-    LOG(INFO) << "Create: " << extra.debug_str;
+    VLOG(connections) << "Create: " << extra.debug_str;
     return SocketFd::open(info.option->get_ip_address());
   }
 }
@@ -762,8 +762,9 @@ ActorOwn<> ConnectionCreator::prepare_connection(SocketFd socket_fd, const Proxy
       bool use_connection_token_;
       bool was_connected_{false};
     };
-    LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "TLS"))
-              << ": " << debug_str;
+    VLOG(connections) << "Start "
+                      << (proxy.use_socks5_proxy() ? "Socks5" : (proxy.use_http_tcp_proxy() ? "HTTP" : "TLS")) << ": "
+                      << debug_str;
     auto callback = make_unique<Callback>(std::move(promise), std::move(stats_callback), use_connection_token,
                                           !proxy.use_socks5_proxy());
     if (proxy.use_socks5_proxy()) {
@@ -1009,13 +1010,13 @@ void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtp
 }
 
 void ConnectionCreator::client_wakeup(size_t hash) {
-  LOG(INFO) << tag("hash", format::as_hex(hash)) << " wakeup";
+  VLOG(connections) << tag("hash", format::as_hex(hash)) << " wakeup";
   G()->save_server_time();
   client_loop(clients_[hash]);
 }
 
 void ConnectionCreator::on_dc_options(DcOptions new_dc_options) {
-  LOG(INFO) << "SAVE " << new_dc_options;
+  VLOG(connections) << "SAVE " << new_dc_options;
   G()->td_db()->get_binlog_pmc()->set("dc_options", serialize(new_dc_options));
   dc_options_set_.reset();
   dc_options_set_.add_dc_options(get_default_dc_options(G()->is_test_dc()));
@@ -1299,7 +1300,7 @@ void ConnectionCreator::on_result(NetQueryPtr query) {
 
 void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr) {
   CHECK(proxy_data_ptr != nullptr);
-  LOG(INFO) << "Receive " << to_string(proxy_data_ptr);
+  LOG(DEBUG) << "Receive " << to_string(proxy_data_ptr);
   int32 expires = 0;
   switch (proxy_data_ptr->get_id()) {
     case telegram_api::help_proxyDataEmpty::ID: {
