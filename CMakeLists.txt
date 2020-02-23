@@ -907,7 +907,7 @@ if (NOT CMAKE_CROSSCOMPILING)
       target_compile_definitions(tg_cli PRIVATE -DUSE_READLINE=1)
     endif()
   endif()
-  target_link_libraries(tg_cli PRIVATE memprof tdclient tdcore tdtl)
+  target_link_libraries(tg_cli PRIVATE memprof tdclient tdcore)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 

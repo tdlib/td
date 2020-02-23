@@ -27,7 +27,7 @@ set(TESTS_MAIN
 
 add_library(all_tests STATIC ${TD_TEST_SOURCE})
 target_include_directories(all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(all_tests PRIVATE tdactor tddb tdcore tdnet tdutils tdclient)
+target_link_libraries(all_tests PRIVATE tdcore tdclient)
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   #Tests
@@ -37,11 +37,11 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fno-sanitize=vptr")
   endif()
   target_include_directories(run_all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-  target_link_libraries(run_all_tests PRIVATE tdactor tddb tdcore tdnet tdutils tdclient)
+  target_link_libraries(run_all_tests PRIVATE tdcore tdclient)
 
   if (CLANG)
 #    add_executable(fuzz_url fuzz_url.cpp)
-#    target_link_libraries(fuzz_url PRIVATE tdclient)
+#    target_link_libraries(fuzz_url PRIVATE tdcore)
 #    target_compile_options(fuzz_url PRIVATE "-fsanitize-coverage=trace-pc-guard")
   endif()
 
