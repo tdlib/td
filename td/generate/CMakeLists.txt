@@ -15,15 +15,19 @@ set(TL_TD_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.h
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.hpp
-  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.cpp
-  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.h
-  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.hpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.h
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.hpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/secret_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/secret_api.h
   ${TD_AUTO_INCLUDE_DIR}/telegram/secret_api.hpp
+  PARENT_SCOPE
+)
+
+set(TL_TD_API_AUTO_SOURCE
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.h
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api.hpp
   PARENT_SCOPE
 )
 

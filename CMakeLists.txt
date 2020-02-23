@@ -266,9 +266,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   if (TD_ENABLE_DOTNET)
     add_custom_target(remove_cpp_documentation
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      COMMAND remove_documentation ${TL_TD_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      COMMAND remove_documentation ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
       COMMENT "Remove C++ documentation from sources"
-      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
     )
 
     add_dependencies(prepare_cross_compiling generate_dotnet_api remove_cpp_documentation)
@@ -314,6 +314,7 @@ endif()
 #SOURCE SETS
 
 set_source_files_properties(${TL_TD_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${TL_TD_API_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 if (TD_ENABLE_JNI OR ANDROID)
   set(TL_JNI_OBJECT_SOURCE
     td/tl/tl_jni_object.cpp
@@ -325,6 +326,7 @@ endif()
 
 set(TL_TD_SCHEME_SOURCE
   ${TL_TD_AUTO_SOURCE}
+  ${TL_TD_API_AUTO_SOURCE}
   ${TL_JNI_OBJECT_SOURCE}
   td/tl/TlObject.h
   td/tl/tl_object_parse.h
