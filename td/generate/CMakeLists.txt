@@ -11,7 +11,7 @@ set(TL_TD_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto PARENT_SCOPE)
 
 set(TD_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto/td)
 
-set(TL_TD_AUTO
+set(TL_TD_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.h
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.hpp
@@ -27,7 +27,7 @@ set(TL_TD_AUTO
   PARENT_SCOPE
 )
 
-set(TL_TD_JSON_AUTO
+set(TL_TD_JSON_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json.h
   PARENT_SCOPE
@@ -36,14 +36,14 @@ set(TL_TD_JSON_AUTO
 set(TL_TD_API_TLO ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tlo)
 set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE)
 
-set(TL_C_AUTO
+set(TL_C_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_tdc_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_tdc_api.h
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_tdc_api_inner.h
   PARENT_SCOPE
 )
 
-set(TL_DOTNET_AUTO
+set(TL_DOTNET_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/telegram/TdDotNetApi.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/TdDotNetApi.h
   PARENT_SCOPE

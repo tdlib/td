@@ -266,9 +266,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   if (TD_ENABLE_DOTNET)
     add_custom_target(remove_cpp_documentation
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      COMMAND remove_documentation ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      COMMAND remove_documentation ${TL_TD_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
       COMMENT "Remove C++ documentation from sources"
-      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
     )
 
     add_dependencies(prepare_cross_compiling generate_dotnet_api remove_cpp_documentation)
@@ -305,46 +305,46 @@ endif()
 
 get_directory_property(HAS_PARENT PARENT_DIRECTORY)
 if (HAS_PARENT)
-  set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE)
-  set(TL_TD_JSON_AUTO ${TL_TD_JSON_AUTO} PARENT_SCOPE)
-  set(TD_TEST_SOURCE ${TD_TEST_SOURCE} PARENT_SCOPE)
+  set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE) # was used in standalone binding generators
+  set(TL_TD_JSON_AUTO ${TL_TD_JSON_AUTO_SOURCE} PARENT_SCOPE) # used in tdbot
+  set(TD_TEST_SOURCE ${TD_TEST_SOURCE} PARENT_SCOPE) # used to build tests
 endif()
 
 
 #SOURCE SETS
 
-set_source_files_properties(${TL_TD_AUTO} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${TL_TD_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 if (TD_ENABLE_JNI OR ANDROID)
-  set(TL_JNI_OBJECT
+  set(TL_JNI_OBJECT_SOURCE
     td/tl/tl_jni_object.cpp
     td/tl/tl_jni_object.h
   )
 else()
-  set(TL_JNI_OBJECT)
+  set(TL_JNI_OBJECT_SOURCE)
 endif()
 
 set(TL_TD_SCHEME_SOURCE
-  ${TL_TD_AUTO}
-  ${TL_JNI_OBJECT}
+  ${TL_TD_AUTO_SOURCE}
+  ${TL_JNI_OBJECT_SOURCE}
   td/tl/TlObject.h
   td/tl/tl_object_parse.h
   td/tl/tl_object_store.h
 )
 
-set_source_files_properties(${TL_TD_JSON_AUTO} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${TL_TD_JSON_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 set(TL_TD_JSON
-  ${TL_TD_JSON_AUTO}
+  ${TL_TD_JSON_AUTO_SOURCE}
   td/tl/tl_json.h
 )
 
-set_source_files_properties(${TL_C_AUTO} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${TL_C_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 set(TL_C_SCHEME_SOURCE
-  ${TL_C_AUTO}
+  ${TL_C_AUTO_SOURCE}
 )
 
-set_source_files_properties(${TL_DOTNET_AUTO} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${TL_DOTNET_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 set(TL_DOTNET_SCHEME_SOURCE
-  ${TL_DOTNET_AUTO}
+  ${TL_DOTNET_AUTO_SOURCE}
   td/tl/tl_dotnet_object.h
 )
 
