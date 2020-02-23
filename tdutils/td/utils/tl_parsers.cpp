@@ -48,6 +48,9 @@ void TlParser::set_error(const string &error_message) {
 }
 
 BufferSlice TlBufferParser::as_buffer_slice(Slice slice) {
+  if (slice.empty()) {
+    return BufferSlice();
+  }
   if (is_aligned_pointer<4>(slice.data())) {
     return parent_->from_slice(slice);
   }
