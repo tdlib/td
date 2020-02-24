@@ -313,7 +313,6 @@ endif()
 
 #SOURCE SETS
 
-set_source_files_properties(${TL_TD_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 set_source_files_properties(${TL_TD_API_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 if (TD_ENABLE_JNI OR ANDROID)
   set(TL_JNI_OBJECT_SOURCE
@@ -324,17 +323,22 @@ else()
   set(TL_JNI_OBJECT_SOURCE)
 endif()
 
-set(TL_TD_SCHEME_SOURCE
-  ${TL_TD_AUTO_SOURCE}
+set(TL_TD_API_SOURCE
   ${TL_TD_API_AUTO_SOURCE}
   ${TL_JNI_OBJECT_SOURCE}
+  td/tl/TlObject.h
+)
+
+set_source_files_properties(${TL_TD_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
+set(TL_TD_SCHEME_SOURCE
+  ${TL_TD_AUTO_SOURCE}
   td/tl/TlObject.h
   td/tl/tl_object_parse.h
   td/tl/tl_object_store.h
 )
 
 set_source_files_properties(${TL_TD_JSON_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
-set(TL_TD_JSON
+set(TL_TD_JSON_SOURCE
   ${TL_TD_JSON_AUTO_SOURCE}
   td/tl/tl_json.h
 )
@@ -747,20 +751,28 @@ if (MEMPROF)
 endif()
 
 
-# tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
-add_library(tdcore STATIC ${TDLIB_SOURCE})
-target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+add_library(tdapi STATIC ${TL_TD_API_SOURCE})
+target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+target_link_libraries(tdapi PRIVATE tdutils)
 
 if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   if (NOT JNI_FOUND)
     find_package(JNI REQUIRED)
   endif()
   message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
-  target_include_directories(tdcore PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
-  target_link_libraries(tdcore PUBLIC ${JAVA_JVM_LIBRARY})
+  target_include_directories(tdapi PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+  target_link_libraries(tdapi PUBLIC ${JAVA_JVM_LIBRARY})
 endif()
+
+if (NOT CMAKE_CROSSCOMPILING)
+  add_dependencies(tdapi tl_generate_common)
+endif()
+
+# tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
+add_library(tdcore STATIC ${TDLIB_SOURCE})
+target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(tdcore PUBLIC tdapi tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
@@ -775,14 +787,8 @@ endif()
 add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
 target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
 )
-target_link_libraries(tdclient PRIVATE tdcore)
-
-if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
-  target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
-  target_link_libraries(tdclient PUBLIC ${JAVA_JVM_LIBRARY})
-endif()
+target_link_libraries(tdclient PUBLIC tdapi PRIVATE tdcore)
 
 if (TD_ENABLE_DOTNET)
   add_library(tddotnet SHARED
@@ -820,7 +826,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdc tl_generate_c)
 endif()
 
-add_library(tdjson_private STATIC ${TL_TD_JSON} td/telegram/ClientJson.cpp td/telegram/ClientJson.h)
+add_library(tdjson_private STATIC ${TL_TD_JSON_SOURCE} td/telegram/ClientJson.cpp td/telegram/ClientJson.h)
 target_include_directories(tdjson_private PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
@@ -882,7 +888,7 @@ endif()
 
 #EXECUTABLES
 if (NOT CMAKE_CROSSCOMPILING)
-  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON})
+  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE})
 
   if (NOT READLINE_FOUND)
     find_package(Readline)
@@ -927,7 +933,7 @@ add_library(Td::TdStatic ALIAS TdStatic)
 add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
-install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore TdStatic EXPORT TdTargets
+install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore tdapi TdStatic EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
