@@ -18715,10 +18715,15 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
             LOG(INFO) << "Send secret media from " << m->message_id << " in " << dialog_id << " in reply to "
                       << m->reply_to_message_id;
             int64 random_id = begin_send_message(dialog_id, m);
+            auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
+            auto caption = get_message_content_caption(m->content.get());
+            vector<tl_object_ptr<secret_api::MessageEntity>> entities;
+            if (caption != nullptr && !caption->entities.empty()) {
+              entities = get_input_secret_message_entities(caption->entities, layer);
+            }
             send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                         m->reply_to_random_id, m->ttl, "", std::move(secret_input_media),
-                         vector<tl_object_ptr<secret_api::MessageEntity>>(), m->via_bot_user_id, m->media_album_id,
-                         random_id);
+                         m->reply_to_random_id, m->ttl, "", std::move(secret_input_media), std::move(entities),
+                         m->via_bot_user_id, m->media_album_id, random_id);
           }));
 }
 
