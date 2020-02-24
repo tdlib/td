@@ -1296,7 +1296,10 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
             blockquote_it->offset + blockquote_it->length <= entities[i].offset)) {
       blockquote_it++;
     }
-    if (blockquote_it != blockquote_entities.end() && blockquote_it->offset < entities[i].offset + entities[i].length) {
+    if (blockquote_it != blockquote_entities.end() &&
+        (blockquote_it->offset + blockquote_it->length < entities[i].offset + entities[i].length ||
+         (entities[i].offset < blockquote_it->offset &&
+          blockquote_it->offset < entities[i].offset + entities[i].length))) {
       continue;
     }
     if (i != left_entities) {
@@ -2874,6 +2877,21 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
   }
 }
 
+static vector<MessageEntity> resplit_entities(vector<MessageEntity> &&splittable_entities,
+                                              vector<MessageEntity> &&entities) {
+  if (!splittable_entities.empty()) {
+    split_entities(splittable_entities, entities);  // can merge some entities
+
+    if (entities.empty()) {
+      return std::move(splittable_entities);
+    }
+
+    combine(entities, std::move(splittable_entities));
+    std::sort(entities.begin(), entities.end());
+  }
+  return std::move(entities);
+}
+
 static void fix_entities(vector<MessageEntity> &entities) {
   if (!std::is_sorted(entities.begin(), entities.end())) {
     std::sort(entities.begin(), entities.end());
@@ -2909,15 +2927,44 @@ static void fix_entities(vector<MessageEntity> &entities) {
   }
 
   // must be called once to not merge some adjacent entities
-  split_entities(splittable_entities, continuous_entities);
+  entities = resplit_entities(std::move(splittable_entities), std::move(continuous_entities));
+  check_is_sorted(entities);
+}
 
-  if (splittable_entities.empty()) {
-    splittable_entities = std::move(continuous_entities);
-  } else if (!continuous_entities.empty()) {
-    combine(splittable_entities, std::move(continuous_entities));
-    std::sort(splittable_entities.begin(), splittable_entities.end());
+static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEntity> new_entities) {
+  check_is_sorted(entities);
+  if (new_entities.empty()) {
+    // fast path
+    return;
   }
-  entities = std::move(splittable_entities);
+
+  check_non_intersecting(new_entities);
+
+  vector<MessageEntity> continuous_entities;
+  vector<MessageEntity> blockquote_entities;
+  vector<MessageEntity> splittable_entities;
+  for (auto &entity : entities) {
+    if (is_splittable_entity(entity.type)) {
+      splittable_entities.push_back(std::move(entity));
+    } else if (is_blockquote_entity(entity.type)) {
+      blockquote_entities.push_back(std::move(entity));
+    } else {
+      continuous_entities.push_back(std::move(entity));
+    }
+  }
+
+  remove_entities_intersecting_blockquote(new_entities, blockquote_entities);
+
+  // merge before combining with blockquote entities
+  continuous_entities = merge_entities(std::move(continuous_entities), std::move(new_entities));
+
+  if (!blockquote_entities.empty()) {
+    combine(continuous_entities, std::move(blockquote_entities));
+    std::sort(continuous_entities.begin(), continuous_entities.end());
+  }
+
+  // must be called once to not merge some adjacent entities
+  entities = resplit_entities(std::move(splittable_entities), std::move(continuous_entities));
   check_is_sorted(entities);
 }
 
@@ -3017,7 +3064,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   }
 
   if (!skip_new_entities) {
-    entities = merge_entities(std::move(entities), find_entities(text, skip_bot_commands));
+    merge_new_entities(entities, find_entities(text, skip_bot_commands));
   }
 
   // TODO MAX_MESSAGE_LENGTH and MAX_CAPTION_LENGTH

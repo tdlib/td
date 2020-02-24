@@ -882,14 +882,41 @@ TEST(MessageEntities, fix_formatted_text) {
                            "abc", {{td::MessageEntity::Type::BlockQuote, 0, 3}, {td::MessageEntity::Type::Pre, 1, 1}});
 
   check_fix_formatted_text("example.com", {}, "example.com", {{td::MessageEntity::Type::Url, 0, 11}});
+  check_fix_formatted_text("example.com", {{td::MessageEntity::Type::Pre, 0, 3}}, "example.com",
+                           {{td::MessageEntity::Type::Pre, 0, 3}});
+  check_fix_formatted_text("example.com", {{td::MessageEntity::Type::BlockQuote, 0, 3}}, "example.com",
+                           {{td::MessageEntity::Type::BlockQuote, 0, 3}});
+  check_fix_formatted_text("example.com", {{td::MessageEntity::Type::BlockQuote, 0, 11}}, "example.com",
+                           {{td::MessageEntity::Type::BlockQuote, 0, 11}, {td::MessageEntity::Type::Url, 0, 11}});
+  check_fix_formatted_text("example.com", {{td::MessageEntity::Type::Italic, 0, 11}}, "example.com",
+                           {{td::MessageEntity::Type::Url, 0, 11}, {td::MessageEntity::Type::Italic, 0, 11}});
+  check_fix_formatted_text("example.com", {{td::MessageEntity::Type::Italic, 0, 3}}, "example.com",
+                           {{td::MessageEntity::Type::Url, 0, 11}, {td::MessageEntity::Type::Italic, 0, 3}});
+  check_fix_formatted_text("example.com a", {{td::MessageEntity::Type::Italic, 0, 13}}, "example.com a",
+                           {{td::MessageEntity::Type::Url, 0, 11},
+                            {td::MessageEntity::Type::Italic, 0, 11},
+                            {td::MessageEntity::Type::Italic, 11, 2}});
+  check_fix_formatted_text("a example.com", {{td::MessageEntity::Type::Italic, 0, 13}}, "a example.com",
+                           {{td::MessageEntity::Type::Italic, 0, 2},
+                            {td::MessageEntity::Type::Url, 2, 11},
+                            {td::MessageEntity::Type::Italic, 2, 11}});
 
   for (size_t i = 0; i < 100000; i++) {
-    str = td::string(td::Random::fast(1, 20), 'a');
+    bool is_url = td::Random::fast(0, 1) == 1;
+    td::int32 url_offset = 0;
+    td::int32 url_end = 0;
+    if (is_url) {
+      str = td::string(td::Random::fast(1, 5), 'a') + ":example.com:" + td::string(td::Random::fast(1, 5), 'a');
+      url_offset = static_cast<td::int32>(str.find('e'));
+      url_end = url_offset + 11;
+    } else {
+      str = td::string(td::Random::fast(1, 20), 'a');
+    }
 
     auto n = td::Random::fast(1, 20);
     td::vector<td::MessageEntity> entities;
     for (int j = 0; j < n; j++) {
-      td::int32 type = td::Random::fast(0, 16);
+      td::int32 type = td::Random::fast(4, 16);
       td::int32 offset = td::Random::fast(0, static_cast<int>(str.size()) - 1);
       auto max_length = static_cast<int>(str.size() - offset);
       if ((i & 1) != 0 && max_length > 4) {
@@ -903,22 +930,37 @@ TEST(MessageEntities, fix_formatted_text) {
       td::vector<td::int32> result(length);
       for (auto &entity : entities) {
         for (auto pos = 0; pos < entity.length; pos++) {
-          result[entity.offset + pos] |= 1 << static_cast<td::int32>(entity.type);
+          result[entity.offset + pos] |= (1 << static_cast<td::int32>(entity.type));
         }
       }
       return result;
     };
     auto old_type_mask = get_type_mask(str.size(), entities);
-    ASSERT_TRUE(td::fix_formatted_text(str, entities, false, true, true, false).is_ok());
+    ASSERT_TRUE(td::fix_formatted_text(str, entities, false, false, true, false).is_ok());
     auto new_type_mask = get_type_mask(str.size(), entities);
-    auto spliitable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15);
+    auto splittable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15);
     for (std::size_t pos = 0; pos < str.size(); pos++) {
       if ((new_type_mask[pos] & ((1 << 7) | (1 << 8) | (1 << 9))) != 0) {  // pre
-        ASSERT_EQ(new_type_mask[pos] & spliitable_mask, 0);
+        ASSERT_EQ(0, new_type_mask[pos] & splittable_mask);
       } else {
-        ASSERT_EQ(new_type_mask[pos] & spliitable_mask, old_type_mask[pos] & spliitable_mask);
+        ASSERT_EQ(old_type_mask[pos] & splittable_mask, new_type_mask[pos] & splittable_mask);
       }
     }
+    bool keep_url = is_url;
+    td::MessageEntity url_entity(td::MessageEntity::Type::Url, url_offset, url_end - url_offset);
+    for (auto &entity : entities) {
+      if (entity == url_entity) {
+        continue;
+      }
+      td::int32 offset = entity.offset;
+      td::int32 end = offset + entity.length;
+
+      if (keep_url && ((1 << static_cast<td::int32>(entity.type)) & splittable_mask) == 0 &&
+          !(end <= url_offset || url_end <= offset)) {
+        keep_url = (entity.type == td::MessageEntity::Type::BlockQuote && offset <= url_offset && url_end <= end);
+      }
+    }
+    ASSERT_EQ(keep_url, std::count(entities.begin(), entities.end(), url_entity) == 1);
   }
 }
 

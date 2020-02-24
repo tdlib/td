@@ -12,6 +12,7 @@
 #include "td/telegram/Td.h"
 
 namespace td {
+
 ClientActor::ClientActor(unique_ptr<TdCallback> callback) {
   td_ = create_actor<Td>("Td", std::move(callback));
 }
