@@ -3484,18 +3484,7 @@ unique_ptr<MessageContent> get_secret_message_content(
     entities.clear();
   }
 
-  if (media == nullptr) {
-    return create_text_message_content(std::move(message_text), std::move(entities), WebPageId());
-  }
-
-  int32 constructor_id = media->get_id();
-  if (message_text.size()) {
-    if (constructor_id != secret_api::decryptedMessageMediaEmpty::ID) {
-      LOG(INFO) << "Receive non-empty message text and media";
-    } else {
-      return create_text_message_content(std::move(message_text), std::move(entities), WebPageId());
-    }
-  }
+  int32 constructor_id = media == nullptr ? secret_api::decryptedMessageMediaEmpty::ID : media->get_id();
 
   // support of old layer and old constructions
   switch (constructor_id) {
@@ -3516,7 +3505,9 @@ unique_ptr<MessageContent> get_secret_message_content(
   bool is_media_empty = false;
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaEmpty::ID:
-      LOG(ERROR) << "Receive empty message text and media";
+      if (message_text.empty()) {
+        LOG(ERROR) << "Receive empty message text and media";
+      }
       is_media_empty = true;
       break;
     case secret_api::decryptedMessageMediaGeoPoint::ID: {
@@ -3639,21 +3630,12 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl) {
-  if (media == nullptr) {
-    return make_unique<MessageText>(std::move(message), WebPageId());
-  }
-
-  int32 constructor_id = media->get_id();
-  if (message.text.size()) {
-    if (constructor_id != telegram_api::messageMediaEmpty::ID) {
-      LOG(INFO) << "Receive non-empty message text and media for message from " << owner_dialog_id;
-    } else {
-      return make_unique<MessageText>(std::move(message), WebPageId());
-    }
-  }
+  int32 constructor_id = media == nullptr ? telegram_api::messageMediaEmpty::ID : media->get_id();
   switch (constructor_id) {
     case telegram_api::messageMediaEmpty::ID:
-      LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
+      if (message.text.empty()) {
+        LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
+      }
       return make_unique<MessageText>(std::move(message), WebPageId());
     case telegram_api::messageMediaPhoto::ID: {
       auto message_photo = move_tl_object_as<telegram_api::messageMediaPhoto>(media);
