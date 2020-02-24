@@ -901,7 +901,7 @@ TEST(MessageEntities, fix_formatted_text) {
                             {td::MessageEntity::Type::Url, 2, 11},
                             {td::MessageEntity::Type::Italic, 2, 11}});
 
-  for (size_t i = 0; i < 100000; i++) {
+  for (size_t test_n = 0; test_n < 100000; test_n++) {
     bool is_url = td::Random::fast(0, 1) == 1;
     td::int32 url_offset = 0;
     td::int32 url_end = 0;
@@ -919,7 +919,7 @@ TEST(MessageEntities, fix_formatted_text) {
       td::int32 type = td::Random::fast(4, 16);
       td::int32 offset = td::Random::fast(0, static_cast<int>(str.size()) - 1);
       auto max_length = static_cast<int>(str.size() - offset);
-      if ((i & 1) != 0 && max_length > 4) {
+      if ((test_n & 1) != 0 && max_length > 4) {
         max_length = 4;
       }
       td::int32 length = td::Random::fast(0, max_length);
@@ -939,8 +939,9 @@ TEST(MessageEntities, fix_formatted_text) {
     ASSERT_TRUE(td::fix_formatted_text(str, entities, false, false, true, false).is_ok());
     auto new_type_mask = get_type_mask(str.size(), entities);
     auto splittable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15);
+    auto pre_mask = (1 << 7) | (1 << 8) | (1 << 9);
     for (std::size_t pos = 0; pos < str.size(); pos++) {
-      if ((new_type_mask[pos] & ((1 << 7) | (1 << 8) | (1 << 9))) != 0) {  // pre
+      if ((new_type_mask[pos] & pre_mask) != 0) {
         ASSERT_EQ(0, new_type_mask[pos] & splittable_mask);
       } else {
         ASSERT_EQ(old_type_mask[pos] & splittable_mask, new_type_mask[pos] & splittable_mask);
@@ -961,6 +962,32 @@ TEST(MessageEntities, fix_formatted_text) {
       }
     }
     ASSERT_EQ(keep_url, std::count(entities.begin(), entities.end(), url_entity) == 1);
+
+    for (size_t i = 0; i < entities.size(); i++) {
+      auto type_mask = 1 << static_cast<td::int32>(entities[i].type);
+      for (size_t j = i + 1; j < entities.size(); j++) {
+        // sorted
+        ASSERT_TRUE(entities[j].offset > entities[i].offset ||
+                    (entities[j].offset == entities[i].offset && entities[j].length <= entities[i].length));
+
+        // not intersecting
+        ASSERT_TRUE(entities[j].offset >= entities[i].offset + entities[i].length ||
+                    entities[j].offset + entities[j].length <= entities[i].offset + entities[i].length);
+
+        if (entities[j].offset < entities[i].offset + entities[i].length) {  // if nested
+          // types are different
+          ASSERT_TRUE(entities[j].type != entities[i].type);
+
+          // pre can't contain other entities
+          ASSERT_TRUE((type_mask & pre_mask) == 0);
+
+          if ((type_mask & splittable_mask) == 0 && entities[i].type != td::MessageEntity::Type::BlockQuote) {
+            // continuous entities can contain only splittable entities
+            ASSERT_TRUE(((1 << static_cast<td::int32>(entities[j].type)) & splittable_mask) != 0);
+          }
+        }
+      }
+    }
   }
 }
 
