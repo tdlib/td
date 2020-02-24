@@ -3088,7 +3088,7 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }
-    entities.clear();
+    entities = find_entities(message_text, false);
   }
   return FormattedText{std::move(message_text), std::move(entities)};
 }
