@@ -17433,6 +17433,7 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
 }
 
 vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Get scheduled messages in " << dialog_id;
   if (G()->close_flag()) {
     promise.set_error(Status::Error(500, "Request aborted"));
     return {};
@@ -22817,6 +22818,9 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
     set_dialog_has_scheduled_database_messages_impl(d, false);
   }
 
+  LOG(INFO) << "Have sheduled messages on server = " << d->has_scheduled_server_messages
+            << ", in database = " << d->has_scheduled_database_messages
+            << " and in memory = " << (d->scheduled_messages != nullptr);
   bool has_scheduled_messages =
       d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
@@ -23656,6 +23660,7 @@ void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
   }
 
   // TODO create logevent
+  LOG(INFO) << "Repair sheduled messages in " << dialog_id;
   get_dialog_scheduled_messages(dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
                                                dialog_id, Promise<Unit>());
@@ -23681,6 +23686,9 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
   LOG(INFO) << "Receive has_scheduled_server_messages = " << has_scheduled_server_messages << " in " << dialog_id;
   if (d->has_scheduled_server_messages != has_scheduled_server_messages) {
     set_dialog_has_scheduled_server_messages(d, has_scheduled_server_messages);
+  } else if (has_scheduled_server_messages !=
+             (d->has_scheduled_database_messages || d->scheduled_messages != nullptr)) {
+    repair_dialog_scheduled_messages(d->dialog_id);
   }
 }
 
