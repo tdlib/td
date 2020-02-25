@@ -26116,13 +26116,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent())) {
+  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && !message->from_database)) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
-    if (pinned_message_id.is_valid() && have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
+    if (pinned_message_id.is_valid() && pinned_message_id < message_id &&
+        have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
 
     if (d->pinned_message_notification_message_id.is_valid() &&
+        d->pinned_message_notification_message_id < message_id &&
         have_message_force({dialog_id, d->pinned_message_notification_message_id},
                            "preload previously pinned message")) {
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
