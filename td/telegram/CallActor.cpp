@@ -22,6 +22,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/as.h"
+#include "td/utils/bits.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
@@ -779,11 +781,7 @@ vector<string> CallActor::get_emojis_fingerprint(const string &key, const string
   vector<string> result;
   result.reserve(4);
   for (int i = 0; i < 4; i++) {
-    uint64 num =
-        (static_cast<uint64>(sha256_buf[8 * i + 0]) << 56) | (static_cast<uint64>(sha256_buf[8 * i + 1]) << 48) |
-        (static_cast<uint64>(sha256_buf[8 * i + 2]) << 40) | (static_cast<uint64>(sha256_buf[8 * i + 3]) << 32) |
-        (static_cast<uint64>(sha256_buf[8 * i + 4]) << 24) | (static_cast<uint64>(sha256_buf[8 * i + 5]) << 16) |
-        (static_cast<uint64>(sha256_buf[8 * i + 6]) << 8) | (static_cast<uint64>(sha256_buf[8 * i + 7]));
+    uint64 num = bswap64(as<td::uint64>(sha256_buf + 8 * i));
     result.push_back(get_emoji_fingerprint(num));
   }
   return result;

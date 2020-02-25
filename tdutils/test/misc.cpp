@@ -829,6 +829,15 @@ TEST(Misc, Bits) {
   ASSERT_EQ(0x12345678u, td::bswap32(0x78563412u));
   ASSERT_EQ(0x12345678abcdef67ull, td::bswap64(0x67efcdab78563412ull));
 
+  uint8 buf[8] = {1, 90, 2, 18, 129, 255, 0, 2};
+  uint64 num2 = bswap64(as<td::uint64>(buf));
+  uint64 num =
+      (static_cast<uint64>(buf[0]) << 56) | (static_cast<uint64>(buf[1]) << 48) |
+      (static_cast<uint64>(buf[2]) << 40) | (static_cast<uint64>(buf[3]) << 32) |
+      (static_cast<uint64>(buf[4]) << 24) | (static_cast<uint64>(buf[5]) << 16) |
+      (static_cast<uint64>(buf[6]) << 8) | (static_cast<uint64>(buf[7]));
+  ASSERT_EQ(num, num2);
+
   ASSERT_EQ(0, count_bits32(0));
   ASSERT_EQ(0, count_bits64(0));
   ASSERT_EQ(4, count_bits32((1u << 31) | 7));
