@@ -244,7 +244,7 @@ void Scheduler::clear() {
   if (callback_) {
     // can't move lambda with unique_ptr inside into std::function
     auto ptr = actor_info_pool_.release();
-    callback_->register_at_finish([=]() { delete ptr; });
+    callback_->register_at_finish([ptr] { delete ptr; });
   } else {
     actor_info_pool_.reset();
   }

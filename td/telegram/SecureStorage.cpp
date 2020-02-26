@@ -225,7 +225,7 @@ Secret Secret::clone() const {
 }
 
 EncryptedSecret Secret::encrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm) {
-  auto aes_cbc_state = [&]() {
+  auto aes_cbc_state = [&] {
     switch (algorithm) {
       case EnryptionAlgorithm::Sha512:
         return calc_aes_cbc_state_sha512(PSLICE() << salt << key << salt);
@@ -255,7 +255,7 @@ Result<EncryptedSecret> EncryptedSecret::create(Slice encrypted_secret) {
 }
 
 Result<Secret> EncryptedSecret::decrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm) {
-  auto aes_cbc_state = [&]() {
+  auto aes_cbc_state = [&] {
     switch (algorithm) {
       case EnryptionAlgorithm::Sha512:
         return calc_aes_cbc_state_sha512(PSLICE() << salt << key << salt);

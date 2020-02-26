@@ -12426,7 +12426,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     return;
   }
 
-  DialogParticipantStatus status = [&]() {
+  DialogParticipantStatus status = [&] {
     bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
     bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
     bool was_kicked = 0 != (chat.flags_ & CHAT_FLAG_USER_WAS_KICKED);
@@ -12590,7 +12590,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     is_slow_mode_enabled = false;
   }
 
-  DialogParticipantStatus status = [&]() {
+  DialogParticipantStatus status = [&] {
     bool has_left = (channel.flags_ & CHANNEL_FLAG_USER_HAS_LEFT) != 0;
     bool is_creator = (channel.flags_ & CHANNEL_FLAG_USER_IS_CREATOR) != 0;
 

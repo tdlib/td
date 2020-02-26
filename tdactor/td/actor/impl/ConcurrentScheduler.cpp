@@ -78,7 +78,7 @@ void ConcurrentScheduler::start() {
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   for (size_t i = 1; i + extra_scheduler_ < schedulers_.size(); i++) {
     auto &sched = schedulers_[i];
-    threads_.push_back(td::thread([&]() {
+    threads_.push_back(td::thread([&] {
 #if TD_PORT_WINDOWS
       detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif

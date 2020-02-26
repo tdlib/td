@@ -224,7 +224,7 @@ class SslStreamImpl {
     if (ssl_ctx == nullptr) {
       return create_openssl_error(-7, "Failed to create an SSL context");
     }
-    auto ssl_ctx_guard = ScopeExit() + [&]() {
+    auto ssl_ctx_guard = ScopeExit() + [&] {
       SSL_CTX_free(ssl_ctx);
     };
     long options = 0;
@@ -313,7 +313,7 @@ class SslStreamImpl {
     if (ssl_handle == nullptr) {
       return create_openssl_error(-13, "Failed to create an SSL handle");
     }
-    auto ssl_handle_guard = ScopeExit() + [&]() {
+    auto ssl_handle_guard = ScopeExit() + [&] {
       do_ssl_shutdown(ssl_handle);
       SSL_free(ssl_handle);
     };

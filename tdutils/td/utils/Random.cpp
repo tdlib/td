@@ -135,7 +135,7 @@ int Random::fast(int min, int max) {
 }
 
 Random::Xorshift128plus::Xorshift128plus(uint64 seed) {
-  auto next = [&]() {
+  auto next = [&] {
     // splitmix64
     seed += static_cast<uint64>(0x9E3779B97F4A7C15);
     uint64 z = seed;

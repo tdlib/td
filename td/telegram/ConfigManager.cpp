@@ -791,7 +791,7 @@ class ConfigRecoverer : public Actor {
           PromiseCreator::lambda([actor_id = actor_shared(this)](Result<SimpleConfigResult> r_simple_config) {
             send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
           });
-      auto get_simple_config = [&]() {
+      auto get_simple_config = [&] {
         switch (simple_config_turn_ % 4) {
           case 2:
             return get_simple_config_azure;

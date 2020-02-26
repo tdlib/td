@@ -3596,7 +3596,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
   if (sticker->mask_position_ != nullptr && sticker->mask_position_->point_ != nullptr) {
-    auto point = [mask_point = std::move(sticker->mask_position_->point_)]() {
+    auto point = [mask_point = std::move(sticker->mask_position_->point_)] {
       switch (mask_point->get_id()) {
         case td_api::maskPointForehead::ID:
           return 0;

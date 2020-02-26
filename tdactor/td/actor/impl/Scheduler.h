@@ -235,7 +235,7 @@ void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda) {
         event_context_ptr_->link_token = actor_ref.token();
         lambda();
       },
-      [&]() {
+      [&] {
         auto event = Event::lambda(std::forward<EventT>(lambda));
         event.set_link_token(actor_ref.token());
         return event;
@@ -250,7 +250,7 @@ void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure) {
         event_context_ptr_->link_token = actor_ref.token();
         closure.run(static_cast<typename EventT::ActorType *>(actor_info->get_actor_unsafe()));
       },
-      [&]() {
+      [&] {
         auto event = Event::immediate_closure(std::forward<EventT>(closure));
         event.set_link_token(actor_ref.token());
         return event;
@@ -262,7 +262,7 @@ void Scheduler::send(ActorRef actor_ref, Event &&event) {
   event.set_link_token(actor_ref.token());
   return send_impl<send_type>(
       actor_ref.get(), [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
-      [&]() { return std::move(event); });
+      [&] { return std::move(event); });
 }
 
 inline void Scheduler::subscribe(PollableFd fd, PollFlags flags) {

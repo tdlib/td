@@ -4476,7 +4476,7 @@ void update_message_content_file_id_remote(MessageContent *content, FileId file_
   if (file_id.get_remote() == 0) {
     return;
   }
-  FileId *old_file_id = [&]() {
+  FileId *old_file_id = [&] {
     switch (content->get_type()) {
       case MessageContentType::Animation:
         return &static_cast<MessageAnimation *>(content)->file_id;

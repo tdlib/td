@@ -85,7 +85,7 @@ Status init_messages_db(SqliteDb &db, int32 version) {
 
     return Status::OK();
   };
-  auto add_call_index = [&db]() {
+  auto add_call_index = [&db] {
     for (int i = static_cast<int>(SearchMessagesFilter::Call) - 1;
          i < static_cast<int>(SearchMessagesFilter::MissedCall); i++) {
       TRY_STATUS(db.exec(PSLICE() << "CREATE INDEX IF NOT EXISTS full_message_index_" << i
@@ -93,12 +93,12 @@ Status init_messages_db(SqliteDb &db, int32 version) {
     }
     return Status::OK();
   };
-  auto add_notification_id_index = [&db]() {
+  auto add_notification_id_index = [&db] {
     return db.exec(
         "CREATE INDEX IF NOT EXISTS message_by_notification_id ON messages (dialog_id, notification_id) WHERE "
         "notification_id IS NOT NULL");
   };
-  auto add_scheduled_messages_table = [&db]() {
+  auto add_scheduled_messages_table = [&db] {
     TRY_STATUS(
         db.exec("CREATE TABLE IF NOT EXISTS scheduled_messages (dialog_id INT8, message_id INT8, "
                 "server_message_id INT4, data BLOB, PRIMARY KEY (dialog_id, message_id))"));

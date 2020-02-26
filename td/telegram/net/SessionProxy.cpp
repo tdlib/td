@@ -171,7 +171,7 @@ void SessionProxy::open_session(bool force) {
   // 1. All unauthorized query will be sent into the same SessionProxy
   // 2. All authorized query are delayed before we have authorization
   // So only one SessionProxy will be active before we have authorization key
-  auto should_open = [&]() {
+  auto should_open = [&] {
     if (force) {
       return true;
     }

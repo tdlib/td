@@ -74,4 +74,4 @@ auto operator+(ScopeExit, FunctionT &&func) {
 
 }  // namespace td
 
-#define SCOPE_EXIT auto TD_CONCAT(SCOPE_EXIT_VAR_, __LINE__) = ::td::ScopeExit() + [&]()
+#define SCOPE_EXIT auto TD_CONCAT(SCOPE_EXIT_VAR_, __LINE__) = ::td::ScopeExit() + [&]

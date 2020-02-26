@@ -818,7 +818,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
     return MIN_NOTIFICATION_DELAY_MS;
   }
 
-  auto delay_ms = [&]() {
+  auto delay_ms = [&] {
     auto online_info = td_->contacts_manager_->get_my_online_status();
     if (!online_info.is_online_local && online_info.is_online_remote) {
       // If we are offline, but online from some other client, then delay notification

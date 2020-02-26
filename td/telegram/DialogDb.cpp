@@ -38,19 +38,19 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     version = 0;
   }
 
-  auto create_notification_group_table = [&db]() {
+  auto create_notification_group_table = [&db] {
     return db.exec(
         "CREATE TABLE IF NOT EXISTS notification_groups (notification_group_id INT4 PRIMARY KEY, dialog_id "
         "INT8, last_notification_date INT4)");
   };
 
-  auto create_last_notification_date_index = [&db]() {
+  auto create_last_notification_date_index = [&db] {
     return db.exec(
         "CREATE INDEX IF NOT EXISTS notification_group_by_last_notification_date ON notification_groups "
         "(last_notification_date, dialog_id, notification_group_id) WHERE last_notification_date IS NOT NULL");
   };
 
-  auto add_dialogs_in_folder_index = [&db]() {
+  auto add_dialogs_in_folder_index = [&db] {
     return db.exec(
         "CREATE INDEX IF NOT EXISTS dialog_in_folder_by_dialog_order ON dialogs (folder_id, dialog_order, dialog_id) "
         "WHERE folder_id IS NOT NULL");

@@ -377,7 +377,7 @@ TEST(DB, thread_key_value) {
   std::vector<thread> threads(threads_n);
   std::vector<std::vector<DbQuery>> res(threads_n);
   for (int i = 0; i < threads_n; i++) {
-    threads[i] = thread([&ts_kv, &queries, &res, i]() {
+    threads[i] = thread([&ts_kv, &queries, &res, i] {
       for (auto q : queries[i]) {
         ts_kv.do_query(q);
         res[i].push_back(q);
