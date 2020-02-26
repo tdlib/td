@@ -27281,7 +27281,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   if (update_message_content(dialog_id, old_message, std::move(new_message->content), true,
                              message_id.is_yet_unsent() && new_message->edit_date == 0,
-                             !is_scheduled && get_message(d, message_id) != nullptr)) {
+                             get_message(d, message_id) != nullptr)) {
     need_send_update = true;
   }
 
@@ -27311,10 +27311,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                                              unique_ptr<MessageContent> new_content,
                                              bool need_send_update_message_content, bool need_merge_files,
                                              bool is_message_in_dialog) {
-  if (old_message->message_id.is_scheduled()) {
-    is_message_in_dialog = false;
-  }
-
   bool is_content_changed = false;
   bool need_update = false;
   unique_ptr<MessageContent> &old_content = old_message->content;

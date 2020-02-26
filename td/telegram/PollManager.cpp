@@ -580,7 +580,7 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
   }
   LOG(INFO) << "Register " << poll_id << " from " << full_message_id << " from " << source;
   bool is_inserted = poll_messages_[poll_id].insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << " " << poll_id << full_message_id;
+  LOG_CHECK(is_inserted) << source << " " << poll_id << " " << full_message_id;
   if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !get_poll_is_closed(poll_id)) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
   }
@@ -597,7 +597,7 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
   LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id << " from " << source;
   auto &message_ids = poll_messages_[poll_id];
   auto is_deleted = message_ids.erase(full_message_id);
-  LOG_CHECK(is_deleted) << source << " " << poll_id << full_message_id;
+  LOG_CHECK(is_deleted) << source << " " << poll_id << " " << full_message_id;
   if (message_ids.empty()) {
     poll_messages_.erase(poll_id);
     update_poll_timeout_.cancel_timeout(poll_id.get());
