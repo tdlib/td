@@ -781,7 +781,7 @@ vector<string> CallActor::get_emojis_fingerprint(const string &key, const string
   vector<string> result;
   result.reserve(4);
   for (int i = 0; i < 4; i++) {
-    uint64 num = bswap64(as<td::uint64>(sha256_buf + 8 * i));
+    uint64 num = bswap64(as<uint64>(sha256_buf + 8 * i));
     result.push_back(get_emoji_fingerprint(num));
   }
   return result;

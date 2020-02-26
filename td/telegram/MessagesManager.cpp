@@ -22818,7 +22818,7 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
     set_dialog_has_scheduled_database_messages_impl(d, false);
   }
 
-  LOG(INFO) << "Have sheduled messages on server = " << d->has_scheduled_server_messages
+  LOG(INFO) << "Have scheduled messages on server = " << d->has_scheduled_server_messages
             << ", in database = " << d->has_scheduled_database_messages
             << " and in memory = " << (d->scheduled_messages != nullptr);
   bool has_scheduled_messages =
@@ -23660,7 +23660,7 @@ void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
   }
 
   // TODO create logevent
-  LOG(INFO) << "Repair sheduled messages in " << dialog_id;
+  LOG(INFO) << "Repair scheduled messages in " << dialog_id;
   get_dialog_scheduled_messages(dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
                                                dialog_id, Promise<Unit>());
