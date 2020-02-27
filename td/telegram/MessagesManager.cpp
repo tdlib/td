@@ -15410,17 +15410,16 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
     }
   }
 
-  bool has_scheduled_messages =
-      d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_object(d), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_dialog_public_order(d),
       d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER,
-      has_scheduled_messages, can_delete_for_self, can_delete_for_all_users, can_report_dialog(d->dialog_id),
-      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
-      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
+      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
+      d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
       d->pinned_message_id.get(), d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message),
       d->client_data);
@@ -22840,8 +22839,7 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
             << ", in database = " << d->has_scheduled_database_messages
             << " and in memory = " << (d->scheduled_messages != nullptr)
             << "; was loaded from database = " << d->has_loaded_scheduled_messages_from_database;
-  bool has_scheduled_messages =
-      d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
+  bool has_scheduled_messages = get_dialog_has_scheduled_messages(d);
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
     return;
   }
@@ -24297,6 +24295,19 @@ RestrictedRights MessagesManager::get_dialog_permissions(DialogId dialog_id) con
       UNREACHABLE();
       return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
+}
+
+bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
+  if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
+    return false;
+  }
+  if (is_broadcast_channel(d->dialog_id) &&
+      !td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).can_post_messages()) {
+    return false;
+  }
+  // TODO send updateChatHasScheduledMessage when can_post_messages changes
+
+  return d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
 }
 
 bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {

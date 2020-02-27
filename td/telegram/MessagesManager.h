@@ -2249,6 +2249,8 @@ class MessagesManager : public Actor {
 
   RestrictedRights get_dialog_permissions(DialogId dialog_id) const;
 
+  bool get_dialog_has_scheduled_messages(const Dialog *d) const;
+
   static int64 get_dialog_order(MessageId message_id, int32 message_date);
 
   int64 get_dialog_public_order(const Dialog *d) const;
