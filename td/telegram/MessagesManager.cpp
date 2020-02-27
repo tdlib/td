@@ -17432,7 +17432,8 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
 
-vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, bool force,
+                                                                 Promise<Unit> &&promise) {
   LOG(INFO) << "Get scheduled messages in " << dialog_id;
   if (G()->close_flag()) {
     promise.set_error(Status::Error(500, "Request aborted"));
@@ -17492,8 +17493,8 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
     }
     auto hash = get_vector_hash(numbers);
 
-    if (d->has_scheduled_server_messages ||
-        (d->scheduled_messages_sync_generation == 0 && !G()->parameters().use_message_db)) {
+    if (!force && (d->has_scheduled_server_messages ||
+                   (d->scheduled_messages_sync_generation == 0 && !G()->parameters().use_message_db))) {
       load_dialog_scheduled_messages(dialog_id, false, hash, std::move(promise));
       return {};
     }
@@ -23679,9 +23680,9 @@ void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
 
   // TODO create logevent
   LOG(INFO) << "Repair scheduled messages in " << dialog_id;
-  get_dialog_scheduled_messages(dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+  get_dialog_scheduled_messages(dialog_id, false, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
-                                               dialog_id, Promise<Unit>());
+                                               dialog_id, true, Promise<Unit>());
                                 }));
 }
 

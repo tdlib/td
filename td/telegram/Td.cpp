@@ -1616,7 +1616,8 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
   vector<MessageId> message_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
-    message_ids_ = td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, std::move(promise));
+    message_ids_ =
+        td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1626,7 +1627,7 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
  public:
   GetChatScheduledMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
       : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-    set_tries(3);
+    set_tries(4);
   }
 };
 

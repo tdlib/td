@@ -646,7 +646,7 @@ class MessagesManager : public Actor {
   int32 get_dialog_message_count(DialogId dialog_id, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
                                  bool return_local, int64 &random_id, Promise<Unit> &&promise);
 
-  vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, Promise<Unit> &&promise);
+  vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, Promise<Unit> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
