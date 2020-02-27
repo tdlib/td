@@ -22787,6 +22787,10 @@ void MessagesManager::send_update_chat_chat_list(const Dialog *d) const {
 }
 
 void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (d->dialog_id.get_type() != DialogType::User) {
     return;
   }
@@ -22804,6 +22808,10 @@ void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog
 }
 
 void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_action_bar";
   on_dialog_updated(d->dialog_id, "send_update_chat_action_bar");
@@ -22814,13 +22822,23 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
-  if (d->scheduled_messages == nullptr && d->has_loaded_scheduled_messages_from_database) {
-    set_dialog_has_scheduled_database_messages_impl(d, false);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (d->scheduled_messages == nullptr) {
+    if (d->has_loaded_scheduled_messages_from_database) {
+      set_dialog_has_scheduled_database_messages_impl(d, false);
+    } else if (d->has_scheduled_database_messages) {
+      CHECK(G()->parameters().use_message_db);
+      repair_dialog_scheduled_messages(d->dialog_id);
+    }
   }
 
   LOG(INFO) << "Have scheduled messages on server = " << d->has_scheduled_server_messages
             << ", in database = " << d->has_scheduled_database_messages
-            << " and in memory = " << (d->scheduled_messages != nullptr);
+            << " and in memory = " << (d->scheduled_messages != nullptr)
+            << "; was loaded from database = " << d->has_loaded_scheduled_messages_from_database;
   bool has_scheduled_messages =
       d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
@@ -27900,6 +27918,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (d->need_repair_channel_server_unread_count) {
     repair_channel_server_unread_count(d);
+  }
+
+  if (!G()->parameters().use_message_db) {
+    d->has_loaded_scheduled_messages_from_database = true;
   }
 
   update_dialog_pos(d, false, "fix_new_dialog 7", true, is_loaded_from_database);
