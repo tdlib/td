@@ -8270,11 +8270,14 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (generation < d->scheduled_messages_sync_generation) {
+    LOG(INFO) << "Ignore scheduled messages with old generation " << generation << " instead of "
+              << d->scheduled_messages_sync_generation << " in " << dialog_id;
     return;
   }
   d->scheduled_messages_sync_generation = generation;
 
   if (is_not_modified) {
+    LOG(INFO) << "Scheduled messages are mot modified in " << dialog_id;
     return;
   }
 
@@ -8289,6 +8292,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   }
 
   bool is_channel_message = dialog_id.get_type() == DialogType::Channel;
+  bool has_scheduled_server_messages = false;
   for (auto &message : messages) {
     auto message_dialog_id = get_message_dialog_id(message);
     if (message_dialog_id != dialog_id) {
@@ -8305,8 +8309,10 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     if (message_id.is_valid_scheduled()) {
       CHECK(message_id.is_scheduled_server());
       old_server_message_ids.erase(message_id.get_scheduled_server_message_id());
+      has_scheduled_server_messages = true;
     }
   }
+  on_update_dialog_has_scheduled_server_messages(dialog_id, has_scheduled_server_messages);
 
   for (auto it : old_server_message_ids) {
     auto message_id = it.second;
