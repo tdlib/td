@@ -5953,7 +5953,7 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
 
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, true);
 }
 
 void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
@@ -8321,7 +8321,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
   }
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
 }
 
 void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, int64 random_id, int32 total_count,
@@ -8654,7 +8654,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   }
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, true);
 }
 
 void MessagesManager::delete_message_from_server(DialogId dialog_id, MessageId message_id, bool revoke) {
@@ -11554,7 +11554,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     return FullMessageId();
   }
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "on_get_message");
@@ -17563,7 +17563,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   for (auto message_id : added_message_ids) {
     send_update_new_message(d, get_message(d, message_id));
   }
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
 
   auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
   CHECK(it != load_scheduled_messages_from_database_queries_.end());
@@ -17820,7 +17820,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
   auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
   CHECK(result != nullptr);
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
   return result;
 }
 
@@ -22827,21 +22827,31 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
   send_update_secret_chats_with_user_action_bar(d);
 }
 
-void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d) {
+void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   if (d->scheduled_messages == nullptr) {
-    if (d->has_loaded_scheduled_messages_from_database) {
-      set_dialog_has_scheduled_database_messages_impl(d, false);
-    } else if (d->has_scheduled_database_messages) {
-      CHECK(G()->parameters().use_message_db);
-      repair_dialog_scheduled_messages(d->dialog_id);
+    if (d->has_scheduled_database_messages) {
+      if (d->has_loaded_scheduled_messages_from_database) {
+        set_dialog_has_scheduled_database_messages_impl(d, false);
+      } else {
+        CHECK(G()->parameters().use_message_db);
+        repair_dialog_scheduled_messages(d);
+      }
+    }
+    if (d->has_scheduled_server_messages) {
+      if (from_deletion && d->scheduled_messages_sync_generation > 0) {
+        set_dialog_has_scheduled_server_messages(d, false);
+      } else {
+        d->last_repair_scheduled_messages_generation = 0;
+        repair_dialog_scheduled_messages(d);
+      }
     }
   }
 
-  LOG(INFO) << "Have scheduled messages on server = " << d->has_scheduled_server_messages
+  LOG(INFO) << "In " << d->dialog_id << " have scheduled messages on server = " << d->has_scheduled_server_messages
             << ", in database = " << d->has_scheduled_database_messages
             << " and in memory = " << (d->scheduled_messages != nullptr)
             << "; was loaded from database = " << d->has_loaded_scheduled_messages_from_database;
@@ -22880,14 +22890,14 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
       *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(*sent_messages[0]) != dialog_id) {
     LOG(ERROR) << "Receive wrong result for sending message with random_id " << random_id << " from " << source
                << " to " << dialog_id << ": " << oneline(to_string(*updates_ptr));
+    Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
     if (dialog_id.get_type() == DialogType::Channel) {
-      Dialog *d = get_dialog(dialog_id);
-      CHECK(d != nullptr);
       get_channel_difference(dialog_id, d->pts, true, "check_send_message_result");
     } else {
       td_->updates_manager_->schedule_get_difference("check_send_message_result");
     }
-    repair_dialog_scheduled_messages(dialog_id);
+    repair_dialog_scheduled_messages(d);
   }
 }
 
@@ -23677,12 +23687,18 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
 }
 
-void MessagesManager::repair_dialog_scheduled_messages(DialogId dialog_id) {
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
+void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
+  if (td_->auth_manager_->is_bot() || d->dialog_id.get_type() == DialogType::SecretChat) {
     return;
   }
 
+  if (d->last_repair_scheduled_messages_generation == scheduled_messages_sync_generation_) {
+    return;
+  }
+  d->last_repair_scheduled_messages_generation = scheduled_messages_sync_generation_;
+
   // TODO create logevent
+  auto dialog_id = d->dialog_id;
   LOG(INFO) << "Repair scheduled messages in " << dialog_id;
   get_dialog_scheduled_messages(dialog_id, false, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
@@ -23711,7 +23727,7 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
     set_dialog_has_scheduled_server_messages(d, has_scheduled_server_messages);
   } else if (has_scheduled_server_messages !=
              (d->has_scheduled_database_messages || d->scheduled_messages != nullptr)) {
-    repair_dialog_scheduled_messages(d->dialog_id);
+    repair_dialog_scheduled_messages(d);
   }
 }
 
@@ -23719,12 +23735,12 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
   CHECK(d != nullptr);
   CHECK(d->has_scheduled_server_messages != has_scheduled_server_messages);
   d->has_scheduled_server_messages = has_scheduled_server_messages;
-  repair_dialog_scheduled_messages(d->dialog_id);
+  repair_dialog_scheduled_messages(d);
   on_dialog_updated(d->dialog_id, "set_dialog_has_scheduled_server_messages");
 
   LOG(INFO) << "Set " << d->dialog_id << " has_scheduled_server_messages to " << has_scheduled_server_messages;
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
 }
 
 void MessagesManager::set_dialog_has_scheduled_database_messages(DialogId dialog_id,
@@ -29285,7 +29301,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "resend message");
   CHECK(result_message != nullptr);
 
-  send_update_chat_has_scheduled_messages(d);
+  send_update_chat_has_scheduled_messages(d, false);
 
   send_update_new_message(d, result_message);
   if (need_update_dialog_pos) {
@@ -29500,7 +29516,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           send_update_new_message(to_dialog, forwarded_messages.back());
         }
 
-        send_update_chat_has_scheduled_messages(to_dialog);
+        send_update_chat_has_scheduled_messages(to_dialog, false);
 
         if (need_update_dialog_pos) {
           send_update_chat_last_message(to_dialog, "on_reforward_message");

@@ -1068,6 +1068,7 @@ class MessagesManager : public Actor {
     MessageId max_notification_message_id;
     MessageId last_edited_message_id;
     uint32 scheduled_messages_sync_generation = 0;
+    uint32 last_repair_scheduled_messages_generation = 0;
 
     MessageId max_added_message_id;
     MessageId being_added_message_id;
@@ -1926,7 +1927,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_action_bar(const Dialog *d);
 
-  void send_update_chat_has_scheduled_messages(Dialog *d);
+  void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
   void hide_dialog_action_bar(Dialog *d);
 
@@ -1993,7 +1994,7 @@ class MessagesManager : public Actor {
 
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
 
-  void repair_dialog_scheduled_messages(DialogId dialog_id);
+  void repair_dialog_scheduled_messages(Dialog *d);
 
   void set_dialog_has_scheduled_server_messages(Dialog *d, bool has_scheduled_server_messages);
 
