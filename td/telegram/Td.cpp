@@ -1617,7 +1617,7 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
 
   void do_run(Promise<Unit> &&promise) override {
     message_ids_ =
-        td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, get_tries() < 2, std::move(promise));
+        td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, get_tries() < 2, false, std::move(promise));
   }
 
   void do_send_result() override {

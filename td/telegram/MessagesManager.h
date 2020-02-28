@@ -646,7 +646,8 @@ class MessagesManager : public Actor {
   int32 get_dialog_message_count(DialogId dialog_id, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
                                  bool return_local, int64 &random_id, Promise<Unit> &&promise);
 
-  vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, Promise<Unit> &&promise);
+  vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
+                                                  Promise<Unit> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
@@ -1112,6 +1113,7 @@ class MessagesManager : public Actor {
     bool has_scheduled_database_messages = false;
     bool is_has_scheduled_database_messages_checked = false;
     bool has_loaded_scheduled_messages_from_database = false;
+    bool sent_scheduled_messages = false;
 
     bool increment_view_counter = false;
 

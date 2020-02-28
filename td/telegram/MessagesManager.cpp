@@ -8303,8 +8303,8 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
       continue;
     }
 
-    auto full_message_id = on_get_message(std::move(message), false, is_channel_message, true, false, false,
-                                          "on_get_scheduled_server_messages");
+    auto full_message_id = on_get_message(std::move(message), d->sent_scheduled_messages, is_channel_message, true,
+                                          false, false, "on_get_scheduled_server_messages");
     auto message_id = full_message_id.get_message_id();
     if (message_id.is_valid_scheduled()) {
       CHECK(message_id.is_scheduled_server());
@@ -11427,7 +11427,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   new_message->have_previous = have_previous;
   new_message->have_next = have_next;
 
-  bool need_update = from_update || message_id.is_scheduled();
+  bool need_update = from_update;
   bool need_update_dialog_pos = false;
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
@@ -17437,7 +17437,7 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   get_history(dialog_id, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
 
-vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, bool force,
+vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                                  Promise<Unit> &&promise) {
   LOG(INFO) << "Get scheduled messages in " << dialog_id;
   if (G()->close_flag()) {
@@ -17445,7 +17445,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
     return {};
   }
 
-  const Dialog *d = get_dialog_force(dialog_id);
+  Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     promise.set_error(Status::Error(6, "Chat not found"));
     return {};
@@ -17506,6 +17506,10 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
     load_dialog_scheduled_messages(dialog_id, false, hash, Promise<Unit>());
   }
 
+  if (!ignore_result) {
+    d->sent_scheduled_messages = true;
+  }
+
   promise.set_value(Unit());
   return message_ids;
 }
@@ -17561,7 +17565,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   resolve_dependencies_force(td_, dependencies);
 
   for (auto message_id : added_message_ids) {
-    send_update_new_message(d, get_message(d, message_id));
+    // send_update_new_message(d, get_message(d, message_id));
   }
   send_update_chat_has_scheduled_messages(d, false);
 
@@ -23700,9 +23704,10 @@ void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
   // TODO create logevent
   auto dialog_id = d->dialog_id;
   LOG(INFO) << "Repair scheduled messages in " << dialog_id;
-  get_dialog_scheduled_messages(dialog_id, false, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+  get_dialog_scheduled_messages(dialog_id, false, true,
+                                PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,
-                                               dialog_id, true, Promise<Unit>());
+                                               dialog_id, true, true, Promise<Unit>());
                                 }));
 }
 
