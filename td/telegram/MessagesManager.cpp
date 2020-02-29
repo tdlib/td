@@ -17823,7 +17823,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   bool need_update = false;
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
   auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
-  CHECK(result != nullptr);
+  LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   send_update_chat_has_scheduled_messages(d, false);
   return result;
 }
@@ -23391,18 +23391,23 @@ MessageId MessagesManager::get_next_local_message_id(Dialog *d) {
   return get_next_message_id(d, MessageType::Local);
 }
 
-MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(const Dialog *d, int32 date) {
+MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date) {
   CHECK(date > 0);
+
+  MessageId message_id(ScheduledServerMessageId(1), date);
+
   auto it = MessagesConstIterator(d, MessageId(ScheduledServerMessageId(), date + 1, true));
-  int32 prev_date = 0;
-  if (*it != nullptr) {
-    prev_date = (*it)->message_id.get_scheduled_message_date();
+  if (*it != nullptr && (*it)->message_id > message_id) {
+    message_id = (*it)->message_id;
   }
-  if (prev_date < date) {
-    return MessageId(ScheduledServerMessageId(1), date).get_next_message_id(MessageType::YetUnsent);
+
+  auto &last_assigned_message_id = d->last_assigned_scheduled_message_id[date];
+  if (last_assigned_message_id != MessageId() && last_assigned_message_id > message_id) {
+    message_id = last_assigned_message_id;
   }
-  CHECK(*it != nullptr);
-  return (*it)->message_id.get_next_message_id(MessageType::YetUnsent);
+
+  last_assigned_message_id = message_id.get_next_message_id(MessageType::YetUnsent);
+  return last_assigned_message_id;
 }
 
 void MessagesManager::fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message) {
@@ -23703,7 +23708,8 @@ void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
 
   // TODO create logevent
   auto dialog_id = d->dialog_id;
-  LOG(INFO) << "Repair scheduled messages in " << dialog_id;
+  LOG(INFO) << "Repair scheduled messages in " << dialog_id << " with generation "
+            << d->last_repair_scheduled_messages_generation;
   get_dialog_scheduled_messages(dialog_id, false, true,
                                 PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                                   send_closure(G()->messages_manager(), &MessagesManager::get_dialog_scheduled_messages,

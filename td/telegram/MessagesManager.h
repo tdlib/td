@@ -1135,6 +1135,8 @@ class MessagesManager : public Actor {
 
     std::unordered_map<MessageId, MessageId, MessageIdHash> yet_unsent_message_id_to_persistent_message_id;
 
+    std::unordered_map<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
+
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
     std::unordered_set<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
 
@@ -2389,7 +2391,7 @@ class MessagesManager : public Actor {
 
   static MessageId get_next_yet_unsent_message_id(Dialog *d);
 
-  static MessageId get_next_yet_unsent_scheduled_message_id(const Dialog *d, int32 date);
+  static MessageId get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date);
 
   bool add_recently_found_dialog_internal(DialogId dialog_id);
 
