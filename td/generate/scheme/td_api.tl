@@ -2303,8 +2303,9 @@ notificationTypeNewCall call_id:int32 = NotificationType;
 //@message_id The message identifier. The message will not be available in the chat history, but the ID can be used in viewMessages and as reply_to_message_id
 //@sender_user_id Sender of the message; 0 if unknown. Corresponding user may be inaccessible
 //@sender_name Name of the sender; can be different from the name of the sender user
+//@is_outgoing True, if the message is outgoing
 //@content Push message content
-notificationTypeNewPushMessage message_id:int53 sender_user_id:int32 sender_name:string content:PushMessageContent = NotificationType;
+notificationTypeNewPushMessage message_id:int53 sender_user_id:int32 sender_name:string is_outgoing:Bool content:PushMessageContent = NotificationType;
 
 
 //@class NotificationGroupType @description Describes the type of notifications in a notification group
