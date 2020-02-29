@@ -6718,6 +6718,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
+      if (!is_bot && set_boolean_option("disable_sent_scheduled_message_notifications")) {
+        return;
+      }
       if (!is_bot && set_boolean_option("disable_top_chats")) {
         return;
       }

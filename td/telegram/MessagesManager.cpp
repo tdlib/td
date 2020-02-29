@@ -21410,6 +21410,11 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error(406, "Ignore notification in unknown chat");
   }
 
+  if (is_from_scheduled && dialog_id != get_my_dialog_id() &&
+      G()->shared_config().get_option_boolean("disable_sent_scheduled_message_notifications")) {
+    return Status::Error("Ignore notification about sent scheduled message");
+  }
+
   bool is_new_pinned = is_pinned && message_id.is_valid() && message_id > d->max_notification_message_id;
   CHECK(!message_id.is_scheduled());
   if (message_id.is_valid()) {
@@ -22205,6 +22210,10 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
   CHECK(m != nullptr);
 
   if (!has_incoming_notification(d->dialog_id, m) || td_->auth_manager_->is_bot()) {
+    return true;
+  }
+  if (m->is_from_scheduled && d->dialog_id != get_my_dialog_id() &&
+      G()->shared_config().get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
   }
 
@@ -27265,7 +27274,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
 
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
-    old_message->is_from_scheduled = new_message->is_from_scheduled;
+    // is_from_scheduled flag shouldn't be changed, because we are unable to show/hide message notification
+    // old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
 
   if (old_message->edit_date > 0) {
