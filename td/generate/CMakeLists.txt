@@ -96,6 +96,10 @@ set(TL_GENERATE_JSON_SOURCE
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
+  if ((CMAKE_SYSTEM_NAME MATCHES "FreeBSD") AND (CMAKE_SYSTEM_VERSION MATCHES "HBSD"))
+    set(PHP_EXECUTABLE "PHP_EXECUTABLE-NOTFOUND")
+  endif()
+
   if (PHP_EXECUTABLE AND NOT TD_ENABLE_DOTNET)
     set(GENERATE_COMMON_CMD generate_common && ${PHP_EXECUTABLE} DoxygenTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/td_api.h)
   else()
