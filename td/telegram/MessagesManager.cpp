@@ -17564,9 +17564,9 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   }
   resolve_dependencies_force(td_, dependencies);
 
-  for (auto message_id : added_message_ids) {
-    // send_update_new_message(d, get_message(d, message_id));
-  }
+  // for (auto message_id : added_message_ids) {
+  //   send_update_new_message(d, get_message(d, message_id));
+  // }
   send_update_chat_has_scheduled_messages(d, false);
 
   auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
