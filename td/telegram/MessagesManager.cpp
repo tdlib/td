@@ -17782,7 +17782,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
-  m->views = is_channel_post ? 1 : 0;
+  m->views = is_channel_post && !is_scheduled ? 1 : 0;
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
   m->is_copy = is_copy || forward_info != nullptr;
