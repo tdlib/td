@@ -99,23 +99,23 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     }
     if (immune_types[narrow_cast<size_t>(info.file_type)]) {
       type_immunity_ignored_cnt++;
-      new_stats.add(FullFileInfo(info));
+      new_stats.add_copy(info);
       return true;
     }
     if (td::contains(parameters.exclude_owner_dialog_ids, info.owner_dialog_id)) {
       exclude_owner_dialog_id_ignored_cnt++;
-      new_stats.add(FullFileInfo(info));
+      new_stats.add_copy(info);
       return true;
     }
     if (!parameters.owner_dialog_ids.empty() && !td::contains(parameters.owner_dialog_ids, info.owner_dialog_id)) {
       owner_dialog_id_ignored_cnt++;
-      new_stats.add(FullFileInfo(info));
+      new_stats.add_copy(info);
       return true;
     }
     if (info.mtime_nsec * 1e-9 > now - parameters.immunity_delay) {
       // new files are immune to gc
       time_immunity_ignored_cnt++;
-      new_stats.add(FullFileInfo(info));
+      new_stats.add_copy(info);
       return true;
     }
 
@@ -167,7 +167,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   }
 
   while (pos < files.size()) {
-    new_stats.add(std::move(files[pos]));
+    new_stats.add_copy(files[pos]);
     pos++;
   }
 

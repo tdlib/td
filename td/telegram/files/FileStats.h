@@ -79,6 +79,7 @@ struct FileStats {
 
   std::vector<FullFileInfo> all_files;
 
+  void add_copy(const FullFileInfo &info);
   void add(FullFileInfo &&info);
   void apply_dialog_limit(int32 limit);
 
@@ -87,6 +88,7 @@ struct FileStats {
   FileTypeStat get_total_nontemp_stat() const;
 
  private:
+  void add_impl(const FullFileInfo &info);
   void add(StatByType &by_type, FileType file_type, int64 size);
 };
 
