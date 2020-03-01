@@ -28,7 +28,6 @@ class FileGcWorker : public Actor {
  private:
   ActorShared<> parent_;
   CancellationToken token_;
-  void do_remove_file(const FullFileInfo &info);
 };
 
 }  // namespace td

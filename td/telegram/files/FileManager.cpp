@@ -1020,6 +1020,7 @@ FileId FileManager::register_empty(FileType type) {
 }
 
 void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
+  // TODO: remove file from the database too
   auto it = local_location_to_file_id_.find(location);
   if (it == local_location_to_file_id_.end()) {
     return;
