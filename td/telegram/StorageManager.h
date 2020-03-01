@@ -87,9 +87,9 @@ class StorageManager : public Actor {
   uint32 last_gc_timestamp_ = 0;
   double next_gc_at_ = 0;
 
-  void on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats, bool dummy);
+  void on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats);
   void create_gc_worker();
-  void on_gc_finished(int32 dialog_limit, Result<FileStats> r_file_stats, bool dummy);
+  void on_gc_finished(int32 dialog_limit, Result<FileStats> r_file_stats);
 
   void close_stats_worker();
   void close_gc_worker();

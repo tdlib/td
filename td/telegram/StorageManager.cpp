@@ -122,7 +122,7 @@ void StorageManager::run_gc(FileGcParameters parameters, Promise<FileStats> prom
                     PromiseCreator::lambda(
                         [actor_id = actor_id(this), parameters = std::move(parameters)](Result<FileStats> file_stats) {
                           send_closure(actor_id, &StorageManager::on_all_files, std::move(parameters),
-                                       std::move(file_stats), false);
+                                       std::move(file_stats));
                         }));
 
   //NB: get_storage_stats will cancel all gc queries, so promise needs to be added after the call
@@ -153,20 +153,20 @@ void StorageManager::create_stats_worker() {
   }
 }
 
-void StorageManager::on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats, bool dummy) {
+void StorageManager::on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats) {
   int32 dialog_limit = gc_parameters.dialog_limit;
   if (is_closed_ && r_file_stats.is_ok()) {
     r_file_stats = Status::Error(500, "Request aborted");
   }
   if (r_file_stats.is_error()) {
-    return on_gc_finished(dialog_limit, std::move(r_file_stats), false);
+    return on_gc_finished(dialog_limit, std::move(r_file_stats));
   }
 
   create_gc_worker();
 
   send_closure(gc_worker_, &FileGcWorker::run_gc, std::move(gc_parameters), r_file_stats.move_as_ok().all_files,
                PromiseCreator::lambda([actor_id = actor_id(this), dialog_limit](Result<FileStats> r_file_stats) {
-                 send_closure(actor_id, &StorageManager::on_gc_finished, dialog_limit, std::move(r_file_stats), false);
+                 send_closure(actor_id, &StorageManager::on_gc_finished, dialog_limit, std::move(r_file_stats));
                }));
 }
 
@@ -212,7 +212,7 @@ void StorageManager::create_gc_worker() {
   }
 }
 
-void StorageManager::on_gc_finished(int32 dialog_limit, Result<FileStats> r_file_stats, bool dummy) {
+void StorageManager::on_gc_finished(int32 dialog_limit, Result<FileStats> r_file_stats) {
   if (r_file_stats.is_error()) {
     if (r_file_stats.error().code() != 500) {
       LOG(ERROR) << "GC failed: " << r_file_stats.error();
