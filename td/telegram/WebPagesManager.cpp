@@ -1136,7 +1136,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
   description.text = web_page->description;
   description.entities = find_entities(web_page->description, true);
 
-  auto r_url = parse_url(web_page->url);
+  auto r_url = parse_url(web_page->display_url);
   if (r_url.is_ok()) {
     Slice host = r_url.ok().host_;
     if (!host.empty() && host.back() == '.') {
