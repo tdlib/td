@@ -128,8 +128,11 @@ class RichText {
               if (it->second == nullptr) {
                 return make_tl_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context), anchor.str());
               } else {
+                context->is_first_pass_ = true;
+                auto reference_text = it->second->get_rich_text_object(context);
+                context->is_first_pass_ = false;
                 return make_tl_object<td_api::richTextReference>(texts[0].get_rich_text_object(context),
-                                                                 it->second->get_rich_text_object(context));
+                                                                 std::move(reference_text));
               }
             }
           }
