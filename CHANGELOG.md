@@ -206,7 +206,7 @@ Changes in 1.5.0:
     instead of `can_send_media_messages`.
   - Allowed administrators in basic groups to use the method `generateChatInviteLink`.
 * Added out of the box `OpenBSD` and `NetBSD` operating systems support.
-* Added possibility to use `LibreSSL` instead of `OpenSSL` to build TDLib.
+* Added possibility to use `LibreSSL` >= 2.7.0 instead of `OpenSSL` to build TDLib.
 * Added instructions for building TDLib on `Debian 10`, `OpenBSD` and `NetBSD` to
   the [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
 * Added support for Backgrounds 2.0:
