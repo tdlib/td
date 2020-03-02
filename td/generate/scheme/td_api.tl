@@ -843,8 +843,14 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@height Height of a bounding box in which the image should be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
-//@description A rich text anchor @text Text @name Anchor name
-richTextAnchor text:RichText name:string = RichText;
+//@description A rich text reference of a text on the same web page @text The text @reference_text The text to show on click
+richTextReference text:RichText reference_text:RichText = RichText;
+
+//@description An anchor @name Anchor name
+richTextAnchor name:string = RichText;
+
+//@description A link to an anchor on the same web page @text The link text @name The anchor name
+richTextAnchorLink text:RichText name:string = RichText;
 
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
@@ -980,10 +986,9 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page
 //@version Version of the instant view, currently can be 1 or 2
-//@url Instant view URL; may be different from WebPage.url and must be used for the correct anchors handling
 //@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> version:int32 url:string is_rtl:Bool is_full:Bool = WebPageInstantView;
+webPageInstantView page_blocks:vector<PageBlock> version:int32 is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
 //@description Describes a web page preview

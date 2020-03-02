@@ -1226,9 +1226,9 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     LOG(ERROR) << "Trying to get not loaded web page instant view";
     return nullptr;
   }
-  return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks, td_),
-                                                    web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->url,
-                                                    web_page_instant_view->is_rtl, web_page_instant_view->is_full);
+  return td_api::make_object<td_api::webPageInstantView>(
+      get_page_block_objects(web_page_instant_view->page_blocks, td_, web_page_instant_view->url),
+      web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->is_rtl, web_page_instant_view->is_full);
 }
 
 void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_page) {

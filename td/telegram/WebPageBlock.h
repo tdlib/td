@@ -14,6 +14,7 @@
 #include "td/telegram/Photo.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 
 #include <unordered_map>
 
@@ -103,6 +104,6 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     const std::unordered_map<int64, FileId> &videos, const std::unordered_map<int64, FileId> &voice_notes);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td);
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url);
 
 }  // namespace td

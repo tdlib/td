@@ -38,8 +38,15 @@
 
 namespace td {
 
+class RichText;
+
 struct GetWebPageBlockObjectContext {
-  Td *td_;
+  Td *td_ = nullptr;
+  Slice base_url_;
+
+  bool is_first_pass_ = true;
+  bool has_anchor_urls_ = false;
+  std::unordered_map<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
 };
 
 static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
@@ -48,8 +55,6 @@ static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
     return page_block->get_page_block_object(context);
   });
 }
-
-namespace {
 
 class RichText {
   static vector<td_api::object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts,
@@ -112,6 +117,23 @@ class RichText {
       case RichText::Type::Fixed:
         return make_tl_object<td_api::richTextFixed>(texts[0].get_rich_text_object(context));
       case RichText::Type::Url:
+        if (!context->base_url_.empty() && begins_with(content, context->base_url_) &&
+            content.size() > context->base_url_.size() + 1 && content[context->base_url_.size()] == '#') {
+          if (context->is_first_pass_) {
+            context->has_anchor_urls_ = true;
+          } else {
+            auto anchor = Slice(content).substr(context->base_url_.size() + 1);
+            auto it = context->anchors_.find(anchor);
+            if (it != context->anchors_.end()) {
+              if (it->second == nullptr) {
+                return make_tl_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context), anchor.str());
+              } else {
+                return make_tl_object<td_api::richTextReference>(texts[0].get_rich_text_object(context),
+                                                                 it->second->get_rich_text_object(context));
+              }
+            }
+          }
+        }
         return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context), content,
                                                    web_page_id.is_valid());
       case RichText::Type::EmailAddress:
@@ -134,7 +156,13 @@ class RichText {
             context->td_->documents_manager_->get_document_object(document_file_id), width, height);
       }
       case RichText::Type::Anchor:
-        return make_tl_object<td_api::richTextAnchor>(texts[0].get_rich_text_object(context), content);
+        if (context->is_first_pass_) {
+          context->anchors_.emplace(Slice(content), texts[0].empty() ? nullptr : &texts[0]);
+        }
+        if (texts[0].empty()) {
+          return make_tl_object<td_api::richTextAnchor>(content);
+        }
+        return texts[0].get_rich_text_object(context);
     }
     UNREACHABLE();
     return nullptr;
@@ -176,6 +204,8 @@ class RichText {
     }
   }
 };
+
+namespace {
 
 class WebPageBlockCaption {
  public:
@@ -740,6 +770,9 @@ class WebPageBlockAnchor : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    if (context->is_first_pass_) {
+      context->anchors_.emplace(name, nullptr);
+    }
     return make_tl_object<td_api::pageBlockAnchor>(name);
   }
 
@@ -2348,9 +2381,16 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td) {
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url) {
   GetWebPageBlockObjectContext context;
   context.td_ = td;
+  context.base_url_ = base_url;
+  auto blocks = get_page_block_objects(page_blocks, &context);
+  if (context.anchors_.empty() || !context.has_anchor_urls_) {
+    return blocks;
+  }
+
+  context.is_first_pass_ = false;
   return get_page_block_objects(page_blocks, &context);
 }
 
