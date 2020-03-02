@@ -1165,21 +1165,41 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
           return PSTRING() << "https://www.instagram.com/" << text.substr(1) << '/';
         }
         if (entity.type == MessageEntity::Type::Hashtag) {
-          return PSTRING() << "https://www.instagram.com/explore/tags/" << text.substr(1) << '/';
+          return PSTRING() << "https://www.instagram.com/explore/tags/" << url_encode(text.substr(1)) << '/';
         }
         return string();
       });
-    }
-    if (host == "twitter.com" || ends_with(host, ".twitter.com")) {
+    } else if (host == "twitter.com" || ends_with(host, ".twitter.com")) {
       replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
         if (entity.type == MessageEntity::Type::Mention) {
           return PSTRING() << "https://twitter.com/" << text.substr(1);
         }
         if (entity.type == MessageEntity::Type::Hashtag) {
-          return PSTRING() << "https://twitter.com/hashtag/" << text.substr(1);
+          return PSTRING() << "https://twitter.com/hashtag/" << url_encode(text.substr(1));
         }
         return string();
       });
+    } else if (host == "t.me" || host == "telegram.me" || host == "telegram.dog" || host == "telesco.pe") {
+      // leave everything as is
+    } else {
+      td::remove_if(description.entities,
+                    [](const MessageEntity &entity) { return entity.type == MessageEntity::Type::Mention; });
+
+      if (host == "youtube.com" || host == "www.youtube.com") {
+        replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
+          if (entity.type == MessageEntity::Type::Hashtag) {
+            return PSTRING() << "https://www.youtube.com/results?search_query=" << url_encode(text);
+          }
+          return string();
+        });
+      } else if (host == "music.youtube.com") {
+        replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
+          if (entity.type == MessageEntity::Type::Hashtag) {
+            return PSTRING() << "https://music.youtube.com/search?q=" << url_encode(text);
+          }
+          return string();
+        });
+      }
     }
   }
 
