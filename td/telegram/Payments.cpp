@@ -697,7 +697,7 @@ Result<Address> address_from_json(Slice json) {
 
   auto value = r_value.move_as_ok();
   if (value.type() != JsonValue::Type::Object) {
-    return Status::Error(400, "Address should be an Object");
+    return Status::Error(400, "Address must be an Object");
   }
 
   auto &object = value.get_object();

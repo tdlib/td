@@ -4759,7 +4759,7 @@ void Td::on_request(uint64 id, td_api::processPushNotification &request) {
 void Td::on_request(uint64 id, td_api::registerDevice &request) {
   CHECK_IS_USER();
   if (request.device_token_ == nullptr) {
-    return send_error_raw(id, 400, "Device token should not be empty");
+    return send_error_raw(id, 400, "Device token must be non-empty");
   }
   CREATE_REQUEST_PROMISE();
   send_closure(device_token_manager_, &DeviceTokenManager::register_device, std::move(request.device_token_),
@@ -4795,7 +4795,7 @@ void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
 void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
   CHECK_IS_USER();
   if (request.ttl_ == nullptr) {
-    return send_error_raw(id, 400, "New account TTL should not be empty");
+    return send_error_raw(id, 400, "New account TTL must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->set_account_ttl(request.ttl_->days_, std::move(promise));
@@ -4988,7 +4988,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
   std::vector<FileType> file_types;
   for (auto &file_type : request.file_types_) {
     if (file_type == nullptr) {
-      return send_error_raw(id, 400, "File type should not be empty");
+      return send_error_raw(id, 400, "File type must be non-empty");
     }
 
     file_types.push_back(from_td_api(*file_type));
@@ -5046,7 +5046,7 @@ void Td::on_request(uint64 id, td_api::resetNetworkStatistics &request) {
 
 void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
   if (request.entry_ == nullptr) {
-    return send_error_raw(id, 400, "Network statistics entry should not be empty");
+    return send_error_raw(id, 400, "Network statistics entry must be non-empty");
   }
 
   NetworkStatsEntry entry;
@@ -5121,7 +5121,7 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   if (request.category_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Top chat category should not be empty"));
+    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
   if (request.limit_ <= 0) {
     return promise.set_error(Status::Error(400, "Limit must be positive"));
@@ -5141,7 +5141,7 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   CHECK_IS_USER();
   if (request.category_ == nullptr) {
-    return send_error_raw(id, 400, "Top chat category should not be empty");
+    return send_error_raw(id, 400, "Top chat category must be non-empty");
   }
 
   DialogId dialog_id(request.chat_id_);

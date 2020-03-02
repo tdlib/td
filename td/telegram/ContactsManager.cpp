@@ -4633,7 +4633,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
 
   for (auto &contact : contacts) {
     if (contact == nullptr) {
-      promise.set_error(Status::Error(400, "Contacts should not be empty"));
+      promise.set_error(Status::Error(400, "Contacts must be non-empty"));
       return {};
     }
   }

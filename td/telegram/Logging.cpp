@@ -59,7 +59,7 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
       auto file_stream = td_api::move_object_as<td_api::logStreamFile>(stream);
       auto max_log_file_size = file_stream->max_file_size_;
       if (max_log_file_size <= 0) {
-        return Status::Error("Max log file size should be positive");
+        return Status::Error("Max log file size must be positive");
       }
 
       TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size));

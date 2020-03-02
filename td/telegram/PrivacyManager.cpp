@@ -27,7 +27,7 @@ namespace td {
 Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::from_td_api(
     tl_object_ptr<td_api::UserPrivacySetting> key) {
   if (!key) {
-    return Status::Error(5, "UserPrivacySetting should not be empty");
+    return Status::Error(5, "UserPrivacySetting must be non-empty");
   }
   return UserPrivacySetting(*key);
 }
@@ -368,12 +368,12 @@ Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySetti
 Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_td_api(
     tl_object_ptr<td_api::userPrivacySettingRules> rules) {
   if (!rules) {
-    return Status::Error(5, "UserPrivacySettingRules should not be empty");
+    return Status::Error(5, "UserPrivacySettingRules must be non-empty");
   }
   UserPrivacySettingRules result;
   for (auto &rule : rules->rules_) {
     if (!rule) {
-      return Status::Error(5, "UserPrivacySettingRule should not be empty");
+      return Status::Error(5, "UserPrivacySettingRule must be non-empty");
     }
     result.rules_.emplace_back(*rule);
   }

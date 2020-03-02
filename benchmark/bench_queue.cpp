@@ -43,7 +43,6 @@
 //}
 //}
 
-// TODO: warnings and asserts. There should be no warnings or debug output in production.
 using qvalue_t = int;
 
 // Just for testing, not production

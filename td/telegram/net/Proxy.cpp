@@ -12,10 +12,10 @@ namespace td {
 
 Result<Proxy> Proxy::from_td_api(string server, int port, td_api::ProxyType *proxy_type) {
   if (proxy_type == nullptr) {
-    return Status::Error(400, "Proxy type should not be empty");
+    return Status::Error(400, "Proxy type must be non-empty");
   }
   if (server.empty()) {
-    return Status::Error(400, "Server name can't be empty");
+    return Status::Error(400, "Server name must be non-empty");
   }
   if (server.size() > 255) {
     return Status::Error(400, "Server name is too long");

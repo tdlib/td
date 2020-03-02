@@ -450,7 +450,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
           return promise.set_error(Status::Error(400, "Field \"phone_number\" must contain a valid phone number"));
         }
         if (first_name.empty()) {
-          return promise.set_error(Status::Error(400, "Field \"first_name\" should be non-empty"));
+          return promise.set_error(Status::Error(400, "Field \"first_name\" must be non-empty"));
         }
         title = last_name.empty() ? first_name : first_name + " " + last_name;
         description = std::move(phone_number);
@@ -633,7 +633,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     }
     auto inline_message = r_inline_message.move_as_ok();
     if (inline_message->get_id() == telegram_api::inputBotInlineMessageMediaAuto::ID && file_type == FileType::Temp) {
-      return promise.set_error(Status::Error(400, "Sent message content should be explicitly specified"));
+      return promise.set_error(Status::Error(400, "Sent message content must be explicitly specified"));
     }
 
     if (duration < 0) {

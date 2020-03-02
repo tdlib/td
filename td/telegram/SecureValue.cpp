@@ -796,7 +796,7 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
 
   auto value = r_value.move_as_ok();
   if (value.type() != JsonValue::Type::Object) {
-    return Status::Error(400, "Personal details should be an Object");
+    return Status::Error(400, "Personal details must be an Object");
   }
 
   auto &object = value.get_object();
@@ -888,7 +888,7 @@ static Result<SecureValue> get_identity_document(SecureValueType type, FileManag
     }
   } else {
     if (!need_reverse_side) {
-      return Status::Error(400, "Document shouldn't have a reverse side");
+      return Status::Error(400, "Document can't have a reverse side");
     }
   }
 
@@ -930,7 +930,7 @@ static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_documen
 
   auto json_value = r_value.move_as_ok();
   if (json_value.type() != JsonValue::Type::Object) {
-    return Status::Error(400, "Identity document should be an Object");
+    return Status::Error(400, "Identity document must be an Object");
   }
 
   auto &object = json_value.get_object();

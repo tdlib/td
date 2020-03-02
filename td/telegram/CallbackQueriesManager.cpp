@@ -226,7 +226,7 @@ int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
   }
 
   if (payload == nullptr) {
-    promise.set_error(Status::Error(5, "Payload should not be empty"));
+    promise.set_error(Status::Error(5, "Payload must be non-empty"));
     return 0;
   }
 
