@@ -432,7 +432,7 @@ class CliClient final : public Actor {
   static char get_delimiter(Slice str) {
     std::unordered_set<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c)) {
+      if (!is_alnum(c) && c != '-') {
         chars.insert(c);
       }
     }
@@ -2237,7 +2237,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
     } else if (op == "database") {
       send_request(td_api::make_object<td_api::getDatabaseStatistics>());
-    } else if (op == "optimize_storage") {
+    } else if (op == "optimize_storage" || op == "optimize_storage_all") {
       string chat_ids;
       string exclude_chat_ids;
       string chat_ids_limit;
@@ -2245,14 +2245,14 @@ class CliClient final : public Actor {
       std::tie(exclude_chat_ids, chat_ids_limit) = split(args);
       send_request(td_api::make_object<td_api::optimizeStorage>(
           10000000, -1, -1, 0, std::vector<td_api::object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids),
-          as_chat_ids(exclude_chat_ids), to_integer<int32>(chat_ids_limit)));
+          as_chat_ids(exclude_chat_ids), op == "optimize_storage", to_integer<int32>(chat_ids_limit)));
     } else if (op == "clean_storage_default") {
       send_request(td_api::make_object<td_api::optimizeStorage>());
     } else if (op == "clean_photos") {
       std::vector<td_api::object_ptr<td_api::FileType>> types;
       types.push_back(td_api::make_object<td_api::fileTypePhoto>());
       send_request(td_api::make_object<td_api::optimizeStorage>(0, 0, 0, 0, std::move(types), as_chat_ids(""),
-                                                                as_chat_ids(""), 20));
+                                                                as_chat_ids(""), true, 20));
     } else if (op == "clean_storage") {
       std::vector<td_api::object_ptr<td_api::FileType>> types;
       types.push_back(td_api::make_object<td_api::fileTypeThumbnail>());
@@ -2269,7 +2269,7 @@ class CliClient final : public Actor {
       types.push_back(td_api::make_object<td_api::fileTypeVideoNote>());
       types.push_back(td_api::make_object<td_api::fileTypeSecure>());
       send_request(td_api::make_object<td_api::optimizeStorage>(0, -1, -1, 0, std::move(types), as_chat_ids(args),
-                                                                as_chat_ids(""), 20));
+                                                                as_chat_ids(""), true, 20));
     } else if (op == "network") {
       send_request(td_api::make_object<td_api::getNetworkStatistics>());
     } else if (op == "current_network") {

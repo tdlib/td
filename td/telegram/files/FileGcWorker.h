@@ -19,11 +19,16 @@ namespace td {
 
 extern int VERBOSITY_NAME(file_gc);
 
+struct FileGcResult {
+  FileStats kept_file_stats_;
+  FileStats removed_file_stats_;
+};
+
 class FileGcWorker : public Actor {
  public:
   FileGcWorker(ActorShared<> parent, CancellationToken token) : parent_(std::move(parent)), token_(std::move(token)) {
   }
-  void run_gc(const FileGcParameters &parameters, std::vector<FullFileInfo> files, Promise<FileStats> promise);
+  void run_gc(const FileGcParameters &parameters, std::vector<FullFileInfo> files, Promise<FileGcResult> promise);
 
  private:
   ActorShared<> parent_;

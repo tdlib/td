@@ -27,7 +27,7 @@ namespace td {
 int VERBOSITY_NAME(file_gc) = VERBOSITY_NAME(INFO);
 
 void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFileInfo> files,
-                          Promise<FileStats> promise) {
+                          Promise<FileGcResult> promise) {
   auto begin_time = Time::now();
   VLOG(file_gc) << "Start files gc with " << parameters;
   // quite stupid implementations
@@ -80,9 +80,11 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   }
 
   FileStats new_stats;
-  new_stats.split_by_owner_dialog_id = parameters.dialog_limit != 0;
+  FileStats removed_stats;
+  removed_stats.split_by_owner_dialog_id = new_stats.split_by_owner_dialog_id = parameters.dialog_limit != 0;
 
-  auto do_remove_file = [](const FullFileInfo &info) {
+  auto do_remove_file = [&removed_stats](const FullFileInfo &info) {
+    removed_stats.add_copy(info);
     auto status = unlink(info.path);
     LOG_IF(WARNING, status.is_error()) << "Failed to unlink file \"" << info.path << "\" during files gc: " << status;
     send_closure(G()->file_manager(), &FileManager::on_file_unlink,
@@ -134,8 +136,8 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   // sort by max(atime, mtime)
   std::sort(files.begin(), files.end(), [](const auto &a, const auto &b) { return a.atime_nsec < b.atime_nsec; });
 
-  // 1. Total memory must be less than max_memory
-  // 2. Total file count must be less than MAX_FILE_COUNT
+  // 1. Total size must be less than parameters.max_files_size
+  // 2. Total file count must be less than parameters.max_file_count
   size_t remove_count = 0;
   if (files.size() > parameters.max_file_count) {
     remove_count = files.size() - parameters.max_file_count;
@@ -183,6 +185,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
                 << tag("owner_dialog_id_immunity", owner_dialog_id_ignored_cnt)
                 << tag("exclude_owner_dialog_id_immunity", exclude_owner_dialog_id_ignored_cnt);
 
-  promise.set_value(std::move(new_stats));
+  promise.set_value({std::move(new_stats), std::move(removed_stats)});
 }
+
 }  // namespace td

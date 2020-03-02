@@ -5021,7 +5021,8 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
       promise.set_value(result.ok().as_td_api());
     }
   });
-  send_closure(storage_manager_, &StorageManager::run_gc, std::move(parameters), std::move(query_promise));
+  send_closure(storage_manager_, &StorageManager::run_gc, std::move(parameters),
+               request.return_deleted_file_statistics_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {

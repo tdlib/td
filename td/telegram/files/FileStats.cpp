@@ -63,6 +63,7 @@ FileTypeStat get_nontemp_stat(const FileStats::StatByType &by_type) {
   }
   return stat;
 }
+
 FileTypeStat FileStats::get_total_nontemp_stat() const {
   if (!split_by_owner_dialog_id) {
     return get_nontemp_stat(stat_by_type);
@@ -75,6 +76,7 @@ FileTypeStat FileStats::get_total_nontemp_stat() const {
   }
   return stat;
 }
+
 void FileStats::apply_dialog_limit(int32 limit) {
   if (limit == -1) {
     return;
@@ -255,4 +257,5 @@ StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats) {
 
   return sb;
 }
+
 }  // namespace td
