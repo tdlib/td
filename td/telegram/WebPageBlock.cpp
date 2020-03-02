@@ -38,11 +38,24 @@
 
 namespace td {
 
+struct GetWebPageBlockObjectContext {
+  Td *td_;
+};
+
+static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, GetWebPageBlockObjectContext *context) {
+  return transform(page_blocks, [context](const unique_ptr<WebPageBlock> &page_block) {
+    return page_block->get_page_block_object(context);
+  });
+}
+
 namespace {
 
 class RichText {
-  static vector<td_api::object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts) {
-    return transform(rich_texts, [](const RichText &rich_text) { return rich_text.get_rich_text_object(); });
+  static vector<td_api::object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts,
+                                                                            GetWebPageBlockObjectContext *context) {
+    return transform(rich_texts,
+                     [context](const RichText &rich_text) { return rich_text.get_rich_text_object(context); });
   }
 
  public:
@@ -73,54 +86,55 @@ class RichText {
     return type == Type::Plain && content.empty();
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
     if (type == RichText::Type::Icon) {
       CHECK(document_file_id.is_valid());
-      Document(Document::Type::General, document_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
+      Document(Document::Type::General, document_file_id).append_file_ids(td, file_ids);
     } else {
       for (auto &text : texts) {
-        text.append_file_ids(file_ids);
+        text.append_file_ids(td, file_ids);
       }
     }
   }
 
-  td_api::object_ptr<td_api::RichText> get_rich_text_object() const {
+  td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
     switch (type) {
       case RichText::Type::Plain:
         return make_tl_object<td_api::richTextPlain>(content);
       case RichText::Type::Bold:
-        return make_tl_object<td_api::richTextBold>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextBold>(texts[0].get_rich_text_object(context));
       case RichText::Type::Italic:
-        return make_tl_object<td_api::richTextItalic>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextItalic>(texts[0].get_rich_text_object(context));
       case RichText::Type::Underline:
-        return make_tl_object<td_api::richTextUnderline>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextUnderline>(texts[0].get_rich_text_object(context));
       case RichText::Type::Strikethrough:
-        return make_tl_object<td_api::richTextStrikethrough>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextStrikethrough>(texts[0].get_rich_text_object(context));
       case RichText::Type::Fixed:
-        return make_tl_object<td_api::richTextFixed>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextFixed>(texts[0].get_rich_text_object(context));
       case RichText::Type::Url:
-        return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(), content, web_page_id.is_valid());
+        return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context), content,
+                                                   web_page_id.is_valid());
       case RichText::Type::EmailAddress:
-        return make_tl_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(), content);
+        return make_tl_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(context), content);
       case RichText::Type::Concatenation:
-        return make_tl_object<td_api::richTexts>(get_rich_text_objects(texts));
+        return make_tl_object<td_api::richTexts>(get_rich_text_objects(texts, context));
       case RichText::Type::Subscript:
-        return make_tl_object<td_api::richTextSubscript>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextSubscript>(texts[0].get_rich_text_object(context));
       case RichText::Type::Superscript:
-        return make_tl_object<td_api::richTextSuperscript>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextSuperscript>(texts[0].get_rich_text_object(context));
       case RichText::Type::Marked:
-        return make_tl_object<td_api::richTextMarked>(texts[0].get_rich_text_object());
+        return make_tl_object<td_api::richTextMarked>(texts[0].get_rich_text_object(context));
       case RichText::Type::PhoneNumber:
-        return make_tl_object<td_api::richTextPhoneNumber>(texts[0].get_rich_text_object(), content);
+        return make_tl_object<td_api::richTextPhoneNumber>(texts[0].get_rich_text_object(context), content);
       case RichText::Type::Icon: {
         auto dimensions = to_integer<uint32>(content);
         auto width = static_cast<int32>(dimensions / 65536);
         auto height = static_cast<int32>(dimensions % 65536);
         return make_tl_object<td_api::richTextIcon>(
-            G()->td().get_actor_unsafe()->documents_manager_->get_document_object(document_file_id), width, height);
+            context->td_->documents_manager_->get_document_object(document_file_id), width, height);
       }
       case RichText::Type::Anchor:
-        return make_tl_object<td_api::richTextAnchor>(texts[0].get_rich_text_object(), content);
+        return make_tl_object<td_api::richTextAnchor>(texts[0].get_rich_text_object(context), content);
     }
     UNREACHABLE();
     return nullptr;
@@ -168,13 +182,15 @@ class WebPageBlockCaption {
   RichText text;
   RichText credit;
 
-  void append_file_ids(vector<FileId> &file_ids) const {
-    text.append_file_ids(file_ids);
-    credit.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
+    text.append_file_ids(td, file_ids);
+    credit.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object() const {
-    return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(), credit.get_rich_text_object());
+  td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(
+      GetWebPageBlockObjectContext *context) const {
+    return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(context),
+                                                         credit.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -209,7 +225,8 @@ class WebPageBlockTableCell {
   int32 colspan = 1;
   int32 rowspan = 1;
 
-  td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object() const {
+  td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
+      GetWebPageBlockObjectContext *context) const {
     auto align = [&]() -> td_api::object_ptr<td_api::PageBlockHorizontalAlignment> {
       if (align_left) {
         return td_api::make_object<td_api::pageBlockHorizontalAlignmentLeft>();
@@ -236,7 +253,7 @@ class WebPageBlockTableCell {
       UNREACHABLE();
       return nullptr;
     }();
-    return td_api::make_object<td_api::pageBlockTableCell>(text.empty() ? nullptr : text.get_rich_text_object(),
+    return td_api::make_object<td_api::pageBlockTableCell>(text.empty() ? nullptr : text.get_rich_text_object(context),
                                                            is_header, colspan, rowspan, std::move(align),
                                                            std::move(valign));
   }
@@ -394,12 +411,12 @@ class WebPageBlockTitle : public WebPageBlock {
     return Type::Title;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    title.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    title.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockTitle>(title.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockTitle>(title.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -427,12 +444,12 @@ class WebPageBlockSubtitle : public WebPageBlock {
     return Type::Subtitle;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    subtitle.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    subtitle.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockSubtitle>(subtitle.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockSubtitle>(subtitle.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -461,12 +478,12 @@ class WebPageBlockAuthorDate : public WebPageBlock {
     return Type::AuthorDate;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    author.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    author.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockAuthorDate>(author.get_rich_text_object(), date);
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockAuthorDate>(author.get_rich_text_object(context), date);
   }
 
   template <class StorerT>
@@ -496,12 +513,12 @@ class WebPageBlockHeader : public WebPageBlock {
     return Type::Header;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    header.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    header.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockHeader>(header.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockHeader>(header.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -529,12 +546,12 @@ class WebPageBlockSubheader : public WebPageBlock {
     return Type::Subheader;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    subheader.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    subheader.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockSubheader>(subheader.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockSubheader>(subheader.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -562,12 +579,12 @@ class WebPageBlockKicker : public WebPageBlock {
     return Type::Kicker;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    kicker.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    kicker.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockKicker>(kicker.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockKicker>(kicker.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -595,12 +612,12 @@ class WebPageBlockParagraph : public WebPageBlock {
     return Type::Paragraph;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    text.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    text.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockParagraph>(text.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockParagraph>(text.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -629,12 +646,12 @@ class WebPageBlockPreformatted : public WebPageBlock {
     return Type::Preformatted;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    text.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    text.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockPreformatted>(text.get_rich_text_object(), language);
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockPreformatted>(text.get_rich_text_object(context), language);
   }
 
   template <class StorerT>
@@ -664,12 +681,12 @@ class WebPageBlockFooter : public WebPageBlock {
     return Type::Footer;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    footer.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    footer.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockFooter>(footer.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockFooter>(footer.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -691,10 +708,10 @@ class WebPageBlockDivider : public WebPageBlock {
     return Type::Divider;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockDivider>();
   }
 
@@ -719,10 +736,10 @@ class WebPageBlockAnchor : public WebPageBlock {
     return Type::Anchor;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockAnchor>(name);
   }
 
@@ -763,10 +780,11 @@ class WebPageBlockList : public WebPageBlock {
  private:
   vector<Item> items;
 
-  static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item) {
+  static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item,
+                                                                                       Context *context) {
     // if label is empty, then Bullet U+2022 is used as a label
     return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "\xE2\x80\xA2" : item.label,
-                                                          get_page_block_objects(item.page_blocks));
+                                                          get_page_block_objects(item.page_blocks, context));
   }
 
  public:
@@ -778,17 +796,17 @@ class WebPageBlockList : public WebPageBlock {
     return Type::List;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     for (auto &item : items) {
       for (auto &page_block : item.page_blocks) {
-        page_block->append_file_ids(file_ids);
+        page_block->append_file_ids(td, file_ids);
       }
     }
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return td_api::make_object<td_api::pageBlockList>(
-        transform(items, [](const Item &item) { return get_page_block_list_item_object(item); }));
+        transform(items, [context](const Item &item) { return get_page_block_list_item_object(item, context); }));
   }
 
   template <class StorerT>
@@ -841,13 +859,14 @@ class WebPageBlockBlockQuote : public WebPageBlock {
     return Type::BlockQuote;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    text.append_file_ids(file_ids);
-    credit.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    text.append_file_ids(td, file_ids);
+    credit.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockBlockQuote>(text.get_rich_text_object(), credit.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockBlockQuote>(text.get_rich_text_object(context),
+                                                       credit.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -878,13 +897,14 @@ class WebPageBlockPullQuote : public WebPageBlock {
     return Type::PullQuote;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    text.append_file_ids(file_ids);
-    credit.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    text.append_file_ids(td, file_ids);
+    credit.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockPullQuote>(text.get_rich_text_object(), credit.get_rich_text_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockPullQuote>(text.get_rich_text_object(context),
+                                                      credit.get_rich_text_object(context));
   }
 
   template <class StorerT>
@@ -917,16 +937,15 @@ class WebPageBlockAnimation : public WebPageBlock {
     return Type::Animation;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    caption.append_file_ids(file_ids);
-    Document(Document::Type::Animation, animation_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    caption.append_file_ids(td, file_ids);
+    Document(Document::Type::Animation, animation_file_id).append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockAnimation>(
-        G()->td().get_actor_unsafe()->animations_manager_->get_animation_object(animation_file_id,
-                                                                                "get_page_block_object"),
-        caption.get_page_block_caption_object(), need_autoplay);
+        context->td_->animations_manager_->get_animation_object(animation_file_id, "get_page_block_object"),
+        caption.get_page_block_caption_object(context), need_autoplay);
   }
 
   template <class StorerT>
@@ -985,15 +1004,14 @@ class WebPageBlockPhoto : public WebPageBlock {
     return Type::Photo;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     append(file_ids, photo_get_file_ids(photo));
-    caption.append_file_ids(file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockPhoto>(
-        get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo),
-        caption.get_page_block_caption_object(), url);
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), &photo),
+                                                  caption.get_page_block_caption_object(context), url);
   }
 
   template <class StorerT>
@@ -1036,15 +1054,15 @@ class WebPageBlockVideo : public WebPageBlock {
     return Type::Video;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    caption.append_file_ids(file_ids);
-    Document(Document::Type::Video, video_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    caption.append_file_ids(td, file_ids);
+    Document(Document::Type::Video, video_file_id).append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockVideo>(
-        G()->td().get_actor_unsafe()->videos_manager_->get_video_object(video_file_id),
-        caption.get_page_block_caption_object(), need_autoplay, is_looped);
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockVideo>(context->td_->videos_manager_->get_video_object(video_file_id),
+                                                  caption.get_page_block_caption_object(context), need_autoplay,
+                                                  is_looped);
   }
 
   template <class StorerT>
@@ -1101,12 +1119,12 @@ class WebPageBlockCover : public WebPageBlock {
     return Type::Cover;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    cover->append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    cover->append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockCover>(cover->get_page_block_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockCover>(cover->get_page_block_object(context));
   }
 
   template <class StorerT>
@@ -1148,15 +1166,15 @@ class WebPageBlockEmbedded : public WebPageBlock {
     return Type::Embedded;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     append(file_ids, photo_get_file_ids(poster_photo));
-    caption.append_file_ids(file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockEmbedded>(
-        url, html, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &poster_photo), dimensions.width,
-        dimensions.height, caption.get_page_block_caption_object(), is_full_width, allow_scrolling);
+        url, html, get_photo_object(context->td_->file_manager_.get(), &poster_photo), dimensions.width,
+        dimensions.height, caption.get_page_block_caption_object(context), is_full_width, allow_scrolling);
   }
 
   template <class StorerT>
@@ -1214,18 +1232,18 @@ class WebPageBlockEmbeddedPost : public WebPageBlock {
     return Type::EmbeddedPost;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     append(file_ids, photo_get_file_ids(author_photo));
     for (auto &page_block : page_blocks) {
-      page_block->append_file_ids(file_ids);
+      page_block->append_file_ids(td, file_ids);
     }
-    caption.append_file_ids(file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockEmbeddedPost>(
-        url, author, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &author_photo), date,
-        get_page_block_objects(page_blocks), caption.get_page_block_caption_object());
+        url, author, get_photo_object(context->td_->file_manager_.get(), &author_photo), date,
+        get_page_block_objects(page_blocks, context), caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1265,16 +1283,16 @@ class WebPageBlockCollage : public WebPageBlock {
     return Type::Collage;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     for (auto &page_block : page_blocks) {
-      page_block->append_file_ids(file_ids);
+      page_block->append_file_ids(td, file_ids);
     }
-    caption.append_file_ids(file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks),
-                                                    caption.get_page_block_caption_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks, context),
+                                                    caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1306,16 +1324,16 @@ class WebPageBlockSlideshow : public WebPageBlock {
     return Type::Slideshow;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     for (auto &page_block : page_blocks) {
-      page_block->append_file_ids(file_ids);
+      page_block->append_file_ids(td, file_ids);
     }
-    caption.append_file_ids(file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockSlideshow>(get_page_block_objects(page_blocks),
-                                                      caption.get_page_block_caption_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockSlideshow>(get_page_block_objects(page_blocks, context),
+                                                      caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1348,13 +1366,13 @@ class WebPageBlockChatLink : public WebPageBlock {
     return Type::ChatLink;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     append(file_ids, dialog_photo_get_file_ids(photo));
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockChatLink>(
-        title, get_chat_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo), username);
+        title, get_chat_photo_object(context->td_->file_manager_.get(), &photo), username);
   }
 
   template <class StorerT>
@@ -1388,15 +1406,14 @@ class WebPageBlockAudio : public WebPageBlock {
     return Type::Audio;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    Document(Document::Type::Audio, audio_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
-    caption.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    Document(Document::Type::Audio, audio_file_id).append_file_ids(td, file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockAudio>(
-        G()->td().get_actor_unsafe()->audios_manager_->get_audio_object(audio_file_id),
-        caption.get_page_block_caption_object());
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockAudio>(context->td_->audios_manager_->get_audio_object(audio_file_id),
+                                                  caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1460,22 +1477,23 @@ class WebPageBlockTable : public WebPageBlock {
     return Type::Table;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    title.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    title.append_file_ids(td, file_ids);
     for (auto &row : cells) {
       for (auto &cell : row) {
-        cell.text.append_file_ids(file_ids);
+        cell.text.append_file_ids(td, file_ids);
       }
     }
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     auto cell_objects = transform(cells, [&](const vector<WebPageBlockTableCell> &row) {
-      return transform(row, [&](const WebPageBlockTableCell &cell) { return cell.get_page_block_table_cell_object(); });
+      return transform(
+          row, [&](const WebPageBlockTableCell &cell) { return cell.get_page_block_table_cell_object(context); });
     });
 
-    return make_tl_object<td_api::pageBlockTable>(title.get_rich_text_object(), std::move(cell_objects), is_bordered,
-                                                  is_striped);
+    return make_tl_object<td_api::pageBlockTable>(title.get_rich_text_object(context), std::move(cell_objects),
+                                                  is_bordered, is_striped);
   }
 
   template <class StorerT>
@@ -1516,16 +1534,16 @@ class WebPageBlockDetails : public WebPageBlock {
     return Type::Details;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    header.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    header.append_file_ids(td, file_ids);
     for (auto &page_block : page_blocks) {
-      page_block->append_file_ids(file_ids);
+      page_block->append_file_ids(td, file_ids);
     }
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockDetails>(header.get_rich_text_object(), get_page_block_objects(page_blocks),
-                                                    is_open);
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    return make_tl_object<td_api::pageBlockDetails>(header.get_rich_text_object(context),
+                                                    get_page_block_objects(page_blocks, context), is_open);
   }
 
   template <class StorerT>
@@ -1563,8 +1581,8 @@ class WebPageBlockRelatedArticles : public WebPageBlock {
     return Type::RelatedArticles;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    header.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    header.append_file_ids(td, file_ids);
     for (auto &article : related_articles) {
       if (article.photo.id != -2) {
         append(file_ids, photo_get_file_ids(article.photo));
@@ -1572,14 +1590,13 @@ class WebPageBlockRelatedArticles : public WebPageBlock {
     }
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    auto related_article_objects = transform(related_articles, [](const RelatedArticle &article) {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
+    auto related_article_objects = transform(related_articles, [context](const RelatedArticle &article) {
       return td_api::make_object<td_api::pageBlockRelatedArticle>(
           article.url, article.title, article.description,
-          get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &article.photo), article.author,
-          article.published_date);
+          get_photo_object(context->td_->file_manager_.get(), &article.photo), article.author, article.published_date);
     });
-    return make_tl_object<td_api::pageBlockRelatedArticles>(header.get_rich_text_object(),
+    return make_tl_object<td_api::pageBlockRelatedArticles>(header.get_rich_text_object(context),
                                                             std::move(related_article_objects));
   }
 
@@ -1614,13 +1631,13 @@ class WebPageBlockMap : public WebPageBlock {
     return Type::Map;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    caption.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockMap>(location.get_location_object(), zoom, dimensions.width,
-                                                dimensions.height, caption.get_page_block_caption_object());
+                                                dimensions.height, caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1656,15 +1673,15 @@ class WebPageBlockVoiceNote : public WebPageBlock {
     return Type::VoiceNote;
   }
 
-  void append_file_ids(vector<FileId> &file_ids) const override {
-    Document(Document::Type::VoiceNote, voice_note_file_id).append_file_ids(G()->td().get_actor_unsafe(), file_ids);
-    caption.append_file_ids(file_ids);
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
+    Document(Document::Type::VoiceNote, voice_note_file_id).append_file_ids(td, file_ids);
+    caption.append_file_ids(td, file_ids);
   }
 
-  td_api::object_ptr<td_api::PageBlock> get_page_block_object() const override {
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockVoiceNote>(
-        G()->td().get_actor_unsafe()->voice_notes_manager_->get_voice_note_object(voice_note_file_id),
-        caption.get_page_block_caption_object());
+        context->td_->voice_notes_manager_->get_voice_note_object(voice_note_file_id),
+        caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -2331,9 +2348,10 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks) {
-  return transform(page_blocks,
-                   [](const unique_ptr<WebPageBlock> &page_block) { return page_block->get_page_block_object(); });
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td) {
+  GetWebPageBlockObjectContext context;
+  context.td_ = td;
+  return get_page_block_objects(page_blocks, &context);
 }
 
 }  // namespace td

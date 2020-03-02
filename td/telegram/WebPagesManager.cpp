@@ -1226,7 +1226,7 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     LOG(ERROR) << "Trying to get not loaded web page instant view";
     return nullptr;
   }
-  return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks),
+  return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks, td_),
                                                     web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->url,
                                                     web_page_instant_view->is_rtl, web_page_instant_view->is_full);
 }
@@ -1621,7 +1621,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
   }
   if (!web_page->instant_view.is_empty) {
     for (auto &page_block : web_page->instant_view.page_blocks) {
-      page_block->append_file_ids(result);
+      page_block->append_file_ids(td_, result);
     }
   }
   return result;
