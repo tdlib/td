@@ -1008,7 +1008,7 @@ webPageInstantView page_blocks:vector<PageBlock> version:int32 url:string is_rtl
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
 //@instant_view_version Version of instant view, available for the web page (currently can be 1 or 2), 0 if none
-webPage url:string display_url:string type:string site_name:string title:string description:string photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
+webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
 
 
 //@description Describes an action associated with a bank card number @text Action text @url The URL to be opened

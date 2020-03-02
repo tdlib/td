@@ -41,11 +41,13 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -1129,10 +1131,63 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
     }
     return 1;
   }();
+
+  FormattedText description;
+  description.text = web_page->description;
+  description.entities = find_entities(web_page->description, true);
+
+  auto r_url = parse_url(web_page->url);
+  if (r_url.is_ok()) {
+    Slice host = r_url.ok().host_;
+    if (!host.empty() && host.back() == '.') {
+      host.truncate(host.size() - 1);
+    }
+
+    auto replace_entities = [](Slice text, vector<MessageEntity> &entities, auto replace_url) {
+      int32 current_offset = 0;
+      for (auto &entity : entities) {
+        CHECK(entity.offset >= current_offset);
+        text = utf8_utf16_substr(text, static_cast<size_t>(entity.offset - current_offset));
+        auto entity_text = utf8_utf16_substr(text, 0, static_cast<size_t>(entity.length));
+        text = text.substr(entity_text.size());
+        current_offset = entity.offset + entity.length;
+
+        auto replaced_url = replace_url(entity, entity_text);
+        if (!replaced_url.empty()) {
+          entity = MessageEntity(MessageEntity::Type::TextUrl, entity.offset, entity.length, std::move(replaced_url));
+        }
+      }
+    };
+
+    if (host == "instagram.com" || ends_with(host, ".instagram.com")) {
+      replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
+        if (entity.type == MessageEntity::Type::Mention) {
+          return PSTRING() << "https://www.instagram.com/" << text.substr(1) << '/';
+        }
+        if (entity.type == MessageEntity::Type::Hashtag) {
+          return PSTRING() << "https://www.instagram.com/explore/tags/" << text.substr(1) << '/';
+        }
+        return string();
+      });
+    }
+    if (host == "twitter.com" || ends_with(host, ".twitter.com")) {
+      replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
+        if (entity.type == MessageEntity::Type::Mention) {
+          return PSTRING() << "https://twitter.com/" << text.substr(1);
+        }
+        if (entity.type == MessageEntity::Type::Hashtag) {
+          return PSTRING() << "https://twitter.com/hashtag/" << text.substr(1);
+        }
+        return string();
+      });
+    }
+  }
+
   return make_tl_object<td_api::webPage>(
-      web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title, web_page->description,
-      get_photo_object(td_->file_manager_.get(), &web_page->photo), web_page->embed_url, web_page->embed_type,
-      web_page->embed_dimensions.width, web_page->embed_dimensions.height, web_page->duration, web_page->author,
+      web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title,
+      get_formatted_text_object(description), get_photo_object(td_->file_manager_.get(), &web_page->photo),
+      web_page->embed_url, web_page->embed_type, web_page->embed_dimensions.width, web_page->embed_dimensions.height,
+      web_page->duration, web_page->author,
       web_page->document.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document.file_id, "get_web_page_object")
           : nullptr,

@@ -1314,8 +1314,8 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
   vector<MessageEntity> entities;
 
   if (!only_urls) {
-    auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities)(Slice)) mutable {
-      auto new_entities = find_entities(text);
+    auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
+      auto new_entities = find_entities_f(text);
       for (auto &entity : new_entities) {
         auto offset = narrow_cast<int32>(entity.begin() - text.begin());
         auto length = narrow_cast<int32>(entity.size());
