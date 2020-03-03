@@ -114,14 +114,14 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
       new_stats.add_copy(info);
       return true;
     }
-    if (info.mtime_nsec * 1e-9 > now - parameters.immunity_delay) {
+    if (static_cast<double>(info.mtime_nsec) * 1e-9 > now - parameters.immunity_delay) {
       // new files are immune to gc
       time_immunity_ignored_cnt++;
       new_stats.add_copy(info);
       return true;
     }
 
-    if (info.atime_nsec * 1e-9 < now - parameters.max_time_from_last_access) {
+    if (static_cast<double>(info.atime_nsec) * 1e-9 < now - parameters.max_time_from_last_access) {
       do_remove_file(info);
       total_removed_size += info.size;
       remove_by_atime_cnt++;
