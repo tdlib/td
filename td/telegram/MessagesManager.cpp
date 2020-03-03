@@ -15416,6 +15416,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
     }
   }
 
+  // TODO hide/show draft message when can_send_message(dialog_id) changes
+  auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
+
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_object(d), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -15427,8 +15430,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
-      d->pinned_message_id.get(), d->reply_markup_message_id.get(), get_draft_message_object(d->draft_message),
-      d->client_data);
+      d->pinned_message_id.get(), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -22617,9 +22619,11 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatDraftMessage>(
-                   d->dialog_id.get(), get_draft_message_object(d->draft_message), get_dialog_public_order(d)));
+  if (d->draft_message == nullptr || can_send_message(d->dialog_id).is_ok()) {
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateChatDraftMessage>(
+                     d->dialog_id.get(), get_draft_message_object(d->draft_message), get_dialog_public_order(d)));
+  }
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
@@ -28165,7 +28169,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
         new_order = pending_order;
       }
     }
-    if (d->draft_message != nullptr) {
+    if (d->draft_message != nullptr && can_send_message(d->dialog_id).is_ok()) {
       LOG(INFO) << "Draft message at " << d->draft_message->date << " found";
       int64 draft_order = get_dialog_order(MessageId(), d->draft_message->date);
       if (draft_order > new_order) {
