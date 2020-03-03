@@ -23338,6 +23338,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
           error_message = "Wrong invoice information specified";
         } else if (content_type == MessageContentType::Poll) {
           error_message = "Wrong poll data specified";
+        } else if (content_type == MessageContentType::Contact) {
+          error_message = "Wrong phone number specified";
         } else {
           error_message = "Wrong file identifier/HTTP URL specified";
         }
