@@ -17789,7 +17789,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->forward_info = std::move(forward_info);
   m->is_copy = is_copy || forward_info != nullptr;
 
-  if (td_->auth_manager_->is_bot() || options.disable_notification) {
+  if (td_->auth_manager_->is_bot() || options.disable_notification ||
+      G()->shared_config().get_option_boolean("ignore_default_disable_notification")) {
     m->disable_notification = options.disable_notification;
   } else {
     auto notification_settings = get_dialog_notification_settings(dialog_id, true);
