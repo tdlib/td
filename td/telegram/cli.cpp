@@ -524,8 +524,11 @@ class CliClient final : public Actor {
     return result;
   }
 
-  static int32 as_supergroup_id(Slice str) {
+  int32 as_supergroup_id(Slice str) {
     str = trim(str);
+    if (str[0] == '@') {
+      return username_to_supergroup_id_[to_lower(str.substr(1))];
+    }
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-1000000000000ll);
     if (result <= shift) {
