@@ -158,14 +158,18 @@ class RichText {
         return make_tl_object<td_api::richTextIcon>(
             context->td_->documents_manager_->get_document_object(document_file_id), width, height);
       }
-      case RichText::Type::Anchor:
+      case RichText::Type::Anchor: {
         if (context->is_first_pass_) {
           context->anchors_.emplace(Slice(content), texts[0].empty() ? nullptr : &texts[0]);
         }
         if (texts[0].empty()) {
           return make_tl_object<td_api::richTextAnchor>(content);
         }
-        return texts[0].get_rich_text_object(context);
+        auto result = make_tl_object<td_api::richTexts>();
+        result->texts_.push_back(make_tl_object<td_api::richTextAnchor>(content));
+        result->texts_.push_back(texts[0].get_rich_text_object(context));
+        return std::move(result);
+      }
     }
     UNREACHABLE();
     return nullptr;
