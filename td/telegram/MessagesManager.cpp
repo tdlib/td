@@ -25196,7 +25196,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
       break;
     case DialogParticipantsFilter::Members:
       user_ids.push_back(my_user_id);
-      if (peer_user_id.is_valid()) {
+      if (peer_user_id.is_valid() && peer_user_id != my_user_id) {
         user_ids.push_back(peer_user_id);
       }
       break;
@@ -25208,7 +25208,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
       if (td_->auth_manager_->is_bot()) {
         user_ids.push_back(my_user_id);
       }
-      if (peer_user_id.is_valid() && td_->contacts_manager_->is_user_bot(peer_user_id)) {
+      if (peer_user_id.is_valid() && td_->contacts_manager_->is_user_bot(peer_user_id) && peer_user_id != my_user_id) {
         user_ids.push_back(peer_user_id);
       }
       break;
