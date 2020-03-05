@@ -430,6 +430,10 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     auto card_number_begin = ptr;
     size_t digit_count = 0;
     while (ptr != end && (is_digit(*ptr) || *ptr == ' ' || *ptr == '-')) {
+      if (*ptr == ' ' && digit_count >= 16 && digit_count <= 19 && digit_count == static_cast<size_t>(ptr - card_number_begin)) {
+        // continuous card number
+        break;
+      }
       digit_count += static_cast<size_t>(is_digit(*ptr));
       ptr++;
     }
