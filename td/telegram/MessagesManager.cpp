@@ -9436,8 +9436,10 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
     }
 
     // hint_unread_count is definitely wrong, ignore it
-    LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
-               << " unread messages in " << d->dialog_id;
+    if (d->order != 0) {
+      LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
+                 << " unread messages in " << d->dialog_id;
+    }
   }
 
   if (!is_count_exact) {
