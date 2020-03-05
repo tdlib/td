@@ -849,7 +849,7 @@ richTextReference text:RichText reference_text:RichText url:string = RichText;
 //@description An anchor @name Anchor name
 richTextAnchor name:string = RichText;
 
-//@description A link to an anchor on the same web page @text The link text @name The anchor name @url An HTTP URL, opening the anchor
+//@description A link to an anchor on the same web page @text The link text @name The anchor name. If the name is empty, the link should bring back to top @url An HTTP URL, opening the anchor
 richTextAnchorLink text:RichText name:string url:string = RichText;
 
 //@description A concatenation of rich texts @texts Texts

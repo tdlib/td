@@ -118,7 +118,7 @@ class RichText {
         return make_tl_object<td_api::richTextFixed>(texts[0].get_rich_text_object(context));
       case RichText::Type::Url:
         if (!context->base_url_.empty() && begins_with(content, context->base_url_) &&
-            content.size() > context->base_url_.size() + 1 && content[context->base_url_.size()] == '#') {
+            content[context->base_url_.size()] == '#') {
           if (context->is_first_pass_) {
             context->has_anchor_urls_ = true;
           } else {
@@ -2399,6 +2399,7 @@ vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
   }
 
   context.is_first_pass_ = false;
+  context.anchors_.emplace(Slice(), nullptr);  // back to top
   return get_page_block_objects(page_blocks, &context);
 }
 
