@@ -843,14 +843,14 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@height Height of a bounding box in which the image should be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
-//@description A rich text reference of a text on the same web page @text The text @reference_text The text to show on click
-richTextReference text:RichText reference_text:RichText = RichText;
+//@description A rich text reference of a text on the same web page @text The text @reference_text The text to show on click @url An HTTP URL, opening the reference
+richTextReference text:RichText reference_text:RichText url:string = RichText;
 
 //@description An anchor @name Anchor name
 richTextAnchor name:string = RichText;
 
-//@description A link to an anchor on the same web page @text The link text @name The anchor name
-richTextAnchorLink text:RichText name:string = RichText;
+//@description A link to an anchor on the same web page @text The link text @name The anchor name @url An HTTP URL, opening the anchor
+richTextAnchorLink text:RichText name:string url:string = RichText;
 
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
