@@ -1831,6 +1831,19 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), "", my_id_, 0, 0,
                                                                    to_integer<int32>(limit), nullptr));
+    } else if (op == "SMU") {
+      string chat_id;
+      string user_id;
+      string limit;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(user_id, limit) = split(args);
+      if (limit.empty()) {
+        limit = "10";
+      }
+
+      send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), "", as_user_id(user_id), 0, 0,
+                                                                   to_integer<int32>(limit), nullptr));
     } else if (op == "SM") {
       string chat_id;
       string filter;
@@ -3230,7 +3243,7 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0,
                                 as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), op == "spttl" ? 10 : 0));
-    } else if (op == "spg") {
+    } else if (op == "spg" || op == "spgttl") {
       string chat_id;
       string photo_path;
       string conversion;
@@ -3241,7 +3254,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_generated_file(photo_path, conversion, to_integer<int32>(expected_size)), nullptr,
-                                vector<int32>(), 0, 0, as_caption(""), 0));
+                                vector<int32>(), 0, 0, as_caption(""), op == "spgttl" ? 10 : 0));
     } else if (op == "spt") {
       string chat_id;
       string photo_path;
