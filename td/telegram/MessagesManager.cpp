@@ -11481,6 +11481,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       return FullMessageId();
     }
 
+    being_readded_message_id_ = {dialog_id, old_message_id};
     unique_ptr<Message> old_message =
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
@@ -11488,6 +11489,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       // don't need to send update to the user, because the message has already been deleted
       LOG(INFO) << "Delete already deleted sent " << new_message->message_id << " from server";
       delete_message_from_server(dialog_id, new_message->message_id, true);
+      being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
 
@@ -11521,6 +11523,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   const Message *m = add_message_to_dialog(dialog_id, std::move(new_message), from_update, &need_update,
                                            &need_update_dialog_pos, source);
+  being_readded_message_id_ = FullMessageId();
   Dialog *d = get_dialog(dialog_id);
   if (m == nullptr) {
     if (need_update_dialog_pos && d != nullptr) {
@@ -20996,6 +20999,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       continue;
     }
 
+    being_readded_message_id_ = {dialog_id, message_ids[i]};
     unique_ptr<Message> message = delete_message(d, message_ids[i], true, &need_update_dialog_pos, "resend_messages");
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
@@ -21018,6 +21022,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     send_update_new_message(d, m);
 
     result[i] = m->message_id;
+    being_readded_message_id_ = FullMessageId();
   }
 
   if (need_update_dialog_pos) {
@@ -22989,12 +22994,14 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   CHECK(d != nullptr);
 
   bool need_update_dialog_pos = false;
+  being_readded_message_id_ = {dialog_id, old_message_id};
   unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send update to the user, because the message has already been deleted
     LOG(INFO) << "Delete already deleted sent " << new_message_id << " from server";
     delete_message_from_server(dialog_id, new_message_id, true);
+    being_readded_message_id_ = FullMessageId();
     return {};
   }
 
@@ -23043,6 +23050,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_chat_last_message(d, "on_send_message_success");
   }
   try_add_active_live_location(dialog_id, m);
+  being_readded_message_id_ = FullMessageId();
   return {dialog_id, new_message_id};
 }
 
@@ -23437,11 +23445,13 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   CHECK(old_message_id.is_yet_unsent());
 
   bool need_update_dialog_pos = false;
+  being_readded_message_id_ = full_message_id;
   unique_ptr<Message> message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "fail send message");
   if (message == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send update to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
+    being_readded_message_id_ = FullMessageId();
     return;
   }
 
@@ -23503,6 +23513,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "fail_send_message");
   }
+  being_readded_message_id_ = FullMessageId();
 }
 
 void MessagesManager::fail_send_message(FullMessageId full_message_id, Status error) {
@@ -26670,6 +26681,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         change_message_files(dialog_id, m, old_file_ids);
       }
       if (old_message_id != message_id) {
+        being_readded_message_id_ = {dialog_id, old_message_id};
         message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
         CHECK(message != nullptr);
         send_update_delete_messages(dialog_id, {message->message_id.get()}, false, false);
@@ -26713,6 +26725,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));
   CHECK(result_message != nullptr);
   CHECK(d->scheduled_messages != nullptr);
+  being_readded_message_id_ = FullMessageId();
   return result_message;
 }
 
@@ -26875,6 +26888,10 @@ void MessagesManager::delete_message_files(DialogId dialog_id, const Message *m)
 }
 
 bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId file_id) const {
+  if (being_readded_message_id_ == full_message_id) {
+    return false;
+  }
+
   auto main_file_id = td_->file_manager_->get_file_view(file_id).file_id();
   auto full_message_ids = td_->file_reference_manager_->get_some_message_file_sources(main_file_id);
   LOG(INFO) << "Receive " << full_message_ids << " as sources for file " << main_file_id << "/" << file_id << " from "
@@ -26895,6 +26912,9 @@ bool MessagesManager::need_delete_message_files(DialogId dialog_id, const Messag
 
   auto dialog_type = dialog_id.get_type();
   if (!m->message_id.is_scheduled() && !m->message_id.is_server() && dialog_type != DialogType::SecretChat) {
+    return false;
+  }
+  if (being_readded_message_id_ == FullMessageId{dialog_id, m->message_id}) {
     return false;
   }
 

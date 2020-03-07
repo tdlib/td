@@ -2758,6 +2758,8 @@ class MessagesManager : public Actor {
 
   DialogId sponsored_dialog_id_;
 
+  FullMessageId being_readded_message_id_;
+
   DialogId being_added_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
