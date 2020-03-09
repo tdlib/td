@@ -2693,6 +2693,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTextEntities>(args));
     } else if (op == "gtes") {
       execute(td_api::make_object<td_api::getTextEntities>(args));
+    } else if (op == "pm") {
+      send_request(td_api::make_object<td_api::parseMarkdown>(as_formatted_text(args)));
     } else if (op == "pte") {
       send_request(
           td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>(2)));

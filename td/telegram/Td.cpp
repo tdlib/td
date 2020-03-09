@@ -3080,6 +3080,7 @@ bool Td::is_synchronous_request(int32 id) {
   switch (id) {
     case td_api::getTextEntities::ID:
     case td_api::parseTextEntities::ID:
+    case td_api::parseMarkdown::ID:
     case td_api::getFileMimeType::ID:
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
@@ -3302,6 +3303,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
   bool need_logging = [function_id] {
     switch (function_id) {
       case td_api::parseTextEntities::ID:
+      case td_api::parseMarkdown::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
       case td_api::cleanFileName::ID:
@@ -7447,6 +7449,10 @@ void Td::on_request(uint64 id, const td_api::parseTextEntities &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::parseMarkdown &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
   UNREACHABLE();
 }
@@ -7547,6 +7553,27 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
   }
 
   return make_tl_object<td_api::formattedText>(std::move(request.text_), get_text_entities_object(r_entities.ok()));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &request) {
+  if (request.text_ == nullptr) {
+    return make_error(400, "Text must be non-empty");
+  }
+
+  auto r_entities = get_message_entities(nullptr, std::move(request.text_->entities_));
+  if (r_entities.is_error()) {
+    return make_error(400, r_entities.error().message());
+  }
+  auto entities = r_entities.move_as_ok();
+  auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true);
+  if (status.is_error()) {
+    return make_error(400, status.error().message());
+  }
+
+  auto parsed_text = parse_markdown_v3({std::move(request.text_->text_), std::move(entities)});
+  fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true).ensure();
+  return make_tl_object<td_api::formattedText>(std::move(parsed_text.text),
+                                               get_text_entities_object(parsed_text.entities));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileMimeType &request) {

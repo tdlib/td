@@ -2705,11 +2705,11 @@ deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
 
 //@class TextParseMode @description Describes the way the text should be parsed for TextEntities
 
-//@description The text should be parsed in markdown-style
-//@version Version of the parser: 0 or 1 - Bot API Markdown parse mode, 2 - Bot API MarkdownV2 parse mode
+//@description The text uses Markdown-style formatting
+//@version Version of the parser: 0 or 1 - Telegram Bot API "Markdown" parse mode, 2 - Telegram Bot API "MarkdownV2" parse mode
 textParseModeMarkdown version:int32 = TextParseMode;
 
-//@description The text should be parsed in HTML-style
+//@description The text uses HTML-style formatting. The same as Telegram Bot API "HTML" parse mode
 textParseModeHTML = TextParseMode;
 
 
@@ -3421,8 +3421,12 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;
 
-//@description Parses Bold, Italic, Underline, Strikethrough, Code, Pre, PreCode, TextUrl and MentionName entities contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text which should be parsed @parse_mode Text parse mode
+//@description Parses Bold, Italic, Underline, Strikethrough, Code, Pre, PreCode, TextUrl and MentionName entities contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text to parse @parse_mode Text parse mode
 parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
+
+//@description Parses Markdown entities in a human-friendly format, ignoring mark up errors. This is an offline method. Can be called before authorization. Can be called synchronously
+//@text The text to parse. For example, "__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) __italic**bold italic__bold**"
+parseMarkdown text:formattedText = FormattedText;
 
 //@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;
