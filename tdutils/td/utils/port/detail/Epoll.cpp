@@ -70,7 +70,8 @@ void Epoll::unsubscribe(PollableFdRef fd_ref) {
   int err = epoll_ctl(epoll_fd_.fd(), EPOLL_CTL_DEL, native_fd, nullptr);
   auto epoll_ctl_errno = errno;
   LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl DEL failed")
-                           << ", epoll_fd = " << epoll_fd_.fd() << ", fd = " << native_fd << fd.native_fd().validate();
+                           << ", epoll_fd = " << epoll_fd_.fd() << ", fd = " << native_fd
+                           << ", status = " << fd.native_fd().validate();
 }
 
 void Epoll::unsubscribe_before_close(PollableFdRef fd) {
