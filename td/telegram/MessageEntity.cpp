@@ -1142,8 +1142,9 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
-static void check_is_sorted(const vector<MessageEntity> &entities) {
-  CHECK(std::is_sorted(entities.begin(), entities.end()));
+#define check_is_sorted(entities) check_is_sorted_impl(entities, __LINE__)
+static void check_is_sorted_impl(const vector<MessageEntity> &entities, int line) {
+  LOG_CHECK(std::is_sorted(entities.begin(), entities.end())) << line << " " << entities;
 }
 
 static void check_non_intersecting(const vector<MessageEntity> &entities) {
