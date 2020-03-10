@@ -34,7 +34,7 @@ RSA RSA::clone() const {
   return RSA(n_.clone(), e_.clone());
 }
 
-Result<RSA> RSA::from_pem(Slice pem) {
+Result<RSA> RSA::from_pem_public_key(Slice pem) {
   init_crypto();
 
   auto *bio =
@@ -91,7 +91,7 @@ int64 RSA::get_fingerprint() const {
 }
 
 size_t RSA::size() const {
-  // Checked in RSA::from_pem step
+  // Checked in RSA::from_pem_public_key step
   return 256;
 }
 
@@ -117,7 +117,7 @@ size_t RSA::encrypt(unsigned char *from, size_t from_len, size_t max_from_len, u
   return chunks * 256;
 }
 
-void RSA::decrypt(Slice from, MutableSlice to) const {
+void RSA::decrypt_signature(Slice from, MutableSlice to) const {
   CHECK(from.size() == 256);
   BigNumContext ctx;
   BigNum x = BigNum::from_binary(from);

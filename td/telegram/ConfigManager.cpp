@@ -141,7 +141,7 @@ Result<int32> HttpDate::parse_http_date(std::string slice) {
 }
 
 Result<SimpleConfig> decode_config(Slice input) {
-  static auto rsa = RSA::from_pem(
+  static auto rsa = RSA::from_pem_public_key(
                         "-----BEGIN RSA PUBLIC KEY-----\n"
                         "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP\n"
                         "BwXD3DOoKCSpjDqYoXgCqB7ioln4eDCFfOBUlfXUEvM/fnKCpF46VkAftlb4VuPD\n"
@@ -167,7 +167,7 @@ Result<SimpleConfig> decode_config(Slice input) {
   }
 
   MutableSlice data_rsa_slice(data_rsa);
-  rsa.decrypt(data_rsa_slice, data_rsa_slice);
+  rsa.decrypt_signature(data_rsa_slice, data_rsa_slice);
 
   MutableSlice data_cbc = data_rsa_slice.substr(32);
   UInt256 key;

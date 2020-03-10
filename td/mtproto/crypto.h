@@ -23,9 +23,9 @@ class RSA {
   size_t size() const;
   size_t encrypt(unsigned char *from, size_t from_len, size_t max_from_len, unsigned char *to, size_t to_len) const;
 
-  void decrypt(Slice from, MutableSlice to) const;
+  void decrypt_signature(Slice from, MutableSlice to) const;
 
-  static Result<RSA> from_pem(Slice pem);
+  static Result<RSA> from_pem_public_key(Slice pem);
 
  private:
   RSA(BigNum n, BigNum e);
