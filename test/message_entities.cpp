@@ -793,6 +793,9 @@ TEST(MessageEntities, fix_formatted_text) {
                             {td::MessageEntity::Type::Italic, 0, 1},
                             {td::MessageEntity::Type::Bold, 2, 1},
                             {td::MessageEntity::Type::Italic, 2, 1}});
+  check_fix_formatted_text("a ", {{td::MessageEntity::Type::Italic, 0, 2}, {td::MessageEntity::Type::Bold, 0, 1}}, "a",
+                           {{td::MessageEntity::Type::Bold, 0, 1}, {td::MessageEntity::Type::Italic, 0, 1}}, false,
+                           false, false, false);
   check_fix_formatted_text("abc", {{td::MessageEntity::Type::Italic, 1, 1}, {td::MessageEntity::Type::Italic, 0, 1}},
                            "abc", {{td::MessageEntity::Type::Italic, 0, 2}});
   check_fix_formatted_text("abc", {{td::MessageEntity::Type::Italic, 1, 1}, {td::MessageEntity::Type::Italic, 1, 1}},

@@ -3609,11 +3609,16 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
             entities.back().type == MessageEntity::Type::MentionName);
       entities.pop_back();
     }
+    bool need_sort = false;
     for (auto &entity : entities) {
       if (entity.offset + entity.length > last_non_whitespace_utf16_offset + 1) {
         entity.length = last_non_whitespace_utf16_offset + 1 - entity.offset;
+        need_sort = true;
         CHECK(entity.length > 0);
       }
+    }
+    if (need_sort) {
+      std::sort(entities.begin(), entities.end());
     }
 
     // ltrim
