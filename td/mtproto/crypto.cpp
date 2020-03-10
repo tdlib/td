@@ -27,7 +27,6 @@ namespace td {
 
 /*** RSA ***/
 RSA::RSA(BigNum n, BigNum e) : n_(std::move(n)), e_(std::move(e)) {
-  e_.ensure_const_time();
 }
 
 RSA RSA::clone() const {
