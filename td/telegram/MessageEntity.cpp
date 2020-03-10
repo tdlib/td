@@ -1142,6 +1142,10 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
+static int32 text_length(Slice text) {
+  return narrow_cast<int32>(utf8_utf16_length(text));
+}
+
 static void sort_entities(vector<MessageEntity> &entities) {
   if (std::is_sorted(entities.begin(), entities.end())) {
     return;
@@ -1966,15 +1970,15 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
         CHECK(parsed_part_text[url_end_pos] == ')');
 
         Slice before_text_url = parsed_part_text.substr(prev_pos, text_begin_pos - prev_pos);
-        auto before_text_url_utf16_length = narrow_cast<int32>(utf8_utf16_length(before_text_url));
+        auto before_text_url_utf16_length = text_length(before_text_url);
         result_text_utf16_length += before_text_url_utf16_length;
         result.text.append(before_text_url.begin(), before_text_url.size());
         text_utf16_offset += before_text_url_utf16_length;
 
         Slice text_url = parsed_part_text.substr(text_begin_pos + 1, text_end_pos - text_begin_pos - 1);
-        auto text_url_utf16_length = narrow_cast<int32>(utf8_utf16_length(text_url));
+        auto text_url_utf16_length = text_length(text_url);
         Slice url = parsed_part_text.substr(url_begin_pos + 1, url_end_pos - url_begin_pos - 1);
-        auto url_utf16_length = narrow_cast<int32>(utf8_utf16_length(url));
+        auto url_utf16_length = text_length(url);
         result.entities.emplace_back(MessageEntity::Type::TextUrl, result_text_utf16_length, text_url_utf16_length,
                                      check_url(url).move_as_ok());
         result.text.append(text_url.begin(), text_url.size());
@@ -2090,7 +2094,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
     part_entities.push_back(entity);
     part_entities.back().offset -= skipped_length;
   }
-  add_part(part_begin + narrow_cast<int32>(utf8_utf16_length(text)));
+  add_part(part_begin + text_length(text));
 
   return result;
 }
@@ -2345,7 +2349,7 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
     result.entities.push_back(std::move(entity));
     result.entities.back().offset -= skipped_length;
   }
-  add_part(part_begin + narrow_cast<int32>(utf8_utf16_length(text)));
+  add_part(part_begin + text_length(text));
 
   return result;
 }
@@ -2389,7 +2393,7 @@ FormattedText parse_markdown_v3(FormattedText text) {
       entity.offset += result_text_utf16_length;
     }
     append(result.entities, std::move(part.entities));
-    result_text_utf16_length += narrow_cast<int32>(utf8_utf16_length(part.text));
+    result_text_utf16_length += text_length(part.text);
     part_begin = part_end;
   };
 
@@ -2417,7 +2421,7 @@ FormattedText parse_markdown_v3(FormattedText text) {
 
     max_end = td::max(max_end, entity.offset + entity.length);
   }
-  add_part(part_begin + narrow_cast<int32>(utf8_utf16_length(left_text)));
+  add_part(part_begin + text_length(left_text));
 
   return result;
 }
@@ -3657,7 +3661,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     }
     text.resize(new_size);
 
-    td::remove_if(entities, [text_utf16_length = narrow_cast<int32>(utf8_utf16_length(text))](const auto &entity) {
+    td::remove_if(entities, [text_utf16_length = text_length(text)](const auto &entity) {
       return entity.offset + entity.length > text_utf16_length;
     });
   }
