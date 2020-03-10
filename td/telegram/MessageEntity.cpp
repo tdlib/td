@@ -528,8 +528,14 @@ static vector<Slice> match_urls(Slice str) {
 
   while (true) {
     auto dot_pos = str.find('.');
-    if (dot_pos > str.size()) {
+    if (dot_pos > str.size() || dot_pos + 1 == str.size()) {
       break;
+    }
+    if (str[dot_pos + 1] == ' ') {
+      // fast path
+      str = str.substr(dot_pos + 2);
+      begin = str.ubegin();
+      continue;
     }
 
     const unsigned char *last_at_ptr = nullptr;
