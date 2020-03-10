@@ -1142,6 +1142,14 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
+static void sort_entities(vector<MessageEntity> &entities) {
+  if (std::is_sorted(entities.begin(), entities.end())) {
+    return;
+  }
+
+  std::sort(entities.begin(), entities.end());
+}
+
 #define check_is_sorted(entities) check_is_sorted_impl(entities, __LINE__)
 static void check_is_sorted_impl(const vector<MessageEntity> &entities, int line) {
   LOG_CHECK(std::is_sorted(entities.begin(), entities.end())) << line << " " << entities;
@@ -1354,7 +1362,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     return entities;
   }
 
-  std::sort(entities.begin(), entities.end());
+  sort_entities(entities);
 
   remove_intersecting_entities(entities);
 
@@ -1852,7 +1860,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
                                        << " entity at byte offset " << nested_entities.back().entity_byte_offset);
   }
 
-  std::sort(entities.begin(), entities.end());
+  sort_entities(entities);
 
   return entities;
 }
@@ -2160,7 +2168,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
   }
   if (!have_splittable_entities) {
     // fast path
-    std::sort(entities.begin(), entities.end());
+    sort_entities(entities);
     return {text.str(), std::move(entities)};
   }
 
@@ -2207,7 +2215,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
 
   td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
 
-  std::sort(entities.begin(), entities.end());
+  sort_entities(entities);
   return {std::move(new_text), std::move(entities)};
 }
 
@@ -2682,7 +2690,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
     }
   }
 
-  std::sort(entities.begin(), entities.end());
+  sort_entities(entities);
 
   return entities;
 }
@@ -3462,9 +3470,7 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
   entities = std::move(result);
 
   // entities are sorted only by offset now, re-sort if needed
-  if (!std::is_sorted(entities.begin(), entities.end())) {
-    std::sort(entities.begin(), entities.end());
-  }
+  sort_entities(entities);
 }
 
 static vector<MessageEntity> resplit_entities(vector<MessageEntity> &&splittable_entities,
@@ -3477,15 +3483,13 @@ static vector<MessageEntity> resplit_entities(vector<MessageEntity> &&splittable
     }
 
     combine(entities, std::move(splittable_entities));
-    std::sort(entities.begin(), entities.end());
+    sort_entities(entities);
   }
   return std::move(entities);
 }
 
 static void fix_entities(vector<MessageEntity> &entities) {
-  if (!std::is_sorted(entities.begin(), entities.end())) {
-    std::sort(entities.begin(), entities.end());
-  }
+  sort_entities(entities);
 
   if (are_entities_valid(entities)) {
     // fast path
@@ -3513,7 +3517,7 @@ static void fix_entities(vector<MessageEntity> &entities) {
     remove_entities_intersecting_blockquote(continuous_entities, blockquote_entities);
 
     combine(continuous_entities, std::move(blockquote_entities));
-    std::sort(continuous_entities.begin(), continuous_entities.end());
+    sort_entities(continuous_entities);
   }
 
   // must be called once to not merge some adjacent entities
@@ -3550,7 +3554,7 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 
   if (!blockquote_entities.empty()) {
     combine(continuous_entities, std::move(blockquote_entities));
-    std::sort(continuous_entities.begin(), continuous_entities.end());
+    sort_entities(continuous_entities);
   }
 
   // must be called once to not merge some adjacent entities
@@ -3618,7 +3622,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       }
     }
     if (need_sort) {
-      std::sort(entities.begin(), entities.end());
+      sort_entities(entities);
     }
 
     // ltrim
