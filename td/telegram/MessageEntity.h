@@ -124,7 +124,8 @@ inline bool operator!=(const FormattedText &lhs, const FormattedText &rhs) {
 const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames();
 
 Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
-                                                   vector<tl_object_ptr<td_api::textEntity>> &&input_entities);
+                                                   vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
+                                                   bool allow_all = false);
 
 vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities);
 

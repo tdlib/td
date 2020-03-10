@@ -1908,8 +1908,8 @@ static vector<Slice> find_text_url_entities_v3(Slice text) {
 
 // entities must be valid for the text
 static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity> entities) {
-  // TextUrl and MentionName can't intersect TextUrl entities,
-  // so try to find new TextUrl entities only between the predetermined TextUrl and MentionName entities
+  // continuous entities can't intersect TextUrl entities,
+  // so try to find new TextUrl entities only between the predetermined continuous entities
 
   FormattedText result;
   int32 result_text_utf16_length = 0;
@@ -2068,7 +2068,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
       part_splittable_entities[index].push_back(entity);
       continue;
     }
-    CHECK(entity.type == MessageEntity::Type::TextUrl || entity.type == MessageEntity::Type::MentionName);
+    CHECK(is_continuous_entity(entity.type));
 
     if (entity.offset > max_end) {
       // found a gap from max_end to entity.offset between predetermined entities
@@ -2137,7 +2137,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
   return result;
 }
 
-// entities must be valid and can contain only splittable, TextUrl and MentionName entities
+// entities must be valid and can contain only splittable and continuous entities
 // __italic__ ~~strikethrough~~ **bold** and [text_url](telegram.org) entities are left to be parsed
 static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEntity> entities) {
   check_is_sorted(entities);
@@ -2386,8 +2386,7 @@ FormattedText parse_markdown_v3(FormattedText text) {
 
   for (size_t i = 0; i < text.entities.size(); i++) {
     auto &entity = text.entities[i];
-    CHECK(is_splittable_entity(entity.type) || is_pre_entity(entity.type) ||
-          entity.type == MessageEntity::Type::TextUrl || entity.type == MessageEntity::Type::MentionName);
+    CHECK(is_splittable_entity(entity.type) || is_pre_entity(entity.type) || is_continuous_entity(entity.type));
     if (is_pre_entity(entity.type)) {
       CHECK(entity.offset >= max_end);
       CHECK(i + 1 == text.entities.size() || text.entities[i + 1].offset >= entity.offset + entity.length);
@@ -2836,7 +2835,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
 }
 
 Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
-                                                   vector<tl_object_ptr<td_api::textEntity>> &&input_entities) {
+                                                   vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
+                                                   bool allow_all) {
   vector<MessageEntity> entities;
   for (auto &entity : input_entities) {
     if (entity == nullptr || entity->type_ == nullptr) {
@@ -2845,13 +2845,44 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeMention::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::Mention, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeHashtag::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::Hashtag, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeBotCommand::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::BotCommand, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeUrl::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeEmailAddress::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeCashtag::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::Cashtag, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypePhoneNumber::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::PhoneNumber, entity->offset_, entity->length_);
+        }
+        break;
       case td_api::textEntityTypeBankCardNumber::ID:
+        if (allow_all) {
+          entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
+        }
         break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);

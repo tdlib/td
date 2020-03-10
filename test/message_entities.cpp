@@ -1493,7 +1493,8 @@ TEST(MessageEntities, parse_markdown_v3) {
   td::vector<td::MessageEntity::Type> types{
       td::MessageEntity::Type::Bold,          td::MessageEntity::Type::Italic,  td::MessageEntity::Type::Underline,
       td::MessageEntity::Type::Strikethrough, td::MessageEntity::Type::Code,    td::MessageEntity::Type::Pre,
-      td::MessageEntity::Type::PreCode,       td::MessageEntity::Type::TextUrl, td::MessageEntity::Type::MentionName};
+      td::MessageEntity::Type::PreCode,       td::MessageEntity::Type::TextUrl, td::MessageEntity::Type::MentionName,
+      td::MessageEntity::Type::Cashtag};
   for (size_t test_n = 0; test_n < 1000; test_n++) {
     td::string str;
     int part_n = td::Random::fast(1, 200);

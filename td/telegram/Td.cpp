@@ -7560,7 +7560,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &
     return make_error(400, "Text must be non-empty");
   }
 
-  auto r_entities = get_message_entities(nullptr, std::move(request.text_->entities_));
+  auto r_entities = get_message_entities(nullptr, std::move(request.text_->entities_), true);
   if (r_entities.is_error()) {
     return make_error(400, r_entities.error().message());
   }
