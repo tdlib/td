@@ -121,6 +121,8 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
                      << tag("saved_system_time", saved_diff.system_time) << tag("system_time", system_time);
         diff -= time_forward_fix;
       }
+    } else if (saved_diff.diff >= 1500000000 && system_time >= 1500000000) {  // only for saved_diff.system_time == 0
+      diff = default_time_difference;
     }
     LOG(DEBUG) << "LOAD: " << tag("server_time_difference", diff);
     server_time_difference_ = diff;
