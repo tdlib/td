@@ -53,8 +53,6 @@ class BigNum {
 
   void set_value(uint32 new_value);
 
-  void ensure_const_time();
-
   int get_num_bits() const;
 
   int get_num_bytes() const;

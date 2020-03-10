@@ -122,10 +122,6 @@ BigNum BigNum::from_raw(void *openssl_big_num) {
 BigNum::BigNum(unique_ptr<Impl> &&impl) : impl_(std::move(impl)) {
 }
 
-void BigNum::ensure_const_time() {
-  BN_set_flags(impl_->big_num, BN_FLG_CONSTTIME);
-}
-
 int BigNum::get_num_bits() const {
   return BN_num_bits(impl_->big_num);
 }
