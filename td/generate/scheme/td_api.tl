@@ -3567,7 +3567,7 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Moves a chat to a different chat list. Current chat list of the chat must ne non-null @chat_id Chat identifier @chat_list New chat list of the chat
+//@description Moves a chat to a different chat list. Current chat list of the chat must ne non-null @chat_id Chat identifier @chat_list New chat list of the chat. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
 setChatChatList chat_id:int53 chat_list:ChatList = Ok;
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed

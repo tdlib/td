@@ -24749,6 +24749,12 @@ void MessagesManager::set_dialog_folder_id(DialogId dialog_id, FolderId folder_i
     return promise.set_value(Unit());
   }
 
+  if (folder_id == FolderId::archive() &&
+      (dialog_id == get_my_dialog_id() ||
+       dialog_id == DialogId(td_->contacts_manager_->get_service_notifications_user_id()))) {
+    return promise.set_error(Status::Error(400, "Chat can't be archived"));
+  }
+
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(6, "Can't access the chat"));
   }
