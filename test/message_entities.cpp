@@ -1502,7 +1502,7 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::Italic, 123, 17},
        {td::MessageEntity::Type::Bold, 129, 15}});
 
-  td::vector<td::string> parts{"a", " #test ", "__", "**", "~~", "[", "](t.me)", "`"};
+  td::vector<td::string> parts{"a", " #test__a", "__", "**", "~~", "[", "](t.me)", "`"};
   td::vector<td::MessageEntity::Type> types{
       td::MessageEntity::Type::Bold,          td::MessageEntity::Type::Italic,  td::MessageEntity::Type::Underline,
       td::MessageEntity::Type::Strikethrough, td::MessageEntity::Type::Code,    td::MessageEntity::Type::Pre,
@@ -1527,7 +1527,16 @@ TEST(MessageEntities, parse_markdown_v3) {
       entities.emplace_back(type, offset, length);
     }
 
-    ASSERT_TRUE(fix_formatted_text(str, entities, true, true, true, true).is_ok());
-    td::parse_markdown_v3({std::move(str), std::move(entities)});
+    td::FormattedText text{std::move(str), std::move(entities)};
+    while (true) {
+      ASSERT_TRUE(fix_formatted_text(text.text, text.entities, true, true, true, true).is_ok());
+      auto parsed_text = td::parse_markdown_v3(text);
+      ASSERT_TRUE(fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true).is_ok());
+      if (parsed_text == text) {
+        break;
+      }
+      text = std::move(parsed_text);
+    }
+    ASSERT_EQ(text, td::parse_markdown_v3(text));
   }
 }

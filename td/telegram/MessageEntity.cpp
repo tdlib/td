@@ -1169,9 +1169,10 @@ static void check_is_sorted_impl(const vector<MessageEntity> &entities, int line
   LOG_CHECK(std::is_sorted(entities.begin(), entities.end())) << line << " " << entities;
 }
 
-static void check_non_intersecting(const vector<MessageEntity> &entities) {
+#define check_non_intersecting(entities) check_non_intersecting_impl(entities, __LINE__)
+static void check_non_intersecting_impl(const vector<MessageEntity> &entities, int line) {
   for (size_t i = 0; i + 1 < entities.size(); i++) {
-    CHECK(entities[i].offset + entities[i].length <= entities[i + 1].offset);
+    LOG_CHECK(entities[i].offset + entities[i].length <= entities[i + 1].offset) << line << " " << entities;
   }
 }
 
@@ -1271,6 +1272,11 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
       if ((is_continuous_entity(entity.type) || is_blockquote_entity(entity.type)) &&
           (nested_entity_type_mask & get_continuous_entities_mask()) != 0) {
         // continuous and blockquote can't be contained in continuous
+        return false;
+      }
+      if ((nested_entity_type_mask & get_splittable_entities_mask()) != 0) {
+        // the previous nested entity may be needed to splitted for consistency
+        // alternatively, better entity merging needs to be implemented
         return false;
       }
     }
@@ -1955,16 +1961,16 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
       result_text_utf16_length += max_end - part_begin;
     }
 
+    size_t splittable_entity_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
+    for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
+      check_non_intersecting(part_splittable_entities[index]);
+    }
     if (part_end != max_end) {
       // try to find text_url entities in the left part
       auto parsed_part_text = utf8_utf16_substr(text, 0, part_end - max_end);
       text = text.substr(parsed_part_text.size());
 
-      size_t splittable_entity_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
       vector<Slice> text_urls = find_text_url_entities_v3(parsed_part_text);
-      for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
-        check_non_intersecting(part_splittable_entities[index]);
-      }
 
       int32 text_utf16_offset = max_end;
       size_t prev_pos = 0;
@@ -2047,38 +2053,36 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
 
       result.text.append(parsed_part_text.begin() + prev_pos, parsed_part_text.size() - prev_pos);
       result_text_utf16_length += part_end - text_utf16_offset;
+    }
 
-      // now add all splittable entities from [text_utf16_offset, part_end)
-      for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
-        auto &pos = splittable_entity_pos[index];
-        auto &splittable_entities = part_splittable_entities[index];
-        while (pos < splittable_entities.size() && splittable_entities[pos].offset < part_end) {
-          if (splittable_entities[pos].offset + splittable_entities[pos].length > part_end) {
-            // begins before end of the segment, but ends after it
-            // need to keep the entity for future segments, so split the entity
-            // entities don't intersect each other, so there can be at most one such entity
-            result.entities.emplace_back(splittable_entities[pos].type,
-                                         splittable_entities[pos].offset - skipped_length,
-                                         part_end - splittable_entities[pos].offset);
+    // now add all left splittable entities from [part_begin, part_end)
+    for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
+      auto &pos = splittable_entity_pos[index];
+      auto &splittable_entities = part_splittable_entities[index];
+      while (pos < splittable_entities.size() && splittable_entities[pos].offset < part_end) {
+        if (splittable_entities[pos].offset + splittable_entities[pos].length > part_end) {
+          // begins before end of the segment, but ends after it
+          // need to keep the entity for future segments, so split the entity
+          // entities don't intersect each other, so there can be at most one such entity
+          result.entities.emplace_back(splittable_entities[pos].type, splittable_entities[pos].offset - skipped_length,
+                                       part_end - splittable_entities[pos].offset);
 
-            splittable_entities[pos].length =
-                splittable_entities[pos].offset + splittable_entities[pos].length - part_end;
-            splittable_entities[pos].offset = part_end;
-          } else {
-            result.entities.emplace_back(splittable_entities[pos].type,
-                                         splittable_entities[pos].offset - skipped_length,
-                                         splittable_entities[pos].length);
-            pos++;
-          }
-        }
-        if (pos == splittable_entities.size()) {
-          splittable_entities.clear();
+          splittable_entities[pos].length =
+              splittable_entities[pos].offset + splittable_entities[pos].length - part_end;
+          splittable_entities[pos].offset = part_end;
         } else {
-          CHECK(pos == splittable_entities.size() - 1);
-          CHECK(!text.empty());
-          splittable_entities[0] = std::move(splittable_entities.back());
-          splittable_entities.resize(1);
+          result.entities.emplace_back(splittable_entities[pos].type, splittable_entities[pos].offset - skipped_length,
+                                       splittable_entities[pos].length);
+          pos++;
         }
+      }
+      if (pos == splittable_entities.size()) {
+        splittable_entities.clear();
+      } else {
+        CHECK(pos == splittable_entities.size() - 1);
+        CHECK(!text.empty());
+        splittable_entities[0] = std::move(splittable_entities.back());
+        splittable_entities.resize(1);
       }
     }
 
