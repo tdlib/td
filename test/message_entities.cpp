@@ -1412,6 +1412,19 @@ TEST(MessageEntities, parse_markdown_v3) {
                            {td::MessageEntity::Type::Italic, 3, 2}},
                           true);
 
+  // TODO parse_markdown_v3 is not idempotent now, which is bad
+  check_parse_markdown_v3(
+      "~~**~~__**a__", {{td::MessageEntity::Type::Strikethrough, 2, 1}, {td::MessageEntity::Type::Bold, 6, 1}},
+      "**__**a__", {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Bold, 2, 1}}, true);
+  check_parse_markdown_v3("**__**a__",
+                          {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Bold, 2, 1}},
+                          "__a__", {{td::MessageEntity::Type::Bold, 0, 2}}, true);
+  check_parse_markdown_v3("__a__", {{td::MessageEntity::Type::Bold, 0, 2}}, "a",
+                          {{td::MessageEntity::Type::Italic, 0, 1}}, true);
+  check_parse_markdown_v3("~~__~~#test__test", "__#test__test", {{td::MessageEntity::Type::Strikethrough, 0, 2}});
+  check_parse_markdown_v3("__#test__test", {{td::MessageEntity::Type::Strikethrough, 0, 2}}, "#testtest",
+                          {{td::MessageEntity::Type::Italic, 0, 5}});
+
   check_parse_markdown_v3("__[ab_](t.me)_", "__ab__", {{td::MessageEntity::Type::TextUrl, 2, 3, "http://t.me/"}});
   check_parse_markdown_v3(
       "__[ab__](t.me)_", "ab_",
