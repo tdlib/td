@@ -113,6 +113,8 @@ struct FormattedText {
   void parse(ParserT &parser);
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &text);
+
 inline bool operator==(const FormattedText &lhs, const FormattedText &rhs) {
   return lhs.text == rhs.text && lhs.entities == rhs.entities;
 }

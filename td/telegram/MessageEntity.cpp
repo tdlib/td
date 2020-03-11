@@ -149,6 +149,14 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
   return result;
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &text) {
+  return string_builder << '"' << text.text << "\" with entities " << text.entities;
+}
+
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
+  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
+}
+
 static bool is_word_character(uint32 code) {
   switch (get_unicode_simple_category(code)) {
     case UnicodeSimpleCategory::Letter:
@@ -158,10 +166,6 @@ static bool is_word_character(uint32 code) {
     default:
       return code == '_';
   }
-}
-
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
-  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
 }
 
 /*
