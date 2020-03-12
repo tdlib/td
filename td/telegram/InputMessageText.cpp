@@ -6,6 +6,8 @@
 //
 #include "td/telegram/InputMessageText.h"
 
+#include "td/telegram/ConfigShared.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 
 #include "td/utils/common.h"
@@ -37,10 +39,18 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
   }
 
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
-  TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, false,
-                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), for_draft));
-  return InputMessageText{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
+  auto need_skip_commands = need_skip_bot_commands(contacts_manager, dialog_id, is_bot);
+  bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
+  TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
+                                need_skip_commands, for_draft));
+  InputMessageText result{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
                           input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
+  if (G()->shared_config().get_option_boolean("always_parse_markdown")) {
+    result.text = parse_markdown_v3(std::move(result.text));
+    fix_formatted_text(result.text.text, result.text.entities, for_draft, false, need_skip_commands, for_draft)
+        .ensure();
+  }
+  return std::move(result);
 }
 
 td_api::object_ptr<td_api::inputMessageText> get_input_message_text_object(const InputMessageText &input_message_text) {

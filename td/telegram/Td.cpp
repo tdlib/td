@@ -6707,6 +6707,11 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
   switch (request.name_[0]) {
+    case 'a':
+      if (set_boolean_option("always_parse_markdown")) {
+        return;
+      }
+      break;
     case 'c':
       if (!is_bot && set_string_option("connection_parameters", [](Slice value) {
             string value_copy = value.str();
