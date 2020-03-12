@@ -2174,7 +2174,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
           splittable_entity_offset[index] = utf16_offset + 1;
         }
       }
-      utf16_offset += j - i - 1;
+      utf16_offset += narrow_cast<int32>(j - i - 1);
       i = j - 1;
     }
   }
@@ -2237,10 +2237,10 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
   CHECK(j == removed_pos.size());
   combine(entities, std::move(found_splittable_entities));
   for (auto &entity : entities) {
-    auto removed_before_begin =
-        std::upper_bound(removed_pos.begin(), removed_pos.end(), entity.offset) - removed_pos.begin();
-    auto removed_before_end =
-        std::upper_bound(removed_pos.begin(), removed_pos.end(), entity.offset + entity.length) - removed_pos.begin();
+    auto removed_before_begin = narrow_cast<int32>(
+        std::upper_bound(removed_pos.begin(), removed_pos.end(), entity.offset) - removed_pos.begin());
+    auto removed_before_end = narrow_cast<int32>(
+        std::upper_bound(removed_pos.begin(), removed_pos.end(), entity.offset + entity.length) - removed_pos.begin());
     entity.length -= 2 * (removed_before_end - removed_before_begin);
     entity.offset -= 2 * removed_before_begin;
     CHECK(entity.offset >= 0);
@@ -2298,7 +2298,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
             break;
           } else {
             // not an end tag, skip
-            entity_length += end_tag_end - end_tag_begin;
+            entity_length += narrow_cast<int32>(end_tag_end - end_tag_begin);
             end_tag_begin = end_tag_end - 1;
           }
         } else if (is_utf8_character_first_code_unit(cur_c)) {
@@ -2311,7 +2311,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
     }
 
     result.append(text.begin() + i, j - i);
-    utf16_offset += j - i;
+    utf16_offset += narrow_cast<int32>(j - i);
     i = j - 1;
   }
   return {std::move(result), std::move(entities)};
@@ -2514,7 +2514,7 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "](";
             result.text += entity->argument;
             result.text += ')';
-            utf16_added += 3 + entity->argument.size();
+            utf16_added += narrow_cast<int32>(3 + entity->argument.size());
             break;
           case MessageEntity::Type::Code:
             result.text += '`';
@@ -2559,6 +2559,9 @@ FormattedText get_markdown_v3(FormattedText text) {
           case MessageEntity::Type::Pre:
             result.text += "```";
             utf16_added += 3;
+            break;
+          default:
+            // keep as is
             break;
         }
         nested_entities_stack.emplace_back(&text.entities[current_entity++], utf16_added);
