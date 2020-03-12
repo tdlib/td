@@ -619,7 +619,7 @@ scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool disable_
 //@reply_to_message_id Identifier of the message to reply to; 0 if none
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; this should always be of type inputMessageText
-draftMessage reply_to_message_id:int53 date:int53 input_message_text:InputMessageContent = DraftMessage;
+draftMessage reply_to_message_id:int53 date:int32 input_message_text:InputMessageContent = DraftMessage;
 
 
 //@class ChatType @description Describes the type of a chat
