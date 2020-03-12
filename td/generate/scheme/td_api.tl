@@ -3428,6 +3428,9 @@ parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
 //@text The text to parse. For example, "__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) __italic**bold italic__bold**"
 parseMarkdown text:formattedText = FormattedText;
 
+//@description Replaces text entities with Markdown formatting in a human-friendly format. Entities that can't be represented in Markdown unambiguously are kept as is. This is an offline method. Can be called before authorization. Can be called synchronously @text The text
+getMarkdownText text:formattedText = FormattedText;
+
 //@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;
 

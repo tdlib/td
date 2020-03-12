@@ -1256,19 +1256,24 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org", {{0, 12, td::UserId(123456)}});
 }
 
-static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities, const td::string &result,
-                                    const td::vector<td::MessageEntity> &result_entities, bool fix = false) {
+static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,
+                                    const td::string &result_text, const td::vector<td::MessageEntity> &result_entities,
+                                    bool fix = false) {
   auto parsed_text = td::parse_markdown_v3({std::move(text), std::move(entities)});
   if (fix) {
     ASSERT_TRUE(fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true).is_ok());
   }
-  ASSERT_STREQ(result, parsed_text.text);
+  ASSERT_STREQ(result_text, parsed_text.text);
   ASSERT_EQ(result_entities, parsed_text.entities);
+  if (fix) {
+    auto markdown_text = td::get_markdown_v3(parsed_text);
+    ASSERT_TRUE(parsed_text == markdown_text || parsed_text == td::parse_markdown_v3(markdown_text));
+  }
 }
 
-static void check_parse_markdown_v3(td::string text, const td::string &result,
+static void check_parse_markdown_v3(td::string text, const td::string &result_text,
                                     const td::vector<td::MessageEntity> &result_entities, bool fix = false) {
-  check_parse_markdown_v3(std::move(text), td::vector<td::MessageEntity>(), result, result_entities, fix);
+  check_parse_markdown_v3(std::move(text), td::vector<td::MessageEntity>(), result_text, result_entities, fix);
 }
 
 TEST(MessageEntities, parse_markdown_v3) {
@@ -1293,6 +1298,9 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("` `a", " a", {{td::MessageEntity::Type::Code, 0, 1}}, true);
   check_parse_markdown_v3("`\n`a", "\na", {}, true);
   check_parse_markdown_v3("``", "``", {});
+  check_parse_markdown_v3("`a````b```", "`a````b```", {});
+  check_parse_markdown_v3("ab", {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}}, "ab",
+                          {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}});
 
   check_parse_markdown_v3("[a](b[c](t.me)", "[a](b[c](t.me)", {});
   check_parse_markdown_v3("[](t.me)", "[](t.me)", {});
@@ -1411,6 +1419,9 @@ TEST(MessageEntities, parse_markdown_v3) {
                            {td::MessageEntity::Type::TextUrl, 3, 4, "http://t.me/"},
                            {td::MessageEntity::Type::Italic, 3, 2}},
                           true);
+  check_parse_markdown_v3("__a #test__test", "__a #test__test", {});
+  check_parse_markdown_v3("a #testtest", {{td::MessageEntity::Type::Italic, 0, 7}}, "a #testtest",
+                          {{td::MessageEntity::Type::Italic, 0, 7}});
 
   // TODO parse_markdown_v3 is not idempotent now, which is bad
   check_parse_markdown_v3(
@@ -1551,5 +1562,57 @@ TEST(MessageEntities, parse_markdown_v3) {
       text = std::move(parsed_text);
     }
     ASSERT_EQ(text, td::parse_markdown_v3(text));
+    auto markdown_text = td::get_markdown_v3(text);
+    ASSERT_TRUE(text == markdown_text || text == td::parse_markdown_v3(markdown_text));
   }
+}
+
+static void check_get_markdown_v3(td::string result_text, td::vector<td::MessageEntity> result_entities,
+                                  const td::string &text, const td::vector<td::MessageEntity> &entities) {
+  auto markdown_text = td::get_markdown_v3({std::move(text), std::move(entities)});
+  ASSERT_STREQ(result_text, markdown_text.text);
+  ASSERT_EQ(result_entities, markdown_text.entities);
+}
+
+TEST(MessageEntities, get_markdown_v3) {
+  check_get_markdown_v3("``` ```", {}, " ", {{td::MessageEntity::Type::Pre, 0, 1}});
+  check_get_markdown_v3("` `", {}, " ", {{td::MessageEntity::Type::Code, 0, 1}});
+  check_get_markdown_v3("`\n`", {}, "\n", {{td::MessageEntity::Type::Code, 0, 1}});
+  check_get_markdown_v3("ab", {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}}, "ab",
+                        {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}});
+
+  check_get_markdown_v3("[ ](http://t.me/)", {}, " ", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}});
+  check_get_markdown_v3("[ ]t.me[)](http://t.me/) [ ](t.me)", {{25, 1, td::UserId(1)}}, "[ ]t.me) [ ](t.me)",
+                        {{td::MessageEntity::Type::TextUrl, 7, 1, "http://t.me/"}, {9, 1, td::UserId(1)}});
+
+  check_get_markdown_v3("__ __", {}, " ", {{td::MessageEntity::Type::Italic, 0, 1}});
+  check_get_markdown_v3("** **", {}, " ", {{td::MessageEntity::Type::Bold, 0, 1}});
+  check_get_markdown_v3("~~ ~~", {}, " ", {{td::MessageEntity::Type::Strikethrough, 0, 1}});
+  check_get_markdown_v3("__a__ **b** ~~c~~ d", {{td::MessageEntity::Type::PreCode, 18, 1, "C++"}}, "a b c d",
+                        {{td::MessageEntity::Type::Italic, 0, 1},
+                         {td::MessageEntity::Type::Bold, 2, 1},
+                         {td::MessageEntity::Type::Strikethrough, 4, 1},
+                         {td::MessageEntity::Type::PreCode, 6, 1, "C++"}});
+  check_get_markdown_v3("`ab` ```cd``` ef", {{td::MessageEntity::Type::PreCode, 14, 2, "C++"}}, "ab cd ef",
+                        {{td::MessageEntity::Type::Code, 0, 2},
+                         {td::MessageEntity::Type::Pre, 3, 2},
+                         {td::MessageEntity::Type::PreCode, 6, 2, "C++"}});
+  check_get_markdown_v3("__asd__[__ab__cd](http://t.me/)", {}, "asdabcd",
+                        {{td::MessageEntity::Type::Italic, 0, 3},
+                         {td::MessageEntity::Type::TextUrl, 3, 4, "http://t.me/"},
+                         {td::MessageEntity::Type::Italic, 3, 2}});
+
+  check_get_markdown_v3("__ab", {{td::MessageEntity::Type::Italic, 3, 1}}, "__ab",
+                        {{td::MessageEntity::Type::Italic, 3, 1}});
+  check_get_markdown_v3("__ab__**__cd__**~~**__ef__gh**ij~~", {}, "abcdefghij",
+                        {{td::MessageEntity::Type::Italic, 0, 2},
+                         {td::MessageEntity::Type::Bold, 2, 2},
+                         {td::MessageEntity::Type::Italic, 2, 2},
+                         {td::MessageEntity::Type::Strikethrough, 4, 6},
+                         {td::MessageEntity::Type::Bold, 4, 4},
+                         {td::MessageEntity::Type::Italic, 4, 2}});
+  check_get_markdown_v3("[**__bold italic link__**](http://example.com/)", {}, "bold italic link",
+                        {{td::MessageEntity::Type::TextUrl, 0, 16, "http://example.com/"},
+                         {td::MessageEntity::Type::Bold, 0, 16},
+                         {td::MessageEntity::Type::Italic, 0, 16}});
 }

@@ -1204,6 +1204,12 @@ static constexpr int32 get_pre_entities_mask() {
          get_entity_type_mask(MessageEntity::Type::PreCode);
 }
 
+static constexpr int32 get_user_entities_mask() {
+  return get_splittable_entities_mask() | get_blockquote_entities_mask() |
+         get_entity_type_mask(MessageEntity::Type::TextUrl) | get_entity_type_mask(MessageEntity::Type::MentionName) |
+         get_pre_entities_mask();
+}
+
 static int32 is_splittable_entity(MessageEntity::Type type) {
   return (get_entity_type_mask(type) & get_splittable_entities_mask()) != 0;
 }
@@ -1218,6 +1224,10 @@ static int32 is_continuous_entity(MessageEntity::Type type) {
 
 static int32 is_pre_entity(MessageEntity::Type type) {
   return (get_entity_type_mask(type) & get_pre_entities_mask()) != 0;
+}
+
+static int32 is_user_entity(MessageEntity::Type type) {
+  return (get_entity_type_mask(type) & get_user_entities_mask()) != 0;
 }
 
 static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 4;
@@ -2118,6 +2128,13 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
   for (auto &entity : entities) {
     unallowed_boundaries.insert(entity.offset);
     unallowed_boundaries.insert(entity.offset + entity.length);
+    if (entity.type == MessageEntity::Type::Mention || entity.type == MessageEntity::Type::Hashtag ||
+        entity.type == MessageEntity::Type::BotCommand || entity.type == MessageEntity::Type::Cashtag ||
+        entity.type == MessageEntity::Type::PhoneNumber || entity.type == MessageEntity::Type::BankCardNumber) {
+      for (int32 i = 1; i < entity.length; i++) {
+        unallowed_boundaries.insert(entity.offset + i);
+      }
+    }
   }
 
   auto found_entities = find_entities(text, false, false);
@@ -2440,6 +2457,128 @@ FormattedText parse_markdown_v3(FormattedText text) {
   return result;
 }
 
+// text entities must be valid
+FormattedText get_markdown_v3(FormattedText text) {
+  if (text.entities.empty()) {
+    return text;
+  }
+
+  check_is_sorted(text.entities);
+  for (auto &entity : text.entities) {
+    if (!is_user_entity(entity.type)) {
+      return text;
+    }
+  }
+
+  FormattedText result;
+  struct EntityInfo {
+    const MessageEntity *entity;
+    int32 utf16_added_before;
+
+    EntityInfo(MessageEntity *entity, int32 utf16_added_before)
+        : entity(entity), utf16_added_before(utf16_added_before) {
+    }
+  };
+  vector<EntityInfo> nested_entities_stack;
+  size_t current_entity = 0;
+
+  int32 utf16_offset = 0;
+  int32 utf16_added = 0;
+
+  for (size_t pos = 0; pos <= text.text.size(); pos++) {
+    auto c = static_cast<unsigned char>(text.text[pos]);
+    if (is_utf8_character_first_code_unit(c)) {
+      while (!nested_entities_stack.empty()) {
+        const auto *entity = nested_entities_stack.back().entity;
+        auto entity_end = entity->offset + entity->length;
+        if (utf16_offset < entity_end) {
+          break;
+        }
+
+        CHECK(utf16_offset == entity_end);
+
+        switch (entity->type) {
+          case MessageEntity::Type::Italic:
+            result.text += "__";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::Bold:
+            result.text += "**";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::Strikethrough:
+            result.text += "~~";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::TextUrl:
+            result.text += "](";
+            result.text += entity->argument;
+            result.text += ')';
+            utf16_added += 3 + entity->argument.size();
+            break;
+          case MessageEntity::Type::Code:
+            result.text += '`';
+            utf16_added++;
+            break;
+          case MessageEntity::Type::Pre:
+            result.text += "```";
+            utf16_added += 3;
+            break;
+          default:
+            result.entities.push_back(*entity);
+            result.entities.back().offset += nested_entities_stack.back().utf16_added_before;
+            result.entities.back().length += utf16_added - nested_entities_stack.back().utf16_added_before;
+            break;
+        }
+        nested_entities_stack.pop_back();
+      }
+
+      while (current_entity < text.entities.size() && utf16_offset >= text.entities[current_entity].offset) {
+        CHECK(utf16_offset == text.entities[current_entity].offset);
+        switch (text.entities[current_entity].type) {
+          case MessageEntity::Type::Italic:
+            result.text += "__";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::Bold:
+            result.text += "**";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::Strikethrough:
+            result.text += "~~";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::TextUrl:
+            result.text += '[';
+            utf16_added++;
+            break;
+          case MessageEntity::Type::Code:
+            result.text += '`';
+            utf16_added++;
+            break;
+          case MessageEntity::Type::Pre:
+            result.text += "```";
+            utf16_added += 3;
+            break;
+        }
+        nested_entities_stack.emplace_back(&text.entities[current_entity++], utf16_added);
+      }
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+    }
+    if (pos == text.text.size()) {
+      break;
+    }
+
+    result.text.push_back(text.text[pos]);
+  }
+
+  sort_entities(result.entities);
+  if (parse_markdown_v3(result) != text) {
+    return text;
+  }
+  return result;
+}
+
 static uint32 decode_html_entity(CSlice text, size_t &pos) {
   auto c = static_cast<unsigned char>(text[pos]);
   if (c != '&') {
@@ -2730,16 +2869,10 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                               const char *source) {
   vector<tl_object_ptr<telegram_api::MessageEntity>> result;
   for (auto &entity : entities) {
+    if (!is_user_entity(entity.type)) {
+      continue;
+    }
     switch (entity.type) {
-      case MessageEntity::Type::Mention:
-      case MessageEntity::Type::Hashtag:
-      case MessageEntity::Type::BotCommand:
-      case MessageEntity::Type::Url:
-      case MessageEntity::Type::EmailAddress:
-      case MessageEntity::Type::Cashtag:
-      case MessageEntity::Type::PhoneNumber:
-      case MessageEntity::Type::BankCardNumber:
-        continue;
       case MessageEntity::Type::Bold:
         result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
         break;
@@ -2775,6 +2908,14 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                                      std::move(input_user)));
         break;
       }
+      case MessageEntity::Type::Mention:
+      case MessageEntity::Type::Hashtag:
+      case MessageEntity::Type::BotCommand:
+      case MessageEntity::Type::Url:
+      case MessageEntity::Type::EmailAddress:
+      case MessageEntity::Type::Cashtag:
+      case MessageEntity::Type::PhoneNumber:
+      case MessageEntity::Type::BankCardNumber:
       default:
         UNREACHABLE();
     }
@@ -2872,44 +3013,28 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeMention::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::Mention, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::Mention, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeHashtag::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::Hashtag, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::Hashtag, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeBotCommand::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::BotCommand, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::BotCommand, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeUrl::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeEmailAddress::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeCashtag::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::Cashtag, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::Cashtag, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypePhoneNumber::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::PhoneNumber, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::PhoneNumber, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeBankCardNumber::ID:
-        if (allow_all) {
-          entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
-        }
+        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
         break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
@@ -2961,6 +3086,10 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       }
       default:
         UNREACHABLE();
+    }
+    CHECK(!entities.empty());
+    if (!allow_all && !is_user_entity(entities.back().type)) {
+      entities.pop_back();
     }
   }
   return entities;
