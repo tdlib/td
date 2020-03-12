@@ -18190,7 +18190,8 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
           if (queue.empty()) {
             yet_unsent_media_queues_.erase(queue_it);
           } else {
-            on_yet_unsent_media_queue_updated(dialog_id);
+            // send later, because do_delete_all_dialog_messages can be called right now
+            send_closure_later(actor_id(this), &MessagesManager::on_yet_unsent_media_queue_updated, dialog_id);
           }
         }
       }
