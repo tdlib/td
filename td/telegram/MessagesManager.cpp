@@ -13643,7 +13643,14 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
         // so we try to force channel difference first
 
         // replied message can't be older than already added original message, but pinned message can be
-        CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID);
+        LOG_CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID)
+            << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
+            << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
+            << " " << d->pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
+            << d->max_unavailable_message_id << " " << d->last_clear_history_message_id << " " << d->order << " "
+            << d->deleted_last_message_id << " " << d->max_added_message_id << " " << d->pts << " "
+            << d->last_assigned_message_id << " " << d->debug_last_new_message_id << " "
+            << d->debug_first_database_message_id << " " << d->debug_last_database_message_id;
         postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise),
                                                                    std::move(input_message));
         get_channel_difference(d->dialog_id, d->pts, true, "get_message");

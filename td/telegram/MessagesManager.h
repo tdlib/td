@@ -1192,7 +1192,7 @@ class MessagesManager : public Actor {
     const char *debug_set_dialog_last_database_message_id = "Unknown";  // to be removed soon
     vector<MessageOp> debug_message_op;
 
-    // message identifiers loaded from database, to be removed soon
+    // message identifiers loaded from database
     MessageId debug_last_new_message_id;
     MessageId debug_first_database_message_id;
     MessageId debug_last_database_message_id;
