@@ -150,15 +150,18 @@ class MessageId {
   }
 
   friend bool operator>(const MessageId &lhs, const MessageId &rhs) {
-    return rhs < lhs;
+    CHECK(lhs.is_scheduled() == rhs.is_scheduled());
+    return lhs.id > rhs.id;
   }
 
   friend bool operator<=(const MessageId &lhs, const MessageId &rhs) {
-    return !(rhs < lhs);
+    CHECK(lhs.is_scheduled() == rhs.is_scheduled());
+    return lhs.id <= rhs.id;
   }
 
   friend bool operator>=(const MessageId &lhs, const MessageId &rhs) {
-    return !(lhs < rhs);
+    CHECK(lhs.is_scheduled() == rhs.is_scheduled());
+    return lhs.id >= rhs.id;
   }
 
   template <class StorerT>
