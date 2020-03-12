@@ -23031,10 +23031,11 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   // imitation of update_message(d, sent_message.get(), std::move(new_message), &need_update_dialog_pos);
   if (date <= 0) {
-    LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date;
+    LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date << " from "
+               << source;
   } else {
     LOG_CHECK(sent_message->date > 0) << old_message_id << ' ' << sent_message->message_id << ' ' << new_message_id
-                                      << ' ' << sent_message->date << ' ' << date;
+                                      << ' ' << sent_message->date << ' ' << date << ' ' << source;
     sent_message->date = date;
     CHECK(d->last_message_id != old_message_id);
   }
