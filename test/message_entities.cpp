@@ -819,7 +819,9 @@ TEST(MessageEntities, fix_formatted_text) {
   // _a*b*_
   check_fix_formatted_text(
       "ab", {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 1, 1}}, "ab",
-      {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 1, 1}});
+      {{td::MessageEntity::Type::Underline, 0, 1},
+       {td::MessageEntity::Type::Underline, 1, 1},
+       {td::MessageEntity::Type::Strikethrough, 1, 1}});
   check_fix_formatted_text("ab",
                            {{td::MessageEntity::Type::Underline, 0, 1},
                             {td::MessageEntity::Type::Underline, 1, 1},
@@ -830,7 +832,9 @@ TEST(MessageEntities, fix_formatted_text) {
                             {td::MessageEntity::Type::Strikethrough, 1, 1}});
   check_fix_formatted_text(
       "ab", {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Underline, 1, 1}}, "ab",
-      {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Underline, 1, 1}});
+      {{td::MessageEntity::Type::Strikethrough, 0, 1},
+       {td::MessageEntity::Type::Underline, 1, 1},
+       {td::MessageEntity::Type::Strikethrough, 1, 1}});
   check_fix_formatted_text("ab",
                            {{td::MessageEntity::Type::Strikethrough, 0, 1},
                             {td::MessageEntity::Type::Strikethrough, 1, 1},
