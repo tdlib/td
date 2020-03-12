@@ -2782,8 +2782,9 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
 
         draft_message = td_api::make_object<td_api::draftMessage>(
-            as_message_id(reply_to_message_id), td_api::make_object<td_api::inputMessageText>(
-                                                    as_formatted_text(message, std::move(entities)), true, false));
+            as_message_id(reply_to_message_id), 0,
+            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), true,
+                                                          false));
       }
       send_request(td_api::make_object<td_api::setChatDraftMessage>(as_chat_id(chat_id), std::move(draft_message)));
     } else if (op == "cadm") {

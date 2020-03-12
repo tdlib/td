@@ -18,7 +18,7 @@ td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_p
   if (draft_message == nullptr) {
     return nullptr;
   }
-  return td_api::make_object<td_api::draftMessage>(draft_message->reply_to_message_id.get(),
+  return td_api::make_object<td_api::draftMessage>(draft_message->reply_to_message_id.get(), draft_message->date,
                                                    get_input_message_text_object(draft_message->input_message_text));
 }
 
