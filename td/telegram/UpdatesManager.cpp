@@ -2017,4 +2017,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> upd
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, bool /*force_apply*/) {
+}
+
 }  // namespace td

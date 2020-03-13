@@ -874,8 +874,9 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::stickers_createStickerSet(
-        flags, false /*ignored*/, std::move(input_user), title, short_name, std::move(input_stickers))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
+                                                title, short_name, nullptr, std::move(input_stickers))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

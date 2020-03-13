@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
@@ -771,6 +772,8 @@ class ContactsManager : public Actor {
 
     DialogLocation location;
 
+    DcId stats_dc_id;
+
     int32 slow_mode_delay = 0;
     int32 slow_mode_next_send_date = 0;
 
@@ -783,7 +786,6 @@ class ContactsManager : public Actor {
     bool can_set_username = false;
     bool can_set_sticker_set = false;
     bool can_set_location = false;
-    bool can_view_statistics = false;
     bool is_all_history_available = true;
 
     bool is_slow_mode_next_send_date_changed = true;

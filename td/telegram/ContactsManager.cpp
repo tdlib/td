@@ -3383,6 +3383,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_bot_user_ids = !bot_user_ids.empty();
   bool is_slow_mode_enabled = slow_mode_delay != 0;
   bool is_slow_mode_delay_active = slow_mode_next_send_date != 0;
+  bool has_stats_dc_id = stats_dc_id.is_exact();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3396,13 +3397,14 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(can_get_participants);
   STORE_FLAG(can_set_username);
   STORE_FLAG(can_set_sticker_set);
-  STORE_FLAG(can_view_statistics);
+  STORE_FLAG(false);  // legacy_can_view_statistics
   STORE_FLAG(is_all_history_available);
   STORE_FLAG(can_set_location);
   STORE_FLAG(has_location);
   STORE_FLAG(has_bot_user_ids);
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(is_slow_mode_delay_active);
+  STORE_FLAG(has_stats_dc_id);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3445,6 +3447,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
     store(slow_mode_next_send_date, storer);
   }
   store_time(expires_at, storer);
+  if (has_stats_dc_id) {
+    store(stats_dc_id.get_raw_id(), storer);
+  }
 }
 
 template <class ParserT>
@@ -3459,10 +3464,12 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_linked_channel_id;
   bool has_migrated_from_max_message_id;
   bool has_migrated_from_chat_id;
+  bool legacy_can_view_statistics;
   bool has_location;
   bool has_bot_user_ids;
   bool is_slow_mode_enabled;
   bool is_slow_mode_delay_active;
+  bool has_stats_dc_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3476,13 +3483,14 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(can_get_participants);
   PARSE_FLAG(can_set_username);
   PARSE_FLAG(can_set_sticker_set);
-  PARSE_FLAG(can_view_statistics);
+  PARSE_FLAG(legacy_can_view_statistics);
   PARSE_FLAG(is_all_history_available);
   PARSE_FLAG(can_set_location);
   PARSE_FLAG(has_location);
   PARSE_FLAG(has_bot_user_ids);
   PARSE_FLAG(is_slow_mode_enabled);
   PARSE_FLAG(is_slow_mode_delay_active);
+  PARSE_FLAG(has_stats_dc_id);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3525,6 +3533,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
     parse(slow_mode_next_send_date, parser);
   }
   parse_time(expires_at, parser);
+  if (has_stats_dc_id) {
+    stats_dc_id = DcId::create(parser.fetch_int());
+  }
 }
 
 template <class StorerT>
@@ -8720,12 +8731,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_username = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
     auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
     auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
-    auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id =
           td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true, "on_get_channel_full");
+    }
+    DcId stats_dc_id;
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0) {
+      stats_dc_id = DcId::create(channel_full->stats_dc_);
     }
 
     ChannelFull *channel = add_channel_full(channel_id);
@@ -8735,7 +8749,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->administrator_count != administrator_count || channel->restricted_count != restricted_count ||
         channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
-        channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
+        channel->can_set_location != can_set_location || channel->stats_dc_id != stats_dc_id ||
         channel->sticker_set_id != sticker_set_id || channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
@@ -8746,7 +8760,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->can_set_username = can_set_username;
       channel->can_set_sticker_set = can_set_sticker_set;
       channel->can_set_location = can_set_location;
-      channel->can_view_statistics = can_view_statistics;
+      channel->stats_dc_id = stats_dc_id;
       channel->is_all_history_available = is_all_history_available;
       channel->sticker_set_id = sticker_set_id;
 
@@ -12976,7 +12990,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       channel_full->slow_mode_delay, slow_mode_delay_expires_in, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
-      channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
+      channel_full->stats_dc_id.is_exact(), channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());

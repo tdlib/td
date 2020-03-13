@@ -32,6 +32,7 @@ struct CallProtocol {
   bool udp_reflector{true};
   int32 min_layer{65};
   int32 max_layer{65};
+  vector<string> library_versions;
 
   static CallProtocol from_telegram_api(const telegram_api::phoneCallProtocol &protocol);
   tl_object_ptr<telegram_api::phoneCallProtocol> as_telegram_api() const;

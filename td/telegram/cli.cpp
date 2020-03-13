@@ -2657,7 +2657,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::closeSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cc" || op == "CreateCall") {
       send_request(td_api::make_object<td_api::createCall>(
-          as_user_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65)));
+          as_user_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6"})));
     } else if (op == "dc" || op == "DiscardCall") {
       string call_id;
       string is_disconnected;
@@ -2666,7 +2666,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::discardCall>(as_call_id(call_id), as_bool(is_disconnected), 0, 0));
     } else if (op == "ac" || op == "AcceptCall") {
       send_request(td_api::make_object<td_api::acceptCall>(
-          as_call_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65)));
+          as_call_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6"})));
     } else if (op == "scr" || op == "SendCallRating") {
       string call_id;
       string rating;

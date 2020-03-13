@@ -41,6 +41,7 @@ CallProtocol CallProtocol::from_telegram_api(const telegram_api::phoneCallProtoc
   res.udp_reflector = protocol.udp_reflector_;
   res.min_layer = protocol.min_layer_;
   res.max_layer = protocol.max_layer_;
+  res.library_versions = protocol.library_versions_;
   return res;
 }
 
@@ -52,7 +53,8 @@ tl_object_ptr<telegram_api::phoneCallProtocol> CallProtocol::as_telegram_api() c
   if (udp_reflector) {
     flags |= telegram_api::phoneCallProtocol::UDP_REFLECTOR_MASK;
   }
-  return make_tl_object<telegram_api::phoneCallProtocol>(flags, udp_p2p, udp_reflector, min_layer, max_layer);
+  return make_tl_object<telegram_api::phoneCallProtocol>(flags, udp_p2p, udp_reflector, min_layer, max_layer,
+                                                         vector<string>(library_versions));
 }
 
 CallProtocol CallProtocol::from_td_api(const td_api::callProtocol &protocol) {
@@ -61,10 +63,13 @@ CallProtocol CallProtocol::from_td_api(const td_api::callProtocol &protocol) {
   res.udp_reflector = protocol.udp_reflector_;
   res.min_layer = protocol.min_layer_;
   res.max_layer = protocol.max_layer_;
+  res.library_versions = protocol.library_versions_;
   return res;
 }
+
 tl_object_ptr<td_api::callProtocol> CallProtocol::as_td_api() const {
-  return make_tl_object<td_api::callProtocol>(udp_p2p, udp_reflector, min_layer, max_layer);
+  return make_tl_object<td_api::callProtocol>(udp_p2p, udp_reflector, min_layer, max_layer,
+                                              vector<string>(library_versions));
 }
 
 CallConnection CallConnection::from_telegram_api(const telegram_api::phoneConnection &connection) {

@@ -987,11 +987,13 @@ pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle
 pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = PageBlock;
 
 
-//@description Describes an instant view page for a web page @page_blocks Content of the web page
+//@description Describes an instant view page for a web page
+//@page_blocks Content of the web page
+//@view_count Number of the instant view views; 0 if unknown
 //@version Version of the instant view, currently can be 1 or 2
 //@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> version:int32 is_rtl:Bool is_full:Bool = WebPageInstantView;
+webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
 //@description Describes a web page preview
@@ -1738,8 +1740,13 @@ callDiscardReasonDisconnected = CallDiscardReason;
 callDiscardReasonHungUp = CallDiscardReason;
 
 
-//@description Specifies the supported call protocols @udp_p2p True, if UDP peer-to-peer connections are supported @udp_reflector True, if connection through UDP reflectors is supported @min_layer The minimum supported API layer; use 65 @max_layer The maximum supported API layer; use 65
-callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 = CallProtocol;
+//@description Specifies the supported call protocols
+//@udp_p2p True, if UDP peer-to-peer connections are supported
+//@udp_reflector True, if connection through UDP reflectors is supported
+//@min_layer The minimum supported API layer; use 65
+//@max_layer The maximum supported API layer; use 65
+//@library_versions List of supported libtgvoip versions
+callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 library_versions:vector<string> = CallProtocol;
 
 //@description Describes the address of UDP reflectors @id Reflector identifier @ip IPv4 reflector address @ipv6 IPv6 reflector address @port Reflector port number @peer_tag Connection peer tag
 callConnection id:int64 ip:string ipv6:string port:int32 peer_tag:bytes = CallConnection;
