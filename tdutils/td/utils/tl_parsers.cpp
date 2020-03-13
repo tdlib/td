@@ -39,11 +39,10 @@ void TlParser::set_error(const string &error_message) {
     left_len = 0;
     data_len = 0;
   } else {
+    LOG_CHECK(error_pos != std::numeric_limits<size_t>::max() && data_len == 0 && left_len == 0)
+        << data_len << " " << left_len << " " << data << " " << &empty_data[0] << " " << error_pos << " " << error
+        << " " << data << " " << &empty_data;
     data = empty_data;
-    CHECK(error_pos != std::numeric_limits<size_t>::max());
-    LOG_CHECK(data_len == 0) << data_len << " " << left_len << " " << data << " " << &empty_data[0] << " " << error_pos
-                             << " " << error;
-    CHECK(left_len == 0);
   }
 }
 
