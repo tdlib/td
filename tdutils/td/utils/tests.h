@@ -110,8 +110,8 @@ class Stage {
   std::atomic<uint64> value_{0};
 };
 
-inline string rand_string(char from, char to, int len) {
-  string res(len, 0);
+inline string rand_string(int from, int to, size_t len) {
+  string res(len, '\0');
   for (auto &c : res) {
     c = static_cast<char>(Random::fast(from, to));
   }
