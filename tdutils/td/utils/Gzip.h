@@ -99,7 +99,7 @@ class Gzip {
 
 BufferSlice gzdecode(Slice s);
 
-BufferSlice gzencode(Slice s, double k = 0.9);
+BufferSlice gzencode(Slice s, double max_compression_ratio);
 
 }  // namespace td
 

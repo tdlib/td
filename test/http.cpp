@@ -354,7 +354,7 @@ TEST(Http, chunked_flow_error) {
 
 TEST(Http, gzip_chunked_flow) {
   auto str = rand_string('a', 'z', 1000000);
-  auto parts = rand_split(make_chunked(gzencode(str).as_slice().str()));
+  auto parts = rand_split(make_chunked(gzencode(str, 2.0).as_slice().str()));
 
   ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();

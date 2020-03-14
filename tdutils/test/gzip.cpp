@@ -63,7 +63,8 @@ TEST(Gzip, flow) {
 }
 TEST(Gzip, flow_error) {
   auto str = td::rand_string('a', 'z', 1000000);
-  auto zip = td::gzencode(str).as_slice().str();
+  auto zip = td::gzencode(str, 0.9).as_slice().str();
+  ASSERT_TRUE(!zip.empty());
   zip.resize(zip.size() - 1);
   auto parts = td::rand_split(zip);
 

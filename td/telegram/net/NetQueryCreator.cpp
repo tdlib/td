@@ -27,7 +27,7 @@ NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, Dc
   int32 tl_constructor = NetQuery::tl_magic(slice);
   if (gzip_flag == NetQuery::GzipFlag::On) {
     // TODO: try to compress files?
-    BufferSlice compressed = gzencode(slice.as_slice());
+    BufferSlice compressed = gzencode(slice.as_slice(), 0.9);
     if (compressed.empty()) {
       gzip_flag = NetQuery::GzipFlag::Off;
     } else {
