@@ -29,16 +29,9 @@ class NetQueryCreator {
     object_pool_.set_check_empty(false);
   }
 
-  Ptr create_result(BufferSlice &&buffer, DcId dc_id = DcId::main(),
-                    NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On,
-                    NetQuery::GzipFlag gzip_flag = NetQuery::GzipFlag::Off) {
-    return create_result(0, std::move(buffer), dc_id, auth_flag, gzip_flag);
-  }
-  Ptr create_result(uint64 id, BufferSlice &&buffer, DcId dc_id = DcId::main(),
-                    NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On,
-                    NetQuery::GzipFlag gzip_flag = NetQuery::GzipFlag::Off) {
-    return object_pool_.create(NetQuery::State::OK, id, BufferSlice(), std::move(buffer), dc_id, NetQuery::Type::Common,
-                               auth_flag, gzip_flag, 0);
+  Ptr create_update(BufferSlice &&buffer) {
+    return object_pool_.create(NetQuery::State::OK, 0, BufferSlice(), std::move(buffer), DcId::main(),
+                               NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0);
   }
 
   Ptr create(const Storer &storer, DcId dc_id = DcId::main(), NetQuery::Type type = NetQuery::Type::Common,

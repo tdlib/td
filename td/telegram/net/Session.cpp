@@ -540,12 +540,12 @@ void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_id;
   if (is_main_) {
     LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
-    telegram_api::updatesTooLong too_long_;
-    auto storer = create_storer(too_long_);
+    telegram_api::updatesTooLong too_long;
+    auto storer = create_storer(too_long);
     BufferSlice packet(storer.size());
     auto real_size = storer.store(packet.as_slice().ubegin());
     CHECK(real_size == packet.size());
-    return_query(G()->net_query_creator().create_result(0, std::move(packet)));
+    return_query(G()->net_query_creator().create_update(std::move(packet)));
   }
 
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
@@ -682,7 +682,7 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
     if (is_cdn_) {
       return Status::Error("Got update from CDN connection");
     }
-    return_query(G()->net_query_creator().create_result(0, std::move(packet)));
+    return_query(G()->net_query_creator().create_update(std::move(packet)));
     return Status::OK();
   }
 
