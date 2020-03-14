@@ -3123,6 +3123,8 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(as_chat_id(from_chat_id),
                                                                                as_message_id(from_message_id), true,
                                                                                op == "scopy", Random::fast(0, 1) == 0));
+    } else if (op == "sdie") {
+      send_message(args, td_api::make_object<td_api::inputMessageDie>());
     } else if (op == "sd") {
       string chat_id;
       string document_path;
