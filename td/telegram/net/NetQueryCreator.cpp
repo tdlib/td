@@ -14,8 +14,7 @@
 namespace td {
 
 NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
-                                             NetQuery::AuthFlag auth_flag, NetQuery::GzipFlag gzip_flag,
-                                             double total_timeout_limit) {
+                                             NetQuery::AuthFlag auth_flag, NetQuery::GzipFlag gzip_flag) {
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
@@ -39,7 +38,6 @@ NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, Dc
   auto query = object_pool_.create(NetQuery::State::Query, id, std::move(slice), BufferSlice(), dc_id, type, auth_flag,
                                    gzip_flag, tl_constructor);
   query->set_cancellation_token(query.generation());
-  query->total_timeout_limit = total_timeout_limit;
   return query;
 }
 

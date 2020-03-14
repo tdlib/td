@@ -505,8 +505,8 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
                                        false /*need_destroy_auth_key*/, mtproto::AuthKey(),
                                        std::vector<mtproto::ServerSalt>());
       auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), DcId::empty(),
-                                                   NetQuery::Type::Common, NetQuery::AuthFlag::Off,
-                                                   NetQuery::GzipFlag::On, 60 * 60 * 24);
+                                                   NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+      query->total_timeout_limit = 60 * 60 * 24;
       query->set_callback(actor_shared(this));
       query->dispatch_ttl = 0;
       send_closure(session_, &Session::send, std::move(query));
@@ -932,11 +932,10 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
 
   get_app_config_queries_.push_back(std::move(promise));
   if (get_app_config_queries_.size() == 1) {
-    G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig()), DcId::main(),
-                                        NetQuery::Type::Common, NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On,
-                                        60 * 60 * 24),
-        actor_shared(this, 1));
+    auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig()), DcId::main(),
+                                                 NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+    query->total_timeout_limit = 60 * 60 * 24;
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
   }
 }
 
@@ -992,10 +991,10 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   config_sent_cnt_++;
-  G()->net_query_dispatcher().dispatch_with_callback(
-      G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), dc_id, NetQuery::Type::Common,
-                                      NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On, 60 * 60 * 24),
-      actor_shared(this, 0));
+  auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), dc_id,
+                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+  query->total_timeout_limit = 60 * 60 * 24;
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));
 }
 
 void ConfigManager::set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {

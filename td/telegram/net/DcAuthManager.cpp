@@ -171,11 +171,10 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
       // send auth.exportAuthorization to auth_dc
       VLOG(dc) << "Send exportAuthorization to " << dc.dc_id;
       auto id = UniqueId::next();
-      G()->net_query_dispatcher().dispatch_with_callback(
-          G()->net_query_creator().create(
-              id, create_storer(telegram_api::auth_exportAuthorization(dc.dc_id.get_raw_id())), DcId::main(),
-              NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::On, 60 * 60 * 24),
-          actor_shared(this, dc.dc_id.get_raw_id()));
+      auto query = G()->net_query_creator().create(
+          id, create_storer(telegram_api::auth_exportAuthorization(dc.dc_id.get_raw_id())));
+      query->total_timeout_limit = 60 * 60 * 24;
+      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, dc.dc_id.get_raw_id()));
       dc.wait_id = id;
       dc.export_id = -1;
       dc.state = DcInfo::State::Import;
@@ -188,21 +187,19 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
       }
       uint64 id = UniqueId::next();
       VLOG(dc) << "Send importAuthorization to " << dc.dc_id;
-      G()->net_query_dispatcher().dispatch_with_callback(
-          G()->net_query_creator().create(
-              id, create_storer(telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes))),
-              dc.dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off, NetQuery::GzipFlag::On, 60 * 60 * 24),
-          actor_shared(this, dc.dc_id.get_raw_id()));
+      auto query = G()->net_query_creator().create(
+          id, create_storer(telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes))), dc.dc_id,
+          NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+      query->total_timeout_limit = 60 * 60 * 24;
+      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, dc.dc_id.get_raw_id()));
       dc.wait_id = id;
       dc.state = DcInfo::State::BeforeOk;
       break;
     }
-    case DcInfo::State::BeforeOk: {
+    case DcInfo::State::BeforeOk:
       break;
-    }
-    case DcInfo::State::Ok: {
+    case DcInfo::State::Ok:
       break;
-    }
   }
 }
 

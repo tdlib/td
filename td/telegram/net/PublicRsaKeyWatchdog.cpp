@@ -68,11 +68,9 @@ void PublicRsaKeyWatchdog::loop() {
   }
   flood_control_.add_event(static_cast<int32>(Time::now_cached()));
   has_query_ = true;
-  G()->net_query_dispatcher().dispatch_with_callback(
-      G()->net_query_creator().create(create_storer(telegram_api::help_getCdnConfig()), DcId::main(),
-                                      NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::On,
-                                      60 * 60 * 24),
-      actor_shared(this));
+  auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getCdnConfig()));
+  query->total_timeout_limit = 60 * 60 * 24;
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 }
 
 void PublicRsaKeyWatchdog::on_result(NetQueryPtr net_query) {
