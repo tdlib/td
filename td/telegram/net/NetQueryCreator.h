@@ -35,13 +35,11 @@ class NetQueryCreator {
   }
 
   Ptr create(const Storer &storer, DcId dc_id = DcId::main(), NetQuery::Type type = NetQuery::Type::Common,
-             NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On,
-             NetQuery::GzipFlag gzip_flag = NetQuery::GzipFlag::On) {
-    return create(UniqueId::next(), storer, dc_id, type, auth_flag, gzip_flag);
+             NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On) {
+    return create(UniqueId::next(), storer, dc_id, type, auth_flag);
   }
   Ptr create(uint64 id, const Storer &storer, DcId dc_id = DcId::main(), NetQuery::Type type = NetQuery::Type::Common,
-             NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On,
-             NetQuery::GzipFlag gzip_flag = NetQuery::GzipFlag::On);
+             NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On);
 
  private:
   ObjectPool<NetQuery> object_pool_;

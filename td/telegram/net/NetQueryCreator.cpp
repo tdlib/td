@@ -14,19 +14,26 @@
 namespace td {
 
 NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
-                                             NetQuery::AuthFlag auth_flag, NetQuery::GzipFlag gzip_flag) {
+                                             NetQuery::AuthFlag auth_flag) {
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
                                        << format::as_hex_dump<4>(Slice(slice.as_slice()));
 
-  // TODO: magic constant
-  if (slice.size() < (1 << 8)) {
-    gzip_flag = NetQuery::GzipFlag::Off;
-  }
   int32 tl_constructor = NetQuery::tl_magic(slice);
+
+  size_t MIN_GZIPPED_SIZE = 128;
+  auto gzip_flag = slice.size() < MIN_GZIPPED_SIZE ? NetQuery::GzipFlag::Off : NetQuery::GzipFlag::On;
+  if (slice.size() >= 16384) {
+    // test compression ratio for the middle part
+    // if it is less than 0.9, then try to compress the whole request
+    size_t TESTED_SIZE = 1024;
+    BufferSlice compressed_part = gzencode(slice.as_slice().substr((slice.size() - TESTED_SIZE) / 2, TESTED_SIZE), 0.9);
+    if (compressed_part.empty()) {
+      gzip_flag = NetQuery::GzipFlag::Off;
+    }
+  }
   if (gzip_flag == NetQuery::GzipFlag::On) {
-    // TODO: try to compress files?
     BufferSlice compressed = gzencode(slice.as_slice(), 0.9);
     if (compressed.empty()) {
       gzip_flag = NetQuery::GzipFlag::Off;
