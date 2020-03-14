@@ -4245,8 +4245,6 @@ void main(int argc, char **argv) {
   }
 
   SET_VERBOSITY_LEVEL(new_verbosity_level);
-  ClientActor::execute(td_api::make_object<td_api::setLogTagVerbosityLevel>("update_file", 2));
-  ClientActor::execute(td_api::make_object<td_api::setLogTagVerbosityLevel>("file_reference", 2));
 
   {
     ConcurrentScheduler scheduler;
