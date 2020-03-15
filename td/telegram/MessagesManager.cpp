@@ -2545,10 +2545,10 @@ class EditInlineMessageQuery : public Td::ResultHandler {
     LOG(DEBUG) << "Edit inline message with flags " << flags;
 
     auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
-    send_query(G()->net_query_creator().create_guest_dc(
-        create_storer(telegram_api::messages_editInlineBotMessage(
-            flags, false /*ignored*/, std::move(input_bot_inline_message_id), text, std::move(input_media),
-            std::move(reply_markup), std::move(entities))),
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editInlineBotMessage(flags, false /*ignored*/, std::move(input_bot_inline_message_id),
+                                                    text, std::move(input_media), std::move(reply_markup),
+                                                    std::move(entities)),
         dc_id));
   }
 
@@ -2650,10 +2650,9 @@ class SetInlineGameScoreQuery : public Td::ResultHandler {
 
     LOG(INFO) << "Set inline game score to " << score;
     auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
-    send_query(G()->net_query_creator().create_guest_dc(
-        create_storer(telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
-                                                                std::move(input_bot_inline_message_id),
-                                                                std::move(input_user), score)),
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
+                                                  std::move(input_bot_inline_message_id), std::move(input_user), score),
         dc_id));
   }
 
@@ -2730,10 +2729,9 @@ class GetInlineGameHighScoresQuery : public Td::ResultHandler {
     random_id_ = random_id;
 
     auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
-    send_query(
-        G()->net_query_creator().create_guest_dc(create_storer(telegram_api::messages_getInlineGameHighScores(
-                                                     std::move(input_bot_inline_message_id), std::move(input_user))),
-                                                 dc_id));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getInlineGameHighScores(std::move(input_bot_inline_message_id), std::move(input_user)),
+        dc_id));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

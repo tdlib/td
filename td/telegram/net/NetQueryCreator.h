@@ -6,17 +6,18 @@
 //
 #pragma once
 
-#include "td/mtproto/utils.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/ObjectPool.h"
-#include "td/utils/StorerBase.h"
 
 namespace td {
+
+namespace telegram_api {
+class Function;
+}  // namespace telegram_api
 
 class NetQueryCreator {
  public:
@@ -33,26 +34,15 @@ class NetQueryCreator {
                                NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0);
   }
 
-  template <class T>
-  NetQueryPtr create(const T &function) {
-    return create_regular(create_storer(function));
+  NetQueryPtr create(const telegram_api::Function &function, DcId dc_id = DcId::main(),
+                     NetQuery::Type type = NetQuery::Type::Common);
+
+  NetQueryPtr create_unauth(const telegram_api::Function &function, DcId dc_id = DcId::main()) {
+    return create(UniqueId::next(), function, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
   }
 
-  NetQueryPtr create(const Storer &storer, DcId dc_id, NetQuery::Type type) {
-    return create(UniqueId::next(), storer, dc_id, type, NetQuery::AuthFlag::On);
-  }
-
-  NetQueryPtr create_regular(const Storer &storer);
-
-  NetQueryPtr create_guest_dc(const Storer &storer, DcId dc_id) {
-    return create(UniqueId::next(), storer, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::On);
-  }
-
-  NetQueryPtr create_unauth(const Storer &storer, DcId dc_id = DcId::main()) {
-    return create(UniqueId::next(), storer, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
-  }
-
-  NetQueryPtr create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type, NetQuery::AuthFlag auth_flag);
+  NetQueryPtr create(uint64 id, const telegram_api::Function &function, DcId dc_id, NetQuery::Type type,
+                     NetQuery::AuthFlag auth_flag);
 
  private:
   ObjectPool<NetQuery> object_pool_;

@@ -13,7 +13,7 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
 
-#include "td/mtproto/utils.h"  // for create_storer, fetch_result TODO
+#include "td/mtproto/utils.h"  // for fetch_result TODO
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -365,6 +365,7 @@ inline StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_quer
   stream << "]";
   return stream;
 }
+
 inline StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_query_ptr) {
   return stream << *net_query_ptr;
 }
@@ -397,6 +398,7 @@ Result<typename T::ReturnType> fetch_result(Result<NetQueryPtr> r_query) {
 inline void NetQueryCallback::on_result(NetQueryPtr query) {
   on_result_resendable(std::move(query), Auto());
 }
+
 inline void NetQueryCallback::on_result_resendable(NetQueryPtr query, Promise<NetQueryPtr> promise) {
   on_result(std::move(query));
 }
@@ -404,6 +406,7 @@ inline void NetQueryCallback::on_result_resendable(NetQueryPtr query, Promise<Ne
 inline void start_migrate(NetQueryPtr &net_query, int32 sched_id) {
   net_query->start_migrate(sched_id);
 }
+
 inline void finish_migrate(NetQueryPtr &net_query) {
   net_query->finish_migrate();
 }

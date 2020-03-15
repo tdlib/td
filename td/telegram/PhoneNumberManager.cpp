@@ -90,8 +90,7 @@ void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
 
   on_new_query(query_id);
 
-  start_net_query(NetQueryType::SendCode,
-                  G()->net_query_creator().create_unauth(create_storer(r_resend_code.move_as_ok())));
+  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
 template <class T>

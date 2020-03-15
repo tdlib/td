@@ -88,17 +88,8 @@ class Object;
 class Function;
 }  // namespace mtproto_api
 
-namespace telegram_api {
-class Object;
-class Function;
-}  // namespace telegram_api
-
 TLStorer<mtproto_api::Function> create_storer(const mtproto_api::Function &function);
 
-TLStorer<telegram_api::Function> create_storer(const telegram_api::Function &function);
-
 TLObjectStorer<mtproto_api::Object> create_storer(const mtproto_api::Object &object);
-
-TLObjectStorer<telegram_api::Object> create_storer(const telegram_api::Object &object);
 
 }  // namespace td

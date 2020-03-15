@@ -6,19 +6,24 @@
 //
 #include "td/telegram/net/NetQueryCreator.h"
 
+#include "td/telegram/telegram_api.h"
+
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Storer.h"
 
 namespace td {
 
-NetQueryPtr NetQueryCreator::create_regular(const Storer &storer) {
-  return create(UniqueId::next(), storer, DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
+NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, DcId dc_id, NetQuery::Type type) {
+  return create(UniqueId::next(), function, dc_id, type, NetQuery::AuthFlag::On);
 }
 
-NetQueryPtr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
+NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &function, DcId dc_id, NetQuery::Type type,
                                     NetQuery::AuthFlag auth_flag) {
+  LOG(DEBUG) << "Create query " << to_string(function);
+  auto storer = DefaultStorer<telegram_api::Function>(function);
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "

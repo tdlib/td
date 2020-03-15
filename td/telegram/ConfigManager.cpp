@@ -504,7 +504,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
                                        int_dc_id, false /*is_main*/, true /*use_pfs*/, false /*is_cdn*/,
                                        false /*need_destroy_auth_key*/, mtproto::AuthKey(),
                                        std::vector<mtproto::ServerSalt>());
-      auto query = G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getConfig()), DcId::empty());
+      auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), DcId::empty());
       query->total_timeout_limit = 60 * 60 * 24;
       query->set_callback(actor_shared(this));
       query->dispatch_ttl = 0;
@@ -931,7 +931,7 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
 
   get_app_config_queries_.push_back(std::move(promise));
   if (get_app_config_queries_.size() == 1) {
-    auto query = G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getAppConfig()));
+    auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
     query->total_timeout_limit = 60 * 60 * 24;
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
   }
@@ -987,7 +987,7 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   config_sent_cnt_++;
-  auto query = G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getConfig()), dc_id);
+  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), dc_id);
   query->total_timeout_limit = 60 * 60 * 24;
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));
 }
