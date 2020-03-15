@@ -38,8 +38,8 @@ class NetQueryCreator {
              NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On) {
     return create(UniqueId::next(), storer, dc_id, type, auth_flag);
   }
-  Ptr create(uint64 id, const Storer &storer, DcId dc_id = DcId::main(), NetQuery::Type type = NetQuery::Type::Common,
-             NetQuery::AuthFlag auth_flag = NetQuery::AuthFlag::On);
+
+  Ptr create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type, NetQuery::AuthFlag auth_flag);
 
  private:
   ObjectPool<NetQuery> object_pool_;
