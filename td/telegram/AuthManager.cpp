@@ -69,7 +69,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
 
 void AuthManager::start_up() {
   if (state_ == State::LoggingOut) {
-    start_net_query(NetQueryType::LogOut, G()->net_query_creator().create(create_storer(telegram_api::auth_logOut())));
+    start_net_query(NetQueryType::LogOut, G()->net_query_creator().create(telegram_api::auth_logOut()));
   } else if (state_ == State::DestroyingKeys) {
     destroy_auth_keys();
   }
@@ -369,7 +369,7 @@ void AuthManager::logout(uint64 query_id) {
     LOG(INFO) << "Logging out";
     G()->td_db()->get_binlog_pmc()->set("auth", "logout");
     update_state(State::LoggingOut);
-    start_net_query(NetQueryType::LogOut, G()->net_query_creator().create(create_storer(telegram_api::auth_logOut())));
+    start_net_query(NetQueryType::LogOut, G()->net_query_creator().create(telegram_api::auth_logOut()));
   }
 }
 

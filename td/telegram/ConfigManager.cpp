@@ -950,8 +950,7 @@ void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
   get_content_settings_queries_.push_back(std::move(promise));
   if (get_content_settings_queries_.size() == 1) {
     G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(create_storer(telegram_api::account_getContentSettings())),
-        actor_shared(this, 2));
+        G()->net_query_creator().create(telegram_api::account_getContentSettings()), actor_shared(this, 2));
   }
 }
 
@@ -970,8 +969,7 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
       flags |= telegram_api::account_setContentSettings::SENSITIVE_ENABLED_MASK;
     }
     G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(
-            create_storer(telegram_api::account_setContentSettings(flags, false /*ignored*/))),
+        G()->net_query_creator().create(telegram_api::account_setContentSettings(flags, false /*ignored*/)),
         actor_shared(this, 3 + static_cast<uint64>(ignore_sensitive_content_restrictions)));
   }
 }

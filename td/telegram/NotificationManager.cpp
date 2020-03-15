@@ -73,8 +73,7 @@ class SetContactSignUpNotificationQuery : public Td::ResultHandler {
   }
 
   void send(bool is_disabled) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::account_setContactSignUpNotification(is_disabled))));
+    send_query(G()->net_query_creator().create(telegram_api::account_setContactSignUpNotification(is_disabled)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -102,7 +101,7 @@ class GetContactSignUpNotificationQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getContactSignUpNotification())));
+    send_query(G()->net_query_creator().create(telegram_api::account_getContactSignUpNotification()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

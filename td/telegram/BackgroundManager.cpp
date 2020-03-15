@@ -51,8 +51,7 @@ class GetBackgroundQuery : public Td::ResultHandler {
     background_id_ = background_id;
     background_name_ = background_name;
     LOG(INFO) << "Load " << background_id_ << "/" << background_name_ << " from server: " << to_string(input_wallpaper);
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::account_getWallPaper(std::move(input_wallpaper)))));
+    send_query(G()->net_query_creator().create(telegram_api::account_getWallPaper(std::move(input_wallpaper))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -81,7 +80,7 @@ class GetBackgroundsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getWallPapers(0))));
+    send_query(G()->net_query_creator().create(telegram_api::account_getWallPapers(0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -106,9 +105,9 @@ class InstallBackgroundQuery : public Td::ResultHandler {
   }
 
   void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_installWallPaper(
+    send_query(G()->net_query_creator().create(telegram_api::account_installWallPaper(
         telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash),
-        get_input_wallpaper_settings(type)))));
+        get_input_wallpaper_settings(type))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -143,8 +142,8 @@ class UploadBackgroundQuery : public Td::ResultHandler {
     type_ = type;
     for_dark_theme_ = for_dark_theme;
     string mime_type = type.type == BackgroundType::Type::Pattern ? "image/png" : "image/jpeg";
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::account_uploadWallPaper(std::move(input_file), mime_type, get_input_wallpaper_settings(type)))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_uploadWallPaper(std::move(input_file), mime_type, get_input_wallpaper_settings(type))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -181,9 +180,9 @@ class SaveBackgroundQuery : public Td::ResultHandler {
   }
 
   void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type, bool unsave) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_saveWallPaper(
+    send_query(G()->net_query_creator().create(telegram_api::account_saveWallPaper(
         telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), unsave,
-        get_input_wallpaper_settings(type)))));
+        get_input_wallpaper_settings(type))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -213,7 +212,7 @@ class ResetBackgroundsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_resetWallPapers())));
+    send_query(G()->net_query_creator().create(telegram_api::account_resetWallPapers()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -13,6 +13,10 @@
 
 namespace td {
 
+NetQueryPtr NetQueryCreator::create_regular(const Storer &storer) {
+  return create(UniqueId::next(), storer, DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
+}
+
 NetQueryPtr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
                                     NetQuery::AuthFlag auth_flag) {
   BufferSlice slice(storer.size());

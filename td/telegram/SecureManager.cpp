@@ -136,7 +136,7 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
   void send(tl_object_ptr<telegram_api::InputUser> input_user,
             vector<tl_object_ptr<telegram_api::SecureValueError>> input_errors) {
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors)))));
+        telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -208,7 +208,7 @@ void GetSecureValue::start_up() {
   std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> types;
   types.push_back(get_input_secure_value_type(type_));
 
-  auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(types))));
+  auto query = G()->net_query_creator().create(telegram_api::account_getSecureValue(std::move(types)));
 
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
@@ -288,7 +288,7 @@ void GetAllSecureValues::loop() {
 }
 
 void GetAllSecureValues::start_up() {
-  auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getAllSecureValues()));
+  auto query = G()->net_query_creator().create(telegram_api::account_getAllSecureValues());
 
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
@@ -572,7 +572,7 @@ void SetSecureValue::loop() {
                                       files_to_upload_, front_side_, reverse_side_, selfie_, translations_to_upload_);
     auto save_secure_value =
         telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
-    auto query = G()->net_query_creator().create(create_storer(save_secure_value));
+    auto query = G()->net_query_creator().create(save_secure_value);
 
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
     state_ = State::WaitSetValue;
@@ -664,8 +664,7 @@ class DeleteSecureValue : public NetQueryCallback {
   void start_up() override {
     std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> types;
     types.push_back(get_input_secure_value_type(type_));
-    auto query =
-        G()->net_query_creator().create(create_storer(telegram_api::account_deleteSecureValue(std::move(types))));
+    auto query = G()->net_query_creator().create(telegram_api::account_deleteSecureValue(std::move(types)));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
@@ -710,7 +709,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   void start_up() override {
     auto account_get_authorization_form =
         telegram_api::account_getAuthorizationForm(bot_user_id_.get(), std::move(scope_), std::move(public_key_));
-    auto query = G()->net_query_creator().create(create_storer(account_get_authorization_form));
+    auto query = G()->net_query_creator().create(account_get_authorization_form);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
@@ -764,7 +763,7 @@ class GetPassportConfig : public NetQueryCallback {
   Promise<td_api::object_ptr<td_api::text>> promise_;
 
   void start_up() override {
-    auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getPassportConfig(0)));
+    auto query = G()->net_query_creator().create(telegram_api::help_getPassportConfig(0));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
@@ -1269,7 +1268,7 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   auto td_query = telegram_api::account_acceptAuthorization(
       it->second.bot_user_id.get(), it->second.scope, it->second.public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
-  auto query = G()->net_query_creator().create(create_storer(td_query));
+  auto query = G()->net_query_creator().create(td_query);
   auto new_promise =
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
         auto r_result = fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr));

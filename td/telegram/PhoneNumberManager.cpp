@@ -39,7 +39,7 @@ PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShare
 template <class T>
 void PhoneNumberManager::process_send_code_result(uint64 query_id, const T &send_code) {
   on_new_query(query_id);
-  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(send_code)));
+  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(send_code));
 }
 
 void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, Settings settings) {
@@ -96,7 +96,7 @@ void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
 
 template <class T>
 void PhoneNumberManager::send_new_check_code_query(const T &query) {
-  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(create_storer(query)));
+  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(query));
 }
 
 void PhoneNumberManager::check_code(uint64 query_id, string code) {

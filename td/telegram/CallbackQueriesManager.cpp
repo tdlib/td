@@ -61,8 +61,8 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
         UNREACHABLE();
     }
 
-    auto net_query = G()->net_query_creator().create(create_storer(telegram_api::messages_getBotCallbackAnswer(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data))));
+    auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data)));
     net_query->need_resend_on_503 = false;
     send_query(std::move(net_query));
   }
@@ -95,8 +95,8 @@ class SetBotCallbackAnswerQuery : public Td::ResultHandler {
   }
 
   void send(int32 flags, int64 callback_query_id, const string &text, const string &url, int32 cache_time) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_setBotCallbackAnswer(
-        flags, false /*ignored*/, callback_query_id, text, url, cache_time))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_setBotCallbackAnswer(
+        flags, false /*ignored*/, callback_query_id, text, url, cache_time)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -74,7 +74,7 @@ class SetAccountTtlQuery : public Td::ResultHandler {
 
   void send(int32 account_ttl) {
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::account_setAccountTTL(make_tl_object<telegram_api::accountDaysTTL>(account_ttl)))));
+        telegram_api::account_setAccountTTL(make_tl_object<telegram_api::accountDaysTTL>(account_ttl))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -104,7 +104,7 @@ class GetAccountTtlQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getAccountTTL())));
+    send_query(G()->net_query_creator().create(telegram_api::account_getAccountTTL()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -133,8 +133,7 @@ class AcceptLoginTokenQuery : public Td::ResultHandler {
   }
 
   void send(const string &login_token) {
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::auth_acceptLoginToken(BufferSlice(login_token)))));
+    send_query(G()->net_query_creator().create(telegram_api::auth_acceptLoginToken(BufferSlice(login_token))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -160,7 +159,7 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getAuthorizations())));
+    send_query(G()->net_query_creator().create(telegram_api::account_getAuthorizations()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -201,8 +200,7 @@ class ResetAuthorizationQuery : public Td::ResultHandler {
   }
 
   void send(int64 authorization_id) {
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::account_resetAuthorization(authorization_id))));
+    send_query(G()->net_query_creator().create(telegram_api::account_resetAuthorization(authorization_id)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -229,7 +227,7 @@ class ResetAuthorizationsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::auth_resetAuthorizations())));
+    send_query(G()->net_query_creator().create(telegram_api::auth_resetAuthorizations()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -258,7 +256,7 @@ class GetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getWebAuthorizations())));
+    send_query(G()->net_query_creator().create(telegram_api::account_getWebAuthorizations()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -305,7 +303,7 @@ class ResetWebAuthorizationQuery : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_resetWebAuthorization(hash))));
+    send_query(G()->net_query_creator().create(telegram_api::account_resetWebAuthorization(hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -332,7 +330,7 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_resetWebAuthorizations())));
+    send_query(G()->net_query_creator().create(telegram_api::account_resetWebAuthorizations()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -362,9 +360,9 @@ class SetUserIsBlockedQuery : public Td::ResultHandler {
   void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_blocked) {
     user_id_ = user_id;
     if (is_blocked) {
-      send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_block(std::move(input_user)))));
+      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_user))));
     } else {
-      send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_unblock(std::move(input_user)))));
+      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_user))));
     }
   }
 
@@ -402,7 +400,7 @@ class GetBlockedUsersQuery : public Td::ResultHandler {
     limit_ = limit;
     random_id_ = random_id;
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_getBlocked(offset, limit))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getBlocked(offset, limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -450,7 +448,7 @@ class GetContactsQuery : public Td::ResultHandler {
  public:
   void send(int32 hash) {
     LOG(INFO) << "Reload contacts with hash " << hash;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_getContacts(hash))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getContacts(hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -474,7 +472,7 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
  public:
   void send() {
     LOG(INFO) << "Reload contacts statuses";
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_getStatuses())));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getStatuses()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -508,8 +506,8 @@ class AddContactQuery : public Td::ResultHandler {
     if (share_phone_number) {
       flags |= telegram_api::contacts_addContact::ADD_PHONE_PRIVACY_EXCEPTION_MASK;
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_addContact(
-        flags, false /*ignored*/, std::move(input_user), first_name, last_name, phone_number))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_addContact(
+        flags, false /*ignored*/, std::move(input_user), first_name, last_name, phone_number)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -542,8 +540,7 @@ class AcceptContactQuery : public Td::ResultHandler {
 
   void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
     user_id_ = user_id;
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::contacts_acceptContact(std::move(input_user)))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_acceptContact(std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -598,8 +595,7 @@ class ImportContactsQuery : public Td::ResultHandler {
       contacts.push_back(input_contacts_[i].get_input_phone_contact(static_cast<int64>(i)));
     }
 
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::contacts_importContacts(std::move(contacts)))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -648,8 +644,7 @@ class ImportContactsQuery : public Td::ResultHandler {
         contacts.push_back(input_contacts_[i].get_input_phone_contact(client_id));
       }
 
-      send_query(
-          G()->net_query_creator().create(create_storer(telegram_api::contacts_importContacts(std::move(contacts)))));
+      send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
       return;
     }
 
@@ -672,8 +667,7 @@ class DeleteContactsQuery : public Td::ResultHandler {
   }
 
   void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::contacts_deleteContacts(std::move(input_users)))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_deleteContacts(std::move(input_users))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -705,8 +699,7 @@ class DeleteContactsByPhoneNumberQuery : public Td::ResultHandler {
 
   void send(vector<string> &&user_phone_numbers, vector<UserId> &&user_ids) {
     user_ids_ = std::move(user_ids);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::contacts_deleteByPhones(std::move(user_phone_numbers)))));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_deleteByPhones(std::move(user_phone_numbers))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -738,7 +731,7 @@ class ResetContactsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::contacts_resetSaved())));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_resetSaved()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -780,8 +773,8 @@ class SearchDialogsNearbyQuery : public Td::ResultHandler {
     if (expire_date != -1) {
       flags |= telegram_api::contacts_getLocated::SELF_EXPIRES_MASK;
     }
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::contacts_getLocated(flags, false /*ignored*/, location.get_input_geo_point(), expire_date))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_getLocated(flags, false /*ignored*/, location.get_input_geo_point(), expire_date)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -812,8 +805,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
 
     file_id_ = file_id;
 
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::photos_uploadProfilePhoto(std::move(input_file)))));
+    send_query(G()->net_query_creator().create(telegram_api::photos_uploadProfilePhoto(std::move(input_file))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -852,8 +844,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
     CHECK(input_photo != nullptr);
     file_id_ = file_id;
     file_reference_ = FileManager::extract_file_reference(input_photo);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::photos_updateProfilePhoto(std::move(input_photo)))));
+    send_query(G()->net_query_creator().create(telegram_api::photos_updateProfilePhoto(std::move(input_photo))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -896,8 +887,7 @@ class DeleteProfilePhotoQuery : public Td::ResultHandler {
     profile_photo_id_ = profile_photo_id;
     vector<tl_object_ptr<telegram_api::InputPhoto>> input_photo_ids;
     input_photo_ids.push_back(make_tl_object<telegram_api::inputPhoto>(profile_photo_id, 0, BufferSlice()));
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::photos_deletePhotos(std::move(input_photo_ids)))));
+    send_query(G()->net_query_creator().create(telegram_api::photos_deletePhotos(std::move(input_photo_ids))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -937,8 +927,8 @@ class UpdateProfileQuery : public Td::ResultHandler {
     first_name_ = first_name;
     last_name_ = last_name;
     about_ = about;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::account_updateProfile(flags, first_name, last_name, about))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_updateProfile(flags, first_name, last_name, about)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -967,7 +957,7 @@ class CheckUsernameQuery : public Td::ResultHandler {
   }
 
   void send(const string &username) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_checkUsername(username))));
+    send_query(G()->net_query_creator().create(telegram_api::account_checkUsername(username)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -992,7 +982,7 @@ class UpdateUsernameQuery : public Td::ResultHandler {
   }
 
   void send(const string &username) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_updateUsername(username))));
+    send_query(G()->net_query_creator().create(telegram_api::account_updateUsername(username)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1033,8 +1023,8 @@ class CheckChannelUsernameQuery : public Td::ResultHandler {
       input_channel = make_tl_object<telegram_api::inputChannelEmpty>();
     }
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_checkUsername(std::move(input_channel), username))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_checkUsername(std::move(input_channel), username)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1068,8 +1058,8 @@ class UpdateChannelUsernameQuery : public Td::ResultHandler {
     username_ = username;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_updateUsername(std::move(input_channel), username))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_updateUsername(std::move(input_channel), username)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1118,7 +1108,7 @@ class SetChannelStickerSetQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_setStickers(std::move(input_channel), std::move(input_sticker_set)))));
+        telegram_api::channels_setStickers(std::move(input_channel), std::move(input_sticker_set))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1164,7 +1154,7 @@ class ToggleChannelSignaturesQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_toggleSignatures(std::move(input_channel), sign_messages))));
+        telegram_api::channels_toggleSignatures(std::move(input_channel), sign_messages)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1208,8 +1198,8 @@ class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
 
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::channels_togglePreHistoryHidden(std::move(input_channel), !is_all_history_available))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_togglePreHistoryHidden(std::move(input_channel), !is_all_history_available)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1268,8 +1258,7 @@ class EditChatAboutQuery : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_editChatAbout(std::move(input_peer), about))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_editChatAbout(std::move(input_peer), about)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1316,8 +1305,8 @@ class SetDiscussionGroupQuery : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::InputChannel> group_input_channel) {
     broadcast_channel_id_ = broadcast_channel_id;
     group_channel_id_ = group_channel_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_setDiscussionGroup(
-        std::move(broadcast_input_channel), std::move(group_input_channel)))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_setDiscussionGroup(std::move(broadcast_input_channel), std::move(group_input_channel))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1357,8 +1346,8 @@ class EditLocationQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editLocation(
-        std::move(input_channel), location_.get_input_geo_point(), location_.get_address()))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_editLocation(
+        std::move(input_channel), location_.get_input_geo_point(), location_.get_address())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1397,7 +1386,7 @@ class ToggleSlowModeQuery : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_toggleSlowMode(std::move(input_channel), slow_mode_delay))));
+        telegram_api::channels_toggleSlowMode(std::move(input_channel), slow_mode_delay)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1447,8 +1436,8 @@ class ReportChannelSpamQuery : public Td::ResultHandler {
     auto input_user = td->contacts_manager_->get_input_user(user_id);
     CHECK(input_user != nullptr);
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_reportSpam(
-        std::move(input_channel), std::move(input_user), MessagesManager::get_server_message_ids(message_ids)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_reportSpam(
+        std::move(input_channel), std::move(input_user), MessagesManager::get_server_message_ids(message_ids))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1481,8 +1470,7 @@ class DeleteChannelQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::channels_deleteChannel(std::move(input_channel)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_deleteChannel(std::move(input_channel))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1513,7 +1501,7 @@ class AddChatUserQuery : public Td::ResultHandler {
 
   void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 forward_limit) {
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_addChatUser(chat_id.get(), std::move(input_user), forward_limit))));
+        telegram_api::messages_addChatUser(chat_id.get(), std::move(input_user), forward_limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1546,7 +1534,7 @@ class EditChatAdminQuery : public Td::ResultHandler {
   void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_administrator) {
     chat_id_ = chat_id;
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_editChatAdmin(chat_id.get(), std::move(input_user), is_administrator))));
+        telegram_api::messages_editChatAdmin(chat_id.get(), std::move(input_user), is_administrator)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1585,8 +1573,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::messages_exportChatInvite(std::move(input_peer)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1622,8 +1609,7 @@ class ExportChannelInviteLinkQuery : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::messages_exportChatInvite(std::move(input_peer)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1656,8 +1642,8 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
 
   void send(const string &invite_link) {
     invite_link_ = invite_link;
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::messages_checkChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link_).str()))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_checkChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link_).str())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1689,8 +1675,8 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
 
   void send(const string &invite_link) {
     invite_link_ = invite_link;
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::messages_importChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link).str()))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_importChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link).str())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1727,8 +1713,8 @@ class DeleteChatUserQuery : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_deleteChatUser(chat_id.get(), std::move(input_user)))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_deleteChatUser(chat_id.get(), std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1762,8 +1748,7 @@ class JoinChannelQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::channels_joinChannel(std::move(input_channel)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_joinChannel(std::move(input_channel))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1799,7 +1784,7 @@ class InviteToChannelQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_inviteToChannel(std::move(input_channel), std::move(input_users)))));
+        telegram_api::channels_inviteToChannel(std::move(input_channel), std::move(input_users))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1835,8 +1820,8 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editAdmin(
-        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights(), status.get_rank()))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_editAdmin(
+        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights(), status.get_rank())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1872,8 +1857,8 @@ class EditChannelBannedQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editBanned(
-        std::move(input_channel), std::move(input_user), status.get_chat_banned_rights()))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_editBanned(
+        std::move(input_channel), std::move(input_user), status.get_chat_banned_rights())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1909,8 +1894,7 @@ class LeaveChannelQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::channels_leaveChannel(std::move(input_channel)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_leaveChannel(std::move(input_channel))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1943,9 +1927,9 @@ class CanEditChannelCreatorQuery : public Td::ResultHandler {
   void send() {
     auto input_user = td->contacts_manager_->get_input_user(td->contacts_manager_->get_my_id());
     CHECK(input_user != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editCreator(
+    send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
         telegram_api::make_object<telegram_api::inputChannelEmpty>(), std::move(input_user),
-        make_tl_object<telegram_api::inputCheckPasswordEmpty>()))));
+        make_tl_object<telegram_api::inputCheckPasswordEmpty>())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1983,8 +1967,8 @@ class EditChannelCreatorQuery : public Td::ResultHandler {
     if (input_user == nullptr) {
       return promise_.set_error(Status::Error(400, "Have no access to the user"));
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editCreator(
-        std::move(input_channel), std::move(input_user), std::move(input_check_password)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
+        std::move(input_channel), std::move(input_user), std::move(input_check_password))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2016,7 +2000,7 @@ class MigrateChatQuery : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_migrateChat(chat_id.get()))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_migrateChat(chat_id.get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2056,7 +2040,7 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
       flags |= telegram_api::channels_getAdminedPublicChannels::CHECK_LIMIT_MASK;
     }
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_getAdminedPublicChannels(flags, false /*ignored*/, false /*ignored*/))));
+        telegram_api::channels_getAdminedPublicChannels(flags, false /*ignored*/, false /*ignored*/)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2100,7 +2084,7 @@ class GetGroupsForDiscussionQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getGroupsForDiscussion())));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getGroupsForDiscussion()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2144,7 +2128,7 @@ class GetInactiveChannelsQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getInactiveChannels())));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getInactiveChannels()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2175,7 +2159,7 @@ class GetUsersQuery : public Td::ResultHandler {
   }
 
   void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::users_getUsers(std::move(input_users)))));
+    send_query(G()->net_query_creator().create(telegram_api::users_getUsers(std::move(input_users))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2202,7 +2186,7 @@ class GetFullUserQuery : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::users_getFullUser(std::move(input_user)))));
+    send_query(G()->net_query_creator().create(telegram_api::users_getFullUser(std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2239,7 +2223,7 @@ class GetUserPhotosQuery : public Td::ResultHandler {
     LOG(INFO) << "Get " << user_id << " profile photos with offset " << offset << " and limit " << limit
               << " from photo " << photo_id;
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::photos_getUserPhotos(std::move(input_user), offset, photo_id, limit))));
+        telegram_api::photos_getUserPhotos(std::move(input_user), offset, photo_id, limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2282,7 +2266,7 @@ class GetChatsQuery : public Td::ResultHandler {
   }
 
   void send(vector<int32> &&chat_ids) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getChats(std::move(chat_ids)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getChats(std::move(chat_ids))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2326,7 +2310,7 @@ class GetFullChatQuery : public Td::ResultHandler {
 
   void send(ChatId chat_id) {
     LOG(INFO) << "Send getFullChat query to get " << chat_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getFullChat(chat_id.get()))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getFullChat(chat_id.get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2362,8 +2346,7 @@ class GetChannelsQuery : public Td::ResultHandler {
 
     vector<tl_object_ptr<telegram_api::InputChannel>> input_channels;
     input_channels.push_back(std::move(input_channel));
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::channels_getChannels(std::move(input_channels)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getChannels(std::move(input_channels))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2410,8 +2393,7 @@ class GetFullChannelQuery : public Td::ResultHandler {
 
   void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel) {
     channel_id_ = channel_id;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_getFullChannel(std::move(input_channel)))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getFullChannel(std::move(input_channel))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2452,7 +2434,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     channel_id_ = channel_id;
     user_id_ = user_id;
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_user)))));
+        telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2503,8 +2485,8 @@ class GetChannelParticipantsQuery : public Td::ResultHandler {
     offset_ = offset;
     limit_ = limit;
     random_id_ = random_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getParticipants(
-        std::move(input_channel), filter_.get_input_channel_participants_filter(), offset, limit, 0))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getParticipants(
+        std::move(input_channel), filter_.get_input_channel_participants_filter(), offset, limit, 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2560,9 +2542,9 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
     hash = 0;  // to load even only ranks or creator changed
 
     channel_id_ = channel_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getParticipants(
+    send_query(G()->net_query_creator().create(telegram_api::channels_getParticipants(
         std::move(input_channel), telegram_api::make_object<telegram_api::channelParticipantsAdmins>(), 0,
-        std::numeric_limits<int32>::max(), hash))));
+        std::numeric_limits<int32>::max(), hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2620,7 +2602,7 @@ class GetSupportUserQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getSupport())));
+    send_query(G()->net_query_creator().create(telegram_api::help_getSupport()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

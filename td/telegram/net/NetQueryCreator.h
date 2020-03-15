@@ -33,13 +33,16 @@ class NetQueryCreator {
                                NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0);
   }
 
-  NetQueryPtr create(const Storer &storer) {
-    return create(UniqueId::next(), storer, DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
+  template <class T>
+  NetQueryPtr create(const T &function) {
+    return create_regular(create_storer(function));
   }
 
   NetQueryPtr create(const Storer &storer, DcId dc_id, NetQuery::Type type) {
     return create(UniqueId::next(), storer, dc_id, type, NetQuery::AuthFlag::On);
   }
+
+  NetQueryPtr create_regular(const Storer &storer);
 
   NetQueryPtr create_guest_dc(const Storer &storer, DcId dc_id) {
     return create(UniqueId::next(), storer, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::On);

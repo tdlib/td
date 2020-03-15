@@ -61,9 +61,9 @@ class GetAllStickersQuery : public Td::ResultHandler {
   void send(bool is_masks, int32 hash) {
     is_masks_ = is_masks;
     if (is_masks) {
-      send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getMaskStickers(hash))));
+      send_query(G()->net_query_creator().create(telegram_api::messages_getMaskStickers(hash)));
     } else {
-      send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getAllStickers(hash))));
+      send_query(G()->net_query_creator().create(telegram_api::messages_getAllStickers(hash)));
     }
   }
 
@@ -95,7 +95,7 @@ class SearchStickersQuery : public Td::ResultHandler {
  public:
   void send(string emoji) {
     emoji_ = std::move(emoji);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getStickers(emoji_, 0))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickers(emoji_, 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -125,8 +125,8 @@ class GetEmojiKeywordsLanguageQuery : public Td::ResultHandler {
   }
 
   void send(vector<string> &&language_codes) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getEmojiKeywordsLanguages(std::move(language_codes)))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getEmojiKeywordsLanguages(std::move(language_codes))));
   }
   void on_result(uint64 id, BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiKeywordsLanguages>(packet);
@@ -153,7 +153,7 @@ class GetEmojiKeywordsQuery : public Td::ResultHandler {
   }
 
   void send(const string &language_code) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getEmojiKeywords(language_code))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiKeywords(language_code)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -180,8 +180,8 @@ class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
   }
 
   void send(const string &language_code, int32 version) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getEmojiKeywordsDifference(language_code, version))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getEmojiKeywordsDifference(language_code, version)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -207,7 +207,7 @@ class GetEmojiUrlQuery : public Td::ResultHandler {
   }
 
   void send(const string &language_code) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getEmojiURL(language_code))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiURL(language_code)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -245,8 +245,8 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
     }
     is_masks_ = is_masks;
 
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::messages_getArchivedStickers(flags, is_masks /*ignored*/, offset_sticker_set_id.get(), limit))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getArchivedStickers(flags, is_masks /*ignored*/, offset_sticker_set_id.get(), limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -272,7 +272,7 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
  public:
   void send(int32 hash) {
     LOG(INFO) << "Get featured sticker sets with hash " << hash;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getFeaturedStickers(hash))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -304,8 +304,8 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
             tl_object_ptr<telegram_api::InputStickeredMedia> &&input_stickered_media) {
     file_id_ = file_id;
     file_reference_ = std::move(file_reference);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getAttachedStickers(std::move(input_stickered_media)))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getAttachedStickers(std::move(input_stickered_media))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -354,7 +354,7 @@ class GetRecentStickersQuery : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getRecentStickers(flags, is_attached /*ignored*/, hash))));
+        telegram_api::messages_getRecentStickers(flags, is_attached /*ignored*/, hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -402,8 +402,8 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_saveRecentSticker::ATTACHED_MASK;
     }
 
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::messages_saveRecentSticker(flags, is_attached /*ignored*/, std::move(input_document), unsave))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_saveRecentSticker(flags, is_attached /*ignored*/, std::move(input_document), unsave)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -462,8 +462,8 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_clearRecentStickers::ATTACHED_MASK;
     }
 
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_clearRecentStickers(flags, is_attached /*ignored*/))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_clearRecentStickers(flags, is_attached /*ignored*/)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -497,7 +497,7 @@ class GetFavedStickersQuery : public Td::ResultHandler {
   void send(bool is_repair, int32 hash) {
     is_repair_ = is_repair;
     LOG(INFO) << "Send get favorite stickers request with hash = " << hash;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getFavedStickers(hash))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getFavedStickers(hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -536,8 +536,7 @@ class FaveStickerQuery : public Td::ResultHandler {
     file_reference_ = input_document->file_reference_.as_slice().str();
     unsave_ = unsave;
 
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_faveSticker(std::move(input_document), unsave))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_faveSticker(std::move(input_document), unsave)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -590,8 +589,8 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
     if (is_masks) {
       flags |= telegram_api::messages_reorderStickerSets::MASKS_MASK;
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_reorderStickerSets(
-        flags, is_masks /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_reorderStickerSets(
+        flags, is_masks /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -630,8 +629,7 @@ class GetStickerSetQuery : public Td::ResultHandler {
           static_cast<const telegram_api::inputStickerSetShortName *>(input_sticker_set.get())->short_name_;
     }
     LOG(INFO) << "Load " << sticker_set_id << " from server: " << to_string(input_sticker_set);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getStickerSet(std::move(input_sticker_set)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -667,8 +665,8 @@ class GetStickerSetQuery : public Td::ResultHandler {
 class ReloadAnimatedEmojiStickerSetQuery : public Td::ResultHandler {
  public:
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getStickerSet(
-        telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>()))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(
+        telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -695,8 +693,8 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
  public:
   void send(string query) {
     query_ = std::move(query);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -730,8 +728,8 @@ class InstallStickerSetQuery : public Td::ResultHandler {
   void send(StickerSetId set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_set, bool is_archived) {
     set_id_ = set_id;
     is_archived_ = is_archived;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_installStickerSet(std::move(input_set), is_archived))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_installStickerSet(std::move(input_set), is_archived)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -761,8 +759,7 @@ class UninstallStickerSetQuery : public Td::ResultHandler {
 
   void send(StickerSetId set_id, tl_object_ptr<telegram_api::InputStickerSet> &&input_set) {
     set_id_ = set_id;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_uninstallStickerSet(std::move(input_set)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_uninstallStickerSet(std::move(input_set))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -791,8 +788,8 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
  public:
   void send(vector<StickerSetId> sticker_set_ids) {
     LOG(INFO) << "Read featured sticker sets " << format::as_array(sticker_set_ids);
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids)))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -829,7 +826,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
     file_id_ = file_id;
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media)))));
+        telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -877,8 +874,8 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
     }
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::stickers_createStickerSet(
-        flags, false /*ignored*/, std::move(input_user), title, short_name, std::move(input_stickers)))));
+    send_query(G()->net_query_creator().create(telegram_api::stickers_createStickerSet(
+        flags, false /*ignored*/, std::move(input_user), title, short_name, std::move(input_stickers))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -907,8 +904,8 @@ class AddStickerToSetQuery : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::inputStickerSetItem> &&input_sticker) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::stickers_addStickerToSet(
-        make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_sticker)))));
+    send_query(G()->net_query_creator().create(telegram_api::stickers_addStickerToSet(
+        make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_sticker))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -938,7 +935,7 @@ class SetStickerPositionQuery : public Td::ResultHandler {
 
   void send(tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::stickers_changeStickerPosition(std::move(input_document), position))));
+        telegram_api::stickers_changeStickerPosition(std::move(input_document), position)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -967,8 +964,7 @@ class DeleteStickerFromSetQuery : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::inputDocument> &&input_document) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::stickers_removeStickerFromSet(std::move(input_document)))));
+    send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

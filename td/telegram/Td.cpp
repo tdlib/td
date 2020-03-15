@@ -184,7 +184,7 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
   }
 
   void send(const string &referrer) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getRecentMeUrls(referrer))));
+    send_query(G()->net_query_creator().create(telegram_api::help_getRecentMeUrls(referrer)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -279,8 +279,8 @@ class SendCustomRequestQuery : public Td::ResultHandler {
   }
 
   void send(const string &method, const string &parameters) {
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::bots_sendCustomRequest(method, make_tl_object<telegram_api::dataJSON>(parameters)))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_sendCustomRequest(method, make_tl_object<telegram_api::dataJSON>(parameters))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -306,8 +306,8 @@ class AnswerCustomQueryQuery : public Td::ResultHandler {
   }
 
   void send(int64 custom_query_id, const string &data) {
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::bots_answerWebhookJSONQuery(custom_query_id, make_tl_object<telegram_api::dataJSON>(data)))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_answerWebhookJSONQuery(custom_query_id, make_tl_object<telegram_api::dataJSON>(data))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -331,8 +331,8 @@ class AnswerCustomQueryQuery : public Td::ResultHandler {
 class SetBotUpdatesStatusQuery : public Td::ResultHandler {
  public:
   void send(int32 pending_update_count, const string &error_message) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::help_setBotUpdatesStatus(pending_update_count, error_message))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::help_setBotUpdatesStatus(pending_update_count, error_message)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -359,7 +359,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
  public:
   NetQueryRef send(bool is_offline) {
     is_offline_ = is_offline;
-    auto net_query = G()->net_query_creator().create(create_storer(telegram_api::account_updateStatus(is_offline)));
+    auto net_query = G()->net_query_creator().create(telegram_api::account_updateStatus(is_offline));
     auto result = net_query.get_weak();
     send_query(std::move(net_query));
     return result;
@@ -392,7 +392,7 @@ class GetInviteTextQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getInviteText())));
+    send_query(G()->net_query_creator().create(telegram_api::help_getInviteText()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

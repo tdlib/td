@@ -43,8 +43,8 @@ class SetBotShippingAnswerQuery : public Td::ResultHandler {
     if (!shipping_options.empty()) {
       flags |= telegram_api::messages_setBotShippingResults::SHIPPING_OPTIONS_MASK;
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_setBotShippingResults(
-        flags, shipping_query_id, error_message, std::move(shipping_options)))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_setBotShippingResults(
+        flags, shipping_query_id, error_message, std::move(shipping_options))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -80,8 +80,8 @@ class SetBotPreCheckoutAnswerQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_setBotPrecheckoutResults::SUCCESS_MASK;
     }
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_setBotPrecheckoutResults(
-        flags, false /*ignored*/, pre_checkout_query_id, error_message))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_setBotPrecheckoutResults(
+        flags, false /*ignored*/, pre_checkout_query_id, error_message)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -258,8 +258,7 @@ class GetPaymentFormQuery : public Td::ResultHandler {
   }
 
   void send(ServerMessageId server_message_id) {
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::payments_getPaymentForm(server_message_id.get()))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentForm(server_message_id.get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -306,8 +305,8 @@ class ValidateRequestedInfoQuery : public Td::ResultHandler {
       requested_info = make_tl_object<telegram_api::paymentRequestedInfo>();
       requested_info->flags_ = 0;
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::payments_validateRequestedInfo(
-        flags, false /*ignored*/, server_message_id.get(), std::move(requested_info)))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_validateRequestedInfo(
+        flags, false /*ignored*/, server_message_id.get(), std::move(requested_info))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -347,8 +346,8 @@ class SendPaymentFormQuery : public Td::ResultHandler {
     if (!shipping_option_id.empty()) {
       flags |= telegram_api::payments_sendPaymentForm::SHIPPING_OPTION_ID_MASK;
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::payments_sendPaymentForm(
-        flags, server_message_id.get(), order_info_id, shipping_option_id, std::move(input_credentials)))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_sendPaymentForm(
+        flags, server_message_id.get(), order_info_id, shipping_option_id, std::move(input_credentials))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -391,8 +390,7 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
   }
 
   void send(ServerMessageId server_message_id) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::payments_getPaymentReceipt(server_message_id.get()))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentReceipt(server_message_id.get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -434,7 +432,7 @@ class GetSavedInfoQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::payments_getSavedInfo())));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getSavedInfo()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -470,7 +468,7 @@ class ClearSavedInfoQuery : public Td::ResultHandler {
       flags |= telegram_api::payments_clearSavedInfo::INFO_MASK;
     }
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::payments_clearSavedInfo(flags, false /*ignored*/, false /*ignored*/))));
+        telegram_api::payments_clearSavedInfo(flags, false /*ignored*/, false /*ignored*/)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

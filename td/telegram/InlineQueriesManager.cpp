@@ -80,9 +80,9 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
       input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
     }
 
-    auto net_query = G()->net_query_creator().create(create_storer(telegram_api::messages_getInlineBotResults(
+    auto net_query = G()->net_query_creator().create(telegram_api::messages_getInlineBotResults(
         flags, std::move(bot_input_user), std::move(input_peer),
-        user_location.empty() ? nullptr : user_location.get_input_geo_point(), query, offset)));
+        user_location.empty() ? nullptr : user_location.get_input_geo_point(), query, offset));
     auto result = net_query.get_weak();
     net_query->need_resend_on_503 = false;
     send_query(std::move(net_query));
@@ -135,9 +135,9 @@ class SetInlineBotResultsQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_setInlineBotResults::SWITCH_PM_MASK;
       inline_bot_switch_pm = make_tl_object<telegram_api::inlineBotSwitchPM>(switch_pm_text, switch_pm_parameter);
     }
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_setInlineBotResults(
+    send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
         flags, false /*ignored*/, false /*ignored*/, inline_query_id, std::move(results), cache_time, next_offset,
-        std::move(inline_bot_switch_pm)))));
+        std::move(inline_bot_switch_pm))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

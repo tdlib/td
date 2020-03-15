@@ -74,7 +74,7 @@ Status FileHashUploader::loop_impl() {
     auto query =
         telegram_api::messages_getDocumentByHash(std::move(hash), static_cast<int32>(size_), std::move(mime_type));
     LOG(INFO) << "Send getDocumentByHash request: " << to_string(query);
-    auto ptr = G()->net_query_creator().create(create_storer(query));
+    auto ptr = G()->net_query_creator().create(query);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(ptr), actor_shared(this));
     state_ = State::WaitNetResult;
   }

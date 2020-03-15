@@ -140,7 +140,7 @@ void TopDialogManager::send_toggle_top_peers(bool is_enabled) {
   LOG(DEBUG) << "Send toggle top peers query to " << is_enabled;
   have_toggle_top_peers_query_ = true;
   toggle_top_peers_query_is_enabled_ = is_enabled;
-  auto net_query = G()->net_query_creator().create(create_storer(telegram_api::contacts_toggleTopPeers(is_enabled)));
+  auto net_query = G()->net_query_creator().create(telegram_api::contacts_toggleTopPeers(is_enabled));
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, 2));
 }
 
@@ -201,7 +201,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   if (input_peer != nullptr) {
     auto query =
         telegram_api::contacts_resetTopPeerRating(top_dialog_category_as_telegram_api(category), std::move(input_peer));
-    auto net_query = G()->net_query_creator().create(create_storer(query));
+    auto net_query = G()->net_query_creator().create(query);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, 1));
   }
 
@@ -398,7 +398,7 @@ void TopDialogManager::do_get_top_peers() {
                              0 /*offset*/,
                              100 /*limit*/,
                              hash};
-  auto net_query = G()->net_query_creator().create(create_storer(query));
+  auto net_query = G()->net_query_creator().create(query);
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 

@@ -45,7 +45,7 @@ class GetSavedGifsQuery : public Td::ResultHandler {
   void send(bool is_repair, int32 hash) {
     is_repair_ = is_repair;
     LOG(INFO) << "Send get saved animations request with hash = " << hash;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getSavedGifs(hash))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedGifs(hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -83,8 +83,7 @@ class SaveGifQuery : public Td::ResultHandler {
     file_id_ = file_id;
     file_reference_ = input_document->file_reference_.as_slice().str();
     unsave_ = unsave;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_saveGif(std::move(input_document), unsave))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_saveGif(std::move(input_document), unsave)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

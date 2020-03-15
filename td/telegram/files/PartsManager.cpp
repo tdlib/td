@@ -120,7 +120,6 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
       return Status::Error("FILE_UPLOAD_RESTART");
     }
   } else {
-    // TODO choose part_size_ depending on size
     part_size_ = 64 * (1 << 10);
     while (use_part_count_limit && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
       part_size_ *= 2;

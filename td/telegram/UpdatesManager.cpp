@@ -79,7 +79,7 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
   void send() {
     // TODO this call must be first after client is logged in, there must be no API calls before
     // it succeeds
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::updates_getState())));
+    send_query(G()->net_query_creator().create(telegram_api::updates_getState()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -106,7 +106,7 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
 class PingServerQuery : public Td::ResultHandler {
  public:
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::updates_getState())));
+    send_query(G()->net_query_creator().create(telegram_api::updates_getState()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -138,8 +138,7 @@ class GetDifferenceQuery : public Td::ResultHandler {
 
     VLOG(get_difference) << tag("pts", pts) << tag("qts", qts) << tag("date", date);
 
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::updates_getDifference(0, pts, 0, date, qts))));
+    send_query(G()->net_query_creator().create(telegram_api::updates_getDifference(0, pts, 0, date, qts)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -70,8 +70,8 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_getWebPagePreview::ENTITIES_MASK;
     }
 
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getWebPagePreview(flags, text, std::move(entities)))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getWebPagePreview(flags, text, std::move(entities))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -100,7 +100,7 @@ class GetWebPageQuery : public Td::ResultHandler {
 
   void send(const string &url, int32 hash) {
     url_ = url;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getWebPage(url, hash))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getWebPage(url, hash)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

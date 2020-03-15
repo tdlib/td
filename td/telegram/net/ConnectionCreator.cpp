@@ -1238,7 +1238,7 @@ void ConnectionCreator::loop() {
     if (get_proxy_info_timestamp_.is_in_past()) {
       if (get_proxy_info_query_token_ == 0) {
         get_proxy_info_query_token_ = next_token();
-        auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getProxyData()));
+        auto query = G()->net_query_creator().create(telegram_api::help_getProxyData());
         G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
                                                            actor_shared(this, get_proxy_info_query_token_));
       }
