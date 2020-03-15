@@ -496,8 +496,8 @@ class GetBankCardInfoQuery : public Td::ResultHandler {
   }
 
   void send(const string &bank_card_number) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::payments_getBankCardData(bank_card_number)),
-                                               G()->get_webfile_dc_id()));
+    send_query(G()->net_query_creator().create_guest_dc(
+        create_storer(telegram_api::payments_getBankCardData(bank_card_number)), G()->get_webfile_dc_id()));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

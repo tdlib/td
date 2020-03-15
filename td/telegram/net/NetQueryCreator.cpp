@@ -13,8 +13,8 @@
 
 namespace td {
 
-NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
-                                             NetQuery::AuthFlag auth_flag) {
+NetQueryPtr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
+                                    NetQuery::AuthFlag auth_flag) {
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
