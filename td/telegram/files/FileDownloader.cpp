@@ -466,8 +466,7 @@ Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_si
       auto query =
           telegram_api::upload_getFileHashes(remote_.as_input_file_location(), narrow_cast<int32>(checked_prefix_size));
       auto net_query_type = is_small_ ? NetQuery::Type::DownloadSmall : NetQuery::Type::Download;
-      auto net_query = G()->net_query_creator().create(create_storer(query), remote_.get_dc_id(), net_query_type,
-                                                       NetQuery::AuthFlag::On);
+      auto net_query = G()->net_query_creator().create(create_storer(query), remote_.get_dc_id(), net_query_type);
       info.queries.push_back(std::move(net_query));
       break;
     }

@@ -157,8 +157,7 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getNearestDc()), DcId::main(),
-                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    send_query(G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getNearestDc())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -432,8 +431,7 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
       pos++;
     }
     link.truncate(pos);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getDeepLinkInfo(link.str())),
-                                               DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    send_query(G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getDeepLinkInfo(link.str()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -485,9 +483,8 @@ class SaveAppLogQuery : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::inputAppEvent>> input_app_events;
     input_app_events.push_back(
         make_tl_object<telegram_api::inputAppEvent>(G()->server_time_cached(), type, peer_id, std::move(data)));
-    send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::help_saveAppLog(std::move(input_app_events))),
-                                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    send_query(G()->net_query_creator().create_unauth(
+        create_storer(telegram_api::help_saveAppLog(std::move(input_app_events)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -514,8 +511,7 @@ class TestQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), DcId::main(),
-                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    send_query(G()->net_query_creator().create_unauth(create_storer(telegram_api::help_getConfig())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

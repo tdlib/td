@@ -111,8 +111,8 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
       return;
     }
     LOG(WARNING) << "Start auth_dropTempAuthKeys except keys " << format::as_array(ids);
-    auto query = G()->net_query_creator().create(create_storer(telegram_api::auth_dropTempAuthKeys(std::move(ids))),
-                                                 DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+    auto query =
+        G()->net_query_creator().create_unauth(create_storer(telegram_api::auth_dropTempAuthKeys(std::move(ids))));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 

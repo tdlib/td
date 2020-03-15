@@ -383,9 +383,8 @@ void LanguagePackManager::send_language_get_difference_query(Language *language,
                      std::move(language_code), result->version_, true, vector<string>(), std::move(result->strings_),
                      Promise<td_api::object_ptr<td_api::languagePackStrings>>());
       });
-  send_with_promise(G()->net_query_creator().create(
-                        create_storer(telegram_api::langpack_getDifference(language_pack_, language_code, version)),
-                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
+  send_with_promise(G()->net_query_creator().create_unauth(
+                        create_storer(telegram_api::langpack_getDifference(language_pack_, language_code, version))),
                     std::move(request_promise));
 }
 
@@ -798,9 +797,9 @@ void LanguagePackManager::get_languages(bool only_local,
     send_closure(actor_id, &LanguagePackManager::on_get_languages, r_result.move_as_ok(), std::move(language_pack),
                  false, std::move(promise));
   });
-  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguages(language_pack_)),
-                                                    DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
-                    std::move(request_promise));
+  send_with_promise(
+      G()->net_query_creator().create_unauth(create_storer(telegram_api::langpack_getLanguages(language_pack_))),
+      std::move(request_promise));
 }
 
 void LanguagePackManager::search_language_info(string language_code,
@@ -820,10 +819,9 @@ void LanguagePackManager::search_language_info(string language_code,
         send_closure(actor_id, &LanguagePackManager::on_get_language, r_result.move_as_ok(), std::move(language_pack),
                      std::move(language_code), std::move(promise));
       });
-  send_with_promise(
-      G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguage(language_pack_, language_code)),
-                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
-      std::move(request_promise));
+  send_with_promise(G()->net_query_creator().create_unauth(
+                        create_storer(telegram_api::langpack_getLanguage(language_pack_, language_code))),
+                    std::move(request_promise));
 }
 
 void LanguagePackManager::repair_chosen_language_info() {
@@ -1082,9 +1080,8 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
                        std::move(language_code), result->version_, false, vector<string>(), std::move(result->strings_),
                        std::move(promise));
         });
-    send_with_promise(G()->net_query_creator().create(
-                          create_storer(telegram_api::langpack_getLangPack(language_pack_, language_code)),
-                          DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
+    send_with_promise(G()->net_query_creator().create_unauth(
+                          create_storer(telegram_api::langpack_getLangPack(language_pack_, language_code))),
                       std::move(request_promise));
   } else {
     auto request_promise =
@@ -1098,9 +1095,8 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
           send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
                        std::move(language_code), -1, false, std::move(keys), r_result.move_as_ok(), std::move(promise));
         });
-    send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getStrings(
-                                                          language_pack_, language_code, std::move(keys))),
-                                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
+    send_with_promise(G()->net_query_creator().create_unauth(create_storer(
+                          telegram_api::langpack_getStrings(language_pack_, language_code, std::move(keys)))),
                       std::move(request_promise));
   }
 }

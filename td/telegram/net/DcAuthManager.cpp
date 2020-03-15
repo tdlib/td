@@ -189,8 +189,8 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
       uint64 id = UniqueId::next();
       VLOG(dc) << "Send importAuthorization to " << dc.dc_id;
       auto query = G()->net_query_creator().create(
-          id, create_storer(telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes))), dc.dc_id,
-          NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+          id, create_storer(telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes))),
+          dc.dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
       query->total_timeout_limit = 60 * 60 * 24;
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, dc.dc_id.get_raw_id()));
       dc.wait_id = id;
