@@ -27,6 +27,23 @@
 namespace td {
 namespace mtproto {
 
+template <class T>
+static Result<typename T::ReturnType> fetch_result(Slice message, bool check_end = true) {
+  TlParser parser(message);
+  auto result = T::fetch_result(parser);
+
+  if (check_end) {
+    parser.fetch_end();
+  }
+  const char *error = parser.get_error();
+  if (error != nullptr) {
+    LOG(ERROR) << "Can't parse: " << format::as_hex_dump<4>(message);
+    return Status::Error(500, Slice(error));
+  }
+
+  return std::move(result);
+}
+
 void AuthKeyHandshake::clear() {
   last_query_ = BufferSlice();
   state_ = Start;

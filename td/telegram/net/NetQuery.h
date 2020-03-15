@@ -13,8 +13,6 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
 
-#include "td/mtproto/utils.h"  // for fetch_result TODO
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -24,6 +22,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_parsers.h"
 
 #include <atomic>
 #include <utility>
@@ -377,6 +376,21 @@ inline void cancel_query(NetQueryRef &ref) {
     return;
   }
   ref->cancel(ref.generation());
+}
+
+template <class T>
+Result<typename T::ReturnType> fetch_result(const BufferSlice &message) {
+  TlBufferParser parser(&message);
+  auto result = T::fetch_result(parser);
+  parser.fetch_end();
+
+  const char *error = parser.get_error();
+  if (error != nullptr) {
+    LOG(ERROR) << "Can't parse: " << format::as_hex_dump<4>(message.as_slice());
+    return Status::Error(500, Slice(error));
+  }
+
+  return std::move(result);
 }
 
 template <class T>

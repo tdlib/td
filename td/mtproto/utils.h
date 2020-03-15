@@ -21,40 +21,6 @@
 namespace td {
 
 template <class T>
-Result<typename T::ReturnType> fetch_result(Slice message, bool check_end = true) {
-  TlParser parser(message);
-  auto result = T::fetch_result(parser);
-
-  if (check_end) {
-    parser.fetch_end();
-  }
-  const char *error = parser.get_error();
-  if (error != nullptr) {
-    LOG(ERROR) << "Can't parse: " << format::as_hex_dump<4>(message);
-    return Status::Error(500, Slice(error));
-  }
-
-  return std::move(result);
-}
-
-template <class T>
-Result<typename T::ReturnType> fetch_result(const BufferSlice &message, bool check_end = true) {
-  TlBufferParser parser(&message);
-  auto result = T::fetch_result(parser);
-
-  if (check_end) {
-    parser.fetch_end();
-  }
-  const char *error = parser.get_error();
-  if (error != nullptr) {
-    LOG(ERROR) << "Can't parse: " << format::as_hex_dump<4>(message.as_slice());
-    return Status::Error(500, Slice(error));
-  }
-
-  return std::move(result);
-}
-
-template <class T>
 using TLStorer = DefaultStorer<T>;
 
 template <class T>
