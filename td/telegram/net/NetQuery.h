@@ -329,7 +329,7 @@ class NetQuery : public ListNode {
   NetQueryCounter nq_counter_;
 
   NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type, AuthFlag auth_flag,
-           GzipFlag gzip_flag, int32 tl_constructor)
+           GzipFlag gzip_flag, int32 tl_constructor, double total_timeout_limit)
       : state_(state)
       , type_(type)
       , auth_flag_(auth_flag)
@@ -340,6 +340,7 @@ class NetQuery : public ListNode {
       , query_(std::move(query))
       , answer_(std::move(answer))
       , tl_constructor_(tl_constructor)
+      , total_timeout_limit(total_timeout_limit)
       , nq_counter_(true) {
     my_id_ = get_my_id();
     start_timestamp_ = Time::now();

@@ -6,6 +6,9 @@
 //
 #include "td/telegram/net/NetQueryCreator.h"
 
+#include "td/telegram/AuthManager.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/format.h"
@@ -51,8 +54,12 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
     }
   }
 
+  double total_timeout_limit = 60;
+  if (!G()->close_flag() && G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
+    total_timeout_limit = 8;
+  }
   auto query = object_pool_.create(NetQuery::State::Query, id, std::move(slice), BufferSlice(), dc_id, type, auth_flag,
-                                   gzip_flag, tl_constructor);
+                                   gzip_flag, tl_constructor, total_timeout_limit);
   query->set_cancellation_token(query.generation());
   return query;
 }

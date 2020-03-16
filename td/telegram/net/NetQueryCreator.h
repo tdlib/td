@@ -31,7 +31,7 @@ class NetQueryCreator {
 
   NetQueryPtr create_update(BufferSlice &&buffer) {
     return object_pool_.create(NetQuery::State::OK, 0, BufferSlice(), std::move(buffer), DcId::main(),
-                               NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0);
+                               NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0, 0);
   }
 
   NetQueryPtr create(const telegram_api::Function &function, DcId dc_id = DcId::main(),
