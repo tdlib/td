@@ -9421,7 +9421,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
     }
 
     // hint_unread_count is definitely wrong, ignore it
-    if (d->order != 0) {
+    if (d->order != DEFAULT_ORDER) {
       LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
                  << " unread messages in " << d->dialog_id;
     }
@@ -9486,7 +9486,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     // all messages are already read
     return;
   }
-  if (d->order == 0) {
+  if (d->order == DEFAULT_ORDER) {
     // there is no unread count in left channels
     return;
   }
@@ -12250,7 +12250,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         read_inbox_max_message_id = d->last_read_inbox_message_id;
       }
       if (d->need_repair_server_unread_count && (d->last_read_inbox_message_id <= read_inbox_max_message_id ||
-                                                 d->order == 0 || !have_input_peer(dialog_id, AccessRights::Read))) {
+                                                 d->order == DEFAULT_ORDER || !have_input_peer(dialog_id, AccessRights::Read))) {
         LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
                   << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
         d->need_repair_server_unread_count = false;
@@ -16013,7 +16013,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
       }
     });
   }
-  if (d->need_repair_server_unread_count && d->order != 0) {
+  if (d->need_repair_server_unread_count && d->order != DEFAULT_ORDER) {
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
@@ -28009,7 +28009,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
 
-  if (d->need_repair_server_unread_count && d->order != 0) {
+  if (d->need_repair_server_unread_count && d->order != DEFAULT_ORDER) {
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
