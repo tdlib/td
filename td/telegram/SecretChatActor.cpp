@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SecretChatActor.h"
 
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/ServerMessageId.h"
@@ -570,7 +571,6 @@ Status SecretChatActor::run_auth() {
         return Status::OK();
       }
       // messages.requestEncryption#f64daf43 user_id:InputUser random_id:int g_a:bytes = EncryptedChat;
-      ;
       auto query = create_net_query(QueryType::EncryptedChat, telegram_api::messages_requestEncryption(
                                                                   get_input_user(), auth_state_.random_id,
                                                                   BufferSlice(auth_state_.handshake.get_g_b())));
@@ -758,7 +758,6 @@ void SecretChatActor::do_close_chat_impl(unique_ptr<logevent::CloseSecretChat> e
   context_->secret_chat_db()->erase_value(config_state_);
   context_->secret_chat_db()->erase_value(pfs_state_);
   context_->secret_chat_db()->erase_value(seq_no_state_);
-  ;
   auto query = create_net_query(QueryType::DiscardEncryption, telegram_api::messages_discardEncryption(auth_state_.id));
 
   send_update_secret_chat();

@@ -6,6 +6,7 @@
 //
 #include "td/utils/buffer.h"
 #include "td/utils/ByteFlow.h"
+#include "td/utils/common.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/GzipByteFlow.h"
 #include "td/utils/logging.h"

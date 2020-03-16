@@ -9,7 +9,6 @@
 #include "td/actor/actor.h"
 
 #include "td/telegram/Global.h"
-#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 

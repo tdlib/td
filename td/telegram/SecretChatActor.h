@@ -31,7 +31,6 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-#include "td/utils/StorerBase.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
