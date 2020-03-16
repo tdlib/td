@@ -12249,8 +12249,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           read_inbox_max_message_id == d->last_read_inbox_message_id.get_prev_server_message_id()) {
         read_inbox_max_message_id = d->last_read_inbox_message_id;
       }
-      if (d->need_repair_server_unread_count && (d->last_read_inbox_message_id <= read_inbox_max_message_id ||
-                                                 d->order == DEFAULT_ORDER || !have_input_peer(dialog_id, AccessRights::Read))) {
+      if (d->need_repair_server_unread_count &&
+          (d->last_read_inbox_message_id <= read_inbox_max_message_id || d->order == DEFAULT_ORDER ||
+           !have_input_peer(dialog_id, AccessRights::Read))) {
         LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
                   << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
         d->need_repair_server_unread_count = false;

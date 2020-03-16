@@ -665,8 +665,8 @@ class GetStickerSetQuery : public Td::ResultHandler {
 class ReloadAnimatedEmojiStickerSetQuery : public Td::ResultHandler {
  public:
   void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(
-        telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getStickerSet(telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
