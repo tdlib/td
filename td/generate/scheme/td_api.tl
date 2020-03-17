@@ -3178,7 +3178,7 @@ getFile file_id:int32 = File;
 //@remote_file_id Remote identifier of the file to get @file_type File type, if known
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
-//@description Returns an ordered list of chats in a chat list. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
+//@description Returns an ordered list of chats in a chat list. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1). Please note getChats() does not work for bots and you have to use getChat() instead. 
 //-For optimal performance the number of returned chats is chosen by the library
 //@chat_list The chat list in which to return chats
 //@offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
