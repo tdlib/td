@@ -1964,10 +1964,9 @@ class MessagesManager : public Actor {
   void recalc_unread_count(FolderId folder_id);
 
   td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object(
-      FolderId folder_id, const DialogList &list) const;
+      const DialogList &list) const;
 
-  td_api::object_ptr<td_api::updateUnreadChatCount> get_update_unread_chat_count_object(FolderId folder_id,
-                                                                                        const DialogList &list) const;
+  td_api::object_ptr<td_api::updateUnreadChatCount> get_update_unread_chat_count_object(const DialogList &list) const;
 
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                              int32 local_unread_count, bool force_update, const char *source);
