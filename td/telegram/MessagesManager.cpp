@@ -8791,7 +8791,6 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
   }
 
   auto dialog_type = dialog_id.get_type();
-  bool is_secret = false;
   switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
@@ -8806,7 +8805,6 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
       }
       break;
     case DialogType::SecretChat:
-      is_secret = true;
       // ok
       break;
     case DialogType::None:
@@ -8816,7 +8814,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
   }
 
   auto last_new_message_id = d->last_new_message_id;
-  if (!is_secret && last_new_message_id == MessageId()) {
+  if (dialog_type != DialogType::SecretChat && last_new_message_id == MessageId()) {
     // TODO get dialog from the server and delete history from last message id
   }
 
