@@ -9428,7 +9428,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
     }
 
     // hint_unread_count is definitely wrong, ignore it
-    if (d->order != DEFAULT_ORDER) {
+    if (need_unread_counter(d->order)) {
       LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
                  << " unread messages in " << d->dialog_id;
     }
@@ -9493,7 +9493,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     // all messages are already read
     return;
   }
-  if (d->order == DEFAULT_ORDER) {
+  if (!need_unread_counter(d->order)) {
     // there is no unread count in left channels
     return;
   }
@@ -9574,7 +9574,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     if (server_unread_count < 0) {
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
       if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
-          d->order > 0) {
+          need_unread_counter(d->order)) {
         d->need_repair_server_unread_count = true;
         repair_server_unread_count(dialog_id, server_unread_count);
       }
@@ -12257,7 +12257,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         read_inbox_max_message_id = d->last_read_inbox_message_id;
       }
       if (d->need_repair_server_unread_count &&
-          (d->last_read_inbox_message_id <= read_inbox_max_message_id || d->order == DEFAULT_ORDER ||
+          (d->last_read_inbox_message_id <= read_inbox_max_message_id || !need_unread_counter(d->order) ||
            !have_input_peer(dialog_id, AccessRights::Read))) {
         LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
                   << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
@@ -12838,7 +12838,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       int32 local_unread_count = d->local_unread_count;
       int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
       if (unread_count == 0) {
-        if (d->order > 0) {
+        if (need_unread_counter(d->order)) {
           LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
                      << ". Last read is " << d->last_read_inbox_message_id;
           dump_debug_message_op(d, 3);
@@ -16021,7 +16021,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
       }
     });
   }
-  if (d->need_repair_server_unread_count && d->order != DEFAULT_ORDER) {
+  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
@@ -28017,7 +28017,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
 
-  if (d->need_repair_server_unread_count && d->order != DEFAULT_ORDER) {
+  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
