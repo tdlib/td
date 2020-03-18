@@ -11,6 +11,7 @@
 #include "td/utils/port/wstring_convert.h"
 #endif
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/PollableFd.h"
@@ -30,6 +31,10 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#endif
+
+#if TD_PORT_WINDOWS && defined(WIN32_LEAN_AND_MEAN)
+#include <winioctl.h>
 #endif
 
 namespace td {
