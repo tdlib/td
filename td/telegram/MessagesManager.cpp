@@ -10347,15 +10347,10 @@ void MessagesManager::init() {
         LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
       } else {
         sponsored_dialog_id_ = DialogId(r_dialog_id.ok());
-        if (!sponsored_dialog_id_.is_valid()) {
-          LOG(ERROR) << "Have invalid chat ID " << sponsored_dialog_id_string;
+        Dialog *d = get_dialog_force(sponsored_dialog_id_);
+        if (d == nullptr) {
+          LOG(ERROR) << "Can't load " << sponsored_dialog_id_;
           sponsored_dialog_id_ = DialogId();
-        } else {
-          Dialog *d = get_dialog_force(sponsored_dialog_id_);
-          if (d == nullptr) {
-            LOG(ERROR) << "Can't load " << sponsored_dialog_id_;
-            sponsored_dialog_id_ = DialogId();
-          }
         }
       }
     }
@@ -28287,7 +28282,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
   }
   LOG_IF(ERROR, is_loaded_from_database && d->order != DEFAULT_ORDER)
-      << dialog_id << " has non-default order after loading from database from " << source;
+      << dialog_id << " has order " << new_order << " instead of saved to database order " << d->order
+      << " after loading from " << source;
 
   int64 updated_to = 0;
   if (new_date <= list.last_dialog_date_) {
