@@ -2285,8 +2285,8 @@ class MessagesManager : public Actor {
 
   int64 get_next_pinned_dialog_order();
 
-  void update_dialog_pos(Dialog *d, bool remove_from_dialog_list, const char *source,
-                         bool need_send_update_chat_order = true, bool is_loaded_from_database = false);
+  void update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order = true,
+                         bool is_loaded_from_database = false);
 
   bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order, bool is_loaded_from_database,
                         const char *source);

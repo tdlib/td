@@ -5653,7 +5653,7 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
       d = add_dialog(dialog_id);
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
-      update_dialog_pos(d, false, "on_update_channel_too_long");
+      update_dialog_pos(d, "on_update_channel_too_long");
     }
   }
 
@@ -6181,7 +6181,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       d = add_dialog(dialog_id);
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
-      update_dialog_pos(d, false, "add_pending_channel_update");
+      update_dialog_pos(d, "add_pending_channel_update");
     }
   }
   if (d == nullptr) {
@@ -9195,10 +9195,17 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages");
     send_update_chat_last_message(d, "delete_all_dialog_messages");
   }
-  if (remove_from_dialog_list && d->pinned_order != DEFAULT_ORDER) {
-    set_dialog_is_pinned(d, false);
+  if (remove_from_dialog_list) {
+    if (d->pinned_order != DEFAULT_ORDER) {
+      set_dialog_is_pinned(d, false);
+    }
+
+    int64 new_order = d->dialog_id == sponsored_dialog_id_ && d->folder_id == FolderId::main() ? SPONSORED_DIALOG_ORDER
+                                                                                               : DEFAULT_ORDER;
+    set_dialog_order(d, new_order, true, false, "delete_all_dialog_messages 1");
+  } else {
+    update_dialog_pos(d, "delete_all_dialog_messages 2");
   }
-  update_dialog_pos(d, remove_from_dialog_list, "delete_all_dialog_messages");
 
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages");
 
@@ -11755,7 +11762,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
     set_dialog_last_database_message_id(d, MessageId(), "set_dialog_is_empty");
   }
 
-  update_dialog_pos(d, false, source);
+  update_dialog_pos(d, source);
 }
 
 void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
@@ -11765,7 +11772,7 @@ void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
     return;
   }
   set_dialog_is_pinned(d, is_pinned);
-  update_dialog_pos(d, false, "set_dialog_is_pinned");
+  update_dialog_pos(d, "set_dialog_is_pinned");
 }
 
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
@@ -11777,7 +11784,7 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
   if (is_pinned != was_pinned) {
     LOG(INFO) << "Set " << d->dialog_id << " is pinned to " << is_pinned;
     LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
-    update_dialog_pos(d, false, "set_dialog_is_pinned", false);
+    update_dialog_pos(d, "set_dialog_is_pinned", false);
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned, get_dialog_public_order(d)));
   }
@@ -12240,7 +12247,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     if (need_update_dialog_pos) {
-      update_dialog_pos(d, false, "on_get_dialogs");
+      update_dialog_pos(d, "on_get_dialogs");
     }
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
@@ -14399,7 +14406,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinn
   }
 
   set_dialog_is_pinned(d, is_pinned);
-  update_dialog_pos(d, false, "toggle_dialog_is_pinned");
+  update_dialog_pos(d, "toggle_dialog_is_pinned");
 
   toggle_dialog_is_pinned_on_server(dialog_id, is_pinned, 0);
   return Status::OK();
@@ -14916,7 +14923,7 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
         d->debug_message_op.emplace_back(Dialog::MessageOp::SetPts, d->pts, "migrate");
       }
     }
-    update_dialog_pos(d, false, "migrate_dialog_to_megagroup");
+    update_dialog_pos(d, "migrate_dialog_to_megagroup");
   }
 
   promise.set_value(Unit());
@@ -22641,7 +22648,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
-  update_dialog_pos(d, false, source, false);
+  update_dialog_pos(d, source, false);
   send_update_chat_last_message_impl(d, source);
 }
 
@@ -23575,7 +23582,7 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
     if (d->draft_message != nullptr) {
       d->draft_message = nullptr;
       if (need_update_dialog_pos) {
-        update_dialog_pos(d, false, "update_dialog_draft_message", false);
+        update_dialog_pos(d, "update_dialog_draft_message", false);
       }
       send_update_chat_draft_message(d);
       return true;
@@ -23586,7 +23593,7 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
       if (d->draft_message->date < draft_message->date) {
         d->draft_message->date = draft_message->date;
         if (need_update_dialog_pos) {
-          update_dialog_pos(d, false, "update_dialog_draft_message 2", false);
+          update_dialog_pos(d, "update_dialog_draft_message 2", false);
         }
         send_update_chat_draft_message(d);
         return true;
@@ -23595,7 +23602,7 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
       if (!from_update || d->draft_message == nullptr || d->draft_message->date <= draft_message->date) {
         d->draft_message = std::move(draft_message);
         if (need_update_dialog_pos) {
-          update_dialog_pos(d, false, "update_dialog_draft_message 3", false);
+          update_dialog_pos(d, "update_dialog_draft_message 3", false);
         }
         send_update_chat_draft_message(d);
         return true;
@@ -23623,7 +23630,7 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
     return;
   }
   set_dialog_is_pinned(d, is_pinned);
-  update_dialog_pos(d, false, "on_update_dialog_is_pinned");
+  update_dialog_pos(d, "on_update_dialog_is_pinned");
 }
 
 void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
@@ -23851,7 +23858,7 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
   // update dialog position in the new folder
   // this will send updateChatChatList if needed
-  update_dialog_pos(d, false, "set_dialog_folder_id new", true, false);
+  update_dialog_pos(d, "set_dialog_folder_id new");
 
   on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
 }
@@ -27588,7 +27595,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     }
 
     d = add_dialog(dialog_id);
-    update_dialog_pos(d, false, "force_create_dialog");
+    update_dialog_pos(d, "force_create_dialog");
 
     if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized) {
       // secret chat is being created
@@ -27642,7 +27649,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       }
     }
   } else if (force_update_dialog_pos) {
-    update_dialog_pos(d, false, "force update dialog pos");
+    update_dialog_pos(d, "force update dialog pos");
   }
 }
 
@@ -28022,7 +28029,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->has_loaded_scheduled_messages_from_database = true;
   }
 
-  update_dialog_pos(d, false, "fix_new_dialog 7", true, is_loaded_from_database);
+  update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
 
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
@@ -28066,7 +28073,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
     if (d->pending_last_message_date != 0) {
       d->pending_last_message_date = 0;
       d->pending_last_message_id = MessageId();
-      update_dialog_pos(d, false, "add_dialog_last_database_message 1");
+      update_dialog_pos(d, "add_dialog_last_database_message 1");
     }
     return;
   }
@@ -28091,7 +28098,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   }
 
   if (need_update_dialog_pos) {
-    update_dialog_pos(d, false, "add_dialog_last_database_message 5");
+    update_dialog_pos(d, "add_dialog_last_database_message 5");
   }
 }
 
@@ -28143,12 +28150,13 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
-void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list, const char *source,
-                                        bool need_send_update_chat_order, bool is_loaded_from_database) {
+void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order,
+                                        bool is_loaded_from_database) {
   CHECK(d != nullptr);
   LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
   auto dialog_type = d->dialog_id.get_type();
 
+  bool remove_from_dialog_list = false;
   switch (dialog_type) {
     case DialogType::User:
       break;
@@ -29103,7 +29111,7 @@ void MessagesManager::on_get_channel_difference(
   }
 
   if (need_update_dialog_pos) {
-    update_dialog_pos(d, false, "on_get_channel_difference");
+    update_dialog_pos(d, "on_get_channel_difference");
   }
 
   if (!is_final) {
@@ -30425,7 +30433,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     Dialog *d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     sponsored_dialog_id_ = DialogId();
-    update_dialog_pos(d, false, "delete_sponsored_dialog_id");
+    update_dialog_pos(d, "delete_sponsored_dialog_id");
   }
 
   if (dialog_id.is_valid()) {
@@ -30434,7 +30442,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     sponsored_dialog_id_ = dialog_id;
-    update_dialog_pos(d, false, "set_sponsored_dialog_id");
+    update_dialog_pos(d, "set_sponsored_dialog_id");
   }
 
   if (G()->parameters().use_message_db) {
