@@ -32,6 +32,10 @@
 #include <unistd.h>
 #endif
 
+#if TD_PORT_WINDOWS
+#include <winioctl.h>
+#endif
+
 namespace td {
 
 namespace {
