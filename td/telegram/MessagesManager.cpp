@@ -28267,23 +28267,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   DialogDate new_date(new_order, dialog_id);
 
   auto &list = get_dialog_list(d->folder_id);
-  std::set<DialogDate> *ordered_dialogs_set = nullptr;
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::Channel:
-    case DialogType::SecretChat:
-      ordered_dialogs_set = &list.ordered_server_dialogs_;
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-
   if (old_date == new_date) {
-    if (new_order == DEFAULT_ORDER && ordered_dialogs_set->count(old_date) == 0) {
-      ordered_dialogs_set->insert(new_date);
+    if (new_order == DEFAULT_ORDER) {
+      list.ordered_server_dialogs_.insert(new_date);
     }
     LOG(INFO) << "Dialog order is not changed: " << new_order << " from " << source;
     return false;
@@ -28297,7 +28283,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     }
     need_update = true;
   }
-  if (ordered_dialogs_set->erase(old_date) == 0) {
+  if (list.ordered_server_dialogs_.erase(old_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
   }
   LOG_IF(ERROR, is_loaded_from_database && d->order != DEFAULT_ORDER)
@@ -28309,7 +28295,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     need_update = true;
     updated_to = new_order;
   }
-  ordered_dialogs_set->insert(new_date);
+  list.ordered_server_dialogs_.insert(new_date);
 
   bool add_to_hints = (d->order == DEFAULT_ORDER);
   bool was_sponsored = (d->order == SPONSORED_DIALOG_ORDER);
@@ -28424,7 +28410,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 void MessagesManager::update_last_dialog_date(FolderId folder_id) {
   auto &list = get_dialog_list(folder_id);
   auto old_last_dialog_date = list.last_dialog_date_;
-  list.last_dialog_date_ = list.last_server_dialog_date_;  // std::min
+  list.last_dialog_date_ = list.last_server_dialog_date_;
   CHECK(old_last_dialog_date <= list.last_dialog_date_);
 
   LOG(INFO) << "Update last dialog date in " << folder_id << " from " << old_last_dialog_date << " to "

@@ -1226,12 +1226,11 @@ class MessagesManager : public Actor {
     int32 server_dialog_total_count_ = -1;
     int32 secret_chat_total_count_ = -1;
 
-    std::set<DialogDate> ordered_dialogs_;         // all dialogs with date <= last_dialog_date_
-    std::set<DialogDate> ordered_server_dialogs_;  // all known dialogs, including with default order
-
-    // date of last dialog in the dialog list
-    // last_dialog_date_ == min(last_server_dialog_date_, last_secret_chat_dialog_date_)
+    // date of the last dialog in loaded the dialog list prefix
     DialogDate last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
+    std::set<DialogDate> ordered_dialogs_;           // all dialogs with date <= last_dialog_date_
+
+    std::set<DialogDate> ordered_server_dialogs_;  // all known dialogs, including with default order
 
     // date of last known user/group/channel dialog in the right order
     DialogDate last_server_dialog_date_ = MIN_DIALOG_DATE;
