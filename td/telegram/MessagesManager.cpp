@@ -28143,40 +28143,31 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
-void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order,
-                                        bool is_loaded_from_database) {
-  CHECK(d != nullptr);
-  LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
-  auto dialog_type = d->dialog_id.get_type();
-
-  bool remove_from_dialog_list = false;
-  switch (dialog_type) {
+bool MessagesManager::is_removed_from_dialog_list(const Dialog *d) const {
+  switch (d->dialog_id.get_type()) {
     case DialogType::User:
       break;
-    case DialogType::Chat: {
-      auto chat_id = d->dialog_id.get_chat_id();
-      if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
-        remove_from_dialog_list = true;
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto channel_id = d->dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->get_channel_status(channel_id).is_member()) {
-        remove_from_dialog_list = true;
-      }
-      break;
-    }
+    case DialogType::Chat:
+      return !td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return !td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member();
     case DialogType::SecretChat:
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
-      return;
+      break;
   }
+  return false;
+}
+
+void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order,
+                                        bool is_loaded_from_database) {
+  CHECK(d != nullptr);
+  LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
 
   int64 new_order = DEFAULT_ORDER;
-  if (!remove_from_dialog_list) {
+  if (!is_removed_from_dialog_list(d)) {
     if (d->pinned_order != DEFAULT_ORDER) {
       LOG(INFO) << "Pin at " << d->pinned_order << " found";
       new_order = d->pinned_order;
@@ -28216,6 +28207,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         new_order = draft_order;
       }
     }
+    auto dialog_type = d->dialog_id.get_type();
     if (dialog_type == DialogType::Channel) {
       auto date = td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id());
       LOG(INFO) << "Join of channel at " << date << " found";
