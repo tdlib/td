@@ -11761,6 +11761,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
 void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
+  if (is_removed_from_dialog_list(d) && is_pinned) {
+    // the chat can't be pinned
+    return;
+  }
   if (!is_pinned && d->pinned_order == DEFAULT_ORDER) {
     return;
   }
@@ -11770,6 +11774,10 @@ void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
 
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
   CHECK(d != nullptr);
+  if (is_removed_from_dialog_list(d) && is_pinned) {
+    // the chat can't be pinned
+    return;
+  }
   bool was_pinned = d->pinned_order != DEFAULT_ORDER;
   d->pinned_order = is_pinned ? get_next_pinned_dialog_order() : DEFAULT_ORDER;
   on_dialog_updated(d->dialog_id, "set_dialog_is_pinned");
@@ -12228,7 +12236,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_channel_pts(d, channel_pts, "get channel");
       }
     }
-    bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+    bool is_pinned = !is_removed_from_dialog_list(d) && (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
     bool was_pinned = d->pinned_order != DEFAULT_ORDER;
     if (is_pinned != was_pinned) {
       set_dialog_is_pinned(d, is_pinned);
@@ -14376,6 +14384,9 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinn
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(6, "Can't access the chat");
+  }
+  if ((is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) && is_pinned) {
+    return Status::Error(6, "The chat can't be pinned");
   }
 
   bool was_pinned = d->pinned_order != DEFAULT_ORDER;
@@ -23617,6 +23628,9 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
     on_update_pinned_dialogs(folder_id);
     return;
   }
+  if (is_removed_from_dialog_list(d) && is_pinned) {
+    return;
+  }
 
   set_dialog_folder_id(d, folder_id);
   if (!is_pinned && d->pinned_order == DEFAULT_ORDER) {
@@ -28167,7 +28181,11 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
   LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
 
   int64 new_order = DEFAULT_ORDER;
-  if (!is_removed_from_dialog_list(d)) {
+  if (is_removed_from_dialog_list(d)) {
+    if (d->pinned_order != DEFAULT_ORDER) {
+      return set_dialog_is_pinned(d, false);
+    }
+  } else {
     if (d->pinned_order != DEFAULT_ORDER) {
       LOG(INFO) << "Pin at " << d->pinned_order << " found";
       new_order = d->pinned_order;
@@ -29055,7 +29073,7 @@ void MessagesManager::on_get_channel_difference(
 
       on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
 
-      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+      bool is_pinned = !is_removed_from_dialog_list(d) && (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
       bool was_pinned = d->pinned_order != DEFAULT_ORDER;
       if (is_pinned != was_pinned) {
         set_dialog_is_pinned(d, is_pinned);
