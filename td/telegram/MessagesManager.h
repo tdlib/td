@@ -1433,7 +1433,6 @@ class MessagesManager : public Actor {
   static constexpr int32 MAX_RECENT_FOUND_DIALOGS = 20;        // some reasonable value
   static constexpr size_t MAX_TITLE_LENGTH = 128;              // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;        // server side limit for chat description
-  static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
 
@@ -1952,7 +1951,7 @@ class MessagesManager : public Actor {
 
   static bool need_unread_counter(int64 dialog_order);
 
-  static int32 get_dialog_total_count(const DialogList &list);
+  int32 get_dialog_total_count(const DialogList &list) const;
 
   void repair_server_dialog_total_count(FolderId folder_id);
 
@@ -2076,7 +2075,7 @@ class MessagesManager : public Actor {
 
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
-  static td_api::object_ptr<td_api::ChatList> get_chat_list_object(const Dialog *d);
+  td_api::object_ptr<td_api::ChatList> get_chat_list_object(const Dialog *d) const;
 
   static td_api::object_ptr<td_api::ChatList> get_chat_list_object(FolderId folder_id);
 
@@ -2255,6 +2254,8 @@ class MessagesManager : public Actor {
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 
   static int64 get_dialog_order(MessageId message_id, int32 message_date);
+
+  bool is_dialog_sponsored(const Dialog *d) const;
 
   int64 get_dialog_public_order(const Dialog *d) const;
 
