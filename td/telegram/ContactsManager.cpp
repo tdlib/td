@@ -3536,6 +3536,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   if (has_stats_dc_id) {
     stats_dc_id = DcId::create(parser.fetch_int());
   }
+  if (legacy_can_view_statistics) {
+    LOG(DEBUG) << "Ignore legacy can view statistics flag";
+  }
 }
 
 template <class StorerT>
