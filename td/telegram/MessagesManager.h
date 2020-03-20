@@ -1625,6 +1625,8 @@ class MessagesManager : public Actor {
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
 
+  bool can_delete_message(DialogId dialog_id, const Message *m) const;
+
   bool can_revoke_message(DialogId dialog_id, const Message *m) const;
 
   bool can_unload_message(const Dialog *d, const Message *m) const;

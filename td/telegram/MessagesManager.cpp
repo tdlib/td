@@ -8494,6 +8494,28 @@ bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status,
   return true;
 }
 
+bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) const {
+  if (m == nullptr) {
+    return true;
+  }
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return true;
+    case DialogType::Chat:
+      return true;
+    case DialogType::Channel: {
+      auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      return can_delete_channel_message(dialog_status, m, td_->auth_manager_->is_bot());
+    }
+    case DialogType::SecretChat:
+      return true;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
     return true;
@@ -8571,47 +8593,29 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
     message_id = get_persistent_message_id(d, message_id);
     message_ids.push_back(message_id);
-    auto message = get_message_force(d, message_id, "delete_messages");
-    if (message != nullptr) {
-      if (message->message_id.is_scheduled()) {
-        if (message->message_id.is_scheduled_server()) {
-          deleted_scheduled_server_message_ids.push_back(message->message_id);
+    auto m = get_message_force(d, message_id, "delete_messages");
+    if (m != nullptr) {
+      if (m->message_id.is_scheduled()) {
+        if (m->message_id.is_scheduled_server()) {
+          deleted_scheduled_server_message_ids.push_back(m->message_id);
         }
       } else {
-        if (message->message_id.is_server() || is_secret) {
-          deleted_server_message_ids.push_back(message->message_id);
+        if (m->message_id.is_server() || is_secret) {
+          deleted_server_message_ids.push_back(m->message_id);
         }
       }
     }
   }
 
   bool is_bot = td_->auth_manager_->is_bot();
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-      if (is_bot) {
-        for (auto message_id : message_ids) {
-          if (!message_id.is_scheduled() && message_id.is_server() &&
-              !can_revoke_message(dialog_id, get_message(d, message_id))) {
-            return promise.set_error(Status::Error(6, "Message can't be deleted"));
-          }
-        }
-      }
-      break;
-    case DialogType::Channel: {
-      auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
-      for (auto message_id : message_ids) {
-        if (!can_delete_channel_message(dialog_status, get_message(d, message_id), is_bot)) {
-          return promise.set_error(Status::Error(6, "Message can't be deleted"));
-        }
-      }
-      break;
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    if (!can_delete_message(dialog_id, m)) {
+      return promise.set_error(Status::Error(6, "Message can't be deleted"));
     }
-    case DialogType::SecretChat:
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
+    if (is_bot && !message_id.is_scheduled() && message_id.is_server() && !can_revoke_message(dialog_id, m)) {
+      return promise.set_error(Status::Error(6, "Message can't be deleted for everyone"));
+    }
   }
 
   MultiPromiseActorSafe mpas{"DeleteMessagesFromServerMultiPromiseActor"};
@@ -17692,20 +17696,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     CHECK(sending_state == nullptr);
   }
 
-  bool can_delete = true;
-  auto dialog_type = dialog_id.get_type();
-  auto is_bot = td_->auth_manager_->is_bot();
-  if (dialog_type == DialogType::Channel) {
-    auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
-    can_delete = can_delete_channel_message(dialog_status, m, is_bot);
-  }
-
+  bool can_delete = can_delete_message(dialog_id, m);
   bool is_scheduled = m->message_id.is_scheduled();
   DialogId my_dialog_id = get_my_dialog_id();
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
   if (can_delete) {
-    switch (dialog_type) {
+    switch (dialog_id.get_type()) {
       case DialogType::User:
       case DialogType::Chat:
         // TODO allow to delete yet unsent message just for self
@@ -17750,7 +17747,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     ttl = 0;
   }
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
-  bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, is_bot);
+  bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
