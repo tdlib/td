@@ -30,7 +30,7 @@ class SHA1Bench : public td::Benchmark {
   alignas(64) unsigned char data[DATA_SIZE];
 
   std::string get_description() const override {
-    return PSTRING() << "SHA1 OpenSSL [" << (DATA_SIZE >> 10) << "kB]";
+    return PSTRING() << "SHA1 OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -55,7 +55,7 @@ class AESBench : public td::Benchmark {
   td::UInt256 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES OpenSSL [" << (DATA_SIZE >> 10) << "kB]";
+    return PSTRING() << "AES OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -152,7 +152,7 @@ class Crc32Bench : public td::Benchmark {
   alignas(64) unsigned char data[DATA_SIZE];
 
   std::string get_description() const override {
-    return PSTRING() << "Crc32 zlib [" << (DATA_SIZE >> 10) << "kB]";
+    return PSTRING() << "Crc32 zlib [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -176,7 +176,7 @@ class Crc64Bench : public td::Benchmark {
   alignas(64) unsigned char data[DATA_SIZE];
 
   std::string get_description() const override {
-    return PSTRING() << "Crc64 Anton [" << (DATA_SIZE >> 10) << "kB]";
+    return PSTRING() << "Crc64 Anton [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {

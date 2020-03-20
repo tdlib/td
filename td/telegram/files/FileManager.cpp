@@ -867,7 +867,7 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
 }
 
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size) {
-  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 kB */;
+  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 KB */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
 
   if (location.path_.empty()) {

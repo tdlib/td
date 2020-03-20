@@ -251,7 +251,7 @@ Result<MemStat> mem_stat() {
         LOG(ERROR) << "Failed to parse memory stats " << tag("name", name) << tag("value", value);
         *x = static_cast<uint64>(-1);
       } else {
-        *x = r_mem.ok() * 1024;  // memory is in kB
+        *x = r_mem.ok() * 1024;  // memory is in KB
       }
     }
     if (*s == 0) {
