@@ -940,6 +940,36 @@ class AddStickerToSetQuery : public Td::ResultHandler {
   }
 };
 
+class SetStickerSetThumbnailQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetStickerSetThumbnailQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name, tl_object_ptr<telegram_api::InputDocument> &&input_document) {
+    send_query(G()->net_query_creator().create(telegram_api::stickers_setStickerSetThumb(
+        make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_document))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stickers_setStickerSetThumb>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                       "SetStickerSetThumbnailQuery");
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    CHECK(status.is_error());
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetStickerPositionQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3555,16 +3585,20 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td
     return Status::Error(400, "Emojis must be encoded in UTF-8");
   }
 
-  return prepare_input_file(sticker->png_sticker_);
+  return prepare_input_file(sticker->png_sticker_, false);
 }
 
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
-    const tl_object_ptr<td_api::InputFile> &input_file) {
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Document, input_file, {}, false, false, false);
+    const tl_object_ptr<td_api::InputFile> &input_file, bool allow_zero) {
+  auto r_file_id =
+      td_->file_manager_->get_input_file_id(FileType::Document, input_file, DialogId(), allow_zero, false, false);
   if (r_file_id.is_error()) {
     return Status::Error(7, r_file_id.error().message());
   }
   auto file_id = r_file_id.move_as_ok();
+  if (file_id.empty()) {
+    return std::make_tuple(FileId(), false, false);
+  }
 
   td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
 
@@ -3607,7 +3641,7 @@ FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<
     return FileId();
   }
 
-  auto r_file_id = prepare_input_file(sticker);
+  auto r_file_id = prepare_input_file(sticker, false);
   if (r_file_id.is_error()) {
     promise.set_error(r_file_id.move_as_error());
     return FileId();
@@ -3937,6 +3971,84 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
   td_->create_handler<AddStickerToSetQuery>(std::move(pending_add_sticker_to_set->promise))
       ->send(pending_add_sticker_to_set->short_name,
              get_input_sticker(pending_add_sticker_to_set->sticker.get(), pending_add_sticker_to_set->file_id));
+}
+
+void StickersManager::set_sticker_set_thumbnail(UserId user_id, string &short_name,
+                                                tl_object_ptr<td_api::InputFile> &&thumbnail, Promise<Unit> &&promise) {
+  auto input_user = td_->contacts_manager_->get_input_user(user_id);
+  if (input_user == nullptr) {
+    return promise.set_error(Status::Error(3, "User not found"));
+  }
+  DialogId dialog_id(user_id);
+  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+  if (input_peer == nullptr) {
+    return promise.set_error(Status::Error(3, "Have no access to the user"));
+  }
+
+  short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
+  if (short_name.empty()) {
+    return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
+  }
+
+  auto r_file_id = prepare_input_file(thumbnail, true);
+  if (r_file_id.is_error()) {
+    return promise.set_error(r_file_id.move_as_error());
+  }
+  auto file_id = std::get<0>(r_file_id.ok());
+  auto is_url = std::get<1>(r_file_id.ok());
+  auto is_local = std::get<2>(r_file_id.ok());
+
+  if (!file_id.is_valid()) {
+    td_->create_handler<SetStickerSetThumbnailQuery>(std::move(promise))
+        ->send(short_name, telegram_api::make_object<telegram_api::inputDocumentEmpty>());
+    return;
+  }
+
+  auto pending_set_sticker_set_thumbnail = make_unique<PendingSetStickerSetThumbnail>();
+  pending_set_sticker_set_thumbnail->short_name = short_name;
+  pending_set_sticker_set_thumbnail->file_id = file_id;
+  pending_set_sticker_set_thumbnail->promise = std::move(promise);
+
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 ||
+           pending_set_sticker_set_thumbnails_.find(random_id) != pending_set_sticker_set_thumbnails_.end());
+  pending_set_sticker_set_thumbnails_[random_id] = std::move(pending_set_sticker_set_thumbnail);
+
+  auto on_upload_promise = PromiseCreator::lambda([random_id](Result<Unit> result) {
+    send_closure(G()->stickers_manager(), &StickersManager::on_sticker_set_thumbnail_uploaded, random_id,
+                 std::move(result));
+  });
+
+  if (is_url) {
+    do_upload_sticker_file(user_id, file_id, nullptr, std::move(on_upload_promise));
+  } else if (is_local) {
+    upload_sticker_file(user_id, file_id, std::move(on_upload_promise));
+  } else {
+    on_upload_promise.set_value(Unit());
+  }
+}
+
+void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result) {
+  auto it = pending_set_sticker_set_thumbnails_.find(random_id);
+  CHECK(it != pending_set_sticker_set_thumbnails_.end());
+
+  auto pending_set_sticker_set_thumbnail = std::move(it->second);
+  CHECK(pending_set_sticker_set_thumbnail != nullptr);
+
+  pending_set_sticker_set_thumbnails_.erase(it);
+
+  if (result.is_error()) {
+    pending_set_sticker_set_thumbnail->promise.set_error(result.move_as_error());
+    return;
+  }
+
+  FileView file_view = td_->file_manager_->get_file_view(pending_set_sticker_set_thumbnail->file_id);
+  CHECK(file_view.has_remote_location());
+
+  td_->create_handler<SetStickerSetThumbnailQuery>(std::move(pending_set_sticker_set_thumbnail->promise))
+      ->send(pending_set_sticker_set_thumbnail->short_name, file_view.main_remote_location().as_input_document());
 }
 
 void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,

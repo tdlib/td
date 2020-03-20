@@ -837,6 +837,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::addStickerToSet &request);
 
+  void on_request(uint64 id, td_api::setStickerSetThumbnail &request);
+
   void on_request(uint64 id, td_api::setStickerPositionInSet &request);
 
   void on_request(uint64 id, td_api::removeStickerFromSet &request);

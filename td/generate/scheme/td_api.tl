@@ -4241,17 +4241,29 @@ checkPhoneNumberConfirmationCode code:string = Ok;
 setBotUpdatesStatus pending_update_count:int32 error_message:string = Ok;
 
 
-//@description Uploads a PNG image with a sticker; for bots only; returns the uploaded file @user_id Sticker file owner @png_sticker PNG image with the sticker; must be up to 512 KB in size and fit in 512x512 square
+//@description Uploads a PNG image with a sticker; for bots only; returns the uploaded file
+//@user_id Sticker file owner @png_sticker PNG image with the sticker; must be up to 512 KB in size and fit in 512x512 square
 uploadStickerFile user_id:int32 png_sticker:InputFile = File;
 
-//@description Creates a new sticker set; for bots only. Returns the newly created sticker set @user_id Sticker set owner @title Sticker set title; 1-64 characters @name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive); 1-64 characters
-//@is_masks True, if stickers are masks @stickers List of stickers to be added to the set
+//@description Creates a new sticker set; for bots only. Returns the newly created sticker set
+//@user_id Sticker set owner
+//@title Sticker set title; 1-64 characters @name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive); 1-64 characters
+//@is_masks True, if stickers are masks
+//@stickers List of stickers to be added to the set
 createNewStickerSet user_id:int32 title:string name:string is_masks:Bool stickers:vector<inputSticker> = StickerSet;
 
-//@description Adds a new sticker to a set; for bots only. Returns the sticker set @user_id Sticker set owner @name Sticker set name @sticker Sticker to add to the set
+//@description Adds a new sticker to a set; for bots only. Returns the sticker set
+//@user_id Sticker set owner @name Sticker set name
+//@sticker Sticker to add to the set
 addStickerToSet user_id:int32 name:string sticker:inputSticker = StickerSet;
 
-//@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot @sticker Sticker @position New position of the sticker in the set, zero-based
+//@description Sets a sticker set thumbnail; for bots only. Returns the sticker set
+//@user_id Sticker set owner @name Sticker set name
+//@thumbnail Thumbnail to set in PNG format. You can use a zero InputFileId to delete the thumbnail
+setStickerSetThumbnail user_id:int32 name:string thumbnail:InputFile = StickerSet;
+
+//@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
+//@sticker Sticker @position New position of the sticker in the set, zero-based
 setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 
 //@description Removes a sticker from the set to which it belongs; for bots only. The sticker set must have been created by the bot @sticker Sticker

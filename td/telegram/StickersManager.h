@@ -152,6 +152,9 @@ class StickersManager : public Actor {
   void add_sticker_to_set(UserId user_id, string &short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
                           Promise<Unit> &&promise);
 
+  void set_sticker_set_thumbnail(UserId user_id, string &short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,
+                                 Promise<Unit> &&promise);
+
   void set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
                                    Promise<Unit> &&promise);
 
@@ -343,6 +346,12 @@ class StickersManager : public Actor {
     Promise<> promise;
   };
 
+  struct PendingSetStickerSetThumbnail {
+    string short_name;
+    FileId file_id;
+    Promise<> promise;
+  };
+
   struct SpecialStickerSet {
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -472,7 +481,8 @@ class StickersManager : public Actor {
   template <class ParserT>
   void parse_sticker_set(StickerSet *sticker_set, ParserT &parser);
 
-  Result<std::tuple<FileId, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
+  Result<std::tuple<FileId, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file,
+                                                            bool allow_zero);
 
   Result<std::tuple<FileId, bool, bool>> prepare_input_sticker(td_api::inputSticker *sticker);
 
@@ -491,6 +501,8 @@ class StickersManager : public Actor {
   void on_new_stickers_uploaded(int64 random_id, Result<Unit> result);
 
   void on_added_sticker_uploaded(int64 random_id, Result<Unit> result);
+
+  void on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result);
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
@@ -617,6 +629,8 @@ class StickersManager : public Actor {
   std::unordered_map<int64, unique_ptr<PendingNewStickerSet>> pending_new_sticker_sets_;
 
   std::unordered_map<int64, unique_ptr<PendingAddStickerToSet>> pending_add_sticker_to_sets_;
+
+  std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
