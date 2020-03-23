@@ -7693,7 +7693,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 }
 
 ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) {
-  if (!user_id.is_valid()) {
+  if (!have_user_force(user_id)) {
     return nullptr;
   }
 
@@ -7858,7 +7858,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
 }
 
 ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id) {
-  if (!chat_id.is_valid()) {
+  if (!have_chat_force(chat_id)) {
     return nullptr;
   }
 
@@ -7934,7 +7934,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 }
 
 ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId channel_id) {
-  if (!channel_id.is_valid()) {
+  if (!have_channel_force(channel_id)) {
     return nullptr;
   }
 
@@ -8623,6 +8623,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       Chat *c = get_chat(chat_id);
       if (c == nullptr) {
         LOG(ERROR) << "Can't find " << chat_id;
+        return promise.set_value(Unit());
       } else if (c->version >= c->pinned_message_version) {
         LOG(INFO) << "Receive pinned " << pinned_message_id << " in " << chat_id << " with version " << c->version
                   << ". Current version is " << c->pinned_message_version;
