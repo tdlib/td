@@ -4214,8 +4214,10 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
     CHECK(sticker != nullptr);
     auto file_view = td_->file_manager_->get_file_view(sticker_id);
     CHECK(file_view.has_remote_location());
-    CHECK(file_view.remote_location().is_document());
-    CHECK(!file_view.remote_location().is_web());
+    if (!file_view.remote_location().is_document()) {
+      LOG(ERROR) << "Recent sticker remote location is not document: " << file_view.remote_location();
+      continue;
+    }
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
     numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));

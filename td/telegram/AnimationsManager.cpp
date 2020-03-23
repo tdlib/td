@@ -605,7 +605,10 @@ int32 AnimationsManager::get_saved_animations_hash(const char *source) const {
     CHECK(animation != nullptr);
     auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
-    LOG_CHECK(file_view.remote_location().is_document()) << source << " " << file_view.remote_location();
+    if (!file_view.remote_location().is_document()) {
+      LOG(ERROR) << "Saved animation remote location is not document: " << source << " " << file_view.remote_location();
+      continue;
+    }
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
     numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
