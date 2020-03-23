@@ -21483,6 +21483,15 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     if (message_id <= d->last_read_inbox_message_id) {
       return Status::Error("Ignore notification about read message");
     }
+    if (message_id <= d->last_clear_history_message_id) {
+      return Status::Error("Ignore notification about message from cleared chat history");
+    }
+    if (d->deleted_message_ids.count(message_id)) {
+      return Status::Error("Ignore notification about deleted message");
+    }
+    if (message_id <= d->max_unavailable_message_id) {
+      return Status::Error("Ignore notification about unavailable message");
+    }
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
