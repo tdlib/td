@@ -2495,7 +2495,7 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
   string title_;
   string name_;
   bool is_masks_;
-  vector<tl_object_ptr<td_api::inputSticker>> stickers_;
+  vector<tl_object_ptr<td_api::InputSticker>> stickers_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->stickers_manager_->create_new_sticker_set(user_id_, title_, name_, is_masks_, std::move(stickers_),
@@ -2512,7 +2512,7 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
 
  public:
   CreateNewStickerSetRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&title, string &&name,
-                             bool is_masks, vector<tl_object_ptr<td_api::inputSticker>> &&stickers)
+                             bool is_masks, vector<tl_object_ptr<td_api::InputSticker>> &&stickers)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
       , title_(std::move(title))
@@ -2525,7 +2525,7 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
 class AddStickerToSetRequest : public RequestOnceActor {
   UserId user_id_;
   string name_;
-  tl_object_ptr<td_api::inputSticker> sticker_;
+  tl_object_ptr<td_api::InputSticker> sticker_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->stickers_manager_->add_sticker_to_set(user_id_, name_, std::move(sticker_), std::move(promise));
@@ -2541,7 +2541,7 @@ class AddStickerToSetRequest : public RequestOnceActor {
 
  public:
   AddStickerToSetRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&name,
-                         tl_object_ptr<td_api::inputSticker> &&sticker)
+                         tl_object_ptr<td_api::InputSticker> &&sticker)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
       , name_(std::move(name))

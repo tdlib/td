@@ -2748,8 +2748,18 @@ proxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool typ
 proxies proxies:vector<proxy> = Proxies;
 
 
-//@description Describes a sticker that should be added to a sticker set @png_sticker PNG image with the sticker; must be up to 512 KB in size and fit in a 512x512 square @emojis Emoji corresponding to the sticker @mask_position For masks, position where the mask should be placed; may be null
-inputSticker png_sticker:InputFile emojis:string mask_position:maskPosition = InputSticker;
+//@class InputSticker @description Describes a sticker that needs to be added to a sticker set
+
+//@description A static sticker in PNG format, which will be converted to WEBP server-side
+//@sticker PNG image with the sticker; must be up to 512 KB in size and fit in a 512x512 square
+//@emojis Emojis corresponding to the sticker
+//@mask_position For masks, position where the mask should be placed; may be null
+inputStickerStatic sticker:InputFile emojis:string mask_position:maskPosition = InputSticker;
+
+//@description An animated sticker in TGS format
+//@sticker File with the animated sticker. Only local or uploaded within a week files are supported. See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
+//@emojis Emojis corresponding to the sticker
+inputStickerAnimated sticker:InputFile emojis:string = InputSticker;
 
 
 //@class Update @description Contains notifications about data changes
@@ -4247,19 +4257,19 @@ uploadStickerFile user_id:int32 png_sticker:InputFile = File;
 
 //@description Creates a new sticker set; for bots only. Returns the newly created sticker set
 //@user_id Sticker set owner
-//@title Sticker set title; 1-64 characters @name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive); 1-64 characters
-//@is_masks True, if stickers are masks
-//@stickers List of stickers to be added to the set
-createNewStickerSet user_id:int32 title:string name:string is_masks:Bool stickers:vector<inputSticker> = StickerSet;
+//@title Sticker set title; 1-64 characters
+//@name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive); 1-64 characters
+//@is_masks True, if stickers are masks. Animated stickers can't be masks
+//@stickers List of stickers to be added to the set; must be non-empty. All stickers must be of the same type
+createNewStickerSet user_id:int32 title:string name:string is_masks:Bool stickers:vector<InputSticker> = StickerSet;
 
 //@description Adds a new sticker to a set; for bots only. Returns the sticker set
-//@user_id Sticker set owner @name Sticker set name
-//@sticker Sticker to add to the set
-addStickerToSet user_id:int32 name:string sticker:inputSticker = StickerSet;
+//@user_id Sticker set owner @name Sticker set name @sticker Sticker to add to the set
+addStickerToSet user_id:int32 name:string sticker:InputSticker = StickerSet;
 
 //@description Sets a sticker set thumbnail; for bots only. Returns the sticker set
 //@user_id Sticker set owner @name Sticker set name
-//@thumbnail Thumbnail to set in PNG format. You can use a zero InputFileId to delete the thumbnail
+//@thumbnail Thumbnail to set in PNG or TGS format. Animated thumbnail must be set for animated sticker sets and only for them. You can use a zero InputFileId to delete the thumbnail
 setStickerSetThumbnail user_id:int32 name:string thumbnail:InputFile = StickerSet;
 
 //@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot

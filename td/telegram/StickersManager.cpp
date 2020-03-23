@@ -879,12 +879,16 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &title, const string &short_name,
-            bool is_masks, vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers) {
+            bool is_masks, bool is_animated,
+            vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers) {
     CHECK(input_user != nullptr);
 
     int32 flags = 0;
     if (is_masks) {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
+    }
+    if (is_animated) {
+      flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
     }
 
     send_query(G()->net_query_creator().create(
@@ -3576,31 +3580,54 @@ void StickersManager::reorder_installed_sticker_sets(bool is_masks, const vector
   promise.set_value(Unit());
 }
 
-Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::inputSticker *sticker) {
+string &StickersManager::get_input_sticker_emojis(td_api::InputSticker *sticker) {
+  CHECK(sticker != nullptr);
+  auto constructor_id = sticker->get_id();
+  if (constructor_id == td_api::inputStickerStatic::ID) {
+    return static_cast<td_api::inputStickerStatic *>(sticker)->emojis_;
+  }
+  CHECK(constructor_id == td_api::inputStickerAnimated::ID);
+  return static_cast<td_api::inputStickerAnimated *>(sticker)->emojis_;
+}
+
+Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_sticker(td_api::InputSticker *sticker) {
   if (sticker == nullptr) {
     return Status::Error(3, "Input sticker must not be empty");
   }
 
-  if (!clean_input_string(sticker->emojis_)) {
+  if (!clean_input_string(get_input_sticker_emojis(sticker))) {
     return Status::Error(400, "Emojis must be encoded in UTF-8");
   }
 
-  return prepare_input_file(sticker->png_sticker_, false);
+  switch (sticker->get_id()) {
+    case td_api::inputStickerStatic::ID:
+      return prepare_input_file(static_cast<td_api::inputStickerStatic *>(sticker)->sticker_, false, false);
+    case td_api::inputStickerAnimated::ID:
+      return prepare_input_file(static_cast<td_api::inputStickerAnimated *>(sticker)->sticker_, true, false);
+    default:
+      UNREACHABLE();
+      return {};
+  }
 }
 
-Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
-    const tl_object_ptr<td_api::InputFile> &input_file, bool allow_zero) {
-  auto r_file_id =
-      td_->file_manager_->get_input_file_id(FileType::Document, input_file, DialogId(), allow_zero, false, false);
+Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file(
+    const tl_object_ptr<td_api::InputFile> &input_file, bool is_animated, bool for_thumbnail) {
+  auto r_file_id = td_->file_manager_->get_input_file_id(is_animated ? FileType::Sticker : FileType::Document,
+                                                         input_file, DialogId(), for_thumbnail, false);
   if (r_file_id.is_error()) {
     return Status::Error(7, r_file_id.error().message());
   }
   auto file_id = r_file_id.move_as_ok();
   if (file_id.empty()) {
-    return std::make_tuple(FileId(), false, false);
+    return std::make_tuple(FileId(), false, false, false);
   }
 
-  td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
+  if (is_animated) {
+    int32 width = for_thumbnail ? 100 : 512;
+    td_->stickers_manager_->create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
+  } else {
+    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
+  }
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
@@ -3618,13 +3645,20 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
     if (file_view.has_url()) {
       is_url = true;
     } else {
-      if (file_view.has_local_location() && file_view.expected_size() > MAX_STICKER_FILE_SIZE) {
+      auto max_file_size = [&] {
+        if (for_thumbnail) {
+          return is_animated ? MAX_ANIMATED_THUMBNAIL_FILE_SIZE : MAX_THUMBNAIL_FILE_SIZE;
+        } else {
+          return is_animated ? MAX_ANIMATED_STICKER_FILE_SIZE : MAX_STICKER_FILE_SIZE;
+        }
+      }();
+      if (file_view.has_local_location() && file_view.expected_size() > max_file_size) {
         return Status::Error(400, "File is too big");
       }
       is_local = true;
     }
   }
-  return std::make_tuple(file_id, is_url, is_local);
+  return std::make_tuple(file_id, is_url, is_local, is_animated);
 }
 
 FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker,
@@ -3641,7 +3675,7 @@ FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<
     return FileId();
   }
 
-  auto r_file_id = prepare_input_file(sticker, false);
+  auto r_file_id = prepare_input_file(sticker, false, false);
   if (r_file_id.is_error()) {
     promise.set_error(r_file_id.move_as_error());
     return FileId();
@@ -3661,31 +3695,35 @@ FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<
   return file_id;
 }
 
-tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_sticker(td_api::inputSticker *sticker,
+tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_sticker(td_api::InputSticker *sticker,
                                                                                     FileId file_id) const {
+  CHECK(sticker != nullptr);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(file_view.has_remote_location());
   auto input_document = file_view.main_remote_location().as_input_document();
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
-  if (sticker->mask_position_ != nullptr && sticker->mask_position_->point_ != nullptr) {
-    auto point = [mask_point = std::move(sticker->mask_position_->point_)] {
-      switch (mask_point->get_id()) {
-        case td_api::maskPointForehead::ID:
-          return 0;
-        case td_api::maskPointEyes::ID:
-          return 1;
-        case td_api::maskPointMouth::ID:
-          return 2;
-        case td_api::maskPointChin::ID:
-          return 3;
-        default:
-          UNREACHABLE();
-          return -1;
-      }
-    }();
-    mask_coords = make_tl_object<telegram_api::maskCoords>(
-        point, sticker->mask_position_->x_shift_, sticker->mask_position_->y_shift_, sticker->mask_position_->scale_);
+  if (sticker->get_id() == td_api::inputStickerStatic::ID) {
+    auto mask_position = static_cast<td_api::inputStickerStatic *>(sticker)->mask_position_.get();
+    if (mask_position != nullptr && mask_position->point_ != nullptr) {
+      auto point = [mask_point = std::move(mask_position->point_)] {
+        switch (mask_point->get_id()) {
+          case td_api::maskPointForehead::ID:
+            return 0;
+          case td_api::maskPointEyes::ID:
+            return 1;
+          case td_api::maskPointMouth::ID:
+            return 2;
+          case td_api::maskPointChin::ID:
+            return 3;
+          default:
+            UNREACHABLE();
+            return -1;
+        }
+      }();
+      mask_coords = make_tl_object<telegram_api::maskCoords>(point, mask_position->x_shift_, mask_position->y_shift_,
+                                                             mask_position->scale_);
+    }
   }
 
   int32 flags = 0;
@@ -3693,12 +3731,12 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
     flags |= telegram_api::inputStickerSetItem::MASK_COORDS_MASK;
   }
 
-  return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document), sticker->emojis_,
-                                                           std::move(mask_coords));
+  return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document),
+                                                           get_input_sticker_emojis(sticker), std::move(mask_coords));
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
-                                             vector<tl_object_ptr<td_api::inputSticker>> &&stickers,
+                                             vector<tl_object_ptr<td_api::InputSticker>> &&stickers,
                                              Promise<Unit> &&promise) {
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
@@ -3720,10 +3758,15 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
     return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
   }
 
+  if (stickers.empty()) {
+    return promise.set_error(Status::Error(400, "At least 1 sticker must be specified"));
+  }
+
   vector<FileId> file_ids;
   file_ids.reserve(stickers.size());
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
+  size_t animated_sticker_count = 0;
   for (auto &sticker : stickers) {
     auto r_file_id = prepare_input_sticker(sticker.get());
     if (r_file_id.is_error()) {
@@ -3732,6 +3775,13 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
     auto file_id = std::get<0>(r_file_id.ok());
     auto is_url = std::get<1>(r_file_id.ok());
     auto is_local = std::get<2>(r_file_id.ok());
+    auto is_animated = std::get<3>(r_file_id.ok());
+    if (is_animated) {
+      animated_sticker_count++;
+      if (is_url) {
+        return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
+      }
+    }
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -3740,12 +3790,17 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
       local_file_ids.push_back(file_id);
     }
   }
+  if (animated_sticker_count != stickers.size() && animated_sticker_count != 0) {
+    return promise.set_error(Status::Error(400, "All stickers must be either animated or static"));
+  }
+  bool is_animated = animated_sticker_count == stickers.size();
 
   auto pending_new_sticker_set = make_unique<PendingNewStickerSet>();
   pending_new_sticker_set->user_id = user_id;
   pending_new_sticker_set->title = std::move(title);
   pending_new_sticker_set->short_name = short_name;
   pending_new_sticker_set->is_masks = is_masks;
+  pending_new_sticker_set->is_animated = is_animated;
   pending_new_sticker_set->file_ids = std::move(file_ids);
   pending_new_sticker_set->stickers = std::move(stickers);
   pending_new_sticker_set->promise = std::move(promise);
@@ -3776,9 +3831,14 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
 }
 
 void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise) {
-  CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
-
-  auto upload_file_id = td_->documents_manager_->dup_document(td_->file_manager_->dup_file_id(file_id), file_id);
+  FileId upload_file_id;
+  if (td_->file_manager_->get_file_view(file_id).get_type() == FileType::Sticker) {
+    CHECK(get_input_media(file_id, nullptr, nullptr) == nullptr);
+    upload_file_id = dup_sticker(td_->file_manager_->dup_file_id(file_id), file_id);
+  } else {
+    CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
+    upload_file_id = td_->documents_manager_->dup_document(td_->file_manager_->dup_file_id(file_id), file_id);
+  }
 
   being_uploaded_files_[upload_file_id] = {user_id, std::move(promise)};
   LOG(INFO) << "Ask to upload sticker file " << upload_file_id;
@@ -3830,8 +3890,12 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
     return promise.set_error(Status::Error(3, "Have no access to the user"));
   }
 
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  bool is_animated = file_view.get_type() == FileType::Sticker;
+
   bool had_input_file = input_file != nullptr;
-  auto input_media = td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
+  auto input_media = is_animated ? get_input_media(file_id, std::move(input_file), nullptr)
+                                 : td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
     // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
@@ -3846,6 +3910,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
 void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
                                                Promise<Unit> &&promise) {
   CHECK(media != nullptr);
+  LOG(INFO) << "Receive uploaded sticker file " << to_string(media);
   if (media->get_id() != telegram_api::messageMediaDocument::ID) {
     return promise.set_error(Status::Error(400, "Can't upload sticker file: wrong file type"));
   }
@@ -3858,13 +3923,21 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
   }
   CHECK(document_id == telegram_api::document::ID);
 
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  bool is_animated = file_view.get_type() == FileType::Sticker;
+  auto expected_document_type = is_animated ? Document::Type::Sticker : Document::Type::General;
+
   auto parsed_document = td_->documents_manager_->on_get_document(
       move_tl_object_as<telegram_api::document>(document_ptr), DialogId(), nullptr);
-  if (parsed_document.type != Document::Type::General) {
+  if (parsed_document.type != expected_document_type) {
     return promise.set_error(Status::Error(400, "Wrong file type"));
   }
 
-  td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, true);
+  if (is_animated) {
+    merge_stickers(parsed_document.file_id, file_id, true);
+  } else {
+    td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, true);
+  }
   promise.set_value(Unit());
 }
 
@@ -3890,6 +3963,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   }
 
   bool is_masks = pending_new_sticker_set->is_masks;
+  bool is_animated = pending_new_sticker_set->is_animated;
 
   auto sticker_count = pending_new_sticker_set->stickers.size();
   vector<tl_object_ptr<telegram_api::inputStickerSetItem>> input_stickers;
@@ -3901,11 +3975,11 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   td_->create_handler<CreateNewStickerSetQuery>(std::move(pending_new_sticker_set->promise))
       ->send(std::move(input_user), pending_new_sticker_set->title, pending_new_sticker_set->short_name, is_masks,
-             std::move(input_stickers));
+             is_animated, std::move(input_stickers));
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
-                                         tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+                                         tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise) {
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(3, "User not found"));
@@ -3985,12 +4059,40 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string &short_na
     return promise.set_error(Status::Error(3, "Have no access to the user"));
   }
 
-  short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
+  short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
     return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
   }
 
-  auto r_file_id = prepare_input_file(thumbnail, true);
+  auto it = short_name_to_sticker_set_id_.find(short_name);
+  const StickerSet *sticker_set = it == short_name_to_sticker_set_id_.end() ? nullptr : get_sticker_set(it->second);
+  if (sticker_set != nullptr && sticker_set->was_loaded) {
+    return do_set_sticker_set_thumbnail(user_id, short_name, std::move(thumbnail), std::move(promise));
+  }
+
+  do_reload_sticker_set(
+      StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
+      PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name, thumbnail = std::move(thumbnail),
+                              promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &StickersManager::do_set_sticker_set_thumbnail, user_id, std::move(short_name),
+                       std::move(thumbnail), std::move(promise));
+        }
+      }));
+}
+
+void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_name,
+                                                   tl_object_ptr<td_api::InputFile> &&thumbnail,
+                                                   Promise<Unit> &&promise) {
+  auto it = short_name_to_sticker_set_id_.find(short_name);
+  const StickerSet *sticker_set = it == short_name_to_sticker_set_id_.end() ? nullptr : get_sticker_set(it->second);
+  if (sticker_set == nullptr || !sticker_set->was_loaded) {
+    return promise.set_error(Status::Error(3, "Sticker set not found"));
+  }
+
+  auto r_file_id = prepare_input_file(thumbnail, sticker_set->is_animated, true);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }
