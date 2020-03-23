@@ -1518,7 +1518,8 @@ bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
     CHECK(new_ != nullptr);
 
     if (old_->alt != new_->alt || old_->set_id != new_->set_id ||
-        (old_->dimensions.width != 0 && old_->dimensions.height != 0 && old_->dimensions != new_->dimensions)) {
+        (!old_->is_animated && !new_->is_animated && old_->dimensions.width != 0 && old_->dimensions.height != 0 &&
+         old_->dimensions != new_->dimensions)) {
       LOG(ERROR) << "Sticker has changed: alt = (" << old_->alt << ", " << new_->alt << "), set_id = (" << old_->set_id
                  << ", " << new_->set_id << "), dimensions = (" << old_->dimensions << ", " << new_->dimensions << ")";
     }
