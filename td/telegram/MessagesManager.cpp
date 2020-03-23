@@ -11437,7 +11437,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
   bool need_add_active_live_location = false;
-  LOG(INFO) << "Found old " << old_message_id << " by " << FullMessageId{dialog_id, message_id};
+  LOG(INFO) << "Found temporarily " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
