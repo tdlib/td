@@ -4225,8 +4225,12 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_reply_markup) {
     parse(reply_markup, parser);
   }
+
   is_content_secret |=
       is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
+  if (hide_edit_date && content->get_type() == MessageContentType::LiveLocation) {
+    hide_edit_date = false;
+  }
 }
 
 template <class StorerT>
@@ -11301,12 +11305,15 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     edit_date = 0;
   }
 
+  auto content_type = message_info.content->get_type();
   if (hide_edit_date && td_->auth_manager_->is_bot()) {
+    hide_edit_date = false;
+  }
+  if (hide_edit_date && content_type == MessageContentType::LiveLocation) {
     hide_edit_date = false;
   }
 
   int32 ttl = message_info.ttl;
-  auto content_type = message_info.content->get_type();
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // should be calculated before TTL is adjusted
   if (ttl < 0) {
     LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
