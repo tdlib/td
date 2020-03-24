@@ -94,12 +94,12 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
   }
 
   if (!array_type.empty()) {
-    return "jni::fetch_vector(env, (" + array_type + ")" + fetch_object + ");";
+    return "jni::fetch_vector(env, (" + array_type + ")" + fetch_object + ")";
   }
 
   std::string template_type;
   if (vector_type == "string") {
-    template_type = "std::string";
+    template_type = "string";
   } else if (vector_type.compare(0, 11, "std::vector") == 0) {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(t->children[0]);
     template_type = gen_type_name(child);
@@ -108,13 +108,12 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
     }
     template_type = "std::vector<" + template_type + ">";
   } else if (vector_type == "bytes") {
-    std::fprintf(stderr, "Vector of Bytes is not supported\n");
-    assert(false);
+    template_type = "jbyteArray";
   } else {
     assert(vector_type.compare(0, 10, "object_ptr") == 0);
     template_type = gen_main_class_name(t->type);
   }
-  return "jni::FetchVector<" + template_type + ">::fetch(env, (jobjectArray)" + fetch_object + ");";
+  return "jni::FetchVector<" + template_type + ">::fetch(env, (jobjectArray)" + fetch_object + ")";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,
@@ -179,7 +178,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, 
       return gen_main_class_name(tree_type->type) + "::fetch(env, p)";
     }
     res = "jni::fetch_tl_object<" + gen_main_class_name(tree_type->type) + ">(env, jni::fetch_object(env, p, " +
-          field_name + "fieldID));";
+          field_name + "fieldID))";
   }
   return res_begin + res;
 }

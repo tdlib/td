@@ -210,9 +210,29 @@ struct FetchVector<std::string> {
       result.reserve(length);
       for (jsize i = 0; i < length; i++) {
         jstring str = (jstring)env->GetObjectArrayElement(arr, i);
-        result.push_back(jni::from_jstring(env, str));
+        result.push_back(from_jstring(env, str));
         if (str) {
           env->DeleteLocalRef(str);
+        }
+      }
+      env->DeleteLocalRef(arr);
+    }
+    return result;
+  }
+};
+
+template <>
+struct FetchVector<jbyteArray> {
+  static std::vector<std::string> fetch(JNIEnv *env, jobjectArray arr) {
+    std::vector<std::string> result;
+    if (arr != nullptr) {
+      jsize length = env->GetArrayLength(arr);
+      result.reserve(length);
+      for (jsize i = 0; i < length; i++) {
+        jbyteArray bytes = (jbyteArray)env->GetObjectArrayElement(arr, i);
+        result.push_back(from_bytes(env, bytes));
+        if (bytes) {
+          env->DeleteLocalRef(bytes);
         }
       }
       env->DeleteLocalRef(arr);
