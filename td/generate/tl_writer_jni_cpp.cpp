@@ -107,7 +107,7 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
       template_type = gen_main_class_name(child->type);
     }
     template_type = "std::vector<" + template_type + ">";
-  } else if (vector_type == bytes_type) {
+  } else if (vector_type == "bytes") {
     std::fprintf(stderr, "Vector of Bytes is not supported\n");
     assert(false);
   } else {
@@ -262,7 +262,7 @@ std::string TD_TL_writer_jni_cpp::gen_vector_store(const std::string &field_name
            "env->DeleteLocalRef(arr_tmp_); "
            "} }";
   }
-  if (vector_type == bytes_type) {
+  if (vector_type == "bytes") {
     std::fprintf(stderr, "Vector of Bytes is not supported\n");
     assert(false);
   }

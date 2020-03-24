@@ -56,6 +56,10 @@ std::string TD_TL_writer_h::gen_output_begin() const {
          ext_forward_declaration + "namespace " + tl_name +
          " {\n\n"
 
+         "using bytes = " +
+         bytes_type +
+         ";\n\n"
+
          "using BaseObject = ::td::TlObject;\n\n"
 
          "template <class Type>\n"

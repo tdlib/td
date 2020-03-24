@@ -79,6 +79,10 @@ std::string TD_TL_writer_jni_h::gen_output_begin() const {
          tl_name +
          " {\n\n"
 
+         "using bytes = " +
+         bytes_type +
+         ";\n\n"
+
          "class " +
          gen_base_tl_class_name() +
          ";\n"

@@ -150,7 +150,7 @@ std::string TD_TL_writer_cpp::gen_fetch_class_name(const tl::tl_tree_type *tree_
     return "TlFetchString<" + string_type + ">";
   }
   if (name == "Bytes") {
-    return "TlFetchBytes<" + bytes_type + ">";
+    return "TlFetchBytes<bytes>";
   }
 
   if (name == "Vector") {
@@ -662,7 +662,7 @@ std::string TD_TL_writer_cpp::gen_constructor_field_init(int field_num, const st
   }
   std::string move_begin;
   std::string move_end;
-  if ((field_type == bytes_type || field_type.compare(0, 11, "std::vector") == 0 ||
+  if ((field_type == "bytes" || field_type.compare(0, 11, "std::vector") == 0 ||
        field_type.compare(0, 10, "object_ptr") == 0) &&
       !is_default) {
     move_begin = "std::move(";

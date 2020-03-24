@@ -188,7 +188,7 @@ std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const
     return "UInt256";
   }
   if (name == "Bytes") {
-    return bytes_type;
+    return "bytes";
   }
 
   if (name == "Vector") {
@@ -242,9 +242,10 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   if (field_type == "bool " || field_type == "std::int32_t " || field_type == "std::int64_t " ||
       field_type == "double ") {
     res += field_type;
-  } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == string_type + " ") {
+  } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == string_type + " " ||
+             (string_type == bytes_type && field_type == "bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 11, "std::vector") == 0 || field_type == bytes_type + " ") {
+  } else if (field_type.compare(0, 11, "std::vector") == 0 || field_type == "bytes ") {
     res += field_type + "&&";
   } else if (field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";

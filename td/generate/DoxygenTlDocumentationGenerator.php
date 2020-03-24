@@ -17,8 +17,9 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             case 'double':
                 return 'double ';
             case 'string':
-            case 'bytes':
                 return 'std::string const &';
+            case 'bytes':
+                return 'bytes const &';
 
             default:
                 if (substr($type, 0, 6) === 'vector') {
@@ -74,8 +75,9 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             case 'double':
                 return 'double';
             case 'string':
-            case 'bytes':
                 return 'std::string';
+            case 'bytes':
+                return 'bytes';
             case 'bool':
             case 'int':
             case 'long':
@@ -161,6 +163,13 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
 /**
  * \\file
  * Contains declarations of all functions and types which represent a public TDLib interface.
+ */
+EOT
+);
+
+        $this->addDocumentation('using bytes = std::string;', <<<EOT
+/**
+ * This class is used to store arbitrary sequence of bytes.
  */
 EOT
 );
