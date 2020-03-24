@@ -147,7 +147,7 @@ std::string TD_TL_writer_cpp::gen_fetch_class_name(const tl::tl_tree_type *tree_
     return "TlFetch" + name;
   }
   if (name == "String") {
-    return "TlFetchString<" + string_type + ">";
+    return "TlFetchString<string>";
   }
   if (name == "Bytes") {
     return "TlFetchBytes<bytes>";

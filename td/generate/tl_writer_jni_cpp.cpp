@@ -83,10 +83,10 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
 
   std::string fetch_object = "jni::fetch_object(env, p, " + field_name + "fieldID)";
   std::string array_type;
-  if (vector_type == "std::int32_t") {
+  if (vector_type == "int32") {
     array_type = "jintArray";
   }
-  if (vector_type == "int53" || vector_type == "std::int64_t") {
+  if (vector_type == "int53" || vector_type == "int64") {
     array_type = "jlongArray";
   }
   if (vector_type == "double") {
@@ -98,7 +98,7 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
   }
 
   std::string template_type;
-  if (vector_type == string_type) {
+  if (vector_type == "string") {
     template_type = "std::string";
   } else if (vector_type.compare(0, 11, "std::vector") == 0) {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(t->children[0]);
@@ -248,8 +248,8 @@ std::string TD_TL_writer_jni_cpp::gen_vector_store(const std::string &field_name
   if (vector_type == "bool") {
     assert(false);  // TODO
   }
-  if (vector_type == "std::int32_t" || vector_type == "int53" || vector_type == "std::int64_t" ||
-      vector_type == "double" || vector_type == string_type || vector_type.compare(0, 11, "std::vector") == 0 ||
+  if (vector_type == "int32" || vector_type == "int53" || vector_type == "int64" || vector_type == "double" ||
+      vector_type == "string" || vector_type.compare(0, 11, "std::vector") == 0 ||
       vector_type.compare(0, 10, "object_ptr") == 0) {
     return "{ "
            "auto arr_tmp_ = jni::store_vector(env, " +

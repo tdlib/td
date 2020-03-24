@@ -79,7 +79,13 @@ std::string TD_TL_writer_jni_h::gen_output_begin() const {
          tl_name +
          " {\n\n"
 
-         "using int53 = std::int64_t;\n\n"
+         "using int32 = std::int32_t;\n"
+         "using int53 = std::int64_t;\n"
+         "using int64 = std::int64_t;\n\n"
+
+         "using string = " +
+         string_type +
+         ";\n\n"
 
          "using bytes = " +
          bytes_type +
