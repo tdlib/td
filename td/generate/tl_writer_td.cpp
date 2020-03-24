@@ -172,7 +172,10 @@ std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const
   if (name == "Int" || name == "Int32") {
     return "std::int32_t";
   }
-  if (name == "Long" || name == "Int53" || name == "Int64") {
+  if (name == "Int53") {
+    return "int53";
+  }
+  if (name == "Long" || name == "Int64") {
     return "std::int64_t";
   }
   if (name == "Double") {
@@ -239,8 +242,8 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   }
 
   std::string res = (field_num == 0 ? "" : ", ");
-  if (field_type == "bool " || field_type == "std::int32_t " || field_type == "std::int64_t " ||
-      field_type == "double ") {
+  if (field_type == "bool " || field_type == "std::int32_t " || field_type == "int53 " ||
+      field_type == "std::int64_t " || field_type == "double ") {
     res += field_type;
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == string_type + " " ||
              (string_type == bytes_type && field_type == "bytes ")) {

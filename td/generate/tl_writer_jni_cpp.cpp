@@ -86,7 +86,7 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
   if (vector_type == "std::int32_t") {
     array_type = "jintArray";
   }
-  if (vector_type == "std::int64_t") {
+  if (vector_type == "int53" || vector_type == "std::int64_t") {
     array_type = "jlongArray";
   }
   if (vector_type == "double") {
@@ -248,8 +248,8 @@ std::string TD_TL_writer_jni_cpp::gen_vector_store(const std::string &field_name
   if (vector_type == "bool") {
     assert(false);  // TODO
   }
-  if (vector_type == "std::int32_t" || vector_type == "std::int64_t" || vector_type == "double" ||
-      vector_type == string_type || vector_type.compare(0, 11, "std::vector") == 0 ||
+  if (vector_type == "std::int32_t" || vector_type == "int53" || vector_type == "std::int64_t" ||
+      vector_type == "double" || vector_type == string_type || vector_type.compare(0, 11, "std::vector") == 0 ||
       vector_type.compare(0, 10, "object_ptr") == 0) {
     return "{ "
            "auto arr_tmp_ = jni::store_vector(env, " +

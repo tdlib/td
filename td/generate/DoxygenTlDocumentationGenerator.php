@@ -12,6 +12,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             case 'int32':
                 return 'std::int32_t ';
             case 'int53':
+                return 'int53 ';
             case 'int64':
                 return 'std::int64_t ';
             case 'double':
@@ -70,6 +71,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             case 'int32':
                 return 'std::int32_t';
             case 'int53':
+                return 'int53';
             case 'int64':
                 return 'std::int64_t';
             case 'double':
@@ -167,9 +169,16 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
 EOT
 );
 
+        $this->addDocumentation('using int53 = std::int64_t;', <<<EOT
+/**
+ * This type is used to store 53-bit signed integers, which can be represented as Number in JSON.
+ */
+EOT
+);
+
         $this->addDocumentation('using bytes = std::string;', <<<EOT
 /**
- * This class is used to store arbitrary sequence of bytes.
+ * This type is used to store arbitrary sequence of bytes.
  */
 EOT
 );
