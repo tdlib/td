@@ -526,7 +526,7 @@ class AddContactQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
     td->contacts_manager_->reload_contacts(true);
-    td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_), "AddContactQuery");
+    td->messages_manager_->reget_dialog_action_bar(DialogId(user_id_), "AddContactQuery");
   }
 };
 
@@ -559,7 +559,7 @@ class AcceptContactQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
     td->contacts_manager_->reload_contacts(true);
-    td->messages_manager_->repair_dialog_action_bar(DialogId(user_id_), "AcceptContactQuery");
+    td->messages_manager_->reget_dialog_action_bar(DialogId(user_id_), "AcceptContactQuery");
   }
 };
 
@@ -4209,7 +4209,7 @@ void ContactsManager::on_set_user_is_blocked_failed(UserId user_id, bool is_bloc
   LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << error;
   on_update_user_is_blocked(user_id, !is_blocked);
   reload_user_full(user_id);
-  td_->messages_manager_->repair_dialog_action_bar(DialogId(user_id), "on_set_user_is_blocked_failed");
+  td_->messages_manager_->reget_dialog_action_bar(DialogId(user_id), "on_set_user_is_blocked_failed");
 }
 
 bool ContactsManager::is_valid_username(const string &username) {
