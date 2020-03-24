@@ -112,7 +112,7 @@ while True:
 
             # set an encryption key for database to let know TDLib how to open the database
             if auth_state['@type'] == 'authorizationStateWaitEncryptionKey':
-                td_send({'@type': 'checkDatabaseEncryptionKey', 'key': 'my_key'})
+                td_send({'@type': 'checkDatabaseEncryptionKey', 'encryption_key': ''})
 
             # enter phone number to log in
             if auth_state['@type'] == 'authorizationStateWaitPhoneNumber':
