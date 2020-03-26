@@ -6831,10 +6831,11 @@ void MessagesManager::repair_dialog_action_bar(Dialog *d, const char *source) {
   auto dialog_id = d->dialog_id;
   d->know_action_bar = false;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
-    create_actor<SleepActor>("RepairDialogActionBarActor", 1.0,
-                             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Result<Unit> result) {
-                               send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source);
-                             }))
+    create_actor<SleepActor>(
+        "RepairDialogActionBarActor", 1.0,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Result<Unit> result) {
+          send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source);
+        }))
         .release();
   }
   // there is no need to change action bar
@@ -10375,6 +10376,10 @@ void MessagesManager::init() {
           sponsored_dialog_id_ = dialog_id;
           if (is_dialog_sponsored(d)) {
             send_update_chat_chat_list(d);
+            auto folder_id = FolderId::main();
+            auto &list = get_dialog_list(folder_id);
+            list.last_server_dialog_date_ = DialogDate(SPONSORED_DIALOG_ORDER, d->dialog_id);
+            update_last_dialog_date(folder_id);
             send_update_chat_is_sponsored(d);
           }
         } else {
@@ -28176,7 +28181,7 @@ bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
 }
 
 int64 MessagesManager::get_dialog_public_order(const Dialog *d) const {
-  auto order = is_dialog_sponsored(d) ? static_cast<int64>(2147483647) << 32 : d->order;
+  auto order = is_dialog_sponsored(d) ? SPONSORED_DIALOG_ORDER : d->order;
   DialogDate dialog_date(order, d->dialog_id);
   auto *list = get_dialog_list(d->folder_id);
   return list != nullptr && dialog_date <= list->last_dialog_date_ ? order : 0;
@@ -30487,6 +30492,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     sponsored_dialog_id_ = DialogId();
     if (is_sponsored) {
       send_update_chat_is_sponsored(d);
+      send_update_chat_chat_list(d);
       need_update_total_chat_count = true;
     }
   }
@@ -30498,8 +30504,16 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     CHECK(d != nullptr);
     sponsored_dialog_id_ = dialog_id;
     if (is_dialog_sponsored(d)) {
-      send_update_chat_is_sponsored(d);
+      send_update_chat_chat_list(d);
+      auto folder_id = FolderId::main();
+      auto &list = get_dialog_list(folder_id);
+      DialogDate max_dialog_date(SPONSORED_DIALOG_ORDER, d->dialog_id);
+      if (list.last_server_dialog_date_ < max_dialog_date) {
+        list.last_server_dialog_date_ = max_dialog_date;
+        update_last_dialog_date(folder_id);
+      }
       need_update_total_chat_count = !need_update_total_chat_count;
+      send_update_chat_is_sponsored(d);
     }
   }
 
