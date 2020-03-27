@@ -62,10 +62,12 @@ class SafePromise;
 template <class T = Unit>
 class Promise {
  public:
+  bool was_set_value{false};
   void set_value(T &&value) {
     if (!promise_) {
       return;
     }
+    was_set_value = true;
     promise_->set_value(std::move(value));
     promise_.reset();
   }
@@ -73,6 +75,7 @@ class Promise {
     if (!promise_) {
       return;
     }
+    was_set_value = true;
     promise_->set_error(std::move(error));
     promise_.reset();
   }
@@ -80,6 +83,7 @@ class Promise {
     if (!promise_) {
       return;
     }
+    was_set_value = true;
     promise_->set_result(std::move(result));
     promise_.reset();
   }
@@ -404,9 +408,9 @@ class PromiseActor final : public PromiseInterface<T> {
 template <class T>
 class FutureActor final : public Actor {
   friend class PromiseActor<T>;
+ public:
   enum State { Waiting, Ready };
 
- public:
   static constexpr int Hangup = 426487;
 
   FutureActor() = default;
@@ -455,6 +459,10 @@ class FutureActor final : public Actor {
     if (state_ != State::Waiting) {
       event_.try_emit_later();
     }
+  }
+
+  State get_state() const {
+    return state_;
   }
 
   template <class S>

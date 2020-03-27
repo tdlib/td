@@ -30,13 +30,15 @@ class RequestActor : public Actor {
   }
 
   void loop() override {
-    PromiseActor<T> promise;
+    PromiseActor<T> promise_actor;
     FutureActor<T> future;
-    init_promise_future(&promise, &future);
+    init_promise_future(&promise_actor, &future);
 
-    do_run(PromiseCreator::from_promise_actor(std::move(promise)));
+    auto promise = PromiseCreator::from_promise_actor(std::move(promise_actor));
+    do_run(std::move(promise));
 
     if (future.is_ready()) {
+      CHECK(!promise);
       if (future.is_error()) {
         do_send_error(future.move_as_error());
       } else {
@@ -45,6 +47,9 @@ class RequestActor : public Actor {
       }
       stop();
     } else {
+      LOG_CHECK(!promise.was_set_value) << future.empty() << " " << future.get_state();
+      CHECK(!future.empty());
+      CHECK(future.get_state() == FutureActor<T>::State::Waiting);
       if (--tries_left_ == 0) {
         future.close();
         do_send_error(Status::Error(400, "Requested data is inaccessible"));
