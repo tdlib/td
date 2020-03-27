@@ -1005,6 +1005,42 @@ class UpdateUsernameQuery : public Td::ResultHandler {
   }
 };
 
+class SetBotCommandsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  vector<std::pair<string, string>> commands_;
+
+ public:
+  explicit SetBotCommandsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<std::pair<string, string>> &&commands) {
+    commands_ = std::move(commands);
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_setBotCommands(transform(commands_, [](const auto &command) {
+          return make_tl_object<telegram_api::botCommand>(command.first, command.second);
+        }))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::bots_setBotCommands>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (result) {
+      td->contacts_manager_->on_set_bot_commands_success(std::move(commands_));
+    } else {
+      LOG(ERROR) << "Set bot commands request failed";
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckChannelUsernameQuery : public Td::ResultHandler {
   Promise<bool> promise_;
   ChannelId channel_id_;
@@ -5219,6 +5255,66 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
+}
+
+void ContactsManager::set_commands(vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise) {
+  vector<std::pair<string, string>> new_commands;
+  for (auto &command : commands) {
+    if (command == nullptr) {
+      return promise.set_error(Status::Error(400, "Command must be non-empty"));
+    }
+    if (!clean_input_string(command->command_)) {
+      return promise.set_error(Status::Error(400, "Command must be encoded in UTF-8"));
+    }
+    if (!clean_input_string(command->description_)) {
+      return promise.set_error(Status::Error(400, "Command description must be encoded in UTF-8"));
+    }
+
+    const size_t MAX_COMMAND_TEXT_LENGTH = 32;
+    command->command_ = trim(command->command_);
+    if (command->command_[0] == '/') {
+      command->command_ = command->command_.substr(1);
+    }
+    if (command->command_.empty()) {
+      return promise.set_error(Status::Error(400, "Command must be non-empty"));
+    }
+    if (utf8_length(command->command_) > MAX_COMMAND_TEXT_LENGTH) {
+      return promise.set_error(
+          Status::Error(400, PSLICE() << "Command length must not exceed " << MAX_COMMAND_TEXT_LENGTH));
+    }
+
+    const size_t MIN_COMMAND_DESCRIPTION_LENGTH = 3;
+    const size_t MAX_COMMAND_DESCRIPTION_LENGTH = 256;
+    command->description_ = trim(command->description_);
+    auto description_length = utf8_length(command->description_);
+    if (description_length < MIN_COMMAND_DESCRIPTION_LENGTH) {
+      return promise.set_error(Status::Error(
+          400, PSLICE() << "Command description length must be at least " << MIN_COMMAND_DESCRIPTION_LENGTH));
+    }
+    if (description_length > MAX_COMMAND_DESCRIPTION_LENGTH) {
+      return promise.set_error(Status::Error(
+          400, PSLICE() << "Command description length must not exceed " << MAX_COMMAND_DESCRIPTION_LENGTH));
+    }
+
+    new_commands.emplace_back(std::move(command->command_), std::move(command->description_));
+  }
+
+  td_->create_handler<SetBotCommandsQuery>(std::move(promise))->send(std::move(new_commands));
+}
+
+void ContactsManager::on_set_bot_commands_success(vector<std::pair<string, string>> &&commands) {
+  auto user_id = get_my_id();
+  BotInfo *bot_info = get_bot_info_force(user_id);
+  if (bot_info == nullptr) {
+    return;
+  }
+  if (bot_info->commands == commands) {
+    return;
+  }
+  bot_info->commands = std::move(commands);
+  bot_info->is_changed = true;
+
+  update_bot_info(bot_info, user_id, true, false);
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

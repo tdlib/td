@@ -297,7 +297,7 @@ userTypeBot can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool
 userTypeUnknown = UserType;
 
 
-//@description Represents commands supported by a bot @command Text of the bot command @param_description Description of the bot command
+//@description Represents a command supported by a bot @command Text of the bot command @param_description Description of the bot command
 botCommand command:string description:string = BotCommand;
 
 //@description Provides information about a bot and its supported commands @param_description Long description shown on the user info page @commands A list of commands supported by the bot
@@ -3954,6 +3954,9 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Verification code received by SMS, phone call or flash call
 checkChangePhoneNumberCode code:string = Ok;
+
+//@description Sets the list of commands supported by the bot; for bots only @commands List of the bot commands
+setCommands commands:vector<botCommand> = Ok;
 
 
 //@description Returns all active sessions of the current user
