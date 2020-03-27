@@ -135,6 +135,8 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
 
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
+void has_message_content_web_page(const MessageContent *content);
+
 void remove_message_content_web_page(MessageContent *content);
 
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,

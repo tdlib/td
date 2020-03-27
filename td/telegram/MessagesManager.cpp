@@ -12021,6 +12021,7 @@ void MessagesManager::delete_pending_message_web_page(FullMessageId full_message
   CHECK(m != nullptr);
 
   MessageContent *content = m->content.get();
+  CHECK(has_message_content_web_page(content));
   unregister_message_content(td_, content, full_message_id, "delete_pending_message_web_page");
   remove_message_content_web_page(content);
   register_message_content(td_, content, full_message_id, "delete_pending_message_web_page");
