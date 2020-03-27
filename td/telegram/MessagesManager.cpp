@@ -18439,7 +18439,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
       return Status::Error(400, "Can't copy message content");
     }
 
-    return InputMessageContent(std::move(content), copied_message->disable_web_page_preview, false, 0, UserId());
+    return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message), false, 0,
+                               UserId());
   }
 
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
@@ -20208,6 +20209,17 @@ void MessagesManager::edit_message_scheduling_state(
   }
 }
 
+bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
+  // m->disable_web_page_preview is known only for sent from this client messages
+  if (m->disable_web_page_preview) {
+    return true;
+  }
+  if (m->content->get_type() != MessageContentType::Text) {
+    return false;
+  }
+  return !has_message_content_web_page(m->content.get());
+}
+
 int32 MessagesManager::get_message_flags(const Message *m) {
   int32 flags = 0;
   if (m->reply_to_message_id.is_valid()) {
@@ -20820,7 +20832,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     if (need_copy) {
-      copied_messages.push_back({std::move(content), forwarded_message->disable_web_page_preview, i});
+      copied_messages.push_back({std::move(content), get_message_disable_web_page_preview(forwarded_message), i});
       continue;
     }
 

@@ -2169,6 +2169,8 @@ class MessagesManager : public Actor {
 
   void cancel_send_deleted_message(DialogId dialog_id, Message *m, bool is_permanently_deleted);
 
+  static bool get_message_disable_web_page_preview(const Message *m);
+
   static int32 get_message_flags(const Message *m);
 
   static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);

@@ -2512,7 +2512,7 @@ bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *c
   }
 }
 
-void has_message_content_web_page(const MessageContent *content) {
+bool has_message_content_web_page(const MessageContent *content) {
   if (content->get_type() == MessageContentType::Text) {
     return static_cast<const MessageText *>(content)->web_page_id.is_valid();
   }
