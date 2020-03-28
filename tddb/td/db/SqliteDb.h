@@ -80,6 +80,7 @@ class SqliteDb {
   explicit SqliteDb(std::shared_ptr<detail::RawSqliteDb> raw) : raw_(std::move(raw)) {
   }
   std::shared_ptr<detail::RawSqliteDb> raw_;
+  bool enable_logging_ = false;
 
   Status check_encryption();
 };
