@@ -3675,6 +3675,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl) {
+  if (!td->auth_manager_->is_authorized() && !G()->close_flag() && media != nullptr) {
+    LOG(ERROR) << "Receive without authorization " << to_string(media);
+    media = nullptr;
+  }
+
   int32 constructor_id = media == nullptr ? telegram_api::messageMediaEmpty::ID : media->get_id();
   switch (constructor_id) {
     case telegram_api::messageMediaEmpty::ID:

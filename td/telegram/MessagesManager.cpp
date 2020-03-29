@@ -5468,12 +5468,14 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     old_date = date;
   }
 
-  auto message_text =
-      get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_),
-                       skip_new_entities, date, false, "on_update_service_notification");
-  auto content = get_message_content(
-      td_, std::move(message_text), std::move(update->media_),
-      td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
+  bool is_authorized = td_->auth_manager_->is_authorized();
+  bool is_user = is_authorized && !td_->auth_manager_->is_bot();
+  auto contacts_manager = is_authorized ? td_->contacts_manager_.get() : nullptr;
+  auto message_text = get_message_text(contacts_manager, std::move(update->message_), std::move(update->entities_),
+                                       skip_new_entities, date, false, "on_update_service_notification");
+  DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
+  auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, false,
+                                     UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
@@ -5481,7 +5483,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
                  td_api::make_object<td_api::updateServiceNotification>(
                      update->type_, get_message_content_object(content.get(), td_, date, is_content_secret)));
   }
-  if (has_date && !td_->auth_manager_->is_bot()) {
+  if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
     CHECK(d != nullptr);
     auto dialog_id = d->dialog_id;

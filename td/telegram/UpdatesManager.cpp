@@ -638,10 +638,25 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
     LOG(INFO) << "Receive " << to_string(updates_ptr);
   }
   if (!td_->auth_manager_->is_authorized()) {
-    if (updates_type == telegram_api::updateShort::ID &&
-        static_cast<const telegram_api::updateShort *>(updates_ptr.get())->update_->get_id() ==
-            telegram_api::updateLoginToken::ID) {
-      return td_->auth_manager_->on_update_login_token();
+    if (updates_type == telegram_api::updateShort::ID && !G()->close_flag()) {
+      auto &update = static_cast<telegram_api::updateShort *>(updates_ptr.get())->update_;
+      auto update_id = update->get_id();
+      if (update_id == telegram_api::updateLoginToken::ID) {
+        return td_->auth_manager_->on_update_login_token();
+      }
+
+      switch (update_id) {
+        case telegram_api::updateServiceNotification::ID:
+        case telegram_api::updateDcOptions::ID:
+        case telegram_api::updateConfig::ID:
+        case telegram_api::updateLangPackTooLong::ID:
+        case telegram_api::updateLangPack::ID:
+          LOG(INFO) << "Apply without authorization " << to_string(updates_ptr);
+          downcast_call(*update, OnUpdate(this, update, false));
+          return;
+        default:
+          break;
+      }
     }
     LOG(INFO) << "Ignore received before authorization or after logout " << to_string(updates_ptr);
     return;
