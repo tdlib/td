@@ -6046,7 +6046,7 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageCon
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return false;
     default:
       UNREACHABLE();
@@ -8521,7 +8521,7 @@ bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) c
   }
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (G()->unix_time_cached() < m->date + 86400 && m->content->get_type() == MessageContentType::Die &&
+      if (G()->unix_time_cached() < m->date + 86400 && m->content->get_type() == MessageContentType::Dice &&
           dialog_id != get_my_dialog_id()) {
         return false;
       }
@@ -17987,7 +17987,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       if (content_type == MessageContentType::Poll) {
         return Status::Error(400, "Polls can't be sent to secret chats");
       }
-      if (content_type == MessageContentType::Die) {
+      if (content_type == MessageContentType::Dice) {
         return Status::Error(400, "Dice can't be sent to secret chats");
       }
       break;
@@ -18012,7 +18012,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
         return Status::Error(400, "Not enough rights to send contacts to the chat");
       }
       break;
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       if (!can_send_messages) {
         return Status::Error(400, "Not enough rights to send dice to the chat");
       }
@@ -19533,7 +19533,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       return !get_message_content_poll_is_closed(td_, m->content.get());
     }
     case MessageContentType::Contact:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
     case MessageContentType::Location:
     case MessageContentType::Sticker:
     case MessageContentType::Venue:
@@ -20866,7 +20866,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         forward_info->from_dialog_id = saved_from_dialog_id;
         forward_info->from_message_id = saved_from_message_id;
       } else {
-        if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Die) {
+        if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Dice) {
           if (forwarded_message->is_channel_post) {
             if (is_broadcast_channel(from_dialog_id)) {
               auto author_signature = forwarded_message->sender_user_id.is_valid()
@@ -21261,8 +21261,8 @@ Result<MessageId> MessagesManager::add_local_message(
   if (message_content.content->get_type() == MessageContentType::Game) {
     return Status::Error(400, "Can't add local game message");
   }
-  if (message_content.content->get_type() == MessageContentType::Die) {
-    return Status::Error(400, "Can't add local die message");
+  if (message_content.content->get_type() == MessageContentType::Dice) {
+    return Status::Error(400, "Can't add local dice message");
   }
 
   bool is_channel_post = is_broadcast_channel(dialog_id);

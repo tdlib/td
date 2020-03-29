@@ -643,16 +643,16 @@ class MessagePoll : public MessageContent {
   }
 };
 
-class MessageDie : public MessageContent {
+class MessageDice : public MessageContent {
  public:
-  int32 die_value = 0;
+  int32 dice_value = 0;
 
-  MessageDie() = default;
-  explicit MessageDie(int32 die_value) : die_value(die_value) {
+  MessageDice() = default;
+  explicit MessageDice(int32 dice_value) : dice_value(dice_value) {
   }
 
   MessageContentType get_type() const override {
-    return MessageContentType::Die;
+    return MessageContentType::Dice;
   }
 };
 
@@ -913,9 +913,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->poll_id, storer);
       break;
     }
-    case MessageContentType::Die: {
-      auto m = static_cast<const MessageDie *>(content);
-      store(m->die_value, storer);
+    case MessageContentType::Dice: {
+      auto m = static_cast<const MessageDice *>(content);
+      store(m->dice_value, storer);
       break;
     }
     default:
@@ -1260,10 +1260,10 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::Die: {
-      auto m = make_unique<MessageDie>();
-      parse(m->die_value, parser);
-      is_bad = m->die_value < 0 || m->die_value > 6;
+    case MessageContentType::Dice: {
+      auto m = make_unique<MessageDice>();
+      parse(m->dice_value, parser);
+      is_bad = m->dice_value < 0 || m->dice_value > 6;
       content = std::move(m);
       break;
     }
@@ -1475,8 +1475,8 @@ static Result<InputMessageContent> create_input_message_content(
       content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;
     }
-    case td_api::inputMessageDie::ID:
-      content = make_unique<MessageDie>();
+    case td_api::inputMessageDice::ID:
+      content = make_unique<MessageDice>();
       break;
     case td_api::inputMessageDocument::ID:
       td->documents_manager_->create_document(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
@@ -1931,7 +1931,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Contact:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
     case MessageContentType::Document:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
@@ -2010,7 +2010,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
       return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
     }
     case MessageContentType::Call:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
@@ -2143,7 +2143,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       auto m = static_cast<const MessageContact *>(content);
       return m->contact.get_input_media_contact();
     }
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return make_tl_object<telegram_api::inputMediaDice>();
     case MessageContentType::Document: {
       auto m = static_cast<const MessageDocument *>(content);
@@ -2300,7 +2300,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
       return td->video_notes_manager_->delete_video_note_thumbnail(m->file_id);
     }
     case MessageContentType::Contact:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
@@ -2469,7 +2469,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return 0;
     default:
       UNREACHABLE();
@@ -3073,10 +3073,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
-    case MessageContentType::Die: {
-      auto old_ = static_cast<const MessageDie *>(old_content);
-      auto new_ = static_cast<const MessageDie *>(new_content);
-      if (old_->die_value != new_->die_value) {
+    case MessageContentType::Dice: {
+      auto old_ = static_cast<const MessageDice *>(old_content);
+      auto new_ = static_cast<const MessageDice *>(new_content);
+      if (old_->dice_value != new_->dice_value) {
         need_update = true;
       }
       break;
@@ -3212,7 +3212,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -3706,8 +3706,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaDice::ID: {
       auto message_dice = move_tl_object_as<telegram_api::messageMediaDice>(media);
 
-      auto m = make_unique<MessageDie>(message_dice->value_);
-      if (m->die_value < 0 || m->die_value > 6) {
+      auto m = make_unique<MessageDice>(message_dice->value_);
+      if (m->dice_value < 0 || m->dice_value > 6) {
         break;
       }
 
@@ -3895,11 +3895,11 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     }
     case MessageContentType::Contact:
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       if (type != MessageContentDupType::Forward) {
-        return make_unique<MessageDie>();
+        return make_unique<MessageDice>();
       } else {
-        return make_unique<MessageDie>(*static_cast<const MessageDie *>(content));
+        return make_unique<MessageDice>(*static_cast<const MessageDice *>(content));
       }
     case MessageContentType::Document: {
       auto result = make_unique<MessageDocument>(*static_cast<const MessageDocument *>(content));
@@ -4430,9 +4430,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const MessagePoll *m = static_cast<const MessagePoll *>(content);
       return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id));
     }
-    case MessageContentType::Die: {
-      const MessageDie *m = static_cast<const MessageDie *>(content);
-      return make_tl_object<td_api::messageDie>(m->die_value);
+    case MessageContentType::Dice: {
+      const MessageDice *m = static_cast<const MessageDice *>(content);
+      return make_tl_object<td_api::messageDice>(m->dice_value);
     }
     default:
       UNREACHABLE();
@@ -4726,7 +4726,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return string();
     default:
       UNREACHABLE();
@@ -4918,7 +4918,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::Poll:
       // no need to add poll dependencies, because they are forcely loaded with the poll
       break;
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       break;
     default:
       UNREACHABLE();

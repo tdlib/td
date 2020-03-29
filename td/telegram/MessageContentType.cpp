@@ -94,8 +94,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "PassportDataReceived";
     case MessageContentType::Poll:
       return string_builder << "Poll";
-    case MessageContentType::Die:
-      return string_builder << "Die";
+    case MessageContentType::Dice:
+      return string_builder << "Dice";
     default:
       UNREACHABLE();
       return string_builder;
@@ -146,7 +146,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return false;
     default:
       UNREACHABLE();
@@ -201,7 +201,7 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return false;
     default:
       UNREACHABLE();
@@ -230,7 +230,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return false;
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -305,7 +305,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
-    case MessageContentType::Die:
+    case MessageContentType::Dice:
       return false;
     default:
       UNREACHABLE();
