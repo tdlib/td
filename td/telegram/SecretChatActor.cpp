@@ -894,9 +894,8 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
     parser.fetch_end();
     if (!parser.get_error()) {
       auto layer = message_with_layer->layer_;
-      if (layer < DEFAULT_LAYER && false /*TODO: fix android app bug? */) {
-        LOG(ERROR) << "All or nothing, " << tag("layer", layer) << " is not supported, drop message "
-                   << to_string(message_with_layer);
+      if (layer < DEFAULT_LAYER && false /* Android app can send such messages */) {
+        LOG(ERROR) << "Layer " << layer << " is not supported, drop message " << to_string(message_with_layer);
         return Status::OK();
       }
       if (config_state_.his_layer < layer) {
@@ -916,7 +915,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
       status = Status::Error(PSLICE() << parser.get_error() << format::as_hex_dump<4>(data_buffer.as_slice()));
     }
   } else {
-    status = Status::Error(PSLICE() << "Unknown constructor " << tag("ID", format::as_hex(id)));
+    status = Status::Error(PSLICE() << "Unknown constructor " << format::as_hex(id));
   }
 
   // support for older layer
