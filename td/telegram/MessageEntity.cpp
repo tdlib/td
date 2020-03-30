@@ -3760,7 +3760,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     result.resize(last_non_whitespace_pos + 1);
     while (!entities.empty() && entities.back().offset > last_non_whitespace_utf16_offset) {
       CHECK(entities.back().type == MessageEntity::Type::TextUrl ||
-            entities.back().type == MessageEntity::Type::MentionName);
+            entities.back().type == MessageEntity::Type::MentionName || is_pre_entity(entities.back().type));
       entities.pop_back();
     }
     bool need_sort = false;
