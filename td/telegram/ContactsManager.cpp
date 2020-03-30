@@ -9641,19 +9641,11 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
 
 bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &status, const string &source) {
   LOG(INFO) << "Receive " << status << " in " << channel_id << " from " << source;
-  if (status.code() == 401) {
-    // authorization is lost
-    return true;
-  }
-  if (status.code() == 420 || status.code() == 429) {
-    // flood wait
-    return true;
-  }
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;
   }
-  if (G()->close_flag()) {
+  if (G()->is_expected_error(status)) {
     return true;
   }
   if (status.message() == "CHANNEL_PRIVATE" || status.message() == "CHANNEL_PUBLIC_GROUP_NA") {
@@ -9675,7 +9667,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
     auto debug_channel_object = oneline(to_string(get_supergroup_object(channel_id, c)));
     if (c->status.is_member()) {
       LOG(INFO) << "Emulate leaving " << channel_id;
-      // TODO we also may try to write to public channel
+      // TODO we also may try to write to a public channel
       int32 flags = 0;
       if (c->is_megagroup) {
         flags |= CHANNEL_FLAG_IS_MEGAGROUP;

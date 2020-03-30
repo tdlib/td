@@ -343,6 +343,19 @@ class Global : public ActorContext {
     return close_flag_.load();
   }
 
+  bool is_expected_error(const Status &error) const {
+    CHECK(error.is_error());
+    if (error.code() == 401) {
+      // authorization is lost
+      return true;
+    }
+    if (error.code() == 420 || error.code() == 429) {
+      // flood wait
+      return true;
+    }
+    return close_flag();
+  }
+
   const std::vector<std::shared_ptr<NetStatsCallback>> &get_net_stats_file_callbacks() {
     return net_stats_file_callbacks_;
   }

@@ -21413,19 +21413,11 @@ bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledS
 }
 
 bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const string &source) {
-  if (status.code() == 401) {
-    // authorization is lost
-    return true;
-  }
-  if (status.code() == 420 || status.code() == 429) {
-    // flood wait
-    return true;
-  }
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;
   }
-  if (G()->close_flag()) {
+  if (G()->is_expected_error(status)) {
     return true;
   }
 
