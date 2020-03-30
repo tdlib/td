@@ -133,7 +133,9 @@ class GetAllDraftsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
+    }
     status.ignore();
   }
 };

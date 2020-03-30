@@ -170,7 +170,9 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "GetNearestDc returned " << status;
+    if (!G()->close_flag() && status.message() != "BOT_METHOD_INVALID") {
+      LOG(ERROR) << "GetNearestDc returned " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
