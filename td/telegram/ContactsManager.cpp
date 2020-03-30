@@ -3807,11 +3807,13 @@ const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
     return nullptr;
   }
 
-  auto it = pending_user_photos_.find(user_id);
-  if (it != pending_user_photos_.end()) {
-    do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
-    pending_user_photos_.erase(it);
-    update_user(u, user_id);
+  if (!u->is_photo_inited) {
+    auto it = pending_user_photos_.find(user_id);
+    if (it != pending_user_photos_.end()) {
+      do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
+      pending_user_photos_.erase(it);
+      update_user(u, user_id);
+    }
   }
   return &u->photo;
 }
@@ -11460,6 +11462,8 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     promise.set_error(Status::Error(6, "User not found"));
     return result;
   }
+
+  get_user_dialog_photo(user_id);  // apply pending user photo
 
   auto user_photos = &user_photos_[user_id];
   if (user_photos->getting_now) {
