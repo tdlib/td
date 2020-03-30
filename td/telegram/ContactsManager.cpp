@@ -10528,8 +10528,8 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
                                  : DialogParticipantStatus::Member();
   if (version > c->version) {
     if (version != c->version + 1) {
-      LOG(ERROR) << "Administrators of " << chat_id << " with version " << c->version
-                 << " has changed but new version is " << version;
+      LOG(INFO) << "Administrators of " << chat_id << " with version " << c->version
+                << " has changed, but new version is " << version;
       repair_chat_participants(chat_id);
       return;
     }
@@ -10675,8 +10675,8 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
     // this should be unreachable, because version and default permissions must be already updated from
     // the chat object in on_chat_update
     if (version != c->version + 1) {
-      LOG(WARNING) << "Default permissions of " << chat_id << " with version " << c->version
-                   << " has changed but new version is " << version;
+      LOG(INFO) << "Default permissions of " << chat_id << " with version " << c->version
+                << " has changed, but new version is " << version;
       repair_chat_participants(chat_id);
       return;
     }
@@ -10731,8 +10731,8 @@ void ContactsManager::on_update_chat_pinned_message(ChatId chat_id, MessageId pi
 
   if (version >= c->pinned_message_version) {
     if (version != c->version + 1 && version != c->version) {
-      LOG(WARNING) << "Pinned message of " << chat_id << " with version " << c->version
-                   << " has changed but new version is " << version;
+      LOG(INFO) << "Pinned message of " << chat_id << " with version " << c->version
+                << " has changed, but new version is " << version;
       repair_chat_participants(chat_id);
     } else if (version == c->version + 1) {
       c->version = version;
@@ -10859,8 +10859,8 @@ bool ContactsManager::on_update_chat_full_participants_short(ChatFull *chat_full
     return true;
   }
 
-  LOG(ERROR) << "Member count of " << chat_id << " with version " << chat_full->version
-             << " has changed but new version is " << version;
+  LOG(INFO) << "Member count of " << chat_id << " with version " << chat_full->version
+            << " has changed, but new version is " << version;
   repair_chat_participants(chat_id);
   return false;
 }
