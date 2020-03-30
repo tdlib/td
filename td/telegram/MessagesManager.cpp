@@ -12800,7 +12800,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
           set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
           if (d->last_database_message_id < d->first_database_message_id) {
             LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
-                       << d->first_database_message_id << " in " << d->dialog_id;
+                       << d->first_database_message_id << " after deletion of " << full_message_id;
             set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
           }
         } else {
