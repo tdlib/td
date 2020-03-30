@@ -27425,7 +27425,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         // MessageGame and MessageInvoice reply markup can be generated server side
         // some forwards retain their reply markup
         if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice &&
-            old_message->forward_info == nullptr && !replace_legacy) {
+            need_message_changed_warning(old_message) && !replace_legacy) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup
                      << ", message content type is " << old_message->content->get_type() << '/'
                      << new_message->content->get_type();
@@ -27447,16 +27447,19 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           old_message->had_reply_markup = false;
           old_message->reply_markup = std::move(new_message->reply_markup);
           need_send_update = true;
-        } else {
+        } else if (need_message_changed_warning(old_message)) {
           LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
               << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
               << " to " << *new_message->reply_markup;
         }
-      } else if (is_new_available) {  // if the message is not accessible anymore, then we don't need a warning
-        LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
-                   << " has lost reply markup " << *old_message->reply_markup
-                   << ". Old message: " << to_string(get_message_object(dialog_id, old_message))
-                   << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+      } else {
+        // if the message is not accessible anymore, then we don't need a warning
+        if (need_message_changed_warning(old_message) && is_new_available) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
+                     << " has lost reply markup " << *old_message->reply_markup
+                     << ". Old message: " << to_string(get_message_object(dialog_id, old_message))
+                     << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+        }
       }
     }
   }
@@ -27497,7 +27500,8 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     return false;
   }
   if (old_message->message_id.is_yet_unsent() &&
-      (old_message->forward_info != nullptr || old_message->had_forward_info)) {
+      (old_message->forward_info != nullptr || old_message->had_forward_info ||
+       old_message->real_forward_from_dialog_id.is_valid())) {
     // original message may be edited
     return false;
   }
