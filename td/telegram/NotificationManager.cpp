@@ -86,7 +86,7 @@ class SetContactSignUpNotificationQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for set contact sign up notification: " << status;
     }
     promise_.set_error(std::move(status));
@@ -115,7 +115,7 @@ class GetContactSignUpNotificationQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag() || 1) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get contact sign up notification: " << status;
     }
     promise_.set_error(std::move(status));

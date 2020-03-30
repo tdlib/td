@@ -418,7 +418,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
     info.state = TokenInfo::State::Sync;
   } else {
     if (r_flag.is_error()) {
-      if (!G()->close_flag()) {
+      if (!G()->is_expected_error(r_flag.error())) {
         LOG(ERROR) << "Failed to " << info.state << " device: " << r_flag.error();
       }
       info.promise.set_error(r_flag.move_as_error());

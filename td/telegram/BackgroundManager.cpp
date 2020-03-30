@@ -197,7 +197,7 @@ class SaveBackgroundQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save background: " << status;
     }
     promise_.set_error(std::move(status));
@@ -227,7 +227,7 @@ class ResetBackgroundsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for reset backgrounds: " << status;
     }
     promise_.set_error(std::move(status));

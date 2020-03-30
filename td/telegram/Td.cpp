@@ -170,7 +170,7 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag() && status.message() != "BOT_METHOD_INVALID") {
+    if (!G()->is_expected_error(status) && status.message() != "BOT_METHOD_INVALID") {
       LOG(ERROR) << "GetNearestDc returned " << status;
     }
     promise_.set_error(std::move(status));
@@ -347,7 +347,7 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(WARNING) << "Receive error for SetBotUpdatesStatus: " << status;
     }
     status.ignore();
@@ -378,7 +378,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() != NetQuery::Cancelled && !G()->close_flag()) {
+    if (status.code() != NetQuery::Cancelled && !G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for UpdateStatusQuery: " << status;
     }
     status.ignore();

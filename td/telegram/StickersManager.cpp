@@ -82,7 +82,7 @@ class GetAllStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get all stickers: " << status;
     }
     td->stickers_manager_->on_get_installed_sticker_sets_failed(is_masks_, std::move(status));
@@ -110,7 +110,7 @@ class SearchStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search stickers: " << status;
     }
     td->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
@@ -370,7 +370,7 @@ class GetRecentStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
     td->stickers_manager_->on_get_recent_stickers_failed(is_repair_, is_attached_, std::move(status));
@@ -438,7 +438,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
       return;
     }
 
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << status;
     }
     td->stickers_manager_->reload_recent_stickers(is_attached_, true);
@@ -482,7 +482,7 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
     td->stickers_manager_->reload_recent_stickers(is_attached_, true);
@@ -511,7 +511,7 @@ class GetFavedStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get favorite stickers: " << status;
     }
     td->stickers_manager_->on_get_favorite_stickers_failed(is_repair_, std::move(status));
@@ -571,7 +571,7 @@ class FaveStickerQuery : public Td::ResultHandler {
       return;
     }
 
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for fave sticker: " << status;
     }
     td->stickers_manager_->reload_favorite_stickers(true);
@@ -606,10 +606,10 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
-      td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
     }
+    td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
   }
 };
 
@@ -722,7 +722,7 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search sticker sets: " << status;
     }
     td->stickers_manager_->on_find_sticker_sets_fail(query_, std::move(status));
@@ -816,7 +816,7 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
     }
     td->stickers_manager_->reload_featured_sticker_sets(true);
@@ -5194,7 +5194,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
   load_language_codes_queries_.erase(queries_it);
 
   if (result.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsLanguageQuery";
     }
     for (auto &promise : promises) {
@@ -5298,7 +5298,7 @@ void StickersManager::on_get_emoji_keywords(
   load_emoji_keywords_queries_.erase(it);
 
   if (result.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsQuery";
     }
     for (auto &promise : promises) {
@@ -5380,7 +5380,7 @@ void StickersManager::on_get_emoji_keywords_difference(
     const string &language_code, int32 from_version,
     Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
   if (result.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsDifferenceQuery";
     }
     emoji_language_code_last_difference_times_[language_code] = Time::now_cached() - EMOJI_KEYWORDS_UPDATE_DELAY - 2;

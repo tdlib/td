@@ -485,7 +485,7 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for getContactsStatuses: " << status;
     }
   }

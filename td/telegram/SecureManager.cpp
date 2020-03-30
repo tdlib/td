@@ -178,7 +178,7 @@ void GetSecureValue::on_error(Status error) {
 
 void GetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
   if (r_secret.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(r_secret.error())) {
       LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
     }
     return on_error(r_secret.move_as_error());
@@ -257,7 +257,7 @@ void GetAllSecureValues::on_error(Status error) {
 
 void GetAllSecureValues::on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
   if (r_secret.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(r_secret.error())) {
       LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
     }
     return on_error(r_secret.move_as_error());
@@ -393,7 +393,7 @@ void SetSecureValue::on_error(Status error) {
 
 void SetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool x) {
   if (r_secret.is_error()) {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(r_secret.error())) {
       LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
     }
     return on_error(r_secret.move_as_error());
@@ -1061,7 +1061,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
 
   if (r_secret.is_error()) {
     auto error = r_secret.move_as_error();
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(error)) {
       LOG(ERROR) << "Receive error instead of secret: " << error;
     }
     if (error.code() <= 0) {

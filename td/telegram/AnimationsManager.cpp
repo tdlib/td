@@ -59,7 +59,7 @@ class GetSavedGifsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get saved animations: " << status;
     }
     td->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
@@ -118,7 +118,7 @@ class SaveGifQuery : public Td::ResultHandler {
       return;
     }
 
-    if (!G()->close_flag()) {
+    if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save GIF: " << status;
     }
     td->animations_manager_->reload_saved_animations(true);
