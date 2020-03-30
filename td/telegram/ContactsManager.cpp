@@ -8116,7 +8116,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
     add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
 
-    drop_user_photos(user_id, u->photo.id <= 0);
+    drop_user_photos(user_id, u->photo.id <= 0, "update_user");
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
@@ -8563,7 +8563,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   Photo photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
   if (photo.id == -2) {
-    drop_user_photos(user_id, true);
+    drop_user_photos(user_id, true, "on_get_user_full");
   }
   if (user_full->bot_info_ != nullptr) {
     if (on_update_bot_info(std::move(user_full->bot_info_), false)) {
@@ -9062,7 +9062,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
     pending_user_photos_[user_id] = std::move(photo);
 
-    drop_user_photos(user_id, is_empty);
+    drop_user_photos(user_id, is_empty, "on_update_user_photo");
     return;
   }
 
@@ -9341,7 +9341,7 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   UserId my_id = get_my_id();
 
-  drop_user_photos(my_id, false);
+  drop_user_photos(my_id, false, "on_delete_profile_photo");
 
   if (G()->close_flag()) {
     return promise.set_value(Unit());
@@ -9350,7 +9350,8 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   reload_user(my_id, std::move(promise));
 }
 
-void ContactsManager::drop_user_photos(UserId user_id, bool is_empty) {
+void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
+  LOG(WARNING) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end()) {
     auto user_photos = &it->second;
@@ -9365,7 +9366,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty) {
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
-  drop_user_photos(user_id, false);
+  drop_user_photos(user_id, false, "drop_user_full");
 
   bot_infos_.erase(user_id);
   if (G()->parameters().use_chat_info_db) {

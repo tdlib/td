@@ -1074,7 +1074,7 @@ class ContactsManager : public Actor {
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
-  void drop_user_photos(UserId user_id, bool is_empty);
+  void drop_user_photos(UserId user_id, bool is_empty, const char *source);
   void drop_user_full(UserId user_id);
 
   void on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error);
