@@ -13769,7 +13769,7 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
       td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), std::move(promise));
       return;
     case DialogType::Chat:
-      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), std::move(promise));
+      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), true, std::move(promise));
       return;
     case DialogType::Channel:
       td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), std::move(promise));

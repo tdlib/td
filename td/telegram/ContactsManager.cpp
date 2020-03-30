@@ -11664,7 +11664,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
   return false;
 }
 
-bool ContactsManager::get_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
+bool ContactsManager::get_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise) {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     promise.set_error(Status::Error(6, "Group not found"));
@@ -11680,7 +11680,7 @@ bool ContactsManager::get_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
 
   if (is_chat_full_outdated(chat_full, c, chat_id)) {
     LOG(INFO) << "Have outdated full " << chat_id;
-    if (td_->auth_manager_->is_bot()) {
+    if (td_->auth_manager_->is_bot() && !force) {
       send_get_chat_full_query(chat_id, std::move(promise), "get expired chat_full");
       return false;
     } else {
@@ -12149,7 +12149,7 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
   if (force) {
     promise.set_value(Unit());
-  } else if (!get_chat_full(chat_id, std::move(promise))) {
+  } else if (!get_chat_full(chat_id, force, std::move(promise))) {
     return DialogParticipant();
   }
   // promise is already set
@@ -12174,7 +12174,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
   if (force) {
     promise.set_value(Unit());
-  } else if (!get_chat_full(chat_id, std::move(promise))) {
+  } else if (!get_chat_full(chat_id, force, std::move(promise))) {
     return {};
   }
   // promise is already set
@@ -12492,7 +12492,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
 void ContactsManager::reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      get_chat_full(dialog_id.get_chat_id(), std::move(promise));
+      get_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
       break;
     case DialogType::Channel:
       td_->create_handler<GetChannelAdministratorsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), hash);
