@@ -973,6 +973,10 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, int32 limi
   if (static_cast<int32>(user_ids.size()) > limit) {
     user_ids.resize(limit);
   }
+  if (voters.next_offset.empty() && narrow_cast<int32>(voters.voter_user_ids.size()) != vote_list->count_) {
+    // invalidate_poll_option_voters(poll, poll_id, option_id);
+    voters.was_invalidated = true;
+  }
 
   for (auto &promise : promises) {
     promise.set_value({vote_list->count_, vector<UserId>(user_ids)});
