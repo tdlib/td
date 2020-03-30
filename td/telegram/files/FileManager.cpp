@@ -1394,9 +1394,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   if (x_node->remote_.full && y_node->remote_.full && !x_node->remote_.full.value().is_web() &&
       !y_node->remote_.full.value().is_web() && y_node->remote_.is_full_alive &&
+      x_node->remote_.full_source == FileLocationSource::FromServer &&
+      y_node->remote_.full_source == FileLocationSource::FromServer &&
       x_node->remote_.full.value().get_dc_id() != y_node->remote_.full.value().get_dc_id()) {
-    LOG(WARNING) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
-                 << x_node->remote_.full.value();
+    LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
+               << x_node->remote_.full.value();
   }
   auto count_local = [](auto &node) {
     return std::accumulate(node->file_ids_.begin(), node->file_ids_.end(), 0,
