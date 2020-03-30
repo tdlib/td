@@ -8613,6 +8613,8 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     return;
   }
 
+  LOG(WARNING) << "Receive " << photo_count << " photos of " << user_id << " out of " << total_count << " with offset "
+               << offset << " and limit " << limit;
   UserPhotos *user_photos = &user_photos_[user_id];
   user_photos->count = total_count;
   CHECK(user_photos->getting_now);
@@ -8633,9 +8635,11 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   for (auto &photo : photos) {
     auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId());
     if (user_photo.id == -2) {
-      LOG(ERROR) << "Have got empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
+      LOG(ERROR) << "Receive empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
                  << " and limit " << limit << ". Receive " << photo_count << " photos out of " << total_count
                  << " photos";
+      user_photos->count--;
+      CHECK(user_photos->count >= 0);
       continue;
     }
 
