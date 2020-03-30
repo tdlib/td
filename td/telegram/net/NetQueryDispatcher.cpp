@@ -297,8 +297,7 @@ NetQueryDispatcher::~NetQueryDispatcher() = default;
 
 void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
   auto msg = net_query->error().message();
-  static constexpr CSlice prefixes[] = {"PHONE_MIGRATE_", "NETWORK_MIGRATE_", "USER_MIGRATE_", "FILE_MIGRATE_",
-                                        "STATS_MIGRATE_"};
+  static constexpr CSlice prefixes[] = {"PHONE_MIGRATE_", "NETWORK_MIGRATE_", "USER_MIGRATE_"};
   for (auto &prefix : prefixes) {
     if (msg.substr(0, prefix.size()) == prefix) {
       int32 new_main_dc_id = to_integer<int32>(msg.substr(prefix.size()));
