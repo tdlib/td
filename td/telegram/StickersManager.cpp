@@ -2095,10 +2095,10 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       document_id_to_sticker_id.insert(sticker_id);
     }
   }
-  if (static_cast<int>(s->sticker_ids.size()) != s->sticker_count) {
+  if (static_cast<int32>(s->sticker_ids.size()) != s->sticker_count) {
     LOG(ERROR) << "Wrong sticker set size " << s->sticker_count << " instead of " << s->sticker_ids.size()
                << " specified in " << set_id << " from " << source;
-    s->sticker_count = static_cast<int>(s->sticker_ids.size());
+    s->sticker_count = static_cast<int32>(s->sticker_ids.size());
   }
 
   if (!is_bot) {

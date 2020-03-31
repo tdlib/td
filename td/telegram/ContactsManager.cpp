@@ -10606,7 +10606,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
         update_chat_online_member_count(chat_full, chat_id, false);
         update_chat_full(chat_full, chat_id);
 
-        if (static_cast<int>(chat_full->participants.size()) != c->participant_count) {
+        if (static_cast<int32>(chat_full->participants.size()) != c->participant_count) {
           repair_chat_participants(chat_id);
         }
         return;
