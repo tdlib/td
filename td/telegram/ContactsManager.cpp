@@ -8615,8 +8615,8 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     return;
   }
 
-  LOG(WARNING) << "Receive " << photo_count << " photos of " << user_id << " out of " << total_count << " with offset "
-               << offset << " and limit " << limit;
+  LOG(INFO) << "Receive " << photo_count << " photos of " << user_id << " out of " << total_count << " with offset "
+            << offset << " and limit " << limit;
   UserPhotos *user_photos = &user_photos_[user_id];
   user_photos->count = total_count;
   CHECK(user_photos->getting_now);
@@ -9351,7 +9351,7 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
-  LOG(WARNING) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
+  LOG(INFO) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end()) {
     auto user_photos = &it->second;
