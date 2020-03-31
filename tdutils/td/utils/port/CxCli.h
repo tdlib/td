@@ -9,7 +9,6 @@
 #include "td/utils/port/config.h"
 
 #include "td/utils/common.h"
-#undef small
 
 #if TD_WINRT
 
@@ -20,6 +19,8 @@
 #include <cstdint>
 #include <map>
 #include <mutex>
+
+#undef small
 
 #define REF_NEW ref new
 #define CLRCALL
@@ -89,6 +90,8 @@ inline String^ string_from_unmanaged(const std::string &from) {
 } // namespace CxCli
 
 #elif TD_CLI
+
+#undef small
 
 #define REF_NEW gcnew
 #define CLRCALL __clrcall
