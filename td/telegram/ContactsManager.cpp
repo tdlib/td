@@ -10963,13 +10963,13 @@ void ContactsManager::on_update_chat_pinned_message(ChatId chat_id, MessageId pi
 void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
                                                        const string &debug_str) {
   if (version <= -1) {
-    LOG(ERROR) << "Receive wrong version " << version << " in " << chat_id << " from " << debug_str;
+    LOG(ERROR) << "Receive wrong version " << version << " in " << chat_id << debug_str;
     return;
   }
 
   if (version < c->version) {
     // some outdated data
-    LOG(INFO) << "Receive member count of " << chat_id << " with version " << version << " from " << debug_str
+    LOG(INFO) << "Receive member count of " << chat_id << " with version " << version << debug_str
               << ", but current version is " << c->version;
     return;
   }
@@ -10979,7 +10979,7 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
       // version is not changed when deleted user is removed from the chat
       LOG_IF(ERROR, c->participant_count != participant_count + 1)
           << "Member count of " << chat_id << " has changed from " << c->participant_count << " to "
-          << participant_count << ", but version " << c->version << " remains unchanged in " << debug_str;
+          << participant_count << ", but version " << c->version << " remains unchanged" << debug_str;
       repair_chat_participants(chat_id);
     }
 
