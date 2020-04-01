@@ -17279,6 +17279,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   bool need_update = false;
   bool need_update_dialog_pos = false;
   bool added_new_message = false;
+  MessageId first_added_message_id;
   MessageId last_added_message_id;
   Message *next_message = nullptr;
   Dependencies dependencies;
@@ -17333,6 +17334,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
                              : add_message_to_dialog(d, std::move(message), false, &need_update,
                                                      &need_update_dialog_pos, "on_get_history_from_database");
     if (m != nullptr) {
+      first_added_message_id = m->message_id;
       if (!have_next) {
         last_added_message_id = m->message_id;
       }
@@ -17412,6 +17414,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
                    << " to " << next_message->message_id;
         set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database 6");
       }
+    }
+  }
+  if (first_added_message_id.is_valid() && first_added_message_id != d->first_database_message_id &&
+      last_received_message_id < d->first_database_message_id && d->last_new_message_id.is_valid() &&
+      !d->have_full_history) {
+    CHECK(first_added_message_id > d->first_database_message_id);
+    set_dialog_first_database_message_id(d, first_added_message_id, "on_get_history_from_database 10");
+    if (d->last_database_message_id < d->first_database_message_id) {
+      set_dialog_last_database_message_id(d, d->first_database_message_id, "on_get_history_from_database 11");
     }
   }
 
