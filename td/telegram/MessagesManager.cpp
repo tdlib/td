@@ -28131,6 +28131,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
+  if (is_loaded_from_database && d->order != order && order < get_dialog_order({}, MIN_PINNED_DIALOG_DATE - 1)) {
+    LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
+  }
 
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
@@ -28381,9 +28384,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   if (list.ordered_server_dialogs_.erase(old_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
   }
-  LOG_IF(ERROR, is_loaded_from_database && d->order != DEFAULT_ORDER)
-      << dialog_id << " has order " << new_order << " instead of saved to database order " << d->order
-      << " after loading from " << source;
 
   int64 updated_to = 0;
   if (new_date <= list.last_dialog_date_) {
