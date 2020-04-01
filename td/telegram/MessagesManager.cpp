@@ -17287,7 +17287,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   auto debug_first_database_message_id = d->first_database_message_id;
   auto debug_last_message_id = d->last_message_id;
   auto debug_last_new_message_id = d->last_new_message_id;
-  auto debug_cur_message_id = MessageId::max();
+  auto last_received_message_id = MessageId::max();
   size_t pos = 0;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
@@ -17301,14 +17301,14 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       break;
     }
-    if (message->message_id >= debug_cur_message_id) {
+    if (message->message_id >= last_received_message_id) {
       // TODO move to ERROR
-      LOG(FATAL) << "Receive " << message->message_id << " after " << debug_cur_message_id
+      LOG(FATAL) << "Receive " << message->message_id << " after " << last_received_message_id
                  << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
                  << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
       break;
     }
-    debug_cur_message_id = message->message_id;
+    last_received_message_id = message->message_id;
 
     if (message->message_id < d->first_database_message_id) {
       if (d->have_full_history) {
@@ -17344,7 +17344,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (next_message != nullptr && !next_message->have_previous) {
         LOG_CHECK(m->message_id < next_message->message_id)
-            << m->message_id << ' ' << next_message->message_id << ' ' << debug_cur_message_id << ' ' << dialog_id
+            << m->message_id << ' ' << next_message->message_id << ' ' << last_received_message_id << ' ' << dialog_id
             << ' ' << from_message_id << ' ' << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local
             << ' ' << messages.size() << ' ' << debug_first_database_message_id << ' ' << last_added_message_id << ' '
             << added_new_message << ' ' << pos << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
@@ -17366,6 +17366,13 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     pos++;
   }
   resolve_dependencies_force(td_, dependencies);
+
+  if (from_the_end && !last_added_message_id.is_valid() && last_received_message_id < d->first_database_message_id &&
+      !d->have_full_history) {
+    // failed to load from database a message from first_database_message_id to last_database_message_id; drop them
+    set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 8");
+    set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 9");
+  }
 
   if (!added_new_message && !only_local && dialog_id.get_type() != DialogType::SecretChat) {
     if (from_the_end) {
