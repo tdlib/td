@@ -13244,7 +13244,7 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
       continue;
     }
 
-    LOG(INFO) << "Chat " << d->dialog_id << " with order " << d->order << " is loaded from database";
+    LOG(INFO) << "Loaded from database " << d->dialog_id << " with order " << d->order;
   }
 
   DialogDate max_dialog_date(dialogs.next_order, dialogs.next_dialog_id);
@@ -17425,8 +17425,12 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
-  const int32 limit = MAX_GET_HISTORY;
+  int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
+    if (!promise) {
+      // repair last database message ID
+      limit = 10;
+    }
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database";
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
