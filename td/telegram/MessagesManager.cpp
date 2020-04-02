@@ -10380,17 +10380,10 @@ void MessagesManager::init() {
         LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
       } else {
         DialogId dialog_id(r_dialog_id.ok());
-        Dialog *d = get_dialog_force(dialog_id);
+
+        const Dialog *d = get_dialog_force(dialog_id);
         if (d != nullptr) {
-          sponsored_dialog_id_ = dialog_id;
-          if (is_dialog_sponsored(d)) {
-            send_update_chat_chat_list(d);
-            auto folder_id = FolderId::main();
-            auto &list = get_dialog_list(folder_id);
-            list.last_server_dialog_date_ = DialogDate(SPONSORED_DIALOG_ORDER, d->dialog_id);
-            update_last_dialog_date(folder_id);
-            send_update_chat_is_sponsored(d);
-          }
+          add_sponsored_dialog(d);
         } else {
           LOG(ERROR) << "Can't load " << dialog_id;
         }
@@ -30531,6 +30524,23 @@ void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Pee
   set_sponsored_dialog_id(DialogId(peer));
 }
 
+void MessagesManager::add_sponsored_dialog(const Dialog *d) {
+  CHECK(!sponsored_dialog_id_.is_valid());
+  sponsored_dialog_id_ = d->dialog_id;
+
+  if (is_dialog_sponsored(d)) {
+    send_update_chat_chat_list(d);
+    auto folder_id = FolderId::main();
+    auto &list = get_dialog_list(folder_id);
+    DialogDate max_dialog_date(SPONSORED_DIALOG_ORDER, d->dialog_id);
+    if (list.last_server_dialog_date_ < max_dialog_date) {
+      list.last_server_dialog_date_ = max_dialog_date;
+      update_last_dialog_date(folder_id);
+    }
+    send_update_chat_is_sponsored(d);
+  }
+}
+
 void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
   if (sponsored_dialog_id_ == dialog_id) {
     return;
@@ -30538,7 +30548,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
 
   bool need_update_total_chat_count = false;
   if (sponsored_dialog_id_.is_valid()) {
-    Dialog *d = get_dialog(sponsored_dialog_id_);
+    const Dialog *d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     bool is_sponsored = is_dialog_sponsored(d);
     sponsored_dialog_id_ = DialogId();
@@ -30551,21 +30561,11 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
 
   if (dialog_id.is_valid()) {
     force_create_dialog(dialog_id, "set_sponsored_dialog_id");
-
-    Dialog *d = get_dialog(dialog_id);
+    const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    sponsored_dialog_id_ = dialog_id;
+    add_sponsored_dialog(d);
     if (is_dialog_sponsored(d)) {
-      send_update_chat_chat_list(d);
-      auto folder_id = FolderId::main();
-      auto &list = get_dialog_list(folder_id);
-      DialogDate max_dialog_date(SPONSORED_DIALOG_ORDER, d->dialog_id);
-      if (list.last_server_dialog_date_ < max_dialog_date) {
-        list.last_server_dialog_date_ = max_dialog_date;
-        update_last_dialog_date(folder_id);
-      }
       need_update_total_chat_count = !need_update_total_chat_count;
-      send_update_chat_is_sponsored(d);
     }
   }
 

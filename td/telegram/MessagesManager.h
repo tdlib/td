@@ -2385,6 +2385,8 @@ class MessagesManager : public Actor {
                                     tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
+  void add_sponsored_dialog(const Dialog *d);
+
   void set_sponsored_dialog_id(DialogId dialog_id);
 
   static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
