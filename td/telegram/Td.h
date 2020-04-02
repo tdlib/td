@@ -887,6 +887,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getChatStatisticsUrl &request);
 
+  void on_request(uint64 id, td_api::getChatStatistics &request);
+
+  void on_request(uint64 id, td_api::getChatStatisticsGraph &request);
+
   void on_request(uint64 id, const td_api::getMapThumbnailFile &request);
 
   void on_request(uint64 id, const td_api::getLocalizationTargetInfo &request);

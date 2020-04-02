@@ -2660,6 +2660,126 @@ class GetSupportUserQuery : public Td::ResultHandler {
   }
 };
 
+static tl_object_ptr<td_api::ChatStatisticsGraph> convert_stats_graph(tl_object_ptr<telegram_api::StatsGraph> obj) {
+  CHECK(obj != nullptr);
+
+  switch (obj->get_id()) {
+    case telegram_api::statsGraphAsync::ID: {
+      auto graph = move_tl_object_as<telegram_api::statsGraphAsync>(obj);
+      return make_tl_object<td_api::chatStatisticsGraphAsync>(std::move(graph->token_));
+    }
+    case telegram_api::statsGraphError::ID: {
+      auto graph = move_tl_object_as<telegram_api::statsGraphError>(obj);
+      return make_tl_object<td_api::chatStatisticsGraphError>(std::move(graph->error_));
+    }
+    case telegram_api::statsGraph::ID: {
+      auto graph = move_tl_object_as<telegram_api::statsGraph>(obj);
+      return make_tl_object<td_api::chatStatisticsGraphData>(std::move(graph->json_->data_), std::move(graph->zoom_token_));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+static tl_object_ptr<td_api::chatStatistics> convert_stats_broadcast_stats(tl_object_ptr<telegram_api::stats_broadcastStats> obj) {
+  CHECK(obj != nullptr);
+
+  vector<tl_object_ptr<td_api::chatStatisticsMessageInteractionCounters>> recent_message_interactions;
+  recent_message_interactions.reserve(obj->recent_message_interactions_.size());
+  for (auto& interaction : obj->recent_message_interactions_) {
+    recent_message_interactions.push_back(
+      make_tl_object<td_api::chatStatisticsMessageInteractionCounters>(interaction->msg_id_, interaction->views_, interaction->forwards_));
+  }
+
+  return make_tl_object<td_api::chatStatistics>(
+      make_tl_object<td_api::chatStatisticsDateRange>(obj->period_->min_date_, obj->period_->max_date_),
+      make_tl_object<td_api::chatStatisticsAbsoluteValue>(obj->followers_->current_, obj->followers_->previous_),
+      make_tl_object<td_api::chatStatisticsAbsoluteValue>(obj->views_per_post_->current_, obj->views_per_post_->previous_),
+      make_tl_object<td_api::chatStatisticsAbsoluteValue>(obj->shares_per_post_->current_, obj->shares_per_post_->previous_),
+      make_tl_object<td_api::chatStatisticsRelativeValue>(obj->enabled_notifications_->part_, obj->enabled_notifications_->total_),
+      convert_stats_graph(std::move(obj->growth_graph_)),
+      convert_stats_graph(std::move(obj->followers_graph_)),
+      convert_stats_graph(std::move(obj->mute_graph_)),
+      convert_stats_graph(std::move(obj->top_hours_graph_)),
+      convert_stats_graph(std::move(obj->interactions_graph_)),
+      convert_stats_graph(std::move(obj->iv_interactions_graph_)),
+      convert_stats_graph(std::move(obj->views_by_source_graph_)),
+      convert_stats_graph(std::move(obj->new_followers_by_source_graph_)),
+      convert_stats_graph(std::move(obj->languages_graph_)),
+      std::move(recent_message_interactions)
+  );
+}
+
+class GetBroadcastStatsQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatStatistics>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetBroadcastStatsQuery(Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool is_dark, DcId dc_id) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::stats_getBroadcastStats::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getBroadcastStats(flags, false /*ignored*/, std::move(input_channel)), dc_id));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(convert_stats_broadcast_stats(std::move(result)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class LoadAyncGraphQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::ChatStatisticsGraph>> promise_;
+
+ public:
+  explicit LoadAyncGraphQuery(Promise<td_api::object_ptr<td_api::ChatStatisticsGraph>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string& token, int64 x) {
+    int32 flags = 0;
+    if (x != 0) {
+      flags |= telegram_api::stats_loadAsyncGraph::X_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_loadAsyncGraph(flags, token, x)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stats_loadAsyncGraph>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(convert_stats_graph(std::move(result)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 bool ContactsManager::UserFull::is_expired() const {
   return expires_at < Time::now();
 }
@@ -5569,6 +5689,41 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   }
 
   td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
+}
+
+void ContactsManager::get_broadcast_stats(DialogId dialog_id, bool is_dark,
+                                          Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+
+  const ChannelFull* c_full = get_channel_full(channel_id, "get_broadcast_stats");
+  if (c_full == nullptr) {
+      return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+
+  td_->create_handler<GetBroadcastStatsQuery>(std::move(promise))->send(channel_id, is_dark, c_full->stats_dc_id);
+}
+
+void ContactsManager::load_async_graph(const string& token, int64 x, Promise<td_api::object_ptr<td_api::ChatStatisticsGraph>> &&promise)
+{
+    td_->create_handler<LoadAyncGraphQuery>(std::move(promise))->send(token, x);
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
