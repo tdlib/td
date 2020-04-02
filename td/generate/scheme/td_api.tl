@@ -2785,8 +2785,8 @@ chatStatisticsRelativeValue part:double total:double = ChatStatisticsRelativeVal
 chatStatisticsGraphAsync token:string = ChatStatisticsGraph;
 
 //@description chatStatisticsGraphError
-//@error error
-chatStatisticsGraphError error:string = ChatStatisticsGraph;
+//@error_message error_message
+chatStatisticsGraphError error_message:string = ChatStatisticsGraph;
 
 //@description chatStatisticsGraphData
 //@json json
