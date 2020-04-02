@@ -357,6 +357,11 @@ class ContactsManager : public Actor {
 
   void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
+  void get_broadcast_stats(DialogId dialog_id, bool is_dark,
+                           Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise);
+
+  void load_async_graph(const string& token, int64 x, Promise<td_api::object_ptr<td_api::ChatStatisticsGraph>> &&promise);
+
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_channel_participant(ChannelId channel_id, UserId user_id, Promise<Unit> &&promise,

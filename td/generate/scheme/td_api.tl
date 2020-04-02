@@ -2762,6 +2762,53 @@ inputStickerStatic sticker:InputFile emojis:string mask_position:maskPosition = 
 inputStickerAnimated sticker:InputFile emojis:string = InputSticker;
 
 
+//@description chatStatisticsDateRange
+//@min_date min_date
+//@max_date max_date
+chatStatisticsDateRange min_date:int32 max_date:int32 = ChatStatisticsDateRange;
+
+//@description chatStatisticsAbsoluteValue
+//@current current
+//@previous previous
+chatStatisticsAbsoluteValue current:double previous:double = ChatStatisticsAbsoluteValue;
+
+//@description chatStatisticsRelativeValue
+//@part part
+//@total total
+chatStatisticsRelativeValue part:double total:double = ChatStatisticsRelativeValue;
+
+
+//@class ChatStatisticsGraph @description ChatStatisticsGraph
+
+//@description chatStatisticsGraphAsync
+//@token token
+chatStatisticsGraphAsync token:string = ChatStatisticsGraph;
+
+//@description chatStatisticsGraphError
+//@error error
+chatStatisticsGraphError error:string = ChatStatisticsGraph;
+
+//@description chatStatisticsGraphData
+//@json json
+//@zoom_token zoom_token
+chatStatisticsGraphData json:string zoom_token:string = ChatStatisticsGraph;
+
+
+//@description chatStatisticsMessageInteractionCounters
+//@message_id message_id
+//@views views
+//@forwards forwards
+chatStatisticsMessageInteractionCounters message_id:int32 views:int32 forwards:int32 = ChatStatisticsMessageInteractionCounters;
+
+
+//@description chatStatistics
+//@period period @followers followers @views_per_post views_per_post @shares_per_post shares_per_post @enabled_notifications enabled_notifications
+//@growth_graph growth_graph @followers_graph followers_graph @mute_graph mute_graph @top_hours_graph top_hours_graph @interactions_graph interactions_graph
+//@iv_interactions_graph iv_interactions_graph @views_by_source_graph views_by_source_graph @new_followers_by_source_graph new_followers_by_source_graph 
+//@languages_graph languages_graph @recent_message_interactions recent_message_interactions
+chatStatistics period:ChatStatisticsDateRange followers:ChatStatisticsAbsoluteValue views_per_post:ChatStatisticsAbsoluteValue shares_per_post:ChatStatisticsAbsoluteValue enabled_notifications:ChatStatisticsRelativeValue growth_graph:ChatStatisticsGraph followers_graph:ChatStatisticsGraph mute_graph:ChatStatisticsGraph top_hours_graph:ChatStatisticsGraph interactions_graph:ChatStatisticsGraph iv_interactions_graph:ChatStatisticsGraph views_by_source_graph:ChatStatisticsGraph new_followers_by_source_graph:ChatStatisticsGraph languages_graph:ChatStatisticsGraph recent_message_interactions:Vector<ChatStatisticsMessageInteractionCounters> = ChatStatistics;
+
+
 //@class Update @description Contains notifications about data changes
 
 //@description The user authorization state has changed @authorization_state New authorization state
@@ -4139,6 +4186,12 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics is disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
+
+//@description Retrieve specified channel statistics @chat_id supergroup id @is_dark is dark
+getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
+
+//@description Load async stats @token token @x zoom
+getChatStatisticsGraph token:string x:int53 = ChatStatisticsGraph;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
