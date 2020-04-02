@@ -748,7 +748,7 @@ class GetSupergroupFullInfoRequest : public RequestActor<> {
   ChannelId channel_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->get_channel_full(channel_id_, std::move(promise));
+    td->contacts_manager_->get_channel_full(channel_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {

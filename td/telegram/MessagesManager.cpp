@@ -9528,7 +9528,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
-  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Promise<Unit>());
+  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), false, Promise<Unit>());
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
@@ -13764,10 +13764,10 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
       td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), std::move(promise));
       return;
     case DialogType::Chat:
-      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), true, std::move(promise));
+      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
       return;
     case DialogType::Channel:
-      td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), std::move(promise));
+      td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), false, std::move(promise));
       return;
     case DialogType::SecretChat:
       return promise.set_value(Unit());

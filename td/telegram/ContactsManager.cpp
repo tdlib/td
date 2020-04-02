@@ -12185,7 +12185,7 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
   return channel_full_ptr.get();
 }
 
-bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&promise) {
+bool ContactsManager::get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
   auto channel_full = get_channel_full_force(channel_id);
   if (channel_full == nullptr) {
     auto input_channel = get_input_channel(channel_id);
@@ -12198,7 +12198,7 @@ bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&pro
     return false;
   }
   if (channel_full->is_expired()) {
-    if (td_->auth_manager_->is_bot()) {
+    if (td_->auth_manager_->is_bot() && !force) {
       auto input_channel = get_input_channel(channel_id);
       CHECK(input_channel != nullptr);
       send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), std::move(promise),

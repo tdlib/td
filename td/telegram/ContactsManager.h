@@ -453,7 +453,7 @@ class ContactsManager : public Actor {
   bool have_channel_force(ChannelId channel_id);
   bool get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise);
   void reload_channel(ChannelId chnanel_id, Promise<Unit> &&promise);
-  bool get_channel_full(ChannelId channel_id, Promise<Unit> &&promise);
+  bool get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise);
 
   bool is_channel_public(ChannelId channel_id) const;
 
