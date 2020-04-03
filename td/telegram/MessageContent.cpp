@@ -1771,10 +1771,15 @@ static Result<InputMessageContent> create_input_message_content(
           UNREACHABLE();
       }
 
+      int32 close_period = is_bot ? input_poll->close_period_ : 0;
+      int32 close_date = is_bot ? input_poll->close_date_ : 0;
+      if (close_period != 0) {
+        close_date = 0;
+      }
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
       content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
           std::move(input_poll->question_), std::move(input_poll->options_), input_poll->is_anonymous_,
-          allow_multiple_answers, is_quiz, correct_option_id, is_closed));
+          allow_multiple_answers, is_quiz, correct_option_id, close_date, close_period, is_closed));
       break;
     }
     default:

@@ -268,8 +268,9 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 
 //@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
-//@is_anonymous True, if the poll is anonymous @type Type of the poll @is_closed True, if the poll is closed
-poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int32> is_anonymous:Bool type:PollType is_closed:Bool = Poll;
+//@is_anonymous True, if the poll is anonymous @type Type of the poll
+//@close_date Point in time (Unix timestamp) when the poll will be automatically closed @close_period Amount of time the poll will be active after creation, in seconds @is_closed True, if the poll is closed
+poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int32> is_anonymous:Bool type:PollType close_date:int32 close_period:int32 is_closed:Bool = Poll;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
@@ -1592,8 +1593,11 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question, 1-255 characters @options List of poll answer options, 2-10 strings 1-100 characters each
-//@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll @is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType is_closed:Bool = InputMessageContent;
+//@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll
+//@close_date Point in time (Unix timestamp) when the poll will be automatically closed; for bots only
+//@close_period Amount of time the poll will be active after creation, in seconds; for bots only
+//@is_closed True, if the poll needs to be sent already closed; for bots only
+inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType close_date:int32 close_period:int32 is_closed:Bool = InputMessageContent;
 
 //@description A forwarded message @from_chat_id Identifier for the chat this forwarded message came from @message_id Identifier of the message to forward
 //@in_game_share True, if a game message should be shared within a launched game; applies only to game messages

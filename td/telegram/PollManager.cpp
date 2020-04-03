@@ -201,8 +201,8 @@ class StopPollActor : public NetActorOnce {
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>();
     poll->flags_ |= telegram_api::poll::CLOSED_MASK;
-    auto input_media =
-        telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll), vector<BufferSlice>());
+    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
+                                                                               vector<BufferSlice>(), string(), Auto());
     auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
@@ -536,10 +536,23 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers);
   }
 
+  auto close_date = poll->close_date;
+  auto close_period = poll->close_period;
+  if (close_period != 0 && close_date == 0) {
+    close_date = G()->unix_time() + close_period;
+  }
+  if (close_period == 0 && close_date != 0) {
+    auto now = G()->unix_time();
+    if (close_date < now + 5) {
+      close_date = 0;
+    } else {
+      close_period = close_date - now;
+    }
+  }
   return td_api::make_object<td_api::poll>(
       poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
       td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids, "get_poll_object"), poll->is_anonymous,
-      std::move(poll_type), poll->is_closed);
+      std::move(poll_type), close_date, close_period, poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -547,7 +560,8 @@ telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_o
 }
 
 PollId PollManager::create_poll(string &&question, vector<string> &&options, bool is_anonymous,
-                                bool allow_multiple_answers, bool is_quiz, int32 correct_option_id, bool is_closed) {
+                                bool allow_multiple_answers, bool is_quiz, int32 correct_option_id, int32 close_date,
+                                int32 close_period, bool is_closed) {
   auto poll = make_unique<Poll>();
   poll->question = std::move(question);
   int pos = '0';
@@ -561,6 +575,8 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
   poll->allow_multiple_answers = allow_multiple_answers;
   poll->is_quiz = is_quiz;
   poll->correct_option_id = correct_option_id;
+  poll->close_date = close_date;
+  poll->close_period = close_period;
   poll->is_closed = is_closed;
 
   PollId poll_id(--current_local_poll_id_);
@@ -1163,6 +1179,12 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   if (poll->is_quiz) {
     poll_flags |= telegram_api::poll::QUIZ_MASK;
   }
+  if (poll->close_date != 0) {
+    poll_flags |= telegram_api::poll::CLOSE_DATE_MASK;
+  }
+  if (poll->close_period != 0) {
+    poll_flags |= telegram_api::poll::CLOSE_PERIOD_MASK;
+  }
   if (poll->is_closed) {
     poll_flags |= telegram_api::poll::CLOSED_MASK;
   }
@@ -1177,10 +1199,10 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
-      telegram_api::make_object<telegram_api::poll>(0, poll_flags, false /*ignored*/, false /*ignored*/,
-                                                    false /*ignored*/, false /*ignored*/, poll->question,
-                                                    transform(poll->options, get_input_poll_option)),
-      std::move(correct_answers));
+      telegram_api::make_object<telegram_api::poll>(
+          0, poll_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, poll->question,
+          transform(poll->options, get_input_poll_option), poll->close_period, poll->close_date),
+      std::move(correct_answers), string(), Auto());
 }
 
 vector<PollManager::PollOption> PollManager::get_poll_options(
@@ -1245,6 +1267,21 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           is_changed = true;
         }
       }
+    }
+    int32 close_date = (poll_server->flags_ & telegram_api::poll::CLOSE_DATE_MASK) != 0 ? poll_server->close_date_ : 0;
+    int32 close_period =
+        (poll_server->flags_ & telegram_api::poll::CLOSE_PERIOD_MASK) != 0 ? poll_server->close_period_ : 0;
+    if (close_date == 0 || close_period == 0) {
+      close_date = 0;
+      close_period = 0;
+    }
+    if (close_date != poll->close_date) {
+      poll->close_date = close_date;
+      is_changed = true;
+    }
+    if (close_period != poll->close_period) {
+      poll->close_period = close_period;
+      is_changed = true;
     }
     bool is_closed = (poll_server->flags_ & telegram_api::poll::CLOSED_MASK) != 0;
     if (is_closed && !poll->is_closed) {

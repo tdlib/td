@@ -3232,7 +3232,7 @@ class CliClient final : public Actor {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), op != "spollp",
-                                                                          std::move(poll_type), false));
+                                                                          std::move(poll_type), 0, 0, false));
     } else if (op == "sp" || op == "spcaption" || op == "spttl") {
       string chat_id;
       string photo_path;
