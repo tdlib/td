@@ -3869,7 +3869,23 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(parameters, is_dark) = split(args);
 
-      send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(args), parameters, as_bool(is_dark)));
+      send_request(
+          td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(chat_id), parameters, as_bool(is_dark)));
+    } else if (op == "gcst") {
+      string chat_id;
+      string is_dark;
+      std::tie(chat_id, is_dark) = split(args);
+
+      send_request(td_api::make_object<td_api::getChatStatistics>(as_chat_id(chat_id), as_bool(is_dark)));
+    } else if (op == "gcstg") {
+      string chat_id;
+      string token;
+      string x;
+      std::tie(chat_id, args) = split(args);
+      std::tie(token, x) = split(args);
+
+      send_request(
+          td_api::make_object<td_api::getChatStatisticsGraph>(as_chat_id(chat_id), token, to_integer<int64>(x)));
     } else if (op == "glui" || op == "glu" || op == "glua") {
       string chat_id;
       string message_id;

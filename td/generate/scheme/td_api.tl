@@ -2734,7 +2734,7 @@ textParseModeHTML = TextParseMode;
 //@description A SOCKS5 proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
 proxyTypeSocks5 username:string password:string = ProxyType;
 
-//@description A HTTP transparent proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty @http_only Pass true, if the proxy supports only HTTP requests and doesn't support transparent TCP connections via HTTP CONNECT method
+//@description A HTTP transparent proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty @http_only Pass true if the proxy supports only HTTP requests and doesn't support transparent TCP connections via HTTP CONNECT method
 proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 
 //@description An MTProto proxy server @secret The proxy's secret in hexadecimal encoding
@@ -2762,51 +2762,50 @@ inputStickerStatic sticker:InputFile emojis:string mask_position:maskPosition = 
 inputStickerAnimated sticker:InputFile emojis:string = InputSticker;
 
 
-//@description chatStatisticsDateRange
-//@min_date min_date
-//@max_date max_date
-chatStatisticsDateRange min_date:int32 max_date:int32 = ChatStatisticsDateRange;
-
-//@description chatStatisticsAbsoluteValue
-//@current current
-//@previous previous
-chatStatisticsAbsoluteValue current:double previous:double = ChatStatisticsAbsoluteValue;
-
-//@description chatStatisticsRelativeValue
-//@part part
-//@total total
-chatStatisticsRelativeValue part:double total:double = ChatStatisticsRelativeValue;
+//@description Represents a date range @start_date Point in time (Unix timestamp) at which the date range begins @end_date Point in time (Unix timestamp) at which the date range ends
+dateRange start_date:int32 end_date:int32 = DateRange;
 
 
-//@class ChatStatisticsGraph @description ChatStatisticsGraph
-
-//@description chatStatisticsGraphAsync
-//@token token
-chatStatisticsGraphAsync token:string = ChatStatisticsGraph;
-
-//@description chatStatisticsGraphError
-//@error_message error_message
-chatStatisticsGraphError error_message:string = ChatStatisticsGraph;
-
-//@description chatStatisticsGraphData
-//@json json
-//@zoom_token zoom_token
-chatStatisticsGraphData json:string zoom_token:string = ChatStatisticsGraph;
+//@description A statistics value @value The value @previous_value The value for the previous day @growth_rate_percentage The growth rate of the value, as a percentage
+statisticsValue value:double previous_value:double growth_rate_percentage:double = StatisticsValue;
 
 
-//@description chatStatisticsMessageInteractionCounters
-//@message_id message_id
-//@views views
-//@forwards forwards
-chatStatisticsMessageInteractionCounters message_id:int32 views:int32 forwards:int32 = ChatStatisticsMessageInteractionCounters;
+//@class StatisticsGraph @description Descrbes a statistics graph
+
+//@description A graph data @json_data Graph data in JSON format @zoom_token If non-empty, a token which can be used to receive a zoomed in graph
+statisticsGraphData json_data:string zoom_token:string = StatisticsGraph;
+
+//@description The graph data to be asynchronously loaded through getChatStatisticsGraph @token The token to use for data loading
+statisticsGraphAsync token:string = StatisticsGraph;
+
+//@description An error message to be shown to the user instead of the graph @error_message The error message
+statisticsGraphError error_message:string = StatisticsGraph;
 
 
-//@description chatStatistics
-//@period period @followers followers @views_per_post views_per_post @shares_per_post shares_per_post @enabled_notifications enabled_notifications
-//@growth_graph growth_graph @followers_graph followers_graph @mute_graph mute_graph @top_hours_graph top_hours_graph @interactions_graph interactions_graph
-//@iv_interactions_graph iv_interactions_graph @views_by_source_graph views_by_source_graph @new_followers_by_source_graph new_followers_by_source_graph 
-//@languages_graph languages_graph @recent_message_interactions recent_message_interactions
-chatStatistics period:ChatStatisticsDateRange followers:ChatStatisticsAbsoluteValue views_per_post:ChatStatisticsAbsoluteValue shares_per_post:ChatStatisticsAbsoluteValue enabled_notifications:ChatStatisticsRelativeValue growth_graph:ChatStatisticsGraph followers_graph:ChatStatisticsGraph mute_graph:ChatStatisticsGraph top_hours_graph:ChatStatisticsGraph interactions_graph:ChatStatisticsGraph iv_interactions_graph:ChatStatisticsGraph views_by_source_graph:ChatStatisticsGraph new_followers_by_source_graph:ChatStatisticsGraph languages_graph:ChatStatisticsGraph recent_message_interactions:Vector<ChatStatisticsMessageInteractionCounters> = ChatStatistics;
+//@description Contains statistics about interactions with a message
+//@message_id Message identifier
+//@view_count Number of times the message was viewed
+//@forward_count Number of times the message was forwarded
+chatStatisticsMessageInteractionCounters message_id:int53 view_count:int32 forward_count:int32 = ChatStatisticsMessageInteractionCounters;
+
+
+//@description A detailed statistics about a chat
+//@period A period to which the statistics applies
+//@member_count Number of members in the chat
+//@mean_view_count Mean number of times the recently sent messages was viewed
+//@mean_share_count Mean number of times the recently sent messages was shared
+//@enabled_notifications_percentage A percentage of users with enabled notifications for the chat
+//@member_count_graph A graph containing number of members in the chat
+//@join_graph A graph containing number of members joined and left the chat
+//@mute_graph A graph containing number of members muted and unmuted the chat
+//@view_count_by_hour_graph A graph containing number of message views in a given hour in the last two weeks
+//@view_count_by_source_graph A graph containing number of message views per source
+//@join_by_source_graph A graph containing number of new member joins per source
+//@language_graph A graph containing number of users viewed chat messages per language
+//@message_interaction_graph A graph containing number of chat message views and shares
+//@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
+//@recent_message_interactions Detailed statistics about number of views and shares of recently sent messages
+chatStatistics period:dateRange member_count:statisticsValue mean_view_count:statisticsValue mean_share_count:statisticsValue enabled_notifications_percentage:double member_count_graph:StatisticsGraph join_graph:StatisticsGraph mute_graph:StatisticsGraph view_count_by_hour_graph:StatisticsGraph view_count_by_source_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_interaction_graph:StatisticsGraph instant_view_interaction_graph:StatisticsGraph recent_message_interactions:vector<chatStatisticsMessageInteractionCounters> = ChatStatistics;
 
 
 //@class Update @description Contains notifications about data changes
@@ -4187,11 +4186,11 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics is disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
-//@description Retrieve specified channel statistics @chat_id supergroup id @is_dark is dark
+//@description Returns detailed statistics about a chat. Currently this method can be used only for channels. Requires administrator rights in the channel @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the app
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Load async stats @token token @x zoom
-getChatStatisticsGraph token:string x:int53 = ChatStatisticsGraph;
+//@description Loads asynchronous or zoomed in chat statistics graph @chat_id Chat identifer @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
+getChatStatisticsGraph chat_id:int53 token:string x:int53 = StatisticsGraph;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
@@ -4211,7 +4210,7 @@ getDatabaseStatistics = DatabaseStatistics;
 //@file_types If not empty, only files with the given type(s) are considered. By default, all types except thumbnails, profile photos, stickers and wallpapers are deleted
 //@chat_ids If not empty, only files from the given chats are considered. Use 0 as chat identifier to delete files not belonging to any chat (e.g., profile photos)
 //@exclude_chat_ids If not empty, files from the given chats are excluded. Use 0 as chat identifier to exclude all files not belonging to any chat (e.g., profile photos)
-//@return_deleted_file_statistics Pass true, if deleted file statistics needs to be returned instead of the whole storage usage statistics. Affects only returned statistics
+//@return_deleted_file_statistics Pass true if deleted file statistics needs to be returned instead of the whole storage usage statistics. Affects only returned statistics
 //@chat_limit Same as in getStorageStatistics. Affects only returned statistics
 optimizeStorage size:int53 ttl:int32 count:int32 immunity_delay:int32 file_types:vector<FileType> chat_ids:vector<int53> exclude_chat_ids:vector<int53> return_deleted_file_statistics:Bool chat_limit:int32 = StorageStatistics;
 

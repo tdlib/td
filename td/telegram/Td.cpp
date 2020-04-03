@@ -6494,18 +6494,17 @@ void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {
                                                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getChatStatistics &request) {
+void Td::on_request(uint64 id, const td_api::getChatStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_broadcast_stats(DialogId(request.chat_id_), request.is_dark_,
-                                         std::move(promise));
+  contacts_manager_->get_channel_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatStatisticsGraph &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.token_);
-  contacts_manager_->load_async_graph(request.token_, request.x_, std::move(promise));
+  contacts_manager_->load_statistics_graph(DialogId(request.chat_id_), request.token_, request.x_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
