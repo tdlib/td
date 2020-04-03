@@ -1749,6 +1749,7 @@ static Result<InputMessageContent> create_input_message_content(
       bool allow_multiple_answers = false;
       bool is_quiz = false;
       int32 correct_option_id = -1;
+      FormattedText explanation;
       if (input_poll->type_ == nullptr) {
         return Status::Error(400, "Poll type must not be empty");
       }
@@ -1765,6 +1766,12 @@ static Result<InputMessageContent> create_input_message_content(
           if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
             return Status::Error(400, "Wrong correct option ID specified");
           }
+          auto r_explanation =
+              process_input_caption(td->contacts_manager_.get(), DialogId(), std::move(type->explanation_), is_bot);
+          if (r_explanation.is_error()) {
+            return r_explanation.move_as_error();
+          }
+          explanation = r_explanation.move_as_ok();
           break;
         }
         default:
@@ -1777,9 +1784,10 @@ static Result<InputMessageContent> create_input_message_content(
         close_date = 0;
       }
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
-      content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
-          std::move(input_poll->question_), std::move(input_poll->options_), input_poll->is_anonymous_,
-          allow_multiple_answers, is_quiz, correct_option_id, close_date, close_period, is_closed));
+      content = make_unique<MessagePoll>(
+          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->options_),
+                                         input_poll->is_anonymous_, allow_multiple_answers, is_quiz, correct_option_id,
+                                         std::move(explanation), close_date, close_period, is_closed));
       break;
     }
     default:

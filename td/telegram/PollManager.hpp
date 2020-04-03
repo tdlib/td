@@ -46,6 +46,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool has_recent_voters = !recent_voter_user_ids.empty();
   bool has_close_date = close_date != 0;
   bool has_close_period = close_period != 0;
+  bool has_explanation = !explanation.text.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed);
   STORE_FLAG(is_public);
@@ -54,6 +55,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_recent_voters);
   STORE_FLAG(has_close_date);
   STORE_FLAG(has_close_period);
+  STORE_FLAG(has_explanation);
   END_STORE_FLAGS();
 
   store(question, storer);
@@ -71,6 +73,9 @@ void PollManager::Poll::store(StorerT &storer) const {
   if (has_close_period) {
     store(close_period, storer);
   }
+  if (has_explanation) {
+    store(explanation, storer);
+  }
 }
 
 template <class ParserT>
@@ -80,6 +85,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool has_recent_voters;
   bool has_close_date;
   bool has_close_period;
+  bool has_explanation;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed);
   PARSE_FLAG(is_public);
@@ -88,6 +94,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_recent_voters);
   PARSE_FLAG(has_close_date);
   PARSE_FLAG(has_close_period);
+  PARSE_FLAG(has_explanation);
   END_PARSE_FLAGS();
   is_anonymous = !is_public;
 
@@ -109,6 +116,9 @@ void PollManager::Poll::parse(ParserT &parser) {
   if (has_close_period) {
     parse(close_period, parser);
   }
+  if (has_explanation) {
+    parse(explanation, parser);
+  }
 }
 
 template <class StorerT>
@@ -119,6 +129,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     CHECK(poll != nullptr);
     bool has_close_date = poll->close_date != 0;
     bool has_close_period = poll->close_period != 0;
+    bool has_explanation = !poll->explanation.text.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(poll->is_closed);
     STORE_FLAG(poll->is_anonymous);
@@ -126,6 +137,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(poll->is_quiz);
     STORE_FLAG(has_close_date);
     STORE_FLAG(has_close_period);
+    STORE_FLAG(has_explanation);
     END_STORE_FLAGS();
     store(poll->question, storer);
     vector<string> options = transform(poll->options, [](const PollOption &option) { return option.text; });
@@ -139,6 +151,9 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     if (has_close_period) {
       store(poll->close_period, storer);
     }
+    if (has_explanation) {
+      store(poll->explanation, storer);
+    }
   }
 }
 
@@ -150,6 +165,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
   if (is_local_poll_id(poll_id)) {
     string question;
     vector<string> options;
+    FormattedText explanation;
     int32 close_date = 0;
     int32 close_period = 0;
     bool is_closed = false;
@@ -158,6 +174,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     bool is_quiz = false;
     bool has_close_date = false;
     bool has_close_period = false;
+    bool has_explanation = false;
     int32 correct_option_id = -1;
 
     if (parser.version() >= static_cast<int32>(Version::SupportPolls2_0)) {
@@ -168,6 +185,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
       PARSE_FLAG(is_quiz);
       PARSE_FLAG(has_close_date);
       PARSE_FLAG(has_close_period);
+      PARSE_FLAG(has_explanation);
       END_PARSE_FLAGS();
     }
     parse(question, parser);
@@ -184,11 +202,14 @@ PollId PollManager::parse_poll(ParserT &parser) {
     if (has_close_period) {
       parse(close_period, parser);
     }
+    if (has_explanation) {
+      parse(explanation, parser);
+    }
     if (parser.get_error() != nullptr) {
       return PollId();
     }
     return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, is_quiz,
-                       correct_option_id, close_date, close_period, is_closed);
+                       correct_option_id, std::move(explanation), close_date, close_period, is_closed);
   }
 
   auto poll = get_poll_force(poll_id);

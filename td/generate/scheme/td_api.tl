@@ -216,8 +216,10 @@ pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is
 //@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
 pollTypeRegular allow_multiple_answers:Bool = PollType;
 
-//@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once @correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
-pollTypeQuiz correct_option_id:int32 = PollType;
+//@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once
+//@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
+//@explanation Text shown after an incorrect answer has chosen; empty for a yet unanswered poll
+pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation

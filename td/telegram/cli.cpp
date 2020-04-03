@@ -3227,7 +3227,8 @@ class CliClient final : public Actor {
 
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz") {
-        poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1));
+        poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),
+                                                              as_formatted_text("_te*st*_"));
       } else {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
       }

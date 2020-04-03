@@ -15,6 +15,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
@@ -531,7 +532,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   td_api::object_ptr<td_api::PollType> poll_type;
   if (poll->is_quiz) {
     auto correct_option_id = is_local_poll_id(poll_id) ? -1 : poll->correct_option_id;
-    poll_type = td_api::make_object<td_api::pollTypeQuiz>(correct_option_id);
+    poll_type = td_api::make_object<td_api::pollTypeQuiz>(
+        correct_option_id, get_formatted_text_object(is_local_poll_id(poll_id) ? FormattedText() : poll->explanation));
   } else {
     poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers);
   }
@@ -560,8 +562,8 @@ telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_o
 }
 
 PollId PollManager::create_poll(string &&question, vector<string> &&options, bool is_anonymous,
-                                bool allow_multiple_answers, bool is_quiz, int32 correct_option_id, int32 close_date,
-                                int32 close_period, bool is_closed) {
+                                bool allow_multiple_answers, bool is_quiz, int32 correct_option_id,
+                                FormattedText &&explanation, int32 close_date, int32 close_period, bool is_closed) {
   auto poll = make_unique<Poll>();
   poll->question = std::move(question);
   int pos = '0';
@@ -575,6 +577,7 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
   poll->allow_multiple_answers = allow_multiple_answers;
   poll->is_quiz = is_quiz;
   poll->correct_option_id = correct_option_id;
+  poll->explanation = std::move(explanation);
   poll->close_date = close_date;
   poll->close_period = close_period;
   poll->is_closed = is_closed;
@@ -1196,13 +1199,18 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
     CHECK(poll->correct_option_id >= 0);
     CHECK(static_cast<size_t>(poll->correct_option_id) < poll->options.size());
     correct_answers.push_back(BufferSlice(poll->options[poll->correct_option_id].data));
+
+    if (!poll->explanation.text.empty()) {
+      flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
+    }
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
       telegram_api::make_object<telegram_api::poll>(
           0, poll_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, poll->question,
           transform(poll->options, get_input_poll_option), poll->close_period, poll->close_date),
-      std::move(correct_answers), string(), Auto());
+      std::move(correct_answers), poll->explanation.text,
+      get_input_message_entities(td_->contacts_manager_.get(), poll->explanation.entities, "get_input_media_poll"));
 }
 
 vector<PollManager::PollOption> PollManager::get_poll_options(
@@ -1384,14 +1392,33 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->total_voter_count = max_total_voter_count;
     }
   }
+
+  auto entities =
+      get_message_entities(td_->contacts_manager_.get(), std::move(poll_results->solution_entities_), "on_get_poll");
+  auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, false);
+  if (status.is_error()) {
+    if (!clean_input_string(poll_results->solution_)) {
+      poll_results->solution_.clear();
+    }
+    entities = find_entities(poll_results->solution_, true);
+  }
+  FormattedText explanation{std::move(poll_results->solution_), std::move(entities)};
+
   if (poll->is_quiz) {
     if (poll->correct_option_id != correct_option_id) {
       poll->correct_option_id = correct_option_id;
       is_changed = true;
     }
-  } else if (correct_option_id != -1) {
-    LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
+    if (poll->explanation != explanation && (!is_min || poll->is_closed)) {
+      poll->explanation = std::move(explanation);
+      is_changed = true;
+    }
+  } else {
+    if (correct_option_id != -1) {
+      LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
+    }
   }
+
   vector<UserId> recent_voter_user_ids;
   if (!is_bot) {
     for (auto &user_id_int : poll_results->recent_voters_) {

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -45,7 +46,8 @@ class PollManager : public Actor {
   static bool is_local_poll_id(PollId poll_id);
 
   PollId create_poll(string &&question, vector<string> &&options, bool is_anonymous, bool allow_multiple_answers,
-                     bool is_quiz, int32 correct_option_id, int32 close_date, int32 close_period, bool is_closed);
+                     bool is_quiz, int32 correct_option_id, FormattedText &&explanation, int32 close_date,
+                     int32 close_period, bool is_closed);
 
   void register_poll(PollId poll_id, FullMessageId full_message_id, const char *source);
 
@@ -106,6 +108,7 @@ class PollManager : public Actor {
     string question;
     vector<PollOption> options;
     vector<UserId> recent_voter_user_ids;
+    FormattedText explanation;
     int32 total_voter_count = 0;
     int32 correct_option_id = -1;
     int32 close_date = 0;

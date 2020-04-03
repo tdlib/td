@@ -3899,6 +3899,9 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
 }
 
 bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+  if (!dialog_id.is_valid()) {
+    return true;
+  }
   if (is_bot) {
     return false;
   }
