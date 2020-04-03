@@ -18032,7 +18032,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       }
       break;
     case MessageContentType::Dice:
-      if (!can_send_messages) {
+      if (!can_send_stickers) {
         return Status::Error(400, "Not enough rights to send dice to the chat");
       }
       break;
