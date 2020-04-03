@@ -1767,7 +1767,7 @@ static Result<InputMessageContent> create_input_message_content(
             return Status::Error(400, "Wrong correct option ID specified");
           }
           auto r_explanation =
-              process_input_caption(td->contacts_manager_.get(), DialogId(), std::move(type->explanation_), is_bot);
+              process_input_caption(td->contacts_manager_.get(), dialog_id, std::move(type->explanation_), is_bot);
           if (r_explanation.is_error()) {
             return r_explanation.move_as_error();
           }
