@@ -314,6 +314,7 @@ string PollManager::get_poll_database_key(PollId poll_id) {
 
 void PollManager::save_poll(const Poll *poll, PollId poll_id) {
   CHECK(!is_local_poll_id(poll_id));
+  poll->was_saved = true;
 
   if (!G()->parameters().use_message_db) {
     return;
@@ -788,6 +789,10 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   auto promises = std::move(pending_answer.promises_);
   pending_answers_.erase(it);
 
+  auto poll = get_poll(poll_id);
+  if (poll != nullptr) {
+    poll->was_saved = false;
+  }
   if (result.is_ok()) {
     td_->updates_manager_->on_get_updates(result.move_as_ok());
 
@@ -798,6 +803,17 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
     for (auto &promise : promises) {
       promise.set_error(result.error().clone());
     }
+  }
+  if (poll != nullptr && !poll->was_saved) {
+    // no updates was sent during updates processing, so send them
+    // poll wasn't changed, so there is no reason to actually save it
+    if (!poll->is_closed) {
+      LOG(INFO) << "Schedule updating of " << poll_id << " soon";
+      update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
+    }
+
+    notify_on_poll_update(poll_id);
+    poll->was_saved = true;
   }
 }
 
