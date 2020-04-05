@@ -56,6 +56,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_open_period);
   STORE_FLAG(has_close_date);
   STORE_FLAG(has_explanation);
+  STORE_FLAG(is_updated_after_close);
   END_STORE_FLAGS();
 
   store(question, storer);
@@ -95,6 +96,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_open_period);
   PARSE_FLAG(has_close_date);
   PARSE_FLAG(has_explanation);
+  PARSE_FLAG(is_updated_after_close);
   END_PARSE_FLAGS();
   is_anonymous = !is_public;
 

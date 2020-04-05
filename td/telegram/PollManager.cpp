@@ -347,23 +347,23 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
 
   CHECK(!have_poll(poll_id));
   if (!value.empty()) {
-    auto result = make_unique<Poll>();
-    auto status = log_event_parse(*result, value);
+    auto poll = make_unique<Poll>();
+    auto status = log_event_parse(*poll, value);
     if (status.is_error()) {
       LOG(FATAL) << status << ": " << format::as_hex_dump<4>(Slice(value));
     }
-    for (auto &user_id : result->recent_voter_user_ids) {
+    for (auto &user_id : poll->recent_voter_user_ids) {
       td_->contacts_manager_->have_user_force(user_id);
     }
-    if (!result->is_closed && result->close_date != 0) {
-      if (result->close_date <= G()->server_time()) {
-        result->is_closed = true;
+    if (!poll->is_closed && poll->close_date != 0) {
+      if (poll->close_date <= G()->server_time()) {
+        poll->is_closed = true;
       } else {
         CHECK(!is_local_poll_id(poll_id));
-        close_poll_timeout_.set_timeout_in(poll_id.get(), result->close_date - G()->server_time() + 1e-3);
+        close_poll_timeout_.set_timeout_in(poll_id.get(), poll->close_date - G()->server_time() + 1e-3);
       }
     }
-    polls_[poll_id] = std::move(result);
+    polls_[poll_id] = std::move(poll);
   }
 }
 
@@ -623,7 +623,8 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
   LOG_CHECK(is_inserted) << source << " " << poll_id << " " << full_message_id;
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !poll->is_closed) {
+  if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) &&
+      !(poll->is_closed && poll->is_updated_after_close)) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
   }
 }
@@ -848,7 +849,7 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   if (poll != nullptr && !poll->was_saved) {
     // no updates was sent during updates processing, so send them
     // poll wasn't changed, so there is no reason to actually save it
-    if (!poll->is_closed) {
+    if (!(poll->is_closed && poll->is_updated_after_close)) {
       LOG(INFO) << "Schedule updating of " << poll_id << " soon";
       update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
     }
@@ -1123,7 +1124,9 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
   if (G()->close_flag()) {
     return;
   }
-  if (get_poll_is_closed(poll_id)) {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  if (poll->is_closed && poll->is_updated_after_close) {
     return;
   }
   if (pending_answers_.find(poll_id) != pending_answers_.end()) {
@@ -1165,6 +1168,10 @@ void PollManager::on_close_poll_timeout(PollId poll_id) {
     save_poll(poll, poll_id);
 
     // don't send updatePoll for bots, because there is no way to guarantee it
+
+    if (!td_->auth_manager_->is_bot()) {
+      update_poll_timeout_.set_timeout_in(poll_id.get(), 1.0);
+    }
   } else {
     close_poll_timeout_.set_timeout_in(poll_id.get(), poll->close_date - G()->server_time() + 1e-3);
   }
@@ -1172,8 +1179,10 @@ void PollManager::on_close_poll_timeout(PollId poll_id) {
 
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
                                       Result<tl_object_ptr<telegram_api::Updates>> result) {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
   if (result.is_error()) {
-    if (!get_poll_is_closed(poll_id) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
+    if (!(poll->is_closed && poll->is_updated_after_close) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
       auto timeout = get_polling_timeout();
       LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
       update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);
@@ -1185,7 +1194,7 @@ void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
   }
   if (generation != current_generation_) {
     LOG(INFO) << "Receive possibly outdated result of " << poll_id << ", reget it";
-    if (!get_poll_is_closed(poll_id) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
+    if (!(poll->is_closed && poll->is_updated_after_close) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
       update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
     }
     return;
@@ -1374,6 +1383,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->is_quiz = is_quiz;
       is_changed = true;
     }
+  }
+  if (poll->is_closed && !poll->is_updated_after_close) {
+    poll->is_updated_after_close = true;
+    is_changed = true;
   }
 
   CHECK(poll_results != nullptr);

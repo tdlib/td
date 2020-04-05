@@ -117,6 +117,7 @@ class PollManager : public Actor {
     bool allow_multiple_answers = false;
     bool is_quiz = false;
     bool is_closed = false;
+    bool is_updated_after_close = false;
     mutable bool was_saved = false;
 
     template <class StorerT>
