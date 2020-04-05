@@ -142,6 +142,8 @@ class PollManager : public Actor {
 
   static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
+  static void on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
+
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
   static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_option(const PollOption &poll_option);
@@ -167,6 +169,8 @@ class PollManager : public Actor {
   double get_polling_timeout() const;
 
   void on_update_poll_timeout(PollId poll_id);
+
+  void on_close_poll_timeout(PollId poll_id);
 
   void on_online();
 
@@ -194,6 +198,7 @@ class PollManager : public Actor {
                     uint64 logevent_id, Promise<Unit> &&promise);
 
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
+  MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

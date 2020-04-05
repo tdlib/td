@@ -237,6 +237,9 @@ class StopPollActor : public NetActorOnce {
 PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_poll_timeout_.set_callback(on_update_poll_timeout_callback);
   update_poll_timeout_.set_callback_data(static_cast<void *>(this));
+
+  close_poll_timeout_.set_callback(on_close_poll_timeout_callback);
+  close_poll_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void PollManager::start_up() {
@@ -270,6 +273,15 @@ void PollManager::on_update_poll_timeout_callback(void *poll_manager_ptr, int64 
 
   auto poll_manager = static_cast<PollManager *>(poll_manager_ptr);
   send_closure_later(poll_manager->actor_id(poll_manager), &PollManager::on_update_poll_timeout, PollId(poll_id_int));
+}
+
+void PollManager::on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto poll_manager = static_cast<PollManager *>(poll_manager_ptr);
+  send_closure_later(poll_manager->actor_id(poll_manager), &PollManager::on_close_poll_timeout, PollId(poll_id_int));
 }
 
 bool PollManager::is_local_poll_id(PollId poll_id) {
@@ -342,6 +354,14 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     }
     for (auto &user_id : result->recent_voter_user_ids) {
       td_->contacts_manager_->have_user_force(user_id);
+    }
+    if (!result->is_closed && result->close_date != 0) {
+      if (result->close_date <= G()->server_time()) {
+        result->is_closed = true;
+      } else {
+        CHECK(!is_local_poll_id(poll_id));
+        close_poll_timeout_.set_timeout_in(poll_id.get(), result->close_date - G()->server_time() + 1e-3);
+      }
     }
     polls_[poll_id] = std::move(result);
   }
@@ -601,7 +621,9 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
   LOG(INFO) << "Register " << poll_id << " from " << full_message_id << " from " << source;
   bool is_inserted = poll_messages_[poll_id].insert(full_message_id).second;
   LOG_CHECK(is_inserted) << source << " " << poll_id << " " << full_message_id;
-  if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !get_poll_is_closed(poll_id)) {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !poll->is_closed) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
   }
 }
@@ -1123,6 +1145,31 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
   td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, full_message_id);
 }
 
+void PollManager::on_close_poll_timeout(PollId poll_id) {
+  CHECK(!is_local_poll_id(poll_id));
+
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto poll = get_poll_editable(poll_id);
+  CHECK(poll != nullptr);
+  if (poll->is_closed || poll->close_date == 0) {
+    return;
+  }
+
+  LOG(INFO) << "Trying to close " << poll_id << " by timer";
+  if (poll->close_date <= G()->server_time()) {
+    poll->is_closed = true;
+    notify_on_poll_update(poll_id);
+    save_poll(poll, poll_id);
+
+    // don't send updatePoll for bots, because there is no way to guarantee it
+  } else {
+    close_poll_timeout_.set_timeout_in(poll_id.get(), poll->close_date - G()->server_time() + 1e-3);
+  }
+}
+
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
                                       Result<tl_object_ptr<telegram_api::Updates>> result) {
   if (result.is_error()) {
@@ -1276,6 +1323,11 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         }
       }
     }
+    bool is_closed = (poll_server->flags_ & telegram_api::poll::CLOSED_MASK) != 0;
+    if (is_closed && !poll->is_closed) {
+      poll->is_closed = is_closed;
+      is_changed = true;
+    }
     int32 open_period =
         (poll_server->flags_ & telegram_api::poll::CLOSE_PERIOD_MASK) != 0 ? poll_server->close_period_ : 0;
     int32 close_date = (poll_server->flags_ & telegram_api::poll::CLOSE_DATE_MASK) != 0 ? poll_server->close_date_ : 0;
@@ -1283,18 +1335,25 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       close_date = 0;
       open_period = 0;
     }
-    if (close_date != poll->close_date) {
-      poll->close_date = close_date;
-      is_changed = true;
-    }
     if (open_period != poll->open_period) {
       poll->open_period = open_period;
       is_changed = true;
     }
-    bool is_closed = (poll_server->flags_ & telegram_api::poll::CLOSED_MASK) != 0;
-    if (is_closed && !poll->is_closed) {
-      poll->is_closed = is_closed;
+    if (close_date != poll->close_date) {
+      poll->close_date = close_date;
       is_changed = true;
+
+      if (!poll->is_closed) {
+        if (close_date != 0) {
+          if (close_date <= G()->server_time()) {
+            poll->is_closed = true;
+          } else {
+            close_poll_timeout_.set_timeout_in(poll_id.get(), close_date - G()->server_time() + 1e-3);
+          }
+        } else {
+          close_poll_timeout_.cancel_timeout(poll_id.get());
+        }
+      }
     }
     bool is_anonymous = (poll_server->flags_ & telegram_api::poll::PUBLIC_VOTERS_MASK) == 0;
     if (is_anonymous != poll->is_anonymous) {
