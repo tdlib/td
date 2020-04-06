@@ -9562,16 +9562,19 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
-  LOG(INFO) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end()) {
     auto user_photos = &it->second;
-    user_photos->photos.clear();
-    if (is_empty) {
-      user_photos->count = 0;
-    } else {
-      user_photos->count = -1;
+    int32 new_count = is_empty ? 0 : -1;
+    if (user_photos->count == new_count) {
+      CHECK(user_photos->photos.empty());
+      CHECK(user_photos->offset == user_photos->count);
+      return;
     }
+
+    LOG(INFO) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
+    user_photos->photos.clear();
+    user_photos->count = new_count;
     user_photos->offset = user_photos->count;
   }
 }
