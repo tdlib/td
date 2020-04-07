@@ -569,6 +569,7 @@ class ImportContactsQuery : public Td::ResultHandler {
   vector<UserId> imported_user_ids_;
   vector<int32> unimported_contact_invites_;
   int64 random_id_;
+  size_t sent_size_ = 0;
 
  public:
   explicit ImportContactsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -595,6 +596,7 @@ class ImportContactsQuery : public Td::ResultHandler {
       contacts.push_back(input_contacts_[i].get_input_phone_contact(static_cast<int64>(i)));
     }
 
+    sent_size_ = size;
     send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
   }
 
@@ -632,6 +634,10 @@ class ImportContactsQuery : public Td::ResultHandler {
     }
 
     if (!ptr->retry_contacts_.empty()) {
+      if (sent_size_ == ptr->retry_contacts_.size()) {
+        return promise_.set_error(Status::Error(429, "Too Many Requests: retry after 3600"));
+      }
+
       int64 total_size = static_cast<int64>(input_contacts_.size());
       vector<tl_object_ptr<telegram_api::inputPhoneContact>> contacts;
       contacts.reserve(ptr->retry_contacts_.size());
@@ -644,6 +650,7 @@ class ImportContactsQuery : public Td::ResultHandler {
         contacts.push_back(input_contacts_[i].get_input_phone_contact(client_id));
       }
 
+      sent_size_ = contacts.size();
       send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
       return;
     }
