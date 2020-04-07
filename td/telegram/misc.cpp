@@ -52,6 +52,20 @@ string clean_username(string str) {
   return trim(str);
 }
 
+void replace_offending_characters(string &str) {
+  // "(\xe2\x80\x8f|\xe2\x80\x8e){N}(\xe2\x80\x8f|\xe2\x80\x8e)" -> "(\xe2\x80\x8c){N}$2"
+  auto s = MutableSlice(str).ubegin();
+  for (size_t pos = 0; pos < str.size(); pos++) {
+    if (s[pos] == 0xe2 && s[pos + 1] == 0x80 && (s[pos + 2] == 0x8e || s[pos + 2] == 0x8f)) {
+      while (s[pos + 3] == 0xe2 && s[pos + 4] == 0x80 && (s[pos + 5] == 0x8e || s[pos + 5] == 0x8f)) {
+        s[pos + 2] = static_cast<unsigned char>(0x8c);
+        pos += 3;
+      }
+      pos += 2;
+    }
+  }
+}
+
 bool clean_input_string(string &str) {
   constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
   if (!check_utf8(str)) {
@@ -133,6 +147,9 @@ bool clean_input_string(string &str) {
   }
 
   str.resize(new_size);
+
+  replace_offending_characters(str);
+
   return true;
 }
 

@@ -3473,6 +3473,8 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
                                        << entity->offset + entity->length);
   }
 
+  replace_offending_characters(result);
+
   return result;
 }
 
