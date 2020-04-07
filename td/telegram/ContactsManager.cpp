@@ -6642,10 +6642,17 @@ void ContactsManager::on_deleted_contacts(const vector<UserId> &deleted_contact_
   LOG(INFO) << "Contacts deletion has finished for " << deleted_contact_user_ids;
 
   for (auto user_id : deleted_contact_user_ids) {
-    LOG(INFO) << "Drop contact with " << user_id;
     auto u = get_user(user_id);
     CHECK(u != nullptr);
+    if (!u->is_contact) {
+      continue;
+    }
+
+    LOG(INFO) << "Drop contact with " << user_id;
     on_update_user_is_contact(u, user_id, false, false);
+    CHECK(u->is_is_contact_changed);
+    u->cache_version = 0;
+    u->is_repaired = false;
     update_user(u, user_id);
     CHECK(!u->is_contact);
     CHECK(!contacts_hints_.has_key(user_id.get()));
@@ -6697,6 +6704,9 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
               << my_id << " " << user_id << " " << to_string(get_user_object(user_id, u));
         }
         on_update_user_is_contact(u, user_id, false, false);
+        CHECK(u->is_is_contact_changed);
+        u->cache_version = 0;
+        u->is_repaired = false;
         update_user(u, user_id);
         CHECK(!u->is_contact);
         if (user_id != my_id) {
@@ -9348,7 +9358,9 @@ void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is
   if (u->is_contact != is_contact || u->is_mutual_contact != is_mutual_contact) {
     LOG(DEBUG) << "Update " << user_id << " is_contact from (" << u->is_contact << ", " << u->is_mutual_contact
                << ") to (" << is_contact << ", " << is_mutual_contact << ")";
-    u->is_is_contact_changed |= (u->is_contact != is_contact);
+    if (u->is_contact != is_contact) {
+      u->is_is_contact_changed = true;
+    }
     u->is_contact = is_contact;
     u->is_mutual_contact = is_mutual_contact;
     u->is_changed = true;
