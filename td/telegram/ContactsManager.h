@@ -1340,6 +1340,8 @@ class ContactsManager : public Actor {
 
   void get_channel_statistics_dc_id(DialogId dialog_id, Promise<DcId> &&promise);
 
+  void get_channel_statistics_dc_id_impl(ChannelId channel_id, Promise<DcId> &&promise);
+
   void send_get_broadcast_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
                                       Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise);
 

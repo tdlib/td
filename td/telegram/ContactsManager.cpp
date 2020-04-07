@@ -5727,6 +5727,28 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
   }
 
   auto channel_full = get_channel_full_force(channel_id);
+  if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact()) {
+    auto input_channel = get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
+          send_closure(actor_id, &ContactsManager::get_channel_statistics_dc_id_impl, channel_id, std::move(promise));
+        });
+
+    send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), std::move(query_promise),
+                                "get_channel_statistics_dc_id");
+    return;
+  }
+
+  promise.set_value(DcId(channel_full->stats_dc_id));
+}
+
+void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, Promise<DcId> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  auto channel_full = get_channel_full(channel_id, "get_channel_statistics_dc_id_impl");
   if (channel_full == nullptr) {
     return promise.set_error(Status::Error(400, "Chat full info not found"));
   }
