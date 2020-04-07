@@ -589,7 +589,7 @@ class FileManager {
           '@type': 'readFilePart',
           path: info.file.local.path,
           offset: offset,
-          size: size
+          count: size
         });
         res.data = new Blob([res.data]);
         res.transaction_id = -2;
@@ -632,7 +632,7 @@ class FileManager {
         this.lru.onUsed(info.node);
       }
       query.offset = query.offset || 0;
-      query.size = query.size || 0;
+      query.size = query.count || query.size || 0;
       const response = await this.doLoad(info, query.offset, query.size);
       return {
         '@type': 'filePart',
