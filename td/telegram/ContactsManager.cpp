@@ -698,6 +698,9 @@ class DeleteContactsByPhoneNumberQuery : public Td::ResultHandler {
   }
 
   void send(vector<string> &&user_phone_numbers, vector<UserId> &&user_ids) {
+    if (user_phone_numbers.empty()) {
+      return promise_.set_value(Unit());
+    }
     user_ids_ = std::move(user_ids);
     send_query(G()->net_query_creator().create(telegram_api::contacts_deleteByPhones(std::move(user_phone_numbers))));
   }
