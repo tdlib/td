@@ -55,8 +55,14 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
   }
 
   double total_timeout_limit = 60;
-  if (!G()->close_flag() && G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
-    total_timeout_limit = 8;
+  if (!G()->close_flag()) {
+    auto td = G()->td();
+    if (!td.empty()) {
+      auto auth_manager = td.get_actor_unsafe()->auth_manager_.get();
+      if (auth_manager && auth_manager->is_bot()) {
+        total_timeout_limit = 8;
+      }
+    }
   }
   auto query = object_pool_.create(NetQuery::State::Query, id, std::move(slice), BufferSlice(), dc_id, type, auth_flag,
                                    gzip_flag, tl_constructor, total_timeout_limit);
