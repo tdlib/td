@@ -2951,14 +2951,16 @@ class SetTypingQuery : public Td::ResultHandler {
 
 class DeleteMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId dialog_id_;
   int32 query_count_;
 
  public:
   explicit DeleteMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<MessageId> &&message_ids, bool revoke) {
-    LOG(INFO) << "Send deleteMessagesQuery to delete " << format::as_array(message_ids);
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool revoke) {
+    LOG(INFO) << "Send deleteMessagesQuery to delete " << format::as_array(message_ids) << " in " << dialog_id;
+    dialog_id_ = dialog_id;
     int32 flags = 0;
     if (revoke) {
       flags |= telegram_api::messages_deleteMessages::REVOKE_MASK;
@@ -2997,7 +2999,8 @@ class DeleteMessagesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->is_expected_error(status)) {
+    if (!G()->is_expected_error(status) &&
+        (dialog_id_.get_type() == DialogType::User || status.message() != "MESSAGE_DELETE_FORBIDDEN")) {
       LOG(ERROR) << "Receive error for delete messages: " << status;
     }
     promise_.set_error(std::move(status));
@@ -8737,7 +8740,7 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
-      td_->create_handler<DeleteMessagesQuery>(std::move(promise))->send(std::move(message_ids), revoke);
+      td_->create_handler<DeleteMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids), revoke);
       break;
     case DialogType::Channel:
       td_->create_handler<DeleteChannelMessagesQuery>(std::move(promise))
