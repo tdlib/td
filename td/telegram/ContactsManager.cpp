@@ -4915,6 +4915,9 @@ void ContactsManager::on_update_contacts_reset() {
         CHECK(contacts_hints_.has_key(user_id.get()));
       }
       on_update_user_is_contact(u, user_id, false, false);
+      CHECK(u->is_is_contact_changed);
+      u->cache_version = 0;
+      u->is_repaired = false;
       update_user(u, user_id);
       CHECK(!u->is_contact);
       if (user_id != my_id) {
@@ -8326,7 +8329,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
-    if (u->is_contact) {
+    if (is_user_contact(u, user_id)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
         on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, false);
@@ -9565,6 +9568,12 @@ void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId 
 void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
     UserFull *user_full, UserId user_id, bool need_phone_number_privacy_exception) {
   CHECK(user_full != nullptr);
+  if (need_phone_number_privacy_exception) {
+    const User *u = get_user(user_id);
+    if (u == nullptr || u->is_contact || user_id == get_my_id()) {
+      need_phone_number_privacy_exception = false;
+    }
+  }
   if (user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
     user_full->need_phone_number_privacy_exception = need_phone_number_privacy_exception;
     user_full->is_changed = true;
