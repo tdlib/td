@@ -13764,7 +13764,7 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), std::move(promise));
+      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), false, std::move(promise));
       return;
     case DialogType::Chat:
       td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), false, std::move(promise));

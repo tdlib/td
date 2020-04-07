@@ -11576,7 +11576,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
 }
 
-bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
+bool ContactsManager::get_user_full(UserId user_id, bool force, Promise<Unit> &&promise) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
@@ -11597,7 +11597,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
   if (user_full->is_expired() || is_bot_info_expired(user_id, u->bot_info_version)) {
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
-    if (td_->auth_manager_->is_bot()) {
+    if (td_->auth_manager_->is_bot() && !force) {
       send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get expired user_full");
       return false;
     } else {

@@ -428,7 +428,7 @@ class ContactsManager : public Actor {
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);
   void reload_user(UserId user_id, Promise<Unit> &&promise);
-  bool get_user_full(UserId user_id, Promise<Unit> &&promise);
+  bool get_user_full(UserId user_id, bool force, Promise<Unit> &&promise);
   void reload_user_full(UserId user_id);
 
   std::pair<int32, vector<const Photo *>> get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
