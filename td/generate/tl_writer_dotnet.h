@@ -158,7 +158,7 @@ class TlWriterDotNet : public TL_writer {
       return "String^";
     }
     if (name == "Bytes") {
-      return "Array<byte>^";
+      return "Array<BYTE>^";
     }
 
     if (name == "Vector") {
@@ -288,7 +288,8 @@ class TlWriterDotNet : public TL_writer {
     while (field_type.substr(pos, 6) == "Array<") {
       pos += 6;
     }
-    if (field_type.substr(pos, 6) != "String" && to_upper(field_type[pos]) == field_type[pos]) {
+    if (field_type.substr(pos, 4) != "BYTE" && field_type.substr(pos, 6) != "String" &&
+        to_upper(field_type[pos]) == field_type[pos]) {
       field_type = field_type.substr(0, pos) + "::Telegram::Td::Api::" + field_type.substr(pos);
     }
     ss << field_type << " " << to_camelCase(a.name);
@@ -383,7 +384,7 @@ class TlWriterDotNet : public TL_writer {
       } else {
         ss << ", ";
       }
-      bool need_bytes = gen_field_type(it) == "Array<byte>^" || gen_field_type(it) == "Array<Array<byte>^>^";
+      bool need_bytes = gen_field_type(it) == "Array<BYTE>^" || gen_field_type(it) == "Array<Array<BYTE>^>^";
       ss << (need_bytes ? "Bytes" : "") << "FromUnmanaged(from." << gen_native_field_name(it.name) << ")";
     }
     ss << ");\n}\n";

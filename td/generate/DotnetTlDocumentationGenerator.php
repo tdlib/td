@@ -54,7 +54,7 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
             case 'string':
                 return 'String^';
             case 'bytes':
-                return 'Array<byte>^';
+                return 'Array<BYTE>^';
             case 'bool':
             case 'int':
             case 'long':
@@ -210,7 +210,7 @@ EOT
             while (substr($field_type, $pos, 6) === 'Array<') {
                 $pos += 6;
             }
-            if (substr($field_type, $pos, 6) !== 'String' && ucfirst(substr($field_type, $pos)) === substr($field_type, $pos)) {
+            if (substr($field_type, $pos, 4) !== 'BYTE' && substr($field_type, $pos, 6) !== 'String' && ucfirst(substr($field_type, $pos)) === substr($field_type, $pos)) {
                 $field_type = substr($field_type, 0, $pos).'::Telegram::Td::Api::'.substr($field_type, $pos);
             }
             $full_constructor .= $colon.$field_type.' '.$this->getParameterName($name, $class_name);
