@@ -164,7 +164,7 @@ See [erl-tdlib](https://github.com/lattenwald/erl-tdlib) for an example of TDLib
 
 TDLib can be used from the PHP programming language by wrapping its functionality in a PHP extension.
 
-See [phptdlib](https://github.com/yaroslavche/phptdlib) or [PIF-TDPony](https://github.com/danog/pif-tdpony) for examples of such extensions which provide access to TDLib from PHP.
+See [phptdlib](https://github.com/yaroslavche/phptdlib), [tdlib](https://github.com/aurimasniekis/php-ext-tdlib) or [PIF-TDPony](https://github.com/danog/pif-tdpony) for examples of such extensions which provide access to TDLib from PHP.
 See [tdlib-bundle](https://github.com/yaroslavche/tdlib-bundle) – a Symfony bundle based on [phptdlib](https://github.com/yaroslavche/phptdlib).
 
 <a name="lua"></a>
