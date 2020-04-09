@@ -218,7 +218,7 @@ pollTypeRegular allow_multiple_answers:Bool = PollType;
 
 //@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once
 //@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
-//@explanation Text shown after an incorrect answer has chosen; empty for a yet unanswered poll
+//@explanation Text shown after an incorrect answer has chosen, 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
 pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 
