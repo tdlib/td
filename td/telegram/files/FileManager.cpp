@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #include "td/telegram/files/FileManager.h"
 
 #include "td/telegram/telegram_api.h"
@@ -2619,7 +2620,6 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     LOG(INFO) << "File " << node->main_file_id_ << " upload is paused: " << node->upload_pause_;
     return;
   }
-
 
   FileView file_view(node);
   if (!file_view.has_local_location() && !file_view.has_remote_location()) {

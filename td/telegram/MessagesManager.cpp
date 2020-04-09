@@ -16653,6 +16653,10 @@ FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_mess
 }
 
 void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m) {
+  if (dialog_id.get_type() != DialogType::SecretChat && m->is_content_secret) {
+    return;
+  }
+
   auto file_ids = get_message_content_file_ids(m->content.get(), td_);
   if (file_ids.empty()) {
     return;
@@ -16683,6 +16687,10 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
 }
 
 void MessagesManager::change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids) {
+  if (dialog_id.get_type() != DialogType::SecretChat && m->is_content_secret) {
+    return;
+  }
+
   auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
   if (new_file_ids == old_file_ids) {
     return;
