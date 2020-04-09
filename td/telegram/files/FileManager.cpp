@@ -2113,6 +2113,25 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 }
 
 void FileManager::run_download(FileNodePtr node) {
+  int8 priority = 0;
+  for (auto id : node->file_ids_) {
+    auto *info = get_file_id_info(id);
+    if (info->download_priority_ > priority) {
+      priority = info->download_priority_;
+    }
+  }
+
+  auto old_priority = node->download_priority_;
+
+  if (priority == 0) {
+    node->set_download_priority(priority);
+    LOG(INFO) << "Cancel downloading of file " << node->main_file_id_;
+    if (old_priority != 0) {
+      do_cancel_download(node);
+    }
+    return;
+  }
+
   if (node->need_load_from_pmc_) {
     LOG(INFO) << "Skip run_download, because file " << node->main_file_id_ << " needs to be loaded from PMC";
     return;
@@ -2126,24 +2145,7 @@ void FileManager::run_download(FileNodePtr node) {
     LOG(INFO) << "Skip run_download, because file " << node->main_file_id_ << " can't be downloaded from server";
     return;
   }
-  int8 priority = 0;
-  for (auto id : node->file_ids_) {
-    auto *info = get_file_id_info(id);
-    if (info->download_priority_ > priority) {
-      priority = info->download_priority_;
-    }
-  }
-
-  auto old_priority = node->download_priority_;
   node->set_download_priority(priority);
-
-  if (priority == 0) {
-    LOG(INFO) << "Cancel downloading of file " << node->main_file_id_;
-    if (old_priority != 0) {
-      do_cancel_download(node);
-    }
-    return;
-  }
   bool need_update_offset = node->is_download_offset_dirty_;
   node->is_download_offset_dirty_ = false;
 
@@ -2586,6 +2588,29 @@ void FileManager::run_generate(FileNodePtr node) {
 }
 
 void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
+  int8 priority = 0;
+  FileId file_id = node->main_file_id_;
+  for (auto id : node->file_ids_) {
+    auto *info = get_file_id_info(id);
+    if (info->upload_priority_ > priority) {
+      priority = info->upload_priority_;
+      file_id = id;
+    }
+  }
+
+  auto old_priority = node->upload_priority_;
+
+  if (priority == 0) {
+    node->set_upload_priority(priority);
+    if (old_priority != 0) {
+      LOG(INFO) << "Cancel file " << file_id << " uploading";
+      do_cancel_upload(node);
+    } else {
+      LOG(INFO) << "File " << file_id << " upload priority is still 0";
+    }
+    return;
+  }
+
   if (node->need_load_from_pmc_) {
     LOG(INFO) << "File " << node->main_file_id_ << " needs to be loaded from database before upload";
     return;
@@ -2594,6 +2619,8 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     LOG(INFO) << "File " << node->main_file_id_ << " upload is paused: " << node->upload_pause_;
     return;
   }
+
+
   FileView file_view(node);
   if (!file_view.has_local_location() && !file_view.has_remote_location()) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
@@ -2607,28 +2634,8 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
       return;
     }
   }
-  int8 priority = 0;
-  FileId file_id = node->main_file_id_;
-  for (auto id : node->file_ids_) {
-    auto *info = get_file_id_info(id);
-    if (info->upload_priority_ > priority) {
-      priority = info->upload_priority_;
-      file_id = id;
-    }
-  }
 
-  auto old_priority = node->upload_priority_;
   node->set_upload_priority(priority);
-
-  if (priority == 0) {
-    if (old_priority != 0) {
-      LOG(INFO) << "Cancel file " << file_id << " uploading";
-      do_cancel_upload(node);
-    } else {
-      LOG(INFO) << "File " << file_id << " upload priority is still 0";
-    }
-    return;
-  }
 
   // create encryption key if necessary
   if (((file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Encrypted) ||
