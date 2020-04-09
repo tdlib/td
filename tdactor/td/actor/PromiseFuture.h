@@ -408,6 +408,7 @@ class PromiseActor final : public PromiseInterface<T> {
 template <class T>
 class FutureActor final : public Actor {
   friend class PromiseActor<T>;
+
  public:
   enum State { Waiting, Ready };
 

@@ -29366,7 +29366,7 @@ void MessagesManager::speculatively_update_channel_participants(DialogId dialog_
 void MessagesManager::update_sent_message_contents(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id()) ||
-      dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_local() || m->forward_info != nullptr ||
+      dialog_id.get_type() == DialogType::SecretChat || m->message_id.is_local() || m->forward_info != nullptr ||
       m->had_forward_info) {
     return;
   }
