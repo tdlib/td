@@ -2230,12 +2230,10 @@ class SendMediaActor : public NetActorOnce {
       flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
     }
 
-    telegram_api::messages_sendMedia request(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                             std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
-                                             std::move(input_media), text, random_id, std::move(reply_markup),
-                                             std::move(entities), schedule_date);
-    LOG(INFO) << "Send media: " << to_string(request);
-    auto query = G()->net_query_creator().create(request);
+    auto query = G()->net_query_creator().create(telegram_api::messages_sendMedia(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
+        std::move(reply_markup), std::move(entities), schedule_date));
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
