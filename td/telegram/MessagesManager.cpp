@@ -25918,7 +25918,6 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   }
 
   CHECK(d != nullptr);
-  LOG(DEBUG) << "Search for " << message_id << " in " << d->dialog_id;
   bool is_scheduled = message_id.is_scheduled();
   if (is_scheduled && message_id.is_scheduled_server()) {
     auto server_message_id = message_id.get_scheduled_server_message_id();
@@ -25933,6 +25932,7 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   if (result != nullptr && !is_scheduled) {
     result->last_access_date = G()->unix_time_cached();
   }
+  LOG(INFO) << "Search for " << message_id << " in " << d->dialog_id << " found " << result;
   return result;
 }
 
