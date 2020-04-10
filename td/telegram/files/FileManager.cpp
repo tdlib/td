@@ -1401,6 +1401,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
                << x_node->remote_.full.value();
   }
+
+  bool drop_last_successful_force_reupload_time = x_node->last_successful_force_reupload_time_ <= 0 &&
+                                                  x_node->remote_.full &&
+                                                  x_node->remote_.full_source == FileLocationSource::FromServer;
+
   auto count_local = [](auto &node) {
     return std::accumulate(node->file_ids_.begin(), node->file_ids_.end(), 0,
                            [](const auto &x, const auto &y) { return x + (y.get_remote() != 0); });
@@ -1549,7 +1554,9 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
   node->can_search_locally_ &= other_node->can_search_locally_;
 
-  if (other_node->last_successful_force_reupload_time_ > node->last_successful_force_reupload_time_) {
+  if (drop_last_successful_force_reupload_time) {
+    node->last_successful_force_reupload_time_ = -1e10;
+  } else if (other_node->last_successful_force_reupload_time_ > node->last_successful_force_reupload_time_) {
     node->last_successful_force_reupload_time_ = other_node->last_successful_force_reupload_time_;
   }
 
