@@ -9315,8 +9315,13 @@ void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegra
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
+    auto &old_photo = pending_user_photos_[user_id];
+    if (!LOG_IS_STRIPPED(ERROR) && to_string(old_photo) == to_string(photo)) {
+      return;
+    }
+
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
-    pending_user_photos_[user_id] = std::move(photo);
+    old_photo = std::move(photo);
 
     drop_user_photos(user_id, is_empty, "on_update_user_photo");
     return;
