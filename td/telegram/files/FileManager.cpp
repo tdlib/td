@@ -2358,7 +2358,9 @@ class FileManager::ForceUploadActor : public Actor {
 void FileManager::on_force_reupload_success(FileId file_id) {
   auto node = get_sync_file_node(file_id);
   CHECK(node);
-  node->last_successful_force_reupload_time_ = Time::now();
+  if (!node->remote_.is_full_alive) {  // do not update for multiple simultaneous uploads
+    node->last_successful_force_reupload_time_ = Time::now();
+  }
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
