@@ -219,7 +219,7 @@ class Scheduler {
   bool has_guard_ = false;
   bool close_flag_ = false;
 
-  uint32 wait_generation_ = 0;
+  uint32 wait_generation_ = 1;
   int32 sched_id_ = 0;
   int32 sched_n_ = 0;
   std::shared_ptr<MpscPollableQueue<EventFull>> inbound_queue_;

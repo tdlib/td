@@ -190,7 +190,7 @@ inline void Scheduler::before_tail_send(const ActorId<> &actor_id) {
 }
 
 inline void Scheduler::inc_wait_generation() {
-  wait_generation_++;
+  wait_generation_ += 2;
 }
 
 template <ActorSendType send_type, class RunFuncT, class EventFuncT>
