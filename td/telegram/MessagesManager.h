@@ -2264,7 +2264,9 @@ class MessagesManager : public Actor {
 
   bool is_dialog_sponsored(const Dialog *d) const;
 
-  int64 get_dialog_public_order(const Dialog *d) const;
+  int64 get_dialog_public_order(FolderId folder_id, const Dialog *d) const;
+
+  int64 get_dialog_order_object(const Dialog *d) const;
 
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos);
