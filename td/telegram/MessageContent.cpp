@@ -1475,9 +1475,12 @@ static Result<InputMessageContent> create_input_message_content(
       content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;
     }
-    case td_api::inputMessageDice::ID:
+    case td_api::inputMessageDice::ID: {
+      auto input_dice = static_cast<const td_api::inputMessageDice *>(input_message_content.get());
       content = make_unique<MessageDice>();
+      clear_draft = input_dice->clear_draft_;
       break;
+    }
     case td_api::inputMessageDocument::ID:
       td->documents_manager_->create_document(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
                                               false);

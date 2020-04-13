@@ -1584,8 +1584,8 @@ inputMessageVenue venue:venue = InputMessageContent;
 //@description A message containing a user contact @contact Contact to send
 inputMessageContact contact:contact = InputMessageContent;
 
-//@description A dice message
-inputMessageDice = InputMessageContent;
+//@description A dice message @clear_draft True, if a chat message draft should be deleted
+inputMessageDice clear_draft:Bool = InputMessageContent;
 
 //@description A message with a game; not supported for channels or secret chats @bot_user_id User identifier of the bot that owns the game @game_short_name Short name of the game
 inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
