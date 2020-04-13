@@ -5950,46 +5950,6 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
-void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
-  if (td_->auth_manager_->is_bot()) {
-    // just in case
-    return;
-  }
-
-  bool include_sponsored_dialog = G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
-  if (include_sponsored_dialog_to_unread_count_ == include_sponsored_dialog) {
-    return;
-  }
-  if (sponsored_dialog_id_.is_valid()) {
-    // preload sponsored dialog
-    get_dialog_force(sponsored_dialog_id_);
-  }
-
-  include_sponsored_dialog_to_unread_count_ = include_sponsored_dialog;
-
-  if (!sponsored_dialog_id_.is_valid()) {
-    // nothing has changed
-    return;
-  }
-  if (!G()->parameters().use_message_db) {
-    // there is no support for unread count updates without message database
-    return;
-  }
-
-  auto folder_id = FolderId::main();
-  auto &list = get_dialog_list(folder_id);
-  const Dialog *d = get_dialog(sponsored_dialog_id_);
-  CHECK(d != nullptr);
-  auto unread_count = d->server_unread_count + d->local_unread_count;
-  if (unread_count != 0 && list.is_message_unread_count_inited_) {
-    send_update_unread_message_count(folder_id, d->dialog_id, true,
-                                     "on_update_include_sponsored_dialog_to_unread_count");
-  }
-  if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
-    send_update_unread_chat_count(folder_id, d->dialog_id, true, "on_update_include_sponsored_dialog_to_unread_count");
-  }
-}
-
 bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type) {
   if (message_content_type == MessageContentType::None) {
     return true;
@@ -10332,9 +10292,6 @@ void MessagesManager::init() {
   always_wait_for_mailbox();
 
   start_time_ = Time::now();
-
-  include_sponsored_dialog_to_unread_count_ =
-      G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
 
   if (G()->parameters().use_message_db) {
     // erase old keys
@@ -30612,20 +30569,6 @@ td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update
   CHECK(list.is_message_unread_count_inited_);
   int32 unread_count = list.unread_message_total_count_;
   int32 unread_unmuted_count = list.unread_message_total_count_ - list.unread_message_muted_count_;
-
-  if (include_sponsored_dialog_to_unread_count_ && sponsored_dialog_id_.is_valid() &&
-      list.folder_id == FolderId::main()) {
-    const Dialog *d = get_dialog(sponsored_dialog_id_);
-    CHECK(d != nullptr);
-    auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
-    if (is_dialog_sponsored(d) && sponsored_unread_count != 0) {
-      unread_count += sponsored_unread_count;
-      if (!is_dialog_muted(d)) {
-        unread_unmuted_count += sponsored_unread_count;
-      }
-    }
-  }
-
   CHECK(unread_count >= 0);
   CHECK(unread_unmuted_count >= 0);
   return td_api::make_object<td_api::updateUnreadMessageCount>(get_chat_list_object(list.folder_id), unread_count,
@@ -30643,26 +30586,6 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
   CHECK(unread_unmuted_count >= 0);
   CHECK(unread_marked_count >= 0);
   CHECK(unread_unmuted_marked_count >= 0);
-
-  if (include_sponsored_dialog_to_unread_count_ && sponsored_dialog_id_.is_valid() &&
-      list.folder_id == FolderId::main()) {
-    const Dialog *d = get_dialog(sponsored_dialog_id_);
-    CHECK(d != nullptr);
-    auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
-    if (is_dialog_sponsored(d) && (sponsored_unread_count != 0 || d->is_marked_as_unread)) {
-      unread_count++;
-      if (sponsored_unread_count == 0 && d->is_marked_as_unread) {
-        unread_marked_count++;
-      }
-      if (!is_dialog_muted(d)) {
-        unread_unmuted_count++;
-        if (sponsored_unread_count == 0 && d->is_marked_as_unread) {
-          unread_unmuted_marked_count++;
-        }
-      }
-    }
-  }
-
   return td_api::make_object<td_api::updateUnreadChatCount>(
       get_chat_list_object(list.folder_id), get_dialog_total_count(list), unread_count, unread_unmuted_count,
       unread_marked_count, unread_unmuted_marked_count);

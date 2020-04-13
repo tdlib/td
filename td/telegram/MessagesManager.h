@@ -331,8 +331,6 @@ class MessagesManager : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
-  void on_update_include_sponsored_dialog_to_unread_count();
-
   void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                              MessageContentType message_content_type = MessageContentType::None);
 
@@ -2671,8 +2669,6 @@ class MessagesManager : public Actor {
   std::unordered_map<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
 
   uint64 current_message_edit_generation_ = 0;
-
-  bool include_sponsored_dialog_to_unread_count_ = false;
 
   std::unordered_set<FolderId, FolderIdHash> postponed_unread_message_count_updates_;
   std::unordered_set<FolderId, FolderIdHash> postponed_unread_chat_count_updates_;
