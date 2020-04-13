@@ -2770,7 +2770,7 @@ dateRange start_date:int32 end_date:int32 = DateRange;
 statisticsValue value:double previous_value:double growth_rate_percentage:double = StatisticsValue;
 
 
-//@class StatisticsGraph @description Descrbes a statistics graph
+//@class StatisticsGraph @description Describes a statistics graph
 
 //@description A graph data @json_data Graph data in JSON format @zoom_token If non-empty, a token which can be used to receive a zoomed in graph
 statisticsGraphData json_data:string zoom_token:string = StatisticsGraph;
@@ -4189,7 +4189,7 @@ getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 //@description Returns detailed statistics about a chat. Currently this method can be used only for channels. Requires administrator rights in the channel @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the app
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Loads asynchronous or zoomed in chat statistics graph @chat_id Chat identifer @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
+//@description Loads asynchronous or zoomed in chat statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
 getChatStatisticsGraph chat_id:int53 token:string x:int53 = StatisticsGraph;
 
 
