@@ -13123,7 +13123,7 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
     auto d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     if (is_dialog_sponsored(d)) {
-      DialogDate date(get_dialog_public_order(folder_id, d), d->dialog_id);
+      DialogDate date(get_dialog_public_order(&list, d), d->dialog_id);
       if (offset < date) {
         result.push_back(sponsored_dialog_id_);
         offset = date;
@@ -28238,10 +28238,17 @@ bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
 }
 
 int64 MessagesManager::get_dialog_public_order(FolderId folder_id, const Dialog *d) const {
-  auto order = is_dialog_sponsored(d) && folder_id == FolderId::main() ? SPONSORED_DIALOG_ORDER : d->order;
+  return get_dialog_public_order(get_dialog_list(folder_id), d);
+}
+
+int64 MessagesManager::get_dialog_public_order(const DialogList *list, const Dialog *d) const {
+  if (list == nullptr) {
+    return 0;
+  }
+
+  auto order = is_dialog_sponsored(d) && list->folder_id == FolderId::main() ? SPONSORED_DIALOG_ORDER : d->order;
   DialogDate dialog_date(order, d->dialog_id);
-  auto *list = get_dialog_list(folder_id);
-  return list != nullptr && dialog_date <= list->last_dialog_date_ ? order : 0;
+  return dialog_date <= list->last_dialog_date_ ? order : 0;
 }
 
 int64 MessagesManager::get_dialog_order_object(const Dialog *d) const {
