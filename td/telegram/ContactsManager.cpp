@@ -2755,8 +2755,7 @@ class GetBroadcastStatsQuery : public Td::ResultHandler {
       flags |= telegram_api::stats_getBroadcastStats::DARK_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastStats(flags, false /*ignored*/, std::move(input_channel), Clocks::tz_offset()),
-        dc_id));
+        telegram_api::stats_getBroadcastStats(flags, false /*ignored*/, std::move(input_channel)), dc_id));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -2160,7 +2160,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       return m->contact.get_input_media_contact();
     }
     case MessageContentType::Dice:
-      return make_tl_object<telegram_api::inputMediaDice>();
+      return make_tl_object<telegram_api::inputMediaDice>("");
     case MessageContentType::Document: {
       auto m = static_cast<const MessageDocument *>(content);
       return td->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));

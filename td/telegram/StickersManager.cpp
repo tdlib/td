@@ -673,7 +673,7 @@ class ReloadSpecialStickerSetQuery : public Td::ResultHandler {
         case StickersManager::SpecialStickerSetType::AnimatedEmoji:
           return telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>();
         case StickersManager::SpecialStickerSetType::AnimatedDice:
-          return telegram_api::make_object<telegram_api::inputStickerSetDice>();
+          return telegram_api::make_object<telegram_api::inputStickerSetDice>("");
         default:
           UNREACHABLE();
           return nullptr;
