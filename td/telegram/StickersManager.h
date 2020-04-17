@@ -44,6 +44,8 @@ class StickersManager : public Actor {
 
   StickersManager(Td *td, ActorShared<> parent);
 
+  void init();
+
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id) const;
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;

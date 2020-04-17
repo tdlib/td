@@ -1111,6 +1111,14 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 }
 
 void StickersManager::start_up() {
+  init();
+}
+
+void StickersManager::init() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag()) {
+    return;
+  }
+
   // add animated emoji sticker set
   special_sticker_sets_[SpecialStickerSetType::AnimatedEmoji].type_ = "animated_emoji_sticker_set";
   special_sticker_sets_[SpecialStickerSetType::AnimatedDice].type_ = "animated_dice_sticker_set";
