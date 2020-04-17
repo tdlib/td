@@ -271,7 +271,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
 class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
  public:
   void send(int32 hash) {
-    LOG(INFO) << "Get featured sticker sets with hash " << hash;
+    LOG(INFO) << "Get trending sticker sets with hash " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
   }
 
@@ -283,11 +283,41 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetFeaturedStickerSetsQuery " << to_string(ptr);
-    td->stickers_manager_->on_get_featured_sticker_sets(std::move(ptr));
+    td->stickers_manager_->on_get_featured_sticker_sets(-1, -1, 0, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    td->stickers_manager_->on_get_featured_sticker_sets_failed(std::move(status));
+    td->stickers_manager_->on_get_featured_sticker_sets_failed(-1, -1, 0, std::move(status));
+  }
+};
+
+class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
+  int32 offset_;
+  int32 limit_;
+  uint32 generation_;
+
+ public:
+  void send(int32 offset, int32 limit, uint32 generation) {
+    offset_ = offset;
+    limit_ = limit;
+    generation_ = generation;
+    LOG(INFO) << "Get old trending sticker sets with offset = " << offset << " and limit = " << limit;
+    send_query(G()->net_query_creator().create(telegram_api::messages_getOldFeaturedStickers(offset, limit, 0)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getOldFeaturedStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetOldFeaturedStickerSetsQuery " << to_string(ptr);
+    td->stickers_manager_->on_get_featured_sticker_sets(offset_, limit_, generation_, std::move(ptr));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->stickers_manager_->on_get_featured_sticker_sets_failed(offset_, limit_, generation_, std::move(status));
   }
 };
 
@@ -800,7 +830,7 @@ class UninstallStickerSetQuery : public Td::ResultHandler {
 class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
  public:
   void send(vector<StickerSetId> sticker_set_ids) {
-    LOG(INFO) << "Read featured sticker sets " << format::as_array(sticker_set_ids);
+    LOG(INFO) << "Read trending sticker sets " << format::as_array(sticker_set_ids);
     send_query(G()->net_query_creator().create(
         telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
@@ -1135,6 +1165,19 @@ void StickersManager::init() {
   }
   load_special_sticker_set(special_sticker_sets_[SpecialStickerSetType::AnimatedEmoji]);
   load_special_sticker_set(special_sticker_sets_[SpecialStickerSetType::AnimatedDice]);
+
+  if (G()->parameters().use_file_db) {
+    auto old_featured_sticker_set_count_str = G()->td_db()->get_binlog_pmc()->get("old_featured_sticker_set_count");
+    if (!old_featured_sticker_set_count_str.empty()) {
+      old_featured_sticker_set_count_ = to_integer<int32>(old_featured_sticker_set_count_str);
+    }
+    if (!G()->td_db()->get_binlog_pmc()->get("invalidate_old_featured_sticker_sets").empty()) {
+      invalidate_old_featured_sticker_sets();
+    }
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase("old_featured_sticker_set_count");
+    G()->td_db()->get_binlog_pmc()->erase("invalidate_old_featured_sticker_sets");
+  }
 }
 
 void StickersManager::init_special_sticker_set(SpecialStickerSet &sticker_set, int64 sticker_set_id, int64 access_hash,
@@ -1649,10 +1692,19 @@ void StickersManager::reload_featured_sticker_sets(bool force) {
 
   if (!td_->auth_manager_->is_bot() && next_featured_sticker_sets_load_time_ >= 0 &&
       (next_featured_sticker_sets_load_time_ < Time::now() || force)) {
-    LOG_IF(INFO, force) << "Reload featured sticker sets";
+    LOG_IF(INFO, force) << "Reload trending sticker sets";
     next_featured_sticker_sets_load_time_ = -1;
     td_->create_handler<GetFeaturedStickerSetsQuery>()->send(featured_sticker_sets_hash_);
   }
+}
+
+void StickersManager::reload_old_featured_sticker_sets(uint32 generation) {
+  if (generation != 0 && generation != old_featured_sticker_set_generation_) {
+    return;
+  }
+  td_->create_handler<GetOldFeaturedStickerSetsQuery>()->send(static_cast<int32>(old_featured_sticker_set_ids_.size()),
+                                                              OLD_FEATURED_STICKER_SET_SLICE_SIZE,
+                                                              old_featured_sticker_set_generation_);
 }
 
 StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
@@ -2883,14 +2935,14 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
     return;
   }
 
-  LOG(INFO) << "Successfully loaded installed " << (is_masks ? "mask " : "") << "sticker sets list of size "
+  LOG(INFO) << "Successfully loaded installed " << (is_masks ? "mask " : "") << "sticker set list of size "
             << value.size() << " from database";
 
   StickerSetListLogEvent log_event;
   auto status = log_event_parse(log_event, value);
   if (status.is_error()) {
     // can't happen unless database is broken
-    LOG(ERROR) << "Can't load installed sticker sets list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    LOG(ERROR) << "Can't load installed sticker set list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     return reload_installed_sticker_sets(is_masks, true);
   }
 
@@ -2911,6 +2963,8 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
             if (result.is_ok()) {
               send_closure(G()->stickers_manager(), &StickersManager::on_load_installed_sticker_sets_finished, is_masks,
                            std::move(sticker_set_ids), true);
+            } else {
+              send_closure(G()->stickers_manager(), &StickersManager::reload_installed_sticker_sets, is_masks, true);
             }
           }));
 }
@@ -2986,7 +3040,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
 void StickersManager::update_sticker_set(StickerSet *sticker_set) {
   CHECK(sticker_set != nullptr);
   if (sticker_set->is_changed || sticker_set->need_save_to_database) {
-    if (G()->parameters().use_file_db && sticker_set->need_save_to_database) {
+    if (G()->parameters().use_file_db) {
       LOG(INFO) << "Save " << sticker_set->id << " to database";
       if (sticker_set->is_inited) {
         G()->td_db()->get_sqlite_pmc()->set(get_sticker_set_database_key(sticker_set->id),
@@ -3100,6 +3154,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
   }
 
   if (value.empty()) {
+    LOG(INFO) << "Failed to find in the database " << sticker_set_id;
     return do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
@@ -3205,7 +3260,9 @@ void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sti
   for (auto sticker_set_id : sticker_set_ids) {
     auto set = get_sticker_set(sticker_set_id);
     if (set != nullptr && !set->is_viewed) {
-      need_update_featured_sticker_sets_ = true;
+      if (td::contains(featured_sticker_set_ids_, sticker_set_id)) {
+        need_update_featured_sticker_sets_ = true;
+      }
       set->is_viewed = true;
       pending_viewed_featured_sticker_set_ids_.insert(sticker_set_id);
       update_sticker_set(set);
@@ -3215,7 +3272,7 @@ void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sti
   send_update_featured_sticker_sets();
 
   if (!pending_viewed_featured_sticker_set_ids_.empty() && !pending_featured_sticker_set_views_timeout_.has_timeout()) {
-    LOG(INFO) << "Have pending viewed featured sticker sets";
+    LOG(INFO) << "Have pending viewed trending sticker sets";
     pending_featured_sticker_set_views_timeout_.set_callback(read_featured_sticker_sets);
     pending_featured_sticker_set_views_timeout_.set_callback_data(static_cast<void *>(td_));
     pending_featured_sticker_set_views_timeout_.set_timeout_in(MAX_FEATURED_STICKER_SET_VIEW_DELAY);
@@ -3316,28 +3373,153 @@ void StickersManager::on_get_archived_sticker_sets(
   send_update_installed_sticker_sets();
 }
 
-vector<StickerSetId> StickersManager::get_featured_sticker_sets(Promise<Unit> &&promise) {
+std::pair<int32, vector<StickerSetId>> StickersManager::get_featured_sticker_sets(int32 offset, int32 limit,
+                                                                                  Promise<Unit> &&promise) {
+  if (offset < 0) {
+    promise.set_error(Status::Error(3, "Parameter offset must be non-negative"));
+    return {};
+  }
+
+  if (limit < 0) {
+    promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
+    return {};
+  }
+  if (limit == 0) {
+    offset = 0;
+  }
+
   if (!are_featured_sticker_sets_loaded_) {
     load_featured_sticker_sets(std::move(promise));
     return {};
   }
   reload_featured_sticker_sets(false);
 
+  auto set_count = static_cast<int32>(featured_sticker_set_ids_.size());
+  auto total_count = set_count + (old_featured_sticker_set_count_ == -1 ? 1 : old_featured_sticker_set_count_);
+  if (offset < set_count) {
+    if (limit > set_count - offset) {
+      limit = set_count - offset;
+    }
+    promise.set_value(Unit());
+    auto begin = featured_sticker_set_ids_.begin() + offset;
+    return {total_count, {begin, begin + limit}};
+  }
+
+  if (offset == set_count && are_old_featured_sticker_sets_invalidated_) {
+    invalidate_old_featured_sticker_sets();
+  }
+
+  if (offset < total_count || old_featured_sticker_set_count_ == -1) {
+    offset -= set_count;
+    set_count = static_cast<int32>(old_featured_sticker_set_ids_.size());
+    if (offset < set_count) {
+      if (limit > set_count - offset) {
+        limit = set_count - offset;
+      }
+      promise.set_value(Unit());
+      auto begin = old_featured_sticker_set_ids_.begin() + offset;
+      return {total_count, {begin, begin + limit}};
+    }
+    if (offset > set_count) {
+      promise.set_error(
+          Status::Error(400, "Too big offset specified; trending sticker sets can be received only consequently"));
+      return {};
+    }
+
+    load_old_featured_sticker_sets(std::move(promise));
+    return {};
+  }
+
   promise.set_value(Unit());
-  return featured_sticker_set_ids_;
+  return {total_count, Auto()};
+}
+
+void StickersManager::on_old_featured_sticker_sets_invalidated() {
+  LOG(INFO) << "Invalidate old trending sticker sets";
+  are_old_featured_sticker_sets_invalidated_ = true;
+
+  if (!G()->parameters().use_file_db) {
+    return;
+  }
+
+  G()->td_db()->get_binlog_pmc()->set("invalidate_old_featured_sticker_sets", "1");
+}
+
+void StickersManager::invalidate_old_featured_sticker_sets() {
+  LOG(INFO) << "Invalidate old featured sticker sets";
+  if (G()->parameters().use_file_db) {
+    G()->td_db()->get_binlog_pmc()->erase("invalidate_old_featured_sticker_sets");
+    G()->td_db()->get_sqlite_pmc()->erase_by_prefix("sssoldfeatured", Auto());
+  }
+  are_old_featured_sticker_sets_invalidated_ = false;
+  old_featured_sticker_set_ids_.clear();
+
+  old_featured_sticker_set_generation_++;
+  auto promises = std::move(load_old_featured_sticker_sets_queries_);
+  load_old_featured_sticker_sets_queries_.clear();
+  for (auto &promise : promises) {
+    promise.set_error(Status::Error(400, "Trending sticker sets was updated"));
+  }
+}
+
+void StickersManager::set_old_featured_sticker_set_count(int32 count) {
+  if (old_featured_sticker_set_count_ == count) {
+    return;
+  }
+
+  on_old_featured_sticker_sets_invalidated();
+
+  old_featured_sticker_set_count_ = count;
+  need_update_featured_sticker_sets_ = true;
+
+  if (!G()->parameters().use_file_db) {
+    return;
+  }
+
+  LOG(INFO) << "Save old trending sticker set count " << count << " to binlog";
+  G()->td_db()->get_binlog_pmc()->set("old_featured_sticker_set_count", to_string(count));
+}
+
+void StickersManager::fix_old_featured_sticker_set_count() {
+  auto known_count = static_cast<int32>(old_featured_sticker_set_ids_.size());
+  if (old_featured_sticker_set_count_ < known_count) {
+    if (old_featured_sticker_set_count_ >= 0) {
+      LOG(ERROR) << "Have old trending sticker set count " << old_featured_sticker_set_count_ << ", but have "
+                 << known_count << " old trending sticker sets";
+    }
+    set_old_featured_sticker_set_count(known_count);
+  }
+  if (old_featured_sticker_set_count_ > known_count && known_count % OLD_FEATURED_STICKER_SET_SLICE_SIZE != 0) {
+    LOG(ERROR) << "Have " << known_count << " old sticker sets out of " << old_featured_sticker_set_count_;
+    set_old_featured_sticker_set_count(known_count);
+  }
 }
 
 void StickersManager::on_get_featured_sticker_sets(
+    int32 offset, int32 limit, uint32 generation,
     tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr) {
-  next_featured_sticker_sets_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
+  if (offset < 0) {
+    next_featured_sticker_sets_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
+  }
 
   int32 constructor_id = sticker_sets_ptr->get_id();
   if (constructor_id == telegram_api::messages_featuredStickersNotModified::ID) {
-    LOG(INFO) << "Featured stickers are not modified";
+    LOG(INFO) << "Trending sticker sets are not modified";
+    auto *stickers = static_cast<const telegram_api::messages_featuredStickersNotModified *>(sticker_sets_ptr.get());
+    if (offset >= 0 && generation == old_featured_sticker_set_generation_) {
+      set_old_featured_sticker_set_count(stickers->count_);
+      fix_old_featured_sticker_set_count();
+    }
+    send_update_featured_sticker_sets();
     return;
   }
   CHECK(constructor_id == telegram_api::messages_featuredStickers::ID);
   auto featured_stickers = move_tl_object_as<telegram_api::messages_featuredStickers>(sticker_sets_ptr);
+
+  if (offset >= 0 && generation == old_featured_sticker_set_generation_) {
+    set_old_featured_sticker_set_count(featured_stickers->count_);
+    // the count will be fixed in on_load_old_featured_sticker_sets_finished
+  }
 
   std::unordered_set<StickerSetId, StickerSetIdHash> unread_sticker_set_ids;
   for (auto &unread_sticker_set_id : featured_stickers->unread_) {
@@ -3366,24 +3548,50 @@ void StickersManager::on_get_featured_sticker_sets(
 
   send_update_installed_sticker_sets();
 
+  if (offset >= 0) {
+    if (generation == old_featured_sticker_set_generation_) {
+      if (G()->parameters().use_file_db) {
+        LOG(INFO) << "Save old trending sticker sets to database with offset " << old_featured_sticker_set_ids_.size();
+        CHECK(old_featured_sticker_set_ids_.size() % OLD_FEATURED_STICKER_SET_SLICE_SIZE == 0);
+        StickerSetListLogEvent log_event(featured_sticker_set_ids);
+        G()->td_db()->get_sqlite_pmc()->set(PSTRING() << "sssoldfeatured" << old_featured_sticker_set_ids_.size(),
+                                            log_event_store(log_event).as_slice().str(), Auto());
+      }
+      on_load_old_featured_sticker_sets_finished(generation, std::move(featured_sticker_set_ids));
+    }
+
+    send_update_featured_sticker_sets();  // because of changed count
+    return;
+  }
+
   on_load_featured_sticker_sets_finished(std::move(featured_sticker_set_ids));
 
-  LOG_IF(ERROR, featured_sticker_sets_hash_ != featured_stickers->hash_) << "Featured sticker sets hash mismatch";
+  LOG_IF(ERROR, featured_sticker_sets_hash_ != featured_stickers->hash_) << "Trending sticker sets hash mismatch";
 
   if (!G()->parameters().use_file_db) {
     return;
   }
 
-  LOG(INFO) << "Save featured sticker sets to database";
+  LOG(INFO) << "Save trending sticker sets to database";
   StickerSetListLogEvent log_event(featured_sticker_set_ids_);
   G()->td_db()->get_sqlite_pmc()->set("sssfeatured", log_event_store(log_event).as_slice().str(), Auto());
 }
 
-void StickersManager::on_get_featured_sticker_sets_failed(Status error) {
+void StickersManager::on_get_featured_sticker_sets_failed(int32 offset, int32 limit, uint32 generation, Status error) {
   CHECK(error.is_error());
-  next_featured_sticker_sets_load_time_ = Time::now_cached() + Random::fast(5, 10);
-  auto promises = std::move(load_featured_sticker_sets_queries_);
-  load_featured_sticker_sets_queries_.clear();
+  vector<Promise<Unit>> promises;
+  if (offset >= 0) {
+    if (generation != old_featured_sticker_set_generation_) {
+      return;
+    }
+    promises = std::move(load_old_featured_sticker_sets_queries_);
+    load_old_featured_sticker_sets_queries_.clear();
+  } else {
+    next_featured_sticker_sets_load_time_ = Time::now_cached() + Random::fast(5, 10);
+    promises = std::move(load_featured_sticker_sets_queries_);
+    load_featured_sticker_sets_queries_.clear();
+  }
+
   for (auto &promise : promises) {
     promise.set_error(error.clone());
   }
@@ -3392,6 +3600,7 @@ void StickersManager::on_get_featured_sticker_sets_failed(Status error) {
 void StickersManager::load_featured_sticker_sets(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     are_featured_sticker_sets_loaded_ = true;
+    old_featured_sticker_set_count_ = 0;
   }
   if (are_featured_sticker_sets_loaded_) {
     promise.set_value(Unit());
@@ -3400,14 +3609,14 @@ void StickersManager::load_featured_sticker_sets(Promise<Unit> &&promise) {
   load_featured_sticker_sets_queries_.push_back(std::move(promise));
   if (load_featured_sticker_sets_queries_.size() == 1u) {
     if (G()->parameters().use_file_db) {
-      LOG(INFO) << "Trying to load featured sticker sets from database";
+      LOG(INFO) << "Trying to load trending sticker sets from database";
       G()->td_db()->get_sqlite_pmc()->get("sssfeatured", PromiseCreator::lambda([](string value) {
                                             send_closure(G()->stickers_manager(),
                                                          &StickersManager::on_load_featured_sticker_sets_from_database,
                                                          std::move(value));
                                           }));
     } else {
-      LOG(INFO) << "Trying to load featured sticker sets from server";
+      LOG(INFO) << "Trying to load trending sticker sets from server";
       reload_featured_sticker_sets(true);
     }
   }
@@ -3415,18 +3624,18 @@ void StickersManager::load_featured_sticker_sets(Promise<Unit> &&promise) {
 
 void StickersManager::on_load_featured_sticker_sets_from_database(string value) {
   if (value.empty()) {
-    LOG(INFO) << "Featured sticker sets aren't found in database";
+    LOG(INFO) << "Trending sticker sets aren't found in database";
     reload_featured_sticker_sets(true);
     return;
   }
 
-  LOG(INFO) << "Successfully loaded featured sticker sets list of size " << value.size() << " from database";
+  LOG(INFO) << "Successfully loaded trending sticker set list of size " << value.size() << " from database";
 
   StickerSetListLogEvent log_event;
   auto status = log_event_parse(log_event, value);
   if (status.is_error()) {
     // can't happen unless database is broken
-    LOG(ERROR) << "Can't load featured sticker sets list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    LOG(ERROR) << "Can't load trending sticker set list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     return reload_featured_sticker_sets(true);
   }
 
@@ -3445,17 +3654,102 @@ void StickersManager::on_load_featured_sticker_sets_from_database(string value) 
         if (result.is_ok()) {
           send_closure(G()->stickers_manager(), &StickersManager::on_load_featured_sticker_sets_finished,
                        std::move(sticker_set_ids));
+        } else {
+          send_closure(G()->stickers_manager(), &StickersManager::reload_featured_sticker_sets, true);
         }
       }));
 }
 
 void StickersManager::on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids) {
+  if (!featured_sticker_set_ids_.empty() && featured_sticker_set_ids != featured_sticker_set_ids_) {
+    // always invalidate old featured sticker sets when current featured sticker sets change
+    on_old_featured_sticker_sets_invalidated();
+  }
   featured_sticker_set_ids_ = std::move(featured_sticker_set_ids);
   are_featured_sticker_sets_loaded_ = true;
   need_update_featured_sticker_sets_ = true;
   send_update_featured_sticker_sets();
   auto promises = std::move(load_featured_sticker_sets_queries_);
   load_featured_sticker_sets_queries_.clear();
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
+}
+
+void StickersManager::load_old_featured_sticker_sets(Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(old_featured_sticker_set_ids_.size() % OLD_FEATURED_STICKER_SET_SLICE_SIZE == 0);
+  load_old_featured_sticker_sets_queries_.push_back(std::move(promise));
+  if (load_old_featured_sticker_sets_queries_.size() == 1u) {
+    if (G()->parameters().use_file_db) {
+      LOG(INFO) << "Trying to load old trending sticker sets from database with offset "
+                << old_featured_sticker_set_ids_.size();
+      G()->td_db()->get_sqlite_pmc()->get(
+          PSTRING() << "sssoldfeatured" << old_featured_sticker_set_ids_.size(),
+          PromiseCreator::lambda([generation = old_featured_sticker_set_generation_](string value) {
+            send_closure(G()->stickers_manager(), &StickersManager::on_load_old_featured_sticker_sets_from_database,
+                         generation, std::move(value));
+          }));
+    } else {
+      LOG(INFO) << "Trying to load old trending sticker sets from server with offset "
+                << old_featured_sticker_set_ids_.size();
+      reload_old_featured_sticker_sets();
+    }
+  }
+}
+
+void StickersManager::on_load_old_featured_sticker_sets_from_database(uint32 generation, string value) {
+  if (generation != old_featured_sticker_set_generation_) {
+    return;
+  }
+  if (value.empty()) {
+    LOG(INFO) << "Old trending sticker sets aren't found in database";
+    return reload_old_featured_sticker_sets();
+  }
+
+  LOG(INFO) << "Successfully loaded old trending sticker set list of size " << value.size()
+            << " from database with offset " << old_featured_sticker_set_ids_.size();
+
+  StickerSetListLogEvent log_event;
+  auto status = log_event_parse(log_event, value);
+  if (status.is_error()) {
+    // can't happen unless database is broken
+    LOG(ERROR) << "Can't load old trending sticker set list: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    return reload_old_featured_sticker_sets();
+  }
+
+  vector<StickerSetId> sets_to_load;
+  for (auto sticker_set_id : log_event.sticker_set_ids) {
+    StickerSet *sticker_set = get_sticker_set(sticker_set_id);
+    CHECK(sticker_set != nullptr);
+    if (!sticker_set->is_inited) {
+      sets_to_load.push_back(sticker_set_id);
+    }
+  }
+
+  load_sticker_sets_without_stickers(
+      std::move(sets_to_load),
+      PromiseCreator::lambda(
+          [generation, sticker_set_ids = std::move(log_event.sticker_set_ids)](Result<> result) mutable {
+            if (result.is_ok()) {
+              send_closure(G()->stickers_manager(), &StickersManager::on_load_old_featured_sticker_sets_finished,
+                           generation, std::move(sticker_set_ids));
+            } else {
+              send_closure(G()->stickers_manager(), &StickersManager::reload_old_featured_sticker_sets, generation);
+            }
+          }));
+}
+
+void StickersManager::on_load_old_featured_sticker_sets_finished(uint32 generation,
+                                                                 vector<StickerSetId> &&featured_sticker_set_ids) {
+  if (generation != old_featured_sticker_set_generation_) {
+    fix_old_featured_sticker_set_count();  // must never be needed
+    return;
+  }
+  append(old_featured_sticker_set_ids_, std::move(featured_sticker_set_ids));
+  fix_old_featured_sticker_set_count();
+  auto promises = std::move(load_old_featured_sticker_sets_queries_);
+  load_old_featured_sticker_sets_queries_.clear();
   for (auto &promise : promises) {
     promise.set_value(Unit());
   }
@@ -4316,8 +4610,10 @@ void StickersManager::send_update_installed_sticker_sets(bool from_database) {
 }
 
 td_api::object_ptr<td_api::updateTrendingStickerSets> StickersManager::get_update_trending_sticker_sets_object() const {
+  auto total_count = static_cast<int32>(featured_sticker_set_ids_.size()) +
+                     (old_featured_sticker_set_count_ == -1 ? 1 : old_featured_sticker_set_count_);
   return td_api::make_object<td_api::updateTrendingStickerSets>(
-      get_sticker_sets_object(-1, featured_sticker_set_ids_, 5));
+      get_sticker_sets_object(total_count, featured_sticker_set_ids_, 5));
 }
 
 void StickersManager::send_update_featured_sticker_sets() {
@@ -5604,7 +5900,7 @@ void StickersManager::after_get_difference() {
   if (td_->is_online()) {
     get_installed_sticker_sets(false, Auto());
     get_installed_sticker_sets(true, Auto());
-    get_featured_sticker_sets(Auto());
+    get_featured_sticker_sets(0, 1000, Auto());
     get_recent_stickers(false, Auto());
     get_recent_stickers(true, Auto());
     get_favorite_stickers(Auto());

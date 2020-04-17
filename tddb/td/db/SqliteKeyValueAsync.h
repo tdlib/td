@@ -20,6 +20,7 @@ class SqliteKeyValueAsyncInterface {
 
   virtual void set(string key, string value, Promise<> promise) = 0;
   virtual void erase(string key, Promise<> promise) = 0;
+  virtual void erase_by_prefix(string key_prefix, Promise<> promise) = 0;
 
   virtual void get(string key, Promise<string> promise) = 0;
   virtual void close(Promise<> promise) = 0;

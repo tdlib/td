@@ -29,6 +29,9 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
   void erase(string key, Promise<> promise) override {
     send_closure_later(impl_, &Impl::erase, std::move(key), std::move(promise));
   }
+  void erase_by_prefix(string key_prefix, Promise<> promise) override {
+    send_closure_later(impl_, &Impl::erase_by_prefix, std::move(key_prefix), std::move(promise));
+  }
   void get(string key, Promise<string> promise) override {
     send_closure_later(impl_, &Impl::get, std::move(key), std::move(promise));
   }
@@ -66,6 +69,11 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       }
       cnt_++;
       do_flush(false /*force*/);
+    }
+    void erase_by_prefix(string key_prefix, Promise<> promise) {
+      do_flush(true /*force*/);
+      kv_->erase_by_prefix(key_prefix);
+      promise.set_value(Unit());
     }
 
     void get(const string &key, Promise<string> promise) {

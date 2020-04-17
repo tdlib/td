@@ -132,11 +132,12 @@ class StickersManager : public Actor {
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 
-  vector<StickerSetId> get_featured_sticker_sets(Promise<Unit> &&promise);
+  std::pair<int32, vector<StickerSetId>> get_featured_sticker_sets(int32 offset, int32 limit, Promise<Unit> &&promise);
 
-  void on_get_featured_sticker_sets(tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr);
+  void on_get_featured_sticker_sets(int32 offset, int32 limit, uint32 generation,
+                                    tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr);
 
-  void on_get_featured_sticker_sets_failed(Status error);
+  void on_get_featured_sticker_sets_failed(int32 offset, int32 limit, uint32 generation, Status error);
 
   vector<StickerSetId> get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise);
 
@@ -271,6 +272,7 @@ class StickersManager : public Actor {
 
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
+  static constexpr int32 OLD_FEATURED_STICKER_SET_SLICE_SIZE = 20;
 
   static constexpr int32 MAX_FOUND_STICKERS = 100;                    // server side limit
   static constexpr int64 MAX_STICKER_FILE_SIZE = 1 << 19;             // server side limit
@@ -435,6 +437,8 @@ class StickersManager : public Actor {
 
   void load_featured_sticker_sets(Promise<Unit> &&promise);
 
+  void load_old_featured_sticker_sets(Promise<Unit> &&promise);
+
   void load_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
   void on_load_installed_sticker_sets_from_database(bool is_masks, string value);
@@ -446,6 +450,11 @@ class StickersManager : public Actor {
 
   void on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids);
 
+  void on_load_old_featured_sticker_sets_from_database(uint32 generation, string value);
+
+  void on_load_old_featured_sticker_sets_finished(uint32 generation,
+                                                  vector<StickerSetId> &&old_featured_sticker_set_ids);
+
   void on_load_recent_stickers_from_database(bool is_attached, string value);
 
   void on_load_recent_stickers_finished(bool is_attached, vector<FileId> &&recent_sticker_ids,
@@ -454,6 +463,18 @@ class StickersManager : public Actor {
   td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(int is_mask) const;
 
   void send_update_installed_sticker_sets(bool from_database = false);
+
+  void reload_old_featured_sticker_sets(uint32 generation = 0);
+
+  void on_old_featured_sticker_sets_invalidated();
+
+  void invalidate_old_featured_sticker_sets();
+
+  void set_old_featured_sticker_set_count(int32 count);
+
+  // must be called after every call to set_old_featured_sticker_set_count or
+  // any change of old_featured_sticker_set_ids_ size
+  void fix_old_featured_sticker_set_count();
 
   td_api::object_ptr<td_api::updateTrendingStickerSets> get_update_trending_sticker_sets_object() const;
 
@@ -576,6 +597,7 @@ class StickersManager : public Actor {
 
   vector<StickerSetId> installed_sticker_set_ids_[2];
   vector<StickerSetId> featured_sticker_set_ids_;
+  vector<StickerSetId> old_featured_sticker_set_ids_;
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
@@ -588,6 +610,9 @@ class StickersManager : public Actor {
   int32 featured_sticker_sets_hash_ = 0;
   int32 recent_stickers_hash_[2] = {0, 0};
 
+  int32 old_featured_sticker_set_count_ = -1;
+  uint32 old_featured_sticker_set_generation_ = 1;
+
   bool need_update_installed_sticker_sets_[2] = {false, false};
   bool need_update_featured_sticker_sets_ = false;
   bool need_update_recent_stickers_[2] = {false, false};
@@ -597,8 +622,11 @@ class StickersManager : public Actor {
   bool are_recent_stickers_loaded_[2] = {false, false};
   bool are_favorite_stickers_loaded_ = false;
 
+  bool are_old_featured_sticker_sets_invalidated_ = false;
+
   vector<Promise<Unit>> load_installed_sticker_sets_queries_[2];
   vector<Promise<Unit>> load_featured_sticker_sets_queries_;
+  vector<Promise<Unit>> load_old_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_recent_stickers_queries_[2];
   vector<Promise<Unit>> repair_recent_stickers_queries_[2];
   vector<Promise<Unit>> load_favorite_stickers_queries_;

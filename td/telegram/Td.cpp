@@ -2337,18 +2337,22 @@ class GetArchivedStickerSetsRequest : public RequestActor<> {
 };
 
 class GetTrendingStickerSetsRequest : public RequestActor<> {
-  vector<StickerSetId> sticker_set_ids_;
+  std::pair<int32, vector<StickerSetId>> sticker_set_ids_;
+  int32 offset_;
+  int32 limit_;
 
   void do_run(Promise<Unit> &&promise) override {
-    sticker_set_ids_ = td->stickers_manager_->get_featured_sticker_sets(std::move(promise));
+    sticker_set_ids_ = td->stickers_manager_->get_featured_sticker_sets(offset_, limit_, std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
+    send_result(td->stickers_manager_->get_sticker_sets_object(sticker_set_ids_.first, sticker_set_ids_.second, 5));
   }
 
  public:
-  GetTrendingStickerSetsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  GetTrendingStickerSetsRequest(ActorShared<Td> td, uint64 request_id, int32 offset, int32 limit)
+      : RequestActor(std::move(td), request_id), offset_(offset), limit_(limit) {
+    set_tries(3);
   }
 };
 
@@ -4335,9 +4339,12 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateUserStatus::ID:
       VLOG(td_requests) << "Sending update: " << oneline(to_string(object));
       break;
-    case td_api::updateTrendingStickerSets::ID:
-      VLOG(td_requests) << "Sending update: updateTrendingStickerSets { ... }";
+    case td_api::updateTrendingStickerSets::ID: {
+      auto sticker_sets = static_cast<const td_api::updateTrendingStickerSets *>(object.get())->sticker_sets_.get();
+      VLOG(td_requests) << "Sending update: updateTrendingStickerSets { total_count = " << sticker_sets->total_count_
+                        << ", count = " << sticker_sets->sets_.size() << " }";
       break;
+    }
     case td_api::updateOption::ID / 2:
     case td_api::updateChatReadInbox::ID / 2:
     case td_api::updateUnreadMessageCount::ID / 2:
@@ -4351,7 +4358,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
   }
 
   callback_->on_result(0, std::move(object));
-}
+}  // namespace td
 
 void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
   if (id == 0) {
@@ -6300,7 +6307,7 @@ void Td::on_request(uint64 id, const td_api::getArchivedStickerSets &request) {
 
 void Td::on_request(uint64 id, const td_api::getTrendingStickerSets &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetTrendingStickerSetsRequest);
+  CREATE_REQUEST(GetTrendingStickerSetsRequest, request.offset_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getAttachedStickerSets &request) {

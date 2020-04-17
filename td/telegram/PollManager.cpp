@@ -934,7 +934,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
   auto cur_offset = narrow_cast<int32>(voters.voter_user_ids.size());
 
   if (offset > cur_offset) {
-    return promise.set_error(Status::Error(400, "Too big offset specified, voters can be received only consequently"));
+    return promise.set_error(Status::Error(400, "Too big offset specified; voters can be received only consequently"));
   }
   if (offset < cur_offset) {
     vector<UserId> result;

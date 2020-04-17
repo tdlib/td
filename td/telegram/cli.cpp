@@ -626,8 +626,22 @@ class CliClient final : public Actor {
   }
 
   void on_result(uint64 generation, uint64 id, td_api::object_ptr<td_api::Object> result) {
+    auto result_str = to_string(result);
+    if (result != nullptr) {
+      switch (result->get_id()) {
+        case td_api::stickerSets::ID: {
+          auto sticker_sets = static_cast<const td_api::stickerSets *>(result.get());
+          result_str = PSTRING() << "StickerSets { total_count = " << sticker_sets->total_count_
+                                 << ", count = " << sticker_sets->sets_.size() << "}";
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
-      LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << to_string(result);
+      LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << result_str;
     }
 
     auto as_json_str = json_encode<std::string>(ToJson(result));
@@ -642,7 +656,7 @@ class CliClient final : public Actor {
     // LOG(INFO) << "Receive result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {
-      LOG(INFO) << "Drop received from previous Client " << to_string(result);
+      LOG(INFO) << "Drop received from previous Client " << result_str;
       return;
     }
 
@@ -728,7 +742,7 @@ class CliClient final : public Actor {
         on_get_file(*static_cast<const td_api::updateFile *>(result.get())->file_);
         break;
       case td_api::updateConnectionState::ID:
-        LOG(WARNING) << to_string(result);
+        LOG(WARNING) << result_str;
         break;
     }
   }
@@ -2243,7 +2257,15 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getArchivedStickerSets>(
           as_bool(is_masks), to_integer<int64>(offset_sticker_set_id), to_integer<int32>(limit)));
     } else if (op == "gtss") {
-      send_request(td_api::make_object<td_api::getTrendingStickerSets>());
+      string offset;
+      string limit;
+
+      std::tie(offset, limit) = split(args);
+      if (limit.empty()) {
+        limit = "1000";
+      }
+      send_request(
+          td_api::make_object<td_api::getTrendingStickerSets>(to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "gatss") {
       send_request(td_api::make_object<td_api::getAttachedStickerSets>(as_file_id(args)));
     } else if (op == "storage") {

@@ -3016,7 +3016,7 @@ updateStickerSet sticker_set:stickerSet = Update;
 //@description The list of installed sticker sets was updated @is_masks True, if the list of installed mask sticker sets was updated @sticker_set_ids The new list of installed ordinary sticker sets
 updateInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Update;
 
-//@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The new list of trending sticker sets
+//@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The prefix of the list of trending sticker sets
 updateTrendingStickerSets sticker_sets:stickerSets = Update;
 
 //@description The list of recently used stickers was updated @is_attached True, if the list of stickers attached to photo or video files was updated, otherwise the list of sent stickers is updated @sticker_ids The new list of file identifiers of recently used stickers
@@ -3893,8 +3893,10 @@ getInstalledStickerSets is_masks:Bool = StickerSets;
 //@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return
 getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
-//@description Returns a list of trending sticker sets
-getTrendingStickerSets = StickerSets;
+//@description Returns a list of trending sticker sets. For the optimal performance the number of returned users is chosen by the library
+//@offset The offset from which to return the sticker sets; must be non-negative
+//@limit The maximum number of sticker sets to be returned; must be non-negative. Fewer sticker sets may be returned than specified by the limit, even if the end of the list has not been reached
+getTrendingStickerSets offset:int32 limit:int32 = StickerSets;
 
 //@description Returns a list of sticker sets attached to a file. Currently only photos and videos can have attached sticker sets @file_id File identifier
 getAttachedStickerSets file_id:int32 = StickerSets;
