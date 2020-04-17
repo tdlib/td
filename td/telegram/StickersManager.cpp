@@ -1221,6 +1221,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->was_loaded);
+  sticker_set->was_update_sent = true;
 
   std::vector<tl_object_ptr<td_api::sticker>> stickers;
   std::vector<tl_object_ptr<td_api::emojis>> emojis;
@@ -1268,6 +1269,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->is_inited);
+  sticker_set->was_update_sent = true;
 
   std::vector<tl_object_ptr<td_api::sticker>> stickers;
   for (auto sticker_id : sticker_set->sticker_ids) {
@@ -2976,7 +2978,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
 void StickersManager::update_sticker_set(StickerSet *sticker_set) {
   CHECK(sticker_set != nullptr);
   if (sticker_set->is_changed || sticker_set->need_save_to_database) {
-    if (G()->parameters().use_file_db) {
+    if (G()->parameters().use_file_db && sticker_set->need_save_to_database) {
       LOG(INFO) << "Save " << sticker_set->id << " to database";
       if (sticker_set->is_inited) {
         G()->td_db()->get_sqlite_pmc()->set(get_sticker_set_database_key(sticker_set->id),
@@ -2986,6 +2988,10 @@ void StickersManager::update_sticker_set(StickerSet *sticker_set) {
         G()->td_db()->get_sqlite_pmc()->set(get_full_sticker_set_database_key(sticker_set->id),
                                             get_sticker_set_database_value(sticker_set, true), Auto());
       }
+    }
+    if (sticker_set->is_changed && sticker_set->was_loaded && sticker_set->was_update_sent) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateStickerSet>(get_sticker_set_object(sticker_set->id)));
     }
     sticker_set->is_changed = false;
     sticker_set->need_save_to_database = false;

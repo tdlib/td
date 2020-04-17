@@ -3010,6 +3010,9 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 
+//@description A sticker set has changed @sticker_set The sticker set
+updateStickerSet sticker_set:stickerSet = Update;
+
 //@description The list of installed sticker sets was updated @is_masks True, if the list of installed mask sticker sets was updated @sticker_set_ids The new list of installed ordinary sticker sets
 updateInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Update;
 
