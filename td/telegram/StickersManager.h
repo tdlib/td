@@ -300,7 +300,7 @@ class StickersManager : public Actor {
 
   class StickerSet {
    public:
-    bool is_inited = false;
+    bool is_inited = false;  // basic information about the set
     bool was_loaded = false;
     bool is_loaded = false;
 
@@ -325,7 +325,8 @@ class StickersManager : public Actor {
     bool is_masks = false;
     bool is_viewed = true;
     bool is_thumbnail_reloaded = false;
-    bool is_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
 
     vector<uint32> load_requests;
     vector<uint32> load_without_stickers_requests;

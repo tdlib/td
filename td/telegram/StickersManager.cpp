@@ -1515,11 +1515,12 @@ StickersManager::StickerSet *StickersManager::add_sticker_set(StickerSetId stick
     s->id = sticker_set_id;
     s->access_hash = access_hash;
     s->is_changed = false;
+    s->need_save_to_database = false;
   } else {
     CHECK(s->id == sticker_set_id);
     if (s->access_hash != access_hash) {
       s->access_hash = access_hash;
-      s->is_changed = true;
+      s->need_save_to_database = true;
     }
   }
   return s.get();
@@ -1692,9 +1693,7 @@ void StickersManager::on_resolve_sticker_set_short_name(FileId sticker_file_id, 
   StickerSetId set_id = search_sticker_set(short_name, Auto());
   if (set_id.is_valid()) {
     auto &s = stickers_[sticker_file_id];
-    if (s == nullptr) {
-      LOG(ERROR) << "Can't find sticker " << sticker_file_id;
-    }
+    CHECK(s != nullptr);
     CHECK(s->file_id == sticker_file_id);
     if (s->set_id != set_id) {
       s->set_id = set_id;
@@ -1924,7 +1923,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     if (s->access_hash != set->access_hash_) {
       LOG(INFO) << "Access hash of " << set_id << " has changed";
       s->access_hash = set->access_hash_;
-      s->is_changed = true;
+      s->need_save_to_database = true;
     }
     if (s->title != set->title_) {
       LOG(INFO) << "Title of " << set_id << " has changed";
@@ -1953,7 +1952,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     }
     if (!s->is_thumbnail_reloaded) {
       s->is_thumbnail_reloaded = true;
-      s->is_changed = true;
+      s->need_save_to_database = true;
     }
 
     if (s->sticker_count != set->count_ || s->hash != set->hash_) {
@@ -1961,7 +1960,11 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
 
       s->sticker_count = set->count_;
       s->hash = set->hash_;
-      s->is_changed = true;
+      if (s->was_loaded) {
+        s->need_save_to_database = true;
+      } else {
+        s->is_changed = true;
+      }
     }
 
     if (s->is_official != is_official) {
@@ -2972,8 +2975,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
 
 void StickersManager::update_sticker_set(StickerSet *sticker_set) {
   CHECK(sticker_set != nullptr);
-  if (sticker_set->is_changed) {
-    sticker_set->is_changed = false;
+  if (sticker_set->is_changed || sticker_set->need_save_to_database) {
     if (G()->parameters().use_file_db) {
       LOG(INFO) << "Save " << sticker_set->id << " to database";
       if (sticker_set->is_inited) {
@@ -2985,6 +2987,8 @@ void StickersManager::update_sticker_set(StickerSet *sticker_set) {
                                             get_sticker_set_database_value(sticker_set, true), Auto());
       }
     }
+    sticker_set->is_changed = false;
+    sticker_set->need_save_to_database = false;
     if (sticker_set->is_inited) {
       update_load_requests(sticker_set, false, Status::OK());
     }
@@ -3112,7 +3116,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
   }
 
   if (with_stickers && old_sticker_count < 5 && old_sticker_count < sticker_set->sticker_ids.size()) {
-    sticker_set->is_changed = true;
+    sticker_set->need_save_to_database = true;
     update_sticker_set(sticker_set);
   }
 
