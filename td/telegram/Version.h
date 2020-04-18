@@ -36,6 +36,7 @@ enum class Version : int32 {
   AddPhotoSizeSource,
   AddFolders,
   SupportPolls2_0,
+  AddDiceEmoji,
   Next
 };
 

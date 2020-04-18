@@ -3146,7 +3146,11 @@ class CliClient final : public Actor {
                                                                                as_message_id(from_message_id), true,
                                                                                op == "scopy", Random::fast(0, 1) == 0));
     } else if (op == "sdice" || op == "sdicecd") {
-      send_message(args, td_api::make_object<td_api::inputMessageDice>(op == "sdicecd"));
+      string chat_id;
+      string emoji;
+      std::tie(chat_id, emoji) = split(args);
+
+      send_message(chat_id, td_api::make_object<td_api::inputMessageDice>(emoji, op == "sdicecd"));
     } else if (op == "sd") {
       string chat_id;
       string document_path;
