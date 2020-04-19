@@ -7,6 +7,8 @@
 #pragma once
 
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/Version.h"
 
@@ -14,9 +16,6 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
-
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
 
 #include <functional>
 #include <tuple>
