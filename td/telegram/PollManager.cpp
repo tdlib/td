@@ -1478,16 +1478,28 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   if (poll->is_quiz) {
     if (poll->correct_option_id != correct_option_id) {
-      poll->correct_option_id = correct_option_id;
-      is_changed = true;
+      if (correct_option_id == -1 && poll->correct_option_id != -1) {
+        LOG(ERROR) << "Can't change correct option of " << poll_id << " from " << poll->correct_option_id << " to "
+                   << correct_option_id;
+      } else {
+        poll->correct_option_id = correct_option_id;
+        is_changed = true;
+      }
     }
     if (poll->explanation != explanation && (!is_min || poll->is_closed)) {
-      poll->explanation = std::move(explanation);
-      is_changed = true;
+      if (explanation.text.empty() && !poll->explanation.text.empty()) {
+        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty";
+      } else {
+        poll->explanation = std::move(explanation);
+        is_changed = true;
+      }
     }
   } else {
     if (correct_option_id != -1) {
       LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
+    }
+    if (!explanation.text.empty()) {
+      LOG(ERROR) << "Receive explanation " << explanation << " in non-quiz " << poll_id;
     }
   }
 
