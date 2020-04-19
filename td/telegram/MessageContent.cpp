@@ -3273,6 +3273,10 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                               source);
+    case MessageContentType::Dice: {
+      auto dice = static_cast<const MessageDice *>(content);
+      return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, full_message_id, source);
+    }
     default:
       return;
   }
@@ -3296,6 +3300,14 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::Dice:
+        if (static_cast<const MessageDice *>(old_content)->emoji ==
+                static_cast<const MessageDice *>(new_content)->emoji &&
+            static_cast<const MessageDice *>(old_content)->dice_value ==
+                static_cast<const MessageDice *>(new_content)->dice_value) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -3313,6 +3325,10 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                                 source);
+    case MessageContentType::Dice: {
+      auto dice = static_cast<const MessageDice *>(content);
+      return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, full_message_id, source);
+    }
     default:
       return;
   }
@@ -4480,7 +4496,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Dice: {
       const MessageDice *m = static_cast<const MessageDice *>(content);
-      return make_tl_object<td_api::messageDice>(m->emoji, m->dice_value);
+      auto initial_state = td->stickers_manager_->get_dice_sticker_object(m->emoji, 0);
+      auto final_state =
+          m->dice_value == 0 ? nullptr : td->stickers_manager_->get_dice_sticker_object(m->emoji, m->dice_value);
+      return make_tl_object<td_api::messageDice>(std::move(initial_state), std::move(final_state), m->emoji,
+                                                 m->dice_value);
     }
     default:
       UNREACHABLE();

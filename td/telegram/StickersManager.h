@@ -13,6 +13,7 @@
 
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
@@ -51,6 +52,8 @@ class StickersManager : public Actor {
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
+  tl_object_ptr<td_api::sticker> get_dice_sticker_object(const string &emoji, int32 value) const;
+
   tl_object_ptr<td_api::stickerSet> get_sticker_set_object(StickerSetId sticker_set_id) const;
 
   tl_object_ptr<td_api::stickerSets> get_sticker_sets_object(int32 total_count,
@@ -58,6 +61,10 @@ class StickersManager : public Actor {
                                                              size_t covers_limit) const;
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
+
+  void register_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
+
+  void unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
   void create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
@@ -111,7 +118,9 @@ class StickersManager : public Actor {
   StickerSetId on_get_sticker_set_covered(tl_object_ptr<telegram_api::StickerSetCovered> &&set_ptr, bool is_changed,
                                           const char *source);
 
-  void on_get_special_sticker_set(StickerSetId sticker_set_id, const SpecialStickerSetType &type);
+  void on_get_special_sticker_set(const SpecialStickerSetType &type, StickerSetId sticker_set_id);
+
+  void on_load_special_sticker_set(const SpecialStickerSetType &type, Status result);
 
   void on_load_sticker_set_fail(StickerSetId sticker_set_id, const Status &error);
 
@@ -368,6 +377,7 @@ class StickersManager : public Actor {
     int64 access_hash_ = 0;
     string short_name_;
     SpecialStickerSetType type_;
+    bool is_being_loaded_ = false;
   };
 
   class StickerListLogEvent;
@@ -547,10 +557,18 @@ class StickersManager : public Actor {
 
   void tear_down() override;
 
+  SpecialStickerSet &add_special_sticker_set(const string &type);
+
   static void init_special_sticker_set(SpecialStickerSet &sticker_set, int64 sticker_set_id, int64 access_hash,
                                        string name);
 
+  void load_special_sticker_set_info_from_binlog(SpecialStickerSet &sticker_set);
+
+  void load_special_sticker_set_by_type(const SpecialStickerSetType &type);
+
   void load_special_sticker_set(SpecialStickerSet &sticker_set);
+
+  void reload_special_sticker_set(SpecialStickerSet &sticker_set);
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 
@@ -687,6 +705,8 @@ class StickersManager : public Actor {
   std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
   std::unordered_map<int64, string> emoji_suggestions_urls_;
+
+  std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
