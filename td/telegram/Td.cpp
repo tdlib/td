@@ -5032,7 +5032,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
   for (auto chat_id : request.chat_ids_) {
     DialogId dialog_id(chat_id);
     if (!dialog_id.is_valid() && dialog_id != DialogId()) {
-      return send_error_raw(id, 400, "Wrong chat id");
+      return send_error_raw(id, 400, "Wrong chat identifier");
     }
     owner_dialog_ids.push_back(dialog_id);
   }
@@ -5040,7 +5040,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
   for (auto chat_id : request.exclude_chat_ids_) {
     DialogId dialog_id(chat_id);
     if (!dialog_id.is_valid() && dialog_id != DialogId()) {
-      return send_error_raw(id, 400, "Wrong chat id");
+      return send_error_raw(id, 400, "Wrong chat identifier");
     }
     exclude_owner_dialog_ids.push_back(dialog_id);
   }
@@ -5958,7 +5958,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   FileId file_id(request.file_id_, 0);
   auto file_view = file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
-    return send_error_raw(id, 400, "Invalid file id");
+    return send_error_raw(id, 400, "Invalid file identifier");
   }
 
   auto info_it = pending_file_downloads_.find(file_id);

@@ -8809,7 +8809,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
 
   auto last_new_message_id = d->last_new_message_id;
   if (dialog_type != DialogType::SecretChat && last_new_message_id == MessageId()) {
-    // TODO get dialog from the server and delete history from last message id
+    // TODO get dialog from the server and delete history from last message identifier
   }
 
   bool allow_error = d->messages == nullptr;
@@ -26015,7 +26015,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   MessageId message_id = message->message_id;
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason_ = "invalid message id";
+    debug_add_message_to_dialog_fail_reason_ = "invalid message identifier";
     return nullptr;
   }
 
@@ -26068,7 +26068,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     CHECK(!message->from_database);
-    debug_add_message_to_dialog_fail_reason_ = "invalid message id";
+    debug_add_message_to_dialog_fail_reason_ = "invalid message identifier";
     return nullptr;
   }
 
@@ -27922,7 +27922,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       VLOG(notifications) << "Fix removing new secret chat " << d->new_secret_chat_notification_id << " in "
                           << dialog_id;
       d->new_secret_chat_notification_id = NotificationId();
-      on_dialog_updated(dialog_id, "fix new secret chat notification id");
+      on_dialog_updated(dialog_id, "fix new secret chat notification identifier");
     }
   }
 

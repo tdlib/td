@@ -839,7 +839,7 @@ void Session::on_message_info(uint64 id, int32 state, uint64 answer_id, int32 an
       case 2:
       case 3:
         // message not received by server
-        return on_message_failed(id, Status::Error("Unknown message id"));
+        return on_message_failed(id, Status::Error("Unknown message identifier"));
       case 0:
         if (answer_id == 0) {
           LOG(ERROR) << "Unexpected message_info.state == 0 " << tag("id", id) << tag("state", state)

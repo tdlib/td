@@ -69,7 +69,7 @@ void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
   switch (source.dialog_id.get_type()) {
     case DialogType::SecretChat:
     case DialogType::None:
-      return parser.set_error("Invalid chat id");
+      return parser.set_error("Invalid chat identifier");
     default:
       break;
   }

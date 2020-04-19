@@ -122,7 +122,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
   }
   size_t pos = static_cast<size_t>(dc_id.get_raw_id() - 1);
   if (pos >= dcs_.size()) {
-    return Status::Error("Too big DC id");
+    return Status::Error("Too big DC ID");
   }
   auto &dc = dcs_[pos];
 

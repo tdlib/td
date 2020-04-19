@@ -1944,7 +1944,7 @@ void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int 
   }
 
   if (!file_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "File ID is invalid"));
+    return promise.set_error(Status::Error(400, "File identifier is invalid"));
   }
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -2446,7 +2446,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
 bool FileManager::delete_partial_remote_location(FileId file_id) {
   auto node = get_sync_file_node(file_id);
   if (!node) {
-    LOG(INFO) << "Wrong file id " << file_id;
+    LOG(INFO) << "Wrong file identifier " << file_id;
     return false;
   }
   if (node->upload_pause_ == file_id) {
@@ -2482,7 +2482,7 @@ void FileManager::delete_file_reference(FileId file_id, string file_reference) {
                         << tag("reference_base64", base64_encode(file_reference));
   auto node = get_sync_file_node(file_id);
   if (!node) {
-    LOG(ERROR) << "Wrong file id " << file_id;
+    LOG(ERROR) << "Wrong file identifier " << file_id;
     return;
   }
   node->delete_file_reference(file_reference);
@@ -2765,11 +2765,11 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
 
   auto r_binary = base64url_decode(persistent_id);
   if (r_binary.is_error()) {
-    return Status::Error(10, PSLICE() << "Wrong remote file id specified: " << r_binary.error().message());
+    return Status::Error(10, PSLICE() << "Wrong remote file identifier specified: " << r_binary.error().message());
   }
   auto binary = r_binary.move_as_ok();
   if (binary.empty()) {
-    return Status::Error(10, "Remote file id can't be empty");
+    return Status::Error(10, "Remote file identifier can't be empty");
   }
   if (binary.back() == PERSISTENT_ID_VERSION_OLD) {
     return from_persistent_id_v2(binary, file_type);
@@ -2780,7 +2780,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (binary.back() == PERSISTENT_ID_VERSION_MAP) {
     return from_persistent_id_map(binary, file_type);
   }
-  return Status::Error(10, "Wrong remote file id specified: can't unserialize it. Wrong last symbol");
+  return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it. Wrong last symbol");
 }
 
 Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_type) {
@@ -2789,7 +2789,7 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
   FullGenerateFileLocation generate_location;
   auto status = unserialize(generate_location, decoded_binary);
   if (status.is_error()) {
-    return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
+    return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it");
   }
   auto real_file_type = generate_location.file_type_;
   if ((real_file_type != file_type && file_type != FileType::Temp) ||
@@ -2806,7 +2806,7 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {
   if (version < 0 || version >= static_cast<int32>(Version::Next)) {
-    return Status::Error("Invalid remote id");
+    return Status::Error("Invalid remote file identifier");
   }
   auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
@@ -2816,7 +2816,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   parser.fetch_end();
   auto status = parser.get_status();
   if (status.is_error()) {
-    return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
+    return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it");
   }
   auto &real_file_type = remote_location.file_type_;
   if (is_document_type(real_file_type) && is_document_type(file_type)) {
@@ -2841,7 +2841,7 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
 Result<FileId> FileManager::from_persistent_id_v3(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
   if (binary.empty()) {
-    return Status::Error("Invalid remote id");
+    return Status::Error("Invalid remote file identifier");
   }
   int32 version = static_cast<uint8>(binary.back());
   binary.remove_suffix(1);
