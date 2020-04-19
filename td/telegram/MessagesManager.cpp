@@ -8484,10 +8484,13 @@ bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) c
   if (m == nullptr) {
     return true;
   }
+  if (m->message_id.is_local()) {
+    return true;
+  }
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (G()->unix_time_cached() < m->date + 86400 && m->content->get_type() == MessageContentType::Dice &&
-          dialog_id != get_my_dialog_id()) {
+          dialog_id != get_my_dialog_id() && !m->message_id.is_scheduled()) {
         return false;
       }
       return true;
