@@ -167,6 +167,9 @@ void combine(vector<T> &destination, vector<T> &&source) {
   if (destination.size() < source.size()) {
     destination.swap(source);
   }
+  if (source.empty()) {
+    return;
+  }
   destination.reserve(destination.size() + source.size());
   for (auto &elem : source) {
     destination.push_back(std::move(elem));

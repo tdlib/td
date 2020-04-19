@@ -76,6 +76,8 @@ class PrivacyManager : public NetQueryCallback {
       return type_ == other.type_ && user_ids_ == other.user_ids_ && chat_ids_ == other.chat_ids_;
     }
 
+    vector<int32> get_restricted_user_ids() const;
+
    private:
     enum class Type : int32 {
       AllowContacts,
@@ -112,6 +114,8 @@ class PrivacyManager : public NetQueryCallback {
     bool operator==(const UserPrivacySettingRules &other) const {
       return rules_ == other.rules_;
     }
+
+    vector<int32> get_restricted_user_ids() const;
 
    private:
     vector<UserPrivacySettingRule> rules_;

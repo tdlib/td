@@ -11620,7 +11620,7 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
 
 void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   if (!user_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid user id"));
+    return promise.set_error(Status::Error(6, "Invalid user ID"));
   }
 
   have_user_force(user_id);
@@ -11854,7 +11854,7 @@ ContactsManager::Chat *ContactsManager::add_chat(ChatId chat_id) {
 
 bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise) {
   if (!chat_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid basic group id"));
+    promise.set_error(Status::Error(6, "Invalid basic group ID"));
     return false;
   }
 
@@ -11880,7 +11880,7 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
 
 void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
   if (!chat_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid basic group id"));
+    return promise.set_error(Status::Error(6, "Invalid basic group ID"));
   }
 
   // there is no much reason to combine different requests into one request
@@ -12173,7 +12173,7 @@ ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, con
 
 bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise) {
   if (!channel_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid supergroup id"));
+    promise.set_error(Status::Error(6, "Invalid supergroup ID"));
     return false;
   }
 
@@ -12199,7 +12199,7 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
 
 void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise) {
   if (!channel_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid supergroup id"));
+    return promise.set_error(Status::Error(6, "Invalid supergroup ID"));
   }
 
   have_channel_force(channel_id);
@@ -12332,7 +12332,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat(SecretChatId secre
 
 bool ContactsManager::get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise) {
   if (!secret_chat_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid secret chat id"));
+    promise.set_error(Status::Error(6, "Invalid secret chat ID"));
     return false;
   }
 

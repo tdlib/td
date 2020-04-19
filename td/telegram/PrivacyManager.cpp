@@ -22,6 +22,9 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <algorithm>
+#include <iterator>
+
 namespace td {
 
 Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::from_td_api(
@@ -344,6 +347,13 @@ vector<int64> PrivacyManager::UserPrivacySettingRule::chat_ids_as_dialog_ids() c
   return result;
 }
 
+vector<int32> PrivacyManager::UserPrivacySettingRule::get_restricted_user_ids() const {
+  if (type_ == Type::RestrictUsers) {
+    return user_ids_;
+  }
+  return {};
+}
+
 Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_telegram_api(
     tl_object_ptr<telegram_api::account_privacyRules> rules) {
   G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
@@ -390,6 +400,16 @@ vector<tl_object_ptr<telegram_api::InputPrivacyRule>> PrivacyManager::UserPrivac
   if (!result.empty() && result.back()->get_id() == telegram_api::inputPrivacyValueDisallowAll::ID) {
     result.pop_back();
   }
+  return result;
+}
+
+vector<int32> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids() const {
+  vector<int32> result;
+  for (auto &rule : rules_) {
+    combine(result, rule.get_restricted_user_ids());
+  }
+  std::sort(result.begin(), result.end());
+  result.erase(std::unique(result.begin(), result.end()), result.end());
   return result;
 }
 
@@ -499,14 +519,27 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
   info.is_synchronized = true;
 
   if (!(info.rules == privacy_rules)) {
+    if ((from_update || was_synchronized) && user_privacy_setting.type() == UserPrivacySetting::Type::UserStatus &&
+        !G()->close_flag()) {
+      send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
+
+      auto old_restricted = info.rules.get_restricted_user_ids();
+      auto new_restricted = privacy_rules.get_restricted_user_ids();
+      if (old_restricted != new_restricted) {
+        // if a user was unrestricted, it is not received from the server anymore
+        // we need to reget their online status manually
+        std::vector<int32> unrestricted;
+        std::set_difference(old_restricted.begin(), old_restricted.end(), new_restricted.begin(), new_restricted.end(),
+                            std::back_inserter(unrestricted));
+        for (auto &user_id : unrestricted) {
+          send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, UserId(user_id), Promise<Unit>());
+        }
+      }
+    }
     info.rules = std::move(privacy_rules);
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.as_td_api(),
                                                                        info.rules.as_td_api()));
-
-    if ((from_update || was_synchronized) && user_privacy_setting.type() == UserPrivacySetting::Type::UserStatus) {
-      send_closure(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
-    }
   }
 }
 
