@@ -1138,6 +1138,7 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   on_update_recent_stickers_limit(G()->shared_config().get_option_integer("recent_stickers_limit", 200));
   on_update_favorite_stickers_limit(G()->shared_config().get_option_integer("favorite_stickers_limit", 5));
+  on_update_dice_emojis();
 }
 
 void StickersManager::start_up() {
@@ -3243,6 +3244,20 @@ void StickersManager::on_uninstall_sticker_set(StickerSetId set_id) {
   on_update_sticker_set(sticker_set, false, false, true);
   update_sticker_set(sticker_set);
   send_update_installed_sticker_sets();
+}
+
+td_api::object_ptr<td_api::updateDiceEmojis> StickersManager::get_update_dice_emojis_object() const {
+  return td_api::make_object<td_api::updateDiceEmojis>(full_split(dice_emojis_, '\x01'));
+}
+
+void StickersManager::on_update_dice_emojis() {
+  auto dice_emojis = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯");
+  if (dice_emojis == dice_emojis_) {
+    return;
+  }
+  dice_emojis_ = std::move(dice_emojis);
+
+  send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
 }
 
 void StickersManager::on_update_sticker_sets() {
@@ -5929,6 +5944,9 @@ void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
   if (are_favorite_stickers_loaded_) {
     updates.push_back(get_update_favorite_stickers_object());
+  }
+  if (!dice_emojis_.empty()) {
+    updates.push_back(get_update_dice_emojis_object());
   }
 }
 

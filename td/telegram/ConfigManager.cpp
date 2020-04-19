@@ -1291,6 +1291,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string wallet_blockchain_name;
   string wallet_config;
   string ignored_restriction_reasons;
+  string dice_emojis;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1318,6 +1319,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto reasons = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &reason : reasons) {
+            CHECK(reason != nullptr);
             if (reason->get_id() == telegram_api::jsonString::ID) {
               Slice reason_name = static_cast<telegram_api::jsonString *>(reason.get())->value_;
               if (!reason_name.empty() && reason_name.find(',') == Slice::npos) {
@@ -1334,6 +1336,30 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           }
         } else {
           LOG(ERROR) << "Receive unexpected ignore_restriction_reasons " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "emojies_send_dice") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto emojis = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &emoji : emojis) {
+            CHECK(emoji != nullptr);
+            if (emoji->get_id() == telegram_api::jsonString::ID) {
+              Slice emoji_text = static_cast<telegram_api::jsonString *>(emoji.get())->value_;
+              if (!emoji_text.empty()) {
+                if (!dice_emojis.empty()) {
+                  dice_emojis += '\x01';
+                }
+                dice_emojis.append(emoji_text.begin(), emoji_text.end());
+              } else {
+                LOG(ERROR) << "Receive empty dice emoji";
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected dice emoji " << to_string(emoji);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected emojies_send_dice " << to_string(*value);
         }
         continue;
       }
@@ -1366,6 +1392,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     if (!shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
+  }
+
+  if (!dice_emojis.empty()) {
+    shared_config.set_option_string("dice_emojis", dice_emojis);
   }
 }
 

@@ -3457,7 +3457,7 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
              name == "channels_read_media_period";
     case 'd':
-      return name == "dc_txt_domain_name";
+      return name == "dc_txt_domain_name" || name == "dice_emojis";
     case 'e':
       return name == "edit_time_limit";
     case 'i':
@@ -3544,6 +3544,8 @@ void Td::on_config_option_updated(const string &name) {
     return send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
   } else if (name == "ignored_restriction_reasons") {
     return send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
+  } else if (name == "dice_emojis") {
+    return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
   } else if (is_internal_config_option(name)) {
     return;
   }
@@ -4351,6 +4353,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateUnreadChatCount::ID / 2:
     case td_api::updateChatOnlineMemberCount::ID / 2:
     case td_api::updateUserChatAction::ID / 2:
+    case td_api::updateDiceEmojis::ID / 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

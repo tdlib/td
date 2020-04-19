@@ -121,6 +121,8 @@ class StickersManager : public Actor {
 
   void on_uninstall_sticker_set(StickerSetId set_id);
 
+  void on_update_dice_emojis();
+
   void on_update_sticker_sets();
 
   void on_update_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
@@ -540,6 +542,8 @@ class StickersManager : public Actor {
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
+  td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
+
   void start_up() override;
 
   void tear_down() override;
@@ -684,6 +688,8 @@ class StickersManager : public Actor {
   std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
   std::unordered_map<int64, string> emoji_suggestions_urls_;
+
+  string dice_emojis_;
 };
 
 }  // namespace td
