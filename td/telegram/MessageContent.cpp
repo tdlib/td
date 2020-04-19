@@ -658,6 +658,16 @@ class MessageDice : public MessageContent {
   MessageContentType get_type() const override {
     return MessageContentType::Dice;
   }
+
+  bool is_valid() const {
+    if (dice_value < 0) {
+      return false;
+    }
+    if (emoji == "DEFAULT_EMOJI" || emoji == "🎯") {
+      return dice_value <= 6;
+    }
+    return dice_value <= 1000;
+  }
 };
 
 constexpr const char *MessageDice::DEFAULT_EMOJI;
@@ -1275,7 +1285,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
         m->emoji = MessageDice::DEFAULT_EMOJI;
       }
       parse(m->dice_value, parser);
-      is_bad = m->dice_value < 0 || m->dice_value > 6;
+      is_bad = !m->is_valid();
       content = std::move(m);
       break;
     }
@@ -3744,7 +3754,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto message_dice = move_tl_object_as<telegram_api::messageMediaDice>(media);
 
       auto m = td::make_unique<MessageDice>(message_dice->emoticon_, message_dice->value_);
-      if (m->dice_value < 0 || m->dice_value > 6) {
+      if (!m->is_valid()) {
         break;
       }
 
