@@ -16,6 +16,7 @@ string SpecialStickerSetType::animated_emoji() {
 }
 
 string SpecialStickerSetType::animated_dice(const string &emoji) {
+  CHECK(!emoji.empty());
   return PSTRING() << "animated_dice_sticker_set#" << emoji;
 }
 
@@ -35,13 +36,20 @@ SpecialStickerSetType::SpecialStickerSetType(
   }
 }
 
+string SpecialStickerSetType::get_dice_emoji() const {
+  if (begins_with(type_, "animated_dice_sticker_set#")) {
+    return type_.substr(Slice("animated_dice_sticker_set#").size());
+  }
+  return string();
+}
+
 telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::get_input_sticker_set() const {
   if (type_ == "animated_emoji_sticker_set") {
     return telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>();
   }
-  if (begins_with(type_, "animated_dice_sticker_set#")) {
-    return telegram_api::make_object<telegram_api::inputStickerSetDice>(
-        type_.substr(Slice("animated_dice_sticker_set#").size()));
+  auto emoji = get_dice_emoji();
+  if (!emoji.empty()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetDice>(emoji);
   }
 
   UNREACHABLE();

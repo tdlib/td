@@ -19,6 +19,8 @@ struct SpecialStickerSetType {
 
   static string animated_dice(const string &emoji);
 
+  string get_dice_emoji() const;
+
   SpecialStickerSetType() = default;
 
   explicit SpecialStickerSetType(const telegram_api::object_ptr<telegram_api::InputStickerSet> &input_sticker_set);
