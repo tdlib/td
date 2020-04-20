@@ -4841,7 +4841,7 @@ void update_expired_message_content(unique_ptr<MessageContent> &content) {
       content = make_unique<MessageExpiredVideo>();
       break;
     case MessageContentType::Unsupported:
-      // can happen if message content file id is broken
+      // can happen if message content file identifier is broken
       break;
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:

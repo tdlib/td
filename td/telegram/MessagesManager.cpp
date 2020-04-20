@@ -27506,10 +27506,16 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   auto old_file_id = get_message_content_any_file_id(old_content.get());
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
-    need_update = true;
-    LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
+    if (old_message->ttl > 0 && old_message->ttl_expires_at > 0 &&
+        ((new_content_type == MessageContentType::ExpiredPhoto && old_content_type == MessageContentType::Photo) ||
+         (new_content_type == MessageContentType::ExpiredVideo && old_content_type == MessageContentType::Video))) {
+      LOG(INFO) << "Do not apply expired message content early";
+    } else {
+      need_update = true;
+      LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
 
-    old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
+      old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
+    }
 
     if (need_merge_files && old_file_id.is_valid()) {
       auto new_file_id = get_message_content_any_file_id(new_content.get());
