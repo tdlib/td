@@ -3611,7 +3611,7 @@ std::pair<int32, vector<StickerSetId>> StickersManager::get_featured_sticker_set
   }
 
   promise.set_value(Unit());
-  return {total_count, Auto()};
+  return {total_count, vector<StickerSetId>()};
 }
 
 void StickersManager::on_old_featured_sticker_sets_invalidated() {

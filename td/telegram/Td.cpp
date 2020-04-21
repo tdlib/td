@@ -4361,7 +4361,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
   }
 
   callback_->on_result(0, std::move(object));
-}  // namespace td
+}
 
 void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
   if (id == 0) {

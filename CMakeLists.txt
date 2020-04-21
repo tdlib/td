@@ -657,7 +657,7 @@ set(TDLIB_SOURCE
   td/telegram/SequenceDispatcher.h
   td/telegram/ServerMessageId.h
   td/telegram/SetWithPosition.h
-  td/telegram/SpecialStickerSetType.cpp
+  td/telegram/SpecialStickerSetType.h
   td/telegram/StateManager.h
   td/telegram/StickerSetId.h
   td/telegram/StickersManager.h

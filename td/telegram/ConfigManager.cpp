@@ -1093,7 +1093,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
   auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));
   if (r_config.is_error()) {
     if (!G()->close_flag()) {
-      LOG(ERROR) << "getConfig failed: " << r_config.error();
+      LOG(WARNING) << "Failed to get config: " << r_config.error();
       expire_time_ = Timestamp::in(60.0);  // try again in a minute
       set_timeout_in(expire_time_.in());
     }
