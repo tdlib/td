@@ -218,7 +218,7 @@ pollTypeRegular allow_multiple_answers:Bool = PollType;
 
 //@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once
 //@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
-//@explanation Text shown after an incorrect answer has chosen, 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
+//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon, 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
 pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 
@@ -3021,7 +3021,7 @@ updateStickerSet sticker_set:stickerSet = Update;
 //@description The list of installed sticker sets was updated @is_masks True, if the list of installed mask sticker sets was updated @sticker_set_ids The new list of installed ordinary sticker sets
 updateInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Update;
 
-//@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The prefix of the list of trending sticker sets
+//@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The prefix of the list of trending sticker sets with the newest trending sticker sets
 updateTrendingStickerSets sticker_sets:stickerSets = Update;
 
 //@description The list of recently used stickers was updated @is_attached True, if the list of stickers attached to photo or video files was updated, otherwise the list of sent stickers is updated @sticker_ids The new list of file identifiers of recently used stickers
@@ -3901,7 +3901,7 @@ getInstalledStickerSets is_masks:Bool = StickerSets;
 //@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return
 getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
-//@description Returns a list of trending sticker sets. For the optimal performance the number of returned users is chosen by the library
+//@description Returns a list of trending sticker sets. For the optimal performance the number of returned sticker sets is chosen by the library
 //@offset The offset from which to return the sticker sets; must be non-negative
 //@limit The maximum number of sticker sets to be returned; must be non-negative. Fewer sticker sets may be returned than specified by the limit, even if the end of the list has not been reached
 getTrendingStickerSets offset:int32 limit:int32 = StickerSets;
