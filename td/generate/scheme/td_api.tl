@@ -1385,7 +1385,8 @@ messageContact contact:contact = MessageContent;
 //@final_state_sticker The animated sticker with the final dice animation; may be null if unknown. updateMessageContent will be sent when the sticker became known
 //@emoji Emoji on which the dice throw animation is based
 //@value The dice value. If the value is 0, the dice don't have final state yet
-messageDice initial_state_sticker:sticker final_state_sticker:sticker emoji:string value:int32 = MessageContent;
+//@need_success_animation True, if a success animation like a shower of confetti needs to be shown on updateMessageSendSucceeded
+messageDice initial_state_sticker:sticker final_state_sticker:sticker emoji:string value:int32 need_success_animation:Bool = MessageContent;
 
 //@description A message with a game @game The game description
 messageGame game:game = MessageContent;

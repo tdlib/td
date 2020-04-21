@@ -3457,7 +3457,7 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
              name == "channels_read_media_period";
     case 'd':
-      return name == "dc_txt_domain_name" || name == "dice_emojis";
+      return name == "dc_txt_domain_name" || name == "dice_emojis" || name == "dice_success_values";
     case 'e':
       return name == "edit_time_limit";
     case 'i':
@@ -3546,6 +3546,8 @@ void Td::on_config_option_updated(const string &name) {
     return send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
   } else if (name == "dice_emojis") {
     return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
+  } else if (name == "dice_success_values") {
+    return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_success_values);
   } else if (is_internal_config_option(name)) {
     return;
   }

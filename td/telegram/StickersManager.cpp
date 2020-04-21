@@ -1377,6 +1377,21 @@ tl_object_ptr<td_api::sticker> StickersManager::get_dice_sticker_object(const st
   return nullptr;
 }
 
+bool StickersManager::need_dice_success_animation(const string &emoji, int32 value) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (value == 0 || !td::contains(dice_emojis_, emoji)) {
+    return false;
+  }
+  auto pos = static_cast<size_t>(std::find(dice_emojis_.begin(), dice_emojis_.end(), emoji) - dice_emojis_.begin());
+  if (pos >= dice_success_values_.size()) {
+    return false;
+  }
+
+  return dice_success_values_[pos] == value;
+}
+
 tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(StickerSetId sticker_set_id) const {
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
@@ -3368,6 +3383,15 @@ void StickersManager::on_update_dice_emojis() {
   dice_emojis_ = full_split(dice_emojis_str_, '\x01');
 
   send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
+}
+
+void StickersManager::on_update_dice_success_values() {
+  auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,0");
+  if (dice_success_values_str == dice_success_values_str_) {
+    return;
+  }
+  dice_success_values_str_ = std::move(dice_success_values_str);
+  dice_success_values_ = transform(full_split(dice_success_values_str_, ','), to_integer<int32>);
 }
 
 void StickersManager::on_update_sticker_sets() {

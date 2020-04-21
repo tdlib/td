@@ -54,6 +54,8 @@ class StickersManager : public Actor {
 
   tl_object_ptr<td_api::sticker> get_dice_sticker_object(const string &emoji, int32 value) const;
 
+  bool need_dice_success_animation(const string &emoji, int32 value) const;
+
   tl_object_ptr<td_api::stickerSet> get_sticker_set_object(StickerSetId sticker_set_id) const;
 
   tl_object_ptr<td_api::stickerSets> get_sticker_sets_object(int32 total_count,
@@ -130,6 +132,8 @@ class StickersManager : public Actor {
   void on_uninstall_sticker_set(StickerSetId set_id);
 
   void on_update_dice_emojis();
+
+  void on_update_dice_success_values();
 
   void on_update_sticker_sets();
 
@@ -710,6 +714,9 @@ class StickersManager : public Actor {
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
+
+  string dice_success_values_str_;
+  vector<int32> dice_success_values_;
 };
 
 }  // namespace td

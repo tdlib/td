@@ -1292,6 +1292,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string wallet_config;
   string ignored_restriction_reasons;
   string dice_emojis;
+  string dice_success_values;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1363,6 +1364,26 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "emojies_send_dice_success") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto success_values = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &success_value : success_values) {
+            CHECK(success_value != nullptr);
+            if (success_value->get_id() == telegram_api::jsonNumber::ID) {
+              int32 dice_value = static_cast<int32>(static_cast<telegram_api::jsonNumber *>(success_value.get())->value_);
+              if (!dice_success_values.empty()) {
+                dice_success_values += ',';
+              }
+              dice_success_values += to_string(dice_value);
+            } else {
+              LOG(ERROR) << "Receive unexpected dice success value " << to_string(success_value);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected emojies_send_dice_success " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1396,6 +1417,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   if (!dice_emojis.empty()) {
     shared_config.set_option_string("dice_emojis", dice_emojis);
+  }
+  if (!dice_success_values.empty()) {
+    shared_config.set_option_string("dice_success_values", dice_success_values);
   }
 }
 
