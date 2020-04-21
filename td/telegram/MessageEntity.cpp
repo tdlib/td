@@ -3818,6 +3818,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     merge_new_entities(entities, find_entities(text, skip_bot_commands));
   }
 
+  // new whitespace-only entities could be added after splitting of entities
+  remove_invalid_entities(text, entities);
+
   // TODO MAX_MESSAGE_LENGTH and MAX_CAPTION_LENGTH
 
   return Status::OK();
