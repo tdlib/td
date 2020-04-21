@@ -1291,7 +1291,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string wallet_blockchain_name;
   string wallet_config;
   string ignored_restriction_reasons;
-  string dice_emojis;
+  vector<string> dice_emojis;
   string dice_success_values;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
@@ -1348,10 +1348,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
             if (emoji->get_id() == telegram_api::jsonString::ID) {
               Slice emoji_text = static_cast<telegram_api::jsonString *>(emoji.get())->value_;
               if (!emoji_text.empty()) {
-                if (!dice_emojis.empty()) {
-                  dice_emojis += '\x01';
-                }
-                dice_emojis.append(emoji_text.begin(), emoji_text.end());
+                dice_emojis.push_back(emoji_text.str());
               } else {
                 LOG(ERROR) << "Receive empty dice emoji";
               }
@@ -1416,7 +1413,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   if (!dice_emojis.empty()) {
-    shared_config.set_option_string("dice_emojis", dice_emojis);
+    shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
   if (!dice_success_values.empty()) {
     shared_config.set_option_string("dice_success_values", dice_success_values);
