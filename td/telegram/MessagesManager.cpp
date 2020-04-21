@@ -8489,10 +8489,6 @@ bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) c
   }
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (G()->unix_time_cached() < m->date + 86400 && m->content->get_type() == MessageContentType::Dice &&
-          dialog_id != get_my_dialog_id() && !m->message_id.is_scheduled()) {
-        return false;
-      }
       return true;
     case DialogType::Chat:
       return true;
@@ -8535,6 +8531,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
       int32 revoke_time_limit =
           G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
+      if (G()->unix_time_cached() - m->date < 86400 && content_type == MessageContentType::Dice) {
+        return false;
+      }
       return ((m->is_outgoing && !is_service_message_content(content_type)) ||
               (can_revoke_incoming && content_type != MessageContentType::ScreenshotTaken)) &&
              G()->unix_time_cached() - m->date <= revoke_time_limit;
