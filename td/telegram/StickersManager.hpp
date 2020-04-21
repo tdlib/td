@@ -72,9 +72,8 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     Slice data = parser.template fetch_string_raw<Slice>(parser.get_left_len());
     for (auto c : data) {
       if (c != '\0') {
-        LOG_CHECK(in_sticker_set_stored == in_sticker_set)
-            << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version() << " " << sticker->is_mask
-            << " " << has_sticker_set_access_hash << " " << format::as_hex_dump<4>(data);
+        parser.set_error("Invalid sticker set is stored in the database");
+        break;
       }
     }
     parser.set_error("Zero sticker set is stored in the database");
