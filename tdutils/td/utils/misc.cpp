@@ -27,11 +27,11 @@ char *str_dup(Slice str) {
 
 string implode(const vector<string> &v, char delimiter) {
   string result;
-  for (auto &str : v) {
-    if (!result.empty()) {
+  for (size_t i = 0; i < v.size(); i++) {
+    if (i != 0) {
       result += delimiter;
     }
-    result += str;
+    result += v[i];
   }
   return result;
 }

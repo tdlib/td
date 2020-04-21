@@ -54,7 +54,7 @@ class StickersManager : public Actor {
 
   tl_object_ptr<td_api::sticker> get_dice_sticker_object(const string &emoji, int32 value) const;
 
-  bool need_dice_success_animation(const string &emoji, int32 value) const;
+  int32 get_dice_success_animation_frame_number(const string &emoji, int32 value) const;
 
   tl_object_ptr<td_api::stickerSet> get_sticker_set_object(StickerSetId sticker_set_id) const;
 
@@ -716,7 +716,7 @@ class StickersManager : public Actor {
   vector<string> dice_emojis_;
 
   string dice_success_values_str_;
-  vector<int32> dice_success_values_;
+  vector<std::pair<int32, int32>> dice_success_values_;
 };
 
 }  // namespace td
