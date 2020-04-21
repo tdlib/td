@@ -19462,6 +19462,9 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
           if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
             return false;
           }
+          if (channel_status.can_edit_messages()) {
+            has_edit_time_limit = false;
+          }
         }
         if (is_bot && only_reply_markup) {
           has_edit_time_limit = false;
