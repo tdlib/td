@@ -9080,8 +9080,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return promise.set_value(Unit());
     }
 
-    auto participant_count =
-        (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0 ? channel_full->participants_count_ : 0;
+    bool have_participant_count = (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
+    auto participant_count = have_participant_count ? channel_full->participants_count_ : 0;
     auto administrator_count =
         (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0 ? channel_full->admins_count_ : 0;
     auto restricted_count =
@@ -9127,7 +9127,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
       channel->is_changed = true;
 
-      if (participant_count != 0 && c->participant_count != participant_count) {
+      if (have_participant_count && c->participant_count != participant_count) {
         c->participant_count = participant_count;
         c->is_changed = true;
         update_channel(c, channel_id);
