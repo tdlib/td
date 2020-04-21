@@ -2148,7 +2148,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
   }
 
   vector<MessageEntity> result;
-  size_t splittable_entity_offset[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
+  int32 splittable_entity_offset[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
   int32 utf16_offset = 0;
   for (size_t i = 0; i + 1 < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
