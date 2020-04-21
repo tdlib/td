@@ -5850,8 +5850,19 @@ void Td::on_request(uint64 id, const td_api::joinChat &request) {
 
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id(),
-                                                   td_api::make_object<td_api::chatMemberStatusLeft>(),
+  DialogId dialog_id(request.chat_id_);
+  td_api::object_ptr<td_api::ChatMemberStatus> new_status = td_api::make_object<td_api::chatMemberStatusLeft>();
+  if (dialog_id.get_type() == DialogType::Channel && messages_manager_->have_dialog_force(dialog_id)) {
+    auto status = contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+    if (status.is_creator()) {
+      if (!status.is_member()) {
+        return promise.set_value(Unit());
+      }
+
+      new_status = td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), false);
+    }
+  }
+  messages_manager_->set_dialog_participant_status(dialog_id, contacts_manager_->get_my_id(), std::move(new_status),
                                                    std::move(promise));
 }
 
