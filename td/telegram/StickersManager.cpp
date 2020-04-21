@@ -3376,6 +3376,14 @@ td_api::object_ptr<td_api::updateDiceEmojis> StickersManager::get_update_dice_em
 }
 
 void StickersManager::on_update_dice_emojis() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    G()->shared_config().set_option_empty("dice_emojis");
+    return;
+  }
+
   auto dice_emojis_str = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯");
   if (dice_emojis_str == dice_emojis_str_) {
     return;
@@ -3387,6 +3395,14 @@ void StickersManager::on_update_dice_emojis() {
 }
 
 void StickersManager::on_update_dice_success_values() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    G()->shared_config().set_option_empty("dice_success_values");
+    return;
+  }
+
   auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,0");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
