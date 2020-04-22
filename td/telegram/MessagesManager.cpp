@@ -8943,6 +8943,20 @@ void MessagesManager::find_old_messages(const Message *m, MessageId max_message_
   }
 }
 
+void MessagesManager::find_new_messages(const Message *m, MessageId min_message_id, vector<MessageId> &message_ids) {
+  if (m == nullptr) {
+    return;
+  }
+
+  if (m->message_id > min_message_id) {
+    find_new_messages(m->left.get(), min_message_id, message_ids);
+
+    message_ids.push_back(m->message_id);
+  }
+
+  find_new_messages(m->right.get(), min_message_id, message_ids);
+}
+
 void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
                                                vector<MessageId> &message_ids, int32 &left_to_unload) const {
   if (m == nullptr) {
@@ -11621,21 +11635,12 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       first_message_id = last_new_message_id;
     }
 
-    MessagesConstIterator it(d, MessageId::max());
     vector<MessageId> to_delete_message_ids;
-    while (*it != nullptr) {
-      auto message_id = (*it)->message_id;
-      if (message_id <= last_new_message_id) {
-        break;
-      }
-      if (!message_id.is_yet_unsent()) {
-        to_delete_message_ids.push_back(message_id);
-      }
-      --it;
-    }
+    find_new_messages(d->messages.get(), last_new_message_id, to_delete_message_ids);
+    td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
     if (!to_delete_message_ids.empty()) {
-      LOG(ERROR) << "Delete " << format::as_array(to_delete_message_ids) << " because of received last new "
-                 << last_new_message_id << " in " << d->dialog_id << " from " << source;
+      LOG(WARNING) << "Delete " << format::as_array(to_delete_message_ids) << " because of received last new "
+                   << last_new_message_id << " in " << d->dialog_id << " from " << source;
 
       vector<int64> deleted_message_ids;
       bool need_update_dialog_pos = false;
