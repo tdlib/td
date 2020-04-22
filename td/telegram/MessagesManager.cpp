@@ -13251,12 +13251,6 @@ void MessagesManager::preload_dialog_list(FolderId folder_id) {
     return;
   }
 
-  if (list.ordered_dialogs_.size() > MAX_PRELOADED_DIALOGS) {
-    // do nothing if there are more than MAX_PRELOADED_DIALOGS dialogs already loaded
-    recalc_unread_count(folder_id);
-    return;
-  }
-
   if (list.last_loaded_database_dialog_date_ < list.last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
     load_dialog_list(folder_id, 20, true, Auto());

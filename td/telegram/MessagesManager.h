@@ -1460,8 +1460,6 @@ class MessagesManager : public Actor {
 
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
 
-  static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
-
   static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
 
   static constexpr double DIALOG_ACTION_TIMEOUT = 5.5;
