@@ -240,6 +240,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     return std::move(result);
   }
+
   Result<vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
       NotificationGroupKey notification_group_key, int32 limit) override {
     auto &stmt = get_notification_groups_by_last_notification_date_stmt_;
@@ -262,6 +263,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     return std::move(notification_groups);
   }
+
   Status begin_transaction() override {
     return db_.begin_transaction();
   }

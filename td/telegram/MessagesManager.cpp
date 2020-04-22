@@ -9430,6 +9430,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
     }
 
     // hint_unread_count is definitely wrong, ignore it
+
     if (need_unread_counter(d->order)) {
       LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
                  << " unread messages in " << d->dialog_id;
@@ -9760,7 +9761,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
         }
       }
     }
-    if (d->order != DEFAULT_ORDER) {
+    if (d->order != DEFAULT_ORDER || is_dialog_sponsored(d)) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
         secret_chat_total_count++;
       } else {
@@ -9849,7 +9850,8 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     }
     send_update_unread_chat_count(d->folder_id, d->dialog_id, force_update, source);
   }
-  if (message_id != MessageId::min() && d->last_read_inbox_message_id.is_valid() && d->order != DEFAULT_ORDER) {
+  if (message_id != MessageId::min() && d->last_read_inbox_message_id.is_valid() &&
+      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
     VLOG(notifications) << "Remove some notifications in " << d->dialog_id
                         << " after updating last read inbox message to " << message_id
                         << " and unread message count to " << server_unread_count << " + " << local_unread_count
@@ -10397,7 +10399,7 @@ void MessagesManager::init() {
         continue;
       }
 
-      auto counts = transform(full_split(it.second), [](Slice str) { return to_integer_safe<int32>(str); });
+      auto counts = transform(full_split(Slice(it.second)), [](Slice str) { return to_integer_safe<int32>(str); });
       if ((counts.size() != 4 && counts.size() != 6) ||
           std::any_of(counts.begin(), counts.end(), [](auto &c) { return c.is_error(); })) {
         LOG(ERROR) << "Can't parse " << it.second;
