@@ -5770,15 +5770,17 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
   }
 }
 
-vector<string> StickersManager::get_emoji_language_codes(const string &input_language_code, Slice text,
+vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                                          Promise<Unit> &promise) {
   vector<string> language_codes = td_->language_pack_manager_->get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
   if (!system_language_code.empty() && system_language_code.find('$') == string::npos) {
     language_codes.push_back(system_language_code);
   }
-  if (!input_language_code.empty() && input_language_code.find('$') == string::npos) {
-    language_codes.push_back(input_language_code);
+  for (auto &input_language_code : input_language_codes) {
+    if (!input_language_code.empty() && input_language_code.find('$') == string::npos) {
+      language_codes.push_back(input_language_code);
+    }
   }
   if (!text.empty()) {
     uint32 code = 0;
@@ -6016,14 +6018,15 @@ void StickersManager::on_get_emoji_keywords_difference(
   emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());
 }
 
-vector<string> StickersManager::search_emojis(const string &text, bool exact_match, const string &input_language_code,
-                                              bool force, Promise<Unit> &&promise) {
+vector<string> StickersManager::search_emojis(const string &text, bool exact_match,
+                                              const vector<string> &input_language_codes, bool force,
+                                              Promise<Unit> &&promise) {
   if (text.empty() || !G()->parameters().use_file_db /* have SQLite PMC */) {
     promise.set_value(Unit());
     return {};
   }
 
-  auto language_codes = get_emoji_language_codes(input_language_code, text, promise);
+  auto language_codes = get_emoji_language_codes(input_language_codes, text, promise);
   if (language_codes.empty()) {
     // promise was consumed
     return {};

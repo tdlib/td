@@ -26981,7 +26981,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     }
   }
 
-  if (m->random_id != 0 && (m->is_outgoing || d->dialog_id == get_my_dialog_id())) {
+  if (m != nullptr && m->random_id != 0 && (m->is_outgoing || d->dialog_id == get_my_dialog_id())) {
     message_random_ids_.erase(m->random_id);
   }
 

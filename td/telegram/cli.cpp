@@ -2405,11 +2405,11 @@ class CliClient final : public Actor {
     } else if (op == "gse") {
       send_request(td_api::make_object<td_api::getStickerEmojis>(as_input_file_id(args)));
     } else if (op == "se") {
-      send_request(td_api::make_object<td_api::searchEmojis>(args, false, ""));
+      send_request(td_api::make_object<td_api::searchEmojis>(args, false, vector<string>()));
     } else if (op == "see") {
-      send_request(td_api::make_object<td_api::searchEmojis>(args, true, ""));
+      send_request(td_api::make_object<td_api::searchEmojis>(args, true, vector<string>()));
     } else if (op == "seru") {
-      send_request(td_api::make_object<td_api::searchEmojis>(args, false, "ru_RU"));
+      send_request(td_api::make_object<td_api::searchEmojis>(args, false, vector<string>{"ru_RU"}));
     } else if (op == "gesu") {
       send_request(td_api::make_object<td_api::getEmojiSuggestionsUrl>(args));
     } else {

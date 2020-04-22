@@ -2714,12 +2714,12 @@ class GetStickerEmojisRequest : public RequestActor<> {
 class SearchEmojisRequest : public RequestActor<> {
   string text_;
   bool exact_match_;
-  string input_language_code_;
+  vector<string> input_language_codes_;
 
   vector<string> emojis_;
 
   void do_run(Promise<Unit> &&promise) override {
-    emojis_ = td->stickers_manager_->search_emojis(text_, exact_match_, input_language_code_, get_tries() < 2,
+    emojis_ = td->stickers_manager_->search_emojis(text_, exact_match_, input_language_codes_, get_tries() < 2,
                                                    std::move(promise));
   }
 
@@ -2729,11 +2729,11 @@ class SearchEmojisRequest : public RequestActor<> {
 
  public:
   SearchEmojisRequest(ActorShared<Td> td, uint64 request_id, string &&text, bool exact_match,
-                      string &&input_language_code)
+                      vector<string> &&input_language_codes)
       : RequestActor(std::move(td), request_id)
       , text_(std::move(text))
       , exact_match_(exact_match)
-      , input_language_code_(std::move(input_language_code)) {
+      , input_language_codes_(std::move(input_language_codes)) {
     set_tries(3);
   }
 };
@@ -6449,9 +6449,11 @@ void Td::on_request(uint64 id, td_api::getStickerEmojis &request) {
 void Td::on_request(uint64 id, td_api::searchEmojis &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.text_);
-  CLEAN_INPUT_STRING(request.input_language_code_);
+  for (auto &input_language_code : request.input_language_codes_) {
+    CLEAN_INPUT_STRING(input_language_code);
+  }
   CREATE_REQUEST(SearchEmojisRequest, std::move(request.text_), request.exact_match_,
-                 std::move(request.input_language_code_));
+                 std::move(request.input_language_codes_));
 }
 
 void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
