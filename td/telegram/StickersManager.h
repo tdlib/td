@@ -22,6 +22,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Hints.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include "td/telegram/td_api.h"
@@ -590,7 +591,7 @@ class StickersManager : public Actor {
 
   double get_emoji_language_code_last_difference_time(const string &language_code);
 
-  vector<string> get_emoji_language_codes(const string &input_language_code, Promise<Unit> &promise);
+  vector<string> get_emoji_language_codes(const string &input_language_code, Slice text, Promise<Unit> &promise);
 
   void load_language_codes(vector<string> language_codes, string key, Promise<Unit> &&promise);
 

@@ -5770,7 +5770,8 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
   }
 }
 
-vector<string> StickersManager::get_emoji_language_codes(const string &input_language_code, Promise<Unit> &promise) {
+vector<string> StickersManager::get_emoji_language_codes(const string &input_language_code, Slice text,
+                                                         Promise<Unit> &promise) {
   vector<string> language_codes = td_->language_pack_manager_->get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
   if (!system_language_code.empty() && system_language_code.find('$') == string::npos) {
@@ -5778,6 +5779,21 @@ vector<string> StickersManager::get_emoji_language_codes(const string &input_lan
   }
   if (!input_language_code.empty() && input_language_code.find('$') == string::npos) {
     language_codes.push_back(input_language_code);
+  }
+  if (!text.empty()) {
+    uint32 code = 0;
+    next_utf8_unsafe(text.ubegin(), &code, "get_emoji_language_codes");
+    if ((0x410 <= code && code <= 0x44F) || code == 0x401 || code == 0x451) {
+      // the first letter is cyrillic
+      if (!td::contains(language_codes, "ru") && !td::contains(language_codes, "uk") &&
+          !td::contains(language_codes, "bg") && !td::contains(language_codes, "be") &&
+          !td::contains(language_codes, "mk") && !td::contains(language_codes, "sr") &&
+          !td::contains(language_codes, "mn") && !td::contains(language_codes, "ky") &&
+          !td::contains(language_codes, "kk") && !td::contains(language_codes, "uz") &&
+          !td::contains(language_codes, "tk")) {
+        language_codes.push_back("ru");
+      }
+    }
   }
 
   if (language_codes.empty()) {
@@ -6007,7 +6023,7 @@ vector<string> StickersManager::search_emojis(const string &text, bool exact_mat
     return {};
   }
 
-  auto language_codes = get_emoji_language_codes(input_language_code, promise);
+  auto language_codes = get_emoji_language_codes(input_language_code, text, promise);
   if (language_codes.empty()) {
     // promise was consumed
     return {};
