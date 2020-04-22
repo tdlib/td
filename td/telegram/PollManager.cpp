@@ -1337,6 +1337,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->is_closed = is_closed;
       is_changed = true;
     }
+    if (is_closed && !poll->is_updated_after_close) {
+      poll->is_updated_after_close = true;
+      is_changed = true;
+    }
     int32 open_period =
         (poll_server->flags_ & telegram_api::poll::CLOSE_PERIOD_MASK) != 0 ? poll_server->close_period_ : 0;
     int32 close_date = (poll_server->flags_ & telegram_api::poll::CLOSE_DATE_MASK) != 0 ? poll_server->close_date_ : 0;
@@ -1384,10 +1388,6 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       is_changed = true;
     }
   }
-  if (poll->is_closed && !poll->is_updated_after_close) {
-    poll->is_updated_after_close = true;
-    is_changed = true;
-  }
 
   CHECK(poll_results != nullptr);
   bool is_min = (poll_results->flags_ & telegram_api::pollResults::MIN_MASK) != 0;
@@ -1416,7 +1416,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           is_changed = true;
         }
       }
-      if (!is_min || poll->is_closed) {
+      if (!is_min || (poll->is_closed && poll->is_updated_after_close)) {
         bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
         if (is_correct) {
           if (correct_option_id != -1) {
@@ -1486,7 +1486,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         is_changed = true;
       }
     }
-    if (poll->explanation != explanation && (!is_min || poll->is_closed)) {
+    if (poll->explanation != explanation && (!is_min || (poll->is_closed && poll->is_updated_after_close))) {
       if (explanation.text.empty() && !poll->explanation.text.empty()) {
         LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty";
       } else {
