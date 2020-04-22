@@ -26418,8 +26418,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         CHECK(!next_message->have_previous);
         LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id;
-        LOG_IF(ERROR, from_update) << "Attach " << message_id << " from " << source << " to the next "
-                                   << next_message->message_id << " in " << dialog_id;
+        if (from_update && !next_message->message_id.is_yet_unsent()) {
+          LOG(ERROR) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id
+                     << " in " << dialog_id;
+        }
         message->have_next = true;
         message->have_previous = next_message->have_previous;
         next_message->have_previous = true;
