@@ -12336,7 +12336,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
   if (from_pinned_dialog_list) {
-    auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialogs(folder_id));
+    auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(folder_id));
     std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
     if (pinned_dialog_ids != added_dialog_ids) {
       LOG(INFO) << "Repair pinned dialogs order from " << format::as_array(pinned_dialog_ids) << " to "
@@ -13267,7 +13267,7 @@ void MessagesManager::preload_dialog_list(FolderId folder_id) {
   }
 }
 
-vector<DialogId> MessagesManager::get_pinned_dialogs(FolderId folder_id) const {
+vector<DialogId> MessagesManager::get_pinned_dialog_ids(FolderId folder_id) const {
   vector<DialogId> result;
 
   auto *list = get_dialog_list(folder_id);
@@ -14409,7 +14409,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinn
   }
 
   if (is_pinned) {
-    auto pinned_dialog_ids = get_pinned_dialogs(d->folder_id);
+    auto pinned_dialog_ids = get_pinned_dialog_ids(d->folder_id);
     auto pinned_dialog_count = pinned_dialog_ids.size();
     auto secret_pinned_dialog_count =
         std::count_if(pinned_dialog_ids.begin(), pinned_dialog_ids.end(),
@@ -14504,7 +14504,7 @@ Status MessagesManager::set_pinned_dialogs(FolderId folder_id, vector<DialogId> 
     return Status::Error(400, "Duplicate chats in the list of pinned chats");
   }
 
-  auto pinned_dialog_ids = get_pinned_dialogs(folder_id);
+  auto pinned_dialog_ids = get_pinned_dialog_ids(folder_id);
   if (pinned_dialog_ids == dialog_ids) {
     return Status::OK();
   }

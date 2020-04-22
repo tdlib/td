@@ -2103,7 +2103,7 @@ class MessagesManager : public Actor {
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
-  vector<DialogId> get_pinned_dialogs(FolderId folder_id) const;
+  vector<DialogId> get_pinned_dialog_ids(FolderId folder_id) const;
 
   void reload_pinned_dialogs(FolderId folder_id, Promise<Unit> &&promise);
 
