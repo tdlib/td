@@ -2561,8 +2561,7 @@ class MessagesManager : public Actor {
       update_message_ids_;  // new_message_id -> temporary_id
   std::unordered_map<DialogId, std::unordered_map<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash>,
                      DialogIdHash>
-      update_scheduled_message_ids_;                               // new_message_id -> temporary_id
-  std::unordered_map<int64, DialogId> debug_being_sent_messages_;  // message_random_id -> dialog_id
+      update_scheduled_message_ids_;  // new_message_id -> temporary_id
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";
 

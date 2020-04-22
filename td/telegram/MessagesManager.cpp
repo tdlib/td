@@ -17896,7 +17896,6 @@ int64 MessagesManager::begin_send_message(DialogId dialog_id, const Message *m) 
   CHECK(m->random_id != 0 && being_sent_messages_.find(m->random_id) == being_sent_messages_.end());
   CHECK(m->message_id.is_yet_unsent());
   being_sent_messages_[m->random_id] = FullMessageId(dialog_id, m->message_id);
-  debug_being_sent_messages_[m->random_id] = dialog_id;
   return m->random_id;
 }
 
@@ -21339,22 +21338,6 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   if (!new_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
-    auto it = debug_being_sent_messages_.find(random_id);
-    if (it == debug_being_sent_messages_.end()) {
-      LOG(ERROR) << "Message with random_id " << random_id << " was not sent";
-      return false;
-    }
-    auto dialog_id = it->second;
-    if (!dialog_id.is_valid()) {
-      LOG(ERROR) << "Sent message is in invalid " << dialog_id;
-      return false;
-    }
-    if (!have_dialog(dialog_id)) {
-      LOG(ERROR) << "Sent message is in not found " << dialog_id;
-      return false;
-    }
-    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " in "
-               << dialog_id;
     return false;
   }
 
@@ -23036,31 +23019,6 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (it == being_sent_messages_.end()) {
     LOG(ERROR) << "Result from sendMessage for " << new_message_id << " with random_id " << random_id << " sent at "
                << date << " comes from " << source << " after updateNewMessageId, but was not discarded by pts";
-    if (debug_being_sent_messages_.count(random_id) == 0) {
-      LOG(ERROR) << "Message with random_id " << random_id << " was mot sent";
-      return {};
-    }
-    auto dialog_id = debug_being_sent_messages_[random_id];
-    if (!dialog_id.is_valid()) {
-      LOG(ERROR) << "Sent message is in invalid " << dialog_id;
-      return {};
-    }
-    auto d = get_dialog(dialog_id);
-    if (d == nullptr) {
-      LOG(ERROR) << "Sent message is in not found " << dialog_id;
-      return {};
-    }
-    dump_debug_message_op(d, 7);
-    auto m = get_message_force(d, new_message_id, "on_send_message_success");
-    if (m == nullptr) {
-      LOG(ERROR) << new_message_id << " in " << dialog_id << " not found";
-      return {};
-    }
-    LOG(ERROR) << "Result from sent " << (m->is_outgoing ? "outgoing" : "incoming")
-               << (m->forward_info == nullptr ? " not" : "") << " forwarded " << new_message_id
-               << " with content of the type " << m->content->get_type() << " in " << dialog_id
-               << " comes after updateNewMessageId, current last new is " << d->last_new_message_id << ", last is "
-               << d->last_message_id;
     return {};
   }
 
@@ -23311,23 +23269,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
     // we can't receive fail more than once
     // but message can be successfully sent before
     if (error.code() != NetQuery::Cancelled) {
-      auto debug_it = debug_being_sent_messages_.find(random_id);
-      if (debug_it == debug_being_sent_messages_.end()) {
-        LOG(ERROR) << "Message with random_id " << random_id << " was not sent";
-        return;
-      }
-      auto dialog_id = debug_it->second;
-      if (!dialog_id.is_valid()) {
-        LOG(ERROR) << "Sent message is in invalid " << dialog_id;
-        return;
-      }
-      if (!have_dialog(dialog_id)) {
-        LOG(ERROR) << "Sent message is in not found " << dialog_id;
-        return;
-      }
-      LOG(ERROR) << "Receive error " << error << " about successfully sent message with random_id = " << random_id
-                 << " in " << dialog_id;
-      dump_debug_message_op(get_dialog(dialog_id), 7);
+      LOG(ERROR) << "Receive error " << error << " about successfully sent message with random_id = " << random_id;
     }
     return;
   }
