@@ -23556,6 +23556,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
       d->last_assigned_message_id = new_message_id;
     }
   } else {
+    // check deleted_message_ids, because the new_message_id is not a server scheduled
     while (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
            d->deleted_message_ids.count(new_message_id)) {
       new_message_id = new_message_id.get_next_message_id(MessageType::Local);
@@ -27028,7 +27029,9 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
     } else {
-      d->deleted_message_ids.insert(message_id);
+      if (!(td_->auth_manager_->is_bot() && m->is_failed_to_send)) {
+        d->deleted_message_ids.insert(message_id);
+      }
     }
   }
 
