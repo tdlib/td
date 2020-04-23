@@ -25,6 +25,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
@@ -3025,7 +3026,25 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
         if (allow_zero && path.empty()) {
           return FileId();
         }
-        return register_local(FullLocalFileLocation(new_type, path, 0), owner_dialog_id, 0, get_by_hash);
+        string hash;
+        if (false && new_type == FileType::Photo) {
+          auto r_stat = stat(path);
+          if (r_stat.is_ok() && r_stat.ok().size_ > 0 && r_stat.ok().size_ < 1000000) {
+            auto r_file_content = read_file_str(path, r_stat.ok().size_);
+            if (r_file_content.is_ok()) {
+              hash = sha256(r_file_content.ok());
+              auto it = file_hash_to_file_id_.find(hash);
+              if (it != file_hash_to_file_id_.end()) {
+                return it->second;
+              }
+            }
+          }
+        }
+        TRY_RESULT(file_id, register_local(FullLocalFileLocation(new_type, path, 0), owner_dialog_id, 0, get_by_hash));
+        if (!hash.empty()) {
+          file_hash_to_file_id_[hash] = file_id;
+        }
+        return file_id;
       }
       case td_api::inputFileId::ID: {
         FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_, 0);

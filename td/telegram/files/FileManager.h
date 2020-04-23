@@ -546,6 +546,8 @@ class FileManager : public FileLoadManager::Callback {
   };
   Enumerator<RemoteInfo> remote_location_info_;
 
+  std::unordered_map<string, FileId> file_hash_to_file_id_;
+
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;
