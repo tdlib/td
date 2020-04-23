@@ -1078,26 +1078,26 @@ void ConnectionCreator::start_up() {
   }
 
   auto proxy_info = G()->td_db()->get_binlog_pmc()->prefix_get("proxy");
-  auto it = proxy_info.find("proxy_max_id");
+  auto it = proxy_info.find("_max_id");
   if (it != proxy_info.end()) {
     max_proxy_id_ = to_integer<int32>(it->second);
     proxy_info.erase(it);
   }
-  it = proxy_info.find("proxy_active_id");
+  it = proxy_info.find("_active_id");
   if (it != proxy_info.end()) {
     set_active_proxy_id(to_integer<int32>(it->second), true);
     proxy_info.erase(it);
   }
 
   for (auto &info : proxy_info) {
-    if (begins_with(info.first, "proxy_used")) {
-      int32 proxy_id = to_integer_safe<int32>(Slice(info.first).substr(10)).move_as_ok();
+    if (begins_with(info.first, "_used")) {
+      int32 proxy_id = to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
       int32 last_used = to_integer_safe<int32>(info.second).move_as_ok();
       proxy_last_used_date_[proxy_id] = last_used;
       proxy_last_used_saved_date_[proxy_id] = last_used;
     } else {
       LOG_CHECK(!ends_with(info.first, "_max_id")) << info.first;
-      int32 proxy_id = info.first == "proxy" ? 1 : to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
+      int32 proxy_id = info.first == "" ? 1 : to_integer_safe<int32>(info.first).move_as_ok();
       CHECK(proxies_.count(proxy_id) == 0);
       log_event_parse(proxies_[proxy_id], info.second).ensure();
       if (proxies_[proxy_id].type() == Proxy::Type::None) {

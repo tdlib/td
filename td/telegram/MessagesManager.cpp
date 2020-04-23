@@ -10319,7 +10319,7 @@ void MessagesManager::init() {
 
     auto last_database_server_dialog_dates = G()->td_db()->get_binlog_pmc()->prefix_get("last_server_dialog_date");
     for (auto &it : last_database_server_dialog_dates) {
-      auto r_folder_id = to_integer_safe<int32>(Slice(it.first).substr(Slice("last_server_dialog_date").size()));
+      auto r_folder_id = to_integer_safe<int32>(it.first);
       if (r_folder_id.is_error()) {
         LOG(ERROR) << "Can't parse folder ID from " << it.first;
         continue;
@@ -10368,7 +10368,7 @@ void MessagesManager::init() {
 
     auto unread_message_counts = G()->td_db()->get_binlog_pmc()->prefix_get("unread_message_count");
     for (auto &it : unread_message_counts) {
-      auto r_folder_id = to_integer_safe<int32>(Slice(it.first).substr(Slice("unread_message_count").size()));
+      auto r_folder_id = to_integer_safe<int32>(it.first);
       if (r_folder_id.is_error()) {
         LOG(ERROR) << "Can't parse folder ID from " << it.first;
         continue;
@@ -10393,7 +10393,7 @@ void MessagesManager::init() {
 
     auto unread_dialog_counts = G()->td_db()->get_binlog_pmc()->prefix_get("unread_dialog_count");
     for (auto &it : unread_dialog_counts) {
-      auto r_folder_id = to_integer_safe<int32>(Slice(it.first).substr(Slice("unread_dialog_count").size()));
+      auto r_folder_id = to_integer_safe<int32>(it.first);
       if (r_folder_id.is_error()) {
         LOG(ERROR) << "Can't parse folder ID from " << it.first;
         continue;

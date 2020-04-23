@@ -191,7 +191,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
-        res[kv.first] = kv.second.first;
+        res[kv.first.substr(prefix.size())] = kv.second.first;
       }
     }
     return res;
