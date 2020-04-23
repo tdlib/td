@@ -1262,12 +1262,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_empty("notify_default_delay_ms");
   shared_config.set_option_empty("large_chat_size");
 
-  if (is_from_main_dc) {
-    for (auto &feature : shared_config.get_options("disabled_")) {
-      shared_config.set_option_empty(feature.first);
-    }
-  }
-
   // TODO implement online status updates
   //  shared_config.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
   //  shared_config.set_option_integer("offline_idle_timeout_ms", config->offline_idle_timeout_ms_);

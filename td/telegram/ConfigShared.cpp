@@ -59,10 +59,6 @@ string ConfigShared::get_option(Slice name) const {
   return config_pmc_->get(name.str());
 }
 
-std::unordered_map<string, string> ConfigShared::get_options(Slice prefix) const {
-  return config_pmc_->prefix_get(prefix);
-}
-
 std::unordered_map<string, string> ConfigShared::get_options() const {
   return config_pmc_->get_all();
 }
