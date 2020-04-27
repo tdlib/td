@@ -2242,7 +2242,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   }
   if (sticker_set_id.is_valid() && sticker_set_id != set_id) {
     LOG(ERROR) << "Expected " << sticker_set_id << ", but receive " << set_id << " from " << source;
-    on_load_sticker_set_fail(sticker_set_id, Status::Error(500, "Internal server error"));
+    on_load_sticker_set_fail(sticker_set_id, Status::Error(500, "Internal Server Error"));
     return StickerSetId();
   }
 

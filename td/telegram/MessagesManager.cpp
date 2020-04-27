@@ -23006,13 +23006,13 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     LOG(ERROR) << "Receive " << new_message_id << " as sent message from " << source;
     on_send_message_fail(
         random_id,
-        Status::Error(500, "Internal server error: receive invalid message identifier as sent message identifier"));
+        Status::Error(500, "Internal Server Error: receive invalid message identifier as sent message identifier"));
     return {};
   }
   if (new_message_id.is_yet_unsent()) {
     LOG(ERROR) << "Receive " << new_message_id << " as sent message from " << source;
     on_send_message_fail(random_id,
-                         Status::Error(500, "Internal server error: receive yet unsent message as sent message"));
+                         Status::Error(500, "Internal Server Error: receive yet unsent message as sent message"));
     return {};
   }
 
@@ -23028,7 +23028,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   if (new_message_id.is_local() && dialog_id.get_type() != DialogType::SecretChat) {
     LOG(ERROR) << "Receive " << new_message_id << " as sent message from " << source;
-    on_send_message_fail(random_id, Status::Error(500, "Internal server error: receive local as sent message"));
+    on_send_message_fail(random_id, Status::Error(500, "Internal Server Error: receive local as sent message"));
     return {};
   }
 

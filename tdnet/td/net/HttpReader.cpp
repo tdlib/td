@@ -798,7 +798,7 @@ Status HttpReader::save_file_part(BufferSlice &&file_part) {
   auto result_written = temp_file_.write(file_part.as_slice());
   if (result_written.is_error() || result_written.ok() != file_part.size()) {
     clean_temporary_file();
-    return Status::Error(500, "Internal server error: can't upload the file");
+    return Status::Error(500, "Internal Server Error: can't upload the file");
   }
   return Status::OK();
 }
