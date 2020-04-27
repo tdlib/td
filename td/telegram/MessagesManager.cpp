@@ -10343,13 +10343,6 @@ void MessagesManager::init() {
     }
 
     auto sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("sponsored_dialog_id");
-    if (sponsored_dialog_id_string.empty()) {
-      sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
-      if (!sponsored_dialog_id_string.empty()) {
-        G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
-        G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", sponsored_dialog_id_string);
-      }
-    }
     if (!sponsored_dialog_id_string.empty()) {
       auto r_dialog_id = to_integer_safe<int64>(sponsored_dialog_id_string);
       if (r_dialog_id.is_error()) {
@@ -10430,7 +10423,6 @@ void MessagesManager::init() {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_message_count");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_dialog_count");
-    G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
   }
 
