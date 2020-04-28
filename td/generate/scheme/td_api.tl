@@ -539,9 +539,10 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
+//@public_service_announcement_type The type of a public service announcement for the forwarded message
 //@from_chat_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
 //@from_message_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
-messageForwardInfo origin:MessageForwardOrigin date:int32 from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
+messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
