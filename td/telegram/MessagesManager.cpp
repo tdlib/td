@@ -10344,15 +10344,17 @@ void MessagesManager::init() {
 
     auto sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("sponsored_dialog_id");
     if (!sponsored_dialog_id_string.empty()) {
-      auto r_dialog_id = to_integer_safe<int64>(sponsored_dialog_id_string);
-      if (r_dialog_id.is_error()) {
+      auto dialog_id_source = split(Slice(sponsored_dialog_id_string));
+      auto r_dialog_id = to_integer_safe<int64>(dialog_id_source.first);
+      auto r_source = DialogSource::unserialize(dialog_id_source.second);
+      if (r_dialog_id.is_error() || r_source.is_error()) {
         LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
       } else {
         DialogId dialog_id(r_dialog_id.ok());
 
         const Dialog *d = get_dialog_force(dialog_id);
         if (d != nullptr) {
-          add_sponsored_dialog(d);
+          add_sponsored_dialog(d, r_source.move_as_ok());
         } else {
           LOG(ERROR) << "Can't load " << dialog_id;
         }
@@ -15454,11 +15456,11 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_dialog_order_object(d),
-      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, is_dialog_sponsored(d),
-      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
-      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
-      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr,
+      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, get_dialog_has_scheduled_messages(d),
+      can_delete_for_self, can_delete_for_all_users, can_report_dialog(d->dialog_id),
+      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
+      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
       d->pinned_message_id.get(), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
@@ -22850,17 +22852,19 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
                make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
 }
 
-void MessagesManager::send_update_chat_is_sponsored(const Dialog *d) const {
+void MessagesManager::send_update_chat_source(const Dialog *d) const {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_is_sponsored";
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_source";
   LOG(INFO) << "Update chat is sponsored for " << d->dialog_id;
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatIsSponsored>(d->dialog_id.get(), is_dialog_sponsored(d),
-                                                             get_dialog_order_object(d)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateChatSource>(
+          d->dialog_id.get(), is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr,
+          get_dialog_order_object(d)));
 }
 
 void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
@@ -23862,7 +23866,7 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   // this will send updateChatChatList if needed
   DialogId sponsored_dialog_id = sponsored_dialog_id_;
   if (d->dialog_id == sponsored_dialog_id_ && d->order != DEFAULT_ORDER) {
-    sponsored_dialog_id_ = DialogId();  // supress updateChatIsSponsored
+    sponsored_dialog_id_ = DialogId();  // supress updateChatSource
   }
   set_dialog_order(d, DEFAULT_ORDER, true, false, "set_dialog_folder_id old");
 
@@ -28440,7 +28444,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     send_update_chat_chat_list(d);
   }
   if (was_sponsored != is_dialog_sponsored(d)) {
-    send_update_chat_is_sponsored(d);
+    send_update_chat_source(d);
     if (!is_loaded_from_database && !was_sponsored) {
       // channel is sponsored only if user isn't a channel member
       remove_all_dialog_notifications(d, false, "set_dialog_order 3");
@@ -30447,23 +30451,24 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
 }
 
 void MessagesManager::remove_sponsored_dialog() {
-  set_sponsored_dialog_id(DialogId());
+  set_sponsored_dialog(DialogId(), DialogSource());
 }
 
-void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
-                                                 vector<tl_object_ptr<telegram_api::User>> users,
-                                                 vector<tl_object_ptr<telegram_api::Chat>> chats) {
+void MessagesManager::on_get_sponsored_dialog(tl_object_ptr<telegram_api::Peer> peer, DialogSource source,
+                                              vector<tl_object_ptr<telegram_api::User>> users,
+                                              vector<tl_object_ptr<telegram_api::Chat>> chats) {
   CHECK(peer != nullptr);
 
-  td_->contacts_manager_->on_get_users(std::move(users), "on_get_sponsored_dialog_id");
-  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_sponsored_dialog_id");
+  td_->contacts_manager_->on_get_users(std::move(users), "on_get_sponsored_dialog");
+  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_sponsored_dialog");
 
-  set_sponsored_dialog_id(DialogId(peer));
+  set_sponsored_dialog(DialogId(peer), std::move(source));
 }
 
-void MessagesManager::add_sponsored_dialog(const Dialog *d) {
+void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source) {
   CHECK(!sponsored_dialog_id_.is_valid());
   sponsored_dialog_id_ = d->dialog_id;
+  sponsored_dialog_source_ = std::move(source);
 
   if (is_dialog_sponsored(d)) {
     send_update_chat_chat_list(d);
@@ -30474,12 +30479,36 @@ void MessagesManager::add_sponsored_dialog(const Dialog *d) {
       list.last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
     }
-    send_update_chat_is_sponsored(d);
+    send_update_chat_source(d);
+    // the sponsored dialog must not be saved there
   }
 }
 
-void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
+void MessagesManager::save_sponsored_dialog() {
+  if (!G()->parameters().use_message_db) {
+    return;
+  }
+
+  LOG(INFO) << "Save sponsored " << sponsored_dialog_id_ << " with source " << sponsored_dialog_source_;
+  if (sponsored_dialog_id_.is_valid()) {
+    G()->td_db()->get_binlog_pmc()->set(
+        "sponsored_dialog_id",
+        PSTRING() << sponsored_dialog_id_.get() << ' ' << sponsored_dialog_source_.DialogSource::serialize());
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
+  }
+}
+
+void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource source) {
   if (sponsored_dialog_id_ == dialog_id) {
+    if (sponsored_dialog_source_ != source) {
+      CHECK(sponsored_dialog_id_.is_valid());
+      sponsored_dialog_source_ = std::move(source);
+      const Dialog *d = get_dialog(sponsored_dialog_id_);
+      CHECK(d != nullptr);
+      send_update_chat_source(d);
+      save_sponsored_dialog();
+    }
     return;
   }
 
@@ -30489,8 +30518,9 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     CHECK(d != nullptr);
     bool is_sponsored = is_dialog_sponsored(d);
     sponsored_dialog_id_ = DialogId();
+    sponsored_dialog_source_ = DialogSource();
     if (is_sponsored) {
-      send_update_chat_is_sponsored(d);
+      send_update_chat_source(d);
       send_update_chat_chat_list(d);
       need_update_total_chat_count = true;
     }
@@ -30500,7 +30530,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     force_create_dialog(dialog_id, "set_sponsored_dialog_id");
     const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    add_sponsored_dialog(d);
+    add_sponsored_dialog(d, std::move(source));
     if (is_dialog_sponsored(d)) {
       need_update_total_chat_count = !need_update_total_chat_count;
     }
@@ -30514,14 +30544,7 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     }
   }
 
-  if (G()->parameters().use_message_db) {
-    if (sponsored_dialog_id_.is_valid()) {
-      G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", to_string(sponsored_dialog_id_.get()));
-    } else {
-      G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
-    }
-    LOG(INFO) << "Save sponsored " << sponsored_dialog_id_;
-  }
+  save_sponsored_dialog();
 }
 
 td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update_unread_message_count_object(

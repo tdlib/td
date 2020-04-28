@@ -229,7 +229,7 @@ class ConnectionCreator : public NetQueryCallback {
                              uint64 auth_data_generation, int64 session_id);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
 
-  void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr);
+  void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_PromoData> proxy_data_ptr);
 
   void schedule_get_proxy_info(int32 expires);
 

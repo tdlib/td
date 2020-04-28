@@ -54,8 +54,7 @@ void NetQuery::set_error(Status status, string source) {
   }
   if (status.message() == "BOT_METHOD_INVALID") {
     auto id = tl_constructor();
-    if (id != telegram_api::help_getNearestDc::ID && id != telegram_api::help_getProxyData::ID &&
-        id != telegram_api::help_getAppConfig::ID) {
+    if (id != telegram_api::help_getNearestDc::ID && id != telegram_api::help_getAppConfig::ID) {
       LOG(ERROR) << "Receive BOT_METHOD_INVALID for query " << format::as_hex(id);
     }
   }

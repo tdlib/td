@@ -398,6 +398,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogId.cpp
   td/telegram/DialogLocation.cpp
   td/telegram/DialogParticipant.cpp
+  td/telegram/DialogSource.cpp
   td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
   td/telegram/DraftMessage.cpp
@@ -549,6 +550,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogId.h
   td/telegram/DialogLocation.h
   td/telegram/DialogParticipant.h
+  td/telegram/DialogSource.h
   td/telegram/Document.h
   td/telegram/DocumentsManager.h
   td/telegram/DraftMessage.h

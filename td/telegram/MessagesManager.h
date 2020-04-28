@@ -19,6 +19,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/DialogSource.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
@@ -764,9 +765,9 @@ class MessagesManager : public Actor {
 
   void remove_sponsored_dialog();
 
-  void on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
-                                  vector<tl_object_ptr<telegram_api::User>> users,
-                                  vector<tl_object_ptr<telegram_api::Chat>> chats);
+  void on_get_sponsored_dialog(tl_object_ptr<telegram_api::Peer> peer, DialogSource source,
+                               vector<tl_object_ptr<telegram_api::User>> users,
+                               vector<tl_object_ptr<telegram_api::Chat>> chats);
 
   FileSourceId get_message_file_source_id(FullMessageId full_message_id);
 
@@ -1922,7 +1923,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
-  void send_update_chat_is_sponsored(const Dialog *d) const;
+  void send_update_chat_source(const Dialog *d) const;
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
@@ -2389,9 +2390,11 @@ class MessagesManager : public Actor {
                                     tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
-  void add_sponsored_dialog(const Dialog *d);
+  void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
-  void set_sponsored_dialog_id(DialogId dialog_id);
+  void save_sponsored_dialog();
+
+  void set_sponsored_dialog(DialogId dialog_id, DialogSource source);
 
   static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
 
@@ -2768,6 +2771,7 @@ class MessagesManager : public Actor {
   uint32 scheduled_messages_sync_generation_ = 1;
 
   DialogId sponsored_dialog_id_;
+  DialogSource sponsored_dialog_source_;
 
   FullMessageId being_readded_message_id_;
 

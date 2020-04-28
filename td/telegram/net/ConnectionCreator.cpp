@@ -10,6 +10,7 @@
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/DialogSource.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -439,7 +440,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
 
 void ConnectionCreator::disable_proxy_impl() {
   if (active_proxy_id_ == 0) {
-    on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
+    on_get_proxy_info(make_tl_object<telegram_api::help_promoDataEmpty>(0));
     return;
   }
   CHECK(proxies_.count(active_proxy_id_) == 1);
@@ -474,7 +475,7 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
   get_proxy_info_query_token_ = 0;
   get_proxy_info_timestamp_ = Timestamp();
   if (active_proxy_id_ == 0 || !from_db) {
-    on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
+    on_get_proxy_info(make_tl_object<telegram_api::help_promoDataEmpty>(0));
   } else {
     schedule_get_proxy_info(0);
   }
@@ -1238,7 +1239,7 @@ void ConnectionCreator::loop() {
     if (get_proxy_info_timestamp_.is_in_past()) {
       if (get_proxy_info_query_token_ == 0) {
         get_proxy_info_query_token_ = next_token();
-        auto query = G()->net_query_creator().create(telegram_api::help_getProxyData());
+        auto query = G()->net_query_creator().create(telegram_api::help_getPromoData());
         G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
                                                            actor_shared(this, get_proxy_info_query_token_));
       }
@@ -1282,38 +1283,36 @@ void ConnectionCreator::on_result(NetQueryPtr query) {
   }
 
   get_proxy_info_query_token_ = 0;
-  auto res = fetch_result<telegram_api::help_getProxyData>(std::move(query));
+  auto res = fetch_result<telegram_api::help_getPromoData>(std::move(query));
   if (res.is_error()) {
     if (G()->close_flag()) {
       return;
     }
-    if (res.error().message() == "BOT_METHOD_INVALID") {
-      get_proxy_info_timestamp_ = Timestamp::in(30 * 86400);
-      return;
-    } else {
-      LOG(ERROR) << "Receive error for getProxyData: " << res.error();
-      return schedule_get_proxy_info(60);
-    }
+    LOG(ERROR) << "Receive error for getProxyData: " << res.error();
+    return schedule_get_proxy_info(60);
   }
   on_get_proxy_info(res.move_as_ok());
 }
 
-void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr) {
-  CHECK(proxy_data_ptr != nullptr);
-  LOG(DEBUG) << "Receive " << to_string(proxy_data_ptr);
+void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_PromoData> promo_data_ptr) {
+  CHECK(promo_data_ptr != nullptr);
+  LOG(DEBUG) << "Receive " << to_string(promo_data_ptr);
   int32 expires = 0;
-  switch (proxy_data_ptr->get_id()) {
-    case telegram_api::help_proxyDataEmpty::ID: {
-      auto proxy = telegram_api::move_object_as<telegram_api::help_proxyDataEmpty>(proxy_data_ptr);
-      expires = proxy->expires_;
+  switch (promo_data_ptr->get_id()) {
+    case telegram_api::help_promoDataEmpty::ID: {
+      auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
+      expires = promo->expires_;
       send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
       break;
     }
-    case telegram_api::help_proxyDataPromo::ID: {
-      auto proxy = telegram_api::move_object_as<telegram_api::help_proxyDataPromo>(proxy_data_ptr);
-      expires = proxy->expires_;
-      send_closure(G()->messages_manager(), &MessagesManager::on_get_sponsored_dialog_id, std::move(proxy->peer_),
-                   std::move(proxy->users_), std::move(proxy->chats_));
+    case telegram_api::help_promoData::ID: {
+      auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
+      expires = promo->expires_;
+      bool is_proxy = (promo->flags_ & telegram_api::help_promoData::PROXY_MASK) != 0;
+      send_closure(G()->messages_manager(), &MessagesManager::on_get_sponsored_dialog, std::move(promo->peer_),
+                   is_proxy ? DialogSource::mtproto_proxy()
+                            : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_),
+                   std::move(promo->users_), std::move(promo->chats_));
       break;
     }
     default:

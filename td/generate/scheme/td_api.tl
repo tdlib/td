@@ -649,6 +649,15 @@ chatListMain = ChatList;
 chatListArchive = ChatList;
 
 
+//@class ChatSource @description Describes a reason why the chat is shown in a chat list
+
+//@description The chat is sponsored by the user's MTProxy server
+chatSourceMtprotoProxy = ChatSource;
+
+//@description The chat contains a public service announcement @type The type of the announcement @text The text of the announcement
+chatSourcePublicServiceAnnouncement type:string text:string = ChatSource;
+
+
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
 //@id Chat unique identifier
 //@type Type of the chat
@@ -658,9 +667,9 @@ chatListArchive = ChatList;
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
+//@source Source of the chat in a chat list; may be null
 //@is_pinned True, if the chat is pinned
 //@is_marked_as_unread True, if the chat is marked as unread
-//@is_sponsored True, if the chat is sponsored by the user's MTProxy server
 //@has_scheduled_messages True, if the chat has scheduled messages
 //@can_be_deleted_only_for_self True, if the chat messages can be deleted only for the current user while other users will continue to see the messages
 //@can_be_deleted_for_all_users True, if the chat messages can be deleted for all users
@@ -676,7 +685,7 @@ chatListArchive = ChatList;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings action_bar:ChatActionBar pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType chat_list:ChatList title:string photo:chatPhoto permissions:chatPermissions last_message:message order:int64 source:ChatSource is_pinned:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings action_bar:ChatActionBar pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -2875,7 +2884,7 @@ updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 //@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @order New value of the chat order
 updateChatLastMessage chat_id:int53 last_message:message order:int64 = Update;
 
-//@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned, updateChatDraftMessage, or updateChatIsSponsored might be sent @chat_id Chat identifier @order New value of the order
+//@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned, updateChatDraftMessage, or updateChatSource might be sent @chat_id Chat identifier @order New value of the order
 updateChatOrder chat_id:int53 order:int64 = Update;
 
 //@description A chat was pinned or unpinned @chat_id Chat identifier @is_pinned New value of is_pinned @order New value of the chat order
@@ -2884,8 +2893,8 @@ updateChatIsPinned chat_id:int53 is_pinned:Bool order:int64 = Update;
 //@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
 
-//@description A chat's is_sponsored field has changed @chat_id Chat identifier @is_sponsored New value of is_sponsored @order New value of chat order
-updateChatIsSponsored chat_id:int53 is_sponsored:Bool order:int64 = Update;
+//@description A chat's source in the chat list has changed @chat_id Chat identifier @source New chat's source; may be null @order New value of chat order
+updateChatSource chat_id:int53 source:ChatSource order:int64 = Update;
 
 //@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
 updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
