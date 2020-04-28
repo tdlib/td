@@ -1306,8 +1306,7 @@ void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api:
     case telegram_api::help_proxyDataEmpty::ID: {
       auto proxy = telegram_api::move_object_as<telegram_api::help_proxyDataEmpty>(proxy_data_ptr);
       expires = proxy->expires_;
-      send_closure(G()->messages_manager(), &MessagesManager::on_get_sponsored_dialog_id, nullptr,
-                   vector<tl_object_ptr<telegram_api::User>>(), vector<tl_object_ptr<telegram_api::Chat>>());
+      send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
       break;
     }
     case telegram_api::help_proxyDataPromo::ID: {

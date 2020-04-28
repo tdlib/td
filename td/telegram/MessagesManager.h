@@ -762,6 +762,8 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
+  void remove_sponsored_dialog();
+
   void on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
                                   vector<tl_object_ptr<telegram_api::User>> users,
                                   vector<tl_object_ptr<telegram_api::Chat>> chats);

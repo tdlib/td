@@ -30446,13 +30446,14 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
   ::td::get_payment_receipt(m->message_id.get_server_message_id(), std::move(promise));
 }
 
+void MessagesManager::remove_sponsored_dialog() {
+  set_sponsored_dialog_id(DialogId());
+}
+
 void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
                                                  vector<tl_object_ptr<telegram_api::User>> users,
                                                  vector<tl_object_ptr<telegram_api::Chat>> chats) {
-  if (peer == nullptr) {
-    set_sponsored_dialog_id(DialogId());
-    return;
-  }
+  CHECK(peer != nullptr);
 
   td_->contacts_manager_->on_get_users(std::move(users), "on_get_sponsored_dialog_id");
   td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_sponsored_dialog_id");
