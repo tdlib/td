@@ -28407,7 +28407,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
       auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
       auto state = td_->contacts_manager_->get_secret_chat_state(secret_chat_id);
       // do not return removed from the chat list closed secret chats
-      if (date != 0 && (d->order != DEFAULT_ORDER || state != SecretChatState::Closed)) {
+      if (date != 0 && (d->order != DEFAULT_ORDER || state != SecretChatState::Closed || d->messages != nullptr)) {
         LOG(INFO) << "Creation of secret chat at " << date << " found";
         int64 creation_order = get_dialog_order(MessageId(), date);
         if (creation_order > new_order) {
