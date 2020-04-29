@@ -422,6 +422,8 @@ class ContactsManager : public Actor {
   bool have_min_user(UserId user_id) const;
   bool have_user_force(UserId user_id);
 
+  bool is_dialog_info_received_from_server(DialogId dialog_id) const;
+
   void reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise);
 
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
@@ -608,6 +610,8 @@ class ContactsManager : public Actor {
     bool is_being_saved = false;   // is current user being saved to the database
     bool is_status_saved = false;  // is current user status being saved/is saved to the database
 
+    bool is_received_from_server = false;  // true, if the user was received from the server and not the database
+
     uint64 logevent_id = 0;
 
     template <class StorerT>
@@ -696,6 +700,9 @@ class ContactsManager : public Actor {
 
     bool is_saved = false;        // is current chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current chat being saved to the database
+
+    bool is_received_from_server = false;  // true, if the chat was received from the server and not the database
+
     uint64 logevent_id = 0;
 
     template <class StorerT>
@@ -765,6 +772,9 @@ class ContactsManager : public Actor {
 
     bool is_saved = false;        // is current channel version being saved/is saved to the database
     bool is_being_saved = false;  // is current channel being saved to the database
+
+    bool is_received_from_server = false;  // true, if the channel was received from the server and not the database
+
     uint64 logevent_id = 0;
 
     template <class StorerT>
@@ -839,6 +849,7 @@ class ContactsManager : public Actor {
 
     bool is_saved = false;        // is current secret chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current secret chat being saved to the database
+
     uint64 logevent_id = 0;
 
     template <class StorerT>

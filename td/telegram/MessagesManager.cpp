@@ -28182,7 +28182,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
-  if (is_loaded_from_database && d->order != order && order < get_dialog_order({}, MIN_PINNED_DIALOG_DATE - 1)) {
+  if (is_loaded_from_database && d->order != order && order < get_dialog_order({}, MIN_PINNED_DIALOG_DATE - 1) &&
+      !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id)) {
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
   }
 

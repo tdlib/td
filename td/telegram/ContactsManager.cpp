@@ -7043,6 +7043,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->cache_version = User::CACHE_VERSION;
     u->need_save_to_database = true;
   }
+  u->is_received_from_server = true;
   update_user(u, user_id);
 }
 
@@ -11516,6 +11517,25 @@ ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   }
 }
 
+bool ContactsManager::is_dialog_info_received_from_server(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto u = get_user(dialog_id.get_user_id());
+      return u != nullptr && u->is_received_from_server;
+    }
+    case DialogType::Chat: {
+      auto c = get_chat(dialog_id.get_chat_id());
+      return c != nullptr && c->is_received_from_server;
+    }
+    case DialogType::Channel: {
+      auto c = get_channel(dialog_id.get_channel_id());
+      return c != nullptr && c->is_received_from_server;
+    }
+    default:
+      return false;
+  }
+}
+
 void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -12879,6 +12899,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     c->cache_version = Chat::CACHE_VERSION;
     c->need_save_to_database = true;
   }
+  c->is_received_from_server = true;
   update_chat(c, chat_id);
 }
 
@@ -12909,6 +12930,7 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
     c->cache_version = Chat::CACHE_VERSION;
     c->need_save_to_database = true;
   }
+  c->is_received_from_server = true;
   update_chat(c, chat_id);
 }
 
@@ -13055,6 +13077,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->cache_version = Channel::CACHE_VERSION;
     c->need_save_to_database = true;
   }
+  c->is_received_from_server = true;
   update_channel(c, channel_id);
 }
 
@@ -13140,6 +13163,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->cache_version = Channel::CACHE_VERSION;
     c->need_save_to_database = true;
   }
+  c->is_received_from_server = true;
   update_channel(c, channel_id);
 }
 
