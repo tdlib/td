@@ -6786,6 +6786,11 @@ void MessagesManager::on_update_scope_notify_settings(
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return false;
+  }
+
   CHECK(d != nullptr);
   LOG_IF(WARNING, !d->notification_settings.is_synchronized)
       << "Have unknown notification settings in " << d->dialog_id;
@@ -7731,13 +7736,13 @@ void MessagesManager::after_get_difference() {
     update_message_ids_.erase(full_message_id);
   }
 
-  if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
-    td_->create_handler<GetDialogUnreadMarksQuery>()->send();
-  }
-
-  load_notification_settings();
-
   if (!td_->auth_manager_->is_bot()) {
+    if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread")) {
+      td_->create_handler<GetDialogUnreadMarksQuery>()->send();
+    }
+
+    load_notification_settings();
+
     auto folder_id = FolderId::archive();
     auto &list = get_dialog_list(folder_id);
     if (!list.is_dialog_unread_count_inited_) {
@@ -10467,28 +10472,30 @@ void MessagesManager::init() {
 
   load_calls_db_state();
 
-  vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
-                                           NotificationSettingsScope::Channel};
-  for (auto scope : scopes) {
-    auto notification_settings_string =
-        G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
-    if (!notification_settings_string.empty()) {
-      ScopeNotificationSettings notification_settings;
-      log_event_parse(notification_settings, notification_settings_string).ensure();
+  if (!td_->auth_manager_->is_bot()) {
+    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
+                                             NotificationSettingsScope::Channel};
+    for (auto scope : scopes) {
+      auto notification_settings_string =
+          G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
+      if (!notification_settings_string.empty()) {
+        ScopeNotificationSettings notification_settings;
+        log_event_parse(notification_settings, notification_settings_string).ensure();
 
-      auto current_settings = get_scope_notification_settings(scope);
-      CHECK(current_settings != nullptr);
-      current_settings->mute_until = -1;
-      update_scope_notification_settings(scope, current_settings, notification_settings);
+        auto current_settings = get_scope_notification_settings(scope);
+        CHECK(current_settings != nullptr);
+        current_settings->mute_until = -1;
+        update_scope_notification_settings(scope, current_settings, notification_settings);
+      }
     }
-  }
-  if (!channels_notification_settings_.is_synchronized) {
-    channels_notification_settings_ = chats_notification_settings_;
-    channels_notification_settings_.disable_pinned_message_notifications = false;
-    channels_notification_settings_.disable_mention_notifications = false;
-    channels_notification_settings_.is_synchronized = false;
-    if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
-      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+    if (!channels_notification_settings_.is_synchronized) {
+      channels_notification_settings_ = chats_notification_settings_;
+      channels_notification_settings_.disable_pinned_message_notifications = false;
+      channels_notification_settings_.disable_mention_notifications = false;
+      channels_notification_settings_.is_synchronized = false;
+      if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
+        send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+      }
     }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
@@ -10919,7 +10926,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
 }
 
 void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, SecretChatState state) {
-  if (state == SecretChatState::Closed) {
+  if (state == SecretChatState::Closed && !td_->auth_manager_->is_bot()) {
     DialogId dialog_id(secret_chat_id);
     Dialog *d = get_dialog_force(dialog_id);
     if (d != nullptr) {
@@ -12233,7 +12240,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
 
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
-    if (!d->notification_settings.is_synchronized) {
+    if (!d->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
       LOG(ERROR) << "Failed to synchronize settings in " << dialog_id;
       d->notification_settings.is_synchronized = true;
       on_dialog_updated(dialog_id, "set notification_settings.is_synchronized");
@@ -13436,6 +13443,7 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 }
 
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
+  CHECK(!td_->auth_manager_->is_bot());
   int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
   auto dialog_dates = transform(dialog_ids, [this, &fake_order](DialogId dialog_id) {
     const Dialog *d = get_dialog(dialog_id);
@@ -14742,6 +14750,11 @@ class MessagesManager::UpdateDialogNotificationSettingsOnServerLogEvent {
 };
 
 void MessagesManager::update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   if (!from_binlog && get_input_notify_peer(dialog_id) == nullptr) {
     // don't even create new binlog events
     return;
@@ -14784,6 +14797,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
 }
 
 void MessagesManager::send_update_dialog_notification_settings_query(const Dialog *d, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use SequenceDispatcher
   td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))
@@ -14791,6 +14805,7 @@ void MessagesManager::send_update_dialog_notification_settings_query(const Dialo
 }
 
 void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   LOG(INFO) << "Saved notification settings in " << dialog_id << " with logevent "
@@ -14820,6 +14835,7 @@ bool MessagesManager::is_dialog_inited(const Dialog *d) {
 }
 
 int32 MessagesManager::get_dialog_mute_until(const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   return d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
                                                          : d->notification_settings.mute_until;
@@ -14830,6 +14846,7 @@ bool MessagesManager::is_dialog_muted(const Dialog *d) const {
 }
 
 bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_disable_pinned_message_notifications) {
     auto scope = get_dialog_notification_setting_scope(d->dialog_id);
@@ -14840,6 +14857,7 @@ bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dial
 }
 
 bool MessagesManager::is_dialog_mention_notifications_disabled(const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_disable_mention_notifications) {
     auto scope = get_dialog_notification_setting_scope(d->dialog_id);
@@ -15550,6 +15568,7 @@ MessagesManager::get_update_scope_notification_settings_object(NotificationSetti
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (d == nullptr || !d->notification_settings.is_synchronized) {
     return {false, get_scope_mute_until(dialog_id)};
   }
@@ -15724,6 +15743,7 @@ tl_object_ptr<telegram_api::InputNotifyPeer> MessagesManager::get_input_notify_p
 
 Status MessagesManager::set_dialog_notification_settings(
     DialogId dialog_id, tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto current_settings = get_dialog_notification_settings(dialog_id, false);
   if (current_settings == nullptr) {
     return Status::Error(6, "Wrong chat identifier specified");
@@ -15742,6 +15762,7 @@ Status MessagesManager::set_dialog_notification_settings(
 
 Status MessagesManager::set_scope_notification_settings(
     NotificationSettingsScope scope, tl_object_ptr<td_api::scopeNotificationSettings> &&notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
   TRY_RESULT(new_settings, ::td::get_scope_notification_settings(std::move(notification_settings)));
   if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
     update_scope_notification_settings_on_server(scope, 0);
@@ -15772,6 +15793,7 @@ uint64 MessagesManager::save_update_scope_notification_settings_on_server_logeve
 
 void MessagesManager::update_scope_notification_settings_on_server(NotificationSettingsScope scope,
                                                                    uint64 logevent_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (logevent_id == 0) {
     logevent_id = save_update_scope_notification_settings_on_server_logevent(scope);
   }
@@ -15782,6 +15804,7 @@ void MessagesManager::update_scope_notification_settings_on_server(NotificationS
 }
 
 void MessagesManager::reset_all_notification_settings() {
+  CHECK(!td_->auth_manager_->is_bot());
   DialogNotificationSettings new_dialog_settings;
   ScopeNotificationSettings new_scope_settings;
   new_dialog_settings.is_synchronized = true;
@@ -15819,6 +15842,7 @@ uint64 MessagesManager::save_reset_all_notification_settings_on_server_logevent(
 }
 
 void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (logevent_id == 0) {
     logevent_id = save_reset_all_notification_settings_on_server_logevent();
   }
@@ -21496,6 +21520,10 @@ MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_
 
 NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId dialog_id,
                                                                       NotificationGroupInfo &group_info) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return NotificationGroupId();
+  }
   if (!group_info.group_id.is_valid()) {
     NotificationGroupId next_notification_group_id;
     do {
@@ -21656,6 +21684,7 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
 
 MessagesManager::MessageNotificationGroup MessagesManager::get_message_notification_group_force(
     NotificationGroupId group_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(group_id.is_valid());
   Dialog *d = nullptr;
   auto it = notification_group_id_to_dialog_id_.find(group_id);
@@ -21809,7 +21838,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
 vector<Notification> MessagesManager::get_message_notifications_from_database_force(Dialog *d, bool from_mentions,
                                                                                     int32 limit) {
   CHECK(d != nullptr);
-  if (!G()->parameters().use_message_db) {
+  if (!G()->parameters().use_message_db || td_->auth_manager_->is_bot()) {
     return {};
   }
 
@@ -21988,6 +22017,9 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
                                                               Promise<vector<Notification>> promise) {
   if (!G()->parameters().use_message_db) {
     return promise.set_error(Status::Error(500, "There is no message database"));
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(500, "Bots have no notifications"));
   }
 
   CHECK(dialog_id.is_valid());
@@ -22314,6 +22346,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bool from_mentions) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (from_mentions) {
     bool has_pinned_message = d->pinned_message_notification_message_id.is_valid() &&
@@ -22333,7 +22366,7 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
 
 void MessagesManager::update_dialog_mention_notification_count(const Dialog *d) {
   CHECK(d != nullptr);
-  if (!d->mention_notification_group.group_id.is_valid()) {
+  if (td_->auth_manager_->is_bot() || !d->mention_notification_group.group_id.is_valid()) {
     return;
   }
   auto total_count =
@@ -24231,6 +24264,7 @@ void MessagesManager::send_get_scope_notification_settings_query(NotificationSet
 }
 
 void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto it = get_dialog_notification_settings_queries_.find(dialog_id);
   CHECK(it != get_dialog_notification_settings_queries_.end());
   CHECK(!it->second.empty());
@@ -26306,7 +26340,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (*need_update) {
+  if (*need_update && !td_->auth_manager_->is_bot()) {
     if (message_content_type == MessageContentType::PinMessage) {
       if (is_dialog_pinned_message_notifications_disabled(d) ||
           !get_message_content_pinned_message_id(message->content.get()).is_valid()) {
@@ -26521,27 +26555,29 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (*need_update) {
-    // notification must be added before updating unread_count to have correct total notification count
-    // in get_message_notification_group_force
-    add_new_message_notification(d, message.get(), false);
-  } else {
-    if (message->from_database && message->notification_id.is_valid() &&
-        is_from_mention_notification_group(d, message.get()) && is_message_notification_active(d, message.get()) &&
-        is_dialog_mention_notifications_disabled(d) && message_id != d->pinned_message_notification_message_id) {
-      auto notification_id = message->notification_id;
-      VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
-      message->notification_id = NotificationId();
-      if (d->mention_notification_group.last_notification_id == notification_id) {
-        // last notification is deleted, need to find new last notification
-        fix_dialog_last_notification_id(d, true, message_id);
+  if (!td_->auth_manager_->is_bot()) {
+    if (*need_update) {
+      // notification must be added before updating unread_count to have correct total notification count
+      // in get_message_notification_group_force
+      add_new_message_notification(d, message.get(), false);
+    } else {
+      if (message->from_database && message->notification_id.is_valid() &&
+          is_from_mention_notification_group(d, message.get()) && is_message_notification_active(d, message.get()) &&
+          is_dialog_mention_notifications_disabled(d) && message_id != d->pinned_message_notification_message_id) {
+        auto notification_id = message->notification_id;
+        VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
+        message->notification_id = NotificationId();
+        if (d->mention_notification_group.last_notification_id == notification_id) {
+          // last notification is deleted, need to find new last notification
+          fix_dialog_last_notification_id(d, true, message_id);
+        }
+
+        send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                           d->mention_notification_group.group_id, notification_id, false, false, Promise<Unit>(),
+                           "remove disabled mention notification");
+
+        on_message_changed(d, message.get(), false, "remove_mention_notification");
       }
-
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                         d->mention_notification_group.group_id, notification_id, false, false, Promise<Unit>(),
-                         "remove disabled mention notification");
-
-      on_message_changed(d, message.get(), false, "remove_mention_notification");
     }
   }
 
@@ -27849,6 +27885,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   if (!is_loaded_from_database) {
     on_dialog_updated(dialog_id, "add_new_dialog");
   }
+  if (td_->auth_manager_->is_bot()) {
+    d->notification_settings.is_synchronized = true;
+  }
 
   unique_ptr<Message> last_database_message = std::move(d->messages);
   MessageId last_database_message_id = d->last_database_message_id;
@@ -27943,7 +27982,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       send_get_dialog_notification_settings_query(dialog_id, Promise<>());
     }
   }
-  if (d->notification_settings.use_default_mute_until || d->notification_settings.mute_until <= G()->unix_time()) {
+  if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until ||
+      d->notification_settings.mute_until <= G()->unix_time()) {
     d->notification_settings.mute_until = 0;
   } else {
     update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
