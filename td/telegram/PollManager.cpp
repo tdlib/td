@@ -691,6 +691,9 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
   if (poll->is_quiz && option_ids.empty()) {
     return promise.set_error(Status::Error(400, "Can't retract vote in a quiz"));
   }
+  if (poll->is_quiz && pending_answers_.count(poll_id) != 0) {
+    return promise.set_error(Status::Error(400, "Can't revote in a quiz"));
+  }
 
   std::unordered_map<size_t, int> affected_option_ids;
   vector<string> options;
@@ -705,6 +708,9 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
   }
   for (size_t option_index = 0; option_index < poll->options.size(); option_index++) {
     if (poll->options[option_index].is_chosen) {
+      if (poll->is_quiz) {
+        return promise.set_error(Status::Error(400, "Can't revote in a quiz"));
+      }
       affected_option_ids[option_index]++;
     }
   }
