@@ -8905,6 +8905,14 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     user_photos->photos.push_back(std::move(user_photo));
     add_user_photo_id(u, user_id, user_photos->photos.back().id, photo_get_file_ids(user_photos->photos.back()));
   }
+
+  auto known_photo_count = narrow_cast<int32>(user_photos->photos.size());
+  CHECK(user_photos->count >= known_photo_count);
+  if (user_photos->offset + known_photo_count > user_photos->count) {
+    LOG(ERROR) << "Fix total photo count of " << user_id << " from " << user_photos->count << " to "
+               << user_photos->offset << " + " << known_photo_count;
+    user_photos->count = user_photos->offset + known_photo_count;
+  }
 }
 
 bool ContactsManager::on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&new_bot_info, bool send_update) {
