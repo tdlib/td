@@ -6900,7 +6900,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_bot = (flags & USER_FLAG_IS_BOT) != 0;
   if (flags & USER_FLAG_IS_ME) {
     set_my_id(user_id);
-    td_->auth_manager_->set_is_bot(is_bot);
     if (!is_bot) {
       G()->shared_config().set_option_string("my_phone_number", user->phone_);
     }
