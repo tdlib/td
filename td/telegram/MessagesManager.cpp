@@ -13072,6 +13072,8 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
 
 vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate offset, int32 limit, bool force,
                                               Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+
   auto &list = get_dialog_list(folder_id);
   LOG(INFO) << "Get chats in " << folder_id << " with offset " << offset << " and limit " << limit
             << ". Know about order of " << list.ordered_dialogs_.size()
@@ -13119,6 +13121,7 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
 }
 
 void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool only_local, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   if (list.last_dialog_date_ == MAX_DIALOG_DATE) {
     return promise.set_value(Unit());
@@ -13165,6 +13168,7 @@ void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool onl
 }
 
 void MessagesManager::load_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   LOG(INFO) << "Load " << limit << " chats in " << folder_id << " from database from "
             << list.last_loaded_database_dialog_date_
@@ -13184,6 +13188,7 @@ void MessagesManager::load_dialog_list_from_database(FolderId folder_id, int32 l
 
 void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                                    Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
             << " in from database with next order " << dialogs.next_order << " and next " << dialogs.next_dialog_id;
@@ -13247,6 +13252,7 @@ void MessagesManager::preload_dialog_list(FolderId folder_id) {
     LOG(INFO) << "Skip chat list preload because of closing";
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto &list = get_dialog_list(folder_id);
   CHECK(G()->parameters().use_message_db);
@@ -13351,6 +13357,7 @@ void MessagesManager::send_search_public_dialogs_query(const string &query, Prom
 std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
                                                                     Promise<Unit> &&promise) {
   LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
+  CHECK(!td_->auth_manager_->is_bot());
 
   if (limit < 0) {
     promise.set_error(Status::Error(400, "Limit must be non-negative"));
@@ -15535,6 +15542,7 @@ int32 MessagesManager::get_scope_mute_until(DialogId dialog_id) const {
 vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(NotificationSettingsScope scope,
                                                                               bool filter_scope, bool compare_sound,
                                                                               bool force, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   bool have_all_dialogs = true;
   bool have_main_list = false;
   bool have_archive_list = false;
@@ -23638,6 +23646,11 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
 }
 
 void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pin of invalid " << dialog_id;
     return;
@@ -23662,6 +23675,11 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
 }
 
 void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   // TODO logevent + delete_logevent_promise
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Unit /* ignore result */) {
     send_closure(actor_id, &MessagesManager::reload_pinned_dialogs, folder_id, Promise<Unit>());
@@ -30081,6 +30099,7 @@ void MessagesManager::save_recently_found_dialogs() {
 }
 
 bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (recently_found_dialogs_loaded_ >= 2) {
     return true;
   }
@@ -30477,6 +30496,10 @@ void MessagesManager::on_get_sponsored_dialog(tl_object_ptr<telegram_api::Peer> 
 }
 
 void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(!sponsored_dialog_id_.is_valid());
   sponsored_dialog_id_ = d->dialog_id;
   sponsored_dialog_source_ = std::move(source);
@@ -30511,6 +30534,10 @@ void MessagesManager::save_sponsored_dialog() {
 }
 
 void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (sponsored_dialog_id_ == dialog_id) {
     if (sponsored_dialog_source_ != source) {
       CHECK(sponsored_dialog_id_.is_valid());
