@@ -8836,9 +8836,11 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
                                          vector<tl_object_ptr<telegram_api::Photo>> photos) {
   int32 photo_count = narrow_cast<int32>(photos.size());
-  if (total_count < 0 || total_count < photo_count) {
-    LOG(ERROR) << "Wrong photos total_count " << total_count << ". Receive " << photo_count << " photos";
-    total_count = photo_count;
+  int32 min_total_count = (offset >= 0 && photo_count > 0 ? offset : 0) + photo_count;
+  if (total_count < min_total_count) {
+    LOG(ERROR) << "Wrong photos total_count " << total_count << ". Receive " << photo_count << " photos with offset "
+               << offset;
+    total_count = min_total_count;
   }
   LOG_IF(ERROR, limit < photo_count) << "Requested not more than " << limit << " photos, but " << photo_count
                                      << " returned";
@@ -8904,6 +8906,10 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 
     user_photos->photos.push_back(std::move(user_photo));
     add_user_photo_id(u, user_id, user_photos->photos.back().id, photo_get_file_ids(user_photos->photos.back()));
+  }
+  if (user_photos->offset > user_photos->count) {
+    user_photos->offset = user_photos->count;
+    user_photos->photos.clear();
   }
 
   auto known_photo_count = narrow_cast<int32>(user_photos->photos.size());
