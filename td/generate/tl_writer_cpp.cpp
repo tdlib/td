@@ -32,7 +32,7 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "std::string to_string(const BaseObject &value) {\n"
          "  TlStorerToString storer;\n"
          "  value.store(storer, \"\");\n"
-         "  return storer.str();\n"
+         "  return storer.move_as_str();\n"
          "}\n";
 }
 
