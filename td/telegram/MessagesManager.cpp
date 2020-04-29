@@ -6440,6 +6440,11 @@ void MessagesManager::save_scope_notification_settings(NotificationSettingsScope
 bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
                                                           DialogNotificationSettings *current_settings,
                                                           const DialogNotificationSettings &new_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return false;
+  }
+
   bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
                             current_settings->sound != new_settings.sound ||
                             current_settings->show_preview != new_settings.show_preview ||
@@ -6498,6 +6503,11 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
 bool MessagesManager::update_scope_notification_settings(NotificationSettingsScope scope,
                                                          ScopeNotificationSettings *current_settings,
                                                          const ScopeNotificationSettings &new_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return false;
+  }
+
   bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
                             current_settings->sound != new_settings.sound ||
                             current_settings->show_preview != new_settings.show_preview;
@@ -6604,6 +6614,11 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
 
 void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scope, int32 old_mute_until,
                                                   int32 new_mute_until) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   LOG(INFO) << "Update " << scope << " unmute timeout from " << old_mute_until << " to " << new_mute_until;
   if (old_mute_until == new_mute_until) {
     return;
@@ -6666,6 +6681,11 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
 }
 
 void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -6694,6 +6714,11 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
 }
 
 void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   auto notification_settings = get_scope_notification_settings(scope);
   CHECK(notification_settings != nullptr);
 
@@ -10321,7 +10346,7 @@ void MessagesManager::init() {
 
   start_time_ = Time::now();
 
-  if (G()->parameters().use_message_db) {
+  if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot()) {
     // erase old keys
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
@@ -10429,13 +10454,15 @@ void MessagesManager::init() {
         send_update_unread_chat_count(folder_id, DialogId(), true, "load unread_dialog_count");
       }
     }
-
-    ttl_db_loop_start(G()->server_time());
   } else {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_message_count");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_dialog_count");
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
+  }
+
+  if (G()->parameters().use_message_db) {
+    ttl_db_loop_start(G()->server_time());
   }
 
   load_calls_db_state();
@@ -11770,6 +11797,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
 }
 
 void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (is_removed_from_dialog_list(d) && is_pinned) {
@@ -11784,6 +11815,10 @@ void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
 }
 
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   if (is_removed_from_dialog_list(d) && is_pinned) {
     // the chat can't be pinned
@@ -11804,6 +11839,10 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
 }
 
 void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(!message_id.is_scheduled());
 
   if (d->reply_markup_message_id != message_id) {
@@ -12127,10 +12166,12 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  auto &list = get_dialog_list(folder_id);
-  bool need_recalc_unread_count =
-      list.last_server_dialog_date_ == MIN_DIALOG_DATE && (from_dialog_list || from_pinned_dialog_list);
+  bool need_recalc_unread_count = false;
   if (from_dialog_list) {
+    CHECK(!td_->auth_manager_->is_bot());
+
+    auto &list = get_dialog_list(folder_id);
+    need_recalc_unread_count = list.last_server_dialog_date_ == MIN_DIALOG_DATE;
     if (dialogs.empty()) {
       // if there are no more dialogs on the server
       max_dialog_date = MAX_DIALOG_DATE;
@@ -12151,6 +12192,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
   if (from_pinned_dialog_list) {
+    CHECK(!td_->auth_manager_->is_bot());
+
+    auto &list = get_dialog_list(folder_id);
+    need_recalc_unread_count = list.last_server_dialog_date_ == MIN_DIALOG_DATE;
     max_dialog_date = DialogDate(get_dialog_order(MessageId(), MIN_PINNED_DIALOG_DATE - 1), DialogId());
     if (list.last_server_dialog_date_ < max_dialog_date) {
       list.last_server_dialog_date_ = max_dialog_date;
@@ -12331,6 +12376,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   }
   if (from_dialog_list) {
     CHECK(total_count >= 0);
+
+    auto &list = get_dialog_list(folder_id);
     if (list.server_dialog_total_count_ != total_count) {
       auto old_dialog_total_count = get_dialog_total_count(list);
       list.server_dialog_total_count_ = total_count;
@@ -13279,6 +13326,9 @@ void MessagesManager::preload_dialog_list(FolderId folder_id) {
 
 vector<DialogId> MessagesManager::get_pinned_dialog_ids(FolderId folder_id) const {
   vector<DialogId> result;
+  if (td_->auth_manager_->is_bot()) {
+    return result;
+  }
 
   auto *list = get_dialog_list(folder_id);
   if (list != nullptr) {
@@ -14472,6 +14522,7 @@ uint64 MessagesManager::save_toggle_dialog_is_pinned_on_server_logevent(DialogId
 }
 
 void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
     // don't even create new binlog events
     return;
@@ -22896,6 +22947,10 @@ void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, i
 }
 
 void MessagesManager::send_update_chat_chat_list(const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_chat_list";
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatChatList>(d->dialog_id.get(), get_chat_list_object(d)));
@@ -23697,6 +23752,11 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
 }
 
 void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive marking as unread of invalid " << dialog_id;
     return;
@@ -28187,11 +28247,14 @@ bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
 }
 
 int64 MessagesManager::get_dialog_public_order(FolderId folder_id, const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return 0;
+  }
   return get_dialog_public_order(get_dialog_list(folder_id), d);
 }
 
 int64 MessagesManager::get_dialog_public_order(const DialogList *list, const Dialog *d) const {
-  if (list == nullptr) {
+  if (list == nullptr || td_->auth_manager_->is_bot()) {
     return 0;
   }
 
@@ -28241,6 +28304,10 @@ bool MessagesManager::is_removed_from_dialog_list(const Dialog *d) const {
 
 void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order,
                                         bool is_loaded_from_database) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
 
@@ -28320,6 +28387,10 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
 
 bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order,
                                        bool is_loaded_from_database, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+
   CHECK(d != nullptr);
   DialogId dialog_id = d->dialog_id;
   DialogDate old_date(d->order, dialog_id);
@@ -28491,6 +28562,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 }
 
 void MessagesManager::update_last_dialog_date(FolderId folder_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   auto old_last_dialog_date = list.last_dialog_date_;
   list.last_dialog_date_ = list.last_server_dialog_date_;
@@ -28655,6 +28727,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 }
 
 MessagesManager::DialogList &MessagesManager::get_dialog_list(FolderId folder_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (folder_id != FolderId::archive()) {
     folder_id = FolderId::main();
   }
@@ -28664,6 +28737,7 @@ MessagesManager::DialogList &MessagesManager::get_dialog_list(FolderId folder_id
 }
 
 const MessagesManager::DialogList *MessagesManager::get_dialog_list(FolderId folder_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (folder_id != FolderId::archive()) {
     folder_id = FolderId::main();
   }
