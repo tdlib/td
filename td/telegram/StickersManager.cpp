@@ -50,6 +50,7 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <limits>
 #include <type_traits>
 #include <unordered_set>
 

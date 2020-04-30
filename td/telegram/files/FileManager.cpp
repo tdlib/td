@@ -25,6 +25,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/crypto.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"

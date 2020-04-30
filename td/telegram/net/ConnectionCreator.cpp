@@ -6,11 +6,8 @@
 //
 #include "td/telegram/net/ConnectionCreator.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
-#include "td/telegram/DialogSource.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
