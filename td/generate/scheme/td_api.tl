@@ -141,7 +141,7 @@ temporaryPasswordState has_password:Bool valid_for:int32 = TemporaryPasswordStat
 localFile path:string can_be_downloaded:Bool can_be_deleted:Bool is_downloading_active:Bool is_downloading_completed:Bool download_offset:int32 downloaded_prefix_size:int32 downloaded_size:int32 = LocalFile;
 
 //@description Represents a remote file
-//@id Remote file identifier; may be empty. Can be used across application restarts or even from other devices for the current user. Uniquely identifies a file, but a file can have a lot of different valid identifiers.
+//@id Remote file identifier; may be empty. Can be used by the current user across application restarts or even from other devices. Uniquely identifies a file, but a file can have a lot of different valid identifiers.
 //-If the ID starts with "http://" or "https://", it represents the HTTP URL of the file. TDLib is currently unable to download files if only their URL is known.
 //-If downloadFile is called on such a file or if it is sent to a secret chat, TDLib starts a file generation process by sending updateFileGenerationStart to the client with the HTTP URL in the original_path and "#url#" as the conversion string. Clients should generate the file by downloading it to the specified location
 //@unique_id Unique file identifier; may be empty if unknown. The unique file identifier which is the same for the same file even for different users and is persistent over time
@@ -4257,7 +4257,7 @@ addNetworkStatistics entry:NetworkStatisticsEntry = Ok;
 //@description Resets all network data usage statistics to zero. Can be called before authorization
 resetNetworkStatistics = Ok;
 
-//@description Returns auto-download settings presets for the currently logged in user
+//@description Returns auto-download settings presets for the current user
 getAutoDownloadSettingsPresets = AutoDownloadSettingsPresets;
 
 //@description Sets auto-download settings @settings New user auto-download settings @type Type of the network for which the new settings are applied
