@@ -22,12 +22,17 @@ using namespace td;
 
 TEST(Heap, sort_random_perm) {
   int n = 1000000;
+
   std::vector<int> v(n);
   for (int i = 0; i < n; i++) {
     v[i] = i;
   }
-  std::srand(123);
-  std::random_shuffle(v.begin(), v.end());
+
+  // random shuffle
+  for (int i = 1; i < n; i++) {
+    std::swap(v[Random::fast(0, i)], v[i]);
+  }
+
   std::vector<HeapNode> nodes(n);
   KHeap<int> kheap;
   for (int i = 0; i < n; i++) {

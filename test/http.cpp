@@ -141,7 +141,6 @@ TEST(Http, reader) {
     int max_post_size = 10000;
     reader.init(&input, max_post_size, 0);
 
-    std::srand(4);
     std::vector<string> contents(1000);
     std::generate(contents.begin(), contents.end(), gen_http_content);
     auto v = td::transform(contents, rand_http_query);
