@@ -105,6 +105,8 @@ class Td final : public NetQueryCallback {
 
   void schedule_get_terms_of_service(int32 expires_in);
 
+  void schedule_get_promo_data(int32 expires_in);
+
   void on_result(NetQueryPtr query) override;
 
   void on_update_server_time_difference();
@@ -232,6 +234,7 @@ class Td final : public NetQueryCallback {
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
   static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
+  static constexpr int64 PROMO_DATA_ALARM_ID = -3;
 
   void on_connection_state_changed(StateManager::State new_state);
 
@@ -304,6 +307,8 @@ class Td final : public NetQueryCallback {
   td_api::object_ptr<td_api::updateTermsOfService> get_update_terms_of_service_object() const;
 
   void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
+
+  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result, bool dummy);
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error

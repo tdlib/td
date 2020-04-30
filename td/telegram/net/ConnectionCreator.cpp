@@ -18,6 +18,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/Ping.h"
@@ -440,7 +441,8 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
 
 void ConnectionCreator::disable_proxy_impl() {
   if (active_proxy_id_ == 0) {
-    on_get_proxy_info(make_tl_object<telegram_api::help_promoDataEmpty>(0));
+    send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
+    send_closure(G()->td(), &Td::schedule_get_promo_data, 0);
     return;
   }
   CHECK(proxies_.count(active_proxy_id_) == 1);
@@ -472,13 +474,10 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
   resolve_proxy_timestamp_ = Timestamp();
   proxy_ip_address_ = IPAddress();
 
-  get_proxy_info_query_token_ = 0;
-  get_proxy_info_timestamp_ = Timestamp();
   if (active_proxy_id_ == 0 || !from_db) {
-    on_get_proxy_info(make_tl_object<telegram_api::help_promoDataEmpty>(0));
-  } else {
-    schedule_get_proxy_info(0);
+    send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
   }
+  send_closure(G()->td(), &Td::schedule_get_promo_data, 0);
 
   loop();
 }
@@ -549,7 +548,6 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
     VLOG(connections) << "Set proxy query token to 0: " << old_generation << " " << network_generation_;
     resolve_proxy_query_token_ = 0;
     resolve_proxy_timestamp_ = Timestamp();
-    get_proxy_info_timestamp_ = Timestamp();
 
     for (auto &client : clients_) {
       client.second.backoff.clear();
@@ -1235,20 +1233,6 @@ void ConnectionCreator::loop() {
   }
 
   Timestamp timeout;
-  if (active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
-    if (get_proxy_info_timestamp_.is_in_past()) {
-      if (get_proxy_info_query_token_ == 0) {
-        get_proxy_info_query_token_ = next_token();
-        auto query = G()->net_query_creator().create(telegram_api::help_getPromoData());
-        G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
-                                                           actor_shared(this, get_proxy_info_query_token_));
-      }
-    } else {
-      CHECK(get_proxy_info_query_token_ == 0);
-      timeout.relax(get_proxy_info_timestamp_);
-    }
-  }
-
   if (active_proxy_id_ != 0) {
     if (resolve_proxy_timestamp_.is_in_past()) {
       if (resolve_proxy_query_token_ == 0) {
@@ -1271,71 +1255,6 @@ void ConnectionCreator::loop() {
   if (timeout) {
     set_timeout_at(timeout.at());
   }
-}
-
-void ConnectionCreator::on_result(NetQueryPtr query) {
-  SCOPE_EXIT {
-    loop();
-  };
-
-  if (get_link_token() != get_proxy_info_query_token_) {
-    return;
-  }
-
-  get_proxy_info_query_token_ = 0;
-  auto res = fetch_result<telegram_api::help_getPromoData>(std::move(query));
-  if (res.is_error()) {
-    if (G()->close_flag()) {
-      return;
-    }
-    LOG(ERROR) << "Receive error for getProxyData: " << res.error();
-    return schedule_get_proxy_info(60);
-  }
-  on_get_proxy_info(res.move_as_ok());
-}
-
-void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_PromoData> promo_data_ptr) {
-  CHECK(promo_data_ptr != nullptr);
-  LOG(DEBUG) << "Receive " << to_string(promo_data_ptr);
-  int32 expires = 0;
-  switch (promo_data_ptr->get_id()) {
-    case telegram_api::help_promoDataEmpty::ID: {
-      auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
-      expires = promo->expires_;
-      send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
-      break;
-    }
-    case telegram_api::help_promoData::ID: {
-      auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
-      expires = promo->expires_;
-      bool is_proxy = (promo->flags_ & telegram_api::help_promoData::PROXY_MASK) != 0;
-      send_closure(G()->messages_manager(), &MessagesManager::on_get_sponsored_dialog, std::move(promo->peer_),
-                   is_proxy ? DialogSource::mtproto_proxy()
-                            : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_),
-                   std::move(promo->users_), std::move(promo->chats_));
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  if (expires != 0) {
-    expires -= G()->unix_time();
-  }
-  schedule_get_proxy_info(expires);
-}
-
-void ConnectionCreator::schedule_get_proxy_info(int32 expires) {
-  if (expires < 0) {
-    LOG(ERROR) << "Receive wrong expires: " << expires;
-    expires = 0;
-  }
-  if (expires != 0 && expires < 60) {
-    expires = 60;
-  }
-  if (expires > 86400) {
-    expires = 86400;
-  }
-  get_proxy_info_timestamp_ = Timestamp::in(expires);
 }
 
 void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {

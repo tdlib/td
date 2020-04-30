@@ -8867,6 +8867,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     remove_sponsored_dialog();
 
     td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
+    promise.set_value(Unit());
     return;
   }
 
@@ -9845,7 +9846,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
         }
       }
     }
-    if (d->order != DEFAULT_ORDER || is_dialog_sponsored(d)) {
+    if (d->order != DEFAULT_ORDER) {  // must not count sponsored dialog, which is added independently
       if (dialog_id.get_type() == DialogType::SecretChat) {
         secret_chat_total_count++;
       } else {
@@ -30677,13 +30678,18 @@ void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source)
 
   if (is_dialog_sponsored(d)) {
     send_update_chat_chat_list(d);
-    auto folder_id = FolderId::main();
-    auto &list = get_dialog_list(folder_id);
-    DialogDate max_dialog_date(SPONSORED_DIALOG_ORDER, d->dialog_id);
-    if (list.last_server_dialog_date_ < max_dialog_date) {
-      list.last_server_dialog_date_ = max_dialog_date;
-      update_last_dialog_date(folder_id);
-    }
+  }
+
+  // update last_server_dialog_date in any case, because all chats before SPONSORED_DIALOG_ORDER are known
+  auto folder_id = FolderId::main();
+  auto &list = get_dialog_list(folder_id);
+  DialogDate max_dialog_date(SPONSORED_DIALOG_ORDER, d->dialog_id);
+  if (list.last_server_dialog_date_ < max_dialog_date) {
+    list.last_server_dialog_date_ = max_dialog_date;
+    update_last_dialog_date(folder_id);
+  }
+
+  if (is_dialog_sponsored(d)) {
     send_update_chat_source(d);
     // the sponsored dialog must not be saved there
   }

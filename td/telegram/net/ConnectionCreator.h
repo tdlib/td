@@ -118,9 +118,6 @@ class ConnectionCreator : public NetQueryCallback {
   Timestamp resolve_proxy_timestamp_;
   uint64 resolve_proxy_query_token_{0};
 
-  uint64 get_proxy_info_query_token_{0};
-  Timestamp get_proxy_info_timestamp_;
-
   struct ClientInfo {
     class Backoff {
 #if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_WATCH_OS || TD_TIZEN
@@ -207,8 +204,6 @@ class ConnectionCreator : public NetQueryCallback {
   void hangup() override;
   void loop() override;
 
-  void on_result(NetQueryPtr query) override;
-
   void save_dc_options();
   Result<SocketFd> do_request_connection(DcId dc_id, bool allow_media_only);
   Result<std::pair<unique_ptr<mtproto::RawConnection>, bool>> do_request_raw_connection(DcId dc_id,
@@ -228,10 +223,6 @@ class ConnectionCreator : public NetQueryCallback {
   void client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag,
                              uint64 auth_data_generation, int64 session_id);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
-
-  void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_PromoData> proxy_data_ptr);
-
-  void schedule_get_proxy_info(int32 expires);
 
   void on_proxy_resolved(Result<IPAddress> ip_address, bool dummy);
 

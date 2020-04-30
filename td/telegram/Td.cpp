@@ -177,6 +177,33 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 };
 
+class GetPromoDataQuery : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> promise_;
+
+ public:
+  explicit GetPromoDataQuery(Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    // we don't poll promo data before authorization
+    send_query(G()->net_query_creator().create(telegram_api::help_getPromoData()));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_getPromoData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetRecentMeUrlsQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::tMeUrls>> promise_;
 
@@ -2989,6 +3016,16 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     }
     return;
   }
+  if (alarm_id == PROMO_DATA_ALARM_ID) {
+    if (!close_flag_ && !auth_manager_->is_bot()) {
+      auto promise = PromiseCreator::lambda(
+          [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result) {
+            send_closure(actor_id, &Td::on_get_promo_data, std::move(result), false);
+          });
+      create_handler<GetPromoDataQuery>(std::move(promise))->send();
+    }
+    return;
+  }
   if (close_flag_ >= 2) {
     // pending_alarms_ was already cleared
     return;
@@ -3064,6 +3101,63 @@ void Td::schedule_get_terms_of_service(int32 expires_in) {
   }
   if (!close_flag_ && !auth_manager_->is_bot()) {
     alarm_timeout_.set_timeout_in(TERMS_OF_SERVICE_ALARM_ID, expires_in);
+  }
+}
+
+void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  if (r_promo_data.is_error()) {
+    LOG(ERROR) << "Receive error for getPromoData: " << r_promo_data.error();
+    return schedule_get_promo_data(60);
+  }
+
+  auto promo_data_ptr = r_promo_data.move_as_ok();
+  CHECK(promo_data_ptr != nullptr);
+  LOG(DEBUG) << "Receive " << to_string(promo_data_ptr);
+  int32 expires = 0;
+  switch (promo_data_ptr->get_id()) {
+    case telegram_api::help_promoDataEmpty::ID: {
+      auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
+      expires = promo->expires_;
+      messages_manager_->remove_sponsored_dialog();
+      break;
+    }
+    case telegram_api::help_promoData::ID: {
+      auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
+      expires = promo->expires_;
+      bool is_proxy = (promo->flags_ & telegram_api::help_promoData::PROXY_MASK) != 0;
+      messages_manager_->on_get_sponsored_dialog(
+          std::move(promo->peer_),
+          is_proxy ? DialogSource::mtproto_proxy()
+                   : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_),
+          std::move(promo->users_), std::move(promo->chats_));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (expires != 0) {
+    expires -= G()->unix_time();
+  }
+  schedule_get_promo_data(expires);
+}
+
+void Td::schedule_get_promo_data(int32 expires_in) {
+  if (expires_in < 0) {
+    LOG(ERROR) << "Receive wrong expires_in: " << expires_in;
+    expires_in = 0;
+  }
+  if (expires_in != 0 && expires_in < 60) {
+    expires_in = 60;
+  }
+  if (expires_in > 86400) {
+    expires_in = 86400;
+  }
+  if (!close_flag_ && !auth_manager_->is_bot()) {
+    alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
   }
 }
 
@@ -3802,6 +3896,7 @@ void Td::clear() {
   }
   alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
   alarm_timeout_.cancel_timeout(TERMS_OF_SERVICE_ALARM_ID);
+  alarm_timeout_.cancel_timeout(PROMO_DATA_ALARM_ID);
   LOG(DEBUG) << "Requests was answered " << timer;
 
   // close all pure actors
@@ -4084,6 +4179,7 @@ Status Td::init(DbKey key) {
   } else {
     updates_manager_->get_difference("init");
     schedule_get_terms_of_service(0);
+    schedule_get_promo_data(0);
   }
 
   complete_pending_preauthentication_requests([](int32 id) { return true; });
