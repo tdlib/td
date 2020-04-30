@@ -207,9 +207,13 @@ class StopPollActor : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
-    auto sequence_id = -1;
-    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_id);
+    if (td->auth_manager_->is_bot()) {
+      send_query(std::move(query));
+    } else {
+      auto sequence_id = -1;
+      send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+                   std::move(query), actor_shared(this), sequence_id);
+    }
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
