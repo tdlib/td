@@ -19343,8 +19343,13 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
     send_update_chat_last_message(d, "send_bot_start_message");
   }
 
-  save_send_bot_start_message_logevent(bot_user_id, dialog_id, parameter, m);
-  do_send_bot_start_message(bot_user_id, dialog_id, parameter, m);
+  if (parameter.empty() && is_chat_with_bot) {
+    save_send_message_logevent(dialog_id, m);
+    do_send_message(dialog_id, m);
+  } else {
+    save_send_bot_start_message_logevent(bot_user_id, dialog_id, parameter, m);
+    do_send_bot_start_message(bot_user_id, dialog_id, parameter, m);
+  }
   return m->message_id;
 }
 
