@@ -9974,7 +9974,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       telegram_api::channelForbidden update(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
                                             c->access_hash, c->title, 0);
       on_chat_update(update, "CHANNEL_PRIVATE");
-    } else {
+    } else if (!c->status.is_banned()) {
       if (!c->username.empty()) {
         LOG(INFO) << "Drop username of " << channel_id;
         on_update_channel_username(c, channel_id, "");
@@ -13135,12 +13135,10 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
   int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
-  on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, but update it anyway
+  // on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
-  bool has_linked_channel = false;
-  bool has_location = false;
   bool sign_messages = false;
   bool is_slow_mode_enabled = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -13163,12 +13161,11 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_changed = true;
   }
 
-  if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+  if (c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->is_verified != is_verified || !c->restriction_reasons.empty() ||
       c->is_scam != is_scam) {
-    c->has_linked_channel = has_linked_channel;
-    c->has_location = has_location;
+    // c->has_linked_channel = has_linked_channel;
+    // c->has_location = has_location;
     c->sign_messages = sign_messages;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
