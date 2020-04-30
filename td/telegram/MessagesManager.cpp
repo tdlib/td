@@ -1638,6 +1638,33 @@ class GetRecentLocationsQuery : public Td::ResultHandler {
   }
 };
 
+class HidePromoDataQuery : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::help_hidePromoData(std::move(input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_hidePromoData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    // we are not interested in the result
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "HidePromoDataQuery")) {
+      LOG(ERROR) << "Receive error for sponsored chat hiding: " << status;
+    }
+  }
+};
+
 class DeleteHistoryQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -8826,6 +8853,23 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
 
+  if (is_dialog_sponsored(d)) {
+    auto chat_source = sponsored_dialog_source_.get_chat_source_object();
+    if (chat_source == nullptr || chat_source->get_id() != td_api::chatSourcePublicServiceAnnouncement::ID) {
+      return promise.set_error(Status::Error(3, "Can't delete the chat"));
+    }
+    if (!remove_from_dialog_list) {
+      return promise.set_error(
+          Status::Error(3, "Can't delete only chat history without removing the chat from the chat list"));
+    }
+
+    removed_sponsored_dialog_id_ = dialog_id;
+    remove_sponsored_dialog();
+
+    td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
+    return;
+  }
+
   auto dialog_type = dialog_id.get_type();
   switch (dialog_type) {
     case DialogType::User:
@@ -15493,9 +15537,21 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
 
+  auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
+
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = false;
-  if (!td_->auth_manager_->is_bot()) {
+  if (chat_source != nullptr) {
+    switch (chat_source->get_id()) {
+      case td_api::chatSourcePublicServiceAnnouncement::ID:
+        // can delete for self (but only while removing from dialog list)
+        can_delete_for_self = true;
+        break;
+      default:
+        // can't delete
+        break;
+    }
+  } else if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
     switch (d->dialog_id.get_type()) {
       case DialogType::User:
         can_delete_for_self = true;
@@ -15542,11 +15598,11 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_dialog_order_object(d),
-      is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr,
-      d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread, get_dialog_has_scheduled_messages(d),
-      can_delete_for_self, can_delete_for_all_users, can_report_dialog(d->dialog_id),
-      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
-      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      std::move(chat_source), d->pinned_order != DEFAULT_ORDER, d->is_marked_as_unread,
+      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
+      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
+      d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
       d->pinned_message_id.get(), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
@@ -30650,6 +30706,9 @@ void MessagesManager::save_sponsored_dialog() {
 
 void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource source) {
   if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (dialog_id == removed_sponsored_dialog_id_) {
     return;
   }
 
