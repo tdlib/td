@@ -6387,7 +6387,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
   if (c == nullptr) {
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
-  if (!c->status.is_member()) {
+  if (!c->status.is_member() && !c->status.is_creator()) {
     if (user_id == get_my_id()) {
       if (status.is_member()) {
         return promise.set_error(Status::Error(3, "Can't unrestrict self"));
