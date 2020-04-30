@@ -6823,6 +6823,14 @@ void ContactsManager::on_update_online_status_privacy() {
   td_->create_handler<GetContactsStatusesQuery>()->send();
 }
 
+void ContactsManager::on_update_phone_number_privacy() {
+  // all UserFull.need_phone_number_privacy_exception can be outdated now,
+  // so mark all of them as expired
+  for (auto &it : users_full_) {
+    it.second->expires_at = 0.0;
+  }
+}
+
 UserId ContactsManager::get_user_id(const tl_object_ptr<telegram_api::User> &user) {
   CHECK(user != nullptr);
   switch (user->get_id()) {

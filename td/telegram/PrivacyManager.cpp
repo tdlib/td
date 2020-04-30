@@ -519,23 +519,34 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
   info.is_synchronized = true;
 
   if (!(info.rules == privacy_rules)) {
-    if ((from_update || was_synchronized) && user_privacy_setting.type() == UserPrivacySetting::Type::UserStatus &&
-        !G()->close_flag()) {
-      send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
+    if ((from_update || was_synchronized) && !G()->close_flag()) {
+      switch (user_privacy_setting.type()) {
+        case UserPrivacySetting::Type::UserStatus: {
+          send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
 
-      auto old_restricted = info.rules.get_restricted_user_ids();
-      auto new_restricted = privacy_rules.get_restricted_user_ids();
-      if (old_restricted != new_restricted) {
-        // if a user was unrestricted, it is not received from the server anymore
-        // we need to reget their online status manually
-        std::vector<int32> unrestricted;
-        std::set_difference(old_restricted.begin(), old_restricted.end(), new_restricted.begin(), new_restricted.end(),
-                            std::back_inserter(unrestricted));
-        for (auto &user_id : unrestricted) {
-          send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, UserId(user_id), Promise<Unit>());
+          auto old_restricted = info.rules.get_restricted_user_ids();
+          auto new_restricted = privacy_rules.get_restricted_user_ids();
+          if (old_restricted != new_restricted) {
+            // if a user was unrestricted, it is not received from the server anymore
+            // we need to reget their online status manually
+            std::vector<int32> unrestricted;
+            std::set_difference(old_restricted.begin(), old_restricted.end(), new_restricted.begin(),
+                                new_restricted.end(), std::back_inserter(unrestricted));
+            for (auto &user_id : unrestricted) {
+              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, UserId(user_id),
+                                 Promise<Unit>());
+            }
+          }
+          break;
         }
+        case UserPrivacySetting::Type::UserPhoneNumber:
+          send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_phone_number_privacy);
+          break;
+        default:
+          break;
       }
     }
+
     info.rules = std::move(privacy_rules);
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.as_td_api(),
