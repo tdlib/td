@@ -1039,6 +1039,9 @@ class CliClient final : public Actor {
     if (filter == "um" || filter == "umention") {
       return td_api::make_object<td_api::searchMessagesFilterUnreadMention>();
     }
+    if (filter == "f" || filter == "failed") {
+      return td_api::make_object<td_api::searchMessagesFilterFailedToSend>();
+    }
     if (!filter.empty()) {
       LOG(ERROR) << "Unsupported message filter " << filter;
     }

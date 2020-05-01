@@ -4978,7 +4978,7 @@ void MessagesManager::invalidate_message_indexes(Dialog *d) {
   CHECK(d != nullptr);
   bool is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
   for (size_t i = 0; i < d->message_count_by_index.size(); i++) {
-    if (is_secret) {
+    if (is_secret || i == static_cast<size_t>(search_messages_filter_index(SearchMessagesFilter::FailedToSend))) {
       // always know all messages
       d->first_database_message_id_by_index[i] = MessageId::min();
       // keep the count
@@ -5009,7 +5009,8 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
     if (((index_mask >> i) & 1) != 0 && message_count != -1) {
       message_count += diff;
       if (message_count < 0) {
-        if (d->dialog_id.get_type() == DialogType::SecretChat) {
+        if (d->dialog_id.get_type() == DialogType::SecretChat ||
+            i == search_messages_filter_index(SearchMessagesFilter::FailedToSend)) {
           message_count = 0;
         } else {
           message_count = -1;
@@ -5039,8 +5040,11 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
 
 int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  if (m->message_id.is_scheduled() || m->message_id.is_yet_unsent() || m->is_failed_to_send) {
+  if (m->message_id.is_scheduled() || m->message_id.is_yet_unsent()) {
     return 0;
+  }
+  if (m->is_failed_to_send) {
+    return search_messages_filter_index_mask(SearchMessagesFilter::FailedToSend);
   }
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   if (!m->message_id.is_server() && !is_secret) {
@@ -16304,6 +16308,15 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
 
+  auto filter_type = get_search_messages_filter(filter);
+  if (filter_type == SearchMessagesFilter::FailedToSend && sender_user_id.is_valid()) {
+    if (sender_user_id != td_->contacts_manager_->get_my_id()) {
+      promise.set_value(Unit());
+      return result;
+    }
+    sender_user_id = UserId();
+  }
+
   auto input_user = td_->contacts_manager_->get_input_user(sender_user_id);
   if (sender_user_id.is_valid() && input_user == nullptr) {
     promise.set_error(Status::Error(6, "Wrong sender user identifier specified"));
@@ -16315,7 +16328,6 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
   found_dialog_messages_[random_id];  // reserve place for result
 
-  auto filter_type = get_search_messages_filter(filter);
   if (filter_type == SearchMessagesFilter::UnreadMention) {
     if (!query.empty()) {
       promise.set_error(Status::Error(6, "Non-empty query is unsupported with the specified filter"));
@@ -16358,6 +16370,10 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       G()->td_db()->get_messages_db_async()->get_messages(db_query, std::move(new_promise));
       return result;
     }
+  }
+  if (filter_type == SearchMessagesFilter::FailedToSend) {
+    promise.set_value(Unit());
+    return result;
   }
 
   LOG(DEBUG) << "Search messages on server in " << dialog_id << " with query \"" << query << "\" from user "
@@ -16850,7 +16866,8 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
                                                           Promise<> promise) {
   if (r_messages.is_error()) {
     LOG(ERROR) << r_messages.error();
-    if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
+    if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
+        filter_type != SearchMessagesFilter::FailedToSend) {
       found_dialog_messages_.erase(random_id);
     }
     return promise.set_value(Unit());
@@ -17268,7 +17285,8 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
       message_count = d->unread_mention_count;
     }
   }
-  if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat) {
+  if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
+      filter_type == SearchMessagesFilter::FailedToSend) {
     promise.set_value(Unit());
     return message_count;
   }
@@ -23713,6 +23731,10 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
                                      "fail_send_message");
   LOG_CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                           << debug_add_message_to_dialog_fail_reason_;
+  if (!m->message_id.is_scheduled()) {
+    // add_message_to_dialog will not update counts, because need_update == false
+    update_message_count_by_index(d, +1, m);
+  }
 
   LOG(INFO) << "Send updateMessageSendFailed for " << full_message_id;
   if (!td_->auth_manager_->is_bot()) {
@@ -24890,6 +24912,8 @@ tl_object_ptr<telegram_api::MessagesFilter> MessagesManager::get_input_messages_
       return make_tl_object<telegram_api::inputMessagesFilterRoundVoice>();
     case SearchMessagesFilter::Mention:
       return make_tl_object<telegram_api::inputMessagesFilterMyMentions>();
+    case SearchMessagesFilter::UnreadMention:
+    case SearchMessagesFilter::FailedToSend:
     default:
       UNREACHABLE();
       return nullptr;
@@ -24934,6 +24958,8 @@ SearchMessagesFilter MessagesManager::get_search_messages_filter(
       return SearchMessagesFilter::Mention;
     case td_api::searchMessagesFilterUnreadMention::ID:
       return SearchMessagesFilter::UnreadMention;
+    case td_api::searchMessagesFilterFailedToSend::ID:
+      return SearchMessagesFilter::FailedToSend;
     default:
       UNREACHABLE();
       return SearchMessagesFilter::Empty;
@@ -28765,7 +28791,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database";
   auto d = make_unique<Dialog>();
   d->dialog_id = dialog_id;
-  invalidate_message_indexes(d.get());  // must initialize indexes, which will not be parsed
+  invalidate_message_indexes(d.get());  // must initialize indexes, because some of them could be not parsed
 
   loaded_dialogs_.insert(dialog_id);
 

@@ -44,6 +44,7 @@ enum class SearchMessagesFilter : int32 {
   VoiceAndVideoNote,
   Mention,
   UnreadMention,
+  FailedToSend,
   Size
 };
 

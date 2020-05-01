@@ -1673,6 +1673,9 @@ searchMessagesFilterMention = SearchMessagesFilter;
 //@description Returns only messages with unread mentions of the current user, or messages that are replies to their messages. When using this filter the results can't be additionally filtered by a query or by the sending user
 searchMessagesFilterUnreadMention = SearchMessagesFilter;
 
+//@description Returns only failed to send messages. This filter can be used only if the message database is used
+searchMessagesFilterFailedToSend = SearchMessagesFilter;
+
 
 //@class ChatAction @description Describes the different types of activity in a chat
 
