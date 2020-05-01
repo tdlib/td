@@ -1568,7 +1568,9 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
     }
   }
   if (sticker == nullptr) {
-    LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
+    if (document->mime_type_ != "application/x-bad-tgsticker") {
+      LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
+    }
     return {};
   }
 
