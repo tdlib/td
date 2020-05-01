@@ -1035,7 +1035,7 @@ class MessagesManager : public Actor {
 
     std::array<MessageId, search_messages_filter_size()> first_database_message_id_by_index;
     // use struct Count?
-    std::array<int32, search_messages_filter_size()> message_count_by_index;
+    std::array<int32, search_messages_filter_size()> message_count_by_index{0};
 
     int32 server_unread_count = 0;
     int32 local_unread_count = 0;
@@ -1780,6 +1780,8 @@ class MessagesManager : public Actor {
   void load_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
 
   void preload_dialog_list(FolderId folderId);
+
+  static void invalidate_message_indexes(Dialog *d);
 
   void update_message_count_by_index(Dialog *d, int diff, const Message *m);
 

@@ -4974,6 +4974,22 @@ void MessagesManager::try_reuse_notification_group(NotificationGroupInfo &group_
   group_info.max_removed_message_id = MessageId();
 }
 
+void MessagesManager::invalidate_message_indexes(Dialog *d) {
+  CHECK(d != nullptr);
+  bool is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
+  for (size_t i = 0; i < d->message_count_by_index.size(); i++) {
+    if (is_secret) {
+      // always know all messages
+      d->first_database_message_id_by_index[i] = MessageId::min();
+      // keep the count
+    } else {
+      // some messages are unknown; drop first_database_message_id and count
+      d->first_database_message_id_by_index[i] = MessageId();
+      d->message_count_by_index[i] = -1;
+    }
+  }
+}
+
 void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const Message *m) {
   auto index_mask = get_message_index_mask(d->dialog_id, m);
   index_mask &= ~search_messages_filter_index_mask(
@@ -11716,9 +11732,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
     if (d->dialog_id.get_type() != DialogType::SecretChat) {
       d->have_full_history = false;
     }
-    for (auto &first_message_id : d->first_database_message_id_by_index) {
-      first_message_id = last_new_message_id;
-    }
+    invalidate_message_indexes(d);
 
     vector<MessageId> to_delete_message_ids;
     find_new_messages(d->messages.get(), last_new_message_id, to_delete_message_ids);
@@ -26534,10 +26548,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
     set_dialog_last_database_message_id(d, MessageId(), source);
     d->have_full_history = false;
-    for (auto &first_message_id : d->first_database_message_id_by_index) {
-      first_message_id = MessageId();
-    }
-    std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
+    invalidate_message_indexes(d);
     d->local_unread_count = 0;  // read all local messages. They will not be reachable anymore
 
     on_dialog_updated(dialog_id, "add gap to dialog");
@@ -27877,8 +27888,8 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
   }
 
   auto d = make_unique<Dialog>();
-  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
   d->dialog_id = dialog_id;
+  invalidate_message_indexes(d.get());
 
   return add_new_dialog(std::move(d), false);
 }
@@ -27915,14 +27926,6 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       if (!d->last_new_message_id.is_valid()) {
         LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog";
         d->last_new_message_id = MessageId::min();
-      }
-      for (auto &first_message_id : d->first_database_message_id_by_index) {
-        first_message_id = MessageId::min();
-      }
-      for (auto &message_count : d->message_count_by_index) {
-        if (message_count == -1) {
-          message_count = 0;
-        }
       }
 
       if (!d->notification_settings.is_secret_chat_show_preview_fixed &&
@@ -28761,7 +28764,8 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
 unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value) {
   LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database";
   auto d = make_unique<Dialog>();
-  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
+  d->dialog_id = dialog_id;
+  invalidate_message_indexes(d.get());  // must initialize indexes, which will not be parsed
 
   loaded_dialogs_.insert(dialog_id);
 
@@ -28776,8 +28780,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
 
     // just clean all known data about the dialog
     d = make_unique<Dialog>();
-    std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
     d->dialog_id = dialog_id;
+    invalidate_message_indexes(d.get());
 
     // and try to reget it from the server if possible
     have_dialog_info_force(dialog_id);
@@ -29145,11 +29149,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
     d->have_full_history = false;
-    for (auto &first_message_id : d->first_database_message_id_by_index) {
-      first_message_id = MessageId();
-    }
   }
-  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
+  invalidate_message_indexes(d);
 
   on_dialog_updated(dialog_id, "on_get_channel_dialog 10");
 
