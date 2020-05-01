@@ -1057,7 +1057,7 @@ class ContactsManager : public Actor {
 
   const ChannelFull *get_channel_full(ChannelId channel_id) const;
   ChannelFull *get_channel_full(ChannelId channel_id, const char *source);
-  ChannelFull *get_channel_full_force(ChannelId channel_id);
+  ChannelFull *get_channel_full_force(ChannelId channel_id, const char *source);
 
   ChannelFull *add_channel_full(ChannelId channel_id);
 

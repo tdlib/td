@@ -5739,7 +5739,7 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "get_channel_statistics_dc_id");
   if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact()) {
     auto input_channel = get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
@@ -8309,12 +8309,12 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   update_channel_full(channel_full, channel_id, true);
 }
 
-ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId channel_id) {
+ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId channel_id, const char *source) {
   if (!have_channel_force(channel_id)) {
     return nullptr;
   }
 
-  ChannelFull *channel_full = get_channel_full(channel_id, "get_channel_full_force");
+  ChannelFull *channel_full = get_channel_full(channel_id, source);
   if (channel_full != nullptr) {
     return channel_full;
   }
@@ -8325,10 +8325,10 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load full " << channel_id << " from database";
+  LOG(INFO) << "Trying to load full " << channel_id << " from database from " << source;
   on_load_channel_full_from_database(
       channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)));
-  return get_channel_full(channel_id, "get_channel_full_force");
+  return get_channel_full(channel_id, source);
 }
 
 void ContactsManager::for_each_secret_chat_with_user(UserId user_id, std::function<void(SecretChatId)> f) {
@@ -10090,7 +10090,7 @@ void ContactsManager::on_get_channel_participants_success(
   }
 
   if (participant_count != -1 || administrator_count != -1) {
-    auto channel_full = get_channel_full_force(channel_id);
+    auto channel_full = get_channel_full_force(channel_id, "on_get_channel_participants_success");
     if (channel_full != nullptr) {
       if (participant_count != -1 && channel_full->participant_count != participant_count) {
         channel_full->participant_count = participant_count;
@@ -10141,7 +10141,7 @@ bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
 void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                                            UserId inviter_user_id, int32 date, bool by_me) {
   auto it = cached_channel_participants_.find(channel_id);
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
   bool is_participants_cache_changed = false;
 
   int32 new_participant_count = 0;
@@ -10203,7 +10203,7 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
   }
 
   if (is_user_bot(deleted_user_id)) {
-    auto channel_full = get_channel_full_force(channel_id);
+    auto channel_full = get_channel_full_force(channel_id, "speculative_delete_channel_participant");
     if (channel_full != nullptr && td::remove(channel_full->bot_user_ids, deleted_user_id)) {
       channel_full->need_save_to_database = true;
       update_channel_full(channel_full, channel_id);
@@ -10227,7 +10227,7 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
     update_channel(c, channel_id);
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
   if (channel_full == nullptr) {
     return;
   }
@@ -10309,7 +10309,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     }
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_user");
   if (channel_full == nullptr) {
     return;
   }
@@ -10346,7 +10346,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   // drop channel full cache
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "invalidate_channel_full");
   if (channel_full != nullptr) {
     channel_full->expires_at = 0.0;
     if (drop_invite_link) {
@@ -10400,7 +10400,7 @@ void ContactsManager::on_get_channel_invite_link(ChannelId channel_id,
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_get_channel_invite_link");
   if (channel_full == nullptr) {
     update_invite_link(channel_invite_links_[channel_id], std::move(invite_link_ptr));
     return;
@@ -10463,7 +10463,8 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
         update_channel(linked_channel, channel_full->linked_channel_id);
         reload_channel(channel_full->linked_channel_id, Auto());
       }
-      auto linked_channel_full = get_channel_full_force(channel_full->linked_channel_id);
+      auto linked_channel_full =
+          get_channel_full_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 1");
       if (linked_channel_full != nullptr && linked_channel_full->linked_channel_id == channel_id) {
         linked_channel_full->linked_channel_id = ChannelId();
         linked_channel_full->is_changed = true;
@@ -10483,7 +10484,8 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
         update_channel(linked_channel, channel_full->linked_channel_id);
         reload_channel(channel_full->linked_channel_id, Auto());
       }
-      auto linked_channel_full = get_channel_full_force(channel_full->linked_channel_id);
+      auto linked_channel_full =
+          get_channel_full_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 2");
       if (linked_channel_full != nullptr && linked_channel_full->linked_channel_id != channel_id) {
         linked_channel_full->linked_channel_id = channel_id;
         linked_channel_full->is_changed = true;
@@ -11304,7 +11306,7 @@ void ContactsManager::on_update_channel_description(ChannelId channel_id, string
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_description");
   if (channel_full == nullptr) {
     return;
   }
@@ -11321,7 +11323,7 @@ void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, Sticke
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_sticker_set");
   if (channel_full == nullptr) {
     return;
   }
@@ -11334,14 +11336,14 @@ void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, Sticke
 
 void ContactsManager::on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id) {
   if (channel_id.is_valid()) {
-    auto channel_full = get_channel_full_force(channel_id);
+    auto channel_full = get_channel_full_force(channel_id, "on_update_channel_linked_channel_id 1");
     on_update_channel_full_linked_channel_id(channel_full, channel_id, group_channel_id);
     if (channel_full != nullptr) {
       update_channel_full(channel_full, channel_id);
     }
   }
   if (group_channel_id.is_valid()) {
-    auto channel_full = get_channel_full_force(group_channel_id);
+    auto channel_full = get_channel_full_force(group_channel_id, "on_update_channel_linked_channel_id 2");
     on_update_channel_full_linked_channel_id(channel_full, group_channel_id, channel_id);
     if (channel_full != nullptr) {
       update_channel_full(channel_full, group_channel_id);
@@ -11350,7 +11352,7 @@ void ContactsManager::on_update_channel_linked_channel_id(ChannelId channel_id, 
 }
 
 void ContactsManager::on_update_channel_location(ChannelId channel_id, const DialogLocation &location) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_location");
   if (channel_full != nullptr) {
     on_update_channel_full_location(channel_full, channel_id, location);
     update_channel_full(channel_full, channel_id);
@@ -11358,7 +11360,7 @@ void ContactsManager::on_update_channel_location(ChannelId channel_id, const Dia
 }
 
 void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_slow_mode_delay");
   if (channel_full != nullptr) {
     on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, 0);
     update_channel_full(channel_full, channel_id);
@@ -11366,7 +11368,7 @@ void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, in
 }
 
 void ContactsManager::on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_slow_mode_next_send_date");
   if (channel_full != nullptr) {
     on_update_channel_full_slow_mode_next_send_date(channel_full, slow_mode_next_send_date);
     update_channel_full(channel_full, channel_id);
@@ -11380,7 +11382,7 @@ void ContactsManager::on_update_channel_bot_user_ids(ChannelId channel_id, vecto
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_bot_user_ids");
   if (channel_full == nullptr) {
     td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(bot_user_ids));
     return;
@@ -11405,7 +11407,7 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_is_all_history_available");
   if (channel_full == nullptr) {
     return;
   }
@@ -12163,7 +12165,7 @@ FileSourceId ContactsManager::get_channel_photo_file_source_id(ChannelId channel
 }
 
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, ":get_channel_slow_mode_delay");
   if (channel_full == nullptr) {
     return 0;
   }
@@ -12288,7 +12290,7 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
 }
 
 bool ContactsManager::get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "get_channel_full");
   if (channel_full == nullptr) {
     auto input_channel = get_input_channel(channel_id);
     if (input_channel == nullptr) {
@@ -12637,7 +12639,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
     return result;
   }
 
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "get_channel_participants");
   if (channel_full == nullptr || (!force && channel_full->is_expired())) {
     if (force) {
       LOG(ERROR) << "Can't find cached ChannelFull";
@@ -12763,7 +12765,7 @@ void ContactsManager::on_load_administrator_users_finished(DialogId dialog_id,
 }
 
 void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count) {
-  auto channel_full = get_channel_full_force(channel_id);
+  auto channel_full = get_channel_full_force(channel_id, "on_update_channel_administrator_count");
   if (channel_full != nullptr && channel_full->administrator_count != administrator_count) {
     channel_full->administrator_count = administrator_count;
     channel_full->is_changed = true;
