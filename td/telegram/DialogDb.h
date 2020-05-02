@@ -13,6 +13,8 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/db/KeyValueSyncInterface.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
@@ -94,7 +96,8 @@ class DialogDbAsyncInterface {
   virtual void close(Promise<> promise) = 0;
 };
 
-Status init_dialog_db(SqliteDb &db, int version, bool &was_created) TD_WARN_UNUSED_RESULT;
+Status init_dialog_db(SqliteDb &db, int version, KeyValueSyncInterface &binlog_pmc,
+                      bool &was_created) TD_WARN_UNUSED_RESULT;
 Status drop_dialog_db(SqliteDb &db, int version) TD_WARN_UNUSED_RESULT;
 
 std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(

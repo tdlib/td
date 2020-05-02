@@ -317,7 +317,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   // init DialogDb
   bool dialog_db_was_created = false;
   if (use_dialog_db) {
-    TRY_STATUS(init_dialog_db(db, user_version, dialog_db_was_created));
+    TRY_STATUS(init_dialog_db(db, user_version, binlog_pmc, dialog_db_was_created));
   } else {
     TRY_STATUS(drop_dialog_db(db, user_version));
   }
@@ -344,6 +344,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   }
 
   if (dialog_db_was_created) {
+    binlog_pmc.erase_by_prefix("pinned_dialog_ids");
     binlog_pmc.erase_by_prefix("last_server_dialog_date");
     binlog_pmc.erase_by_prefix("unread_message_count");
     binlog_pmc.erase_by_prefix("unread_dialog_count");

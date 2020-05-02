@@ -6,6 +6,8 @@
 //
 #include "td/telegram/DialogDb.h"
 
+#include "td/telegram/Global.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/Version.h"
 
 #include "td/actor/actor.h"
@@ -23,7 +25,7 @@
 
 namespace td {
 // NB: must happen inside a transaction
-Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
+Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog_pmc, bool &was_created) {
   LOG(INFO) << "Init dialog database " << tag("version", version);
   was_created = false;
 
@@ -76,6 +78,24 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN folder_id INT4"));
     TRY_STATUS(add_dialogs_in_folder_index());
     TRY_STATUS(db.exec("UPDATE dialogs SET folder_id = 0 WHERE dialog_id < -1500000000000 AND dialog_order > 0"));
+  }
+  if (version < static_cast<int32>(DbVersion::StorePinnedDialogsInBinlog)) {
+    // 9221294780217032704 == get_dialog_order(MessageId(), MIN_PINNED_DIALOG_DATE - 1)
+    TRY_RESULT(get_pinned_dialogs_stmt,
+               db.get_statement("SELECT dialog_id FROM dialogs WHERE folder_id == ?1 AND dialog_order > "
+                                "9221294780217032704 ORDER BY dialog_order DESC, dialog_id DESC"));
+    for (auto folder_id = 0; folder_id < 2; folder_id++) {
+      vector<string> pinned_dialog_ids;
+      TRY_STATUS(get_pinned_dialogs_stmt.bind_int32(1, folder_id));
+      TRY_STATUS(get_pinned_dialogs_stmt.step());
+      while (get_pinned_dialogs_stmt.has_row()) {
+        pinned_dialog_ids.push_back(PSTRING() << get_pinned_dialogs_stmt.view_int64(0));
+        TRY_STATUS(get_pinned_dialogs_stmt.step());
+      }
+      get_pinned_dialogs_stmt.reset();
+
+      binlog_pmc.set(PSTRING() << "pinned_dialog_ids" << folder_id, implode(pinned_dialog_ids, ','));
+    }
   }
 
   return Status::OK();

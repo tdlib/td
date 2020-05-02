@@ -1065,7 +1065,6 @@ class MessagesManager : public Actor {
     int32 last_clear_history_date = 0;
     MessageId last_clear_history_message_id;
     int64 order = DEFAULT_ORDER;
-    int64 pinned_order = DEFAULT_ORDER;
     int32 delete_last_message_date = 0;
     MessageId deleted_last_message_id;
     int32 pending_last_message_date = 0;
@@ -1229,6 +1228,8 @@ class MessagesManager : public Actor {
     int32 in_memory_dialog_total_count_ = 0;
     int32 server_dialog_total_count_ = -1;
     int32 secret_chat_total_count_ = -1;
+
+    std::vector<DialogDate> pinned_dialogs_;
 
     // date of the last dialog in loaded the dialog list prefix
     DialogDate last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
@@ -1491,6 +1492,10 @@ class MessagesManager : public Actor {
   bool is_dialog_pinned_message_notifications_disabled(const Dialog *d) const;
 
   bool is_dialog_mention_notifications_disabled(const Dialog *d) const;
+
+  int64 get_dialog_pinned_order(FolderId folder_id, DialogId dialog_id) const;
+
+  int64 get_dialog_pinned_order(const DialogList *list, DialogId dialog_id) const;
 
   void open_dialog(Dialog *d);
 
@@ -1765,6 +1770,8 @@ class MessagesManager : public Actor {
 
   void fail_edit_message_media(FullMessageId full_message_id, Status &&error);
 
+  void on_pinned_dialogs_updated(FolderId folder_id);
+
   void on_dialog_updated(DialogId dialog_id, const char *source);
 
   BufferSlice get_dialog_database_value(const Dialog *d);
@@ -2000,7 +2007,7 @@ class MessagesManager : public Actor {
 
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
 
-  void set_dialog_is_pinned(Dialog *d, bool is_pinned);
+  bool set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool is_pinned);
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
