@@ -2693,7 +2693,7 @@ class MessagesManager : public Actor {
   std::unordered_set<FolderId, FolderIdHash> postponed_unread_message_count_updates_;
   std::unordered_set<FolderId, FolderIdHash> postponed_unread_chat_count_updates_;
 
-  int64 current_pinned_dialog_order_ = DEFAULT_ORDER;
+  int64 current_pinned_dialog_order_ = static_cast<int64>(MIN_PINNED_DIALOG_DATE) << 32;
 
   std::unordered_map<FolderId, DialogList, FolderIdHash> dialog_lists_;
 

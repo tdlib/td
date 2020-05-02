@@ -10623,6 +10623,7 @@ void MessagesManager::init() {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_dialog_count");
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
   }
+  G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
 
   if (G()->parameters().use_message_db) {
     ttl_db_loop_start(G()->server_time());
@@ -28637,19 +28638,7 @@ int64 MessagesManager::get_dialog_order_object(const Dialog *d) const {
 }
 
 int64 MessagesManager::get_next_pinned_dialog_order() {
-  if (current_pinned_dialog_order_ == DEFAULT_ORDER) {
-    string res_str = G()->td_db()->get_binlog_pmc()->get("dialog_pinned_current_order");
-    if (res_str.empty()) {
-      current_pinned_dialog_order_ = static_cast<int64>(MIN_PINNED_DIALOG_DATE) << 32;
-    } else {
-      current_pinned_dialog_order_ = to_integer<int64>(res_str);
-    }
-  }
-  CHECK(current_pinned_dialog_order_ != DEFAULT_ORDER);
-
-  current_pinned_dialog_order_++;
-  G()->td_db()->get_binlog_pmc()->set("dialog_pinned_current_order", to_string(current_pinned_dialog_order_));
-  LOG(INFO) << "Assign pinned_order = " << current_pinned_dialog_order_;
+  LOG(INFO) << "Assign pinned_order = " << ++current_pinned_dialog_order_;
   return current_pinned_dialog_order_;
 }
 
