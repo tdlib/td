@@ -1247,6 +1247,47 @@ class MessagesManager : public Actor {
     int32 load_dialog_list_limit_max_ = 0;
   };
 
+  class DialogListViewIterator {
+    MessagesManager *messages_manager_;
+    FolderId *dialog_list_id_;
+
+   public:
+    DialogListViewIterator(MessagesManager *messages_manager, FolderId *dialog_list_id)
+        : messages_manager_(messages_manager), dialog_list_id_(dialog_list_id) {
+    }
+
+    DialogList &operator*() const {
+      return messages_manager_->get_dialog_list(*dialog_list_id_);
+    }
+
+    bool operator!=(const DialogListViewIterator &other) const {
+      return dialog_list_id_ != other.dialog_list_id_;
+    }
+
+    void operator++() {
+      dialog_list_id_++;
+    }
+  };
+
+  class DialogListView {
+    MessagesManager *messages_manager_;
+    // TODO can be optimized to store only mask of dialog lists
+    vector<FolderId> dialog_list_ids_;
+
+   public:
+    DialogListView(MessagesManager *messages_manager, vector<FolderId> dialog_list_ids)
+        : messages_manager_(messages_manager), dialog_list_ids_(std::move(dialog_list_ids)) {
+    }
+
+    DialogListViewIterator begin() {
+      return DialogListViewIterator(messages_manager_, &dialog_list_ids_[0]);
+    }
+
+    DialogListViewIterator end() {
+      return DialogListViewIterator(messages_manager_, &dialog_list_ids_[0] + dialog_list_ids_.size());
+    }
+  };
+
   class MessagesIteratorBase {
     vector<const Message *> stack_;
 
@@ -2124,6 +2165,8 @@ class MessagesManager : public Actor {
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
+
+  DialogListView get_dialog_lists(const Dialog *d);
 
   DialogList &get_dialog_list(FolderId folder_id);
   const DialogList *get_dialog_list(FolderId folder_id) const;

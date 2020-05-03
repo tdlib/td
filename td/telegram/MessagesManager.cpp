@@ -29093,6 +29093,12 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
   return add_new_dialog(parse_dialog(dialog_id, value), true);
 }
 
+MessagesManager::DialogListView MessagesManager::get_dialog_lists(const Dialog *d) {
+  vector<FolderId> dialog_list_ids;
+  dialog_list_ids.push_back(d->folder_id);
+  return DialogListView(this, std::move(dialog_list_ids));
+}
+
 MessagesManager::DialogList &MessagesManager::get_dialog_list(FolderId folder_id) {
   CHECK(!td_->auth_manager_->is_bot());
   if (folder_id != FolderId::archive()) {
