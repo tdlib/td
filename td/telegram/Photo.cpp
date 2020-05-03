@@ -591,7 +591,7 @@ void photo_delete_thumbnail(Photo &photo) {
   }
 }
 
-bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret) {
+bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot) {
   if (photo.photos.empty() || photo.photos.back().type != 'i') {
     LOG(ERROR) << "Wrong photo: " << photo;
     return false;
@@ -613,6 +613,9 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
   } else {
     if (file_view.is_encrypted()) {
       return false;
+    }
+    if (is_bot && file_view.has_remote_location()) {
+      return true;
     }
     return /* file_view.has_remote_location() || */ file_view.has_url();
   }

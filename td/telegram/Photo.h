@@ -120,7 +120,7 @@ tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManage
 
 void photo_delete_thumbnail(Photo &photo);
 
-bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret);
+bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot);
 
 SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
                                               tl_object_ptr<telegram_api::InputEncryptedFile> input_file,

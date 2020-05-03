@@ -8,6 +8,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
@@ -504,6 +505,9 @@ bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id,
   } else {
     if (file_view.is_encrypted()) {
       return false;
+    }
+    if (td_->auth_manager_->is_bot() && file_view.has_remote_location()) {
+      return true;
     }
     // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
     // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload

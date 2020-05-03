@@ -4039,7 +4039,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       photo.type = 'i';
       result->photo.photos.push_back(std::move(photo));
 
-      if (photo_has_input_media(td->file_manager_.get(), result->photo, to_secret)) {
+      if (photo_has_input_media(td->file_manager_.get(), result->photo, to_secret, td->auth_manager_->is_bot())) {
         return std::move(result);
       }
 
