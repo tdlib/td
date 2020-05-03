@@ -1229,6 +1229,7 @@ class MessagesManager : public Actor {
     int32 server_dialog_total_count_ = -1;
     int32 secret_chat_total_count_ = -1;
 
+    std::unordered_map<DialogId, int64, DialogIdHash> pinned_dialog_id_orders_;
     std::vector<DialogDate> pinned_dialogs_;
 
     // date of the last loaded dialog in the folder

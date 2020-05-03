@@ -10546,12 +10546,14 @@ void MessagesManager::init() {
         if (!r_dialog_ids.empty()) {
           for (auto &r_dialog_id : reversed(r_dialog_ids)) {
             auto dialog_id = r_dialog_id.move_as_ok();
-            list.pinned_dialogs_.emplace_back(get_next_pinned_dialog_order(), dialog_id);
+            auto order = get_next_pinned_dialog_order();
+            list.pinned_dialogs_.emplace_back(order, dialog_id);
+            list.pinned_dialog_id_orders_.emplace(dialog_id, order);
           }
           std::reverse(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end());
 
           // must not update last_server_dialog_date_, because the dialogs are not loaded yet
-          // last_dialog_date_ must not be updated before the dialogs are loaded
+          // last_dialog_date_ also must not be updated before the dialogs are loaded
           // list.last_server_dialog_date_ = list.pinned_dialogs_.back();
           // list.last_dialog_date_ = list.pinned_dialogs_.back();
         }
@@ -11970,11 +11972,10 @@ int64 MessagesManager::get_dialog_pinned_order(FolderId folder_id, DialogId dial
 }
 
 int64 MessagesManager::get_dialog_pinned_order(const DialogList *list, DialogId dialog_id) const {
-  if (list != nullptr) {
-    for (auto &pinned_dialog : list->pinned_dialogs_) {
-      if (pinned_dialog.get_dialog_id() == dialog_id) {
-        return pinned_dialog.get_order();
-      }
+  if (list != nullptr && !list->pinned_dialogs_.empty()) {
+    auto it = list->pinned_dialog_id_orders_.find(dialog_id);
+    if (it != list->pinned_dialog_id_orders_.end()) {
+      return it->second;
     }
   }
   return DEFAULT_ORDER;
@@ -12011,11 +12012,14 @@ bool MessagesManager::set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool i
         if (pos == 0) {
           return false;
         }
-        pinned_dialog = DialogDate(get_next_pinned_dialog_order(), d->dialog_id);
+        auto order = get_next_pinned_dialog_order();
+        pinned_dialog = DialogDate(order, d->dialog_id);
         std::rotate(list.pinned_dialogs_.begin(), list.pinned_dialogs_.begin() + pos,
                     list.pinned_dialogs_.begin() + pos + 1);
+        list.pinned_dialog_id_orders_[d->dialog_id] = order;
       } else {
         list.pinned_dialogs_.erase(list.pinned_dialogs_.begin() + pos);
+        list.pinned_dialog_id_orders_.erase(d->dialog_id);
       }
       was_pinned = true;
       break;
@@ -12025,7 +12029,9 @@ bool MessagesManager::set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool i
     if (!is_pinned) {
       return false;
     }
-    list.pinned_dialogs_.insert(list.pinned_dialogs_.begin(), {get_next_pinned_dialog_order(), d->dialog_id});
+    auto order = get_next_pinned_dialog_order();
+    list.pinned_dialogs_.insert(list.pinned_dialogs_.begin(), {order, d->dialog_id});
+    list.pinned_dialog_id_orders_.emplace(d->dialog_id, order);
   }
 
   LOG(INFO) << "Set " << d->dialog_id << " is pinned in " << folder_id << " to " << is_pinned;
@@ -28801,6 +28807,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
         break;
       }
     }
+    list.pinned_dialog_id_orders_.erase(d->dialog_id);
     on_pinned_dialogs_updated(d->folder_id);
     send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), false, 0));
     old_public_order = 0;
