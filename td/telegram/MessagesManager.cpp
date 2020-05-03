@@ -9849,7 +9849,7 @@ void MessagesManager::repair_secret_chat_total_count(FolderId folder_id) {
   } else {
     int32 total_count = 0;
     auto &list = get_dialog_list(folder_id);
-    for (const auto &dialog_date : list.ordered_server_dialogs_) {
+    for (const auto &dialog_date : list.ordered_dialogs_) {
       auto dialog_id = dialog_date.get_dialog_id();
       if (dialog_id.get_type() == DialogType::SecretChat && dialog_date.get_order() != DEFAULT_ORDER) {
         total_count++;
@@ -9898,7 +9898,7 @@ void MessagesManager::recalc_unread_count(FolderId folder_id) {
   int32 dialog_muted_marked_count = 0;
   int32 server_dialog_total_count = 0;
   int32 secret_chat_total_count = 0;
-  for (const auto &dialog_date : list.ordered_server_dialogs_) {
+  for (const auto &dialog_date : list.ordered_dialogs_) {
     auto dialog_id = dialog_date.get_dialog_id();
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
@@ -13386,8 +13386,8 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
     update_last_dialog_date(folder_id);
   }
 
-  auto it = list.ordered_server_dialogs_.upper_bound(offset);
-  auto end = list.ordered_server_dialogs_.end();
+  auto it = list.ordered_dialogs_.upper_bound(offset);
+  auto end = list.ordered_dialogs_.end();
   while (it != end && *it <= list.last_dialog_date_ && limit > 0) {
     auto dialog_id = it->get_dialog_id();
     if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
@@ -15859,7 +15859,7 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
   bool have_all_dialogs = true;
   bool have_main_list = false;
   bool have_archive_list = false;
-  for (auto &list : dialog_lists_) {
+  for (const auto &list : dialog_lists_) {
     if (list.second.last_dialog_date_ != MAX_DIALOG_DATE) {
       have_all_dialogs = false;
     }
@@ -15873,8 +15873,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
   if (have_all_dialogs || force) {
     vector<DialogDate> ordered_dialogs;
     auto my_dialog_id = get_my_dialog_id();
-    for (auto &list : dialog_lists_) {
-      for (const auto &it : list.second.ordered_server_dialogs_) {
+    for (const auto &list : dialog_lists_) {
+      for (const auto &it : list.second.ordered_dialogs_) {
         auto dialog_id = it.get_dialog_id();
         if (filter_scope && get_dialog_notification_setting_scope(dialog_id) != scope) {
           continue;
@@ -15910,7 +15910,7 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
 
   load_dialog_list(FolderId::main(), MAX_GET_DIALOGS, true, Auto());
   load_dialog_list(FolderId::archive(), MAX_GET_DIALOGS, true, Auto());
-  for (auto &list : dialog_lists_) {
+  for (const auto &list : dialog_lists_) {
     if (list.first != FolderId::main() && list.first != FolderId::archive()) {
       load_dialog_list(list.first, MAX_GET_DIALOGS, true, Auto());
     }
@@ -28754,7 +28754,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
       // first addition of a new left dialog
-      list.ordered_server_dialogs_.insert(new_date);
+      list.ordered_dialogs_.insert(new_date);
     }
     LOG(INFO) << "Chat order is not changed: " << new_order << " from " << source;
     return false;
@@ -28762,11 +28762,11 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   LOG(INFO) << "Update order of " << dialog_id << " from " << d->order << " to " << new_order << " from " << source;
 
   auto old_public_order = get_dialog_public_order(&list, d);
-  if (list.ordered_server_dialogs_.erase(old_date) == 0) {
+  if (list.ordered_dialogs_.erase(old_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
   }
 
-  list.ordered_server_dialogs_.insert(new_date);
+  list.ordered_dialogs_.insert(new_date);
 
   bool add_to_hints = (d->order == DEFAULT_ORDER);
   bool was_sponsored = is_dialog_sponsored(d);
@@ -28807,7 +28807,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   bool need_update_unread_chat_count = old_dialog_total_count != get_dialog_total_count(list);
-  CHECK(static_cast<size_t>(list.in_memory_dialog_total_count_) <= list.ordered_server_dialogs_.size());
+  CHECK(static_cast<size_t>(list.in_memory_dialog_total_count_) <= list.ordered_dialogs_.size());
 
   if (!is_loaded_from_database && had_unread_counter != has_unread_counter && !td_->auth_manager_->is_bot()) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
@@ -28920,7 +28920,7 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
 
   LOG(INFO) << "Update last dialog date in " << folder_id << " from " << old_last_dialog_date << " to "
             << list.last_dialog_date_;
-  LOG(INFO) << "Know about " << list.ordered_server_dialogs_.size() << " chats";
+  LOG(INFO) << "Know about " << list.ordered_dialogs_.size() << " chats";
 
   if (old_last_dialog_date != list.last_dialog_date_) {
     for (auto it = std::upper_bound(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end(), old_last_dialog_date);
@@ -28933,8 +28933,8 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
           make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), true, get_dialog_public_order(folder_id, d)));
     }
 
-    for (auto it = list.ordered_server_dialogs_.upper_bound(old_last_dialog_date);
-         it != list.ordered_server_dialogs_.end() && *it <= list.last_dialog_date_; ++it) {
+    for (auto it = list.ordered_dialogs_.upper_bound(old_last_dialog_date);
+         it != list.ordered_dialogs_.end() && *it <= list.last_dialog_date_; ++it) {
       auto dialog_id = it->get_dialog_id();
       auto d = get_dialog(dialog_id);
       CHECK(d != nullptr);
@@ -31053,7 +31053,7 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
 void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!td_->auth_manager_->is_bot()) {
     if (G()->parameters().use_message_db) {
-      for (auto &it : dialog_lists_) {
+      for (const auto &it : dialog_lists_) {
         auto &list = it.second;
         if (list.is_message_unread_count_inited_) {
           updates.push_back(get_update_unread_message_count_object(list));

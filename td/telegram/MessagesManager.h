@@ -1231,11 +1231,10 @@ class MessagesManager : public Actor {
 
     std::vector<DialogDate> pinned_dialogs_;
 
-    // date of the last dialog in loaded the dialog list prefix
+    // date of the last loaded dialog in the folder
     DialogDate last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
-    std::set<DialogDate> ordered_dialogs_;           // all dialogs with date <= last_dialog_date_
 
-    std::set<DialogDate> ordered_server_dialogs_;  // all known dialogs, including with default order
+    std::set<DialogDate> ordered_dialogs_;  // all known dialogs, including with default order
 
     // date of last known user/group/channel dialog in the right order
     DialogDate last_server_dialog_date_ = MIN_DIALOG_DATE;
@@ -1243,7 +1242,7 @@ class MessagesManager : public Actor {
     DialogDate last_database_server_dialog_date_ = MIN_DIALOG_DATE;
 
     MultiPromiseActor load_dialog_list_multipromise_{
-        "LoadDialogListMultiPromiseActor"};  // should be defined before pending_on_get_dialogs_
+        "LoadDialogListMultiPromiseActor"};  // must be defined before pending_on_get_dialogs_
     int32 load_dialog_list_limit_max_ = 0;
   };
 
