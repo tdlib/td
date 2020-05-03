@@ -30746,7 +30746,8 @@ void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource sour
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  if (dialog_id == removed_sponsored_dialog_id_) {
+  LOG(INFO) << "Change sponsored chat from " << sponsored_dialog_id_ << " to " << dialog_id;
+  if (removed_sponsored_dialog_id_.is_valid() && dialog_id == removed_sponsored_dialog_id_) {
     return;
   }
 
