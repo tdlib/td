@@ -7408,6 +7408,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
     case DialogType::Channel:
       if (input_file && thumbnail_file_id.is_valid()) {
         // TODO: download thumbnail if needed (like in secret chats)
+        CHECK(being_uploaded_thumbnails_.find(thumbnail_file_id) == being_uploaded_thumbnails_.end());
         being_uploaded_thumbnails_[thumbnail_file_id] = {full_message_id, file_id, std::move(input_file)};
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
         td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
@@ -7417,6 +7418,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
       break;
     case DialogType::SecretChat:
       if (thumbnail_file_id.is_valid()) {
+        CHECK(being_loaded_secret_thumbnails_.find(thumbnail_file_id) == being_loaded_secret_thumbnails_.end());
         being_loaded_secret_thumbnails_[thumbnail_file_id] = {full_message_id, file_id,
                                                               std::move(input_encrypted_file)};
         LOG(INFO) << "Ask to load thumbnail " << thumbnail_file_id;
@@ -18827,6 +18829,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
     if (secret_input_media.empty()) {
       CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
+      CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
       being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
@@ -18845,6 +18848,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       }
 
       CHECK(file_id.is_valid());
+      CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
       being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
       LOG(INFO) << "Ask to upload file " << file_id;
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
