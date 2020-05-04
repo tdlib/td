@@ -28970,7 +28970,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
   } else if (new_pts < d->pts) {
-    LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << " . Current pts is " << d->pts;
+    LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << ". Current pts is " << d->pts;
   }
 }
 

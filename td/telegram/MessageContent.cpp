@@ -2295,8 +2295,12 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   }
   if (!was_uploaded) {
     auto file_reference = FileManager::extract_file_reference(input_media);
-    if (file_reference == FileReferenceView::invalid_file_reference() && !force) {
-      return nullptr;
+    if (file_reference == FileReferenceView::invalid_file_reference()) {
+      if (!force) {
+        LOG(INFO) << "File " << file_id << " has invalid file reference";
+        return nullptr;
+      }
+      LOG(ERROR) << "File " << file_id << " has invalid file reference, but we forced to use it";
     }
   }
   return input_media;
@@ -2305,8 +2309,13 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force) {
   auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl);
   auto file_reference = FileManager::extract_file_reference(input_media);
-  if (file_reference == FileReferenceView::invalid_file_reference() && !force) {
-    return nullptr;
+  if (file_reference == FileReferenceView::invalid_file_reference()) {
+    auto file_id = get_message_content_upload_file_id(content);
+    if (!force) {
+      LOG(INFO) << "File " << file_id << " has invalid file reference";
+      return nullptr;
+    }
+    LOG(ERROR) << "File " << file_id << " has invalid file reference, but we forced to use it";
   }
   return input_media;
 }
