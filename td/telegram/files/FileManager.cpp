@@ -2949,6 +2949,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   }
   auto file_view = FileView(file_node);
   FileType real_type = file_view.get_type();
+  LOG(INFO) << "Checking file " << file_id << " of type " << type << "/" << real_type;
   if (!is_encrypted && !is_secure) {
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
         !(is_document_type(real_type) && is_document_type(type)) &&
