@@ -2166,6 +2166,7 @@ class MessagesManager : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
+  vector<FolderId> get_dialog_list_ids(const Dialog *d);
   DialogListView get_dialog_lists(const Dialog *d);
 
   DialogList &get_dialog_list(FolderId folder_id);
