@@ -27667,6 +27667,10 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     // original message may be edited
     return false;
   }
+  if (old_message->ttl > 0) {
+    // message can expire
+    return false;
+  }
   return true;
 }
 
