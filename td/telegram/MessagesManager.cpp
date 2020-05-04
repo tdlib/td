@@ -13508,10 +13508,11 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
-  auto dialog_dates = transform(dialog_ids, [this, &fake_order](DialogId dialog_id) {
+  auto *list = get_dialog_list(FolderId::main());
+  auto dialog_dates = transform(dialog_ids, [this, &fake_order, list](DialogId dialog_id) {
     const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    auto order = get_dialog_public_order(d->folder_id, d);
+    auto order = get_dialog_private_order(list, d);
     if (is_dialog_inited(d) || order != DEFAULT_ORDER) {
       return DialogDate(order, dialog_id);
     }
@@ -28364,7 +28365,7 @@ void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
     dialogs_hints_.remove(-d->dialog_id.get());
   } else {
     LOG(INFO) << "Change position of " << d->dialog_id << " in chats search";
-    dialogs_hints_.set_rating(-d->dialog_id.get(), -d->order);
+    dialogs_hints_.set_rating(-d->dialog_id.get(), -get_dialog_private_order(FolderId::main(), d));
   }
 }
 
@@ -28378,19 +28379,30 @@ bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
   return d->order == DEFAULT_ORDER && d->dialog_id == sponsored_dialog_id_;
 }
 
+int64 MessagesManager::get_dialog_private_order(FolderId folder_id, const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return 0;  // to not call get_dialog_list
+  }
+  return get_dialog_private_order(get_dialog_list(folder_id), d);
+}
+
+int64 MessagesManager::get_dialog_private_order(const DialogList *list, const Dialog *d) const {
+  if (list == nullptr || td_->auth_manager_->is_bot()) {
+    return 0;
+  }
+
+  return is_dialog_sponsored(d) && list->folder_id == FolderId::main() ? SPONSORED_DIALOG_ORDER : d->order;
+}
+
 int64 MessagesManager::get_dialog_public_order(FolderId folder_id, const Dialog *d) const {
   if (td_->auth_manager_->is_bot()) {
-    return 0;
+    return 0;  // to not call get_dialog_list
   }
   return get_dialog_public_order(get_dialog_list(folder_id), d);
 }
 
 int64 MessagesManager::get_dialog_public_order(const DialogList *list, const Dialog *d) const {
-  if (list == nullptr || td_->auth_manager_->is_bot()) {
-    return 0;
-  }
-
-  auto order = is_dialog_sponsored(d) && list->folder_id == FolderId::main() ? SPONSORED_DIALOG_ORDER : d->order;
+  auto order = get_dialog_private_order(list, d);
   DialogDate dialog_date(order, d->dialog_id);
   return dialog_date <= list->last_dialog_date_ ? order : 0;
 }
