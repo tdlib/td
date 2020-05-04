@@ -3036,7 +3036,10 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
               hash = sha256(r_file_content.ok());
               auto it = file_hash_to_file_id_.find(hash);
               if (it != file_hash_to_file_id_.end()) {
-                return it->second;
+                auto file_view = get_file_view(it->second);
+                if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+                  return it->second;
+                }
               }
             }
           }
