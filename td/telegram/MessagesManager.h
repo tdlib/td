@@ -1035,7 +1035,7 @@ class MessagesManager : public Actor {
 
     std::array<MessageId, search_messages_filter_size()> first_database_message_id_by_index;
     // use struct Count?
-    std::array<int32, search_messages_filter_size()> message_count_by_index{0};
+    std::array<int32, search_messages_filter_size()> message_count_by_index{{0}};
 
     int32 server_unread_count = 0;
     int32 local_unread_count = 0;
