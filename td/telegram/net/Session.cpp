@@ -231,7 +231,7 @@ void Session::connection_online_update(bool force) {
 void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
-  query->debug("Session: received from SessionProxy");
+  // query->debug("Session: received from SessionProxy");
   query->set_session_id(auth_data_.get_session_id());
   VLOG(net_query) << "Got query " << query;
   if (query->update_is_ready()) {
@@ -914,7 +914,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     }
   }
 
-  net_query->debug("Session: send to mtproto::connection");
+  // net_query->debug("Session: send to mtproto::connection");
   auto r_message_id =
       info->connection->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
                                    message_id, invoke_after_id, static_cast<bool>(net_query->quick_ack_promise_));

@@ -48,7 +48,7 @@ void SessionMultiProxy::send(NetQueryPtr query) {
             sessions_.begin();
     }
   }
-  query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);
+  // query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);
   sessions_[pos].queries_count++;
   send_closure(sessions_[pos].proxy, &SessionProxy::send, std::move(query));
 }

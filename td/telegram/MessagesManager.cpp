@@ -15419,7 +15419,6 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
 
   if (is_message_unload_enabled()) {
-    LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_unload_dialog_delay());
   }
 
@@ -26593,7 +26592,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   bool is_attached = false;
   if (auto_attach) {
-    LOG(INFO) << "Trying to auto attach " << message_id;
     auto it = MessagesIterator(d, message_id);
     Message *previous_message = *it;
     if (previous_message != nullptr) {
@@ -26649,7 +26647,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
     if (!is_attached) {
-      LOG(INFO) << "Can't attach " << message_id;
+      LOG(INFO) << "Can't auto-attach " << message_id;
       message->have_previous = false;
       message->have_next = false;
     }

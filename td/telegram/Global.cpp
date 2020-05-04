@@ -161,7 +161,6 @@ void Global::save_server_time() {
 }
 
 void Global::do_save_server_time_difference() {
-  LOG(INFO) << "Save server time difference";
   // diff = server_time - Time::now
   // fixed_diff = server_time - Clocks::system
   double system_time = Clocks::system();

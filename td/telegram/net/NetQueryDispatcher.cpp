@@ -41,7 +41,7 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
 }
 
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
-  net_query->debug("dispatch");
+  // net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
     if (net_query->id() != 0) {
       net_query->set_error(Status::Error(500, "Request aborted"));
