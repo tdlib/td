@@ -422,7 +422,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/[\d- ]{13,}/'
+  // '/(?<=^|[^+_\pL\d-])[\d -]{13,}([^_\pL\d-]|$)/'
 
   while (true) {
     while (ptr != end && !is_digit(*ptr)) {
@@ -430,6 +430,18 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     }
     if (ptr == end) {
       break;
+    }
+    if (ptr != begin) {
+      uint32 prev;
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_bank_card_numbers");
+
+      if (prev == '+' || prev == '-' || prev == '_' ||
+          get_unicode_simple_category(prev) == UnicodeSimpleCategory::Letter) {
+        while (ptr != end && (is_digit(*ptr) || *ptr == ' ' || *ptr == '-')) {
+          ptr++;
+        }
+        continue;
+      }
     }
 
     auto card_number_begin = ptr;
@@ -454,6 +466,13 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     auto card_number_size = static_cast<size_t>(card_number_end - card_number_begin);
     if (card_number_size > 2 * digit_count - 1) {
       continue;
+    }
+    if (card_number_end != end) {
+      uint32 next;
+      next_utf8_unsafe(card_number_end, &next, "match_bank_card_numbers 2");
+      if (next == '-' || next == '_' || get_unicode_simple_category(next) == UnicodeSimpleCategory::Letter) {
+        continue;
+      }
     }
 
     result.emplace_back(card_number_begin, card_number_end);

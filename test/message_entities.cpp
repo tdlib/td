@@ -197,12 +197,21 @@ TEST(MessageEntities, bank_card_number) {
   check_bank_card_number("123456789015009100", {"123456789015009100"});
   check_bank_card_number("1234567890128000000", {"1234567890128000000"});
   check_bank_card_number("12345678901500910000", {});
-  check_bank_card_number(" - - - -1 - -- 2 - - -- 34 - - - 56- - 7890150000  - - - -", {});
-  check_bank_card_number(" - - - -1 - -- 234 - - 56- - 7890150000  - - - -", {"1 - -- 234 - - 56- - 7890150000"});
+  check_bank_card_number(" - - - - 1 - -- 2 - - -- 34 - - - 56- - 7890150000  - - - -", {});
+  check_bank_card_number(" - - - - 1 - -- 234 - - 56- - 7890150000  - - - -", {"1 - -- 234 - - 56- - 7890150000"});
   check_bank_card_number("4916-3385-0608-2832; 5280 9342 8317 1080 ;345936346788903",
                          {"4916-3385-0608-2832", "5280 9342 8317 1080", "345936346788903"});
   check_bank_card_number("4556728228023269,4916141675244747020,49161416752447470,4556728228023269",
                          {"4556728228023269", "4916141675244747020", "4556728228023269"});
+  check_bank_card_number("a1234567890128", {});
+  check_bank_card_number("1234567890128a", {});
+  check_bank_card_number("1234567890128а", {});
+  check_bank_card_number("а1234567890128", {});
+  check_bank_card_number("1234567890128_", {});
+  check_bank_card_number("_1234567890128", {});
+  check_bank_card_number("1234567890128/", {"1234567890128"});
+  check_bank_card_number(",1234567890128", {"1234567890128"});
+  check_bank_card_number("+1234567890128", {});
 }
 
 static void check_is_email_address(const td::string &str, bool expected) {
