@@ -28408,6 +28408,10 @@ int64 MessagesManager::get_dialog_public_order(FolderId folder_id, const Dialog 
 }
 
 int64 MessagesManager::get_dialog_public_order(const DialogList *list, const Dialog *d) const {
+  if (list == nullptr || td_->auth_manager_->is_bot()) {
+    return 0;
+  }
+
   auto order = get_dialog_private_order(list, d);
   DialogDate dialog_date(order, d->dialog_id);
   return dialog_date <= list->last_dialog_date_ ? order : 0;
