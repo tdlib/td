@@ -117,7 +117,7 @@ bool SessionMultiProxy::get_pfs_flag() const {
 void SessionMultiProxy::init() {
   sessions_generation_++;
   sessions_.clear();
-  if (is_main_) {
+  if (is_main_ && session_count_ > 1) {
     LOG(WARNING) << tag("session_count", session_count_);
   }
   for (int32 i = 0; i < session_count_; i++) {
