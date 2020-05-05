@@ -1849,7 +1849,7 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
     case telegram_api::inputStickerSetShortName::ID: {
       auto set = move_tl_object_as<telegram_api::inputStickerSetShortName>(set_ptr);
       if (load_data_multipromise_ptr == nullptr) {
-        LOG(ERROR) << "Receive sticker set by its short name";
+        LOG(ERROR) << "Receive sticker set " << set->short_name_ << " by its short name";
         return search_sticker_set(set->short_name_, Auto());
       }
       auto set_id = search_sticker_set(set->short_name_, load_data_multipromise_ptr->get_promise());

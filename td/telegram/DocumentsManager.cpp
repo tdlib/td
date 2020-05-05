@@ -284,6 +284,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       return {};
     }
 
+    // do not allow encrypted animated stickers
+    // fix_animated_sticker_type();
+
     if (document_type != Document::Type::VoiceNote) {
       thumbnail = get_secret_thumbnail_photo_size(td_->file_manager_.get(), std::move(document->thumb_),
                                                   owner_dialog_id, document->thumb_w_, document->thumb_h_);
@@ -331,6 +334,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       default:
         UNREACHABLE();
     }
+
+    // do not allow web animated stickers
+    // fix_animated_sticker_type();
   }
 
   LOG(DEBUG) << "Receive document with id = " << id << " of type " << document_type;
