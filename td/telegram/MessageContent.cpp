@@ -3399,9 +3399,11 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker23 &sticker) 
   return make_tl_object<telegram_api::documentAttributeSticker>(
       0, false /*ignored*/, "", make_tl_object<telegram_api::inputStickerSetEmpty>(), nullptr);
 }
+
 static auto secret_to_telegram(secret_api::inputStickerSetEmpty &sticker_set) {
   return make_tl_object<telegram_api::inputStickerSetEmpty>();
 }
+
 static auto secret_to_telegram(secret_api::inputStickerSetShortName &sticker_set) {
   if (!clean_input_string(sticker_set.short_name_)) {
     sticker_set.short_name_.clear();
@@ -3727,6 +3729,17 @@ unique_ptr<MessageContent> get_secret_message_content(
         message_document->mime_type_.clear();
       }
       auto attributes = secret_to_telegram(message_document->attributes_);
+      for (auto &attribute : attributes) {
+        CHECK(attribute != nullptr);
+        if (attribute->get_id() == telegram_api::documentAttributeSticker::ID) {
+          auto attribute_sticker = static_cast<telegram_api::documentAttributeSticker *>(attribute.get());
+          CHECK(attribute_sticker->stickerset_ != nullptr);
+          if (attribute_sticker->stickerset_->get_id() != telegram_api::inputStickerSetEmpty::ID) {
+            attribute_sticker->stickerset_ = make_tl_object<telegram_api::inputStickerSetEmpty>();
+          }
+        }
+      }
+
       message_document->attributes_.clear();
       auto document = td->documents_manager_->on_get_document(
           {std::move(file), std::move(message_document), std::move(attributes)}, owner_dialog_id);
