@@ -18838,7 +18838,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
     }
   } else {
-    auto input_media = get_input_media(content, td_, m->ttl, td_->auth_manager_->is_bot());
+    auto input_media = get_input_media(content, td_, m->ttl, td_->auth_manager_->is_bot() && bad_parts.empty());
     if (input_media == nullptr) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
         return;
