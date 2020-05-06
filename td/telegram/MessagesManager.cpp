@@ -25975,14 +25975,12 @@ unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(unique
 
 const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(const unique_ptr<Message> *v,
                                                                                 MessageId message_id) {
-  LOG(DEBUG) << "Searching for " << message_id << " in " << static_cast<const void *>(v->get());
   while (*v != nullptr) {
     if ((*v)->message_id < message_id) {
       v = &(*v)->right;
     } else if ((*v)->message_id > message_id) {
       v = &(*v)->left;
     } else {
-      LOG(DEBUG) << "Message found";
       break;
     }
   }
