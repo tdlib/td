@@ -156,8 +156,8 @@ bool clean_input_string(string &str) {
 string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
   static const char *space_characters[] = {u8"\u1680", u8"\u180E", u8"\u2000", u8"\u2001", u8"\u2002",
                                            u8"\u2003", u8"\u2004", u8"\u2005", u8"\u2006", u8"\u2007",
-                                           u8"\u2008", u8"\u2009", u8"\u200A", u8"\u200B", u8"\u202E",
-                                           u8"\u202F", u8"\u205F", u8"\u3000", u8"\uFEFF", u8"\uFFFC"};
+                                           u8"\u2008", u8"\u2009", u8"\u200A", u8"\u202E", u8"\u202F",
+                                           u8"\u205F", u8"\u2800", u8"\u3000", u8"\uFFFC"};
   static bool can_be_first[std::numeric_limits<unsigned char>::max() + 1];
   static bool can_be_first_inited = [&] {
     for (auto space_ch : space_characters) {
@@ -197,9 +197,13 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
   Slice trimmed = trim(utf8_truncate(trim(Slice(str.c_str(), new_len)), max_length));
 
   // check if there is some non-empty character, empty characters:
+  // "\xE2\x80\x8B", ZERO WIDTH SPACE
   // "\xE2\x80\x8C", ZERO WIDTH NON-JOINER
   // "\xE2\x80\x8D", ZERO WIDTH JOINER
+  // "\xE2\x80\x8E", LEFT-TO-RIGHT MARK
+  // "\xE2\x80\x8F", RIGHT-TO-LEFT MARK
   // "\xE2\x80\xAE", RIGHT-TO-LEFT OVERRIDE
+  // "\xEF\xBB\xBF", ZERO WIDTH NO-BREAK SPACE aka BYTE ORDER MARK
   // "\xC2\xA0", NO-BREAK SPACE
   for (i = 0;;) {
     if (i == trimmed.size()) {
@@ -211,9 +215,15 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
       i++;
       continue;
     }
-    if (static_cast<unsigned char>(trimmed[i]) == 0xE2 && static_cast<unsigned char>(trimmed[i + 1]) == 0x80 &&
-        (static_cast<unsigned char>(trimmed[i + 2]) == 0x8C || static_cast<unsigned char>(trimmed[i + 2]) == 0x8D ||
-         static_cast<unsigned char>(trimmed[i + 2]) == 0xAE)) {
+    if (static_cast<unsigned char>(trimmed[i]) == 0xE2 && static_cast<unsigned char>(trimmed[i + 1]) == 0x80) {
+      auto next = static_cast<unsigned char>(trimmed[i + 2]);
+      if ((0x8B <= next && next <= 0x8F) || next == 0xAE) {
+        i += 3;
+        continue;
+      }
+    }
+    if (static_cast<unsigned char>(trimmed[i]) == 0xEF && static_cast<unsigned char>(trimmed[i + 1]) == 0xBB &&
+        static_cast<unsigned char>(trimmed[i + 2]) == 0xBF) {
       i += 3;
       continue;
     }
