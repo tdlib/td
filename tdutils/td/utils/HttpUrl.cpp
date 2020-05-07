@@ -48,7 +48,7 @@ string HttpUrl::get_url() const {
 Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   // url == [https?://][userinfo@]host[:port]
   ConstParser parser(url);
-  string protocol_str = to_lower(parser.read_till_nofail(':'));
+  string protocol_str = to_lower(parser.read_till_nofail(":/?#@[]"));
 
   HttpUrl::Protocol protocol;
   if (parser.start_with("://")) {
