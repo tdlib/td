@@ -305,13 +305,25 @@ string get_emoji_fingerprint(uint64 num) {
   return emojis[static_cast<size_t>((num & 0x7FFFFFFFFFFFFFFF) % emojis.size())].str();
 }
 
+static bool tolower_begins_with(Slice str, Slice prefix) {
+  if (prefix.size() > str.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < prefix.size(); i++) {
+    if (to_lower(str[i]) != prefix[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Result<string> check_url(Slice url) {
   bool is_tg = false;
   bool is_ton = false;
-  if (begins_with(url, "tg:")) {
+  if (tolower_begins_with(url, "tg:")) {
     url.remove_prefix(3);
     is_tg = true;
-  } else if (begins_with(url, "ton:")) {
+  } else if (tolower_begins_with(url, "ton:")) {
     url.remove_prefix(4);
     is_ton = true;
   }
@@ -320,8 +332,8 @@ Result<string> check_url(Slice url) {
   }
   TRY_RESULT(http_url, parse_url(url));
   if (is_tg || is_ton) {
-    if (begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS || !http_url.userinfo_.empty() ||
-        http_url.specified_port_ != 0 || http_url.is_ipv6_) {
+    if (tolower_begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS ||
+        !http_url.userinfo_.empty() || http_url.specified_port_ != 0 || http_url.is_ipv6_) {
       return Status::Error(is_tg ? Slice("Wrong tg URL") : Slice("Wrong ton URL"));
     }
 
