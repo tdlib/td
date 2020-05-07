@@ -422,7 +422,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^+_\pL\d-])[\d -]{13,}([^_\pL\d-]|$)/'
+  // '/(?<=^|[^+_\pL\d-.,])[\d -]{13,}([^_\pL\d-]|$)/'
 
   while (true) {
     while (ptr != end && !is_digit(*ptr)) {
@@ -435,7 +435,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
       uint32 prev;
       next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_bank_card_numbers");
 
-      if (prev == '+' || prev == '-' || prev == '_' ||
+      if (prev == '.' || prev == ',' || prev == '+' || prev == '-' || prev == '_' ||
           get_unicode_simple_category(prev) == UnicodeSimpleCategory::Letter) {
         while (ptr != end && (is_digit(*ptr) || *ptr == ' ' || *ptr == '-')) {
           ptr++;
