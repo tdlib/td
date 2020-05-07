@@ -2583,7 +2583,7 @@ class MessagesManager : public Actor {
     Promise<Unit> promise;
     DialogId dialog_id;
   };
-  std::unordered_map<FileId, UploadedDialogPhotoInfo, FileIdHash> uploaded_dialog_photos_;  // file_id -> ...
+  std::unordered_map<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;  // file_id -> ...
 
   struct PendingMessageGroupSend {
     DialogId dialog_id;

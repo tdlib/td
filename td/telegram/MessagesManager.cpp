@@ -7408,9 +7408,9 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
     case DialogType::Channel:
       if (input_file && thumbnail_file_id.is_valid()) {
         // TODO: download thumbnail if needed (like in secret chats)
+        LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
         CHECK(being_uploaded_thumbnails_.find(thumbnail_file_id) == being_uploaded_thumbnails_.end());
         being_uploaded_thumbnails_[thumbnail_file_id] = {full_message_id, file_id, std::move(input_file)};
-        LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
         td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
       } else {
         do_send_media(dialog_id, m, file_id, thumbnail_file_id, std::move(input_file), nullptr);
@@ -7418,10 +7418,10 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
       break;
     case DialogType::SecretChat:
       if (thumbnail_file_id.is_valid()) {
+        LOG(INFO) << "Ask to load thumbnail " << thumbnail_file_id;
         CHECK(being_loaded_secret_thumbnails_.find(thumbnail_file_id) == being_loaded_secret_thumbnails_.end());
         being_loaded_secret_thumbnails_[thumbnail_file_id] = {full_message_id, file_id,
                                                               std::move(input_encrypted_file)};
-        LOG(INFO) << "Ask to load thumbnail " << thumbnail_file_id;
 
         load_secret_thumbnail(thumbnail_file_id);
       } else {
@@ -7610,8 +7610,8 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
 void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
   LOG(INFO) << "File " << file_id << " has been uploaded";
 
-  auto it = uploaded_dialog_photos_.find(file_id);
-  if (it == uploaded_dialog_photos_.end()) {
+  auto it = being_uploaded_dialog_photos_.find(file_id);
+  if (it == being_uploaded_dialog_photos_.end()) {
     // just in case, as in on_upload_media
     return;
   }
@@ -7619,7 +7619,7 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
   Promise<Unit> promise = std::move(it->second.promise);
   DialogId dialog_id = it->second.dialog_id;
 
-  uploaded_dialog_photos_.erase(it);
+  being_uploaded_dialog_photos_.erase(it);
 
   tl_object_ptr<telegram_api::InputChatPhoto> input_chat_photo;
   FileView file_view = td_->file_manager_->get_file_view(file_id);
@@ -7648,15 +7648,15 @@ void MessagesManager::on_upload_dialog_photo_error(FileId file_id, Status status
   LOG(INFO) << "File " << file_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = uploaded_dialog_photos_.find(file_id);
-  if (it == uploaded_dialog_photos_.end()) {
+  auto it = being_uploaded_dialog_photos_.find(file_id);
+  if (it == being_uploaded_dialog_photos_.end()) {
     // just in case, as in on_upload_media_error
     return;
   }
 
   Promise<Unit> promise = std::move(it->second.promise);
 
-  uploaded_dialog_photos_.erase(it);
+  being_uploaded_dialog_photos_.erase(it);
 
   promise.set_error(std::move(status));
 }
@@ -18827,11 +18827,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
+      LOG(INFO) << "Ask to upload encrypted file " << file_id;
       CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
       CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
       being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
-      LOG(INFO) << "Ask to upload encrypted file " << file_id;
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
     } else {
@@ -18847,10 +18847,10 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
         thumbnail_file_id = FileId();
       }
 
+      LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
       CHECK(file_id.is_valid());
       CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
       being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
-      LOG(INFO) << "Ask to upload file " << file_id;
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
     } else {
@@ -25136,9 +25136,9 @@ void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId fi
 
 void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, Promise<Unit> &&promise) {
   CHECK(file_id.is_valid());
-  CHECK(uploaded_dialog_photos_.find(file_id) == uploaded_dialog_photos_.end());
-  uploaded_dialog_photos_[file_id] = {std::move(promise), dialog_id};
   LOG(INFO) << "Ask to upload chat photo " << file_id;
+  CHECK(being_uploaded_dialog_photos_.find(file_id) == being_uploaded_dialog_photos_.end());
+  being_uploaded_dialog_photos_[file_id] = {std::move(promise), dialog_id};
   td_->file_manager_->upload(file_id, upload_dialog_photo_callback_, 32, 0);
 }
 
