@@ -4020,6 +4020,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(!result->photo.photos.empty());
       if ((result->photo.photos.size() > 2 || result->photo.photos.back().type != 'i') && !to_secret) {
         // already sent photo
+        // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
+        // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
+        // request must have unique file_id
+        if (!td->auth_manager_->is_bot()) {
+          result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
+        }
         return std::move(result);
       }
 

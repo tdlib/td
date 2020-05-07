@@ -29636,7 +29636,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    LOG(ERROR) << "Can't find " << dialog_id << " to resend a message";
+    LOG(ERROR) << "Can't find " << dialog_id << " to continue send a message";
     binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     return nullptr;
   }
@@ -29663,7 +29663,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   bool need_update = false;
   bool need_update_dialog_pos = false;
   auto result_message =
-      add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "resend message");
+      add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "continue_send_message");
   CHECK(result_message != nullptr);
 
   send_update_chat_has_scheduled_messages(d, false);
@@ -29679,7 +29679,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
   }
   if (can_send_status.is_error()) {
-    LOG(INFO) << "Can't resend a message to " << dialog_id << ": " << can_send_status.error();
+    LOG(INFO) << "Can't continue to send a message to " << dialog_id << ": " << can_send_status.error();
 
     fail_send_message({dialog_id, result_message->message_id}, can_send_status.move_as_error());
     return nullptr;
