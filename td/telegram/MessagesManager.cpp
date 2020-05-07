@@ -744,7 +744,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
     if (file_id_.is_valid() && was_uploaded_) {
       td->file_manager_->delete_partial_remote_location(file_id_);
     }
-    if (FileReferenceManager::is_file_reference_error(status)) {
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
@@ -2205,7 +2205,7 @@ class SendMultiMediaActor : public NetActorOnce {
       // do not send error, message will be re-sent
       return;
     }
-    if (FileReferenceManager::is_file_reference_error(status)) {
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       auto pos = FileReferenceManager::get_file_reference_error_pos(status);
       if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {
         VLOG(file_references) << "Receive " << status << " for " << file_ids_[pos - 1];
@@ -2316,7 +2316,7 @@ class SendMediaActor : public NetActorOnce {
           td->file_manager_->delete_partial_remote_location(file_id_);
         }
       }
-    } else if (FileReferenceManager::is_file_reference_error(status)) {
+    } else if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
@@ -19969,7 +19969,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       if (result.error().code() != 429 && result.error().code() < 500 && !G()->close_flag()) {
         td_->file_manager_->delete_partial_remote_location(file_id);
       }
-    } else if (FileReferenceManager::is_file_reference_error(result.error())) {
+    } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(result.error())) {
       if (file_id.is_valid()) {
         VLOG(file_references) << "Receive " << result.error() << " for " << file_id;
         td_->file_manager_->delete_file_reference(file_id, file_reference);

@@ -352,7 +352,7 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (FileReferenceManager::is_file_reference_error(status)) {
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
       td->file_reference_manager_->repair_file_reference(
@@ -454,7 +454,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (FileReferenceManager::is_file_reference_error(status)) {
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
       td->file_reference_manager_->repair_file_reference(
@@ -587,7 +587,7 @@ class FaveStickerQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (FileReferenceManager::is_file_reference_error(status)) {
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
       td->file_reference_manager_->repair_file_reference(
