@@ -15793,7 +15793,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
 
   return make_tl_object<td_api::chat>(
-      d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_chat_list_object(d), get_dialog_title(d->dialog_id),
+      d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_chat_positions_object(d),
@@ -23287,16 +23287,6 @@ void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, i
                make_tl_object<td_api::updateChatOnlineMemberCount>(dialog_id.get(), online_member_count));
 }
 
-void MessagesManager::send_update_chat_chat_list(const Dialog *d) const {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_chat_list";
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatChatList>(d->dialog_id.get(), get_chat_list_object(d)));
-}
-
 void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog *d) const {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -28909,7 +28899,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
     d->folder_id = FolderId::main();
     d->is_folder_id_inited = true;
-    send_update_chat_chat_list(d);
     on_dialog_updated(d->dialog_id, "set_dialog_order 5");
 
     if (is_dialog_sponsored(d)) {
@@ -28920,9 +28909,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     }
   }
 
-  if (is_added_to_folder && !(dialog_id == sponsored_dialog_id_ && d->folder_id == FolderId::main())) {
-    send_update_chat_chat_list(d);
-  }
   if (was_sponsored != is_dialog_sponsored(d)) {
     send_update_chat_position(FolderId::main(), d);
     if (!is_loaded_from_database && !was_sponsored) {
@@ -28934,9 +28920,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
   if (old_public_order != new_public_order && need_send_update_chat_order) {
     send_update_chat_position(d->folder_id, d);
-  }
-  if (is_removed_from_folder && !(dialog_id == sponsored_dialog_id_ && d->folder_id == FolderId::main())) {
-    send_update_chat_chat_list(d);
   }
   return true;
 }
@@ -30971,10 +30954,6 @@ void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source)
   sponsored_dialog_id_ = d->dialog_id;
   sponsored_dialog_source_ = std::move(source);
 
-  if (is_dialog_sponsored(d)) {
-    send_update_chat_chat_list(d);
-  }
-
   // update last_server_dialog_date in any case, because all chats before SPONSORED_DIALOG_ORDER are known
   auto dialog_list_id = FolderId::main();
   auto &list = get_dialog_list(dialog_list_id);
@@ -31034,7 +31013,6 @@ void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource sour
     sponsored_dialog_id_ = DialogId();
     sponsored_dialog_source_ = DialogSource();
     if (is_sponsored) {
-      send_update_chat_chat_list(d);
       send_update_chat_position(FolderId::main(), d);
       need_update_total_chat_count = true;
     }

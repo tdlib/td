@@ -1980,8 +1980,6 @@ class MessagesManager : public Actor {
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
-  void send_update_chat_chat_list(const Dialog *d) const;
-
   void send_update_secret_chats_with_user_action_bar(const Dialog *d) const;
 
   void send_update_chat_action_bar(const Dialog *d);
