@@ -1976,7 +1976,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
-  void send_update_chat_source(const Dialog *d) const;
+  void send_update_chat_position(FolderId folder_id, const Dialog *d) const;
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
@@ -2329,7 +2329,9 @@ class MessagesManager : public Actor {
 
   int64 get_dialog_public_order(const DialogList *list, const Dialog *d) const;
 
-  int64 get_dialog_order_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::chatPosition> get_chat_position_object(FolderId folder_id, const Dialog *d) const;
+
+  vector<td_api::object_ptr<td_api::chatPosition>> get_chat_positions_object(const Dialog *d) const;
 
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos);
