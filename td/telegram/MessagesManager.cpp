@@ -23158,9 +23158,11 @@ void MessagesManager::send_update_unread_message_count(FolderId folder_id, Dialo
       list.unread_message_total_count_ = list.unread_message_muted_count_;
     }
   }
+
   G()->td_db()->get_binlog_pmc()->set(
       PSTRING() << "unread_message_count" << folder_id.get(),
       PSTRING() << list.unread_message_total_count_ << ' ' << list.unread_message_muted_count_);
+
   int32 unread_unmuted_count = list.unread_message_total_count_ - list.unread_message_muted_count_;
   if (!force && running_get_difference_) {
     LOG(INFO) << "Postpone updateUnreadMessageCount in " << folder_id << " to " << list.unread_message_total_count_
@@ -23207,11 +23209,13 @@ void MessagesManager::send_update_unread_chat_count(FolderId folder_id, DialogId
           list.unread_dialog_muted_count_ + list.unread_dialog_marked_count_ - list.unread_dialog_muted_marked_count_;
     }
   }
+
   G()->td_db()->get_binlog_pmc()->set(
       PSTRING() << "unread_dialog_count" << folder_id.get(),
       PSTRING() << list.unread_dialog_total_count_ << ' ' << list.unread_dialog_muted_count_ << ' '
                 << list.unread_dialog_marked_count_ << ' ' << list.unread_dialog_muted_marked_count_ << ' '
                 << list.server_dialog_total_count_ << ' ' << list.secret_chat_total_count_);
+
   bool need_postpone = !force && running_get_difference_;
   int32 unread_unmuted_count = list.unread_dialog_total_count_ - list.unread_dialog_muted_count_;
   int32 unread_unmuted_marked_count = list.unread_dialog_marked_count_ - list.unread_dialog_muted_marked_count_;
@@ -24295,6 +24299,10 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   LOG(INFO) << "Change " << d->dialog_id << " folder from " << d->folder_id << " to " << folder_id;
 
   auto dialog_orders = get_dialog_orders(d);
+
+  if (get_dialog_pinned_order(d->folder_id, d->dialog_id) != DEFAULT_ORDER) {
+    set_dialog_is_pinned(d->folder_id, d, false, false);
+  }
 
   d->folder_id = folder_id;
   d->is_folder_id_inited = true;
@@ -28827,16 +28835,16 @@ void MessagesManager::update_dialog_lists(Dialog *d,
   LOG(INFO) << "Update lists of " << dialog_id << " from " << source;
 
   if (d->order == DEFAULT_ORDER) {
-    if (d->folder_id != FolderId::main()) {
-      d->folder_id = FolderId::main();
-      d->is_folder_id_inited = true;
-      on_dialog_updated(dialog_id, "update_dialog_lists");
-    }
-
     for (auto &old_order : old_orders) {
       if (old_order.second.is_pinned) {
         set_dialog_is_pinned(old_order.first, d, false, false);
       }
+    }
+
+    if (d->folder_id != FolderId::main()) {
+      d->folder_id = FolderId::main();
+      d->is_folder_id_inited = true;
+      on_dialog_updated(dialog_id, "update_dialog_lists");
     }
   }
 
