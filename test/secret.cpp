@@ -26,6 +26,7 @@
 #include "td/tl/tl_object_parse.h"
 #include "td/tl/tl_object_store.h"
 
+#include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -893,12 +894,9 @@ class Master : public Actor {
   }
   void process_net_query_send_encrypted(BufferSlice data, NetQueryPtr net_query,
                                        ActorShared<NetQueryCallback> callback) {
-    my_api::messages_sentEncryptedMessage sent_message;
-    sent_message.date_ = 0;
-    auto storer = TLObjectStorer<my_api::messages_sentEncryptedMessage>(sent_message);
-    BufferSlice answer(storer.size());
-    auto real_size = storer.store(answer.as_slice().ubegin());
-    CHECK(real_size == answer.size());
+    BufferSlice answer(8);
+    answer.as_slice().fill(0);
+    as<int32>(answer.as_slice().begin()) = my_api::messages_sentEncryptedMessage::ID;
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
 
