@@ -885,13 +885,13 @@ class Master : public Actor {
   }
   void process_net_query(my_api::messages_sendEncryptedService &&message, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
-    process_net_query_send_enrypted(std::move(message.data_), std::move(net_query), std::move(callback));
+    process_net_query_send_encrypted(std::move(message.data_), std::move(net_query), std::move(callback));
   }
   void process_net_query(my_api::messages_sendEncrypted &&message, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
-    process_net_query_send_enrypted(std::move(message.data_), std::move(net_query), std::move(callback));
+    process_net_query_send_encrypted(std::move(message.data_), std::move(net_query), std::move(callback));
   }
-  void process_net_query_send_enrypted(BufferSlice data, NetQueryPtr net_query,
+  void process_net_query_send_encrypted(BufferSlice data, NetQueryPtr net_query,
                                        ActorShared<NetQueryCallback> callback) {
     my_api::messages_sentEncryptedMessage sent_message;
     sent_message.date_ = 0;
