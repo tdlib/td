@@ -4430,6 +4430,7 @@ void Td::send_get_nearest_dc_query(Promise<string> promise) {
 }
 
 void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
+  CHECK(object != nullptr);
   auto object_id = object->get_id();
   if (close_flag_ >= 5 && object_id != td_api::updateAuthorizationState::ID) {
     // just in case

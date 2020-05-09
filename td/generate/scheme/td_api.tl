@@ -669,7 +669,7 @@ chatSourcePublicServiceAnnouncement type:string text:string = ChatSource;
 
 //@description Describes a position of a chat in a chat list
 //@list The chat list
-//@order A parameter used to determine order of the chat in the chat list. Chats must be sorted by the pair (order, chat.id) in descending order. If 0, the position of the chat in the list is undetermined
+//@order A parameter used to determine order of the chat in the chat list. Chats must be sorted by the pair (order, chat.id) in descending order
 //@is_pinned True, if the chat is pinned in the chat list
 //@source Source of the chat in the chat list; may be null
 chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPosition;
@@ -2896,7 +2896,7 @@ updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 //@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @positions The new chat positions in the chat lists
 updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPosition> = Update;
 
-//@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent @chat_id Chat identifier @position New chat position
+//@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent @chat_id Chat identifier @position New chat position. If new order is 0, then the chat needs to be removed from the list
 updateChatPosition chat_id:int53 position:chatPosition = Update;
 
 //@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread

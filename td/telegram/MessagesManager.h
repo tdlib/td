@@ -1055,7 +1055,9 @@ class MessagesManager : public Actor {
     uint64 read_history_logevent_id_generation = 0;
     uint64 set_folder_id_logevent_id = 0;
     uint64 set_folder_id_logevent_id_generation = 0;
+
     FolderId folder_id;
+    vector<FolderId> dialog_list_ids;  // TODO replace with mask
 
     MessageId
         last_read_all_mentions_message_id;  // all mentions with a message identifier not greater than it are implicitly read
@@ -1286,6 +1288,14 @@ class MessagesManager : public Actor {
     DialogListViewIterator end() {
       return DialogListViewIterator(messages_manager_, &dialog_list_ids_[0] + dialog_list_ids_.size());
     }
+  };
+
+  struct DialogOrderInList {
+    int64 order = DEFAULT_ORDER;
+    int64 private_order = 0;
+    int64 public_order = 0;
+    bool is_pinned = false;
+    bool is_sponsored = false;
   };
 
   class MessagesIteratorBase {
@@ -2046,7 +2056,7 @@ class MessagesManager : public Actor {
 
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
 
-  bool set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool is_pinned);
+  bool set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool is_pinned, bool need_update_dialog_lists = true);
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
@@ -2163,6 +2173,10 @@ class MessagesManager : public Actor {
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
+
+  DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d) const;
+
+  std::unordered_map<FolderId, DialogOrderInList, FolderIdHash> get_dialog_orders(const Dialog *d) const;
 
   vector<FolderId> get_dialog_list_ids(const Dialog *d);
   DialogListView get_dialog_lists(const Dialog *d);
@@ -2323,10 +2337,6 @@ class MessagesManager : public Actor {
 
   int64 get_dialog_private_order(const DialogList *list, const Dialog *d) const;
 
-  int64 get_dialog_public_order(FolderId folder_id, const Dialog *d) const;
-
-  int64 get_dialog_public_order(const DialogList *list, const Dialog *d) const;
-
   td_api::object_ptr<td_api::chatPosition> get_chat_position_object(FolderId folder_id, const Dialog *d) const;
 
   vector<td_api::object_ptr<td_api::chatPosition>> get_chat_positions_object(const Dialog *d) const;
@@ -2359,11 +2369,14 @@ class MessagesManager : public Actor {
 
   bool is_removed_from_dialog_list(const Dialog *d) const;
 
-  void update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order = true,
+  void update_dialog_pos(Dialog *d, const char *source, bool need_send_update = true,
                          bool is_loaded_from_database = false);
 
-  bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order, bool is_loaded_from_database,
+  bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update, bool is_loaded_from_database,
                         const char *source);
+
+  void update_dialog_lists(Dialog *d, std::unordered_map<FolderId, DialogOrderInList, FolderIdHash> &&old_orders,
+                           bool need_send_update, bool is_loaded_from_database, const char *source);
 
   void update_last_dialog_date(FolderId folder_id);
 

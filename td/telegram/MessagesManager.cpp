@@ -9988,31 +9988,33 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   d->server_unread_count = server_unread_count;
   d->local_unread_count = local_unread_count;
 
-  for (auto &list : get_dialog_lists(d)) {
-    int32 new_unread_count = d->server_unread_count + d->local_unread_count;
-    int32 delta = new_unread_count - old_unread_count;
-    if (delta != 0 && need_unread_counter(d->order) && list.is_message_unread_count_inited_) {
-      list.unread_message_total_count_ += delta;
-      if (is_dialog_muted(d)) {
-        list.unread_message_muted_count_ += delta;
-      }
-      send_update_unread_message_count(list.folder_id, d->dialog_id, force_update, source);
-    }
-    delta = static_cast<int32>(new_unread_count != 0) - static_cast<int32>(old_unread_count != 0);
-    if (delta != 0 && need_unread_counter(d->order) && list.is_dialog_unread_count_inited_) {
-      if (d->is_marked_as_unread) {
-        list.unread_dialog_marked_count_ -= delta;
-      } else {
-        list.unread_dialog_total_count_ += delta;
-      }
-      if (is_dialog_muted(d)) {
-        if (d->is_marked_as_unread) {
-          list.unread_dialog_muted_marked_count_ -= delta;
-        } else {
-          list.unread_dialog_muted_count_ += delta;
+  if (need_unread_counter(d->order)) {
+    for (auto &list : get_dialog_lists(d)) {
+      int32 new_unread_count = d->server_unread_count + d->local_unread_count;
+      int32 delta = new_unread_count - old_unread_count;
+      if (delta != 0 && list.is_message_unread_count_inited_) {
+        list.unread_message_total_count_ += delta;
+        if (is_dialog_muted(d)) {
+          list.unread_message_muted_count_ += delta;
         }
+        send_update_unread_message_count(list.folder_id, d->dialog_id, force_update, source);
       }
-      send_update_unread_chat_count(list.folder_id, d->dialog_id, force_update, source);
+      delta = static_cast<int32>(new_unread_count != 0) - static_cast<int32>(old_unread_count != 0);
+      if (delta != 0 && list.is_dialog_unread_count_inited_) {
+        if (d->is_marked_as_unread) {
+          list.unread_dialog_marked_count_ -= delta;
+        } else {
+          list.unread_dialog_total_count_ += delta;
+        }
+        if (is_dialog_muted(d)) {
+          if (d->is_marked_as_unread) {
+            list.unread_dialog_muted_marked_count_ -= delta;
+          } else {
+            list.unread_dialog_muted_count_ += delta;
+          }
+        }
+        send_update_unread_chat_count(list.folder_id, d->dialog_id, force_update, source);
+      }
     }
   }
 
@@ -10668,6 +10670,11 @@ void MessagesManager::init() {
     }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
+
+  if (!td_->auth_manager_->is_bot()) {  // ensure that Main and Archive dialog lists are created
+    get_dialog_list(FolderId::main());
+    get_dialog_list(FolderId::archive());
+  }
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
   if (!auth_notification_ids_string.empty()) {
@@ -11999,17 +12006,19 @@ void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
   set_dialog_is_pinned(d->folder_id, d, is_pinned);
 }
 
-bool MessagesManager::set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool is_pinned) {
+bool MessagesManager::set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool is_pinned,
+                                           bool need_update_dialog_lists) {
   if (td_->auth_manager_->is_bot()) {
     return false;
   }
 
   CHECK(d != nullptr);
-  if (is_removed_from_dialog_list(d) && is_pinned) {
+  if ((is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) && is_pinned) {
     // the chat can't be pinned
     return false;
   }
 
+  auto orders = get_dialog_orders(d);
   auto &list = get_dialog_list(folder_id);
   bool was_pinned = false;
   for (size_t pos = 0; pos < list.pinned_dialogs_.size(); pos++) {
@@ -12045,9 +12054,9 @@ bool MessagesManager::set_dialog_is_pinned(FolderId folder_id, Dialog *d, bool i
   LOG(INFO) << "Set " << d->dialog_id << " is pinned in " << folder_id << " to " << is_pinned;
   on_pinned_dialogs_updated(folder_id);
 
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
-  update_dialog_pos(d, "set_dialog_is_pinned", false);
-  send_update_chat_position(folder_id, d);
+  if (need_update_dialog_lists) {
+    update_dialog_lists(d, std::move(orders), true, false, "set_dialog_is_pinned");
+  }
   return true;
 }
 
@@ -12514,9 +12523,6 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_channel_pts(d, channel_pts, "get channel");
       }
     }
-    if (set_dialog_is_pinned(d->folder_id, d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0)) {
-      need_update_dialog_pos = false;
-    }
     bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
     if (is_marked_as_unread != d->is_marked_as_unread) {
       set_dialog_is_marked_as_unread(d, is_marked_as_unread);
@@ -12525,6 +12531,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (need_update_dialog_pos) {
       update_dialog_pos(d, "on_get_dialogs");
     }
+
+    // set is_pinned only after updating dialog pos to ensure that order is initialized
+    set_dialog_is_pinned(d->folder_id, d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0);
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
         d->need_repair_server_unread_count) {
@@ -14798,6 +14807,9 @@ Status MessagesManager::set_pinned_dialogs(FolderId folder_id, vector<DialogId> 
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       return Status::Error(6, "Can't access the chat");
+    }
+    if (is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) {
+      return Status::Error(6, "The chat can't be pinned");
     }
     if (dialog_id.get_type() == DialogType::SecretChat) {
       secret_dialog_count++;
@@ -23273,9 +23285,12 @@ void MessagesManager::send_update_chat_position(FolderId folder_id, const Dialog
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_position";
-  LOG(INFO) << "Update chat position for " << d->dialog_id;
+  auto position = get_chat_position_object(folder_id, d);
+  if (position == nullptr) {
+    position = td_api::make_object<td_api::chatPosition>(get_chat_list_object(folder_id), 0, false, nullptr);
+  }
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatPosition>(d->dialog_id.get(), get_chat_position_object(folder_id, d)));
+               make_tl_object<td_api::updateChatPosition>(d->dialog_id.get(), std::move(position)));
 }
 
 void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
@@ -24280,17 +24295,12 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
   LOG(INFO) << "Change " << d->dialog_id << " folder from " << d->folder_id << " to " << folder_id;
 
-  // first remove the dialog from the old chat list
-  // this will send updateChatChatList if needed
-  set_dialog_order(d, DEFAULT_ORDER, true, false, "set_dialog_folder_id old");
+  auto dialog_orders = get_dialog_orders(d);
 
-  // change the folder
   d->folder_id = folder_id;
   d->is_folder_id_inited = true;
 
-  // update dialog position in the new folder
-  // this will send updateChatChatList if needed
-  update_dialog_pos(d, "set_dialog_folder_id new");
+  update_dialog_lists(d, std::move(dialog_orders), true, false, "set_dialog_folder_id");
 
   on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
 }
@@ -28603,28 +28613,17 @@ int64 MessagesManager::get_dialog_private_order(const DialogList *list, const Di
   if (is_dialog_sponsored(d) && list->folder_id == FolderId::main()) {
     return SPONSORED_DIALOG_ORDER;
   }
+  if (d->order == DEFAULT_ORDER) {
+    return 0;
+  }
   auto pinned_order = get_dialog_pinned_order(list, d->dialog_id);
   if (pinned_order != DEFAULT_ORDER) {
     return pinned_order;
   }
-  return d->order;
-}
-
-int64 MessagesManager::get_dialog_public_order(FolderId folder_id, const Dialog *d) const {
-  if (td_->auth_manager_->is_bot()) {
-    return 0;  // to not call get_dialog_list
-  }
-  return get_dialog_public_order(get_dialog_list(folder_id), d);
-}
-
-int64 MessagesManager::get_dialog_public_order(const DialogList *list, const Dialog *d) const {
-  if (list == nullptr || td_->auth_manager_->is_bot()) {
+  if (list->folder_id != d->folder_id) {
     return 0;
   }
-
-  auto order = get_dialog_private_order(list, d);
-  DialogDate dialog_date(order, d->dialog_id);
-  return dialog_date <= list->last_dialog_date_ ? order : 0;
+  return d->order;
 }
 
 td_api::object_ptr<td_api::chatPosition> MessagesManager::get_chat_position_object(FolderId folder_id,
@@ -28638,15 +28637,14 @@ td_api::object_ptr<td_api::chatPosition> MessagesManager::get_chat_position_obje
     return nullptr;
   }
 
-  auto order = get_dialog_private_order(list, d);
-  DialogDate dialog_date(order, d->dialog_id);
-  if (list->last_dialog_date_ < dialog_date || order == 0) {
+  auto order = get_dialog_order_in_list(list, d);
+  if (order.public_order == 0) {
     return nullptr;
   }
 
-  bool is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
-  return td_api::make_object<td_api::chatPosition>(get_chat_list_object(folder_id), order, is_pinned,
-                                                   sponsored_dialog_source_.get_chat_source_object());
+  auto chat_source = order.is_sponsored ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
+  return td_api::make_object<td_api::chatPosition>(get_chat_list_object(folder_id), order.public_order, order.is_pinned,
+                                                   std::move(chat_source));
 }
 
 vector<td_api::object_ptr<td_api::chatPosition>> MessagesManager::get_chat_positions_object(const Dialog *d) const {
@@ -28683,7 +28681,7 @@ bool MessagesManager::is_removed_from_dialog_list(const Dialog *d) const {
   return false;
 }
 
-void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update_chat_order,
+void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update,
                                         bool is_loaded_from_database) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -28757,13 +28755,13 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
     }
   }
 
-  if (set_dialog_order(d, new_order, need_send_update_chat_order, is_loaded_from_database, source)) {
+  if (set_dialog_order(d, new_order, need_send_update, is_loaded_from_database, source)) {
     on_dialog_updated(d->dialog_id, "update_dialog_pos");
   }
 }
 
-bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order,
-                                       bool is_loaded_from_database, const char *source) {
+bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_send_update, bool is_loaded_from_database,
+                                       const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return false;
   }
@@ -28775,16 +28773,19 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
   auto &list = get_dialog_list(d->folder_id);
   if (old_date == new_date) {
+    LOG(INFO) << "Order of " << d->dialog_id << " is still " << new_order << " from " << source;
     if (new_order == DEFAULT_ORDER) {
       // first addition of a new left dialog
       list.ordered_dialogs_.insert(new_date);
     }
-    LOG(INFO) << "Chat order is not changed: " << new_order << " from " << source;
+
     return false;
   }
+
   LOG(INFO) << "Update order of " << dialog_id << " from " << d->order << " to " << new_order << " from " << source;
 
-  auto old_public_order = get_dialog_public_order(&list, d);
+  auto dialog_orders = get_dialog_orders(d);
+
   if (list.ordered_dialogs_.erase(old_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
   }
@@ -28792,136 +28793,133 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   list.ordered_dialogs_.insert(new_date);
 
   bool add_to_hints = (d->order == DEFAULT_ORDER);
-  bool was_sponsored = is_dialog_sponsored(d);
-  bool had_unread_counter = need_unread_counter(d->order);
-  bool has_unread_counter = need_unread_counter(new_order);
-  bool is_removed_from_folder = new_order == DEFAULT_ORDER;
-  bool is_added_to_folder = d->order == DEFAULT_ORDER;
-
-  auto old_dialog_total_count = get_dialog_total_count(list);
-  if (is_removed_from_folder || is_added_to_folder) {
-    int32 delta = is_removed_from_folder ? -1 : 1;
-    list.in_memory_dialog_total_count_ += delta;
-    if (!is_loaded_from_database) {
-      int32 &total_count = dialog_id.get_type() == DialogType::SecretChat ? list.secret_chat_total_count_
-                                                                          : list.server_dialog_total_count_;
-      if (total_count != -1) {
-        total_count += delta;
-        if (total_count < 0) {
-          LOG(ERROR) << "Total chat count became negative after leaving " << dialog_id;
-          total_count = 0;
-        }
-      }
-    }
-  }
 
   d->order = new_order;
-
-  if (new_order == DEFAULT_ORDER && get_dialog_pinned_order(&list, dialog_id) != DEFAULT_ORDER) {
-    for (size_t pos = 0; pos < list.pinned_dialogs_.size(); pos++) {
-      if (list.pinned_dialogs_[pos].get_dialog_id() == d->dialog_id) {
-        list.pinned_dialogs_.erase(list.pinned_dialogs_.begin() + pos);
-        break;
-      }
-    }
-    list.pinned_dialog_id_orders_.erase(d->dialog_id);
-    on_pinned_dialogs_updated(d->folder_id);
-  }
-
-  bool need_update_unread_chat_count = old_dialog_total_count != get_dialog_total_count(list);
-  CHECK(static_cast<size_t>(list.in_memory_dialog_total_count_) <= list.ordered_dialogs_.size());
-
-  if (!is_loaded_from_database && had_unread_counter != has_unread_counter) {
-    auto unread_count = d->server_unread_count + d->local_unread_count;
-    const char *change_source = had_unread_counter ? "on_dialog_leave" : "on_dialog_join";
-    if (unread_count != 0 && list.is_message_unread_count_inited_) {
-      if (had_unread_counter) {
-        unread_count = -unread_count;
-      } else {
-        CHECK(has_unread_counter);
-      }
-
-      list.unread_message_total_count_ += unread_count;
-      if (is_dialog_muted(d)) {
-        list.unread_message_muted_count_ += unread_count;
-      }
-      send_update_unread_message_count(d->folder_id, dialog_id, true, change_source);
-    }
-    if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
-      int delta = 1;
-      if (had_unread_counter) {
-        delta = -1;
-      } else {
-        CHECK(has_unread_counter);
-      }
-
-      list.unread_dialog_total_count_ += delta;
-      if (unread_count == 0 && d->is_marked_as_unread) {
-        list.unread_dialog_marked_count_ += delta;
-      }
-      if (is_dialog_muted(d)) {
-        list.unread_dialog_muted_count_ += delta;
-        if (unread_count == 0 && d->is_marked_as_unread) {
-          list.unread_dialog_muted_marked_count_ += delta;
-        }
-      }
-      need_update_unread_chat_count = false;
-      send_update_unread_chat_count(d->folder_id, dialog_id, true, change_source);
-    }
-
-    auto dialog_type = dialog_id.get_type();
-    if (dialog_type == DialogType::Channel && has_unread_counter && being_added_dialog_id_ != dialog_id) {
-      repair_channel_server_unread_count(d);
-      LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
-    }
-    if (dialog_type == DialogType::Channel && !has_unread_counter) {
-      remove_all_dialog_notifications(d, false, "set_dialog_order 1");
-      remove_all_dialog_notifications(d, true, "set_dialog_order 2");
-      clear_active_dialog_actions(dialog_id);
-    }
-  }
-  if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
-    send_update_unread_chat_count(d->folder_id, dialog_id, true, "changed total_count");
-  }
 
   if (add_to_hints) {
     update_dialogs_hints(d);
   }
   update_dialogs_hints_rating(d);
 
-  auto new_public_order = get_dialog_public_order(&list, d);
-  if (is_removed_from_folder && d->folder_id != FolderId::main()) {
-    if (new_public_order != old_public_order) {
-      send_update_chat_position(d->folder_id, d);
-      old_public_order = new_public_order;
+  update_dialog_lists(d, std::move(dialog_orders), need_send_update, is_loaded_from_database, source);
+
+  return true;
+}
+
+void MessagesManager::update_dialog_lists(Dialog *d,
+                                          std::unordered_map<FolderId, DialogOrderInList, FolderIdHash> &&old_orders,
+                                          bool need_send_update, bool is_loaded_from_database, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
+  LOG(INFO) << "Update lists of " << dialog_id << " from " << source;
+
+  if (d->order == DEFAULT_ORDER) {
+    if (d->folder_id != FolderId::main()) {
+      d->folder_id = FolderId::main();
+      d->is_folder_id_inited = true;
+      on_dialog_updated(dialog_id, "update_dialog_lists");
     }
 
-    d->folder_id = FolderId::main();
-    d->is_folder_id_inited = true;
-    on_dialog_updated(d->dialog_id, "set_dialog_order 5");
-
-    if (is_dialog_sponsored(d)) {
-      auto &main_list = get_dialog_list(d->folder_id);
-      if (main_list.is_dialog_unread_count_inited_) {
-        send_update_unread_chat_count(d->folder_id, DialogId(), true, "set_dialog_order 6");
+    for (auto &old_order : old_orders) {
+      if (old_order.second.is_pinned) {
+        set_dialog_is_pinned(old_order.first, d, false, false);
       }
     }
   }
 
-  if (was_sponsored != is_dialog_sponsored(d)) {
-    send_update_chat_position(FolderId::main(), d);
-    if (!is_loaded_from_database && !was_sponsored) {
-      // channel is sponsored only if user isn't a channel member
-      remove_all_dialog_notifications(d, false, "set_dialog_order 3");
-      remove_all_dialog_notifications(d, true, "set_dialog_order 4");
+  for (auto &dialog_list : dialog_lists_) {
+    auto dialog_list_id = dialog_list.first;
+    auto &list = dialog_list.second;
+
+    const DialogOrderInList &old_order = old_orders[dialog_list_id];
+    const DialogOrderInList new_order = get_dialog_order_in_list(&list, d);
+
+    bool was_in_list = old_order.order != DEFAULT_ORDER && old_order.private_order != 0;
+    bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
+    CHECK(was_in_list == td::contains(d->dialog_list_ids, dialog_list_id));
+
+    if (need_send_update &&
+        (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
+         old_order.is_sponsored != new_order.is_sponsored)) {
+      send_update_chat_position(dialog_list_id, d);
     }
-    old_public_order = new_public_order;
+
+    if (was_in_list != is_in_list) {
+      const int32 delta = was_in_list ? -1 : 1;
+      list.in_memory_dialog_total_count_ += delta;
+      if (!is_loaded_from_database) {
+        int32 &total_count = dialog_id.get_type() == DialogType::SecretChat ? list.secret_chat_total_count_
+                                                                            : list.server_dialog_total_count_;
+        if (total_count != -1) {
+          total_count += delta;
+          if (total_count < 0) {
+            LOG(ERROR) << "Total chat count became negative after leaving " << dialog_id;
+            total_count = 0;
+          }
+        }
+      }
+
+      if (!is_loaded_from_database) {
+        auto unread_count = d->server_unread_count + d->local_unread_count;
+        const char *change_source = was_in_list ? "on_dialog_leave" : "on_dialog_join";
+        if (unread_count != 0 && list.is_message_unread_count_inited_) {
+          unread_count *= delta;
+
+          list.unread_message_total_count_ += unread_count;
+          if (is_dialog_muted(d)) {
+            list.unread_message_muted_count_ += unread_count;
+          }
+          send_update_unread_message_count(dialog_list_id, dialog_id, true, change_source);
+        }
+        if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
+          list.unread_dialog_total_count_ += delta;
+          if (unread_count == 0 && d->is_marked_as_unread) {
+            list.unread_dialog_marked_count_ += delta;
+          }
+          if (is_dialog_muted(d)) {
+            list.unread_dialog_muted_count_ += delta;
+            if (unread_count == 0 && d->is_marked_as_unread) {
+              list.unread_dialog_muted_marked_count_ += delta;
+            }
+          }
+        }
+
+        // always send update unread chat count, because total dialog count could change
+        send_update_unread_chat_count(dialog_list_id, dialog_id, true, change_source);
+      }
+
+      if (!is_loaded_from_database && dialog_list_id == d->folder_id) {
+        auto dialog_type = dialog_id.get_type();
+        if (dialog_type == DialogType::Channel && is_in_list && being_added_dialog_id_ != dialog_id) {
+          repair_channel_server_unread_count(d);
+          LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
+          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        }
+        if (dialog_type == DialogType::Channel && was_in_list) {
+          remove_all_dialog_notifications(d, false, "update_dialog_lists 1");
+          remove_all_dialog_notifications(d, true, "update_dialog_lists 2");
+          clear_active_dialog_actions(dialog_id);
+        }
+      }
+
+      if (was_in_list) {
+        bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
+        CHECK(is_removed);
+      } else {
+        d->dialog_list_ids.push_back(dialog_list_id);
+      }
+    }
+
+    if (!is_loaded_from_database && !old_order.is_sponsored && new_order.is_sponsored) {
+      // a chat is sponsored only if user isn't a chat member
+      remove_all_dialog_notifications(d, false, "update_dialog_lists 3");
+      remove_all_dialog_notifications(d, true, "update_dialog_lists 4");
+    }
   }
-  if (old_public_order != new_public_order && need_send_update_chat_order) {
-    send_update_chat_position(d->folder_id, d);
-  }
-  return true;
 }
 
 void MessagesManager::update_last_dialog_date(FolderId folder_id) {
@@ -29097,10 +29095,35 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
   return add_new_dialog(parse_dialog(dialog_id, value), true);
 }
 
+MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(const DialogList *list,
+                                                                             const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(list != nullptr);
+  CHECK(d != nullptr);
+  DialogOrderInList order;
+  order.order = d->order;
+  order.private_order = get_dialog_private_order(list, d);
+  order.public_order =
+      DialogDate(order.private_order, d->dialog_id) <= list->last_dialog_date_ ? order.private_order : 0;
+  order.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
+  order.is_sponsored = order.private_order != 0 && is_dialog_sponsored(d);
+  return order;
+}
+
+std::unordered_map<FolderId, MessagesManager::DialogOrderInList, FolderIdHash> MessagesManager::get_dialog_orders(
+    const Dialog *d) const {
+  CHECK(d != nullptr);
+  std::unordered_map<FolderId, MessagesManager::DialogOrderInList, FolderIdHash> orders;
+  if (!td_->auth_manager_->is_bot()) {
+    for (auto &dialog_list_id : d->dialog_list_ids) {
+      orders.emplace(dialog_list_id, get_dialog_order_in_list(get_dialog_list(dialog_list_id), d));
+    }
+  }
+  return orders;
+}
+
 vector<FolderId> MessagesManager::get_dialog_list_ids(const Dialog *d) {
-  vector<FolderId> dialog_list_ids;
-  dialog_list_ids.push_back(d->folder_id);
-  return dialog_list_ids;
+  return d->dialog_list_ids;
 }
 
 MessagesManager::DialogListView MessagesManager::get_dialog_lists(const Dialog *d) {
@@ -29603,9 +29626,8 @@ void MessagesManager::on_get_channel_difference(
 
       set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
 
-      on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
-
-      set_dialog_is_pinned(d->folder_id, d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0);
+      on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_),
+                                       "updates.channelDifferenceTooLong");
 
       bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
       if (is_marked_as_unread != d->is_marked_as_unread) {
@@ -29619,7 +29641,10 @@ void MessagesManager::on_get_channel_difference(
                             MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,
                             dialog->unread_mentions_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
                             std::move(difference->messages_));
-      need_update_dialog_pos = true;
+      update_dialog_pos(d, "updates.channelDifferenceTooLong");
+
+      // set is_pinned only after updating dialog pos to ensure that order is initialized
+      set_dialog_is_pinned(d->folder_id, d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0);
 
       set_channel_pts(d, new_pts, "channel difference too long");
       break;
