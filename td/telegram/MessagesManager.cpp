@@ -13694,11 +13694,10 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
-  auto *list = get_dialog_list(FolderId::main());
-  auto dialog_dates = transform(dialog_ids, [this, &fake_order, list](DialogId dialog_id) {
+  auto dialog_dates = transform(dialog_ids, [this, &fake_order](DialogId dialog_id) {
     const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    auto order = get_dialog_private_order(list, d);
+    auto order = get_dialog_base_order(d);
     if (is_dialog_inited(d) || order != DEFAULT_ORDER) {
       return DialogDate(order, dialog_id);
     }
@@ -15917,7 +15916,7 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
         if (is_dialog_message_notification_disabled(dialog_id, std::numeric_limits<int32>::max())) {
           continue;
         }
-        ordered_dialogs.push_back(DialogDate(get_dialog_private_order(&list.second, d), dialog_id));
+        ordered_dialogs.push_back(DialogDate(get_dialog_base_order(d), dialog_id));
       }
     }
     std::sort(ordered_dialogs.begin(), ordered_dialogs.end());
@@ -28584,7 +28583,7 @@ void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
     dialogs_hints_.remove(-d->dialog_id.get());
   } else {
     LOG(INFO) << "Change position of " << d->dialog_id << " in chats search";
-    dialogs_hints_.set_rating(-d->dialog_id.get(), -get_dialog_private_order(FolderId::main(), d));
+    dialogs_hints_.set_rating(-d->dialog_id.get(), -get_dialog_base_order(d));
   }
 }
 
@@ -28598,11 +28597,21 @@ bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
   return d->order == DEFAULT_ORDER && d->dialog_id == sponsored_dialog_id_;
 }
 
-int64 MessagesManager::get_dialog_private_order(FolderId folder_id, const Dialog *d) const {
+int64 MessagesManager::get_dialog_base_order(const Dialog *d) const {
   if (td_->auth_manager_->is_bot()) {
     return 0;  // to not call get_dialog_list
   }
-  return get_dialog_private_order(get_dialog_list(folder_id), d);
+  if (is_dialog_sponsored(d)) {
+    return SPONSORED_DIALOG_ORDER;
+  }
+  if (d->order == DEFAULT_ORDER) {
+    return 0;
+  }
+  auto pinned_order = get_dialog_pinned_order(FolderId::main(), d->dialog_id);
+  if (pinned_order != DEFAULT_ORDER) {
+    return pinned_order;
+  }
+  return d->order;
 }
 
 int64 MessagesManager::get_dialog_private_order(const DialogList *list, const Dialog *d) const {

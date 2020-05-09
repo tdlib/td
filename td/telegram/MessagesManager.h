@@ -2333,7 +2333,7 @@ class MessagesManager : public Actor {
 
   bool is_dialog_sponsored(const Dialog *d) const;
 
-  int64 get_dialog_private_order(FolderId folder_id, const Dialog *d) const;
+  int64 get_dialog_base_order(const Dialog *d) const;
 
   int64 get_dialog_private_order(const DialogList *list, const Dialog *d) const;
 
