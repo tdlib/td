@@ -28676,7 +28676,8 @@ vector<td_api::object_ptr<td_api::chatPosition>> MessagesManager::get_chat_posit
 }
 
 int64 MessagesManager::get_next_pinned_dialog_order() {
-  LOG(INFO) << "Assign pinned_order = " << ++current_pinned_dialog_order_;
+  current_pinned_dialog_order_++;
+  LOG(INFO) << "Assign pinned_order = " << current_pinned_dialog_order_;
   return current_pinned_dialog_order_;
 }
 
@@ -28865,6 +28866,8 @@ void MessagesManager::update_dialog_lists(Dialog *d,
       send_update_chat_position(dialog_list_id, d);
     }
 
+    bool need_update_unread_chat_count = list.is_dialog_unread_count_inited_ && !is_loaded_from_database &&
+                                         old_order.total_dialog_count != new_order.total_dialog_count;
     if (was_in_list != is_in_list) {
       const int32 delta = was_in_list ? -1 : 1;
       list.in_memory_dialog_total_count_ += delta;
@@ -28903,10 +28906,9 @@ void MessagesManager::update_dialog_lists(Dialog *d,
               list.unread_dialog_muted_marked_count_ += delta;
             }
           }
+          need_update_unread_chat_count = false;
+          send_update_unread_chat_count(dialog_list_id, dialog_id, true, change_source);
         }
-
-        // always send update unread chat count, because total dialog count could change
-        send_update_unread_chat_count(dialog_list_id, dialog_id, true, change_source);
       }
 
       if (!is_loaded_from_database && dialog_list_id == d->folder_id) {
@@ -28929,6 +28931,10 @@ void MessagesManager::update_dialog_lists(Dialog *d,
       } else {
         d->dialog_list_ids.push_back(dialog_list_id);
       }
+    }
+
+    if (need_update_unread_chat_count) {
+      send_update_unread_chat_count(dialog_list_id, dialog_id, true, "changed chat_count");
     }
 
     if (!is_loaded_from_database && !old_order.is_sponsored && new_order.is_sponsored) {
@@ -29124,6 +29130,7 @@ MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(con
       DialogDate(order.private_order, d->dialog_id) <= list->last_dialog_date_ ? order.private_order : 0;
   order.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
   order.is_sponsored = order.private_order != 0 && is_dialog_sponsored(d);
+  order.total_dialog_count = get_dialog_total_count(*list);
   return order;
 }
 

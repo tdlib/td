@@ -1296,6 +1296,8 @@ class MessagesManager : public Actor {
     int64 public_order = 0;
     bool is_pinned = false;
     bool is_sponsored = false;
+
+    int32 total_dialog_count = 0;
   };
 
   class MessagesIteratorBase {
