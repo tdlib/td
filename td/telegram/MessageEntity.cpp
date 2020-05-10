@@ -3543,6 +3543,25 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
       break;
     }
 
+    if (!nested_entities_stack.empty() && nested_entities_stack.back()->offset == utf16_offset &&
+        (text[pos] == '\n' || text[pos] == ' ')) {
+      // entities was fixed, so there can't be more than one splittable entity of each type, one blockquote and
+      // one continuous entity for the given offset
+      for (size_t i = nested_entities_stack.size(); i > 0; i--) {
+        auto *entity = nested_entities_stack[i - 1];
+        if (entity->offset != utf16_offset || entity->type == MessageEntity::Type::TextUrl ||
+            entity->type == MessageEntity::Type::MentionName || is_pre_entity(entity->type)) {
+          break;
+        }
+        entity->offset++;
+        entity->length--;
+        if (entity->length == 0) {
+          CHECK(i == nested_entities_stack.size());
+          nested_entities_stack.pop_back();
+        }
+      }
+    }
+
     auto c = static_cast<unsigned char>(text[pos]);
     switch (c) {
       case '\n':

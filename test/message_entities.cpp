@@ -627,24 +627,33 @@ TEST(MessageEntities, fix_formatted_text) {
 
   for (td::int32 i = 33; i <= 35; i++) {
     td::vector<td::MessageEntity> entities;
+    entities.emplace_back(td::MessageEntity::Type::Pre, 0, i);
+
+    td::vector<td::MessageEntity> fixed_entities = entities;
+    fixed_entities.back().length = i - 1;
+    check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, true);
+
+    td::string expected_str = fixed_str.substr(0, 33);
+    fixed_entities.back().length = i == 33 ? 32 : 33;
+    check_fix_formatted_text(str, entities, expected_str, fixed_entities, false, false, false, false);
+  }
+
+  for (td::int32 i = 33; i <= 35; i++) {
+    td::vector<td::MessageEntity> entities;
     entities.emplace_back(td::MessageEntity::Type::Bold, 0, i);
 
     td::vector<td::MessageEntity> fixed_entities;
     if (i != 33) {
-      fixed_entities = entities;
-      fixed_entities.back().length = i - 1;
+      fixed_entities.emplace_back(td::MessageEntity::Type::Bold, 32, i - 33);
     }
     check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, true);
 
     td::string expected_str;
     if (i != 33) {
-      fixed_entities = entities;
-      fixed_entities.back().length = 33;
-      expected_str = fixed_str.substr(0, 33);
-    } else {
-      fixed_entities.clear();
-      expected_str = "a";
+      fixed_entities.back().offset = 0;
+      fixed_entities.back().length = 1;
     }
+    expected_str = "a";
     check_fix_formatted_text(str, entities, expected_str, fixed_entities, false, false, false, false);
   }
 
@@ -702,6 +711,12 @@ TEST(MessageEntities, fix_formatted_text) {
           while (static_cast<size_t>(fixed_offset + fixed_length) > fixed_str.size()) {
             fixed_length--;
           }
+          if (type == td::MessageEntity::Type::Bold || type == td::MessageEntity::Type::Url) {
+            while (fixed_length > 0 && (fixed_str[fixed_offset] == ' ' || fixed_str[fixed_offset] == '\n')) {
+              fixed_offset++;
+              fixed_length--;
+            }
+          }
 
           td::vector<td::MessageEntity> entities;
           entities.emplace_back(type, offset, length);
@@ -727,22 +742,29 @@ TEST(MessageEntities, fix_formatted_text) {
     for (td::int32 offset = -10; offset <= 10; offset++) {
       td::vector<td::MessageEntity> entities;
       entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
-      td::vector<td::MessageEntity> fixed_entities;
       if (length < 0 || offset < 0 || (length > 0 && static_cast<size_t>(length + offset) > str.size())) {
         check_fix_formatted_text(str, entities, true, false, false, false);
         check_fix_formatted_text(str, entities, false, false, false, true);
         continue;
       }
 
-      if (length > 0 && (length >= 2 || offset != 3)) {
-        fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
+      td::vector<td::MessageEntity> fixed_entities;
+      if (length > 0) {
+        if (offset == 3) {
+          if (length >= 2) {
+            fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset + 1, length - 1);
+          }
+        } else {
+          fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
+        }
       }
+
       check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);
       check_fix_formatted_text(str, entities, str, fixed_entities, false, false, false, true);
     }
   }
 
-  str = "aba caba";
+  str = "abadcaba";
   for (td::int32 length = 1; length <= 7; length++) {
     for (td::int32 offset = 0; offset <= 8 - length; offset++) {
       for (td::int32 length2 = 1; length2 <= 7; length2++) {
@@ -926,7 +948,7 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text("example.com a", {{td::MessageEntity::Type::Italic, 0, 13}}, "example.com a",
                            {{td::MessageEntity::Type::Url, 0, 11},
                             {td::MessageEntity::Type::Italic, 0, 11},
-                            {td::MessageEntity::Type::Italic, 11, 2}});
+                            {td::MessageEntity::Type::Italic, 12, 1}});
   check_fix_formatted_text("a example.com", {{td::MessageEntity::Type::Italic, 0, 13}}, "a example.com",
                            {{td::MessageEntity::Type::Italic, 0, 2},
                             {td::MessageEntity::Type::Url, 2, 11},
