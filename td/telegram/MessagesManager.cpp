@@ -4941,7 +4941,7 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
 void MessagesManager::on_save_dialog_to_database(DialogId dialog_id, bool can_reuse_notification_group, bool success) {
   LOG(INFO) << "Successfully saved " << dialog_id << " to database";
 
-  if (success && can_reuse_notification_group) {
+  if (success && can_reuse_notification_group && !G()->close_flag()) {
     auto d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     try_reuse_notification_group(d->message_notification_group);
@@ -9813,6 +9813,10 @@ void MessagesManager::repair_secret_chat_total_count(FolderId folder_id) {
 }
 
 void MessagesManager::on_get_secret_chat_total_count(FolderId folder_id, int32 total_count) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   CHECK(total_count >= 0);
@@ -10777,6 +10781,10 @@ void MessagesManager::ttl_db_loop(double server_now) {
 
 void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> r_result,
                                        bool dummy) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto result = r_result.move_as_ok();
   ttl_db_has_query_ = false;
   ttl_db_expires_from_ = ttl_db_expires_till_;
@@ -13307,6 +13315,9 @@ void MessagesManager::load_dialog_list_from_database(FolderId folder_id, int32 l
 
 void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                                    Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   CHECK(!td_->auth_manager_->is_bot());
   auto &list = get_dialog_list(folder_id);
   LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
@@ -16866,6 +16877,9 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
                                                           SearchMessagesFilter filter_type, int32 offset, int32 limit,
                                                           Result<std::vector<BufferSlice>> r_messages,
                                                           Promise<> promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   if (r_messages.is_error()) {
     LOG(ERROR) << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
@@ -16981,7 +16995,10 @@ std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages
 }
 
 void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id,
-                                                Promise<> &&promise) {
+                                                Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    result = Status::Error(500, "Request aborted");
+  }
   if (result.is_error()) {
     found_fts_messages_.erase(random_id);
     return promise.set_error(result.move_as_error());
@@ -17010,6 +17027,9 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
                                                   MessageId first_db_message_id, SearchMessagesFilter filter,
                                                   Promise<> &&promise) {
   CHECK(!first_db_message_id.is_scheduled());
+  if (G()->close_flag()) {
+    result = Status::Error(500, "Request aborted");
+  }
   if (result.is_error()) {
     found_call_messages_.erase(random_id);
     return promise.set_error(result.move_as_error());
@@ -17161,6 +17181,9 @@ MessageId MessagesManager::find_message_by_date(const Message *m, int32 date) {
 
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                                   Result<BufferSlice> result, Promise<Unit> promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (result.is_ok()) {
@@ -17392,6 +17415,10 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
 
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(WARNING) << "Ignore result of get_history_from_database in " << dialog_id;
     promise.set_value(Unit());
@@ -17576,12 +17603,12 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local,
                                                Promise<Unit> &&promise) {
   CHECK(dialog_id.is_valid());
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
-  }
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
   }
   int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
@@ -17783,6 +17810,18 @@ void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool fr
 }
 
 void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id, vector<BufferSlice> &&messages) {
+  if (G()->close_flag()) {
+    auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
+    CHECK(it != load_scheduled_messages_from_database_queries_.end());
+    CHECK(!it->second.empty());
+    auto promises = std::move(it->second);
+    load_scheduled_messages_from_database_queries_.erase(it);
+
+    for (auto &promise : promises) {
+      promise.set_error(Status::Error(500, "Request aborted"));
+    }
+    return;
+  }
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   d->has_loaded_scheduled_messages_from_database = true;
@@ -22196,6 +22235,9 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
                                                                  NotificationId initial_from_notification_id,
                                                                  int32 limit, Result<vector<BufferSlice>> result,
                                                                  Promise<vector<Notification>> promise) {
+  if (G()->close_flag()) {
+    result = Status::Error(500, "Request aborted");
+  }
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
@@ -22382,7 +22424,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
 
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool from_mentions,
                                                      NotificationId notification_id, vector<BufferSlice> result) {
-  if (result.empty()) {
+  if (result.empty() || G()->close_flag()) {
     return;
   }
   CHECK(result.size() == 1);
@@ -24041,6 +24083,9 @@ void MessagesManager::set_dialog_has_scheduled_server_messages(Dialog *d, bool h
 
 void MessagesManager::set_dialog_has_scheduled_database_messages(DialogId dialog_id,
                                                                  bool has_scheduled_database_messages) {
+  if (G()->close_flag()) {
+    return;
+  }
   return set_dialog_has_scheduled_database_messages_impl(get_dialog(dialog_id), has_scheduled_database_messages);
 }
 

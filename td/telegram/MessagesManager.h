@@ -2225,7 +2225,7 @@ class MessagesManager : public Actor {
   void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id, Promise<> &&promise);
 
   void on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
-                                   SearchMessagesFilter filter, Promise<> &&promise);
+                                   SearchMessagesFilter filter, Promise<Unit> &&promise);
 
   void on_load_active_live_location_full_message_ids_from_database(string value);
 
