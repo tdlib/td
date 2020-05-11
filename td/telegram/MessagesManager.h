@@ -2176,7 +2176,9 @@ class MessagesManager : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
-  DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d) const;
+  bool need_dialog_in_list(const DialogList &list, const Dialog *d) const;
+
+  DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
 
   std::unordered_map<FolderId, DialogOrderInList, FolderIdHash> get_dialog_orders(const Dialog *d) const;
 

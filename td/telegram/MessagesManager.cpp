@@ -28637,9 +28637,6 @@ int64 MessagesManager::get_dialog_private_order(const DialogList *list, const Di
   if (pinned_order != DEFAULT_ORDER) {
     return pinned_order;
   }
-  if (list->folder_id != d->folder_id) {
-    return 0;
-  }
   return d->order;
 }
 
@@ -28854,7 +28851,7 @@ void MessagesManager::update_dialog_lists(Dialog *d,
     auto &list = dialog_list.second;
 
     const DialogOrderInList &old_order = old_orders[dialog_list_id];
-    const DialogOrderInList new_order = get_dialog_order_in_list(&list, d);
+    const DialogOrderInList new_order = get_dialog_order_in_list(&list, d, true);
 
     bool was_in_list = old_order.order != DEFAULT_ORDER && old_order.private_order != 0;
     bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
@@ -29118,18 +29115,26 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
   return add_new_dialog(parse_dialog(dialog_id, value), true);
 }
 
-MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(const DialogList *list,
-                                                                             const Dialog *d) const {
+bool MessagesManager::need_dialog_in_list(const DialogList &list, const Dialog *d) const {
+  return d->folder_id == list.folder_id;
+}
+
+MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(const DialogList *list, const Dialog *d,
+                                                                             bool actual) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(list != nullptr);
   CHECK(d != nullptr);
   DialogOrderInList order;
   order.order = d->order;
-  order.private_order = get_dialog_private_order(list, d);
-  order.public_order =
-      DialogDate(order.private_order, d->dialog_id) <= list->last_dialog_date_ ? order.private_order : 0;
-  order.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
-  order.is_sponsored = order.private_order != 0 && is_dialog_sponsored(d);
+  if (actual ? need_dialog_in_list(*list, d) : td::contains(d->dialog_list_ids, list->folder_id)) {
+    order.private_order = get_dialog_private_order(list, d);
+  }
+  if (order.private_order != 0) {
+    order.public_order =
+        DialogDate(order.private_order, d->dialog_id) <= list->last_dialog_date_ ? order.private_order : 0;
+    order.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
+    order.is_sponsored = is_dialog_sponsored(d);
+  }
   order.total_dialog_count = get_dialog_total_count(*list);
   return order;
 }
