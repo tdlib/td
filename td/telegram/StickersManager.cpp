@@ -1584,9 +1584,10 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
 
   PhotoSize thumbnail;
   for (auto &thumb : document->thumbs_) {
-    auto photo_size = get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, document_id,
-                                     document->access_hash_, document->file_reference_.as_slice().str(), dc_id,
-                                     DialogId(), std::move(thumb), has_webp_thumbnail(sticker), false);
+    auto photo_size =
+        get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, document_id, document->access_hash_,
+                       document->file_reference_.as_slice().str(), dc_id, DialogId(), std::move(thumb),
+                       has_webp_thumbnail(sticker) ? PhotoFormat::Webp : PhotoFormat::Jpeg);
     if (photo_size.get_offset() == 0) {
       thumbnail = std::move(photo_size.get<0>());
       break;
@@ -2084,7 +2085,8 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   PhotoSize thumbnail;
   if (set->thumb_ != nullptr) {
     auto photo_size = get_photo_size(td_->file_manager_.get(), {set_id.get(), s->access_hash}, 0, 0, "",
-                                     DcId::create(set->thumb_dc_id_), DialogId(), std::move(set->thumb_), true, false);
+                                     DcId::create(set->thumb_dc_id_), DialogId(), std::move(set->thumb_),
+                                     is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
     if (photo_size.get_offset() == 0) {
       thumbnail = std::move(photo_size.get<0>());
     } else {
