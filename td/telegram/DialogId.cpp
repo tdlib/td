@@ -14,18 +14,14 @@ namespace td {
 
 bool DialogId::is_valid() const {
   switch (get_type()) {
-    case DialogType::User: {
+    case DialogType::User:
       return get_user_id().is_valid();
-    }
-    case DialogType::Chat: {
+    case DialogType::Chat:
       return get_chat_id().is_valid();
-    }
-    case DialogType::Channel: {
+    case DialogType::Channel:
       return get_channel_id().is_valid();
-    }
-    case DialogType::SecretChat: {
+    case DialogType::SecretChat:
       return get_secret_chat_id().is_valid();
-    }
     case DialogType::None:
       return false;
     default:

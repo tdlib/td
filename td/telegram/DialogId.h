@@ -37,7 +37,6 @@ class DialogId {
   static int64 get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer);
 
  public:
-  using UnderlyingType = decltype(id);
   DialogId() = default;
 
   explicit DialogId(int64 dialog_id) : id(dialog_id) {
