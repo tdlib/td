@@ -26,7 +26,6 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
@@ -1218,6 +1217,8 @@ class MessagesManager : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct DialogFilter;
+
   struct DialogList {
     FolderId folder_id;
     bool is_message_unread_count_inited_ = false;
@@ -1482,6 +1483,8 @@ class MessagesManager : public Actor {
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
+  class DialogFiltersLogEvent;
+
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
   static constexpr int32 MAX_GET_HISTORY = 100;                    // server side limit
@@ -1496,6 +1499,7 @@ class MessagesManager : public Actor {
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
+  static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
 
   static constexpr int32 UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS = 1 << 0;
 
@@ -1980,6 +1984,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
 
+  void send_update_chat_filters(bool from_database = false);
+
   void send_update_unread_message_count(FolderId folder_id, DialogId dialog_id, bool force, const char *source);
 
   void send_update_unread_chat_count(FolderId folder_id, DialogId dialog_id, bool force, const char *source);
@@ -2031,6 +2037,8 @@ class MessagesManager : public Actor {
   void on_get_secret_chat_total_count(FolderId folder_id, int32 total_count);
 
   void recalc_unread_count(FolderId folder_id);
+
+  td_api::object_ptr<td_api::updateChatFilters> get_update_chat_filters_object() const;
 
   td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object(
       const DialogList &list) const;
@@ -2174,6 +2182,12 @@ class MessagesManager : public Actor {
   vector<DialogId> get_pinned_dialog_ids(FolderId folder_id) const;
 
   void reload_pinned_dialogs(FolderId folder_id, Promise<Unit> &&promise);
+
+  void schedule_dialog_filters_reload(double timeout);
+
+  static void reload_dialog_filters(void *td);
+
+  void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters, bool dummy);
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
@@ -2760,6 +2774,9 @@ class MessagesManager : public Actor {
 
   std::unordered_map<FolderId, DialogList, FolderIdHash> dialog_lists_;
 
+  int32 dialog_filters_updated_date_ = 0;
+  vector<unique_ptr<DialogFilter>> dialog_filters_;
+
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
 
@@ -2776,6 +2793,8 @@ class MessagesManager : public Actor {
   MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout preload_dialog_list_timeout_{"PreloadDialogListTimeout"};
+
+  Timeout reload_dialog_filters_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and username
 

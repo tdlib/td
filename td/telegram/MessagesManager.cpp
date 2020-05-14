@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -83,6 +84,32 @@ void dummyUpdate::store(TlStorerToString &s, const char *field_name) const {
   s.store_class_begin(field_name, "dummyUpdate");
   s.store_class_end();
 }
+
+class GetDialogFiltersQuery : public Td::ResultHandler {
+  Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> promise_;
+
+ public:
+  explicit GetDialogFiltersQuery(Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getDialogFilters()));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getDialogFilters>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class GetOnlinesQuery : public Td::ResultHandler {
   DialogId dialog_id_;
@@ -4686,6 +4713,140 @@ void MessagesManager::CallsDbState::parse(ParserT &parser) {
     parse(message_count_by_index[i], parser);
   }
 }
+
+struct MessagesManager::DialogFilter {
+  DialogFilterId dialog_filter_id;
+  string title;
+  string emoji;
+  vector<InputDialogId> pinned_dialog_ids;
+  vector<InputDialogId> included_dialog_ids;
+  vector<InputDialogId> excluded_dialog_ids;
+  bool exclude_muted = false;
+  bool exclude_read = false;
+  bool exclude_archived = false;
+  bool include_contacts = false;
+  bool include_non_contacts = false;
+  bool include_bots = false;
+  bool include_groups = false;
+  bool include_channels = false;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+
+  friend bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
+    return lhs.dialog_filter_id == rhs.dialog_filter_id && lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
+           lhs.pinned_dialog_ids == rhs.pinned_dialog_ids && lhs.included_dialog_ids == rhs.included_dialog_ids &&
+           lhs.excluded_dialog_ids == rhs.excluded_dialog_ids && lhs.exclude_muted == rhs.exclude_muted &&
+           lhs.exclude_read == rhs.exclude_read && lhs.exclude_archived == rhs.exclude_archived &&
+           lhs.include_contacts == rhs.include_contacts && lhs.include_non_contacts == rhs.include_non_contacts &&
+           lhs.include_bots == rhs.include_bots && lhs.include_groups == rhs.include_groups &&
+           lhs.include_channels == rhs.include_channels;
+  }
+
+  friend bool operator==(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
+    return *lhs == *rhs;
+  }
+};
+
+template <class StorerT>
+void MessagesManager::DialogFilter::store(StorerT &storer) const {
+  using td::store;
+  bool has_pinned_dialog_ids = !pinned_dialog_ids.empty();
+  bool has_included_dialog_ids = !included_dialog_ids.empty();
+  bool has_excluded_dialog_ids = !excluded_dialog_ids.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(exclude_muted);
+  STORE_FLAG(exclude_read);
+  STORE_FLAG(exclude_archived);
+  STORE_FLAG(include_contacts);
+  STORE_FLAG(include_non_contacts);
+  STORE_FLAG(include_bots);
+  STORE_FLAG(include_groups);
+  STORE_FLAG(include_channels);
+  STORE_FLAG(has_pinned_dialog_ids);
+  STORE_FLAG(has_included_dialog_ids);
+  STORE_FLAG(has_excluded_dialog_ids);
+  END_STORE_FLAGS();
+
+  store(dialog_filter_id, storer);
+  store(title, storer);
+  store(emoji, storer);
+  if (has_pinned_dialog_ids) {
+    store(pinned_dialog_ids, storer);
+  }
+  if (has_included_dialog_ids) {
+    store(included_dialog_ids, storer);
+  }
+  if (has_excluded_dialog_ids) {
+    store(excluded_dialog_ids, storer);
+  }
+}
+
+template <class ParserT>
+void MessagesManager::DialogFilter::parse(ParserT &parser) {
+  using td::parse;
+  bool has_pinned_dialog_ids = !pinned_dialog_ids.empty();
+  bool has_included_dialog_ids = !included_dialog_ids.empty();
+  bool has_excluded_dialog_ids = !excluded_dialog_ids.empty();
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(exclude_muted);
+  PARSE_FLAG(exclude_read);
+  PARSE_FLAG(exclude_archived);
+  PARSE_FLAG(include_contacts);
+  PARSE_FLAG(include_non_contacts);
+  PARSE_FLAG(include_bots);
+  PARSE_FLAG(include_groups);
+  PARSE_FLAG(include_channels);
+  PARSE_FLAG(has_pinned_dialog_ids);
+  PARSE_FLAG(has_included_dialog_ids);
+  PARSE_FLAG(has_excluded_dialog_ids);
+  END_PARSE_FLAGS();
+
+  parse(dialog_filter_id, parser);
+  parse(title, parser);
+  parse(emoji, parser);
+  if (has_pinned_dialog_ids) {
+    parse(pinned_dialog_ids, parser);
+  }
+  if (has_included_dialog_ids) {
+    parse(included_dialog_ids, parser);
+  }
+  if (has_excluded_dialog_ids) {
+    parse(excluded_dialog_ids, parser);
+  }
+}
+
+class MessagesManager::DialogFiltersLogEvent {
+ public:
+  int32 updated_date = 0;
+  vector<const DialogFilter *> dialog_filters_in;
+  vector<unique_ptr<DialogFilter>> dialog_filters_out;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(updated_date, storer);
+
+    td::store(narrow_cast<int32>(dialog_filters_in.size()), storer);
+    for (auto filter : dialog_filters_in) {
+      td::store(*filter, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(updated_date, parser);
+
+    CHECK(dialog_filters_out.empty());
+    int32 size = parser.fetch_int();
+    dialog_filters_out.resize(size);
+    for (auto &filter : dialog_filters_out) {
+      td::parse(filter, parser);
+    }
+  }
+};
 
 void MessagesManager::load_calls_db_state() {
   if (!G()->parameters().use_message_db) {
@@ -10570,6 +10731,16 @@ void MessagesManager::init() {
       }
     }
 
+    auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
+    if (!dialog_filters.empty()) {
+      DialogFiltersLogEvent log_event;
+      log_event_parse(log_event, dialog_filters).ensure();
+
+      dialog_filters_updated_date_ = log_event.updated_date;
+      dialog_filters_ = std::move(log_event.dialog_filters_out);
+    }
+    send_update_chat_filters(true);  // always send updateChatFilters
+
     auto unread_message_counts = G()->td_db()->get_binlog_pmc()->prefix_get("unread_message_count");
     for (auto &it : unread_message_counts) {
       auto r_folder_id = to_integer_safe<int32>(it.first);
@@ -10674,6 +10845,10 @@ void MessagesManager::init() {
   if (!td_->auth_manager_->is_bot()) {  // ensure that Main and Archive dialog lists are created
     get_dialog_list(FolderId::main());
     get_dialog_list(FolderId::archive());
+  }
+
+  if (!td_->auth_manager_->is_bot()) {
+    schedule_dialog_filters_reload(dialog_filters_updated_date_ + DIALOG_FILTERS_CACHE_TIME - G()->unix_time());
   }
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
@@ -13605,6 +13780,76 @@ void MessagesManager::reload_pinned_dialogs(FolderId folder_id, Promise<Unit> &&
   }
   send_closure(td_->create_net_actor<GetPinnedDialogsActor>(std::move(promise)), &GetPinnedDialogsActor::send,
                folder_id, get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+}
+
+void MessagesManager::schedule_dialog_filters_reload(double timeout) {
+  if (timeout < 0) {
+    timeout = 0.0;
+  }
+  LOG(INFO) << "Schedule reload of dialog filters in " << timeout;
+  reload_dialog_filters_timeout_.set_callback(std::move(MessagesManager::reload_dialog_filters));
+  reload_dialog_filters_timeout_.set_callback_data(static_cast<void *>(td_));
+  reload_dialog_filters_timeout_.set_timeout_in(timeout);
+}
+
+void MessagesManager::reload_dialog_filters(void *td) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto td_ptr = static_cast<Td *>(td);
+  auto messages_manager = td_ptr->messages_manager_.get();
+  auto promise = PromiseCreator::lambda([actor_id = messages_manager->actor_id(messages_manager)](
+                                            Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
+    send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
+  });
+  td_ptr->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
+}
+
+void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters,
+                                            bool dummy) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (r_filters.is_error()) {
+    LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
+    schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
+    return;
+  }
+
+  auto filters = r_filters.move_as_ok();
+  vector<unique_ptr<DialogFilter>> dialog_filters;
+  LOG(INFO) << "Receive " << filters.size() << " chat filters";
+  for (auto &filter : filters) {
+    auto dialog_filter = make_unique<DialogFilter>();
+    dialog_filter->dialog_filter_id = DialogFilterId(filter->id_);
+    if (!dialog_filter->dialog_filter_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(filter);
+      continue;
+    }
+    dialog_filter->title = std::move(filter->title_);
+    dialog_filter->emoji = std::move(filter->emoticon_);
+    dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_);
+    dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_);
+    dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_);
+    auto flags = filter->flags_;
+    dialog_filter->exclude_muted = (flags & telegram_api::dialogFilter::EXCLUDE_MUTED_MASK) != 0;
+    dialog_filter->exclude_read = (flags & telegram_api::dialogFilter::EXCLUDE_READ_MASK) != 0;
+    dialog_filter->exclude_archived = (flags & telegram_api::dialogFilter::EXCLUDE_ARCHIVED_MASK) != 0;
+    dialog_filter->include_contacts = (flags & telegram_api::dialogFilter::CONTACTS_MASK) != 0;
+    dialog_filter->include_non_contacts = (flags & telegram_api::dialogFilter::NON_CONTACTS_MASK) != 0;
+    dialog_filter->include_bots = (flags & telegram_api::dialogFilter::BOTS_MASK) != 0;
+    dialog_filter->include_groups = (flags & telegram_api::dialogFilter::GROUPS_MASK) != 0;
+    dialog_filter->include_channels = (flags & telegram_api::dialogFilter::BROADCASTS_MASK) != 0;
+    dialog_filters.push_back(std::move(dialog_filter));
+  }
+
+  dialog_filters_updated_date_ = G()->unix_time();
+  if (dialog_filters_ != dialog_filters) {
+    // TODO update all changed chat lists and their unread counts
+    dialog_filters_ = std::move(dialog_filters);
+    send_update_chat_filters(false);
+  }
+  schedule_dialog_filters_reload(DIALOG_FILTERS_CACHE_TIME * 0.0001 * Random::fast(9000, 11000));
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
@@ -23139,6 +23384,21 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
+void MessagesManager::send_update_chat_filters(bool from_database) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (!from_database) {
+    DialogFiltersLogEvent log_event;
+    log_event.updated_date = dialog_filters_updated_date_;
+    log_event.dialog_filters_in = transform(dialog_filters_, [](auto &filter) { return filter.get(); });
+
+    G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
+  }
+  send_closure(G()->td(), &Td::send_update, get_update_chat_filters_object());
+}
+
 void MessagesManager::send_update_unread_message_count(FolderId folder_id, DialogId dialog_id, bool force,
                                                        const char *source) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
@@ -31093,8 +31353,19 @@ void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource sour
   save_sponsored_dialog();
 }
 
+td_api::object_ptr<td_api::updateChatFilters> MessagesManager::get_update_chat_filters_object() const {
+  CHECK(!td_->auth_manager_->is_bot());
+  auto update = td_api::make_object<td_api::updateChatFilters>();
+  for (const auto &filter : dialog_filters_) {
+    update->chat_filters_.push_back(
+        td_api::make_object<td_api::chatFilterInfo>(filter->dialog_filter_id.get(), filter->title, filter->emoji));
+  }
+  return update;
+}
+
 td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update_unread_message_count_object(
     const DialogList &list) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(list.is_message_unread_count_inited_);
   int32 unread_count = list.unread_message_total_count_;
   int32 unread_unmuted_count = list.unread_message_total_count_ - list.unread_message_muted_count_;
@@ -31106,6 +31377,7 @@ td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update
 
 td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_unread_chat_count_object(
     const DialogList &list) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(list.is_dialog_unread_count_inited_);
   int32 unread_count = list.unread_dialog_total_count_;
   int32 unread_unmuted_count = unread_count - list.unread_dialog_muted_count_;
@@ -31122,6 +31394,9 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
 
 void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!td_->auth_manager_->is_bot()) {
+    if (!dialog_filters_.empty()) {
+      updates.push_back(get_update_chat_filters_object());
+    }
     if (G()->parameters().use_message_db) {
       for (const auto &it : dialog_lists_) {
         auto &list = it.second;

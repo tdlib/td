@@ -649,6 +649,13 @@ chatTypeSupergroup supergroup_id:int32 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 
+//@description Contains basic information about a chat filter
+//@chat_filter_id Unique chat filter identifier
+//@title The title of the filter
+//@emoji The emoji for short filter representation
+chatFilterInfo chat_filter_id:int32 title:string emoji:string = ChatFilterInfo;
+
+
 //@class ChatList @description Describes a list of chats
 
 //@description A main list of chats
@@ -2935,6 +2942,9 @@ updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
+
+//@description The list of chat filters has changed @chat_filters The new list of chat filters
+updateChatFilters chat_filters:vector<chatFilterInfo> = Update;
 
 //@description The number of online group members has changed. This update with non-zero count is sent only for currently opened chats. There is no guarantee that it will be sent just after the count has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
