@@ -24572,6 +24572,17 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
 }
 
+void MessagesManager::on_update_dialog_filters() {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  // TODO logevent
+
+  schedule_dialog_filters_reload(0.0);
+}
+
 void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
                                                    DialogType expected_type, Promise<Unit> &&promise) {
   auto sent_messages = UpdatesManager::get_new_messages(updates.get());

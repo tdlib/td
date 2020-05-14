@@ -298,6 +298,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id);
 
+  void on_update_dialog_filters();
+
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
 
