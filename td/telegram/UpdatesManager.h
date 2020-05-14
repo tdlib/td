@@ -239,7 +239,9 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, bool /*force_apply*/);
 
+  void on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, bool /*force_apply*/);
@@ -294,9 +296,6 @@ class UpdatesManager : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/);
-
-  void on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/);
-  void on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/);
 };
 
 }  // namespace td

@@ -1857,7 +1857,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMar
       DialogId(update->peer_), (update->flags_ & telegram_api::updateDialogUnreadMark::UNREAD_MASK) != 0);
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_filters();
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_filters();
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/) {
   td_->messages_manager_->on_update_dialog_filters();
 }
 
@@ -2039,12 +2047,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> upd
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/) {
 }
 
 }  // namespace td
