@@ -1857,17 +1857,14 @@ httpUrl url:string = HttpUrl;
 
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
 
-//@description Represents a link to an animated GIF @id Unique identifier of the query result @title Title of the query result @thumbnail_url URL of the static result thumbnail (JPEG or GIF), if it exists
-//@gif_url The URL of the GIF-file (file size must not exceed 1MB) @gif_duration Duration of the GIF, in seconds @gif_width Width of the GIF @gif_height Height of the GIF
+//@description Represents a link to an animated GIF or an animated (i.e. without sound) H.264/MPEG-4 AVC video
+//@id Unique identifier of the query result @title Title of the query result
+//@thumbnail_url URL of the result thumbnail (JPEG, GIF, or MPEG4), if it exists @thumbnail_mime_type MIME type of the video thumbnail. If non-empty, must be one of "image/jpeg", "image/gif" and "video/mp4"
+//@video_url The URL of the video file (file size must not exceed 1MB) @video_mime_type MIME type of the video file. Must be one of "image/gif" and "video/mp4"
+//@video_duration Duration of the video, in seconds @video_width Width of the video @video_height Height of the video
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageAnimation, InputMessageLocation, InputMessageVenue or InputMessageContact
-inputInlineQueryResultAnimatedGif id:string title:string thumbnail_url:string gif_url:string gif_duration:int32 gif_width:int32 gif_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
-
-//@description Represents a link to an animated (i.e. without sound) H.264/MPEG-4 AVC video @id Unique identifier of the query result @title Title of the result @thumbnail_url URL of the static result thumbnail (JPEG or GIF), if it exists
-//@mpeg4_url The URL of the MPEG4-file (file size must not exceed 1MB) @mpeg4_duration Duration of the video, in seconds @mpeg4_width Width of the video @mpeg4_height Height of the video
-//@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageAnimation, InputMessageLocation, InputMessageVenue or InputMessageContact
-inputInlineQueryResultAnimatedMpeg4 id:string title:string thumbnail_url:string mpeg4_url:string mpeg4_duration:int32 mpeg4_width:int32 mpeg4_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
+inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thumbnail_mime_type:string video_url:string video_mime_type:string video_duration:int32 video_width:int32 video_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an article or web page @id Unique identifier of the query result @url URL of the result, if it exists @hide_url True, if the URL must be not shown @title Title of the result
 //@param_description A short description of the result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known

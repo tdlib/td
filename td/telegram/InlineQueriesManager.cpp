@@ -350,6 +350,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     string title;
     string description;
     string thumbnail_url;
+    string thumbnail_type = "image/jpeg";
     string content_url;
     string content_type;
     int32 thumbnail_width = 0;
@@ -361,42 +362,28 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     FileType file_type = FileType::Temp;
     Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> r_inline_message = Status::Error(500, "Uninited");
     switch (input_result->get_id()) {
-      case td_api::inputInlineQueryResultAnimatedGif::ID: {
-        auto animated_gif = move_tl_object_as<td_api::inputInlineQueryResultAnimatedGif>(input_result);
+      case td_api::inputInlineQueryResultAnimation::ID: {
+        auto animation = move_tl_object_as<td_api::inputInlineQueryResultAnimation>(input_result);
         type = "gif";
-        id = std::move(animated_gif->id_);
-        title = std::move(animated_gif->title_);
-        thumbnail_url = std::move(animated_gif->thumbnail_url_);
-        content_url = std::move(animated_gif->gif_url_);
-        content_type = "image/gif";
-        // duration = animated_gif->gif_duration_;
-        width = animated_gif->gif_width_;
-        height = animated_gif->gif_height_;
+        id = std::move(animation->id_);
+        title = std::move(animation->title_);
+        thumbnail_url = std::move(animation->thumbnail_url_);
+        if (!animation->thumbnail_mime_type_.empty()) {
+          thumbnail_type = std::move(animation->thumbnail_mime_type_);
+        }
+        content_url = std::move(animation->video_url_);
+        content_type = std::move(animation->video_mime_type_);
+        if (content_type != "image/gif" && content_type != "video/mp4") {
+          return promise.set_error(Status::Error(400, "Wrong animation MIME type specified"));
+        }
+        duration = animation->video_duration_;
+        width = animation->video_width_;
+        height = animation->video_height_;
         is_gallery = true;
 
         file_type = FileType::Animation;
-        r_inline_message =
-            get_inline_message(std::move(animated_gif->input_message_content_), std::move(animated_gif->reply_markup_),
-                               td_api::inputMessageAnimation::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultAnimatedMpeg4::ID: {
-        auto animated_mpeg4 = move_tl_object_as<td_api::inputInlineQueryResultAnimatedMpeg4>(input_result);
-        type = "gif";
-        id = std::move(animated_mpeg4->id_);
-        title = std::move(animated_mpeg4->title_);
-        thumbnail_url = std::move(animated_mpeg4->thumbnail_url_);
-        content_url = std::move(animated_mpeg4->mpeg4_url_);
-        content_type = "video/mp4";
-        duration = animated_mpeg4->mpeg4_duration_;
-        width = animated_mpeg4->mpeg4_width_;
-        height = animated_mpeg4->mpeg4_height_;
-        is_gallery = true;
-
-        file_type = FileType::Animation;
-        r_inline_message =
-            get_inline_message(std::move(animated_mpeg4->input_message_content_),
-                               std::move(animated_mpeg4->reply_markup_), td_api::inputMessageAnimation::ID);
+        r_inline_message = get_inline_message(std::move(animation->input_message_content_),
+                                              std::move(animation->reply_markup_), td_api::inputMessageAnimation::ID);
         break;
       }
       case td_api::inputInlineQueryResultArticle::ID: {
@@ -701,7 +688,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         attributes.push_back(
             make_tl_object<telegram_api::documentAttributeImageSize>(thumbnail_width, thumbnail_height));
       }
-      thumbnail = make_tl_object<telegram_api::inputWebDocument>(thumbnail_url, 0, "image/jpeg", std::move(attributes));
+      thumbnail =
+          make_tl_object<telegram_api::inputWebDocument>(thumbnail_url, 0, thumbnail_type, std::move(attributes));
     }
     tl_object_ptr<telegram_api::inputWebDocument> content;
     if (!content_url.empty() || !content_type.empty()) {
