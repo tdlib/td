@@ -501,6 +501,9 @@ void AnimationsManager::load_saved_animations(Promise<Unit> &&promise) {
 }
 
 void AnimationsManager::on_load_saved_animations_from_database(const string &value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Saved animations aren't found in database";
     reload_saved_animations(true);

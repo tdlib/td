@@ -3060,6 +3060,9 @@ void StickersManager::load_installed_sticker_sets(bool is_masks, Promise<Unit> &
 }
 
 void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Installed " << (is_masks ? "mask " : "") << "sticker sets aren't found in database";
     reload_installed_sticker_sets(is_masks, true);
@@ -3266,6 +3269,9 @@ void StickersManager::load_sticker_sets_without_stickers(vector<StickerSetId> &&
 }
 
 void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set_id, bool with_stickers, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
   if (sticker_set->was_loaded) {
@@ -3852,6 +3858,9 @@ void StickersManager::load_featured_sticker_sets(Promise<Unit> &&promise) {
 }
 
 void StickersManager::on_load_featured_sticker_sets_from_database(string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Trending sticker sets aren't found in database";
     reload_featured_sticker_sets(true);
@@ -3928,6 +3937,9 @@ void StickersManager::load_old_featured_sticker_sets(Promise<Unit> &&promise) {
 }
 
 void StickersManager::on_load_old_featured_sticker_sets_from_database(uint32 generation, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (generation != old_featured_sticker_set_generation_) {
     return;
   }
@@ -4914,6 +4926,9 @@ void StickersManager::load_recent_stickers(bool is_attached, Promise<Unit> &&pro
 }
 
 void StickersManager::on_load_recent_stickers_from_database(bool is_attached, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Recent " << (is_attached ? "attached " : "") << "stickers aren't found in database";
     reload_recent_stickers(is_attached, true);
@@ -5332,6 +5347,9 @@ void StickersManager::load_favorite_stickers(Promise<Unit> &&promise) {
 }
 
 void StickersManager::on_load_favorite_stickers_from_database(const string &value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Favorite stickers aren't found in database";
     reload_favorite_stickers(true);

@@ -4718,6 +4718,10 @@ void ContactsManager::load_imported_contacts(Promise<Unit> &&promise) {
 }
 
 void ContactsManager::on_load_imported_contacts_from_database(string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(!are_imported_contacts_loaded_);
   if (need_clear_imported_contacts_) {
     need_clear_imported_contacts_ = false;
@@ -6673,6 +6677,9 @@ void ContactsManager::on_deleted_contacts(const vector<UserId> &deleted_contact_
 }
 
 void ContactsManager::save_next_contacts_sync_date() {
+  if (G()->close_flag()) {
+    return;
+  }
   if (!G()->parameters().use_chat_info_db) {
     return;
   }
@@ -6769,6 +6776,9 @@ void ContactsManager::on_get_contacts_failed(Status error) {
 }
 
 void ContactsManager::on_load_contacts_from_database(string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     reload_contacts(true);
     return;
@@ -7161,6 +7171,10 @@ void ContactsManager::save_user_to_database_impl(User *u, UserId user_id, string
 }
 
 void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   User *u = get_user(user_id);
   CHECK(u != nullptr);
   LOG_CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
@@ -7213,6 +7227,10 @@ void ContactsManager::load_user_from_database_impl(UserId user_id, Promise<Unit>
 }
 
 void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!loaded_from_database_users_.insert(user_id).second) {
     return;
   }
@@ -7427,6 +7445,10 @@ void ContactsManager::save_chat_to_database_impl(Chat *c, ChatId chat_id, string
 }
 
 void ContactsManager::on_save_chat_to_database(ChatId chat_id, bool success) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Chat *c = get_chat(chat_id);
   CHECK(c != nullptr);
   CHECK(c->is_being_saved);
@@ -7473,6 +7495,10 @@ void ContactsManager::load_chat_from_database_impl(ChatId chat_id, Promise<Unit>
 }
 
 void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!loaded_from_database_chats_.insert(chat_id).second) {
     return;
   }
@@ -7656,6 +7682,10 @@ void ContactsManager::save_channel_to_database_impl(Channel *c, ChannelId channe
 }
 
 void ContactsManager::on_save_channel_to_database(ChannelId channel_id, bool success) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
   CHECK(c->is_being_saved);
@@ -7702,6 +7732,10 @@ void ContactsManager::load_channel_from_database_impl(ChannelId channel_id, Prom
 }
 
 void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!loaded_from_database_channels_.insert(channel_id).second) {
     return;
   }
@@ -7888,6 +7922,10 @@ void ContactsManager::save_secret_chat_to_database_impl(SecretChat *c, SecretCha
 }
 
 void ContactsManager::on_save_secret_chat_to_database(SecretChatId secret_chat_id, bool success) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   SecretChat *c = get_secret_chat(secret_chat_id);
   CHECK(c != nullptr);
   CHECK(c->is_being_saved);
@@ -7935,6 +7973,10 @@ void ContactsManager::load_secret_chat_from_database_impl(SecretChatId secret_ch
 }
 
 void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!loaded_from_database_secret_chats_.insert(secret_chat_id).second) {
     return;
   }
@@ -12728,7 +12770,7 @@ void ContactsManager::load_dialog_administrators(DialogId dialog_id, Promise<Uni
 
 void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialog_id, string value,
                                                                   Promise<Unit> &&promise) {
-  if (value.empty()) {
+  if (value.empty() || G()->close_flag()) {
     promise.set_value(Unit());
     return;
   }

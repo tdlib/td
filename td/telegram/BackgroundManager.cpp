@@ -473,6 +473,10 @@ BackgroundId BackgroundManager::search_background(const string &name, Promise<Un
 }
 
 void BackgroundManager::on_load_background_from_database(string name, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto promises_it = being_loaded_from_database_backgrounds_.find(name);
   CHECK(promises_it != being_loaded_from_database_backgrounds_.end());
   auto promises = std::move(promises_it->second);

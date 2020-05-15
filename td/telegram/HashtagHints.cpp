@@ -86,6 +86,10 @@ void HashtagHints::hashtag_used_impl(const string &hashtag) {
 }
 
 void HashtagHints::from_db(Result<string> data, bool dummy) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   sync_with_db_ = true;
   if (data.is_error() || data.ok().empty()) {
     return;

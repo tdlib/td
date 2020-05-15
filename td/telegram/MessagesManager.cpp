@@ -16588,6 +16588,9 @@ vector<FullMessageId> MessagesManager::get_active_live_location_messages(Promise
 }
 
 void MessagesManager::on_load_active_live_location_full_message_ids_from_database(string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (value.empty()) {
     LOG(INFO) << "Active live location messages aren't found in the database";
     on_load_active_live_location_messages_finished();

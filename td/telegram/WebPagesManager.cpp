@@ -919,6 +919,9 @@ void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
 }
 
 void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_page_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   CHECK(G()->parameters().use_message_db);
   LOG(INFO) << "Successfully loaded " << web_page_id << " instant view of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
@@ -1072,6 +1075,9 @@ void WebPagesManager::load_web_page_by_url(const string &url, Promise<Unit> &&pr
 
 void WebPagesManager::on_load_web_page_id_by_url_from_database(const string &url, string value,
                                                                Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Successfully loaded url \"" << url << "\" of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_url_database_key(web_page_id), Auto());
   //  return;
@@ -1545,6 +1551,9 @@ string WebPagesManager::get_web_page_database_key(WebPageId web_page_id) {
 }
 
 void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool success) {
+  if (G()->close_flag()) {
+    return;
+  }
   const WebPage *web_page = get_web_page(web_page_id);
   if (web_page == nullptr) {
     LOG(ERROR) << "Can't find " << (success ? "saved " : "failed to save ") << web_page_id;
@@ -1583,6 +1592,9 @@ void WebPagesManager::load_web_page_from_database(WebPageId web_page_id, Promise
 }
 
 void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (!loaded_from_database_web_pages_.insert(web_page_id).second) {
     return;
   }
