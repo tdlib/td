@@ -1256,15 +1256,17 @@ class MessagesManager : public Actor {
 
   class DialogListViewIterator {
     MessagesManager *messages_manager_;
-    FolderId *dialog_list_id_;
+    const FolderId *dialog_list_id_;
 
    public:
-    DialogListViewIterator(MessagesManager *messages_manager, FolderId *dialog_list_id)
+    DialogListViewIterator(MessagesManager *messages_manager, const FolderId *dialog_list_id)
         : messages_manager_(messages_manager), dialog_list_id_(dialog_list_id) {
     }
 
     DialogList &operator*() const {
-      return messages_manager_->get_dialog_list(*dialog_list_id_);
+      auto dialog_list_ptr = messages_manager_->get_dialog_list(*dialog_list_id_);
+      CHECK(dialog_list_ptr != nullptr);
+      return *dialog_list_ptr;
     }
 
     bool operator!=(const DialogListViewIterator &other) const {
@@ -2203,7 +2205,9 @@ class MessagesManager : public Actor {
   vector<FolderId> get_dialog_list_ids(const Dialog *d);
   DialogListView get_dialog_lists(const Dialog *d);
 
-  DialogList &get_dialog_list(FolderId folder_id);
+  DialogList &add_dialog_list(FolderId folder_id);
+
+  DialogList *get_dialog_list(FolderId folder_id);
   const DialogList *get_dialog_list(FolderId folder_id) const;
 
   std::pair<int32, vector<DialogParticipant>> search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
