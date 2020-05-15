@@ -3174,7 +3174,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
 void StickersManager::update_sticker_set(StickerSet *sticker_set) {
   CHECK(sticker_set != nullptr);
   if (sticker_set->is_changed || sticker_set->need_save_to_database) {
-    if (G()->parameters().use_file_db) {
+    if (G()->parameters().use_file_db && !G()->close_flag()) {
       LOG(INFO) << "Save " << sticker_set->id << " to database";
       if (sticker_set->is_inited) {
         G()->td_db()->get_sqlite_pmc()->set(get_sticker_set_database_key(sticker_set->id),
@@ -3681,6 +3681,10 @@ void StickersManager::on_old_featured_sticker_sets_invalidated() {
 }
 
 void StickersManager::invalidate_old_featured_sticker_sets() {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Invalidate old featured sticker sets";
   if (G()->parameters().use_file_db) {
     G()->td_db()->get_binlog_pmc()->erase("invalidate_old_featured_sticker_sets");
@@ -3785,7 +3789,7 @@ void StickersManager::on_get_featured_sticker_sets(
 
   if (offset >= 0) {
     if (generation == old_featured_sticker_set_generation_) {
-      if (G()->parameters().use_file_db) {
+      if (G()->parameters().use_file_db && !G()->close_flag()) {
         LOG(INFO) << "Save old trending sticker sets to database with offset " << old_featured_sticker_set_ids_.size();
         CHECK(old_featured_sticker_set_ids_.size() % OLD_FEATURED_STICKER_SET_SLICE_SIZE == 0);
         StickerSetListLogEvent log_event(featured_sticker_set_ids);
@@ -3803,7 +3807,7 @@ void StickersManager::on_get_featured_sticker_sets(
 
   LOG_IF(ERROR, featured_sticker_sets_hash_ != featured_stickers->hash_) << "Trending sticker sets hash mismatch";
 
-  if (!G()->parameters().use_file_db) {
+  if (!G()->parameters().use_file_db || G()->close_flag()) {
     return;
   }
 
@@ -4839,7 +4843,7 @@ void StickersManager::send_update_installed_sticker_sets(bool from_database) {
         installed_sticker_sets_hash_[is_masks] = get_sticker_sets_hash(installed_sticker_set_ids_[is_masks]);
         send_closure(G()->td(), &Td::send_update, get_update_installed_sticker_sets_object(is_masks));
 
-        if (G()->parameters().use_file_db && !from_database) {
+        if (G()->parameters().use_file_db && !from_database && !G()->close_flag()) {
           LOG(INFO) << "Save installed " << (is_masks ? "mask " : "") << "sticker sets to database";
           StickerSetListLogEvent log_event(installed_sticker_set_ids_[is_masks]);
           G()->td_db()->get_sqlite_pmc()->set(is_masks ? "sss1" : "sss0", log_event_store(log_event).as_slice().str(),
@@ -5247,7 +5251,7 @@ void StickersManager::send_update_recent_stickers(bool from_database) {
 }
 
 void StickersManager::save_recent_stickers_to_database(bool is_attached) {
-  if (G()->parameters().use_file_db) {
+  if (G()->parameters().use_file_db && !G()->close_flag()) {
     LOG(INFO) << "Save recent " << (is_attached ? "attached " : "") << "stickers to database";
     StickerListLogEvent log_event(recent_sticker_ids_[is_attached]);
     G()->td_db()->get_sqlite_pmc()->set(is_attached ? "ssr1" : "ssr0", log_event_store(log_event).as_slice().str(),
@@ -5614,7 +5618,7 @@ void StickersManager::send_update_favorite_stickers(bool from_database) {
 }
 
 void StickersManager::save_favorite_stickers_to_database() {
-  if (G()->parameters().use_file_db) {
+  if (G()->parameters().use_file_db && !G()->close_flag()) {
     LOG(INFO) << "Save favorite stickers to database";
     StickerListLogEvent log_event(favorite_sticker_ids_);
     G()->td_db()->get_sqlite_pmc()->set("ssfav", log_event_store(log_event).as_slice().str(), Auto());
@@ -5784,7 +5788,10 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
   CHECK(it != emoji_language_codes_.end());
   if (it->second != language_codes) {
     LOG(INFO) << "Update emoji language codes for " << key << " to " << language_codes;
-    G()->td_db()->get_sqlite_pmc()->set(key, implode(language_codes, '$'), Auto());
+    if (!G()->close_flag()) {
+      CHECK(G()->parameters().use_file_db);
+      G()->td_db()->get_sqlite_pmc()->set(key, implode(language_codes, '$'), Auto());
+    }
     it->second = std::move(language_codes);
   }
 
@@ -5918,7 +5925,8 @@ void StickersManager::on_get_emoji_keywords(
             is_good = false;
           }
         }
-        if (is_good) {
+        if (is_good && !G()->close_flag()) {
+          CHECK(G()->parameters().use_file_db);
           G()->td_db()->get_sqlite_pmc()->set(get_language_emojis_database_key(language_code, text),
                                               implode(keyword->emoticons_, '$'), mpas.get_promise());
         }
@@ -5931,10 +5939,13 @@ void StickersManager::on_get_emoji_keywords(
         UNREACHABLE();
     }
   }
-  G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_version_database_key(language_code), to_string(version),
-                                      mpas.get_promise());
-  G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_last_difference_time_database_key(language_code),
-                                      to_string(G()->unix_time()), mpas.get_promise());
+  if (!G()->close_flag()) {
+    CHECK(G()->parameters().use_file_db);
+    G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_version_database_key(language_code), to_string(version),
+                                        mpas.get_promise());
+    G()->td_db()->get_sqlite_pmc()->set(get_emoji_language_code_last_difference_time_database_key(language_code),
+                                        to_string(G()->unix_time()), mpas.get_promise());
+  }
   emoji_language_code_versions_[language_code] = version;
   emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());
 
