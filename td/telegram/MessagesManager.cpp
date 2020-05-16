@@ -28294,8 +28294,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       UNREACHABLE();
   }
 
-  update_dialogs_hints(d);
-
   if (d->delete_last_message_date != 0) {
     if (d->last_message_id.is_valid()) {
       LOG(ERROR) << "Last " << d->deleted_last_message_id << " in " << dialog_id << " was deleted at "
@@ -28309,19 +28307,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     }
   }
 
-  if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
-      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end(dialog_id, true, false, Auto());
-  }
-
-  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
-    CHECK(dialog_type != DialogType::SecretChat);
-    repair_server_unread_count(dialog_id, d->server_unread_count);
-  }
-  if (d->need_repair_channel_server_unread_count) {
-    repair_channel_server_unread_count(d);
-  }
-
   if (!G()->parameters().use_message_db) {
     d->has_loaded_scheduled_messages_from_database = true;
   }
@@ -28330,6 +28315,19 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (is_loaded_from_database && d->order != order && order < get_dialog_order({}, MIN_PINNED_DIALOG_DATE - 1) &&
       !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id)) {
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
+  }
+
+  // must be after update_dialog_pos, because use d->order
+  if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
+      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+    get_history_from_the_end(dialog_id, true, false, Auto());
+  }
+  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
+    CHECK(dialog_type != DialogType::SecretChat);
+    repair_server_unread_count(dialog_id, d->server_unread_count);
+  }
+  if (d->need_repair_channel_server_unread_count) {
+    repair_channel_server_unread_count(d);
   }
 
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
