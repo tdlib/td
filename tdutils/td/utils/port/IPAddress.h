@@ -39,7 +39,7 @@ class IPAddress {
   void set_port(int port);
 
   uint32 get_ipv4() const;
-  Slice get_ipv6() const;
+  string get_ipv6() const;
   Slice get_ip_str() const;
 
   IPAddress get_any_addr() const;

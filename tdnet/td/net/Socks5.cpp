@@ -110,7 +110,7 @@ void Socks5::send_ip_address() {
     request += static_cast<char>((ipv4 >> 24) & 255);
   } else {
     request += '\x04';
-    request += ip_address_.get_ipv6().str();
+    request += ip_address_.get_ipv6();
   }
   auto port = ip_address_.get_port();
   request += static_cast<char>((port >> 8) & 255);
