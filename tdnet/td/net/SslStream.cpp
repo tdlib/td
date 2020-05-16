@@ -323,10 +323,13 @@ class SslStreamImpl {
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
     X509_VERIFY_PARAM *param = SSL_get0_param(ssl_handle);
-    /* Enable automatic hostname checks */
-    // TODO: X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS
     X509_VERIFY_PARAM_set_hostflags(param, 0);
-    X509_VERIFY_PARAM_set1_host(param, host.c_str(), 0);
+    if (r_ip_address.is_ok()) {
+      X509_VERIFY_PARAM_set1_ip_asc(param, r_ip_address.ok().get_ip_str().c_str());
+      // X509_VERIFY_PARAM_set1_host(param, host.c_str(), 0);
+    } else {
+      X509_VERIFY_PARAM_set1_host(param, host.c_str(), 0);
+    }
 #else
 #warning DANGEROUS! HTTPS HOST WILL NOT BE CHECKED. INSTALL OPENSSL >= 1.0.2 OR IMPLEMENT HTTPS HOST CHECK MANUALLY
 #endif

@@ -521,9 +521,9 @@ string IPAddress::ipv6_to_str(Slice ipv6) {
   return ::td::get_ip_str(AF_INET6, ipv6.ubegin()).str();
 }
 
-Slice IPAddress::get_ip_str() const {
+CSlice IPAddress::get_ip_str() const {
   if (!is_valid()) {
-    return Slice("0.0.0.0");
+    return CSlice("0.0.0.0");
   }
 
   switch (get_address_family()) {
@@ -533,7 +533,7 @@ Slice IPAddress::get_ip_str() const {
       return ::td::get_ip_str(AF_INET, &ipv4_addr_.sin_addr);
     default:
       UNREACHABLE();
-      return Slice();
+      return CSlice();
   }
 }
 

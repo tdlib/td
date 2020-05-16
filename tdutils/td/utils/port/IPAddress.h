@@ -42,7 +42,7 @@ class IPAddress {
   string get_ipv6() const;
 
   // returns result in a static thread-local buffer, which may be overwritten by any subsequent method call
-  Slice get_ip_str() const;
+  CSlice get_ip_str() const;
 
   static string ipv4_to_str(uint32 ipv4);
   static string ipv6_to_str(Slice ipv6);
