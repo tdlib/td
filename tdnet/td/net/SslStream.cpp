@@ -477,25 +477,26 @@ class SslStreamImpl {
         LOG(ERROR) << "SSL_get_error returned no error";
         return 0;
       case SSL_ERROR_ZERO_RETURN:
-        LOG(DEBUG) << "SSL_ERROR_ZERO_RETURN";
+        LOG(DEBUG) << "SSL_ZERO_RETURN";
         return 0;
       case SSL_ERROR_WANT_READ:
-        LOG(DEBUG) << "SSL_ERROR_WANT_READ";
+        LOG(DEBUG) << "SSL_WANT_READ";
         return 0;
       case SSL_ERROR_WANT_WRITE:
-        LOG(DEBUG) << "SSL_ERROR_WANT_WRITE";
+        LOG(DEBUG) << "SSL_WANT_WRITE";
         return 0;
       case SSL_ERROR_WANT_CONNECT:
       case SSL_ERROR_WANT_ACCEPT:
       case SSL_ERROR_WANT_X509_LOOKUP:
-        LOG(DEBUG) << "SSL_ERROR: CONNECT ACCEPT LOOKUP";
+        LOG(DEBUG) << "SSL: CONNECT ACCEPT LOOKUP";
         return 0;
       case SSL_ERROR_SYSCALL:
-        LOG(DEBUG) << "SSL_ERROR_SYSCALL";
         if (ERR_peek_error() == 0) {
           if (os_error.code() != 0) {
+            LOG(DEBUG) << "SSL_ERROR_SYSCALL";
             return std::move(os_error);
           } else {
+            LOG(DEBUG) << "SSL_SYSCALL";
             return 0;
           }
         }
