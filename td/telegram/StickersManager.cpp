@@ -12,6 +12,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
@@ -1650,9 +1651,11 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
       return search_sticker_set(static_cast<const telegram_api::inputStickerSetShortName *>(set_ptr.get())->short_name_,
                                 Auto());
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
-    case telegram_api::inputStickerSetDice::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+    case telegram_api::inputStickerSetDice::ID:
+      LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
+      return StickerSetId();
     default:
       UNREACHABLE();
       return StickerSetId();
@@ -1676,9 +1679,11 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
       return search_sticker_set(set->short_name_, Auto());
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
-    case telegram_api::inputStickerSetDice::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+    case telegram_api::inputStickerSetDice::ID:
+      LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
+      return StickerSetId();
     default:
       UNREACHABLE();
       return StickerSetId();
@@ -1866,8 +1871,9 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
       return set_id;
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
-    case telegram_api::inputStickerSetDice::ID:
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+    case telegram_api::inputStickerSetDice::ID:
+      return StickerSetId();
     default:
       UNREACHABLE();
       return StickerSetId();
@@ -3400,7 +3406,17 @@ void StickersManager::on_update_dice_emojis() {
     return;
   }
   dice_emojis_str_ = std::move(dice_emojis_str);
-  dice_emojis_ = full_split(dice_emojis_str_, '\x01');
+  auto new_dice_emojis = full_split(dice_emojis_str_, '\x01');
+  for (auto &emoji : new_dice_emojis) {
+    if (!td::contains(dice_emojis_, emoji)) {
+      auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(emoji));
+      CHECK(!special_sticker_set.id_.is_valid());
+
+      LOG(INFO) << "Load new dice sticker set for emoji " << emoji;
+      load_special_sticker_set(special_sticker_set);
+    }
+  }
+  dice_emojis_ = std::move(new_dice_emojis);
 
   send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
 }
@@ -3448,7 +3464,12 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
   bool is_inserted = dice_messages_[emoji].insert(full_message_id).second;
   LOG_CHECK(is_inserted) << source << " " << emoji << " " << value << " " << full_message_id;
 
-  if (!td::contains(dice_emojis_, emoji) && !full_message_id.get_message_id().is_any_server()) {
+  if (!td::contains(dice_emojis_, emoji)) {
+    if (full_message_id.get_message_id().is_any_server() &&
+        full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+      send_closure(G()->config_manager(), &ConfigManager::get_app_config,
+                   Promise<td_api::object_ptr<td_api::JsonValue>>());
+    }
     return;
   }
 
