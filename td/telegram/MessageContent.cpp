@@ -663,7 +663,7 @@ class MessageDice : public MessageContent {
     if (dice_value < 0) {
       return false;
     }
-    if (emoji == "DEFAULT_EMOJI" || emoji == "🎯") {
+    if (emoji == DEFAULT_EMOJI || emoji == "🎯") {
       return dice_value <= 6;
     }
     return dice_value <= 1000;

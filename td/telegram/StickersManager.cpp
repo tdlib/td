@@ -3401,7 +3401,7 @@ void StickersManager::on_update_dice_emojis() {
     return;
   }
 
-  auto dice_emojis_str = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯");
+  auto dice_emojis_str = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀");
   if (dice_emojis_str == dice_emojis_str_) {
     return;
   }
@@ -3430,7 +3430,7 @@ void StickersManager::on_update_dice_success_values() {
     return;
   }
 
-  auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,0");
+  auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,0,0");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
   }
