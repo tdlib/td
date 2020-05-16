@@ -308,7 +308,7 @@ void IPAddress::init_ipv6_any() {
 Status IPAddress::init_ipv6_port(CSlice ipv6, int port) {
   is_valid_ = false;
   if (port <= 0 || port >= (1 << 16)) {
-    return Status::Error(PSLICE() << "Invalid [port=" << port << "]");
+    return Status::Error(PSLICE() << "Invalid [IPv6 address port=" << port << "]");
   }
   string ipv6_plain;
   if (ipv6.size() > 2 && ipv6[0] == '[' && ipv6.back() == ']') {
@@ -335,7 +335,7 @@ Status IPAddress::init_ipv6_as_ipv4_port(CSlice ipv4, int port) {
 Status IPAddress::init_ipv4_port(CSlice ipv4, int port) {
   is_valid_ = false;
   if (port <= 0 || port >= (1 << 16)) {
-    return Status::Error(PSLICE() << "Invalid [port=" << port << "]");
+    return Status::Error(PSLICE() << "Invalid [IPv4 address port=" << port << "]");
   }
   std::memset(&ipv4_addr_, 0, sizeof(ipv4_addr_));
   ipv4_addr_.sin_family = AF_INET;
@@ -390,7 +390,7 @@ Result<IPAddress> IPAddress::get_ipv6_address(CSlice host) {
 
 Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
   if (host.size() > 2 && host[0] == '[' && host.back() == ']') {
-    return init_ipv6_port(host, port);
+    return init_ipv6_port(host, port == 0 ? 1 : port);
   }
 
   return init_host_port(host, PSLICE() << port, prefer_ipv6);
@@ -410,7 +410,8 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   host = ascii_host;  // assign string to CSlice
 
   if (host[0] == '[' && host.back() == ']') {
-    return init_ipv6_port(host, to_integer<int>(port));
+    auto port_int = to_integer<int>(port);
+    return init_ipv6_port(host, port_int == 0 ? 1 : port_int);
   }
 
   // some getaddrinfo implementations use inet_pton instead of inet_aton and support only decimal-dotted IPv4 form,

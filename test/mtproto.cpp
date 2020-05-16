@@ -91,7 +91,8 @@ TEST(Mtproto, GetHostByNameActor) {
                                       "0x12.0x34.0x56.0x78",
                                       "0x7f.001",
                                       "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-                                      "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"};
+                                      "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]",
+                                      "[[2001:0db8:85a3:0000:0000:8a2e:0370:7334]]"};
     for (auto types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
@@ -107,7 +108,7 @@ TEST(Mtproto, GetHostByNameActor) {
 
       for (auto host : hosts) {
         for (auto prefer_ipv6 : {false, true}) {
-          bool allow_ok = host.size() > 2;
+          bool allow_ok = host.size() > 2 && host[1] != '[';
           bool allow_both = host == "127.0.0.1." || host == "localhost" || (host == "москва.рф" && prefer_ipv6);
           bool allow_error = !allow_ok || allow_both;
           run(actor_id, host, prefer_ipv6, allow_ok, allow_error);
