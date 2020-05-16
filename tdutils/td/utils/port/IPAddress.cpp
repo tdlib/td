@@ -494,14 +494,14 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   return Status::OK();
 }
 
-CSlice IPAddress::ipv4_to_str(uint32 ipv4) {
+string IPAddress::ipv4_to_str(uint32 ipv4) {
   ipv4 = ntohl(ipv4);
-  return ::td::get_ip_str(AF_INET, &ipv4);
+  return ::td::get_ip_str(AF_INET, &ipv4).str();
 }
 
-CSlice IPAddress::ipv6_to_str(Slice ipv6) {
+string IPAddress::ipv6_to_str(Slice ipv6) {
   CHECK(ipv6.size() == 16);
-  return ::td::get_ip_str(AF_INET6, ipv6.ubegin());
+  return ::td::get_ip_str(AF_INET6, ipv6.ubegin()).str();
 }
 
 Slice IPAddress::get_ip_str() const {
@@ -599,10 +599,10 @@ StringBuilder &operator<<(StringBuilder &builder, const IPAddress &address) {
   if (!address.is_valid()) {
     return builder << "[invalid]";
   }
-  if (address.get_address_family() == AF_INET) {
+  if (address.is_ipv4()) {
     return builder << "[" << address.get_ip_str() << ":" << address.get_port() << "]";
   } else {
-    CHECK(address.get_address_family() == AF_INET6);
+    CHECK(address.is_ipv6());
     return builder << "[[" << address.get_ip_str() << "]:" << address.get_port() << "]";
   }
 }
