@@ -893,7 +893,7 @@ class Master : public Actor {
     process_net_query_send_encrypted(std::move(message.data_), std::move(net_query), std::move(callback));
   }
   void process_net_query_send_encrypted(BufferSlice data, NetQueryPtr net_query,
-                                       ActorShared<NetQueryCallback> callback) {
+                                        ActorShared<NetQueryCallback> callback) {
     BufferSlice answer(8);
     answer.as_slice().fill(0);
     as<int32>(answer.as_slice().begin()) = my_api::messages_sentEncryptedMessage::ID;

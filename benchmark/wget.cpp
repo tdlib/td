@@ -14,16 +14,14 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
-#include <string>
-
 int main(int argc, char *argv[]) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   td::VERBOSITY_NAME(fd) = VERBOSITY_NAME(INFO);
 
-  std::string url = (argc > 1 ? argv[1] : "https://telegram.org");
+  td::string url = (argc > 1 ? argv[1] : "https://telegram.org");
   auto timeout = 10;
   auto ttl = 3;
-  auto prefer_ipv6 = (argc > 2 && std::string(argv[2]) == "-6");
+  auto prefer_ipv6 = (argc > 2 && td::string(argv[2]) == "-6");
   auto scheduler = td::make_unique<td::ConcurrentScheduler>();
   scheduler->init(0);
   scheduler
