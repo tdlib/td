@@ -10,6 +10,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Parser.h"
+#include "td/utils/port/IPAddress.h"
 
 namespace td {
 
@@ -29,13 +30,7 @@ string HttpUrl::get_url() const {
     result += userinfo_;
     result += '@';
   }
-  if (is_ipv6_) {
-    result += '[';
-  }
   result += host_;
-  if (is_ipv6_) {
-    result += ']';
-  }
   if (specified_port_ > 0) {
     result += ':';
     result += to_string(specified_port_);
@@ -88,8 +83,11 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
 
   bool is_ipv6 = false;
   if (!host.empty() && host[0] == '[' && host.back() == ']') {
-    host.remove_prefix(1);
-    host.remove_suffix(1);
+    IPAddress ip_address;
+    if (ip_address.init_ipv6_port(host.str(), 1).is_error()) {
+      return Status::Error("Wrong IPv6 address specified in the URL");
+    }
+    CHECK(ip_address.is_ipv6());
     is_ipv6 = true;
   }
   if (host.empty()) {

@@ -389,6 +389,10 @@ Result<IPAddress> IPAddress::get_ipv6_address(CSlice host) {
 }
 
 Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
+  if (host.size() > 2 && host[0] == '[' && host.back() == ']') {
+    return init_ipv6_port(host, port);
+  }
+
   return init_host_port(host, PSLICE() << port, prefer_ipv6);
 }
 
@@ -404,6 +408,10 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
 #endif
   TRY_RESULT(ascii_host, idn_to_ascii(host));
   host = ascii_host;  // assign string to CSlice
+
+  if (host[0] == '[' && host.back() == ']') {
+    return init_ipv6_port(host, to_integer<int>(port));
+  }
 
   // some getaddrinfo implementations use inet_pton instead of inet_aton and support only decimal-dotted IPv4 form,
   // and so doesn't recognize 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001 as valid IPv4 addresses

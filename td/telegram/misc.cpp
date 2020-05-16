@@ -345,7 +345,7 @@ Result<string> check_url(Slice url) {
     return PSTRING() << (is_tg ? "tg" : "ton") << "://" << http_url.host_ << query;
   }
 
-  if (http_url.host_.find('.') == string::npos) {
+  if (http_url.host_.find('.') == string::npos && !http_url.is_ipv6_) {
     return Status::Error("Wrong HTTP URL");
   }
   return http_url.get_url();

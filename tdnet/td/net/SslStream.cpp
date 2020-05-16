@@ -328,9 +328,10 @@ class SslStreamImpl {
     X509_VERIFY_PARAM *param = SSL_get0_param(ssl_handle);
     X509_VERIFY_PARAM_set_hostflags(param, 0);
     if (r_ip_address.is_ok()) {
+      LOG(DEBUG) << "Set verification IP address to " << r_ip_address.ok().get_ip_str();
       X509_VERIFY_PARAM_set1_ip_asc(param, r_ip_address.ok().get_ip_str().c_str());
-      // X509_VERIFY_PARAM_set1_host(param, host.c_str(), 0);
     } else {
+      LOG(DEBUG) << "Set verification host to " << host;
       X509_VERIFY_PARAM_set1_host(param, host.c_str(), 0);
     }
 #else
@@ -343,6 +344,7 @@ class SslStreamImpl {
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
     if (r_ip_address.is_error()) {  // IP address must not be send as SNI
+      LOG(DEBUG) << "Set SNI host name to " << host;
       auto host_str = host.str();
       SSL_set_tlsext_host_name(ssl_handle, MutableCSlice(host_str).begin());
     }
