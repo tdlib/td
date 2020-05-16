@@ -587,10 +587,10 @@ class TestProxyRequest : public RequestOnceActor {
     }
 
     auto dc_options = ConnectionCreator::get_default_dc_options(false);
-    IPAddress mtproto_ip;
+    IPAddress mtproto_ip_address;
     for (auto &dc_option : dc_options.dc_options) {
       if (dc_option.get_dc_id().get_raw_id() == dc_id_) {
-        mtproto_ip = dc_option.get_ip_address();
+        mtproto_ip_address = dc_option.get_ip_address();
         break;
       }
     }
@@ -601,8 +601,8 @@ class TestProxyRequest : public RequestOnceActor {
         });
 
     child_ =
-        ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), proxy_, mtproto_ip, get_transport(), "Test",
-                                              "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
+        ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address, get_transport(),
+                                              "Test", "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
   }
 
   void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data) {

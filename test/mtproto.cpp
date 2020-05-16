@@ -436,11 +436,11 @@ class Socks5TestActor : public Actor {
 
     IPAddress socks5_ip;
     socks5_ip.init_ipv4_port("131.191.89.104", 43077).ensure();
-    IPAddress mtproto_ip = get_default_ip_address();
+    IPAddress mtproto_ip_address = get_default_ip_address();
 
     auto r_socket = SocketFd::open(socks5_ip);
-    create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip, "", "", make_unique<Callback>(std::move(promise)),
-                         actor_shared())
+    create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip_address, "", "",
+                         make_unique<Callback>(std::move(promise)), actor_shared())
         .release();
   }
 

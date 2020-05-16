@@ -716,7 +716,7 @@ Changes in 1.2.0:
 * Added method `searchInstalledStickerSets` to search by title and name for installed sticker sets.
 * Added methods for handling connected websites: `getConnectedWebsites`, `disconnectWebsite` and
   `disconnectAllWebsites`.
-* Added method `getCountryCode`, which uses current user IP to identify their country.
+* Added method `getCountryCode`, which uses current user IP address to identify their country.
 * Added option `t_me_url`.
 * Fixed `BlackBerry` spelling in `deviceTokenBlackBerryPush`.
 * Fixed return type of `getChatMessageByDate` method, which is `Message` and not `Messages`.
