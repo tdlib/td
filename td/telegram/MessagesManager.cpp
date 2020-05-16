@@ -15567,10 +15567,14 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   return nullptr;
 }
 
-td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
+td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d, int64 real_order) const {
   CHECK(d != nullptr);
 
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
+
+  if (real_order == DEFAULT_ORDER) {
+    real_order = d->order;
+  }
 
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = false;
@@ -15584,7 +15588,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
         // can't delete
         break;
     }
-  } else if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
+  } else if (!td_->auth_manager_->is_bot() && real_order != DEFAULT_ORDER) {
     switch (d->dialog_id.get_type()) {
       case DialogType::User:
         can_delete_for_self = true;
@@ -22920,10 +22924,10 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
       make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent, from_cache));
 }
 
-void MessagesManager::send_update_new_chat(Dialog *d) {
+void MessagesManager::send_update_new_chat(Dialog *d, int64 real_order) {
   CHECK(d != nullptr);
   CHECK(d->messages == nullptr);
-  auto chat_object = get_chat_object(d);
+  auto chat_object = get_chat_object(d, real_order);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
@@ -28064,7 +28068,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
 
   fix_dialog_action_bar(dialog);
 
-  send_update_new_chat(dialog);
+  send_update_new_chat(dialog, order);
 
   fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, is_loaded_from_database);
