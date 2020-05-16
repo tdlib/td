@@ -49,9 +49,9 @@ class IPAddress {
 
   IPAddress get_any_addr() const;
 
+  static Result<IPAddress> get_ip_address(CSlice host);  // host must be any IPv4 or IPv6
   static Result<IPAddress> get_ipv4_address(CSlice host);
   static Result<IPAddress> get_ipv6_address(CSlice host);
-  static Result<IPAddress> get_ip_address(CSlice host);  // host must be any IPv4 or IPv6
 
   Status init_ipv6_port(CSlice ipv6, int port) TD_WARN_UNUSED_RESULT;
   Status init_ipv6_as_ipv4_port(CSlice ipv4, int port) TD_WARN_UNUSED_RESULT;

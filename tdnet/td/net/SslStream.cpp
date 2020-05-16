@@ -10,6 +10,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/port/wstring_convert.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
@@ -318,6 +319,8 @@ class SslStreamImpl {
       SSL_free(ssl_handle);
     };
 
+    auto r_ip_address = IPAddress::get_ip_address(host);
+
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
     X509_VERIFY_PARAM *param = SSL_get0_param(ssl_handle);
     /* Enable automatic hostname checks */
@@ -333,8 +336,10 @@ class SslStreamImpl {
     SSL_set_bio(ssl_handle, bio, bio);
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
-    auto host_str = host.str();
-    SSL_set_tlsext_host_name(ssl_handle, MutableCSlice(host_str).begin());
+    if (r_ip_address.is_error()) {  // IP address must not be send as SNI
+      auto host_str = host.str();
+      SSL_set_tlsext_host_name(ssl_handle, MutableCSlice(host_str).begin());
+    }
 #endif
     SSL_set_connect_state(ssl_handle);
 
