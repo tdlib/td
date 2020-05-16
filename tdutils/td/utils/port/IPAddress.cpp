@@ -350,6 +350,18 @@ Status IPAddress::init_ipv4_port(CSlice ipv4, int port) {
   return Status::OK();
 }
 
+Result<IPAddress> IPAddress::get_ip_address(CSlice host) {
+  auto r_address = get_ipv4_address(host);
+  if (r_address.is_ok()) {
+    return r_address.move_as_ok();
+  }
+  r_address = get_ipv6_address(host);
+  if (r_address.is_ok()) {
+    return r_address.move_as_ok();
+  }
+  return Status::Error("Not a valid IP address");
+}
+
 Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
   // sometimes inet_addr allows much more valid IPv4 hosts than inet_pton,
   // like 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001
