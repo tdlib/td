@@ -44,6 +44,9 @@ class IPAddress {
   // returns result in a static thread-local buffer, which may be overwritten by any subsequent method call
   CSlice get_ip_str() const;
 
+  // returns IP address as a host, i.e. IPv4 or [IPv6]
+  string get_ip_host() const;
+
   static string ipv4_to_str(uint32 ipv4);
   static string ipv6_to_str(Slice ipv6);
 

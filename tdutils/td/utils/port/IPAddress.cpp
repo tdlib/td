@@ -545,6 +545,22 @@ CSlice IPAddress::get_ip_str() const {
   }
 }
 
+string IPAddress::get_ip_host() const {
+  if (!is_valid()) {
+    return "0.0.0.0";
+  }
+
+  switch (get_address_family()) {
+    case AF_INET6:
+      return PSTRING() << '[' << ::td::get_ip_str(AF_INET6, &ipv6_addr_.sin6_addr) << ']';
+    case AF_INET:
+      return ::td::get_ip_str(AF_INET, &ipv4_addr_.sin_addr).str();
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
 int IPAddress::get_port() const {
   if (!is_valid()) {
     return 0;
@@ -624,12 +640,7 @@ StringBuilder &operator<<(StringBuilder &builder, const IPAddress &address) {
   if (!address.is_valid()) {
     return builder << "[invalid]";
   }
-  if (address.is_ipv4()) {
-    return builder << "[" << address.get_ip_str() << ":" << address.get_port() << "]";
-  } else {
-    CHECK(address.is_ipv6());
-    return builder << "[[" << address.get_ip_str() << "]:" << address.get_port() << "]";
-  }
+  return builder << "[" << address.get_ip_host() << ":" << address.get_port() << "]";
 }
 
 }  // namespace td

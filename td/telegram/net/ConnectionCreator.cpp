@@ -661,9 +661,9 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
     if (!proxy.user().empty() || !proxy.password().empty()) {
       proxy_authorization = "|basic " + base64_encode(PSLICE() << proxy.user() << ':' << proxy.password());
     }
-    return mtproto::TransportType{
-        mtproto::TransportType::Http, 0,
-        mtproto::ProxySecret::from_raw(PSTRING() << info.option->get_ip_address().get_ip_str() << proxy_authorization)};
+    return mtproto::TransportType{mtproto::TransportType::Http, 0,
+                                  mtproto::ProxySecret::from_raw(
+                                      PSTRING() << info.option->get_ip_address().get_ip_host() << proxy_authorization)};
   }
 
   if (info.use_http) {
