@@ -310,6 +310,11 @@ Status IPAddress::init_ipv6_port(CSlice ipv6, int port) {
   if (port <= 0 || port >= (1 << 16)) {
     return Status::Error(PSLICE() << "Invalid [port=" << port << "]");
   }
+  string ipv6_plain;
+  if (ipv6.size() > 2 && ipv6[0] == '[' && ipv6.back() == ']') {
+    ipv6_plain.assign(ipv6.begin() + 1, ipv6.size() - 2);
+    ipv6 = ipv6_plain;
+  }
   std::memset(&ipv6_addr_, 0, sizeof(ipv6_addr_));
   ipv6_addr_.sin6_family = AF_INET6;
   ipv6_addr_.sin6_port = htons(static_cast<uint16>(port));
