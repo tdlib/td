@@ -236,6 +236,9 @@ class SslStreamImpl {
     options |= SSL_OP_NO_SSLv3;
 #endif
     SSL_CTX_set_options(ssl_ctx, options);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_VERSION);
+#endif
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_ENABLE_PARTIAL_WRITE);
 
     if (cert_file.empty()) {
