@@ -1965,9 +1965,11 @@ static vector<Slice> find_text_url_entities_v3(Slice text) {
 }
 
 // entities must be valid for the text
-static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity> entities) {
+static FormattedText parse_text_url_entities_v3(Slice text, const vector<MessageEntity> &entities) {
   // continuous entities can't intersect TextUrl entities,
   // so try to find new TextUrl entities only between the predetermined continuous entities
+
+  Slice debug_initial_text = text;
 
   FormattedText result;
   int32 result_text_utf16_length = 0;
@@ -2109,7 +2111,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
         splittable_entities.clear();
       } else {
         CHECK(pos == splittable_entities.size() - 1);
-        CHECK(!text.empty());
+        LOG_CHECK(!text.empty()) << '"' << debug_initial_text << "\" " << entities;
         splittable_entities[0] = std::move(splittable_entities.back());
         splittable_entities.resize(1);
       }
@@ -2118,7 +2120,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, vector<MessageEntity
     part_begin = part_end;
   };
 
-  for (auto &entity : entities) {
+  for (const auto &entity : entities) {
     if (is_splittable_entity(entity.type)) {
       auto index = get_splittable_entity_type_index(entity.type);
       part_splittable_entities[index].push_back(entity);
@@ -2207,7 +2209,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
 
   FormattedText parsed_text_url_text;
   if (text.find('[') != string::npos) {
-    parsed_text_url_text = parse_text_url_entities_v3(text, std::move(entities));
+    parsed_text_url_text = parse_text_url_entities_v3(text, entities);
     text = parsed_text_url_text.text;
     entities = std::move(parsed_text_url_text.entities);
   }
