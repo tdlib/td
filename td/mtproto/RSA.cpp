@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/RSA.h"
 
 #include "td/mtproto/mtproto_api.h"
 
@@ -25,7 +25,6 @@
 
 namespace td {
 
-/*** RSA ***/
 RSA::RSA(BigNum n, BigNum e) : n_(std::move(n)), e_(std::move(e)) {
 }
 

@@ -15,7 +15,6 @@
 
 namespace td {
 
-/*** RSA ***/
 class RSA {
  public:
   RSA clone() const;
@@ -33,7 +32,6 @@ class RSA {
   BigNum e_;
 };
 
-/*** PublicRsaKeyInterface ***/
 class PublicRsaKeyInterface {
  public:
   virtual ~PublicRsaKeyInterface() = default;

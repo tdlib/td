@@ -27,8 +27,8 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/crypto.h"
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/RSA.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/net/HttpQuery.h"

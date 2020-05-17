@@ -356,7 +356,6 @@ set(TL_DOTNET_SCHEME_SOURCE
 
 set(TDLIB_SOURCE
   td/mtproto/AuthData.cpp
-  td/mtproto/crypto.cpp
   td/mtproto/DhHandshake.cpp
   td/mtproto/Handshake.cpp
   td/mtproto/HandshakeActor.cpp
@@ -367,6 +366,7 @@ set(TDLIB_SOURCE
   td/mtproto/PingConnection.cpp
   td/mtproto/ProxySecret.cpp
   td/mtproto/RawConnection.cpp
+  td/mtproto/RSA.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
@@ -494,7 +494,6 @@ set(TDLIB_SOURCE
 
   td/mtproto/AuthData.h
   td/mtproto/AuthKey.h
-  td/mtproto/crypto.h
   td/mtproto/CryptoStorer.h
   td/mtproto/DhHandshake.h
   td/mtproto/Handshake.h
@@ -511,6 +510,7 @@ set(TDLIB_SOURCE
   td/mtproto/ProxySecret.h
   td/mtproto/Query.h
   td/mtproto/RawConnection.h
+  td/mtproto/RSA.h
   td/mtproto/SessionConnection.h
   td/mtproto/TcpTransport.h
   td/mtproto/TlsInit.h

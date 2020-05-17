@@ -6,7 +6,6 @@
 //
 #include "td/mtproto/Handshake.h"
 
-#include "td/mtproto/crypto.h"
 #include "td/mtproto/KDF.h"
 #include "td/mtproto/utils.h"
 

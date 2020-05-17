@@ -12,7 +12,7 @@
 
 #include "td/telegram/telegram_api.h"
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/RSA.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"

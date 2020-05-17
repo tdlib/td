@@ -8,7 +8,7 @@
 
 #include "td/telegram/net/DcId.h"
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/RSA.h"
 
 #include "td/utils/common.h"
 #include "td/utils/port/RwMutex.h"
