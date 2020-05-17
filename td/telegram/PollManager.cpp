@@ -1297,7 +1297,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     poll_id = PollId(poll_server->id_);
   }
   if (!poll_id.is_valid() || is_local_poll_id(poll_id)) {
-    LOG(ERROR) << "Receive " << poll_id << " from server";
+    LOG(ERROR) << "Receive " << poll_id << " from server: " << oneline(to_string(poll_server)) << " "
+               << oneline(to_string(poll_results));
     return PollId();
   }
   if (poll_server != nullptr && poll_server->id_ != poll_id.get()) {
