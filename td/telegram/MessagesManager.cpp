@@ -221,7 +221,9 @@ class GetDialogsQuery : public Td::ResultHandler {
     CHECK(input_dialog_ids.size() <= 100);
     auto input_dialog_peers = transform(
         input_dialog_ids, [](InputDialogId input_dialog_id) -> telegram_api::object_ptr<telegram_api::InputDialogPeer> {
-          return telegram_api::make_object<telegram_api::inputDialogPeer>(input_dialog_id.get_input_peer());
+          auto input_peer = input_dialog_id.get_input_peer();
+          CHECK(input_peer != nullptr);
+          return telegram_api::make_object<telegram_api::inputDialogPeer>(std::move(input_peer));
         });
     send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(std::move(input_dialog_peers))));
   }
@@ -13593,9 +13595,16 @@ void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool f
 
   vector<InputDialogId> input_dialog_ids;
   for (auto &input_dialog_id : needed_dialog_ids) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
     // TODO load dialogs asynchronously
-    if (!have_dialog_force(input_dialog_id.get_dialog_id())) {
-      input_dialog_ids.push_back(input_dialog_id);
+    if (!have_dialog_force(dialog_id)) {
+      if (dialog_id.get_type() == DialogType::SecretChat) {
+        if (have_dialog_info_force(dialog_id)) {
+          force_create_dialog(dialog_id, "load_dialog_filter");
+        }
+      } else {
+        input_dialog_ids.push_back(input_dialog_id);
+      }
     }
   }
 
