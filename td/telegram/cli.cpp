@@ -467,6 +467,10 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
+  int32 as_chat_filter_id(Slice str) const {
+    return to_integer<int32>(trim(str));
+  }
+
   static td_api::object_ptr<td_api::ChatList> as_chat_list(string chat_list) {
     if (!chat_list.empty() && chat_list.back() == 'a') {
       return td_api::make_object<td_api::chatListArchive>();
@@ -3481,6 +3485,8 @@ class CliClient final : public Actor {
     } else if (op == "sccl" || op == "sccla") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::setChatChatList>(as_chat_id(chat_id), as_chat_list(op)));
+    } else if (op == "gcf") {
+      send_request(td_api::make_object<td_api::getChatFilter>(as_chat_filter_id(args)));
     } else if (op == "sct") {
       string chat_id;
       string title;

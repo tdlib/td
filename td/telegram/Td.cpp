@@ -830,6 +830,24 @@ class GetChatRequest : public RequestActor<> {
   }
 };
 
+class GetChatFilterRequest : public RequestActor<> {
+  DialogFilterId dialog_filter_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    td->messages_manager_->load_dialog_filter(dialog_filter_id_, get_tries() < 2, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_chat_filter_object(dialog_filter_id_));
+  }
+
+ public:
+  GetChatFilterRequest(ActorShared<Td> td, uint64 request_id, int32 dialog_filter_id)
+      : RequestActor(std::move(td), request_id), dialog_filter_id_(dialog_filter_id) {
+    set_tries(3);
+  }
+};
+
 class GetChatsRequest : public RequestActor<> {
   FolderId folder_id_;
   DialogDate offset_;
@@ -5852,6 +5870,11 @@ void Td::on_request(uint64 id, const td_api::setChatChatList &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_dialog_folder_id(DialogId(request.chat_id_), FolderId(request.chat_list_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getChatFilter &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetChatFilterRequest, request.chat_filter_id_);
 }
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {

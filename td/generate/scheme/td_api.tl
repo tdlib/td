@@ -649,6 +649,22 @@ chatTypeSupergroup supergroup_id:int32 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 
+//@description Represents a filter of user chats
+//@title The title of the filter
+//@emoji The emoji for short filter representation
+//@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list
+//@included_chat_ids The chat identifiers of always included chats in the filtered chat list
+//@excluded_chat_ids The chat identifiers of always excluded chats in the filtered chat list
+//@exclude_muted True, if the muted chats need to be excluded
+//@exclude_read True, if read chats need to be excluded
+//@exclude_archived True, if archived chats need to be excluded
+//@include_contacts True, if contacts need to be included
+//@include_non_contacts True, if non-contact users need to be included
+//@include_bots True, if bots need to be included
+//@include_groups True, if basic groups and supergroups need to be included
+//@include_channels True, if channels need to be included
+chatFilter title:string emoji:string pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
+
 //@description Contains basic information about a chat filter
 //@chat_filter_id Unique chat filter identifier
 //@title The title of the filter
@@ -2943,7 +2959,7 @@ updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
 
-//@description The list of chat filters has changed @chat_filters The new list of chat filters
+//@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters
 updateChatFilters chat_filters:vector<chatFilterInfo> = Update;
 
 //@description The number of online group members has changed. This update with non-zero count is sent only for currently opened chats. There is no guarantee that it will be sent just after the count has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
@@ -3687,8 +3703,12 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Moves a chat to a different chat list. Current chat list of the chat must ne non-null @chat_id Chat identifier @chat_list New chat list of the chat. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
+//@description Moves a chat to a different chat list @chat_id Chat identifier @chat_list New chat list of the chat, must be one of chatListMain or chatListArchived. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
 setChatChatList chat_id:int53 chat_list:ChatList = Ok;
+
+//@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier
+getChatFilter chat_filter_id:int32 = ChatFilter;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
 //@chat_id Chat identifier @title New title of the chat; 1-128 characters

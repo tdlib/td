@@ -499,6 +499,8 @@ class MessagesManager : public Actor {
 
   void load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&promise);
 
+  void load_dialog_filter(DialogFilterId dialog_id, bool force, Promise<Unit> &&promise);
+
   vector<DialogId> get_dialogs(FolderId folder_id, DialogDate offset, int32 limit, bool force, Promise<Unit> &&promise);
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
@@ -610,6 +612,8 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::chat> get_chat_object(DialogId dialog_id) const;
 
   static tl_object_ptr<td_api::chats> get_chats_object(const vector<DialogId> &dialogs);
+
+  tl_object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id) const;
 
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,
@@ -2195,6 +2199,9 @@ class MessagesManager : public Actor {
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
+
+  DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
+  const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
   bool need_dialog_in_list(const DialogList &list, const Dialog *d) const;
 
