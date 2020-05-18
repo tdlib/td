@@ -3515,6 +3515,8 @@ class CliClient final : public Actor {
       std::tie(chat_filter_id, filter) = split(args);
       send_request(
           td_api::make_object<td_api::editChatFilter>(as_chat_filter_id(chat_filter_id), as_chat_filter(filter)));
+    } else if (op == "dcf") {
+      send_request(td_api::make_object<td_api::deleteChatFilter>(as_chat_filter_id(args)));
     } else if (op == "sct") {
       string chat_id;
       string title;

@@ -556,6 +556,8 @@ class MessagesManager : public Actor {
   void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
                           Promise<Unit> &&promise);
 
+  void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
+
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
   Status set_dialog_draft_message(DialogId dialog_id,
@@ -2211,6 +2213,8 @@ class MessagesManager : public Actor {
                                                         td_api::object_ptr<td_api::chatFilter> filter);
 
   void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
+
+  void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
 
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;

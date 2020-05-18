@@ -5900,6 +5900,12 @@ void Td::on_request(uint64 id, td_api::editChatFilter &request) {
                                         std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteChatFilter &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

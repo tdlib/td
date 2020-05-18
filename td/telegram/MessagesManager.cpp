@@ -15053,6 +15053,7 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
 }
 
 void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
     return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
   }
@@ -15086,6 +15087,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
 
 void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
                                          Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
   if (old_dialog_filter == nullptr) {
     return promise.set_error(Status::Error(400, "Chat filter not found"));
@@ -15136,6 +15138,41 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
 
   dialog_filters_.push_back(std::move(dialog_filter));
   send_update_chat_filters(false);
+  promise.set_value(Unit());
+}
+
+void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO logevent
+  // TODO delete dialog filter locally
+  // TODO SequenceDispatcher
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_delete_dialog_filter, dialog_filter_id,
+                     result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
+      });
+  td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))->send(dialog_filter_id, nullptr);
+}
+
+void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  for (auto it = dialog_filters_.begin(); it != dialog_filters_.end(); ++it) {
+    if ((*it)->dialog_filter_id == dialog_filter_id) {
+      // TODO delete chat list
+      dialog_filters_.erase(it);
+      send_update_chat_filters(false);
+      break;
+    }
+  }
+
   promise.set_value(Unit());
 }
 
