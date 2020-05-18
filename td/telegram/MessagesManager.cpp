@@ -4813,9 +4813,10 @@ struct MessagesManager::DialogFilter {
     dialog_filter->dialog_filter_id = dialog_filter_id;
     dialog_filter->title = std::move(filter->title_);
     dialog_filter->emoji = std::move(filter->emoticon_);
-    dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_);
-    dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_);
-    dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_);
+    std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+    dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_, &added_dialog_ids);
+    dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_, &added_dialog_ids);
+    dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_, &added_dialog_ids);
     auto flags = filter->flags_;
     dialog_filter->exclude_muted = (flags & telegram_api::dialogFilter::EXCLUDE_MUTED_MASK) != 0;
     dialog_filter->exclude_read = (flags & telegram_api::dialogFilter::EXCLUDE_READ_MASK) != 0;

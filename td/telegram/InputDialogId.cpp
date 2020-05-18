@@ -49,12 +49,17 @@ InputDialogId::InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input
 }
 
 vector<InputDialogId> InputDialogId::get_input_dialog_ids(
-    const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers) {
+    const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers,
+    std::unordered_set<DialogId, DialogIdHash> *added_dialog_ids) {
+  std::unordered_set<DialogId, DialogIdHash> temp_added_dialog_ids;
+  if (added_dialog_ids == nullptr) {
+    added_dialog_ids = &temp_added_dialog_ids;
+  }
   vector<InputDialogId> result;
   result.reserve(input_peers.size());
   for (auto &input_peer : input_peers) {
     InputDialogId input_dialog_id(input_peer);
-    if (input_dialog_id.is_valid()) {
+    if (input_dialog_id.is_valid() && added_dialog_ids->insert(input_dialog_id.get_dialog_id()).second) {
       result.push_back(input_dialog_id);
     }
   }
