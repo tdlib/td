@@ -8892,7 +8892,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     total_count = min_total_count;
   }
   LOG_IF(ERROR, limit < photo_count) << "Requested not more than " << limit << " photos, but " << photo_count
-                                     << " returned";
+                                     << " received";
 
   User *u = get_user(user_id);
   if (u == nullptr) {
@@ -8962,11 +8962,8 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
 
   auto known_photo_count = narrow_cast<int32>(user_photos->photos.size());
-  CHECK(user_photos->count >= known_photo_count);
   if (user_photos->offset + known_photo_count > user_photos->count) {
-    LOG(ERROR) << "Fix total photo count of " << user_id << " from " << user_photos->count << " to "
-               << user_photos->offset << " + " << known_photo_count;
-    user_photos->count = user_photos->offset + known_photo_count;
+    user_photos->photos.resize(user_photos->count - user_photos->offset);
   }
 }
 

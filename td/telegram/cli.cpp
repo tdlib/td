@@ -1994,7 +1994,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::getChatMessageCount>(
           as_chat_id(chat_id), get_search_messages_filter(filter), as_bool(return_local)));
-    } else if (op == "gup" || op == "GetUserPhotos") {
+    } else if (op == "gup" || op == "gupf") {
       string user_id;
       string offset;
       string limit;
