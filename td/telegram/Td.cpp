@@ -5888,6 +5888,18 @@ void Td::on_request(uint64 id, td_api::createChatFilter &request) {
   messages_manager_->create_dialog_filter(std::move(request.filter_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::editChatFilter &request) {
+  CHECK_IS_USER();
+  if (request.filter_ == nullptr) {
+    return send_error_raw(id, 400, "Chat filter must be non-empty");
+  }
+  CLEAN_INPUT_STRING(request.filter_->title_);
+  CLEAN_INPUT_STRING(request.filter_->emoji_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(request.filter_),
+                                        std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

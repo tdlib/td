@@ -4872,8 +4872,16 @@ struct MessagesManager::DialogFilter {
            lhs.include_channels == rhs.include_channels;
   }
 
+  friend bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {
+    return !(lhs == rhs);
+  }
+
   friend bool operator==(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
     return *lhs == *rhs;
+  }
+
+  friend bool operator!=(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
+    return !(lhs == rhs);
   }
 };
 
@@ -14974,7 +14982,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
 }
 
 Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog_filter(
-    td_api::object_ptr<td_api::chatFilter> filter) {
+    DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter) {
   CHECK(filter != nullptr);
   for (auto chat_ids : {&filter->pinned_chat_ids_, &filter->excluded_chat_ids_, &filter->included_chat_ids_}) {
     for (auto chat_id : *chat_ids) {
@@ -14994,13 +15002,6 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
       }
     }
   }
-
-  DialogFilterId dialog_filter_id;
-  do {
-    auto min_id = static_cast<int>(DialogFilterId::min().get());
-    auto max_id = static_cast<int>(DialogFilterId::max().get());
-    dialog_filter_id = DialogFilterId(static_cast<int32>(Random::fast(min_id, max_id)));
-  } while (get_dialog_filter(dialog_filter_id) != nullptr);
 
   auto dialog_filter = make_unique<DialogFilter>();
   dialog_filter->dialog_filter_id = dialog_filter_id;
@@ -15056,13 +15057,19 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
     return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
   }
 
-  auto r_dialog_filter = create_dialog_filter(std::move(filter));
+  DialogFilterId dialog_filter_id;
+  do {
+    auto min_id = static_cast<int>(DialogFilterId::min().get());
+    auto max_id = static_cast<int>(DialogFilterId::max().get());
+    dialog_filter_id = DialogFilterId(static_cast<int32>(Random::fast(min_id, max_id)));
+  } while (get_dialog_filter(dialog_filter_id) != nullptr);
+
+  auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
   if (r_dialog_filter.is_error()) {
     return promise.set_error(r_dialog_filter.move_as_error());
   }
   auto dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(dialog_filter != nullptr);
-  auto dialog_filter_id = dialog_filter->dialog_filter_id;
   auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   // TODO logevent
@@ -15070,20 +15077,63 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
                                                promise = std::move(promise)](Result<Unit> result) mutable {
-    send_closure(actor_id, &MessagesManager::on_create_dialog_filter, std::move(dialog_filter),
+    send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
                  result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
   });
   td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
       ->send(dialog_filter_id, std::move(input_dialog_filter));
 }
 
-void MessagesManager::on_create_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
+void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
+                                         Promise<Unit> &&promise) {
+  auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (old_dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat filter not found"));
+  }
+
+  auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
+  if (r_dialog_filter.is_error()) {
+    return promise.set_error(r_dialog_filter.move_as_error());
+  }
+  auto new_dialog_filter = r_dialog_filter.move_as_ok();
+  CHECK(new_dialog_filter != nullptr);
+
+  if (*new_dialog_filter == *old_dialog_filter) {
+    return promise.set_value(Unit());
+  }
+
+  auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
+
+  // TODO logevent
+  // TODO edit dialog filter locally
+  // TODO SequenceDispatcher
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter),
+                                               promise = std::move(promise)](Result<Unit> result) mutable {
+    send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
+                 result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
+  });
+  td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
+      ->send(dialog_filter_id, std::move(input_dialog_filter));
+}
+
+void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
                                               Promise<Unit> &&promise) {
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
 
   // TODO update all changed chat lists and their unread counts
+  for (auto &filter : dialog_filters_) {
+    if (filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
+      if (*filter != *dialog_filter) {
+        filter = std::move(dialog_filter);
+        send_update_chat_filters(false);
+      }
+      promise.set_value(Unit());
+      return;
+    }
+  }
+
   dialog_filters_.push_back(std::move(dialog_filter));
   send_update_chat_filters(false);
   promise.set_value(Unit());
