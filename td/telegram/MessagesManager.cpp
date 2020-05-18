@@ -4803,6 +4803,31 @@ struct MessagesManager::DialogFilter {
   template <class ParserT>
   void parse(ParserT &parser);
 
+  static unique_ptr<DialogFilter> get_dialog_filter(telegram_api::object_ptr<telegram_api::dialogFilter> filter) {
+    DialogFilterId dialog_filter_id(filter->id_);
+    if (!dialog_filter_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(filter);
+      return nullptr;
+    }
+    auto dialog_filter = make_unique<DialogFilter>();
+    dialog_filter->dialog_filter_id = dialog_filter_id;
+    dialog_filter->title = std::move(filter->title_);
+    dialog_filter->emoji = std::move(filter->emoticon_);
+    dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_);
+    dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_);
+    dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_);
+    auto flags = filter->flags_;
+    dialog_filter->exclude_muted = (flags & telegram_api::dialogFilter::EXCLUDE_MUTED_MASK) != 0;
+    dialog_filter->exclude_read = (flags & telegram_api::dialogFilter::EXCLUDE_READ_MASK) != 0;
+    dialog_filter->exclude_archived = (flags & telegram_api::dialogFilter::EXCLUDE_ARCHIVED_MASK) != 0;
+    dialog_filter->include_contacts = (flags & telegram_api::dialogFilter::CONTACTS_MASK) != 0;
+    dialog_filter->include_non_contacts = (flags & telegram_api::dialogFilter::NON_CONTACTS_MASK) != 0;
+    dialog_filter->include_bots = (flags & telegram_api::dialogFilter::BOTS_MASK) != 0;
+    dialog_filter->include_groups = (flags & telegram_api::dialogFilter::GROUPS_MASK) != 0;
+    dialog_filter->include_channels = (flags & telegram_api::dialogFilter::BROADCASTS_MASK) != 0;
+    return dialog_filter;
+  }
+
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const {
     int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
     if (exclude_muted) {
@@ -14014,26 +14039,10 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   vector<unique_ptr<DialogFilter>> dialog_filters;
   LOG(INFO) << "Receive " << filters.size() << " chat filters";
   for (auto &filter : filters) {
-    auto dialog_filter = make_unique<DialogFilter>();
-    dialog_filter->dialog_filter_id = DialogFilterId(filter->id_);
-    if (!dialog_filter->dialog_filter_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << to_string(filter);
+    auto dialog_filter = DialogFilter::get_dialog_filter(std::move(filter));
+    if (dialog_filter == nullptr) {
       continue;
     }
-    dialog_filter->title = std::move(filter->title_);
-    dialog_filter->emoji = std::move(filter->emoticon_);
-    dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_);
-    dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_);
-    dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_);
-    auto flags = filter->flags_;
-    dialog_filter->exclude_muted = (flags & telegram_api::dialogFilter::EXCLUDE_MUTED_MASK) != 0;
-    dialog_filter->exclude_read = (flags & telegram_api::dialogFilter::EXCLUDE_READ_MASK) != 0;
-    dialog_filter->exclude_archived = (flags & telegram_api::dialogFilter::EXCLUDE_ARCHIVED_MASK) != 0;
-    dialog_filter->include_contacts = (flags & telegram_api::dialogFilter::CONTACTS_MASK) != 0;
-    dialog_filter->include_non_contacts = (flags & telegram_api::dialogFilter::NON_CONTACTS_MASK) != 0;
-    dialog_filter->include_bots = (flags & telegram_api::dialogFilter::BOTS_MASK) != 0;
-    dialog_filter->include_groups = (flags & telegram_api::dialogFilter::GROUPS_MASK) != 0;
-    dialog_filter->include_channels = (flags & telegram_api::dialogFilter::BROADCASTS_MASK) != 0;
 
     // TODO add secret chats to the filter
     dialog_filters.push_back(std::move(dialog_filter));
