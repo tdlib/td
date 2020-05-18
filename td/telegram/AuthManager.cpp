@@ -143,11 +143,11 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   }
   if (state_ != State::WaitPhoneNumber && state_ != State::Ok) {
     // TODO do not allow State::Ok
-    return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationBotToken unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationBotToken unexpected"));
   }
   if (!send_code_helper_.phone_number().empty() || was_qr_code_request_) {
     return on_query_error(
-        query_id, Status::Error(8, "Cannot set bot token after authentication beginning. You need to log out first"));
+        query_id, Status::Error(400, "Cannot set bot token after authentication beginning. You need to log out first"));
   }
   if (was_check_bot_token_ && bot_token_ != bot_token) {
     return on_query_error(query_id, Status::Error(8, "Cannot change bot token. You need to log out first"));

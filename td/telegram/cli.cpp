@@ -1079,6 +1079,25 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  td_api::object_ptr<td_api::chatFilter> as_chat_filter(string filter) const {
+    string title;
+    string pinned_chat_ids;
+    string included_chat_ids;
+    string excluded_chat_ids;
+    std::tie(title, filter) = split(filter);
+    std::tie(pinned_chat_ids, filter) = split(filter);
+    std::tie(included_chat_ids, filter) = split(filter);
+    std::tie(excluded_chat_ids, filter) = split(filter);
+
+    auto rand_bool = [] {
+      return Random::fast(0, 1) == 1;
+    };
+
+    return td_api::make_object<td_api::chatFilter>(
+        title, string(), as_chat_ids(pinned_chat_ids), as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids),
+        rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
+  }
+
   static td_api::object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
     category = trim(category);
     to_lower_inplace(category);
@@ -3487,6 +3506,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatChatList>(as_chat_id(chat_id), as_chat_list(op)));
     } else if (op == "gcf") {
       send_request(td_api::make_object<td_api::getChatFilter>(as_chat_filter_id(args)));
+    } else if (op == "ccf") {
+      send_request(td_api::make_object<td_api::createChatFilter>(as_chat_filter(args)));
     } else if (op == "sct") {
       string chat_id;
       string title;

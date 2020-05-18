@@ -48,13 +48,40 @@ InputDialogId::InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input
   LOG(ERROR) << "Receive " << to_string(input_peer);
 }
 
-vector<InputDialogId> InputDialogId::get_input_dialog_ids(const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers) {
+vector<InputDialogId> InputDialogId::get_input_dialog_ids(
+    const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers) {
   vector<InputDialogId> result;
   result.reserve(input_peers.size());
-  for (auto &input_peer:input_peers) {
+  for (auto &input_peer : input_peers) {
     InputDialogId input_dialog_id(input_peer);
     if (input_dialog_id.is_valid()) {
       result.push_back(input_dialog_id);
+    }
+  }
+  return result;
+}
+
+vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> InputDialogId::get_input_dialog_peers(
+    const vector<InputDialogId> &input_dialog_ids) {
+  vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> result;
+  result.reserve(input_dialog_ids.size());
+  for (auto input_dialog_id : input_dialog_ids) {
+    auto input_peer = input_dialog_id.get_input_peer();
+    if (input_peer != nullptr) {
+      result.push_back(telegram_api::make_object<telegram_api::inputDialogPeer>(std::move(input_peer)));
+    }
+  }
+  return result;
+}
+
+vector<telegram_api::object_ptr<telegram_api::InputPeer>> InputDialogId::get_input_peers(
+    const vector<InputDialogId> &input_dialog_ids) {
+  vector<telegram_api::object_ptr<telegram_api::InputPeer>> result;
+  result.reserve(input_dialog_ids.size());
+  for (auto input_dialog_id : input_dialog_ids) {
+    auto input_peer = input_dialog_id.get_input_peer();
+    if (input_peer != nullptr) {
+      result.push_back(std::move(input_peer));
     }
   }
   return result;

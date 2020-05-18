@@ -218,13 +218,10 @@ class GetDialogsQuery : public Td::ResultHandler {
 
   void send(vector<InputDialogId> input_dialog_ids) {
     LOG(INFO) << "Send GetDialogsQuery to get " << input_dialog_ids;
+    CHECK(!input_dialog_ids.empty());
     CHECK(input_dialog_ids.size() <= 100);
-    auto input_dialog_peers = transform(
-        input_dialog_ids, [](InputDialogId input_dialog_id) -> telegram_api::object_ptr<telegram_api::InputDialogPeer> {
-          auto input_peer = input_dialog_id.get_input_peer();
-          CHECK(input_peer != nullptr);
-          return telegram_api::make_object<telegram_api::inputDialogPeer>(std::move(input_peer));
-        });
+    auto input_dialog_peers = InputDialogId::get_input_dialog_peers(input_dialog_ids);
+    CHECK(input_dialog_peers.size() == input_dialog_ids.size());
     send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(std::move(input_dialog_peers))));
   }
 
@@ -424,6 +421,37 @@ class GetScheduledMessagesQuery : public Td::ResultHandler {
       return;
     }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetScheduledMessagesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class UpdateDialogFilterQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateDialogFilterQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, tl_object_ptr<telegram_api::dialogFilter> filter) {
+    int32 flags = 0;
+    if (filter != nullptr) {
+      flags |= telegram_api::messages_updateDialogFilter::FILTER_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_updateDialogFilter(flags, dialog_filter_id.get(), std::move(filter))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_updateDialogFilter>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for UpdateDialogFilterQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
   }
 };
@@ -4774,6 +4802,40 @@ struct MessagesManager::DialogFilter {
 
   template <class ParserT>
   void parse(ParserT &parser);
+
+  telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const {
+    int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
+    if (exclude_muted) {
+      flags |= telegram_api::dialogFilter::EXCLUDE_MUTED_MASK;
+    }
+    if (exclude_read) {
+      flags |= telegram_api::dialogFilter::EXCLUDE_READ_MASK;
+    }
+    if (exclude_archived) {
+      flags |= telegram_api::dialogFilter::EXCLUDE_ARCHIVED_MASK;
+    }
+    if (include_contacts) {
+      flags |= telegram_api::dialogFilter::CONTACTS_MASK;
+    }
+    if (include_non_contacts) {
+      flags |= telegram_api::dialogFilter::NON_CONTACTS_MASK;
+    }
+    if (include_bots) {
+      flags |= telegram_api::dialogFilter::BOTS_MASK;
+    }
+    if (include_groups) {
+      flags |= telegram_api::dialogFilter::GROUPS_MASK;
+    }
+    if (include_channels) {
+      flags |= telegram_api::dialogFilter::BROADCASTS_MASK;
+    }
+
+    return telegram_api::make_object<telegram_api::dialogFilter>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id.get(), title, emoji,
+        InputDialogId::get_input_peers(pinned_dialog_ids), InputDialogId::get_input_peers(included_dialog_ids),
+        InputDialogId::get_input_peers(excluded_dialog_ids));
+  }
 
   friend bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
     return lhs.dialog_filter_id == rhs.dialog_filter_id && lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
@@ -13518,7 +13580,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&
 
 bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise) {
   if (!dialog_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid chat identifier"));
+    promise.set_error(Status::Error(6, "Invalid chat identifier specified"));
     return false;
   }
 
@@ -13578,6 +13640,10 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
 }
 
 void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {
+  if (!dialog_filter_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat filter identifier specified"));
+  }
+
   auto filter = get_dialog_filter(dialog_filter_id);
   if (filter == nullptr) {
     return promise.set_value(Unit());
@@ -13968,6 +14034,8 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     dialog_filter->include_bots = (flags & telegram_api::dialogFilter::BOTS_MASK) != 0;
     dialog_filter->include_groups = (flags & telegram_api::dialogFilter::GROUPS_MASK) != 0;
     dialog_filter->include_channels = (flags & telegram_api::dialogFilter::BROADCASTS_MASK) != 0;
+
+    // TODO add secret chats to the filter
     dialog_filters.push_back(std::move(dialog_filter));
   }
 
@@ -14894,6 +14962,122 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   }
 
   return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), for_album);
+}
+
+Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog_filter(
+    td_api::object_ptr<td_api::chatFilter> filter) {
+  CHECK(filter != nullptr);
+  for (auto chat_ids : {&filter->pinned_chat_ids_, &filter->excluded_chat_ids_, &filter->included_chat_ids_}) {
+    for (auto chat_id : *chat_ids) {
+      DialogId dialog_id(chat_id);
+      if (!dialog_id.is_valid()) {
+        return Status::Error(400, "Invalid chat identifier specified");
+      }
+      const Dialog *d = get_dialog_force(dialog_id);
+      if (d == nullptr) {
+        return Status::Error(400, "Chat not found");
+      }
+      if (!have_input_peer(dialog_id, AccessRights::Read)) {
+        return Status::Error(6, "Can't access the chat");
+      }
+      if (d->order == DEFAULT_ORDER) {
+        return Status::Error(400, "Chat is not in the chat list");
+      }
+    }
+  }
+
+  DialogFilterId dialog_filter_id;
+  do {
+    auto min_id = static_cast<int>(DialogFilterId::min().get());
+    auto max_id = static_cast<int>(DialogFilterId::max().get());
+    dialog_filter_id = DialogFilterId(static_cast<int32>(Random::fast(min_id, max_id)));
+  } while (get_dialog_filter(dialog_filter_id) != nullptr);
+
+  auto dialog_filter = make_unique<DialogFilter>();
+  dialog_filter->dialog_filter_id = dialog_filter_id;
+
+  std::unordered_set<int64> added_dialog_ids;
+  auto add_chats = [this, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
+    for (auto &chat_id : chat_ids) {
+      if (!added_dialog_ids.insert(chat_id).second) {
+        // do not allow duplicate chat_ids
+        continue;
+      }
+
+      auto dialog_id = DialogId(chat_id);
+      auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
+      if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID) {
+        input_dialog_ids.push_back(InputDialogId(dialog_id));
+      } else {
+        input_dialog_ids.push_back(InputDialogId(input_peer));
+      }
+    }
+  };
+  add_chats(dialog_filter->pinned_dialog_ids, filter->pinned_chat_ids_);
+  add_chats(dialog_filter->included_dialog_ids, filter->included_chat_ids_);
+  add_chats(dialog_filter->excluded_dialog_ids, filter->excluded_chat_ids_);
+
+  if (dialog_filter->excluded_dialog_ids.size() > MAX_INCLUDED_FILTER_DIALOGS) {
+    return Status::Error(400, "Too much excluded chats");
+  }
+  if (dialog_filter->included_dialog_ids.size() > MAX_INCLUDED_FILTER_DIALOGS) {
+    return Status::Error(400, "Too much included chats");
+  }
+  if (dialog_filter->pinned_dialog_ids.size() + dialog_filter->included_dialog_ids.size() >
+      MAX_INCLUDED_FILTER_DIALOGS) {
+    return Status::Error(400, "Too much pinned chats");
+  }
+
+  dialog_filter->title = std::move(filter->title_);
+  dialog_filter->emoji = std::move(filter->emoji_);
+  dialog_filter->exclude_muted = filter->exclude_muted_;
+  dialog_filter->exclude_read = filter->exclude_read_;
+  dialog_filter->exclude_archived = filter->exclude_archived_;
+  dialog_filter->include_contacts = filter->include_contacts_;
+  dialog_filter->include_non_contacts = filter->include_non_contacts_;
+  dialog_filter->include_bots = filter->include_bots_;
+  dialog_filter->include_groups = filter->include_groups_;
+  dialog_filter->include_channels = filter->include_channels_;
+
+  return std::move(dialog_filter);
+}
+
+void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter, Promise<Unit> &&promise) {
+  if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
+    return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
+  }
+
+  auto r_dialog_filter = create_dialog_filter(std::move(filter));
+  if (r_dialog_filter.is_error()) {
+    return promise.set_error(r_dialog_filter.move_as_error());
+  }
+  auto dialog_filter = r_dialog_filter.move_as_ok();
+  CHECK(dialog_filter != nullptr);
+  auto dialog_filter_id = dialog_filter->dialog_filter_id;
+  auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
+
+  // TODO logevent
+  // TODO add dialog filter locally
+  // TODO SequenceDispatcher
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
+                                               promise = std::move(promise)](Result<Unit> result) mutable {
+    send_closure(actor_id, &MessagesManager::on_create_dialog_filter, std::move(dialog_filter),
+                 result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
+  });
+  td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
+      ->send(dialog_filter_id, std::move(input_dialog_filter));
+}
+
+void MessagesManager::on_create_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
+                                              Promise<Unit> &&promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  // TODO update all changed chat lists and their unread counts
+  dialog_filters_.push_back(std::move(dialog_filter));
+  send_update_chat_filters(false);
+  promise.set_value(Unit());
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {

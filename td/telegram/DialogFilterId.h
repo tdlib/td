@@ -20,12 +20,20 @@ class DialogFilterId {
  public:
   DialogFilterId() = default;
 
-  explicit DialogFilterId(int32 dialog_filter_id) : id(dialog_filter_id) {
+  explicit constexpr DialogFilterId(int32 dialog_filter_id) : id(dialog_filter_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   DialogFilterId(T dialog_filter_id) = delete;
 
+  static constexpr DialogFilterId min() {
+    return DialogFilterId(static_cast<int32>(2));
+  }
+  static constexpr DialogFilterId max() {
+    return DialogFilterId(static_cast<int32>(255));
+  }
+
   bool is_valid() const {
+    // don't check min() and max() for greater future flexibility
     return id > 0;
   }
 

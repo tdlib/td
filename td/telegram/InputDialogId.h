@@ -21,13 +21,18 @@ class InputDialogId {
  public:
   InputDialogId() = default;
 
-  explicit InputDialogId(DialogId dialog_id): dialog_id(dialog_id) {
-    CHECK(dialog_id.get_type() == DialogType::SecretChat);
+  explicit InputDialogId(DialogId dialog_id) : dialog_id(dialog_id) {
   }
 
   explicit InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input_peer);
 
   static vector<InputDialogId> get_input_dialog_ids(const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers);
+
+  static vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> get_input_dialog_peers(
+      const vector<InputDialogId> &input_dialog_ids);
+
+  static vector<telegram_api::object_ptr<telegram_api::InputPeer>> get_input_peers(
+      const vector<InputDialogId> &input_dialog_ids);
 
   bool operator==(const InputDialogId &other) const {
     return dialog_id == other.dialog_id && access_hash == other.access_hash;

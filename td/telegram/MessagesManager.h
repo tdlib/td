@@ -551,6 +551,8 @@ class MessagesManager : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
+  void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter, Promise<Unit> &&promise);
+
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
   Status set_dialog_draft_message(DialogId dialog_id,
@@ -1507,6 +1509,8 @@ class MessagesManager : public Actor {
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
+  static constexpr int32 MAX_DIALOG_FILTERS = 10;              // server side limit
+  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;    // server side limit
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
 
   static constexpr int32 UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS = 1 << 0;
@@ -2199,6 +2203,10 @@ class MessagesManager : public Actor {
 
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
+
+  Result<unique_ptr<DialogFilter>> create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter);
+
+  void on_create_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
 
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
