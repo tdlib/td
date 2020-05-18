@@ -1778,7 +1778,7 @@ static Result<InputMessageContent> create_input_message_content(
       int32 correct_option_id = -1;
       FormattedText explanation;
       if (input_poll->type_ == nullptr) {
-        return Status::Error(400, "Poll type must not be empty");
+        return Status::Error(400, "Poll type must be non-empty");
       }
       switch (input_poll->type_->get_id()) {
         case td_api::pollTypeRegular::ID: {

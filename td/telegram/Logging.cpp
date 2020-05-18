@@ -47,7 +47,7 @@ static const std::map<Slice, int *> log_tags{
 
 Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream) {
   if (stream == nullptr) {
-    return Status::Error("Log stream must not be empty");
+    return Status::Error("Log stream must be non-empty");
   }
 
   std::lock_guard<std::mutex> lock(logging_mutex);

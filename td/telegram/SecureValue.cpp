@@ -757,7 +757,7 @@ static Status check_gender(string &gender) {
 
 static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDetails> &&personal_details) {
   if (personal_details == nullptr) {
-    return Status::Error(400, "Personal details must not be empty");
+    return Status::Error(400, "Personal details must be non-empty");
   }
   TRY_STATUS(check_name(personal_details->first_name_));
   TRY_STATUS(check_name(personal_details->middle_name_));
@@ -767,7 +767,7 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
   TRY_STATUS(check_name(personal_details->native_last_name_));
   TRY_RESULT(birthdate, get_date(std::move(personal_details->birthdate_)));
   if (birthdate.empty()) {
-    return Status::Error(400, "Birthdate must not be empty");
+    return Status::Error(400, "Birthdate must be non-empty");
   }
   TRY_STATUS(check_gender(personal_details->gender_));
   TRY_STATUS(check_country_code(personal_details->country_code_));
@@ -808,7 +808,7 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
   TRY_RESULT(native_last_name, get_json_object_string_field(object, "last_name_native", true));
   TRY_RESULT(birthdate, get_json_object_string_field(object, "birth_date", true));
   if (birthdate.empty()) {
-    return Status::Error(400, "Birthdate must not be empty");
+    return Status::Error(400, "Birthdate must be non-empty");
   }
   TRY_RESULT(gender, get_json_object_string_field(object, "gender", true));
   TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
@@ -836,7 +836,7 @@ static Status check_document_number(string &number) {
     return Status::Error(400, "Document number must be encoded in UTF-8");
   }
   if (number.empty()) {
-    return Status::Error(400, "Document number must not be empty");
+    return Status::Error(400, "Document number must be non-empty");
   }
   if (utf8_length(number) > 24) {
     return Status::Error(400, "Document number is too long");
@@ -867,7 +867,7 @@ static Result<SecureValue> get_identity_document(SecureValueType type, FileManag
                                                  td_api::object_ptr<td_api::inputIdentityDocument> &&identity_document,
                                                  bool need_reverse_side) {
   if (identity_document == nullptr) {
-    return Status::Error(400, "Identity document must not be empty");
+    return Status::Error(400, "Identity document must be non-empty");
   }
   TRY_STATUS(check_document_number(identity_document->number_));
   TRY_RESULT(date, get_date(std::move(identity_document->expiry_date_)));
@@ -950,7 +950,7 @@ static Result<SecureValue> get_personal_document(
     SecureValueType type, FileManager *file_manager,
     td_api::object_ptr<td_api::inputPersonalDocument> &&personal_document) {
   if (personal_document == nullptr) {
-    return Status::Error(400, "Personal document must not be empty");
+    return Status::Error(400, "Personal document must be non-empty");
   }
 
   SecureValue res;
@@ -988,7 +988,7 @@ static Status check_email_address(string &email_address) {
 Result<SecureValue> get_secure_value(FileManager *file_manager,
                                      td_api::object_ptr<td_api::InputPassportElement> &&input_passport_element) {
   if (input_passport_element == nullptr) {
-    return Status::Error(400, "InputPassportElement must not be empty");
+    return Status::Error(400, "InputPassportElement must be non-empty");
   }
 
   SecureValue res;

@@ -7043,7 +7043,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
   }
 
   if (reason == nullptr) {
-    return promise.set_error(Status::Error(3, "Reason must not be empty"));
+    return promise.set_error(Status::Error(3, "Reason must be non-empty"));
   }
 
   Dialog *user_d = d;
@@ -24694,7 +24694,7 @@ bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
 void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action,
                                          Promise<Unit> &&promise) {
   if (action == nullptr) {
-    return promise.set_error(Status::Error(5, "Action must not be empty"));
+    return promise.set_error(Status::Error(5, "Action must be non-empty"));
   }
 
   if (!have_dialog_force(dialog_id)) {
@@ -25256,7 +25256,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   }
 
   if (permissions == nullptr) {
-    return promise.set_error(Status::Error(3, "New permissions must not be empty"));
+    return promise.set_error(Status::Error(3, "New permissions must be non-empty"));
   }
 
   switch (dialog_id.get_type()) {

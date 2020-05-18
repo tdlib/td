@@ -131,7 +131,7 @@ static int32 get_mute_until(int32 mute_for) {
 Result<DialogNotificationSettings> get_dialog_notification_settings(
     td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings, bool old_silent_send_message) {
   if (notification_settings == nullptr) {
-    return Status::Error(400, "New notification settings must not be empty");
+    return Status::Error(400, "New notification settings must be non-empty");
   }
   if (!clean_input_string(notification_settings->sound_)) {
     return Status::Error(400, "Notification settings sound must be encoded in UTF-8");
@@ -155,7 +155,7 @@ Result<DialogNotificationSettings> get_dialog_notification_settings(
 Result<ScopeNotificationSettings> get_scope_notification_settings(
     td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings) {
   if (notification_settings == nullptr) {
-    return Status::Error(400, "New notification settings must not be empty");
+    return Status::Error(400, "New notification settings must be non-empty");
   }
   if (!clean_input_string(notification_settings->sound_)) {
     return Status::Error(400, "Notification settings sound must be encoded in UTF-8");

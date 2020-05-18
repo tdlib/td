@@ -4170,7 +4170,7 @@ string &StickersManager::get_input_sticker_emojis(td_api::InputSticker *sticker)
 
 Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_sticker(td_api::InputSticker *sticker) {
   if (sticker == nullptr) {
-    return Status::Error(3, "Input sticker must not be empty");
+    return Status::Error(3, "Input sticker must be non-empty");
   }
 
   if (!clean_input_string(get_input_sticker_emojis(sticker))) {

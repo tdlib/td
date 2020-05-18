@@ -5788,7 +5788,7 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
   });
 
   if (!request.protocol_) {
-    return query_promise.set_error(Status::Error(5, "Call protocol must not be empty"));
+    return query_promise.set_error(Status::Error(5, "Call protocol must be non-empty"));
   }
 
   UserId user_id(request.user_id_);
@@ -5816,7 +5816,7 @@ void Td::on_request(uint64 id, td_api::acceptCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   if (!request.protocol_) {
-    return promise.set_error(Status::Error(5, "Call protocol must not be empty"));
+    return promise.set_error(Status::Error(5, "Call protocol must be non-empty"));
   }
   send_closure(G()->call_manager(), &CallManager::accept_call, CallId(request.call_id_),
                CallProtocol::from_td_api(*request.protocol_), std::move(promise));
@@ -6222,7 +6222,7 @@ void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {
 void Td::on_request(uint64 id, td_api::addContact &request) {
   CHECK_IS_USER();
   if (request.contact_ == nullptr) {
-    return send_error_raw(id, 5, "Contact must not be empty");
+    return send_error_raw(id, 5, "Contact must be non-empty");
   }
   CLEAN_INPUT_STRING(request.contact_->phone_number_);
   CLEAN_INPUT_STRING(request.contact_->first_name_);
@@ -6235,7 +6235,7 @@ void Td::on_request(uint64 id, td_api::importContacts &request) {
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
-      return send_error_raw(id, 5, "Contact must not be empty");
+      return send_error_raw(id, 5, "Contact must be non-empty");
     }
     CLEAN_INPUT_STRING(contact->phone_number_);
     CLEAN_INPUT_STRING(contact->first_name_);
@@ -6269,7 +6269,7 @@ void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
-      return send_error_raw(id, 5, "Contact must not be empty");
+      return send_error_raw(id, 5, "Contact must be non-empty");
     }
     CLEAN_INPUT_STRING(contact->phone_number_);
     CLEAN_INPUT_STRING(contact->first_name_);
@@ -6588,7 +6588,7 @@ void Td::on_request(uint64 id, const td_api::getChatNotificationSettingsExceptio
 void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &request) {
   CHECK_IS_USER();
   if (request.scope_ == nullptr) {
-    return send_error_raw(id, 400, "Scope must not be empty");
+    return send_error_raw(id, 400, "Scope must be non-empty");
   }
   CREATE_REQUEST(GetScopeNotificationSettingsRequest, get_notification_settings_scope(request.scope_));
 }
@@ -6636,7 +6636,7 @@ void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
 void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
   CHECK_IS_USER();
   if (request.scope_ == nullptr) {
-    return send_error_raw(id, 400, "Scope must not be empty");
+    return send_error_raw(id, 400, "Scope must be non-empty");
   }
   answer_ok_query(id, messages_manager_->set_scope_notification_settings(
                           get_notification_settings_scope(request.scope_), std::move(request.notification_settings_)));
@@ -7180,7 +7180,7 @@ void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
   CLEAN_INPUT_STRING(request.order_info_id_);
   CLEAN_INPUT_STRING(request.shipping_option_id_);
   if (request.credentials_ == nullptr) {
-    return send_error_raw(id, 400, "Input payments credentials must not be empty");
+    return send_error_raw(id, 400, "Input payments credentials must be non-empty");
   }
   CREATE_REQUEST_PROMISE();
   messages_manager_->send_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)},
@@ -7229,7 +7229,7 @@ void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   if (request.type_ == nullptr) {
-    return send_error_raw(id, 400, "Type must not be empty");
+    return send_error_raw(id, 400, "Type must be non-empty");
   }
   CREATE_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::get_secure_value, std::move(request.password_),
@@ -7259,7 +7259,7 @@ void Td::on_request(uint64 id, td_api::setPassportElement &request) {
 void Td::on_request(uint64 id, const td_api::deletePassportElement &request) {
   CHECK_IS_USER();
   if (request.type_ == nullptr) {
-    return send_error_raw(id, 400, "Type must not be empty");
+    return send_error_raw(id, 400, "Type must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::delete_secure_value, get_secure_value_type_td_api(request.type_),
@@ -7355,7 +7355,7 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CHECK_IS_USER();
   for (auto &type : request.types_) {
     if (type == nullptr) {
-      return send_error_raw(id, 400, "Type must not be empty");
+      return send_error_raw(id, 400, "Type must be non-empty");
     }
   }
 

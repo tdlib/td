@@ -1579,7 +1579,7 @@ Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info
 Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info(
     td_api::languagePackInfo *language_pack_info) {
   if (language_pack_info == nullptr) {
-    return Status::Error(400, "Language pack info must not be empty");
+    return Status::Error(400, "Language pack info must be non-empty");
   }
 
   if (!clean_input_string(language_pack_info->id_)) {

@@ -341,7 +341,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
   bool force_vertical = false;
   for (auto &input_result : input_results) {
     if (input_result == nullptr) {
-      return promise.set_error(Status::Error(400, "Inline query result must not be empty"));
+      return promise.set_error(Status::Error(400, "Inline query result must be non-empty"));
     }
 
     string id;
