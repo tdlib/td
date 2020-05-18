@@ -5906,6 +5906,13 @@ void Td::on_request(uint64 id, const td_api::deleteChatFilter &request) {
   messages_manager_->delete_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::reorderChatFilters &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->reorder_dialog_filters(
+      transform(request.chat_filter_ids_, [](int32 id) { return DialogFilterId(id); }), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

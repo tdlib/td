@@ -111,6 +111,64 @@ class GetDialogFiltersQuery : public Td::ResultHandler {
   }
 };
 
+class UpdateDialogFilterQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateDialogFilterQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, tl_object_ptr<telegram_api::dialogFilter> filter) {
+    int32 flags = 0;
+    if (filter != nullptr) {
+      flags |= telegram_api::messages_updateDialogFilter::FILTER_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_updateDialogFilter(flags, dialog_filter_id.get(), std::move(filter))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_updateDialogFilter>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for UpdateDialogFilterQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReorderDialogFiltersQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReorderDialogFiltersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<DialogFilterId> dialog_filter_ids) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_updateDialogFiltersOrder(
+        transform(dialog_filter_ids, [](auto dialog_filter_id) { return dialog_filter_id.get(); }))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_updateDialogFiltersOrder>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for UpdateDialogFiltersOrderQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnlinesQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -421,37 +479,6 @@ class GetScheduledMessagesQuery : public Td::ResultHandler {
       return;
     }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetScheduledMessagesQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class UpdateDialogFilterQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit UpdateDialogFilterQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogFilterId dialog_filter_id, tl_object_ptr<telegram_api::dialogFilter> filter) {
-    int32 flags = 0;
-    if (filter != nullptr) {
-      flags |= telegram_api::messages_updateDialogFilter::FILTER_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_updateDialogFilter(flags, dialog_filter_id.get(), std::move(filter))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::messages_updateDialogFilter>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    LOG(INFO) << "Receive result for UpdateDialogFilterQuery: " << result_ptr.ok();
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
   }
 };
@@ -15177,6 +15204,59 @@ void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, S
   promise.set_value(Unit());
 }
 
+void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+
+  for (auto dialog_filter_id : dialog_filter_ids) {
+    auto dialog_filter = get_dialog_filter(dialog_filter_id);
+    if (dialog_filter == nullptr) {
+      return promise.set_error(Status::Error(6, "Chat filter not found"));
+    }
+  }
+  std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids_set(dialog_filter_ids.begin(),
+                                                                                   dialog_filter_ids.end());
+  if (new_dialog_filter_ids_set.size() != dialog_filter_ids.size()) {
+    return promise.set_error(Status::Error(400, "Duplicate chat filters in the new list"));
+  }
+
+  auto old_dialog_filter_ids = transform(dialog_filters_, [](auto &filter) { return filter->dialog_filter_id; });
+  if (old_dialog_filter_ids == dialog_filter_ids) {
+    return promise.set_value(Unit());
+  }
+  LOG(INFO) << "Reorder chat filters from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
+
+  if (dialog_filter_ids.size() != old_dialog_filter_ids.size()) {
+    for (auto dialog_filter_id : old_dialog_filter_ids) {
+      if (!td::contains(dialog_filter_ids, dialog_filter_id)) {
+        dialog_filter_ids.push_back(dialog_filter_id);
+      }
+    }
+    CHECK(dialog_filter_ids.size() == old_dialog_filter_ids.size());
+  }
+  if (old_dialog_filter_ids == dialog_filter_ids) {
+    return promise.set_value(Unit());
+  }
+
+  CHECK(dialog_filter_ids.size() == dialog_filters_.size());
+  for (size_t i = 0; i < dialog_filters_.size(); i++) {
+    for (size_t j = i; j < dialog_filters_.size(); j++) {
+      if (dialog_filters_[j]->dialog_filter_id == dialog_filter_ids[i]) {
+        if (i != j) {
+          std::swap(dialog_filters_[i], dialog_filters_[j]);
+        }
+        break;
+      }
+    }
+    CHECK(dialog_filters_[i]->dialog_filter_id == dialog_filter_ids[i]);
+  }
+  send_update_chat_filters(false);
+
+  // TODO logevent
+  // TODO SequenceDispatcher
+  td_->create_handler<ReorderDialogFiltersQuery>(std::move(promise))->send(dialog_filter_ids);
+  return promise.set_value(Unit());
+}
+
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(6, "Bots can't delete chat reply markup");
@@ -15483,8 +15563,7 @@ Status MessagesManager::set_pinned_dialogs(FolderId folder_id, vector<DialogId> 
   if (pinned_dialog_ids == dialog_ids) {
     return Status::OK();
   }
-  LOG(INFO) << "Reorder pinned chats order in " << folder_id << " from " << format::as_array(pinned_dialog_ids)
-            << " to " << format::as_array(dialog_ids);
+  LOG(INFO) << "Reorder pinned chats in " << folder_id << " from " << pinned_dialog_ids << " to " << dialog_ids;
 
   auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
   auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);

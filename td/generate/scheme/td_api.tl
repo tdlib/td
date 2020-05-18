@@ -3718,6 +3718,9 @@ editChatFilter chat_filter_id:int32 filter:chatFilter = Ok;
 //@description Deletes existing chat filter @chat_filter_id Chat filter identifier
 deleteChatFilter chat_filter_id:int32 = Ok;
 
+//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order
+reorderChatFilters chat_filter_ids:vector<int32> = Ok;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
 //@chat_id Chat identifier @title New title of the chat; 1-128 characters

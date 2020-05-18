@@ -558,6 +558,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
 
+  void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Promise<Unit> &&promise);
+
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
   Status set_dialog_draft_message(DialogId dialog_id,

@@ -471,6 +471,11 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  vector<int32> as_chat_filter_ids(Slice chat_filter_ids) const {
+    return transform(full_split(trim(chat_filter_ids), get_delimiter(chat_filter_ids)),
+                     [this](Slice str) { return as_chat_filter_id(str); });
+  }
+
   static td_api::object_ptr<td_api::ChatList> as_chat_list(string chat_list) {
     if (!chat_list.empty() && chat_list.back() == 'a') {
       return td_api::make_object<td_api::chatListArchive>();
@@ -3517,6 +3522,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::editChatFilter>(as_chat_filter_id(chat_filter_id), as_chat_filter(filter)));
     } else if (op == "dcf") {
       send_request(td_api::make_object<td_api::deleteChatFilter>(as_chat_filter_id(args)));
+    } else if (op == "rcf") {
+      send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(args)));
     } else if (op == "sct") {
       string chat_id;
       string title;
