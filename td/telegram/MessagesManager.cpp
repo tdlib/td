@@ -7962,7 +7962,23 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       if (need_update_dialog_pos) {
         send_update_chat_last_message(d, "on_get_gistory 2");
       }
-      send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+      if (!deleted_message_ids.empty()) {
+        send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+        message_ids.clear();
+        find_newer_messages(d->messages.get(), last_server_message_id, message_ids);
+      }
+
+      // connect all messages with ID > last_server_message_id
+      for (size_t i = 0; i + 1 < message_ids.size(); i++) {
+        auto m = get_message(d, message_ids[i]);
+        CHECK(m != nullptr);
+        if (!m->have_next) {
+          m->have_next = true;
+          attach_message_to_next(d, message_ids[i], "on_get_history 3");
+        }
+      }
     }
   }
 
