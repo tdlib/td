@@ -7943,6 +7943,29 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     prev_have_full_history = d->have_full_history;
   }
 
+  if (from_the_end && d != nullptr) {
+    auto last_server_message_id = get_message_id(messages[0], false);
+    // delete all server messages with ID > last_server_message_id
+    vector<MessageId> message_ids;
+    find_newer_messages(d->messages.get(), last_server_message_id, message_ids);
+    if (!message_ids.empty()) {
+      bool need_update_dialog_pos = false;
+      vector<int64> deleted_message_ids;
+      for (auto message_id : message_ids) {
+        CHECK(message_id > last_server_message_id);
+        if (message_id.is_server()) {
+          auto message = delete_message(d, message_id, true, &need_update_dialog_pos, "on_get_gistory 1");
+          CHECK(message != nullptr);
+          deleted_message_ids.push_back(message->message_id.get());
+        }
+      }
+      if (need_update_dialog_pos) {
+        send_update_chat_last_message(d, "on_get_gistory 2");
+      }
+      send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+    }
+  }
+
   for (auto &message : messages) {
     if (!have_next && from_the_end && d != nullptr && get_message_id(message, false) < d->last_message_id) {
       // last message in the dialog should be attached to the next message if there is some
@@ -9051,18 +9074,18 @@ void MessagesManager::find_old_messages(const Message *m, MessageId max_message_
   }
 }
 
-void MessagesManager::find_new_messages(const Message *m, MessageId min_message_id, vector<MessageId> &message_ids) {
+void MessagesManager::find_newer_messages(const Message *m, MessageId min_message_id, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
   }
 
   if (m->message_id > min_message_id) {
-    find_new_messages(m->left.get(), min_message_id, message_ids);
+    find_newer_messages(m->left.get(), min_message_id, message_ids);
 
     message_ids.push_back(m->message_id);
   }
 
-  find_new_messages(m->right.get(), min_message_id, message_ids);
+  find_newer_messages(m->right.get(), min_message_id, message_ids);
 }
 
 void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
@@ -11750,7 +11773,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
     invalidate_message_indexes(d);
 
     vector<MessageId> to_delete_message_ids;
-    find_new_messages(d->messages.get(), last_new_message_id, to_delete_message_ids);
+    find_newer_messages(d->messages.get(), last_new_message_id, to_delete_message_ids);
     td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
     if (!to_delete_message_ids.empty()) {
       LOG(WARNING) << "Delete " << format::as_array(to_delete_message_ids) << " because of received last new "
