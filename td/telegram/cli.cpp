@@ -3524,6 +3524,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteChatFilter>(as_chat_filter_id(args)));
     } else if (op == "rcf") {
       send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(args)));
+    } else if (op == "grcf") {
+      send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
     } else if (op == "sct") {
       string chat_id;
       string title;

@@ -671,6 +671,12 @@ chatFilter title:string emoji:string pinned_chat_ids:vector<int53> included_chat
 //@emoji The emoji for short filter representation
 chatFilterInfo chat_filter_id:int32 title:string emoji:string = ChatFilterInfo;
 
+//@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
+recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
+
+//@description Contains a list of recommended chat filters @chat_filters List of recommended chat filters
+recommendedChatFilters chat_filters:vector<recommendedChatFilter> = RecommendedChatFilters;
+
 
 //@class ChatList @description Describes a list of chats
 
@@ -3720,6 +3726,9 @@ deleteChatFilter chat_filter_id:int32 = Ok;
 
 //@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order
 reorderChatFilters chat_filter_ids:vector<int32> = Ok;
+
+//@description Returns recommended chat filters for the user
+getRecommendedChatFilters = RecommendedChatFilters;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed

@@ -677,6 +677,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getChatFilter &request);
 
+  void on_request(uint64 id, const td_api::getRecommendedChatFilters &request);
+
   void on_request(uint64 id, td_api::createChatFilter &request);
 
   void on_request(uint64 id, td_api::editChatFilter &request);

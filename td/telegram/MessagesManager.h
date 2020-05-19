@@ -501,6 +501,8 @@ class MessagesManager : public Actor {
 
   void load_dialog_filter(DialogFilterId dialog_id, bool force, Promise<Unit> &&promise);
 
+  void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+
   vector<DialogId> get_dialogs(FolderId folder_id, DialogDate offset, int32 limit, bool force, Promise<Unit> &&promise);
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
@@ -1233,6 +1235,11 @@ class MessagesManager : public Actor {
   };
 
   struct DialogFilter;
+
+  struct RecommendedDialogFilter {
+    unique_ptr<DialogFilter> dialog_filter;
+    string description;
+  };
 
   struct DialogList {
     FolderId folder_id;
@@ -2211,7 +2218,15 @@ class MessagesManager : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
+  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *filter) const;
+
   void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
+
+  void on_get_recommended_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> result,
+                                         Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+
+  void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
+                                          Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
 
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);

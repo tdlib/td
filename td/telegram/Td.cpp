@@ -5877,6 +5877,12 @@ void Td::on_request(uint64 id, const td_api::getChatFilter &request) {
   CREATE_REQUEST(GetChatFilterRequest, request.chat_filter_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::getRecommendedChatFilters &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_recommended_dialog_filters(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::createChatFilter &request) {
   CHECK_IS_USER();
   if (request.filter_ == nullptr) {
