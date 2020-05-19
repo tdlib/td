@@ -13710,6 +13710,10 @@ void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool f
     return promise.set_value(Unit());
   }
 
+  load_dialog_filter(filter, force, std::move(promise));
+}
+
+void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise) {
   vector<InputDialogId> needed_dialog_ids;
   for (auto input_dialog_ids :
        {&filter->pinned_dialog_ids, &filter->excluded_dialog_ids, &filter->included_dialog_ids}) {

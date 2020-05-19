@@ -2211,6 +2211,8 @@ class MessagesManager : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
+  void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
+
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
 
