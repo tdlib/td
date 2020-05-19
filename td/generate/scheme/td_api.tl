@@ -666,10 +666,10 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 chatFilter title:string emoji:string pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
 
 //@description Contains basic information about a chat filter
-//@chat_filter_id Unique chat filter identifier
+//@id Unique chat filter identifier
 //@title The title of the filter
 //@emoji The emoji for short filter representation
-chatFilterInfo chat_filter_id:int32 title:string emoji:string = ChatFilterInfo;
+chatFilterInfo id:int32 title:string emoji:string = ChatFilterInfo;
 
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
 recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
@@ -4443,7 +4443,7 @@ answerCustomQuery custom_query_id:int64 data:string = Ok;
 setAlarm seconds:double = Ok;
 
 
-//@description Uses current user IP address to found their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
+//@description Uses current user IP address to find their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;
 
 //@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
