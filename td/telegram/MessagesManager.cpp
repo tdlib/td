@@ -16740,17 +16740,10 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
                                                                               bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   bool have_all_dialogs = true;
-  bool have_main_list = false;
-  bool have_archive_list = false;
   for (const auto &list : dialog_lists_) {
     if (list.second.last_dialog_date_ != MAX_DIALOG_DATE) {
       have_all_dialogs = false;
     }
-    have_main_list |= list.first == FolderId::main();
-    have_archive_list |= list.first == FolderId::archive();
-  }
-  if (!have_main_list || !have_archive_list) {
-    have_all_dialogs = false;
   }
 
   if (have_all_dialogs || force) {
