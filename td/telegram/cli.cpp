@@ -2842,11 +2842,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatDraftMessage>(as_chat_id(chat_id), std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
-    } else if (op == "tcip") {
+    } else if (op == "tcip" || op == "tcipa") {
       string chat_id;
       string is_pinned;
       std::tie(chat_id, is_pinned) = split(args);
-      send_request(td_api::make_object<td_api::toggleChatIsPinned>(as_chat_id(chat_id), as_bool(is_pinned)));
+      send_request(
+          td_api::make_object<td_api::toggleChatIsPinned>(as_chat_list(op), as_chat_id(chat_id), as_bool(is_pinned)));
     } else if (op == "tcimar") {
       string chat_id;
       string is_marked_as_read;

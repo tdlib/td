@@ -15527,7 +15527,7 @@ vector<DialogId> MessagesManager::remove_secret_chat_dialog_ids(vector<DialogId>
   return dialog_ids;
 }
 
-Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
+Status MessagesManager::toggle_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned) {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(6, "Bots can't change chat pin state");
   }
@@ -15543,13 +15543,19 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinn
     return Status::Error(6, "The chat can't be pinned");
   }
 
-  bool was_pinned = get_dialog_pinned_order(d->folder_id, dialog_id) != DEFAULT_ORDER;
+  if (get_dialog_list(folder_id) == nullptr) {
+    return Status::Error(6, "Chat list not found");
+  }
+
+  bool was_pinned = get_dialog_pinned_order(folder_id, dialog_id) != DEFAULT_ORDER;
   if (is_pinned == was_pinned) {
     return Status::OK();
   }
 
   if (is_pinned) {
-    auto pinned_dialog_ids = get_pinned_dialog_ids(d->folder_id);
+    set_dialog_folder_id(d, folder_id);
+
+    auto pinned_dialog_ids = get_pinned_dialog_ids(folder_id);
     auto pinned_dialog_count = pinned_dialog_ids.size();
     auto secret_pinned_dialog_count =
         std::count_if(pinned_dialog_ids.begin(), pinned_dialog_ids.end(),
@@ -15558,12 +15564,12 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinn
                               ? secret_pinned_dialog_count
                               : pinned_dialog_count - secret_pinned_dialog_count;
 
-    if (dialog_count >= static_cast<size_t>(get_pinned_dialogs_limit(d->folder_id))) {
+    if (dialog_count >= static_cast<size_t>(get_pinned_dialogs_limit(folder_id))) {
       return Status::Error(400, "Maximum number of pinned chats exceeded");
     }
   }
 
-  if (set_dialog_is_pinned(d->folder_id, d, is_pinned)) {
+  if (set_dialog_is_pinned(folder_id, d, is_pinned)) {
     toggle_dialog_is_pinned_on_server(dialog_id, is_pinned, 0);
   }
   return Status::OK();

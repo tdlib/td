@@ -571,7 +571,7 @@ class MessagesManager : public Actor {
 
   void set_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
 
-  Status toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
+  Status toggle_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
 
