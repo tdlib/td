@@ -15154,7 +15154,10 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
     return Status::Error(400, "Too much pinned chats");
   }
 
-  dialog_filter->title = std::move(filter->title_);
+  dialog_filter->title = clean_name(std::move(filter->title_), MAX_DIALOG_FILTER_TITLE_LENGTH);
+  if (dialog_filter->title.empty()) {
+    return Status::Error(400, "Title must not be empty");
+  }
   dialog_filter->emoji = std::move(filter->emoji_);
   dialog_filter->exclude_muted = filter->exclude_muted_;
   dialog_filter->exclude_read = filter->exclude_read_;

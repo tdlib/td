@@ -650,7 +650,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 
 //@description Represents a filter of user chats
-//@title The title of the filter
+//@title The title of the filter; 1-12 characters without line feeds
 //@emoji The emoji for short filter representation
 //@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list
 //@included_chat_ids The chat identifiers of always included chats in the filtered chat list
@@ -667,7 +667,7 @@ chatFilter title:string emoji:string pinned_chat_ids:vector<int53> included_chat
 
 //@description Contains basic information about a chat filter
 //@id Unique chat filter identifier
-//@title The title of the filter
+//@title The title of the filter; 1-12 characters without line feeds
 //@emoji The emoji for short filter representation
 chatFilterInfo id:int32 title:string emoji:string = ChatFilterInfo;
 
