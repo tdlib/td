@@ -148,6 +148,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
             end_p--;
           }
 
+          CHECK(p != nullptr);
           Slice boundary(p, static_cast<size_t>(end_p - p));
           if (boundary.empty() || boundary.size() > MAX_BOUNDARY_LENGTH) {
             return Status::Error(400, "Bad Request: boundary too big or empty");

@@ -515,6 +515,7 @@ int strm_read(BIO *b, char *buf, int len) {
   auto *stream = static_cast<SslStreamImpl *>(BIO_get_data(b));
   CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
+  CHECK(buf != nullptr);
   int res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
   if (res == 0) {
     BIO_set_retry_read(b);
@@ -526,6 +527,7 @@ int strm_write(BIO *b, const char *buf, int len) {
   auto *stream = static_cast<SslStreamImpl *>(BIO_get_data(b));
   CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
+  CHECK(buf != nullptr);
   return narrow_cast<int>(stream->flow_write(Slice(buf, len)));
 }
 }  // namespace
