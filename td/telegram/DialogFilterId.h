@@ -33,8 +33,8 @@ class DialogFilterId {
   }
 
   bool is_valid() const {
-    // don't check min() and max() for greater future flexibility
-    return id > 0;
+    // don't check max() for greater future flexibility
+    return id >= min().get();
   }
 
   int32 get() const {
