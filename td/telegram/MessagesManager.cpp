@@ -29749,7 +29749,7 @@ void MessagesManager::update_dialog_lists(Dialog *d,
 
     bool was_in_list = old_order.order != DEFAULT_ORDER && old_order.private_order != 0;
     bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
-    CHECK(was_in_list == td::contains(d->dialog_list_ids, dialog_list_id));
+    CHECK(was_in_list == is_dialog_in_list(d, list));
 
     if (need_send_update &&
         (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
@@ -29896,7 +29896,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
           auto dialog_id = it->get_dialog_id();
           auto d = get_dialog(dialog_id);
           CHECK(d != nullptr);
-          if (td::contains(d->dialog_list_ids, list.folder_id)) {
+          if (is_dialog_in_list(d, list)) {
             send_update_chat_position(list.folder_id, d);
           }
         }
@@ -30060,7 +30060,11 @@ bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const Dial
   return list.folder_id == folder.folder_id;
 }
 
-bool MessagesManager::need_dialog_in_list(const DialogList &list, const Dialog *d) const {
+bool MessagesManager::is_dialog_in_list(const Dialog *d, const DialogList &list) const {
+  return td::contains(d->dialog_list_ids, list.folder_id);
+}
+
+bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &list) const {
   return d->folder_id == list.folder_id;
 }
 
@@ -30071,7 +30075,7 @@ MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(con
   CHECK(d != nullptr);
   DialogOrderInList order;
   order.order = d->order;
-  if (actual ? need_dialog_in_list(*list, d) : td::contains(d->dialog_list_ids, list->folder_id)) {
+  if (actual ? need_dialog_in_list(d, *list) : is_dialog_in_list(d, *list)) {
     order.private_order = get_dialog_private_order(list, d);
   }
   if (order.private_order != 0) {
