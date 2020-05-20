@@ -1259,8 +1259,14 @@ class MessagesManager : public Actor {
     std::unordered_map<DialogId, int64, DialogIdHash> pinned_dialog_id_orders_;
     std::vector<DialogDate> pinned_dialogs_;
 
+    DialogDate last_pinned_dialog_date_ = MIN_DIALOG_DATE;  // in memory
+
+    // date of the last loaded dialog in the dialog list
+    // min(folder1_last_dialog_date_, folder2_last_dialog_date, last_pinned_dialog_date_)
+    DialogDate list_last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
+
     // date of the last loaded dialog in the folder
-    DialogDate last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
+    DialogDate folder_last_dialog_date_{MAX_ORDINARY_DIALOG_ORDER, DialogId()};  // in memory
 
     std::set<DialogDate> ordered_dialogs_;  // all known dialogs, including with default order
 
@@ -1521,12 +1527,15 @@ class MessagesManager : public Actor {
   static constexpr size_t MAX_TITLE_LENGTH = 128;               // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;         // server side limit for chat description
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
+  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;          // server side limit
+  static constexpr int32 MAX_DIALOG_FILTERS = 10;               // server side limit
+  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;     // server side limit
+  static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
+
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
-  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
-  static constexpr int32 MAX_DIALOG_FILTERS = 10;              // server side limit
-  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;    // server side limit
-  static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
+  static constexpr int64 MAX_ORDINARY_DIALOG_ORDER =
+      9221294780217032704;  // == get_dialog_order(MessageId(), MIN_PINNED_DIALOG_DATE - 1)
 
   static constexpr int32 UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS = 1 << 0;
 
@@ -2239,6 +2248,8 @@ class MessagesManager : public Actor {
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
+  bool has_dialogs_from_folder(const DialogList &list, const DialogList &folder) const;
+
   bool need_dialog_in_list(const DialogList &list, const Dialog *d) const;
 
   DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
@@ -2448,6 +2459,8 @@ class MessagesManager : public Actor {
                            bool need_send_update, bool is_loaded_from_database, const char *source);
 
   void update_last_dialog_date(FolderId folder_id);
+
+  void update_list_last_dialog_date(DialogList &list);
 
   void load_notification_settings();
 
