@@ -25,6 +25,7 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogSource.h"
@@ -849,14 +850,15 @@ class GetChatFilterRequest : public RequestActor<> {
 };
 
 class GetChatsRequest : public RequestActor<> {
-  FolderId folder_id_;
+  DialogListId dialog_list_id_;
   DialogDate offset_;
   int32 limit_;
 
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
-    dialog_ids_ = td->messages_manager_->get_dialogs(folder_id_, offset_, limit_, get_tries() < 2, std::move(promise));
+    dialog_ids_ =
+        td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {
@@ -864,10 +866,10 @@ class GetChatsRequest : public RequestActor<> {
   }
 
  public:
-  GetChatsRequest(ActorShared<Td> td, uint64 request_id, FolderId folder_id, int64 offset_order, int64 offset_dialog_id,
-                  int32 limit)
+  GetChatsRequest(ActorShared<Td> td, uint64 request_id, DialogListId dialog_list_id, int64 offset_order,
+                  int64 offset_dialog_id, int32 limit)
       : RequestActor(std::move(td), request_id)
-      , folder_id_(folder_id)
+      , dialog_list_id_(dialog_list_id)
       , offset_(offset_order, DialogId(offset_dialog_id))
       , limit_(limit) {
     // 1 for database + 1 for server request + 1 for server request at the end + 1 for return + 1 just in case
@@ -5313,7 +5315,7 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
 
 void Td::on_request(uint64 id, const td_api::getChats &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetChatsRequest, FolderId(request.chat_list_), request.offset_order_, request.offset_chat_id_,
+  CREATE_REQUEST(GetChatsRequest, DialogListId(request.chat_list_), request.offset_order_, request.offset_chat_id_,
                  request.limit_);
 }
 
@@ -5456,7 +5458,11 @@ void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
 void Td::on_request(uint64 id, td_api::searchMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchMessagesRequest, FolderId(request.chat_list_), request.chat_list_ == nullptr,
+  DialogListId dialog_list_id(request.chat_list_);
+  if (!dialog_list_id.is_folder()) {
+    return send_error_raw(id, 400, "Wrong chat list specified");
+  }
+  CREATE_REQUEST(SearchMessagesRequest, dialog_list_id.get_folder_id(), request.chat_list_ == nullptr,
                  std::move(request.query_), request.offset_date_, request.offset_chat_id_, request.offset_message_id_,
                  request.limit_);
 }
@@ -5869,7 +5875,12 @@ void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupCh
 void Td::on_request(uint64 id, const td_api::setChatChatList &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_folder_id(DialogId(request.chat_id_), FolderId(request.chat_list_), std::move(promise));
+  DialogListId dialog_list_id(request.chat_list_);
+  if (!dialog_list_id.is_folder()) {
+    return send_error_raw(id, 400, "Wrong chat list specified");
+  }
+  messages_manager_->set_dialog_folder_id(DialogId(request.chat_id_), dialog_list_id.get_folder_id(),
+                                          std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatFilter &request) {
@@ -5943,7 +5954,7 @@ void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
 
 void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, messages_manager_->toggle_dialog_is_pinned(FolderId(request.chat_list_),
+  answer_ok_query(id, messages_manager_->toggle_dialog_is_pinned(DialogListId(request.chat_list_),
                                                                  DialogId(request.chat_id_), request.is_pinned_));
 }
 
@@ -5962,7 +5973,7 @@ void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotificatio
 void Td::on_request(uint64 id, const td_api::setPinnedChats &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->set_pinned_dialogs(
-                          FolderId(request.chat_list_),
+                          DialogListId(request.chat_list_),
                           transform(request.chat_ids_, [](int64 chat_id) { return DialogId(chat_id); })));
 }
 

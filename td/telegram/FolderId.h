@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
@@ -26,14 +24,6 @@ class FolderId {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   FolderId(T folder_id) = delete;
-
-  explicit FolderId(const td_api::object_ptr<td_api::ChatList> &chat_list) {
-    if (chat_list != nullptr && chat_list->get_id() == td_api::chatListArchive::ID) {
-      id = 1;
-    } else {
-      CHECK(id == 0);
-    }
-  }
 
   int32 get() const {
     return id;

@@ -550,6 +550,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogDb.h
   td/telegram/DialogFilterId.h
   td/telegram/DialogId.h
+  td/telegram/DialogListId.h
   td/telegram/DialogLocation.h
   td/telegram/DialogParticipant.h
   td/telegram/DialogSource.h
