@@ -1266,7 +1266,10 @@ class MessagesManager : public Actor {
     // date of the last loaded dialog in the dialog list
     // min(folder1_last_dialog_date_, folder2_last_dialog_date, last_pinned_dialog_date_)
     DialogDate list_last_dialog_date_ = MIN_DIALOG_DATE;  // in memory
+  };
 
+  struct DialogFolder {
+    FolderId folder_id;
     // date of the last loaded dialog in the folder
     DialogDate folder_last_dialog_date_{MAX_ORDINARY_DIALOG_ORDER, DialogId()};  // in memory
 
@@ -2254,7 +2257,7 @@ class MessagesManager : public Actor {
 
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
 
-  bool has_dialogs_from_folder(const DialogList &list, const DialogList &folder) const;
+  bool has_dialogs_from_folder(const DialogList &list, const DialogFolder &folder) const;
 
   bool is_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
@@ -2271,6 +2274,9 @@ class MessagesManager : public Actor {
 
   DialogList *get_dialog_list(FolderId folder_id);
   const DialogList *get_dialog_list(FolderId folder_id) const;
+
+  DialogFolder *get_dialog_folder(FolderId folder_id);
+  const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
   std::pair<int32, vector<DialogParticipant>> search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
                                                                                const string &query, int32 limit,
@@ -2843,6 +2849,7 @@ class MessagesManager : public Actor {
   int64 current_pinned_dialog_order_ = static_cast<int64>(MIN_PINNED_DIALOG_DATE) << 32;
 
   std::unordered_map<FolderId, DialogList, FolderIdHash> dialog_lists_;
+  std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> dialog_filters_;
