@@ -1256,8 +1256,10 @@ class MessagesManager : public Actor {
     int32 server_dialog_total_count_ = -1;
     int32 secret_chat_total_count_ = -1;
 
+    vector<Promise<Unit>> load_list_queries_;
+
     std::unordered_map<DialogId, int64, DialogIdHash> pinned_dialog_id_orders_;
-    std::vector<DialogDate> pinned_dialogs_;
+    vector<DialogDate> pinned_dialogs_;
 
     DialogDate last_pinned_dialog_date_ = MIN_DIALOG_DATE;  // in memory
 
@@ -1275,7 +1277,7 @@ class MessagesManager : public Actor {
     DialogDate last_loaded_database_dialog_date_ = MIN_DIALOG_DATE;
     DialogDate last_database_server_dialog_date_ = MIN_DIALOG_DATE;
 
-    MultiPromiseActor load_dialog_list_multipromise_{
+    MultiPromiseActor load_folder_dialog_list_multipromise_{
         "LoadDialogListMultiPromiseActor"};  // must be defined before pending_on_get_dialogs_
     int32 load_dialog_list_limit_max_ = 0;
   };
@@ -1877,11 +1879,13 @@ class MessagesManager : public Actor {
 
   void try_reuse_notification_group(NotificationGroupInfo &group_info);
 
-  void load_dialog_list(FolderId folder_id, int32 limit, bool only_local, Promise<Unit> &&promise);
+  void load_dialog_list(DialogList &list, int32 limit, Promise<Unit> &&promise);
 
-  void load_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
+  void load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local, Promise<Unit> &&promise);
 
-  void preload_dialog_list(FolderId folderId);
+  void load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
+
+  void preload_folder_dialog_list(FolderId folderId);
 
   static void invalidate_message_indexes(Dialog *d);
 
@@ -2523,7 +2527,7 @@ class MessagesManager : public Actor {
 
   static void on_update_dialog_online_member_count_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
-  static void on_preload_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int);
+  static void on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int);
 
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
@@ -2856,7 +2860,7 @@ class MessagesManager : public Actor {
   MultiTimeout pending_send_dialog_action_timeout_{"PendingSendDialogActionTimeout"};
   MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
-  MultiTimeout preload_dialog_list_timeout_{"PreloadDialogListTimeout"};
+  MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
 
   Timeout reload_dialog_filters_timeout_;
 

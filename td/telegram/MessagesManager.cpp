@@ -5112,8 +5112,8 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   update_dialog_online_member_count_timeout_.set_callback(on_update_dialog_online_member_count_timeout_callback);
   update_dialog_online_member_count_timeout_.set_callback_data(static_cast<void *>(this));
 
-  preload_dialog_list_timeout_.set_callback(on_preload_dialog_list_timeout_callback);
-  preload_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
+  preload_folder_dialog_list_timeout_.set_callback(on_preload_folder_dialog_list_timeout_callback);
+  preload_folder_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
 
   sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
 }
@@ -5237,13 +5237,13 @@ void MessagesManager::on_update_dialog_online_member_count_timeout_callback(void
                      &MessagesManager::on_update_dialog_online_member_count_timeout, DialogId(dialog_id_int));
 }
 
-void MessagesManager::on_preload_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int) {
+void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int) {
   if (G()->close_flag()) {
     return;
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::preload_dialog_list,
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::preload_folder_dialog_list,
                      FolderId(narrow_cast<int32>(folder_id_int)));
 }
 
@@ -13946,16 +13946,38 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
     ++it;
   }
 
-  if (limit <= 0 || force) {
+  if (!result.empty() || force) {
+    if (limit > 0) {
+      load_dialog_list(list, limit, Promise<Unit>());
+    }
+
     promise.set_value(Unit());
     return result;
   }
 
-  load_dialog_list(folder_id, limit, false, std::move(promise));
+  load_dialog_list(list, limit, std::move(promise));
   return result;
 }
 
-void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool only_local, Promise<Unit> &&promise) {
+void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Unit> &&promise) {
+  bool is_request_sent = false;
+  for (const auto &folder_it : dialog_lists_) {
+    auto &folder = folder_it.second;
+    if (has_dialogs_from_folder(list, folder) && folder.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
+      load_folder_dialog_list(folder_it.first, limit, false, Auto());
+      is_request_sent = true;
+    }
+  }
+  if (is_request_sent) {
+    list.load_list_queries_.push_back(std::move(promise));
+  } else {
+    promise.set_value(Unit());
+  }
+}
+
+// TODO remove the promise
+void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local,
+                                              Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   auto *list_ptr = get_dialog_list(folder_id);
   CHECK(list_ptr != nullptr);
@@ -13971,7 +13993,7 @@ void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool onl
   }
 
   LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
-  auto &multipromise = list.load_dialog_list_multipromise_;
+  auto &multipromise = list.load_folder_dialog_list_multipromise_;
   multipromise.add_promise(std::move(promise));
   if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
@@ -13983,7 +14005,7 @@ void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool onl
 
   bool is_query_sent = false;
   if (use_database) {
-    load_dialog_list_from_database(folder_id, limit, multipromise.get_promise());
+    load_folder_dialog_list_from_database(folder_id, limit, multipromise.get_promise());
     is_query_sent = true;
   } else {
     LOG(INFO) << "Get dialogs from " << list.last_server_dialog_date_;
@@ -14004,7 +14026,7 @@ void MessagesManager::load_dialog_list(FolderId folder_id, int32 limit, bool onl
   CHECK(is_query_sent);
 }
 
-void MessagesManager::load_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise) {
+void MessagesManager::load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   auto *list_ptr = get_dialog_list(folder_id);
   CHECK(list_ptr != nullptr);
@@ -14031,17 +14053,15 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   CHECK(!td_->auth_manager_->is_bot());
-  auto *list_ptr = get_dialog_list(folder_id);
-  CHECK(list_ptr != nullptr);
-  auto &list = *list_ptr;
+  auto &folder = *get_dialog_list(folder_id);
   LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
             << " in from database with next order " << dialogs.next_order << " and next " << dialogs.next_dialog_id;
   int32 new_get_dialogs_limit = 0;
   int32 have_more_dialogs_in_database = (limit == static_cast<int32>(dialogs.dialogs.size()));
-  if (have_more_dialogs_in_database && limit < list.load_dialog_list_limit_max_) {
-    new_get_dialogs_limit = list.load_dialog_list_limit_max_ - limit;
+  if (have_more_dialogs_in_database && limit < folder.load_dialog_list_limit_max_) {
+    new_get_dialogs_limit = folder.load_dialog_list_limit_max_ - limit;
   }
-  list.load_dialog_list_limit_max_ = 0;
+  folder.load_dialog_list_limit_max_ = 0;
 
   size_t dialogs_skipped = 0;
   for (auto &dialog : dialogs.dialogs) {
@@ -14062,36 +14082,43 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
 
   DialogDate max_dialog_date(dialogs.next_order, dialogs.next_dialog_id);
   if (!have_more_dialogs_in_database) {
-    list.last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
-    LOG(INFO) << "Set last loaded database dialog date to " << list.last_loaded_database_dialog_date_;
-    list.last_server_dialog_date_ = max(list.last_server_dialog_date_, list.last_database_server_dialog_date_);
-    LOG(INFO) << "Set last server dialog date to " << list.last_server_dialog_date_;
+    folder.last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
+    LOG(INFO) << "Set last loaded database dialog date to " << folder.last_loaded_database_dialog_date_;
+    folder.last_server_dialog_date_ = max(folder.last_server_dialog_date_, folder.last_database_server_dialog_date_);
+    LOG(INFO) << "Set last server dialog date to " << folder.last_server_dialog_date_;
     update_last_dialog_date(folder_id);
-  } else if (list.last_loaded_database_dialog_date_ < max_dialog_date) {
-    list.last_loaded_database_dialog_date_ = min(max_dialog_date, list.last_database_server_dialog_date_);
-    LOG(INFO) << "Set last loaded database dialog date to " << list.last_loaded_database_dialog_date_;
-    list.last_server_dialog_date_ = max(list.last_server_dialog_date_, list.last_loaded_database_dialog_date_);
-    LOG(INFO) << "Set last server dialog date to " << list.last_server_dialog_date_;
+  } else if (folder.last_loaded_database_dialog_date_ < max_dialog_date) {
+    folder.last_loaded_database_dialog_date_ = min(max_dialog_date, folder.last_database_server_dialog_date_);
+    LOG(INFO) << "Set last loaded database dialog date to " << folder.last_loaded_database_dialog_date_;
+    folder.last_server_dialog_date_ = max(folder.last_server_dialog_date_, folder.last_loaded_database_dialog_date_);
+    LOG(INFO) << "Set last server dialog date to " << folder.last_server_dialog_date_;
     update_last_dialog_date(folder_id);
+
+    for (const auto &list_it : dialog_lists_) {
+      auto &list = list_it.second;
+      if (!list.load_list_queries_.empty() && has_dialogs_from_folder(list, folder) && new_get_dialogs_limit < limit) {
+        new_get_dialogs_limit = limit;
+      }
+    }
   } else {
     LOG(ERROR) << "Last loaded database dialog date didn't increased, skipped " << dialogs_skipped << " chats out of "
                << dialogs.dialogs.size();
   }
 
-  if (!(list.last_loaded_database_dialog_date_ < list.last_database_server_dialog_date_)) {
+  if (!(folder.last_loaded_database_dialog_date_ < folder.last_database_server_dialog_date_)) {
     // have_more_dialogs_in_database = false;
     new_get_dialogs_limit = 0;
   }
 
   if (new_get_dialogs_limit == 0) {
-    preload_dialog_list_timeout_.add_timeout_in(folder_id.get(), 0.2);
+    preload_folder_dialog_list_timeout_.add_timeout_in(folder_id.get(), 0.2);
     promise.set_value(Unit());
   } else {
-    load_dialog_list_from_database(folder_id, new_get_dialogs_limit, std::move(promise));
+    load_folder_dialog_list_from_database(folder_id, new_get_dialogs_limit, std::move(promise));
   }
 }
 
-void MessagesManager::preload_dialog_list(FolderId folder_id) {
+void MessagesManager::preload_folder_dialog_list(FolderId folder_id) {
   if (G()->close_flag()) {
     LOG(INFO) << "Skip chat list preload in " << folder_id << " because of closing";
     return;
@@ -14102,22 +14129,22 @@ void MessagesManager::preload_dialog_list(FolderId folder_id) {
   CHECK(list_ptr != nullptr);
   auto &list = *list_ptr;
   CHECK(G()->parameters().use_message_db);
-  if (list.load_dialog_list_multipromise_.promise_count() != 0) {
+  if (list.load_folder_dialog_list_multipromise_.promise_count() != 0) {
     LOG(INFO) << "Skip chat list preload in " << folder_id << ", because there is a pending load chat list request";
     return;
   }
 
   if (list.last_loaded_database_dialog_date_ < list.last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
-    load_dialog_list(folder_id, 20, true, Auto());
+    load_folder_dialog_list(folder_id, 20, true, Auto());
   } else if (list.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
     // otherwise load more dialogs from the server
-    load_dialog_list(folder_id, MAX_GET_DIALOGS, false,
-                     PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-                       if (result.is_ok()) {
-                         send_closure(actor_id, &MessagesManager::recalc_unread_count, folder_id);
-                       }
-                     }));
+    load_folder_dialog_list(folder_id, MAX_GET_DIALOGS, false,
+                            PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
+                              if (result.is_ok()) {
+                                send_closure(actor_id, &MessagesManager::recalc_unread_count, folder_id);
+                              }
+                            }));
   } else {
     recalc_unread_count(folder_id);
   }
@@ -16802,11 +16829,11 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     return result;
   }
 
-  load_dialog_list(FolderId::main(), MAX_GET_DIALOGS, true, Auto());
-  load_dialog_list(FolderId::archive(), MAX_GET_DIALOGS, true, Auto());
+  load_folder_dialog_list(FolderId::main(), MAX_GET_DIALOGS, true, Auto());
+  load_folder_dialog_list(FolderId::archive(), MAX_GET_DIALOGS, true, Auto());
   for (const auto &list : dialog_lists_) {
     if (list.first != FolderId::main() && list.first != FolderId::archive()) {
-      load_dialog_list(list.first, MAX_GET_DIALOGS, true, Auto());
+      load_folder_dialog_list(list.first, MAX_GET_DIALOGS, true, Auto());
     }
   }
 
@@ -29901,16 +29928,20 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
       send_update_chat_position(list.folder_id, d);
     }
 
+    bool is_list_further_loaded = new_last_dialog_date == MAX_DIALOG_DATE;
     for (const auto &folder_it : dialog_lists_) {
       auto &folder = folder_it.second;
       if (has_dialogs_from_folder(list, folder)) {
         for (auto it = folder.ordered_dialogs_.upper_bound(old_last_dialog_date);
              it != folder.ordered_dialogs_.end() && *it <= folder.folder_last_dialog_date_; ++it) {
           auto dialog_id = it->get_dialog_id();
-          auto d = get_dialog(dialog_id);
-          CHECK(d != nullptr);
-          if (is_dialog_in_list(d, list)) {
-            send_update_chat_position(list.folder_id, d);
+          if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
+            auto d = get_dialog(dialog_id);
+            CHECK(d != nullptr);
+            if (is_dialog_in_list(d, list)) {
+              send_update_chat_position(list.folder_id, d);
+              is_list_further_loaded = true;
+            }
           }
         }
       }
@@ -29921,6 +29952,14 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
       recalc_unread_count(list.folder_id);
       if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
         send_update_unread_chat_count(list.folder_id, DialogId(), true, "update_list_last_dialog_date");
+      }
+    }
+
+    if (is_list_further_loaded && !list.load_list_queries_.empty()) {
+      auto promises = std::move(list.load_list_queries_);
+      list.load_list_queries_.clear();
+      for (auto &promise : promises) {
+        promise.set_value(Unit());
       }
     }
   }
