@@ -13863,19 +13863,19 @@ void MessagesManager::on_load_recommended_dialog_filters(
   promise.set_value(td_api::make_object<td_api::recommendedChatFilters>(std::move(chat_filters)));
 }
 
-vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate offset, int32 limit, bool force,
+vector<DialogId> MessagesManager::get_dialogs(FolderId dialog_list_id, DialogDate offset, int32 limit, bool force,
                                               Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   vector<DialogId> result;
-  auto *list_ptr = get_dialog_list(folder_id);
+  auto *list_ptr = get_dialog_list(dialog_list_id);
   if (list_ptr == nullptr) {
     promise.set_error(Status::Error(3, "Chat list not found"));
     return result;
   }
   auto &list = *list_ptr;
 
-  LOG(INFO) << "Get chats in " << folder_id << " with offset " << offset << " and limit " << limit
+  LOG(INFO) << "Get chats in " << dialog_list_id << " with offset " << offset << " and limit " << limit
             << ". last_dialog_date = " << list.list_last_dialog_date_;
 
   if (limit <= 0) {
@@ -13888,7 +13888,7 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
   }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
-  if (folder_id == FolderId::main() && sponsored_dialog_id_.is_valid()) {
+  if (dialog_list_id == FolderId::main() && sponsored_dialog_id_.is_valid()) {
     auto d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     if (is_dialog_sponsored(d)) {
@@ -13924,7 +13924,7 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
     }
   }
   if (need_reload_pinned_dialogs) {
-    reload_pinned_dialogs(folder_id, Auto());
+    reload_pinned_dialogs(dialog_list_id, Auto());
   }
   if (!list.pinned_dialogs_.empty() && max_dialog_date == list.pinned_dialogs_.back()) {
     max_dialog_date = MAX_DIALOG_DATE;
@@ -13934,15 +13934,34 @@ vector<DialogId> MessagesManager::get_dialogs(FolderId folder_id, DialogDate off
     update_list_last_dialog_date(list);
   }
 
-  auto it = list.ordered_dialogs_.upper_bound(offset);
-  auto end = list.ordered_dialogs_.end();
-  while (it != end && *it <= list.list_last_dialog_date_ && limit > 0) {
-    auto dialog_id = it->get_dialog_id();
-    if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
-      limit--;
-      result.push_back(it->get_dialog_id());
+  vector<const DialogList *> folders;
+  vector<std::set<DialogDate>::const_iterator> folder_iterators;
+  for (auto &folder_id : get_dialog_list_folder_ids(list)) {
+    folders.push_back(get_dialog_list(folder_id));
+    folder_iterators.push_back(folders.back()->ordered_dialogs_.upper_bound(offset));
+  }
+  while (limit > 0) {
+    size_t best_pos = 0;
+    DialogDate best_dialog_date = MAX_DIALOG_DATE;
+    for (size_t i = 0; i < folders.size(); i++) {
+      while (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+             *folder_iterators[i] <= list.list_last_dialog_date_ &&
+             get_dialog_pinned_order(&list, folder_iterators[i]->get_dialog_id()) != DEFAULT_ORDER) {
+        ++folder_iterators[i];
+      }
+      if (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+          *folder_iterators[i] <= list.list_last_dialog_date_ && *folder_iterators[i] < best_dialog_date) {
+        best_pos = i;
+        best_dialog_date = *folder_iterators[i];
+      }
     }
-    ++it;
+    if (best_dialog_date == MAX_DIALOG_DATE) {
+      break;
+    }
+
+    limit--;
+    result.push_back(folder_iterators[best_pos]->get_dialog_id());
+    ++folder_iterators[best_pos];
   }
 
   if (!result.empty() || force) {
