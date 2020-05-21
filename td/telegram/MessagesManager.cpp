@@ -10188,7 +10188,7 @@ void MessagesManager::repair_server_dialog_total_count(FolderId folder_id) {
                get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
 }
 
-void MessagesManager::repair_secret_chat_total_count(FolderId folder_id) {
+void MessagesManager::repair_secret_chat_total_count(FolderId dialog_list_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -10196,32 +10196,31 @@ void MessagesManager::repair_secret_chat_total_count(FolderId folder_id) {
   if (G()->parameters().use_message_db) {
     // race-prone
     G()->td_db()->get_dialog_db_async()->get_secret_chat_count(
-        folder_id, PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<int32> result) {
+        dialog_list_id, PromiseCreator::lambda([actor_id = actor_id(this), dialog_list_id](Result<int32> result) {
           if (result.is_error()) {
             return;
           }
-          send_closure(actor_id, &MessagesManager::on_get_secret_chat_total_count, folder_id, result.move_as_ok());
+          send_closure(actor_id, &MessagesManager::on_get_secret_chat_total_count, dialog_list_id, result.move_as_ok());
         }));
   } else {
     int32 total_count = 0;
-    auto *list = get_dialog_list(folder_id);
+    auto *list = get_dialog_list(dialog_list_id);
     CHECK(list != nullptr);
-    for (const auto &folder_it : dialog_lists_) {
-      auto &folder = folder_it.second;
-      if (has_dialogs_from_folder(*list, folder)) {
-        auto *folder_list = get_dialog_list(folder.folder_id);
-        if (folder_list->need_unread_count_recalc_) {
-          return;
-        }
-        for (const auto &dialog_date : folder.ordered_dialogs_) {
-          auto dialog_id = dialog_date.get_dialog_id();
-          if (dialog_id.get_type() == DialogType::SecretChat && dialog_date.get_order() != DEFAULT_ORDER) {
-            total_count++;
-          }
+    for (auto &folder_id : get_dialog_list_folder_ids(*list)) {
+      auto *folder_list = get_dialog_list(folder_id);
+      if (folder_list->need_unread_count_recalc_) {
+        return;
+      }
+
+      auto &folder = *get_dialog_list(folder_id);
+      for (const auto &dialog_date : folder.ordered_dialogs_) {
+        auto dialog_id = dialog_date.get_dialog_id();
+        if (dialog_id.get_type() == DialogType::SecretChat && dialog_date.get_order() != DEFAULT_ORDER) {
+          total_count++;
         }
       }
     }
-    on_get_secret_chat_total_count(folder_id, total_count);
+    on_get_secret_chat_total_count(dialog_list_id, total_count);
   }
 }
 
@@ -30106,6 +30105,10 @@ const MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFi
     }
   }
   return nullptr;
+}
+
+vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {
+  return {list.folder_id};
 }
 
 bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const DialogList &folder) const {

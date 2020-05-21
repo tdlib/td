@@ -2252,6 +2252,8 @@ class MessagesManager : public Actor {
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
+  vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
+
   bool has_dialogs_from_folder(const DialogList &list, const DialogList &folder) const;
 
   bool is_dialog_in_list(const Dialog *d, const DialogList &list) const;
