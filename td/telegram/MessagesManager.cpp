@@ -16581,13 +16581,20 @@ td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(Dialo
 }
 
 td_api::object_ptr<td_api::ChatList> MessagesManager::get_chat_list_object(DialogListId dialog_list_id) {
-  if (dialog_list_id == DialogListId(FolderId::archive())) {
-    return td_api::make_object<td_api::chatListArchive>();
-  }
-  if (dialog_list_id == DialogListId(FolderId::main())) {
+  if (dialog_list_id.is_folder()) {
+    if (dialog_list_id == DialogListId(FolderId::archive())) {
+      return td_api::make_object<td_api::chatListArchive>();
+    }
+    if (dialog_list_id == DialogListId(FolderId::main())) {
+      return td_api::make_object<td_api::chatListMain>();
+    }
     return td_api::make_object<td_api::chatListMain>();
   }
-  return td_api::make_object<td_api::chatListMain>();
+  if (dialog_list_id.is_filter()) {
+    return td_api::make_object<td_api::chatListFilter>(dialog_list_id.get_filter_id().get());
+  }
+  UNREACHABLE();
+  return nullptr;
 }
 
 td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) const {
@@ -30128,6 +30135,15 @@ vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &l
   if (list.dialog_list_id.is_folder()) {
     return {list.dialog_list_id.get_folder_id()};
   }
+  if (list.dialog_list_id.is_filter()) {
+    auto dialog_filter_id = list.dialog_list_id.get_filter_id();
+    auto *filter = get_dialog_filter(dialog_filter_id);
+    CHECK(filter != nullptr);
+    if (filter->exclude_archived) {
+      return {FolderId::main()};
+    }
+    return {FolderId::main(), FolderId::archive()};
+  }
   UNREACHABLE();
   return {};
 }
@@ -30135,6 +30151,15 @@ vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &l
 bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const DialogFolder &folder) const {
   if (list.dialog_list_id.is_folder()) {
     return list.dialog_list_id.get_folder_id() == folder.folder_id;
+  }
+  if (list.dialog_list_id.is_filter()) {
+    auto dialog_filter_id = list.dialog_list_id.get_filter_id();
+    auto *filter = get_dialog_filter(dialog_filter_id);
+    CHECK(filter != nullptr);
+    if (filter->exclude_archived) {
+      return folder.folder_id == FolderId::main();
+    }
+    return true;
   }
   UNREACHABLE();
   return false;
@@ -30150,6 +30175,81 @@ bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &lis
   }
   if (list.dialog_list_id.is_folder()) {
     return d->folder_id == list.dialog_list_id.get_folder_id();
+  }
+  if (list.dialog_list_id.is_filter()) {
+    auto dialog_filter_id = list.dialog_list_id.get_filter_id();
+    auto *filter = get_dialog_filter(dialog_filter_id);
+    CHECK(filter != nullptr);
+    auto matches = [](const vector<InputDialogId> input_dialog_ids, DialogId dialog_id) {
+      for (auto &input_dialog_id : input_dialog_ids) {
+        if (input_dialog_id.get_dialog_id() == dialog_id) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (matches(filter->pinned_dialog_ids, d->dialog_id)) {
+      return true;
+    }
+    if (matches(filter->included_dialog_ids, d->dialog_id)) {
+      return true;
+    }
+    if (matches(filter->excluded_dialog_ids, d->dialog_id)) {
+      return false;
+    }
+    if (d->dialog_id.get_type() == DialogType::SecretChat) {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+      if (user_id.is_valid()) {
+        auto dialog_id = DialogId(user_id);
+        if (matches(filter->pinned_dialog_ids, dialog_id)) {
+          return true;
+        }
+        if (matches(filter->included_dialog_ids, dialog_id)) {
+          return true;
+        }
+        if (matches(filter->excluded_dialog_ids, dialog_id)) {
+          return false;
+        }
+      }
+    }
+    if (filter->exclude_muted && is_dialog_muted(d)) {
+      return false;
+    }
+    if (filter->exclude_read && d->server_unread_count + d->local_unread_count == 0 && !d->is_marked_as_unread) {
+      return false;
+    }
+    if (filter->exclude_archived && d->folder_id == FolderId::archive()) {
+      return false;
+    }
+    switch (d->dialog_id.get_type()) {
+      case DialogType::User: {
+        auto user_id = d->dialog_id.get_user_id();
+        if (td_->contacts_manager_->is_user_bot(user_id)) {
+          return filter->include_bots;
+        }
+        if (td_->contacts_manager_->is_user_contact(user_id)) {
+          return filter->include_contacts;
+        }
+        return filter->include_non_contacts;
+      }
+      case DialogType::Chat:
+        return filter->include_groups;
+      case DialogType::Channel:
+        return is_broadcast_channel(d->dialog_id) ? filter->include_channels : filter->include_groups;
+      case DialogType::SecretChat: {
+        auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+        if (td_->contacts_manager_->is_user_bot(user_id)) {
+          return filter->include_bots;
+        }
+        if (td_->contacts_manager_->is_user_contact(user_id)) {
+          return filter->include_contacts;
+        }
+        return filter->include_non_contacts;
+      }
+      default:
+        UNREACHABLE();
+        return false;
+    }
   }
   UNREACHABLE();
   return false;

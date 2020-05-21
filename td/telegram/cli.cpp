@@ -467,18 +467,21 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
-  int32 as_chat_filter_id(Slice str) const {
+  static int32 as_chat_filter_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
 
-  vector<int32> as_chat_filter_ids(Slice chat_filter_ids) const {
+  static vector<int32> as_chat_filter_ids(Slice chat_filter_ids) {
     return transform(full_split(trim(chat_filter_ids), get_delimiter(chat_filter_ids)),
-                     [this](Slice str) { return as_chat_filter_id(str); });
+                     [](Slice str) { return as_chat_filter_id(str); });
   }
 
   static td_api::object_ptr<td_api::ChatList> as_chat_list(string chat_list) {
     if (!chat_list.empty() && chat_list.back() == 'a') {
       return td_api::make_object<td_api::chatListArchive>();
+    }
+    if (chat_list.find('-') != string::npos) {
+      return td_api::make_object<td_api::chatListFilter>(as_chat_filter_id(chat_list.substr(chat_list.find('-') + 1)));
     }
     return td_api::make_object<td_api::chatListMain>();
   }
@@ -1758,7 +1761,7 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "gc" || op == "GetChats" || op == "gca") {
+    if (op == "gc" || op == "GetChats" || op == "gca" || begins_with(op, "gc-")) {
       string offset_order_string;
       string offset_chat_id;
       string limit;
@@ -2842,7 +2845,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatDraftMessage>(as_chat_id(chat_id), std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
-    } else if (op == "tcip" || op == "tcipa") {
+    } else if (op == "tcip" || op == "tcipa" || begins_with(op, "tcip-")) {
       string chat_id;
       string is_pinned;
       std::tie(chat_id, is_pinned) = split(args);
@@ -2860,7 +2863,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, default_disable_notification) = split(args);
       send_request(td_api::make_object<td_api::toggleChatDefaultDisableNotification>(
           as_chat_id(chat_id), as_bool(default_disable_notification)));
-    } else if (op == "spchats" || op == "spchatsa") {
+    } else if (op == "spchats" || op == "spchatsa" || begins_with(op, "spchats-")) {
       vector<string> chat_ids_str = full_split(args, ' ');
       vector<int64> chat_ids;
       for (auto &chat_id_str : chat_ids_str) {
@@ -3507,7 +3510,7 @@ class CliClient final : public Actor {
 
       std::tie(supergroup_id, force) = split(args);
       send_request(td_api::make_object<td_api::createSupergroupChat>(as_supergroup_id(supergroup_id), as_bool(force)));
-    } else if (op == "sccl" || op == "sccla") {
+    } else if (op == "sccl" || op == "sccla" || begins_with(op, "sccl-")) {
       string chat_id = args;
       send_request(td_api::make_object<td_api::setChatChatList>(as_chat_id(chat_id), as_chat_list(op)));
     } else if (op == "gcf") {

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogFilterId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/td_api.h"
 
@@ -20,6 +21,8 @@ namespace td {
 class DialogListId {
   int64 id = 0;
 
+  static constexpr int64 FILTER_ID_SHIFT = static_cast<int64>(1) << 32;
+
  public:
   DialogListId() = default;
 
@@ -28,6 +31,8 @@ class DialogListId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   DialogListId(T dialog_list_id) = delete;
 
+  explicit DialogListId(DialogFilterId dialog_filter_id) : id(dialog_filter_id.get() + FILTER_ID_SHIFT) {
+  }
   explicit DialogListId(FolderId folder_id) : id(folder_id.get()) {
   }
 
@@ -43,6 +48,13 @@ class DialogListId {
       case td_api::chatListMain::ID:
         CHECK(id == FolderId::main().get());
         break;
+      case td_api::chatListFilter::ID: {
+        DialogFilterId filter_id(static_cast<const td_api::chatListFilter *>(chat_list.get())->chat_filter_id_);
+        if (filter_id.is_valid()) {
+          *this = DialogListId(filter_id);
+        }
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -66,12 +78,18 @@ class DialogListId {
   }
 
   bool is_filter() const {
-    return false;
+    return std::numeric_limits<int32>::min() + FILTER_ID_SHIFT <= id &&
+           id <= std::numeric_limits<int32>::max() + FILTER_ID_SHIFT;
   }
 
   FolderId get_folder_id() const {
     CHECK(is_folder());
     return FolderId(static_cast<int32>(id));
+  }
+
+  DialogFilterId get_filter_id() const {
+    CHECK(is_filter());
+    return DialogFilterId(static_cast<int32>(id - FILTER_ID_SHIFT));
   }
 
   /*
@@ -94,6 +112,12 @@ struct DialogListIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, DialogListId dialog_list_id) {
+  if (dialog_list_id.is_folder()) {
+    return string_builder << "chat list " << dialog_list_id.get_folder_id();
+  }
+  if (dialog_list_id.is_filter()) {
+    return string_builder << "chat list " << dialog_list_id.get_filter_id();
+  }
   return string_builder << "chat list " << dialog_list_id.get();
 }
 

@@ -686,6 +686,9 @@ chatListMain = ChatList;
 //@description A list of chats usually located at the top of the main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list when a new message arrives
 chatListArchive = ChatList;
 
+//@description A list of chats belonging to a chat filter @chat_filter_id Chat filter identifier
+chatListFilter chat_filter_id:int32 = ChatList;
+
 
 //@class ChatSource @description Describes a reason why an external chat is shown in a chat list
 
