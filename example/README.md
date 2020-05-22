@@ -162,13 +162,13 @@ See [erl-tdlib](https://github.com/lattenwald/erl-tdlib) for an example of TDLib
 <a name="php"></a>
 ## Using TDLib in PHP projects
 
-TDLib can be used from the PHP programming language by wrapping its functionality in a PHP extension.
+If you use modern PHP >= 7.4, you can use TDLib via a PHP FFI extension. For example, take a look at [ffi-tdlib](https://github.com/aurimasniekis/php-ffi-tdlib) - an FFI-based TDLib wrapper.
+
+See also [tdlib-schema](https://github.com/aurimasniekis/php-tdlib-schema) - a generator for TDLib API classes.
+
+For older PHP versions you can use TDLib by wrapping its functionality in a PHP extension.
 
 See [phptdlib](https://github.com/yaroslavche/phptdlib), [tdlib](https://github.com/aurimasniekis/php-ext-tdlib) or [PIF-TDPony](https://github.com/danog/pif-tdpony) for examples of such extensions which provide access to TDLib from PHP.
-
-See [ffi-tdlib](https://github.com/aurimasniekis/php-ffi-tdlib) - a PHP 7.4 FFI `libtdjson` based TdLib client.
-
-See [tdlib-schema](https://github.com/aurimasniekis/php-tdlib-schema) - A TdLib PHP Schema with generator for generating PHP objects from td_api.tl file. Provides PHP Classes which can be created from TdLib Json and generate Json for TdLib.
 
 See [tdlib-bundle](https://github.com/yaroslavche/tdlib-bundle) – a Symfony bundle based on [phptdlib](https://github.com/yaroslavche/phptdlib).
 
