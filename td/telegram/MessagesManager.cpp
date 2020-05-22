@@ -18048,12 +18048,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
+  auto views = m->message_id.is_scheduled() || m->message_id.is_local() ? 0 : m->views;
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
       can_be_forwarded, can_delete_for_self, can_delete_for_all_users, m->is_channel_post, contains_unread_mention,
       date, edit_date, get_message_forward_info_object(m->forward_info), reply_to_message_id, ttl, ttl_expires_in,
-      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, m->views,
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature, views,
       media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
@@ -23809,6 +23810,9 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     CHECK(message->message_id.is_valid_scheduled());
   } else {
     CHECK(message->message_id.is_valid());
+  }
+  if (message->forward_info == nullptr && message->views == 1) {
+    message->views = 0;
   }
   message->is_failed_to_send = true;
   message->send_error_code = error_code;
