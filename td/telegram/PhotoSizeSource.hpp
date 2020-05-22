@@ -8,6 +8,7 @@
 
 #include "td/telegram/PhotoSizeSource.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -69,7 +70,7 @@ void parse(PhotoSizeSource::DialogPhoto &source, ParserT &parser) {
   switch (source.dialog_id.get_type()) {
     case DialogType::SecretChat:
     case DialogType::None:
-      return parser.set_error("Invalid chat identifier");
+      return parser.set_error(PSTRING() << "Invalid chat identifier " << source.dialog_id.get());
     default:
       break;
   }
