@@ -36,7 +36,6 @@
 #include "data.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <limits>
 
 REGISTER_TESTS(http)
