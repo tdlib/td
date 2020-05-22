@@ -1939,7 +1939,9 @@ void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimens
       }
     }
   }
-  s->is_animated = is_animated;
+  if (s->set_id.is_valid()) {
+    s->is_animated = is_animated;
+  }
   on_get_sticker(std::move(s), sticker != nullptr);
 }
 
