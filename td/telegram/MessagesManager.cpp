@@ -25259,6 +25259,10 @@ void MessagesManager::on_update_dialog_folder_id(DialogId dialog_id, FolderId fo
 }
 
 void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
 
   if (d->folder_id == folder_id) {
@@ -25278,8 +25282,16 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
     set_dialog_is_pinned(DialogListId(d->folder_id), d, false, false);
   }
 
+  DialogDate dialog_date(d->order, d->dialog_id);
+  auto *folder = get_dialog_folder(d->folder_id);
+  if (folder->ordered_dialogs_.erase(dialog_date) == 0) {
+    LOG_IF(ERROR, d->order != DEFAULT_ORDER) << d->dialog_id << " not found in the chat list";
+  }
+
   d->folder_id = folder_id;
   d->is_folder_id_inited = true;
+
+  get_dialog_folder(d->folder_id)->ordered_dialogs_.insert(dialog_date);
 
   update_dialog_lists(d, std::move(dialog_orders), true, false, "set_dialog_folder_id");
 
