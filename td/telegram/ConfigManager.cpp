@@ -1426,7 +1426,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   if (!dice_emojis.empty()) {
-    shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
     vector<string> dice_success_values(dice_emojis.size());
     for (auto &it : dice_emoji_success_value) {
       if (dice_emoji_index.find(it.first) == dice_emoji_index.end()) {
@@ -1436,6 +1435,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       dice_success_values[dice_emoji_index[it.first]] = it.second;
     }
     shared_config.set_option_string("dice_success_values", implode(dice_success_values, ','));
+    shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
 }
 
