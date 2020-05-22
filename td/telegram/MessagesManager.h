@@ -1278,9 +1278,9 @@ class MessagesManager : public Actor {
     std::set<DialogDate> ordered_dialogs_;  // all known dialogs, including with default order
 
     // date of last known user/group/channel dialog in the right order
-    DialogDate last_server_dialog_date_ = MIN_DIALOG_DATE;
-    DialogDate last_loaded_database_dialog_date_ = MIN_DIALOG_DATE;
-    DialogDate last_database_server_dialog_date_ = MIN_DIALOG_DATE;
+    DialogDate last_server_dialog_date_{MAX_ORDINARY_DIALOG_ORDER, DialogId()};
+    DialogDate last_loaded_database_dialog_date_{MAX_ORDINARY_DIALOG_ORDER, DialogId()};
+    DialogDate last_database_server_dialog_date_{MAX_ORDINARY_DIALOG_ORDER, DialogId()};
 
     MultiPromiseActor load_folder_dialog_list_multipromise_{
         "LoadDialogListMultiPromiseActor"};  // must be defined before pending_on_get_dialogs_

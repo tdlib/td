@@ -10906,7 +10906,10 @@ void MessagesManager::init() {
         FolderId folder_id(r_folder_id.ok());
         auto *folder = get_dialog_folder(folder_id);
         CHECK(folder != nullptr);
-        folder->last_database_server_dialog_date_ = DialogDate(r_order.ok(), DialogId(r_dialog_id.ok()));
+        DialogDate dialog_date(r_order.ok(), DialogId(r_dialog_id.ok()));
+        if (folder->last_database_server_dialog_date_ < dialog_date) {
+          folder->last_database_server_dialog_date_ = dialog_date;
+        }
         LOG(INFO) << "Loaded last_database_server_dialog_date_ " << folder->last_database_server_dialog_date_ << " in "
                   << folder_id;
       }
