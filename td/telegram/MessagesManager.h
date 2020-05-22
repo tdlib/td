@@ -2029,10 +2029,11 @@ class MessagesManager : public Actor {
 
   void send_update_chat_filters(bool from_database = false);
 
-  void send_update_unread_message_count(DialogListId dialog_list_id, DialogId dialog_id, bool force,
-                                        const char *source);
+  void send_update_unread_message_count(DialogListId dialog_list_id, DialogId dialog_id, bool force, const char *source,
+                                        bool from_database = false);
 
-  void send_update_unread_chat_count(DialogListId dialog_list_id, DialogId dialog_id, bool force, const char *source);
+  void send_update_unread_chat_count(DialogListId dialog_list_id, DialogId dialog_id, bool force, const char *source,
+                                     bool from_database = false);
 
   void send_update_chat_read_inbox(const Dialog *d, bool force, const char *source);
 

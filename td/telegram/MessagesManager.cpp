@@ -11005,7 +11005,7 @@ void MessagesManager::init() {
           list->unread_message_total_count_ = r_total_count.ok();
           list->unread_message_muted_count_ = r_muted_count.ok();
           list->is_message_unread_count_inited_ = true;
-          send_update_unread_message_count(dialog_list_id, DialogId(), true, "load unread_message_count");
+          send_update_unread_message_count(dialog_list_id, DialogId(), true, "load unread_message_count", true);
         } else {
           G()->td_db()->get_binlog_pmc()->erase("unread_message_count" + it.first);
         }
@@ -11043,7 +11043,7 @@ void MessagesManager::init() {
             repair_secret_chat_total_count(dialog_list_id);
           }
           list->is_dialog_unread_count_inited_ = true;
-          send_update_unread_chat_count(dialog_list_id, DialogId(), true, "load unread_dialog_count");
+          send_update_unread_chat_count(dialog_list_id, DialogId(), true, "load unread_dialog_count", true);
         } else {
           G()->td_db()->get_binlog_pmc()->erase("unread_dialog_count" + it.first);
         }
@@ -24103,7 +24103,7 @@ void MessagesManager::send_update_chat_filters(bool from_database) {
 }
 
 void MessagesManager::send_update_unread_message_count(DialogListId dialog_list_id, DialogId dialog_id, bool force,
-                                                       const char *source) {
+                                                       const char *source, bool from_database) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
@@ -24124,9 +24124,11 @@ void MessagesManager::send_update_unread_message_count(DialogListId dialog_list_
     }
   }
 
-  G()->td_db()->get_binlog_pmc()->set(
-      PSTRING() << "unread_message_count" << dialog_list_id.get(),
-      PSTRING() << list.unread_message_total_count_ << ' ' << list.unread_message_muted_count_);
+  if (!from_database) {
+    G()->td_db()->get_binlog_pmc()->set(
+        PSTRING() << "unread_message_count" << dialog_list_id.get(),
+        PSTRING() << list.unread_message_total_count_ << ' ' << list.unread_message_muted_count_);
+  }
 
   int32 unread_unmuted_count = list.unread_message_total_count_ - list.unread_message_muted_count_;
   if (!force && running_get_difference_) {
@@ -24142,7 +24144,7 @@ void MessagesManager::send_update_unread_message_count(DialogListId dialog_list_
 }
 
 void MessagesManager::send_update_unread_chat_count(DialogListId dialog_list_id, DialogId dialog_id, bool force,
-                                                    const char *source) {
+                                                    const char *source, bool from_database) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
@@ -24177,11 +24179,13 @@ void MessagesManager::send_update_unread_chat_count(DialogListId dialog_list_id,
     }
   }
 
-  G()->td_db()->get_binlog_pmc()->set(
-      PSTRING() << "unread_dialog_count" << dialog_list_id.get(),
-      PSTRING() << list.unread_dialog_total_count_ << ' ' << list.unread_dialog_muted_count_ << ' '
-                << list.unread_dialog_marked_count_ << ' ' << list.unread_dialog_muted_marked_count_ << ' '
-                << list.server_dialog_total_count_ << ' ' << list.secret_chat_total_count_);
+  if (!from_database) {
+    G()->td_db()->get_binlog_pmc()->set(
+        PSTRING() << "unread_dialog_count" << dialog_list_id.get(),
+        PSTRING() << list.unread_dialog_total_count_ << ' ' << list.unread_dialog_muted_count_ << ' '
+                  << list.unread_dialog_marked_count_ << ' ' << list.unread_dialog_muted_marked_count_ << ' '
+                  << list.server_dialog_total_count_ << ' ' << list.secret_chat_total_count_);
+  }
 
   bool need_postpone = !force && running_get_difference_;
   int32 unread_unmuted_count = list.unread_dialog_total_count_ - list.unread_dialog_muted_count_;
