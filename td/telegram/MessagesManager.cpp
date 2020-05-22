@@ -28376,8 +28376,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   // must be after update_dialog_pos, because use d->order
-  if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
-      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+  if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
+      have_input_peer(dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
