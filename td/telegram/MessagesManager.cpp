@@ -7870,7 +7870,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
 
-  // it is likely that there is no more history messages on the server
+  // it is likely that there are no more history messages on the server
   bool have_full_history = from_the_end && narrow_cast<int32>(messages.size()) < limit;
   Dialog *d = get_dialog(dialog_id);
 
@@ -7925,7 +7925,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     MessageId first_received_message_id = get_message_id(messages.back(), false);
     if (first_received_message_id >= from_message_id && d->first_database_message_id.is_valid() &&
         first_received_message_id >= d->first_database_message_id) {
-      // it is likely that there is no more history messages on the server
+      // it is likely that there are no more history messages on the server
       have_full_history = true;
     }
   }
@@ -8193,24 +8193,31 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
 
     MessageId first_added_message_id;
     if (messages.empty()) {
-      // messages may be empty because there is no more messages or they can't be found due to global limit
-      // anyway pretend that there is no more messages
+      // messages may be empty because there are no more messages or they can't be found due to global limit
+      // anyway pretend that there are no more messages
       first_added_message_id = MessageId::min();
     }
 
     auto &result = it->second.second;
     CHECK(result.empty());
+    int32 added_message_count = 0;
     for (auto &message : messages) {
       auto new_full_message_id =
           on_get_message(std::move(message), false, false, false, false, false, "search call messages");
       if (new_full_message_id != FullMessageId()) {
         result.push_back(new_full_message_id);
+        added_message_count++;
       }
 
       auto message_id = new_full_message_id.get_message_id();
       if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
         first_added_message_id = message_id;
       }
+    }
+    if (total_count < added_message_count) {
+      LOG(ERROR) << "Receive total_count = " << total_count << ", but added " << added_message_count
+                 << " messages out of " << messages.size();
+      total_count = added_message_count;
     }
     if (G()->parameters().use_message_db) {
       bool update_state = false;
@@ -8248,7 +8255,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   CHECK(result.empty());
   MessageId first_added_message_id;
   if (messages.empty()) {
-    // messages may be empty because there is no more messages or they can't be found due to global limit
+    // messages may be empty because there are no more messages or they can't be found due to global limit
     // anyway pretend that there is no more messages
     first_added_message_id = MessageId::min();
   }
@@ -16964,8 +16971,9 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   int32 result_size = narrow_cast<int32>(res.size());
   bool from_the_end =
       from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0] < from_message_id));
-  if (message_count < result_size || (message_count > result_size && from_the_end &&
-                                      first_db_message_id == MessageId::min() && result_size < limit + offset)) {
+  if ((message_count != -1 && message_count < result_size) ||
+      (message_count > result_size && from_the_end && first_db_message_id == MessageId::min() &&
+       result_size < limit + offset)) {
     LOG(INFO) << "Fix found message count in " << dialog_id << " from " << message_count << " to " << result_size;
     message_count = result_size;
     if (filter_type == SearchMessagesFilter::UnreadMention) {
@@ -28617,7 +28625,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
       }
     }
     if (new_order == DEFAULT_ORDER && !d->is_empty) {
-      LOG(INFO) << "There is no known messages in the chat, just leave it where it is";
+      LOG(INFO) << "There are no known messages in the chat, just leave it where it is";
       new_order = d->order;
     }
   }
