@@ -26449,7 +26449,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  if (*need_update && message_id <= d->last_new_message_id) {
+  if (*need_update && message_id <= d->last_new_message_id && !td_->auth_manager_->is_bot()) {
     *need_update = false;
   }
 
