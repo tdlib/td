@@ -20,13 +20,7 @@ void HttpProxy::send_connect() {
   CHECK(state_ == State::SendConnect);
   state_ = State::WaitConnectResponse;
 
-  string host;
-  if (ip_address_.is_ipv6()) {
-      host = PSTRING() << "[" << ip_address_.get_ip_str() << "]" << ':' << ip_address_.get_port();
-  } else {
-      host = PSTRING() << ip_address_.get_ip_str() << ':' << ip_address_.get_port();
-  }
-
+  string host = PSTRING() << ip_address_.get_ip_host() << ':' << ip_address_.get_port();
   string proxy_authorization;
   if (!username_.empty() || !password_.empty()) {
     auto userinfo = PSTRING() << username_ << ':' << password_;
