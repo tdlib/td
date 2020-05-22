@@ -11626,6 +11626,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     }
 
     if (message_id.is_scheduled()) {
+      CHECK(message_id.is_scheduled_server());
       auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
       CHECK(dialog_it != update_scheduled_message_ids_.end());
       dialog_it->second.erase(message_id.get_scheduled_server_message_id());
@@ -14017,7 +14018,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     if (!message_id.is_valid() || !message_id.is_server()) {
-      if (message_id.is_valid_scheduled()) {
+      if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
         scheduled_message_ids[dialog_id].push_back(message_id.get_scheduled_server_message_id().get());
       }
       continue;
@@ -26229,8 +26230,10 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
       return nullptr;
     }
 
-    // can succeed in private and group chats
-    get_message_from_server({dialog_id, m->message_id}, Auto());
+    if (m->message_id.is_valid() && m->message_id.is_any_server() &&
+        (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::Chat)) {
+      get_message_from_server({dialog_id, m->message_id}, Auto());
+    }
 
     force_create_dialog(dialog_id, source);
     d = get_dialog_force(dialog_id);
@@ -30053,6 +30056,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         for (auto message_id : log_event.message_ids_) {
+          CHECK(message_id.is_scheduled_server());
           d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
         }
 
