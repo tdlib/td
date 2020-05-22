@@ -26569,7 +26569,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && !message->from_database)) {
+  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent())) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && pinned_message_id < message_id &&
         have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
@@ -26577,7 +26577,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
 
     if (d->pinned_message_notification_message_id.is_valid() &&
-        d->pinned_message_notification_message_id < message_id &&
+        d->pinned_message_notification_message_id != message_id &&
         have_message_force({dialog_id, d->pinned_message_notification_message_id},
                            "preload previously pinned message")) {
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
@@ -27166,7 +27166,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
   }
   if (d->pinned_message_notification_message_id.is_valid() &&
       d->pinned_message_notification_message_id <= max_message_id) {
-    remove_dialog_pinned_message_notification(d, "delete_all_dialog_messages_from_database");
+    remove_dialog_pinned_message_notification(d, source);
   }
   remove_message_dialog_notifications(d, max_message_id, false, source);
   remove_message_dialog_notifications(d, max_message_id, true, source);
