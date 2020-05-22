@@ -18049,7 +18049,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
-  auto views = m->message_id.is_scheduled() || m->message_id.is_local() ? 0 : m->views;
+  auto views = m->message_id.is_scheduled() || (m->message_id.is_local() && m->forward_info == nullptr) ? 0 : m->views;
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
