@@ -1305,8 +1305,20 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id;
     return PollId();
   }
-  if (poll_server != nullptr && poll_server->answers_.empty()) {
-    LOG(ERROR) << "Receive " << poll_id << " without answers: " << to_string(poll_server);
+  constexpr size_t MAX_POLL_OPTIONS = 10;  // server-side limit
+  if (poll_server != nullptr &&
+      (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * MAX_POLL_OPTIONS)) {
+    LOG(ERROR) << "Receive " << poll_id << " with wrong number of answers: " << to_string(poll_server);
+    return PollId();
+  }
+  if (poll_server != nullptr) {
+    std::unordered_set<Slice, SliceHash> option_data;
+    for (auto &answer : poll_server->answers_) {
+      option_data.insert(answer->option_.as_slice());
+    }
+    if (option_data.size() != poll_server->answers_.size()) {
+      LOG(ERROR) << "Receive " << poll_id << " with duplicate options: " << to_string(poll_server);
+    }
     return PollId();
   }
 
