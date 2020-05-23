@@ -1305,6 +1305,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id;
     return PollId();
   }
+  if (poll_server != nullptr && poll_server->answers_.empty()) {
+    LOG(ERROR) << "Receive " << poll_id << " without answers: " << to_string(poll_server);
+    return PollId();
+  }
 
   auto poll = get_poll_force(poll_id);
   bool is_changed = false;
