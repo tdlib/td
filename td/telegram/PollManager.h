@@ -192,7 +192,7 @@ class PollManager : public Actor {
 
   PollOptionVoters &get_poll_option_voters(const Poll *poll, PollId poll_id, int32 option_id);
 
-  void on_get_poll_voters(PollId poll_id, int32 option_id, int32 limit,
+  void on_get_poll_voters(PollId poll_id, int32 option_id, string offset, int32 limit,
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,

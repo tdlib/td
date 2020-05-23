@@ -963,15 +963,17 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
     return;
   }
 
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id, limit](
-                                                  Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
-    send_closure(actor_id, &PollManager::on_get_poll_voters, poll_id, option_id, limit, std::move(result));
-  });
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id, offset = voters.next_offset,
+                              limit](Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
+        send_closure(actor_id, &PollManager::on_get_poll_voters, poll_id, option_id, std::move(offset), limit,
+                     std::move(result));
+      });
   td_->create_handler<GetPollVotersQuery>(std::move(query_promise))
       ->send(poll_id, full_message_id, BufferSlice(poll->options[option_id].data), voters.next_offset, max(limit, 15));
 }
 
-void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, int32 limit,
+void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string offset, int32 limit,
                                      Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -986,8 +988,16 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, int32 limi
   }
 
   auto &voters = get_poll_option_voters(poll, poll_id, option_id);
+  if (voters.next_offset != offset) {
+    LOG(ERROR) << "Expected results for option " << option_id << " in " << poll_id << " with offset "
+               << voters.next_offset << ", but received with " << offset;
+    return;
+  }
   auto promises = std::move(voters.pending_queries);
-  CHECK(!promises.empty());
+  if (promises.empty()) {
+    LOG(ERROR) << "Have no waiting promises for option " << option_id << " in " << poll_id;
+    return;
+  }
   if (result.is_error()) {
     for (auto &promise : promises) {
       promise.set_error(result.error().clone());
@@ -1348,9 +1358,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       CHECK(0 <= poll->correct_option_id && poll->correct_option_id < static_cast<int32>(poll->options.size()));
       correct_option_data = poll->options[poll->correct_option_id].data;
     }
+    bool are_options_changed = false;
     if (poll->options.size() != poll_server->answers_.size()) {
       poll->options = get_poll_options(std::move(poll_server->answers_));
-      is_changed = true;
+      are_options_changed = true;
     } else {
       for (size_t i = 0; i < poll->options.size(); i++) {
         if (poll->options[i].text != poll_server->answers_[i]->text_) {
@@ -1361,18 +1372,31 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           poll->options[i].data = poll_server->answers_[i]->option_.as_slice().str();
           poll->options[i].voter_count = 0;
           poll->options[i].is_chosen = false;
-          is_changed = true;
+          are_options_changed = true;
         }
       }
     }
-    if (is_changed && !correct_option_data.empty()) {
-      poll->correct_option_id = -1;
-      for (size_t i = 0; i < poll->options.size(); i++) {
-        if (poll->options[i].data == correct_option_data) {
-          poll->correct_option_id = static_cast<int32>(i);
-          break;
+    if (are_options_changed) {
+      if (!correct_option_data.empty()) {
+        poll->correct_option_id = -1;
+        for (size_t i = 0; i < poll->options.size(); i++) {
+          if (poll->options[i].data == correct_option_data) {
+            poll->correct_option_id = static_cast<int32>(i);
+            break;
+          }
         }
       }
+      auto it = poll_voters_.find(poll_id);
+      if (it != poll_voters_.end()) {
+        for (auto &voters : it->second) {
+          auto promises = std::move(voters.pending_queries);
+          for (auto &promise : promises) {
+            promise.set_error(Status::Error(500, "The poll was changed"));
+          }
+        }
+        poll_voters_.erase(it);
+      }
+      is_changed = true;
     }
     if (poll->question != poll_server->question_) {
       poll->question = std::move(poll_server->question_);
