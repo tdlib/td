@@ -1417,8 +1417,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     is_changed = true;
   }
   int32 correct_option_id = -1;
-  for (size_t i = 0; i < poll_results->results_.size(); i++) {
-    auto &poll_result = poll_results->results_[i];
+  for (auto &poll_result : poll_results->results_) {
     Slice data = poll_result->option_.as_slice();
     for (size_t option_index = 0; option_index < poll->options.size(); option_index++) {
       auto &option = poll->options[option_index];
@@ -1436,9 +1435,9 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
         if (is_correct) {
           if (correct_option_id != -1) {
-            LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << i;
+            LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << option_index;
           }
-          correct_option_id = static_cast<int32>(i);
+          correct_option_id = static_cast<int32>(option_index);
         }
       } else {
         correct_option_id = poll->correct_option_id;
