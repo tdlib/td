@@ -1314,6 +1314,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   if (poll_server != nullptr) {
     std::unordered_set<Slice, SliceHash> option_data;
     for (auto &answer : poll_server->answers_) {
+      if (answer->option_.empty()) {
+        LOG(ERROR) << "Receive " << poll_id << " with empty option data: " << to_string(poll_server);
+        return PollId();
+      }
       option_data.insert(answer->option_.as_slice());
     }
     if (option_data.size() != poll_server->answers_.size()) {
@@ -1339,9 +1343,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   bool poll_server_is_closed = false;
   if (poll_server != nullptr) {
-    if (poll->question != poll_server->question_) {
-      poll->question = std::move(poll_server->question_);
-      is_changed = true;
+    string correct_option_data;
+    if (poll->correct_option_id != -1) {
+      CHECK(0 <= poll->correct_option_id && poll->correct_option_id < static_cast<int32>(poll->options.size()));
+      correct_option_data = poll->options[poll->correct_option_id].data;
     }
     if (poll->options.size() != poll_server->answers_.size()) {
       poll->options = get_poll_options(std::move(poll_server->answers_));
@@ -1359,6 +1364,19 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           is_changed = true;
         }
       }
+    }
+    if (is_changed && !correct_option_data.empty()) {
+      poll->correct_option_id = -1;
+      for (size_t i = 0; i < poll->options.size(); i++) {
+        if (poll->options[i].data == correct_option_data) {
+          poll->correct_option_id = static_cast<int32>(i);
+          break;
+        }
+      }
+    }
+    if (poll->question != poll_server->question_) {
+      poll->question = std::move(poll_server->question_);
+      is_changed = true;
     }
     poll_server_is_closed = (poll_server->flags_ & telegram_api::poll::CLOSED_MASK) != 0;
     if (poll_server_is_closed && !poll->is_closed) {
