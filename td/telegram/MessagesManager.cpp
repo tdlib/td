@@ -5017,23 +5017,13 @@ class MessagesManager::DialogFiltersLogEvent {
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(updated_date, storer);
-
-    td::store(narrow_cast<int32>(dialog_filters_in.size()), storer);
-    for (auto filter : dialog_filters_in) {
-      td::store(*filter, storer);
-    }
+    td::store(dialog_filters_in, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(updated_date, parser);
-
-    CHECK(dialog_filters_out.empty());
-    int32 size = parser.fetch_int();
-    dialog_filters_out.resize(size);
-    for (auto &filter : dialog_filters_out) {
-      td::parse(filter, parser);
-    }
+    td::parse(dialog_filters_out, parser);
   }
 };
 
@@ -22016,11 +22006,7 @@ class MessagesManager::ForwardMessagesLogEvent {
     td::store(to_dialog_id, storer);
     td::store(from_dialog_id, storer);
     td::store(message_ids, storer);
-
-    td::store(narrow_cast<int32>(messages_in.size()), storer);
-    for (auto m : messages_in) {
-      td::store(*m, storer);
-    }
+    td::store(messages_in, storer);
   }
 
   template <class ParserT>
@@ -22028,13 +22014,7 @@ class MessagesManager::ForwardMessagesLogEvent {
     td::parse(to_dialog_id, parser);
     td::parse(from_dialog_id, parser);
     td::parse(message_ids, parser);
-
-    CHECK(messages_out.empty());
-    int32 size = parser.fetch_int();
-    messages_out.resize(size);
-    for (auto &m_out : messages_out) {
-      td::parse(m_out, parser);
-    }
+    td::parse(messages_out, parser);
   }
 };
 
