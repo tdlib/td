@@ -5912,6 +5912,9 @@ void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_
   } else {
     // update from the future, keep it until it can be applied
     if (pts >= d->pending_read_channel_inbox_pts) {
+      if (d->pending_read_channel_inbox_pts == 0) {
+        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+      }
       d->pending_read_channel_inbox_pts = pts;
       d->pending_read_channel_inbox_max_message_id = max_message_id;
       d->pending_read_channel_inbox_server_unread_count = server_unread_count;
@@ -28376,6 +28379,23 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   // must be after update_dialog_pos, because uses d->order
+  if (d->pending_read_channel_inbox_pts != 0 && !td_->auth_manager_->is_bot() &&
+      have_input_peer(dialog_id, AccessRights::Read) && need_unread_counter(d->order)) {
+    if (d->pts == d->pending_read_channel_inbox_pts) {
+      read_history_inbox(dialog_id, d->pending_read_channel_inbox_max_message_id,
+                         d->pending_read_channel_inbox_server_unread_count, "fix_new_dialog 12");
+      d->pending_read_channel_inbox_pts = 0;
+      on_dialog_updated(dialog_id, "fix_new_dialog 13");
+    } else if (d->pts > d->pending_read_channel_inbox_pts) {
+      d->need_repair_channel_server_unread_count = true;
+      d->pending_read_channel_inbox_pts = 0;
+      on_dialog_updated(dialog_id, "fix_new_dialog 14");
+    } else {
+      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+    }
+  } else {
+    d->pending_read_channel_inbox_pts = 0;
+  }
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
       have_input_peer(dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
     get_history_from_the_end(dialog_id, true, false, Auto());
