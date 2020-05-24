@@ -457,7 +457,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       }
 
       auto web_page_date = web_page->date_;
-      LOG(INFO) << "Got pending " << web_page_id << ", date = " << web_page_date << ", now = " << G()->server_time();
+      LOG(INFO) << "Got pending " << web_page_id << ", force_get_date = " << web_page_date
+                << ", now = " << G()->server_time();
 
       pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), max(web_page_date - G()->server_time(), 1.0));
       return web_page_id;
