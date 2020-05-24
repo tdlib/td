@@ -138,6 +138,13 @@ void store(const vector<T> &vec, StorerT &storer) {
     store(val, storer);
   }
 }
+template <class T, class StorerT>
+void store(const vector<T *> &vec, StorerT &storer) {
+  storer.store_binary(narrow_cast<int32>(vec.size()));
+  for (auto &val : vec) {
+    store(*val, storer);
+  }
+}
 template <class T, class ParserT>
 void parse(vector<T> &vec, ParserT &parser) {
   uint32 size = parser.fetch_int();
