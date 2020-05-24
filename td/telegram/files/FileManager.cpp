@@ -2522,16 +2522,16 @@ void FileManager::run_generate(FileNodePtr node) {
     return;
   }
   FileView file_view(node);
+  if (!file_view.can_generate()) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
+    return;
+  }
   if (file_view.has_local_location()) {
     LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " has local location";
     return;
   }
   if (file_view.can_download_from_server()) {
     LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can be downloaded from server";
-    return;
-  }
-  if (!file_view.can_generate()) {
-    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
     return;
   }
 
@@ -2639,7 +2639,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
       return;
     }
     if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Secure) {
-      // Can't upload secure file before its size is known.
+      // Can't upload secure file before its size is known
       LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before it's size is known";
       return;
     }
