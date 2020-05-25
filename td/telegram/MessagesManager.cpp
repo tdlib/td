@@ -15517,12 +15517,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
       Dialog *d = get_dialog(dialog_id);
       CHECK(d != nullptr);
 
-      const DialogOrderInList new_order = get_dialog_order_in_list(&list, d, true);
-      if (new_order.order != DEFAULT_ORDER && new_order.private_order != 0) {
-        if (new_order.public_order != 0) {
-          send_update_chat_position(dialog_list_id, d);
-        }
-
+      if (d->order != DEFAULT_ORDER && need_dialog_in_list(d, list)) {
         list.in_memory_dialog_total_count_++;
 
         d->dialog_list_ids.push_back(dialog_list_id);
@@ -15560,6 +15555,65 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
   LOG(INFO) << "Delete " << dialog_filter_id << " from " << source;
   for (auto it = dialog_filters_.begin(); it != dialog_filters_.end(); ++it) {
     if ((*it)->dialog_filter_id == dialog_filter_id) {
+      auto dialog_list_id = DialogListId(dialog_filter_id);
+      auto *list = get_dialog_list(dialog_list_id);
+      CHECK(list != nullptr);
+      auto folder_ids = get_dialog_list_folder_ids(*list);
+      CHECK(!folder_ids.empty());
+
+      for (auto folder_id : folder_ids) {
+        auto *folder = get_dialog_folder(folder_id);
+        CHECK(folder != nullptr);
+        for (const auto &dialog_date : folder->ordered_dialogs_) {
+          if (dialog_date.get_order() == DEFAULT_ORDER) {
+            break;
+          }
+
+          auto dialog_id = dialog_date.get_dialog_id();
+          Dialog *d = get_dialog(dialog_id);
+          CHECK(d != nullptr);
+
+          const DialogOrderInList old_order = get_dialog_order_in_list(list, d, false);
+
+          if (is_dialog_in_list(d, *list)) {
+            bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
+            CHECK(is_removed);
+
+            if (old_order.public_order != 0 || old_order.is_pinned || old_order.is_sponsored) {
+              send_update_chat_position(dialog_list_id, d);
+            }
+          }
+        }
+      }
+
+      if (G()->parameters().use_message_db) {
+        postponed_unread_message_count_updates_.erase(dialog_list_id);
+        postponed_unread_chat_count_updates_.erase(dialog_list_id);
+        if (list->is_dialog_unread_count_inited_) {
+          list->unread_dialog_total_count_ = 0;
+          list->unread_dialog_muted_count_ = 0;
+          list->unread_dialog_marked_count_ = 0;
+          list->unread_dialog_muted_marked_count_ = 0;
+          list->in_memory_dialog_total_count_ = 0;
+          list->server_dialog_total_count_ = 0;
+          list->secret_chat_total_count_ = 0;
+          send_update_unread_chat_count(dialog_list_id, DialogId(), true, "delete_dialog_filter", true);
+          G()->td_db()->get_binlog_pmc()->erase(PSTRING() << "unread_dialog_count" << dialog_list_id.get());
+        }
+        if (list->is_message_unread_count_inited_) {
+          list->unread_message_total_count_ = 0;
+          list->unread_message_muted_count_ = 0;
+          send_update_unread_message_count(dialog_list_id, DialogId(), true, "delete_dialog_filter", true);
+          G()->td_db()->get_binlog_pmc()->erase(PSTRING() << "unread_message_count" << dialog_list_id.get());
+        }
+      }
+
+      auto promises = std::move(list->load_list_queries_);
+      for (auto &promise : promises) {
+        promise.set_error(Status::Error(400, "Chat list not found"));
+      }
+
+      dialog_lists_.erase(dialog_list_id);
       dialog_filters_.erase(it);
       return;
     }
