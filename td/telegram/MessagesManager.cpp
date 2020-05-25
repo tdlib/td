@@ -5011,13 +5011,13 @@ void MessagesManager::DialogFilter::parse(ParserT &parser) {
 class MessagesManager::DialogFiltersLogEvent {
  public:
   int32 updated_date = 0;
-  vector<const DialogFilter *> dialog_filters_in;
+  const vector<unique_ptr<DialogFilter>> *dialog_filters_in;
   vector<unique_ptr<DialogFilter>> dialog_filters_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(updated_date, storer);
-    td::store(dialog_filters_in, storer);
+    td::store(*dialog_filters_in, storer);
   }
 
   template <class ParserT>
@@ -24075,7 +24075,7 @@ void MessagesManager::send_update_chat_filters(bool from_database) {
   if (!from_database) {
     DialogFiltersLogEvent log_event;
     log_event.updated_date = dialog_filters_updated_date_;
-    log_event.dialog_filters_in = transform(dialog_filters_, [](auto &filter) { return filter.get(); });
+    log_event.dialog_filters_in = &dialog_filters_;
 
     G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
   }
