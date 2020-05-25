@@ -2253,6 +2253,14 @@ class MessagesManager : public Actor {
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
 
+  void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
+
+  void edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
+
+  void delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
+
+  const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
+
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
@@ -2854,6 +2862,7 @@ class MessagesManager : public Actor {
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
   int32 dialog_filters_updated_date_ = 0;
+  vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;

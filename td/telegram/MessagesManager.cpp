@@ -5011,18 +5011,22 @@ void MessagesManager::DialogFilter::parse(ParserT &parser) {
 class MessagesManager::DialogFiltersLogEvent {
  public:
   int32 updated_date = 0;
+  const vector<unique_ptr<DialogFilter>> *server_dialog_filters_in;
   const vector<unique_ptr<DialogFilter>> *dialog_filters_in;
+  vector<unique_ptr<DialogFilter>> server_dialog_filters_out;
   vector<unique_ptr<DialogFilter>> dialog_filters_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(updated_date, storer);
+    td::store(*server_dialog_filters_in, storer);
     td::store(*dialog_filters_in, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(updated_date, parser);
+    td::parse(server_dialog_filters_out, parser);
     td::parse(dialog_filters_out, parser);
   }
 };
@@ -10966,10 +10970,15 @@ void MessagesManager::init() {
     auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
     if (!dialog_filters.empty()) {
       DialogFiltersLogEvent log_event;
-      log_event_parse(log_event, dialog_filters).ensure();
-
-      dialog_filters_updated_date_ = log_event.updated_date;
-      dialog_filters_ = std::move(log_event.dialog_filters_out);
+      if (log_event_parse(log_event, dialog_filters).is_ok()) {
+        dialog_filters_updated_date_ = log_event.updated_date;
+        server_dialog_filters_ = std::move(log_event.server_dialog_filters_out);
+        for (auto &dialog_filter : log_event.dialog_filters_out) {
+          add_dialog_filter(std::move(dialog_filter), "binlog");
+        }
+      } else {
+        LOG(ERROR) << "Failed to parse chat filters from binlog";
+      }
     }
     send_update_chat_filters(true);  // always send updateChatFilters
 
@@ -14240,22 +14249,77 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   }
 
   auto filters = r_filters.move_as_ok();
-  vector<unique_ptr<DialogFilter>> dialog_filters;
+  vector<unique_ptr<DialogFilter>> new_server_dialog_filters;
   LOG(INFO) << "Receive " << filters.size() << " chat filters";
+  std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids;
   for (auto &filter : filters) {
     auto dialog_filter = DialogFilter::get_dialog_filter(std::move(filter), true);
     if (dialog_filter == nullptr) {
       continue;
     }
+    if (!new_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
+      LOG(ERROR) << "Receive duplicate " << dialog_filter->dialog_filter_id;
+      continue;
+    }
 
-    // TODO add secret chats to the filter
-    dialog_filters.push_back(std::move(dialog_filter));
+    new_server_dialog_filters.push_back(std::move(dialog_filter));
   }
 
   dialog_filters_updated_date_ = G()->unix_time();
-  if (dialog_filters_ != dialog_filters) {
-    // TODO update all changed chat lists and their unread counts
-    dialog_filters_ = std::move(dialog_filters);
+  if (server_dialog_filters_ != new_server_dialog_filters) {
+    std::unordered_map<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
+    for (auto &filter : server_dialog_filters_) {
+      old_server_dialog_filters.emplace(filter->dialog_filter_id, filter.get());
+    }
+    for (auto &new_server_filter : new_server_dialog_filters) {
+      auto dialog_filter_id = new_server_filter->dialog_filter_id;
+      auto old_filter = get_dialog_filter(dialog_filter_id);
+      auto it = old_server_dialog_filters.find(dialog_filter_id);
+      if (it != old_server_dialog_filters.end()) {
+        auto old_server_filter = it->second;
+        if (*new_server_filter != *old_server_filter) {
+          if (old_filter == nullptr) {
+            // the filter was deleted, don't need to edit it
+          } else if (*old_filter == *new_server_filter) {
+            // the filter was edited from this client, nothing to do
+          } else if (*old_filter == *old_server_filter) {
+            // the filter was edited only from another client
+            edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 1");
+          } else {
+            // the filter was edited both locally and remotely
+            // TODO merge local and remote changes
+            edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 2");
+          }
+        }
+        old_server_dialog_filters.erase(it);
+      } else {
+        if (old_filter == nullptr) {
+          // the filter was added from another client
+          add_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters");
+        } else if (*old_filter == *new_server_filter) {
+          // the filter was added from that client, nothing to do
+        } else {
+          // the filter was added from two different client simultaneously,
+          // or it was added and edited from that client
+          // prefer local value, so do nothing
+        }
+      }
+    }
+    for (auto &old_server_filter : old_server_dialog_filters) {
+      auto dialog_filter_id = old_server_filter.first;
+      // deleted filter
+      auto old_filter = get_dialog_filter(dialog_filter_id);
+      if (old_filter == nullptr) {
+        // the filter was deleted from this client, nothing to do
+      } else {
+        // the filter was deleted from another client
+        // ignore edits done from the current client and just delete the filter
+        delete_dialog_filter(dialog_filter_id, "on_get_dialog_filters");
+      }
+    }
+
+    // TODO update dialog filter order
+    server_dialog_filters_ = std::move(new_server_dialog_filters);
     send_update_chat_filters(false);
   }
   schedule_dialog_filters_reload(DIALOG_FILTERS_CACHE_TIME * 0.0001 * Random::fast(9000, 11000));
@@ -15262,7 +15326,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
     auto min_id = static_cast<int>(DialogFilterId::min().get());
     auto max_id = static_cast<int>(DialogFilterId::max().get());
     dialog_filter_id = DialogFilterId(static_cast<int32>(Random::fast(min_id, max_id)));
-  } while (get_dialog_filter(dialog_filter_id) != nullptr);
+  } while (get_dialog_filter(dialog_filter_id) != nullptr || get_server_dialog_filter(dialog_filter_id) != nullptr);
 
   auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
   if (r_dialog_filter.is_error()) {
@@ -15272,8 +15336,9 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   CHECK(dialog_filter != nullptr);
   auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
-  // TODO logevent
-  // TODO add dialog filter locally
+  add_dialog_filter(make_unique<DialogFilter>(*dialog_filter), "create_dialog_filter");
+  send_update_chat_filters(false);
+
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
                                                promise = std::move(promise)](Result<Unit> result) mutable {
@@ -15305,8 +15370,9 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
 
   auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
 
-  // TODO logevent
-  // TODO edit dialog filter locally
+  edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "edit_dialog_filter");
+  send_update_chat_filters(false);
+
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter),
                                                promise = std::move(promise)](Result<Unit> result) mutable {
@@ -15320,11 +15386,11 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
 void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
                                               Promise<Unit> &&promise) {
   if (result.is_error()) {
+    // TODO rollback dialog_filters_ changes
     return promise.set_error(result.move_as_error());
   }
 
-  // TODO update all changed chat lists and their unread counts
-  for (auto &filter : dialog_filters_) {
+  for (auto &filter : server_dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
       if (*filter != *dialog_filter) {
         filter = std::move(dialog_filter);
@@ -15335,7 +15401,7 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
     }
   }
 
-  dialog_filters_.push_back(std::move(dialog_filter));
+  server_dialog_filters_.push_back(std::move(dialog_filter));
   send_update_chat_filters(false);
   promise.set_value(Unit());
 }
@@ -15347,8 +15413,9 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
     return promise.set_value(Unit());
   }
 
-  // TODO logevent
-  // TODO delete dialog filter locally
+  delete_dialog_filter(dialog_filter_id, "delete_dialog_filter");
+  send_update_chat_filters(false);
+
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> result) mutable {
@@ -15360,13 +15427,13 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
 
 void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise) {
   if (result.is_error()) {
+    // TODO rollback dialog_filters_ changes
     return promise.set_error(result.move_as_error());
   }
 
-  for (auto it = dialog_filters_.begin(); it != dialog_filters_.end(); ++it) {
+  for (auto it = server_dialog_filters_.begin(); it != server_dialog_filters_.end(); ++it) {
     if ((*it)->dialog_filter_id == dialog_filter_id) {
-      // TODO delete chat list
-      dialog_filters_.erase(it);
+      server_dialog_filters_.erase(it);
       send_update_chat_filters(false);
       break;
     }
@@ -15422,10 +15489,40 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
   }
   send_update_chat_filters(false);
 
-  // TODO logevent
   // TODO SequenceDispatcher
   td_->create_handler<ReorderDialogFiltersQuery>(std::move(promise))->send(dialog_filter_ids);
   return promise.set_value(Unit());
+}
+
+void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+  CHECK(dialog_filter != nullptr);
+  LOG(INFO) << "Add " << dialog_filter->dialog_filter_id << " from " << source;
+  CHECK(get_dialog_filter(dialog_filter->dialog_filter_id) == nullptr);
+  dialog_filters_.push_back(std::move(dialog_filter));
+}
+
+void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+  CHECK(dialog_filter != nullptr);
+  LOG(INFO) << "Edit " << dialog_filter->dialog_filter_id << " from " << source;
+  for (auto &filter : dialog_filters_) {
+    if (filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
+      CHECK(*filter != *dialog_filter);
+      filter = std::move(dialog_filter);
+      return;
+    }
+  }
+  UNREACHABLE();
+}
+
+void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
+  LOG(INFO) << "Delete " << dialog_filter_id << " from " << source;
+  for (auto it = dialog_filters_.begin(); it != server_dialog_filters_.end(); ++it) {
+    if ((*it)->dialog_filter_id == dialog_filter_id) {
+      dialog_filters_.erase(it);
+      return;
+    }
+  }
+  UNREACHABLE();
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {
@@ -24075,6 +24172,7 @@ void MessagesManager::send_update_chat_filters(bool from_database) {
   if (!from_database) {
     DialogFiltersLogEvent log_event;
     log_event.updated_date = dialog_filters_updated_date_;
+    log_event.server_dialog_filters_in = &server_dialog_filters_;
     log_event.dialog_filters_in = &dialog_filters_;
 
     G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
@@ -30159,6 +30257,15 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 
   LOG(INFO) << "Add new " << dialog_id << " from database";
   return add_new_dialog(parse_dialog(dialog_id, value), true);
+}
+
+const MessagesManager::DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
+  for (auto &filter : server_dialog_filters_) {
+    if (filter->dialog_filter_id == dialog_filter_id) {
+      return filter.get();
+    }
+  }
+  return nullptr;
 }
 
 MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) {
