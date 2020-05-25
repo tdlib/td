@@ -15487,13 +15487,58 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
 }
 
 void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   CHECK(dialog_filter != nullptr);
-  LOG(INFO) << "Add " << dialog_filter->dialog_filter_id << " from " << source;
-  CHECK(get_dialog_filter(dialog_filter->dialog_filter_id) == nullptr);
+  auto dialog_filter_id = dialog_filter->dialog_filter_id;
+  LOG(INFO) << "Add " << dialog_filter_id << " from " << source;
+  CHECK(get_dialog_filter(dialog_filter_id) == nullptr);
   dialog_filters_.push_back(std::move(dialog_filter));
+
+  auto dialog_list_id = DialogListId(dialog_filter_id);
+  CHECK(dialog_lists_.find(dialog_list_id) == dialog_lists_.end());
+
+  auto &list = add_dialog_list(dialog_list_id);
+  auto folder_ids = get_dialog_list_folder_ids(list);
+  CHECK(!folder_ids.empty());
+
+  for (auto folder_id : folder_ids) {
+    auto *folder = get_dialog_folder(folder_id);
+    CHECK(folder != nullptr);
+    for (const auto &dialog_date : folder->ordered_dialogs_) {
+      if (dialog_date.get_order() == DEFAULT_ORDER) {
+        break;
+      }
+
+      auto dialog_id = dialog_date.get_dialog_id();
+      Dialog *d = get_dialog(dialog_id);
+      CHECK(d != nullptr);
+
+      const DialogOrderInList new_order = get_dialog_order_in_list(&list, d, true);
+      if (new_order.order != DEFAULT_ORDER && new_order.private_order != 0) {
+        if (new_order.public_order != 0) {
+          send_update_chat_position(dialog_list_id, d);
+        }
+
+        list.in_memory_dialog_total_count_++;
+
+        d->dialog_list_ids.push_back(dialog_list_id);
+      }
+    }
+  }
+  update_list_last_pinned_dialog_date(list);
+  update_list_last_dialog_date(list);
 }
 
 void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   CHECK(dialog_filter != nullptr);
   LOG(INFO) << "Edit " << dialog_filter->dialog_filter_id << " from " << source;
   for (auto &filter : dialog_filters_) {
@@ -15507,6 +15552,11 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter,
 }
 
 void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   LOG(INFO) << "Delete " << dialog_filter_id << " from " << source;
   for (auto it = dialog_filters_.begin(); it != dialog_filters_.end(); ++it) {
     if ((*it)->dialog_filter_id == dialog_filter_id) {
