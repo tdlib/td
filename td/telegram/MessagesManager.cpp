@@ -6988,7 +6988,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
           if (unread_count != 0 && list.is_message_unread_count_inited_) {
             int32 delta = old_mute_until != 0 ? -unread_count : unread_count;
             list.unread_message_muted_count_ += delta;
-            send_update_unread_message_count(list.dialog_list_id, d->dialog_id, true, "update_dialog_unmute_timeout");
+            send_update_unread_message_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
           }
           if (list.is_dialog_unread_count_inited_) {
             int32 delta = old_mute_until != 0 ? -1 : 1;
@@ -6996,7 +6996,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
             if (unread_count == 0 && d->is_marked_as_unread) {
               list.unread_dialog_muted_marked_count_ += delta;
             }
-            send_update_unread_chat_count(list.dialog_list_id, d->dialog_id, true, "update_dialog_unmute_timeout");
+            send_update_unread_chat_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
           }
         }
       }
@@ -7064,7 +7064,7 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
             } else {
               list->unread_message_muted_count_ += delta[dialog_list_id];
             }
-            send_update_unread_message_count(dialog_list_id, DialogId(), true, "update_scope_unmute_timeout");
+            send_update_unread_message_count(*list, DialogId(), true, "update_scope_unmute_timeout");
           }
           if (total_count[dialog_list_id] != 0 && list->is_dialog_unread_count_inited_) {
             if (was_muted) {
@@ -7074,7 +7074,7 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
               list->unread_dialog_muted_count_ += total_count[dialog_list_id];
               list->unread_dialog_muted_marked_count_ += marked_count[dialog_list_id];
             }
-            send_update_unread_chat_count(dialog_list_id, DialogId(), true, "update_scope_unmute_timeout");
+            send_update_unread_chat_count(*list, DialogId(), true, "update_scope_unmute_timeout");
           }
         }
       }
@@ -8078,12 +8078,14 @@ void MessagesManager::after_get_difference() {
     }
   }
   while (!postponed_unread_message_count_updates_.empty()) {
-    auto dialog_list_id = *postponed_unread_message_count_updates_.begin();
-    send_update_unread_message_count(dialog_list_id, DialogId(), false, "after_get_difference");
+    auto list = get_dialog_list(*postponed_unread_message_count_updates_.begin());
+    CHECK(list != nullptr);
+    send_update_unread_message_count(*list, DialogId(), true, "after_get_difference");
   }
   while (!postponed_unread_chat_count_updates_.empty()) {
-    auto dialog_list_id = *postponed_unread_chat_count_updates_.begin();
-    send_update_unread_chat_count(dialog_list_id, DialogId(), false, "after_get_difference");
+    auto list = get_dialog_list(*postponed_unread_chat_count_updates_.begin());
+    CHECK(list != nullptr);
+    send_update_unread_chat_count(*list, DialogId(), true, "after_get_difference");
   }
 
   vector<FullMessageId> update_message_ids_to_delete;
@@ -10257,7 +10259,7 @@ void MessagesManager::on_get_secret_chat_total_count(DialogListId dialog_list_id
     auto old_dialog_total_count = get_dialog_total_count(*list);
     list->secret_chat_total_count_ = total_count;
     if (list->is_dialog_unread_count_inited_ && old_dialog_total_count != get_dialog_total_count(*list)) {
-      send_update_unread_chat_count(dialog_list_id, DialogId(), true, "on_get_secret_chat_total_count");
+      send_update_unread_chat_count(*list, DialogId(), true, "on_get_secret_chat_total_count");
     }
   }
 }
@@ -10323,7 +10325,7 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id) {
       list.unread_message_muted_count_ != message_muted_count) {
     list.unread_message_total_count_ = message_total_count;
     list.unread_message_muted_count_ = message_muted_count;
-    send_update_unread_message_count(dialog_list_id, DialogId(), true, "recalc_unread_count");
+    send_update_unread_message_count(list, DialogId(), true, "recalc_unread_count");
   }
 
   auto old_dialog_total_count = get_dialog_total_count(list);
@@ -10348,7 +10350,7 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id) {
     list.unread_dialog_muted_count_ = dialog_muted_count;
     list.unread_dialog_marked_count_ = dialog_marked_count;
     list.unread_dialog_muted_marked_count_ = dialog_muted_marked_count;
-    send_update_unread_chat_count(dialog_list_id, DialogId(), true, "recalc_unread_count");
+    send_update_unread_chat_count(list, DialogId(), true, "recalc_unread_count");
   }
 }
 
@@ -10383,7 +10385,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
         if (is_dialog_muted(d)) {
           list.unread_message_muted_count_ += delta;
         }
-        send_update_unread_message_count(list.dialog_list_id, d->dialog_id, force_update, source);
+        send_update_unread_message_count(list, d->dialog_id, force_update, source);
       }
       delta = static_cast<int32>(new_unread_count != 0) - static_cast<int32>(old_unread_count != 0);
       if (delta != 0 && list.is_dialog_unread_count_inited_) {
@@ -10399,7 +10401,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
             list.unread_dialog_muted_count_ += delta;
           }
         }
-        send_update_unread_chat_count(list.dialog_list_id, d->dialog_id, force_update, source);
+        send_update_unread_chat_count(list, d->dialog_id, force_update, source);
       }
     }
 
@@ -11009,7 +11011,7 @@ void MessagesManager::init() {
           list->unread_message_total_count_ = r_total_count.ok();
           list->unread_message_muted_count_ = r_muted_count.ok();
           list->is_message_unread_count_inited_ = true;
-          send_update_unread_message_count(dialog_list_id, DialogId(), true, "load unread_message_count", true);
+          send_update_unread_message_count(*list, DialogId(), true, "load unread_message_count", true);
         } else {
           G()->td_db()->get_binlog_pmc()->erase("unread_message_count" + it.first);
         }
@@ -11047,7 +11049,7 @@ void MessagesManager::init() {
             repair_secret_chat_total_count(dialog_list_id);
           }
           list->is_dialog_unread_count_inited_ = true;
-          send_update_unread_chat_count(dialog_list_id, DialogId(), true, "load unread_dialog_count", true);
+          send_update_unread_chat_count(*list, DialogId(), true, "load unread_dialog_count", true);
         } else {
           G()->td_db()->get_binlog_pmc()->erase("unread_dialog_count" + it.first);
         }
@@ -13036,7 +13038,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       auto old_dialog_total_count = get_dialog_total_count(list);
       list.server_dialog_total_count_ = total_count;
       if (list.is_dialog_unread_count_inited_ && old_dialog_total_count != get_dialog_total_count(list)) {
-        send_update_unread_chat_count(DialogListId(folder_id), DialogId(), true, "on_get_dialogs");
+        send_update_unread_chat_count(list, DialogId(), true, "on_get_dialogs");
       }
     }
   }
@@ -15603,6 +15605,13 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
       if (G()->parameters().use_message_db) {
         postponed_unread_message_count_updates_.erase(dialog_list_id);
         postponed_unread_chat_count_updates_.erase(dialog_list_id);
+
+        if (list->is_message_unread_count_inited_) {
+          list->unread_message_total_count_ = 0;
+          list->unread_message_muted_count_ = 0;
+          send_update_unread_message_count(*list, DialogId(), true, "delete_dialog_filter", true);
+          G()->td_db()->get_binlog_pmc()->erase(PSTRING() << "unread_message_count" << dialog_list_id.get());
+        }
         if (list->is_dialog_unread_count_inited_) {
           list->unread_dialog_total_count_ = 0;
           list->unread_dialog_muted_count_ = 0;
@@ -15611,14 +15620,8 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
           list->in_memory_dialog_total_count_ = 0;
           list->server_dialog_total_count_ = 0;
           list->secret_chat_total_count_ = 0;
-          send_update_unread_chat_count(dialog_list_id, DialogId(), true, "delete_dialog_filter", true);
+          send_update_unread_chat_count(*list, DialogId(), true, "delete_dialog_filter", true);
           G()->td_db()->get_binlog_pmc()->erase(PSTRING() << "unread_dialog_count" << dialog_list_id.get());
-        }
-        if (list->is_message_unread_count_inited_) {
-          list->unread_message_total_count_ = 0;
-          list->unread_message_muted_count_ = 0;
-          send_update_unread_message_count(dialog_list_id, DialogId(), true, "delete_dialog_filter", true);
-          G()->td_db()->get_binlog_pmc()->erase(PSTRING() << "unread_message_count" << dialog_list_id.get());
         }
       }
 
@@ -24295,15 +24298,13 @@ void MessagesManager::save_dialog_filters() {
   G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
 }
 
-void MessagesManager::send_update_unread_message_count(DialogListId dialog_list_id, DialogId dialog_id, bool force,
+void MessagesManager::send_update_unread_message_count(DialogList &list, DialogId dialog_id, bool force,
                                                        const char *source, bool from_database) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
 
-  auto *list_ptr = get_dialog_list(dialog_list_id);
-  CHECK(list_ptr != nullptr);
-  auto &list = *list_ptr;
+  auto dialog_list_id = list.dialog_list_id;
   CHECK(list.is_message_unread_count_inited_);
   if (list.unread_message_muted_count_ < 0 || list.unread_message_muted_count_ > list.unread_message_total_count_) {
     LOG(ERROR) << "Unread message count became invalid: " << list.unread_message_total_count_ << '/'
@@ -24336,15 +24337,13 @@ void MessagesManager::send_update_unread_message_count(DialogListId dialog_list_
   }
 }
 
-void MessagesManager::send_update_unread_chat_count(DialogListId dialog_list_id, DialogId dialog_id, bool force,
+void MessagesManager::send_update_unread_chat_count(DialogList &list, DialogId dialog_id, bool force,
                                                     const char *source, bool from_database) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
 
-  auto *list_ptr = get_dialog_list(dialog_list_id);
-  CHECK(list_ptr != nullptr);
-  auto &list = *list_ptr;
+  auto dialog_list_id = list.dialog_list_id;
   CHECK(list.is_dialog_unread_count_inited_);
   if (list.unread_dialog_muted_marked_count_ < 0 ||
       list.unread_dialog_marked_count_ < list.unread_dialog_muted_marked_count_ ||
@@ -25310,7 +25309,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
           list.unread_dialog_muted_count_ += delta;
           list.unread_dialog_muted_marked_count_ += delta;
         }
-        send_update_unread_chat_count(list.dialog_list_id, d->dialog_id, true, "set_dialog_is_marked_as_unread");
+        send_update_unread_chat_count(list, d->dialog_id, true, "set_dialog_is_marked_as_unread");
       }
     }
 
@@ -30110,7 +30109,7 @@ void MessagesManager::update_dialog_lists(
           if (is_dialog_muted(d)) {
             list.unread_message_muted_count_ += unread_count;
           }
-          send_update_unread_message_count(dialog_list_id, dialog_id, true, change_source);
+          send_update_unread_message_count(list, dialog_id, true, change_source);
         }
         if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
           list.unread_dialog_total_count_ += delta;
@@ -30124,7 +30123,7 @@ void MessagesManager::update_dialog_lists(
             }
           }
           need_update_unread_chat_count = false;
-          send_update_unread_chat_count(dialog_list_id, dialog_id, true, change_source);
+          send_update_unread_chat_count(list, dialog_id, true, change_source);
         }
       }
 
@@ -30151,7 +30150,7 @@ void MessagesManager::update_dialog_lists(
     }
 
     if (need_update_unread_chat_count) {
-      send_update_unread_chat_count(dialog_list_id, dialog_id, true, "changed chat_count");
+      send_update_unread_chat_count(list, dialog_id, true, "changed chat_count");
     }
 
     if (!is_loaded_from_database && !old_order.is_sponsored && new_order.is_sponsored) {
@@ -30257,7 +30256,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
       bool need_update_unread_chat_count = list.server_dialog_total_count_ == -1 || list.secret_chat_total_count_ == -1;
       recalc_unread_count(list.dialog_list_id);
       if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
-        send_update_unread_chat_count(list.dialog_list_id, DialogId(), true, "update_list_last_dialog_date");
+        send_update_unread_chat_count(list, DialogId(), true, "update_list_last_dialog_date");
       }
     }
 
@@ -32552,7 +32551,7 @@ void MessagesManager::set_sponsored_dialog(DialogId dialog_id, DialogSource sour
     auto *list = get_dialog_list(dialog_list_id);
     CHECK(list != nullptr);
     if (list->is_dialog_unread_count_inited_) {
-      send_update_unread_chat_count(dialog_list_id, DialogId(), true, "set_sponsored_dialog_id");
+      send_update_unread_chat_count(*list, DialogId(), true, "set_sponsored_dialog_id");
     }
   }
 
