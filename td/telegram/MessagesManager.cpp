@@ -10222,13 +10222,15 @@ void MessagesManager::repair_secret_chat_total_count(DialogListId dialog_list_id
     CHECK(list != nullptr);
     for (auto &folder_id : get_dialog_list_folder_ids(*list)) {
       const auto *folder_list = get_dialog_list(DialogListId(folder_id));
+      CHECK(folder_list != nullptr);
       if (folder_list->need_unread_count_recalc_) {
         // can't repair total secret chat count yet
         return;
       }
 
-      const auto &folder = *get_dialog_folder(folder_id);
-      for (const auto &dialog_date : folder.ordered_dialogs_) {
+      const auto *folder = get_dialog_folder(folder_id);
+      CHECK(folder != nullptr);
+      for (const auto &dialog_date : folder->ordered_dialogs_) {
         auto dialog_id = dialog_date.get_dialog_id();
         if (dialog_id.get_type() == DialogType::SecretChat && dialog_date.get_order() != DEFAULT_ORDER) {
           total_count++;
@@ -10246,7 +10248,10 @@ void MessagesManager::on_get_secret_chat_total_count(DialogListId dialog_list_id
 
   CHECK(!td_->auth_manager_->is_bot());
   auto *list = get_dialog_list(dialog_list_id);
-  CHECK(list != nullptr);
+  if (list == nullptr) {
+    // just in case
+    return;
+  }
   CHECK(total_count >= 0);
   if (list->secret_chat_total_count_ != total_count) {
     auto old_dialog_total_count = get_dialog_total_count(*list);
