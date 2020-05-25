@@ -2027,7 +2027,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
 
-  void send_update_chat_filters(bool from_database = false);
+  void send_update_chat_filters();
 
   void send_update_unread_message_count(DialogListId dialog_list_id, DialogId dialog_id, bool force, const char *source,
                                         bool from_database = false);
@@ -2252,6 +2252,8 @@ class MessagesManager : public Actor {
   void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
+
+  void save_dialog_filters();
 
   void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
 
