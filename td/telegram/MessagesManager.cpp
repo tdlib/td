@@ -15524,6 +15524,15 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
       }
     }
   }
+
+  for (auto &input_dialog_id : reversed(dialog_filter->pinned_dialog_ids)) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    auto order = get_next_pinned_dialog_order();
+    list.pinned_dialogs_.emplace_back(order, dialog_id);
+    list.pinned_dialog_id_orders_.emplace(dialog_id, order);
+  }
+  std::reverse(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end());
+
   update_list_last_pinned_dialog_date(list);
   update_list_last_dialog_date(list);
 }
