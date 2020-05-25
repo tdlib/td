@@ -10962,7 +10962,7 @@ void MessagesManager::init() {
           }
           std::reverse(list->pinned_dialogs_.begin(), list->pinned_dialogs_.end());
 
-          // must not update last_pinned_dialog_date_, because the dialogs are not loaded yet
+          update_list_last_pinned_dialog_date(*list);
         }
       }
     }
@@ -12852,11 +12852,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       update_last_dialog_date(folder_id);
     }
 
-    auto &list = add_dialog_list(DialogListId(folder_id));
-    if (list.last_pinned_dialog_date_ < MAX_DIALOG_DATE) {
-      list.last_pinned_dialog_date_ = MAX_DIALOG_DATE;
-      update_list_last_dialog_date(list);
-    }
+    update_list_last_pinned_dialog_date(add_dialog_list(DialogListId(folder_id)));
   }
 
   vector<DialogId> added_dialog_ids;
@@ -13913,14 +13909,12 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     limit = MAX_GET_DIALOGS;
   }
 
-  DialogDate max_dialog_date = MIN_DIALOG_DATE;
   if (dialog_list_id == DialogListId(FolderId::main()) && sponsored_dialog_id_.is_valid()) {
     auto d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     if (is_dialog_sponsored(d)) {
       DialogDate date(get_dialog_private_order(&list, d), d->dialog_id);
       if (offset < date) {
-        max_dialog_date = date;
         result.push_back(sponsored_dialog_id_);
         offset = date;
         limit--;
@@ -13931,8 +13925,6 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
   if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
     for (auto &pinned_dialog : list.pinned_dialogs_) {
       if (offset < pinned_dialog) {
-        max_dialog_date = pinned_dialog;
-
         auto dialog_id = pinned_dialog.get_dialog_id();
         auto d = get_dialog_force(dialog_id);
         if (d == nullptr) {
@@ -13952,13 +13944,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
   if (need_reload_pinned_dialogs) {
     reload_pinned_dialogs(dialog_list_id, Auto());
   }
-  if (!list.pinned_dialogs_.empty() && max_dialog_date == list.pinned_dialogs_.back()) {
-    max_dialog_date = MAX_DIALOG_DATE;
-  }
-  if (list.last_pinned_dialog_date_ < max_dialog_date) {
-    list.last_pinned_dialog_date_ = max_dialog_date;
-    update_list_last_dialog_date(list);
-  }
+  update_list_last_pinned_dialog_date(list);
 
   vector<const DialogFolder *> folders;
   vector<std::set<DialogDate>::const_iterator> folder_iterators;
@@ -30088,6 +30074,28 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
   }
 }
 
+void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list) {
+  if (list.last_pinned_dialog_date_ == MAX_DIALOG_DATE) {
+    return;
+  }
+
+  DialogDate max_dialog_date = MIN_DIALOG_DATE;
+  for (auto &pinned_dialog : list.pinned_dialogs_) {
+    if (!have_dialog(pinned_dialog.get_dialog_id())) {
+      break;
+    }
+
+    max_dialog_date = pinned_dialog;
+  }
+  if (list.pinned_dialogs_.empty() || max_dialog_date == list.pinned_dialogs_.back()) {
+    max_dialog_date = MAX_DIALOG_DATE;
+  }
+  if (list.last_pinned_dialog_date_ < max_dialog_date) {
+    list.last_pinned_dialog_date_ = max_dialog_date;
+    update_list_last_dialog_date(list);
+  }
+}
+
 void MessagesManager::update_list_last_dialog_date(DialogList &list) {
   auto new_last_dialog_date = list.last_pinned_dialog_date_;
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
@@ -32346,7 +32354,7 @@ void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source)
   sponsored_dialog_id_ = d->dialog_id;
   sponsored_dialog_source_ = std::move(source);
 
-  // update last_server_dialog_date in any case, because all chats before SPONSORED_DIALOG_ORDER are known
+  // update last_pinned_dialog_date in any case, because all chats before SPONSORED_DIALOG_ORDER are known
   auto dialog_list_id = DialogListId(FolderId::main());
   auto *list = get_dialog_list(dialog_list_id);
   CHECK(list != nullptr);
