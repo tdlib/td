@@ -14273,15 +14273,17 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         if (*new_server_filter != *old_server_filter) {
           if (old_filter == nullptr) {
             // the filter was deleted, don't need to edit it
-          } else if (*old_filter == *new_server_filter) {
-            // the filter was edited from this client, nothing to do
-          } else if (*old_filter == *old_server_filter) {
-            // the filter was edited only from another client
-            edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 1");
           } else {
-            // the filter was edited both locally and remotely
-            // TODO merge local and remote changes
-            edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 2");
+            if (*old_filter == *new_server_filter) {  // fast path
+              // the filter was edited from this client and doesn't contain chosen secret chats, nothing to do
+            } else if (*old_filter == *old_server_filter) {  // fast path
+              // the filter was edited only from another client and doesn't contain chosen secret chats
+              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 1");
+            } else {
+              // TODO apply changes between old_server_filter and new_server_filter to old_filter
+              // remember that old_filter can contain secret chats, which must be kept
+              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 2");
+            }
           }
         }
         old_server_dialog_filters.erase(it);
@@ -14289,12 +14291,11 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         if (old_filter == nullptr) {
           // the filter was added from another client
           add_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters");
-        } else if (*old_filter == *new_server_filter) {
-          // the filter was added from that client, nothing to do
         } else {
-          // the filter was added from two different client simultaneously,
-          // or it was added and edited from that client
+          // the filter was added from this client
+          // after that it could be added from another client, or edited from this client, or edited from another client
           // prefer local value, so do nothing
+          // effectively, ignore edits from other clients, if didn't receive UpdateDialogFilterQuery response
         }
       }
     }
@@ -15845,10 +15846,11 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     return Status::OK();
   }
 
-  if (!dialog_list_id.is_folder()) {
+  if (dialog_list_id.is_filter()) {
     return Status::Error(500, "TODO support");
   }
 
+  CHECK(dialog_list_id.is_folder());
   auto folder_id = dialog_list_id.get_folder_id();
   if (is_pinned) {
     if (d->folder_id != folder_id) {
@@ -15962,10 +15964,11 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   }
   LOG(INFO) << "Reorder pinned chats in " << dialog_list_id << " from " << pinned_dialog_ids << " to " << dialog_ids;
 
-  if (!dialog_list_id.is_folder()) {
+  if (dialog_list_id.is_filter()) {
     return Status::Error(500, "TODO support");
   }
 
+  CHECK(dialog_list_id.is_folder());
   auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
   auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);
 
@@ -24178,7 +24181,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
     set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(),
                                  "remove_message_dialog_notifications 2");
   } else {
-    LOG(FATAL) << "TODO support deleting up to " << max_message_id << " if ever will be needed";
+    LOG(FATAL) << "TODO support notification deletion up to " << max_message_id << " if will be ever needed";
   }
 
   send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group, group_info.group_id,
