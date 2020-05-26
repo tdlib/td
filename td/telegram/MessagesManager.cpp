@@ -14282,6 +14282,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
             } else {
               // TODO apply changes between old_server_filter and new_server_filter to old_filter
               // remember that old_filter can contain secret chats, which must be kept
+              // also need to check that *filter != *edited_filter
               edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 2");
             }
           }
@@ -15283,14 +15284,37 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
   add_chats(dialog_filter->included_dialog_ids, filter->included_chat_ids_);
   add_chats(dialog_filter->excluded_dialog_ids, filter->excluded_chat_ids_);
 
-  if (dialog_filter->excluded_dialog_ids.size() > MAX_INCLUDED_FILTER_DIALOGS) {
+  auto get_server_dialog_count = [](vector<InputDialogId> &input_dialog_ids) {
+    int32 result = 0;
+    for (auto &input_dialog_id : input_dialog_ids) {
+      if (input_dialog_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+        result++;
+      }
+    }
+    return result;
+  };
+
+  auto excluded_server_dialog_count = get_server_dialog_count(dialog_filter->excluded_dialog_ids);
+  auto included_server_dialog_count = get_server_dialog_count(dialog_filter->included_dialog_ids);
+  auto pinned_server_dialog_count = get_server_dialog_count(dialog_filter->pinned_dialog_ids);
+
+  auto excluded_secret_dialog_count =
+      static_cast<int32>(dialog_filter->excluded_dialog_ids.size()) - excluded_server_dialog_count;
+  auto included_secret_dialog_count =
+      static_cast<int32>(dialog_filter->included_dialog_ids.size()) - included_server_dialog_count;
+  auto pinned_secret_dialog_count =
+      static_cast<int32>(dialog_filter->pinned_dialog_ids.size()) - pinned_server_dialog_count;
+
+  if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+      excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
     return Status::Error(400, "Too much excluded chats");
   }
-  if (dialog_filter->included_dialog_ids.size() > MAX_INCLUDED_FILTER_DIALOGS) {
+  if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+      included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
     return Status::Error(400, "Too much included chats");
   }
-  if (dialog_filter->pinned_dialog_ids.size() + dialog_filter->included_dialog_ids.size() >
-      MAX_INCLUDED_FILTER_DIALOGS) {
+  if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+      included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
     return Status::Error(400, "Too much pinned chats");
   }
 
