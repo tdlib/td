@@ -13058,7 +13058,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           if (*old_it == dialog_id) {
             break;
           }
-          old_it++;
+          ++old_it;
         }
         if (old_it < pinned_dialog_ids.end()) {
           // leave dialog where it is
@@ -15549,7 +15549,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
       Dialog *d = get_dialog(dialog_id);
       CHECK(d != nullptr);
 
-      if (d->order != DEFAULT_ORDER && need_dialog_in_list(d, list)) {
+      if (need_dialog_in_list(d, list)) {
         list.in_memory_dialog_total_count_++;
 
         d->dialog_list_ids.push_back(dialog_list_id);
@@ -15614,7 +15614,7 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
           Dialog *d = get_dialog(dialog_id);
           CHECK(d != nullptr);
 
-          const DialogOrderInList old_order = get_dialog_order_in_list(list, d, false);
+          const DialogOrderInList old_order = get_dialog_order_in_list(list, d);
 
           if (is_dialog_in_list(d, *list)) {
             bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
@@ -16007,7 +16007,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
       if (*old_it == dialog_id) {
         break;
       }
-      old_it++;
+      ++old_it;
     }
     if (old_it < pinned_dialog_ids.end()) {
       // leave dialog where it is
@@ -30587,6 +30587,7 @@ MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(con
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(list != nullptr);
   CHECK(d != nullptr);
+
   DialogOrderInList order;
   order.order = d->order;
   if (actual ? need_dialog_in_list(d, *list) : is_dialog_in_list(d, *list)) {
