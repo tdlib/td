@@ -2257,7 +2257,7 @@ class MessagesManager : public Actor {
 
   void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
 
-  void edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
+  void edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source);
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 

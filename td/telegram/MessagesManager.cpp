@@ -15569,18 +15569,18 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
   update_list_last_dialog_date(list);
 }
 
-void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
   }
 
-  CHECK(dialog_filter != nullptr);
-  LOG(INFO) << "Edit " << dialog_filter->dialog_filter_id << " from " << source;
-  for (auto &filter : dialog_filters_) {
-    if (filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
-      CHECK(*filter != *dialog_filter);
-      filter = std::move(dialog_filter);
+  CHECK(new_dialog_filter != nullptr);
+  LOG(INFO) << "Edit " << new_dialog_filter->dialog_filter_id << " from " << source;
+  for (auto &old_dialog_filter : dialog_filters_) {
+    if (old_dialog_filter->dialog_filter_id == new_dialog_filter->dialog_filter_id) {
+      CHECK(*old_dialog_filter != *new_dialog_filter);
+      old_dialog_filter = std::move(new_dialog_filter);
       return;
     }
   }
