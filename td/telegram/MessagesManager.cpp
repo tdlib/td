@@ -30449,18 +30449,21 @@ const MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFi
   return nullptr;
 }
 
+vector<FolderId> MessagesManager::get_dialog_filter_folder_ids(const DialogFilter *filter) {
+  CHECK(filter != nullptr);
+  if (filter->exclude_archived) {
+    return {FolderId::main()};
+  }
+  return {FolderId::main(), FolderId::archive()};
+}
+
 vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {
   if (list.dialog_list_id.is_folder()) {
     return {list.dialog_list_id.get_folder_id()};
   }
   if (list.dialog_list_id.is_filter()) {
     auto dialog_filter_id = list.dialog_list_id.get_filter_id();
-    auto *filter = get_dialog_filter(dialog_filter_id);
-    CHECK(filter != nullptr);
-    if (filter->exclude_archived) {
-      return {FolderId::main()};
-    }
-    return {FolderId::main(), FolderId::archive()};
+    return get_dialog_filter_folder_ids(get_dialog_filter(dialog_filter_id));
   }
   UNREACHABLE();
   return {};
