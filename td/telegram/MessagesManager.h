@@ -2274,6 +2274,8 @@ class MessagesManager : public Actor {
 
   bool is_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
+  bool need_dialog_in_filter(const Dialog *d, const DialogFilter *filter) const;
+
   bool need_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
   DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
