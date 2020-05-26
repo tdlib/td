@@ -21,7 +21,6 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
-#include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -15249,6 +15248,15 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), for_album);
 }
 
+InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
+  auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID) {
+    return InputDialogId(dialog_id);
+  } else {
+    return InputDialogId(input_peer);
+  }
+}
+
 Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog_filter(
     DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter) {
   CHECK(filter != nullptr);
@@ -15282,13 +15290,7 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
         continue;
       }
 
-      auto dialog_id = DialogId(chat_id);
-      auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
-      if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID) {
-        input_dialog_ids.push_back(InputDialogId(dialog_id));
-      } else {
-        input_dialog_ids.push_back(InputDialogId(input_peer));
-      }
+      input_dialog_ids.push_back(get_input_dialog_id(DialogId(chat_id)));
     }
   };
   add_chats(dialog_filter->pinned_dialog_ids, filter->pinned_chat_ids_);

@@ -27,6 +27,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
@@ -2245,6 +2246,8 @@ class MessagesManager : public Actor {
 
   void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
                                           Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+
+  InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
