@@ -38,6 +38,8 @@ class InputDialogId {
   static vector<telegram_api::object_ptr<telegram_api::InputPeer>> get_input_peers(
       const vector<InputDialogId> &input_dialog_ids);
 
+  static vector<DialogId> get_dialog_ids(const vector<InputDialogId> &input_dialog_ids);
+
   bool operator==(const InputDialogId &other) const {
     return dialog_id == other.dialog_id && access_hash == other.access_hash;
   }

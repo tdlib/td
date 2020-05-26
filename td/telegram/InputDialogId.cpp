@@ -7,6 +7,7 @@
 #include "td/telegram/InputDialogId.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -107,6 +108,12 @@ tl_object_ptr<telegram_api::InputPeer> InputDialogId::get_input_peer() const {
       UNREACHABLE();
       return false;
   }
+}
+
+vector<DialogId> InputDialogId::get_dialog_ids(const vector<InputDialogId> &input_dialog_ids) {
+  return transform(input_dialog_ids, [](InputDialogId input_dialog_id) {
+    return input_dialog_id.get_dialog_id();
+  });
 }
 
 }  // namespace td
