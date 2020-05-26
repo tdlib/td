@@ -86,9 +86,8 @@ vector<telegram_api::object_ptr<telegram_api::InputPeer>> InputDialogId::get_inp
   result.reserve(input_dialog_ids.size());
   for (auto input_dialog_id : input_dialog_ids) {
     auto input_peer = input_dialog_id.get_input_peer();
-    if (input_peer != nullptr) {
-      result.push_back(std::move(input_peer));
-    }
+    CHECK(input_peer != nullptr);
+    result.push_back(std::move(input_peer));
   }
   return result;
 }
@@ -111,9 +110,7 @@ tl_object_ptr<telegram_api::InputPeer> InputDialogId::get_input_peer() const {
 }
 
 vector<DialogId> InputDialogId::get_dialog_ids(const vector<InputDialogId> &input_dialog_ids) {
-  return transform(input_dialog_ids, [](InputDialogId input_dialog_id) {
-    return input_dialog_id.get_dialog_id();
-  });
+  return transform(input_dialog_ids, [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
 }
 
 }  // namespace td

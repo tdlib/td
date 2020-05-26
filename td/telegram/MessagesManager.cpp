@@ -4883,6 +4883,17 @@ struct MessagesManager::DialogFilter {
     return dialog_filter;
   }
 
+  void remove_secret_chat_dialog_ids() {
+    auto remove_secret_chats = [](vector<InputDialogId> &input_dialog_ids) {
+      td::remove_if(input_dialog_ids, [](InputDialogId input_dialog_id) {
+        return input_dialog_id.get_dialog_id().get_type() == DialogType::SecretChat;
+      });
+    };
+    remove_secret_chats(pinned_dialog_ids);
+    remove_secret_chats(included_dialog_ids);
+    remove_secret_chats(excluded_dialog_ids);
+  }
+
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const {
     int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
     if (exclude_muted) {
@@ -15354,11 +15365,13 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   }
   auto dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(dialog_filter != nullptr);
-  auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   add_dialog_filter(make_unique<DialogFilter>(*dialog_filter), "create_dialog_filter");
   save_dialog_filters();
   send_update_chat_filters();
+
+  dialog_filter->remove_secret_chat_dialog_ids();
+  auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
@@ -15389,11 +15402,12 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
     return promise.set_value(Unit());
   }
 
-  auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
-
   edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "edit_dialog_filter");
   save_dialog_filters();
   send_update_chat_filters();
+
+  new_dialog_filter->remove_secret_chat_dialog_ids();
+  auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
 
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter),
@@ -15408,7 +15422,7 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
 void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
                                               Promise<Unit> &&promise) {
   if (result.is_error()) {
-    // TODO rollback dialog_filters_ changes
+    // TODO rollback dialog_filters_ changes if error isn't 429
     return promise.set_error(result.move_as_error());
   }
 
@@ -15450,7 +15464,7 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
 
 void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise) {
   if (result.is_error()) {
-    // TODO rollback dialog_filters_ changes
+    // TODO rollback dialog_filters_ changes if error isn't 429
     return promise.set_error(result.move_as_error());
   }
 
@@ -15988,13 +16002,14 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   }
   LOG(INFO) << "Reorder pinned chats in " << dialog_list_id << " from " << pinned_dialog_ids << " to " << dialog_ids;
 
+  auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
+  auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);
+
   if (dialog_list_id.is_filter()) {
     return Status::Error(500, "TODO support");
   }
 
   CHECK(dialog_list_id.is_folder());
-  auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
-  auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);
 
   std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
   std::reverse(dialog_ids.begin(), dialog_ids.end());
