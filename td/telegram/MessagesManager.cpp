@@ -15849,6 +15849,10 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
 }
 
 int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
+  if (dialog_list_id.is_filter()) {
+    return MAX_INCLUDED_FILTER_DIALOGS;
+  }
+
   Slice key{"pinned_chat_count_max"};
   int32 default_limit = 5;
   if (!dialog_list_id.is_folder() || dialog_list_id.get_folder_id() != FolderId::main()) {
