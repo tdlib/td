@@ -15273,6 +15273,9 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
                 };
                 return get_order(lhs) < get_order(rhs);
               });
+    for (size_t i = 0; i + 1 < input_dialog_ids.size(); i++) {
+      CHECK(input_dialog_ids[i].get_dialog_id() != input_dialog_ids[i + 1].get_dialog_id());
+    }
   };
 
   sort_input_dialog_ids(dialog_filter->excluded_dialog_ids);
