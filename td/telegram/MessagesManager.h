@@ -2279,7 +2279,11 @@ class MessagesManager : public Actor {
 
   bool has_dialogs_from_folder(const DialogList &list, const DialogFolder &folder) const;
 
-  bool is_dialog_in_list(const Dialog *d, const DialogList &list) const;
+  bool is_dialog_in_list(const Dialog *d, DialogListId dialog_list_id) const;
+
+  void add_dialog_to_list(Dialog *d, DialogListId dialog_list_id) const;
+
+  void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id) const;
 
   bool need_dialog_in_filter(const Dialog *d, const DialogFilter *filter) const;
 

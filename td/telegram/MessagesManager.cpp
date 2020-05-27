@@ -15613,7 +15613,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
       if (need_dialog_in_list(d, list)) {
         list.in_memory_dialog_total_count_++;
 
-        d->dialog_list_ids.push_back(dialog_list_id);
+        add_dialog_to_list(d, dialog_list_id);
       }
     }
   }
@@ -15677,9 +15677,8 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
 
           const DialogOrderInList old_order = get_dialog_order_in_list(list, d);
 
-          if (is_dialog_in_list(d, *list)) {
-            bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
-            CHECK(is_removed);
+          if (is_dialog_in_list(d, dialog_list_id)) {
+            remove_dialog_from_list(d, dialog_list_id);
 
             if (old_order.public_order != 0 || old_order.is_pinned || old_order.is_sponsored) {
               send_update_chat_position(dialog_list_id, d);
@@ -30241,7 +30240,7 @@ void MessagesManager::update_dialog_lists(
 
     bool was_in_list = old_order.order != DEFAULT_ORDER && old_order.private_order != 0;
     bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
-    CHECK(was_in_list == is_dialog_in_list(d, list));
+    CHECK(was_in_list == is_dialog_in_list(d, dialog_list_id));
 
     if (need_send_update &&
         (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
@@ -30309,10 +30308,9 @@ void MessagesManager::update_dialog_lists(
       }
 
       if (was_in_list) {
-        bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
-        CHECK(is_removed);
+        remove_dialog_from_list(d, dialog_list_id);
       } else {
-        d->dialog_list_ids.push_back(dialog_list_id);
+        add_dialog_to_list(d, dialog_list_id);
       }
     }
 
@@ -30415,7 +30413,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
         if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
           auto d = get_dialog(dialog_id);
           CHECK(d != nullptr);
-          if (is_dialog_in_list(d, list)) {
+          if (is_dialog_in_list(d, list.dialog_list_id)) {
             send_update_chat_position(list.dialog_list_id, d);
             is_list_further_loaded = true;
           }
@@ -30630,8 +30628,18 @@ bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const Dial
   return false;
 }
 
-bool MessagesManager::is_dialog_in_list(const Dialog *d, const DialogList &list) const {
-  return td::contains(d->dialog_list_ids, list.dialog_list_id);
+bool MessagesManager::is_dialog_in_list(const Dialog *d, DialogListId dialog_list_id) const {
+  return td::contains(d->dialog_list_ids, dialog_list_id);
+}
+
+void MessagesManager::add_dialog_to_list(Dialog *d, DialogListId dialog_list_id) const {
+  CHECK(!is_dialog_in_list(d, dialog_list_id));
+  d->dialog_list_ids.push_back(dialog_list_id);
+}
+
+void MessagesManager::remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id) const {
+  bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
+  CHECK(is_removed);
 }
 
 bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter *filter) const {
@@ -30734,7 +30742,7 @@ MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(con
 
   DialogOrderInList order;
   order.order = d->order;
-  if (actual ? need_dialog_in_list(d, *list) : is_dialog_in_list(d, *list)) {
+  if (actual ? need_dialog_in_list(d, *list) : is_dialog_in_list(d, list->dialog_list_id)) {
     order.private_order = get_dialog_private_order(list, d);
   }
   if (order.private_order != 0) {
@@ -30752,7 +30760,7 @@ MessagesManager::get_dialog_orders(const Dialog *d) const {
   CHECK(d != nullptr);
   std::unordered_map<DialogListId, MessagesManager::DialogOrderInList, DialogListIdHash> orders;
   if (!td_->auth_manager_->is_bot()) {
-    for (auto &dialog_list_id : d->dialog_list_ids) {
+    for (auto &dialog_list_id : get_dialog_list_ids(d)) {
       orders.emplace(dialog_list_id, get_dialog_order_in_list(get_dialog_list(dialog_list_id), d));
     }
   }
