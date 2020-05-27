@@ -14265,6 +14265,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
       continue;
     }
 
+    sort_dialog_filter_input_dialog_ids(dialog_filter.get());
     new_server_dialog_filters.push_back(std::move(dialog_filter));
   }
 
@@ -15257,6 +15258,28 @@ InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
   }
 }
 
+void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_filter) const {
+  auto sort_input_dialog_ids = [contacts_manager =
+                                    td_->contacts_manager_.get()](vector<InputDialogId> &input_dialog_ids) {
+    std::sort(input_dialog_ids.begin(), input_dialog_ids.end(),
+              [contacts_manager](InputDialogId lhs, InputDialogId rhs) {
+                auto get_order = [contacts_manager](InputDialogId input_dialog_id) {
+                  auto dialog_id = input_dialog_id.get_dialog_id();
+                  if (dialog_id.get_type() != DialogType::SecretChat) {
+                    return dialog_id.get() * 10;
+                  }
+                  auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+                  return DialogId(user_id).get() * 10 + 1;
+                };
+                return get_order(lhs) < get_order(rhs);
+              });
+  };
+
+  sort_input_dialog_ids(dialog_filter->excluded_dialog_ids);
+  sort_input_dialog_ids(dialog_filter->included_dialog_ids);
+  sort_input_dialog_ids(dialog_filter->pinned_dialog_ids);
+}
+
 Status MessagesManager::check_dialog_filter_limits(const DialogFilter *dialog_filter) const {
   auto get_server_dialog_count = [](const vector<InputDialogId> &input_dialog_ids) {
     int32 result = 0;
@@ -15336,6 +15359,7 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
   add_chats(dialog_filter->excluded_dialog_ids, filter->excluded_chat_ids_);
 
   TRY_STATUS(check_dialog_filter_limits(dialog_filter.get()));
+  sort_dialog_filter_input_dialog_ids(dialog_filter.get());
 
   dialog_filter->title = clean_name(std::move(filter->title_), MAX_DIALOG_FILTER_TITLE_LENGTH);
   if (dialog_filter->title.empty()) {
@@ -15915,6 +15939,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     }
 
     TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
     edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "toggle_dialog_is_pinned");
     save_dialog_filters();
@@ -16071,6 +16096,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     append(new_dialog_filter->included_dialog_ids, old_pinned_dialog_ids);
 
     TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
     edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "set_pinned_dialogs");
     save_dialog_filters();

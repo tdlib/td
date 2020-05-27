@@ -2249,6 +2249,8 @@ class MessagesManager : public Actor {
 
   InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
+  void sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_filter) const;
+
   Status check_dialog_filter_limits(const DialogFilter *dialog_filter) const;
 
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
