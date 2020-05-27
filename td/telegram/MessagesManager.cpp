@@ -15318,6 +15318,18 @@ Status MessagesManager::check_dialog_filter_limits(const DialogFilter *dialog_fi
     return Status::Error(400, "Maximum number of pinned chats exceeded");
   }
 
+  if (dialog_filter->pinned_dialog_ids.empty() && dialog_filter->included_dialog_ids.empty() &&
+      !dialog_filter->include_contacts && !dialog_filter->include_non_contacts && !dialog_filter->include_bots &&
+      !dialog_filter->include_groups && !dialog_filter->include_channels) {
+    return Status::Error(400, "Folder must contain at least 1 chat");
+  }
+
+  if (dialog_filter->include_contacts && dialog_filter->include_non_contacts && dialog_filter->include_bots &&
+      dialog_filter->include_groups && dialog_filter->include_channels && dialog_filter->exclude_archived &&
+      !dialog_filter->exclude_read && !dialog_filter->exclude_muted) {
+    return Status::Error(400, "Folder must be different from the main chat list");
+  }
+
   return Status::OK();
 }
 
