@@ -12422,7 +12422,7 @@ int64 MessagesManager::get_dialog_pinned_order(DialogListId dialog_list_id, Dial
   return get_dialog_pinned_order(get_dialog_list(dialog_list_id), dialog_id);
 }
 
-int64 MessagesManager::get_dialog_pinned_order(const DialogList *list, DialogId dialog_id) const {
+int64 MessagesManager::get_dialog_pinned_order(const DialogList *list, DialogId dialog_id) {
   if (list != nullptr && !list->pinned_dialogs_.empty()) {
     auto it = list->pinned_dialog_id_orders_.find(dialog_id);
     if (it != list->pinned_dialog_id_orders_.end()) {

@@ -1598,7 +1598,7 @@ class MessagesManager : public Actor {
 
   int64 get_dialog_pinned_order(DialogListId dialog_list_id, DialogId dialog_id) const;
 
-  int64 get_dialog_pinned_order(const DialogList *list, DialogId dialog_id) const;
+  static int64 get_dialog_pinned_order(const DialogList *list, DialogId dialog_id);
 
   void open_dialog(Dialog *d);
 
