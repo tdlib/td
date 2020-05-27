@@ -30358,7 +30358,7 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
   }
 }
 
-void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list) {
+void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
   if (list.last_pinned_dialog_date_ == MAX_DIALOG_DATE) {
     return;
   }
@@ -30376,11 +30376,11 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list) {
   }
   if (list.last_pinned_dialog_date_ < max_dialog_date) {
     list.last_pinned_dialog_date_ = max_dialog_date;
-    update_list_last_dialog_date(list);
+    update_list_last_dialog_date(list, only_update);
   }
 }
 
-void MessagesManager::update_list_last_dialog_date(DialogList &list) {
+void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_update) {
   auto new_last_dialog_date = list.last_pinned_dialog_date_;
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
     const auto &folder = *get_dialog_folder(folder_id);
@@ -30393,6 +30393,10 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
     auto old_last_dialog_date = list.list_last_dialog_date_;
     CHECK(old_last_dialog_date < new_last_dialog_date);
     list.list_last_dialog_date_ = new_last_dialog_date;
+
+    if (only_update) {
+      return;
+    }
 
     for (auto it = std::upper_bound(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end(), old_last_dialog_date);
          it != list.pinned_dialogs_.end() && *it <= list.list_last_dialog_date_; ++it) {
