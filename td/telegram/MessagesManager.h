@@ -2260,6 +2260,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
 
+  void delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
+
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
 
   void save_dialog_filters();

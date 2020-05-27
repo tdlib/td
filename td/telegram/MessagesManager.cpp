@@ -15497,6 +15497,10 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
   save_dialog_filters();
   send_update_chat_filters();
 
+  delete_dialog_filter_on_server(dialog_filter_id, std::move(promise));
+}
+
+void MessagesManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
   // TODO SequenceDispatcher
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> result) mutable {
