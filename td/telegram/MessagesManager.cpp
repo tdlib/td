@@ -15448,7 +15448,9 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
 
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter,
                                                      Promise<Unit> &&promise) {
+  CHECK(dialog_filter != nullptr);
   dialog_filter->remove_secret_chat_dialog_ids();
+  auto dialog_filter_id = dialog_filter->dialog_filter_id;
   auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   // TODO SequenceDispatcher
