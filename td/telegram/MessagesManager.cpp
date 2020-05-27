@@ -15417,17 +15417,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   save_dialog_filters();
   send_update_chat_filters();
 
-  dialog_filter->remove_secret_chat_dialog_ids();
-  auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
-
-  // TODO SequenceDispatcher
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
-                                               promise = std::move(promise)](Result<Unit> result) mutable {
-    send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
-                 result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
-  });
-  td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
-      ->send(dialog_filter_id, std::move(input_dialog_filter));
+  update_dialog_filter_on_server(std::move(dialog_filter), std::move(promise));
 }
 
 void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
@@ -15453,11 +15443,16 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   save_dialog_filters();
   send_update_chat_filters();
 
-  new_dialog_filter->remove_secret_chat_dialog_ids();
-  auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
+  update_dialog_filter_on_server(std::move(new_dialog_filter), std::move(promise));
+}
+
+void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter,
+                                                     Promise<Unit> &&promise) {
+  dialog_filter->remove_secret_chat_dialog_ids();
+  auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   // TODO SequenceDispatcher
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter),
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
                                                promise = std::move(promise)](Result<Unit> result) mutable {
     send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
                  result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
@@ -16120,17 +16115,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     send_update_chat_filters();
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
-      new_dialog_filter->remove_secret_chat_dialog_ids();
-      auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
-
-      // TODO SequenceDispatcher
-      auto query_promise = PromiseCreator::lambda(
-          [actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter)](Result<Unit> result) mutable {
-            send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
-                         result.is_error() ? result.move_as_error() : Status::OK(), Promise<Unit>());
-          });
-      td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
-          ->send(dialog_filter_id, std::move(input_dialog_filter));
+      update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
     }
 
     return Status::OK();
@@ -16277,17 +16262,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     send_update_chat_filters();
 
     if (server_old_dialog_ids != server_new_dialog_ids) {
-      new_dialog_filter->remove_secret_chat_dialog_ids();
-      auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
-
-      // TODO SequenceDispatcher
-      auto query_promise = PromiseCreator::lambda(
-          [actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter)](Result<Unit> result) mutable {
-            send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
-                         result.is_error() ? result.move_as_error() : Status::OK(), Promise<Unit>());
-          });
-      td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
-          ->send(dialog_filter_id, std::move(input_dialog_filter));
+      update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
     }
 
     return Status::OK();

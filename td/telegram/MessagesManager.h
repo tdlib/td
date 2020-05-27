@@ -2256,6 +2256,8 @@ class MessagesManager : public Actor {
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
 
+  void update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter, Promise<Unit> &&promise);
+
   void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
