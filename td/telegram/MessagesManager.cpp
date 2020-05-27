@@ -15641,7 +15641,167 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
   for (auto &old_dialog_filter : dialog_filters_) {
     if (old_dialog_filter->dialog_filter_id == new_dialog_filter->dialog_filter_id) {
       CHECK(*old_dialog_filter != *new_dialog_filter);
+
+      auto dialog_list_id = DialogListId(old_dialog_filter->dialog_filter_id);
+      auto *old_list_ptr = get_dialog_list(dialog_list_id);
+      CHECK(old_list_ptr != nullptr);
+      auto &old_list = *old_list_ptr;
+      auto folder_ids = get_dialog_filter_folder_ids(old_dialog_filter.get());
+      CHECK(!folder_ids.empty());
+      for (auto folder_id : get_dialog_filter_folder_ids(new_dialog_filter.get())) {
+        if (!td::contains(folder_ids, folder_id)) {
+          folder_ids.push_back(folder_id);
+        }
+      }
+
+      DialogList new_list;
+
+      auto old_it = old_list.pinned_dialogs_.rbegin();
+      for (auto &input_dialog_id : reversed(new_dialog_filter->pinned_dialog_ids)) {
+        auto dialog_id = input_dialog_id.get_dialog_id();
+        while (old_it < old_list.pinned_dialogs_.rend()) {
+          if (old_it->get_dialog_id() == dialog_id) {
+            break;
+          }
+          ++old_it;
+        }
+
+        int64 order;
+        if (old_it < old_list.pinned_dialogs_.rend()) {
+          order = old_it->get_order();
+        } else {
+          order = get_next_pinned_dialog_order();
+        }
+        new_list.pinned_dialogs_.emplace_back(order, dialog_id);
+        new_list.pinned_dialog_id_orders_.emplace(dialog_id, order);
+      }
+      std::reverse(new_list.pinned_dialogs_.begin(), new_list.pinned_dialogs_.end());
+
+      update_list_last_pinned_dialog_date(new_list, true);
+      update_list_last_dialog_date(new_list, true);
+
+      new_list.server_dialog_total_count_ = 0;
+      new_list.secret_chat_total_count_ = 0;
+
+      vector<const Dialog *> updated_position_dialogs;
+      for (auto folder_id : folder_ids) {
+        auto *folder = get_dialog_folder(folder_id);
+        CHECK(folder != nullptr);
+        for (const auto &dialog_date : folder->ordered_dialogs_) {
+          if (dialog_date.get_order() == DEFAULT_ORDER) {
+            break;
+          }
+
+          auto dialog_id = dialog_date.get_dialog_id();
+          Dialog *d = get_dialog(dialog_id);
+          CHECK(d != nullptr);
+
+          const DialogOrderInList old_order = get_dialog_order_in_list(old_list_ptr, d);
+          DialogOrderInList new_order;
+          if (need_dialog_in_filter(d, new_dialog_filter.get())) {
+            new_order.private_order = get_dialog_private_order(&new_list, d);
+            if (new_order.private_order != 0) {
+              new_order.public_order = DialogDate(new_order.private_order, dialog_id) <= new_list.list_last_dialog_date_
+                                           ? new_order.private_order
+                                           : 0;
+              new_order.is_pinned = get_dialog_pinned_order(&new_list, dialog_id) != DEFAULT_ORDER;
+              new_order.is_sponsored = is_dialog_sponsored(d);
+            }
+          }
+
+          if (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
+              old_order.is_sponsored != new_order.is_sponsored) {
+            updated_position_dialogs.push_back(d);
+          }
+
+          bool was_in_list = old_order.private_order != 0;
+          bool is_in_list = new_order.private_order != 0;
+          if (is_in_list) {
+            if (!was_in_list) {
+              add_dialog_to_list(d, dialog_list_id);
+            }
+
+            new_list.in_memory_dialog_total_count_++;
+            if (dialog_id.get_type() == DialogType::SecretChat) {
+              new_list.secret_chat_total_count_++;
+            } else {
+              new_list.server_dialog_total_count_++;
+            }
+
+            auto unread_count = d->server_unread_count + d->local_unread_count;
+            if (unread_count != 0) {
+              new_list.unread_message_total_count_ += unread_count;
+              if (is_dialog_muted(d)) {
+                new_list.unread_message_muted_count_ += unread_count;
+              }
+            }
+            if (unread_count != 0 || d->is_marked_as_unread) {
+              new_list.unread_dialog_total_count_++;
+              if (unread_count == 0 && d->is_marked_as_unread) {
+                new_list.unread_dialog_marked_count_++;
+              }
+              if (is_dialog_muted(d)) {
+                new_list.unread_dialog_muted_count_++;
+                if (unread_count == 0 && d->is_marked_as_unread) {
+                  new_list.unread_dialog_muted_marked_count_++;
+                }
+              }
+            }
+          } else {
+            if (was_in_list) {
+              remove_dialog_from_list(d, dialog_list_id);
+            }
+          }
+        }
+      }
+
+      if (new_list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
+        new_list.is_message_unread_count_inited_ = true;
+        new_list.is_dialog_unread_count_inited_ = true;
+        new_list.need_unread_count_recalc_ = false;
+      } else {
+        if (old_list.is_message_unread_count_inited_) {  // can't stop sending updates
+          new_list.is_message_unread_count_inited_ = true;
+        }
+        if (old_list.is_dialog_unread_count_inited_) {  // can't stop sending updates
+          new_list.is_dialog_unread_count_inited_ = true;
+        }
+        new_list.server_dialog_total_count_ = -1;
+        new_list.secret_chat_total_count_ = -1;
+      }
+
+      bool need_update_unread_message_count =
+          old_list.unread_message_total_count_ != new_list.unread_message_total_count_ ||
+          old_list.unread_message_muted_count_ != new_list.unread_message_muted_count_ ||
+          (new_list.is_message_unread_count_inited_ && !old_list.is_message_unread_count_inited_);
+      bool need_update_unread_chat_count =
+          old_list.unread_dialog_total_count_ != new_list.unread_dialog_total_count_ ||
+          old_list.unread_dialog_muted_count_ != new_list.unread_dialog_muted_count_ ||
+          old_list.unread_dialog_marked_count_ != new_list.unread_dialog_marked_count_ ||
+          old_list.unread_dialog_muted_marked_count_ != new_list.unread_dialog_muted_marked_count_ ||
+          get_dialog_total_count(old_list) != get_dialog_total_count(new_list) ||
+          (new_list.is_dialog_unread_count_inited_ && !old_list.is_dialog_unread_count_inited_);
+
+      auto load_list_promises = std::move(old_list.load_list_queries_);
+
+      old_list = std::move(new_list);
       old_dialog_filter = std::move(new_dialog_filter);
+
+      if (need_update_unread_message_count) {
+        send_update_unread_message_count(old_list, DialogId(), true, "edit_dialog_filter");
+      }
+      if (need_update_unread_chat_count) {
+        send_update_unread_chat_count(old_list, DialogId(), true, "edit_dialog_filter");
+      }
+
+      for (auto d : updated_position_dialogs) {
+        send_update_chat_position(dialog_list_id, d);
+      }
+
+      for (auto &promise : load_list_promises) {
+        promise.set_value(Unit());  // try again
+      }
+
       return;
     }
   }
