@@ -15897,7 +15897,44 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
   }
 
   if (dialog_list_id.is_filter()) {
-    return Status::Error(500, "TODO support");
+    auto dialog_filter_id = dialog_list_id.get_filter_id();
+    auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
+    CHECK(old_dialog_filter != nullptr);
+    auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
+    auto is_changed_dialog = [dialog_id](InputDialogId input_dialog_id) {
+      return dialog_id == input_dialog_id.get_dialog_id();
+    };
+    if (is_pinned) {
+      new_dialog_filter->pinned_dialog_ids.insert(new_dialog_filter->pinned_dialog_ids.begin(),
+                                                  get_input_dialog_id(dialog_id));
+      td::remove_if(new_dialog_filter->included_dialog_ids, is_changed_dialog);
+      td::remove_if(new_dialog_filter->excluded_dialog_ids, is_changed_dialog);
+    } else {
+      td::remove_if(new_dialog_filter->pinned_dialog_ids, is_changed_dialog);
+      new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
+    }
+
+    TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
+
+    edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "toggle_dialog_is_pinned");
+    save_dialog_filters();
+    send_update_chat_filters();
+
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      new_dialog_filter->remove_secret_chat_dialog_ids();
+      auto input_dialog_filter = new_dialog_filter->get_input_dialog_filter();
+
+      // TODO SequenceDispatcher
+      auto query_promise = PromiseCreator::lambda(
+          [actor_id = actor_id(this), dialog_filter = std::move(new_dialog_filter)](Result<Unit> result) mutable {
+            send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
+                         result.is_error() ? result.move_as_error() : Status::OK(), Promise<Unit>());
+          });
+      td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
+          ->send(dialog_filter_id, std::move(input_dialog_filter));
+    }
+
+    return Status::OK();
   }
 
   CHECK(dialog_list_id.is_folder());
@@ -16035,7 +16072,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
 
     TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
 
-    edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "edit_dialog_filter");
+    edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "set_pinned_dialogs");
     save_dialog_filters();
     send_update_chat_filters();
 
