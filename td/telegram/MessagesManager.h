@@ -2272,6 +2272,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
+  bool set_dialog_filters_order(vector<DialogFilterId> dialog_filter_ids);
+
   const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
 
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);

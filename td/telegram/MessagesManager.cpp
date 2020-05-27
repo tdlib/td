@@ -15542,9 +15542,20 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
     return promise.set_error(Status::Error(400, "Duplicate chat filters in the new list"));
   }
 
+  if (set_dialog_filters_order(dialog_filter_ids)) {
+    save_dialog_filters();
+    send_update_chat_filters();
+
+    // TODO SequenceDispatcher
+    td_->create_handler<ReorderDialogFiltersQuery>(std::move(promise))->send(dialog_filter_ids);
+  }
+  promise.set_value(Unit());
+}
+
+bool MessagesManager::set_dialog_filters_order(vector<DialogFilterId> dialog_filter_ids) {
   auto old_dialog_filter_ids = transform(dialog_filters_, [](auto &filter) { return filter->dialog_filter_id; });
   if (old_dialog_filter_ids == dialog_filter_ids) {
-    return promise.set_value(Unit());
+    return false;
   }
   LOG(INFO) << "Reorder chat filters from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
 
@@ -15557,7 +15568,7 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
     CHECK(dialog_filter_ids.size() == old_dialog_filter_ids.size());
   }
   if (old_dialog_filter_ids == dialog_filter_ids) {
-    return promise.set_value(Unit());
+    return false;
   }
 
   CHECK(dialog_filter_ids.size() == dialog_filters_.size());
@@ -15572,12 +15583,7 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
     }
     CHECK(dialog_filters_[i]->dialog_filter_id == dialog_filter_ids[i]);
   }
-  save_dialog_filters();
-  send_update_chat_filters();
-
-  // TODO SequenceDispatcher
-  td_->create_handler<ReorderDialogFiltersQuery>(std::move(promise))->send(dialog_filter_ids);
-  return promise.set_value(Unit());
+  return true;
 }
 
 void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
