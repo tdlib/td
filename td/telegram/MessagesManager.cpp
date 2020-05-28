@@ -4893,6 +4893,20 @@ struct MessagesManager::DialogFilter {
     remove_secret_chats(excluded_dialog_ids);
   }
 
+  bool is_empty(bool for_server) const {
+    if (include_contacts || include_non_contacts || include_bots || include_groups || include_channels) {
+      return false;
+    }
+
+    if (for_server) {
+      vector<InputDialogId> empty_input_dialog_ids;
+      return InputDialogId::are_equivalent(pinned_dialog_ids, empty_input_dialog_ids) &&
+             InputDialogId::are_equivalent(included_dialog_ids, empty_input_dialog_ids);
+    } else {
+      return pinned_dialog_ids.empty() && included_dialog_ids.empty();
+    }
+  }
+
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const {
     int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
     if (exclude_muted) {
@@ -15325,6 +15339,11 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
     }
   };
 
+  if (!dialog_filter->include_contacts && !dialog_filter->include_non_contacts && !dialog_filter->include_bots &&
+      !dialog_filter->include_groups && !dialog_filter->include_channels) {
+    dialog_filter->excluded_dialog_ids.clear();
+  }
+
   sort_input_dialog_ids(dialog_filter->excluded_dialog_ids);
   sort_input_dialog_ids(dialog_filter->included_dialog_ids);
   sort_input_dialog_ids(dialog_filter->pinned_dialog_ids);
@@ -15365,9 +15384,7 @@ Status MessagesManager::check_dialog_filter_limits(const DialogFilter *dialog_fi
     return Status::Error(400, "Maximum number of pinned chats exceeded");
   }
 
-  if (dialog_filter->pinned_dialog_ids.empty() && dialog_filter->included_dialog_ids.empty() &&
-      !dialog_filter->include_contacts && !dialog_filter->include_non_contacts && !dialog_filter->include_bots &&
-      !dialog_filter->include_groups && !dialog_filter->include_channels) {
+  if (dialog_filter->is_empty(false)) {
     return Status::Error(400, "Folder must contain at least 1 chat");
   }
 
