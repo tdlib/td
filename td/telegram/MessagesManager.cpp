@@ -14252,6 +14252,10 @@ void MessagesManager::on_reload_dialog_filters_timeout(void *messages_manager_pt
 }
 
 void MessagesManager::reload_dialog_filters() {
+  if (are_dialog_filters_being_reloaded_) {
+    need_dialog_filters_reload_ = true;
+    return;
+  }
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
         send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
@@ -14261,11 +14265,13 @@ void MessagesManager::reload_dialog_filters() {
 
 void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters,
                                             bool dummy) {
+  are_dialog_filters_being_reloaded_ = false;
   if (G()->close_flag()) {
     return;
   }
   if (r_filters.is_error()) {
     LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
+    need_dialog_filters_reload_ = false;
     schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
     return;
   }
@@ -14368,6 +14374,10 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   }
   schedule_dialog_filters_reload(get_dialog_filters_cache_time());
   save_dialog_filters();
+
+  if (need_dialog_filters_reload_) {
+    reload_dialog_filters();
+  }
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
