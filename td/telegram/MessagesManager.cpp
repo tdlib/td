@@ -14311,6 +14311,12 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         }
       }
     }
+    vector<DialogFilterId> left_old_server_dialog_filter_ids;
+    for (auto &filter : server_dialog_filters_) {
+      if (old_server_dialog_filters.count(filter->dialog_filter_id) == 0) {
+        left_old_server_dialog_filter_ids.push_back(filter->dialog_filter_id);
+      }
+    }
     for (auto &old_server_filter : old_server_dialog_filters) {
       auto dialog_filter_id = old_server_filter.first;
       // deleted filter
@@ -14323,8 +14329,23 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         delete_dialog_filter(dialog_filter_id, "on_get_dialog_filters");
       }
     }
-
-    // TODO update dialog filter order
+    bool is_order_changed = [&] {
+      vector<DialogFilterId> new_server_dialog_filter_ids =
+          transform(new_server_dialog_filters, [](auto &filter) { return filter->dialog_filter_id; });
+      CHECK(new_server_dialog_filter_ids.size() >= left_old_server_dialog_filter_ids.size());
+      new_server_dialog_filter_ids.resize(left_old_server_dialog_filter_ids.size());
+      return new_server_dialog_filter_ids != left_old_server_dialog_filter_ids;
+    }();
+    if (is_order_changed) {  // if order is changed from this and other clients, prefer order from another client
+      vector<DialogFilterId> new_dialog_filter_order;
+      for (auto &new_server_filter : new_server_dialog_filters) {
+        auto dialog_filter_id = new_server_filter->dialog_filter_id;
+        if (get_dialog_filter(dialog_filter_id) != nullptr) {
+          new_dialog_filter_order.push_back(dialog_filter_id);
+        }
+      }
+      set_dialog_filters_order(new_dialog_filter_order);
+    }
 
     server_dialog_filters_ = std::move(new_server_dialog_filters);
     send_update_chat_filters();
