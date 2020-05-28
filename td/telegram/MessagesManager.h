@@ -2042,7 +2042,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
-  void send_update_chat_position(DialogListId dialog_list_id, const Dialog *d) const;
+  void send_update_chat_position(DialogListId dialog_list_id, const Dialog *d, const char *source) const;
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
