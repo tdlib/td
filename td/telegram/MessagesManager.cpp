@@ -4927,6 +4927,17 @@ struct MessagesManager::DialogFilter {
         InputDialogId::get_input_peers(excluded_dialog_ids));
   }
 
+  static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs) {
+    return lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
+           InputDialogId::are_equivalent(lhs.pinned_dialog_ids, rhs.pinned_dialog_ids) &&
+           InputDialogId::are_equivalent(lhs.included_dialog_ids, rhs.included_dialog_ids) &&
+           InputDialogId::are_equivalent(lhs.excluded_dialog_ids, rhs.excluded_dialog_ids) &&
+           lhs.exclude_muted == rhs.exclude_muted && lhs.exclude_read == rhs.exclude_read &&
+           lhs.exclude_archived == rhs.exclude_archived && lhs.include_contacts == rhs.include_contacts &&
+           lhs.include_non_contacts == rhs.include_non_contacts && lhs.include_bots == rhs.include_bots &&
+           lhs.include_groups == rhs.include_groups && lhs.include_channels == rhs.include_channels;
+  }
+
   friend bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
     return lhs.dialog_filter_id == rhs.dialog_filter_id && lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
            lhs.pinned_dialog_ids == rhs.pinned_dialog_ids && lhs.included_dialog_ids == rhs.included_dialog_ids &&
@@ -14285,16 +14296,13 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
           if (old_filter == nullptr) {
             // the filter was deleted, don't need to edit it
           } else {
-            if (*old_filter == *new_server_filter) {  // fast path
-              // the filter was edited from this client and doesn't contain chosen secret chats, nothing to do
-            } else if (*old_filter == *old_server_filter) {  // fast path
-              // the filter was edited only from another client and doesn't contain chosen secret chats
-              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 1");
+            if (DialogFilter::are_equivalent(*old_filter, *new_server_filter)) {  // fast path
+              // the filter was edited from this client, nothing to do
             } else {
               // TODO apply changes between old_server_filter and new_server_filter to old_filter
               // remember that old_filter can contain secret chats, which must be kept
               // also need to check that *filter != *edited_filter
-              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters 2");
+              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters");
             }
           }
         }
