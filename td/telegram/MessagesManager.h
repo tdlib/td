@@ -2272,6 +2272,10 @@ class MessagesManager : public Actor {
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result);
 
+  void reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids);
+
+  void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Status result);
+
   void save_dialog_filters();
 
   void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
@@ -2280,7 +2284,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
-  bool set_dialog_filters_order(vector<DialogFilterId> dialog_filter_ids);
+  static bool set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
+                                       vector<DialogFilterId> dialog_filter_ids);
 
   const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
 

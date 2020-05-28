@@ -91,18 +91,6 @@ class DialogListId {
     CHECK(is_filter());
     return DialogFilterId(static_cast<int32>(id - FILTER_ID_SHIFT));
   }
-
-  /*
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    storer.store_long(id);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    id = parser.fetch_long();
-  }
-  */
 };
 
 struct DialogListIdHash {
