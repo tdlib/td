@@ -125,6 +125,8 @@ bool InputDialogId::are_equivalent(const vector<InputDialogId> &lhs, const vecto
     if (lhs_it->get_dialog_id() != rhs_it->get_dialog_id()) {
       return false;
     }
+    ++lhs_it;
+    ++rhs_it;
   }
   return lhs_it == lhs.end() && rhs_it == rhs.end();
 }
