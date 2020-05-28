@@ -2238,6 +2238,8 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters, bool dummy);
 
+  bool need_synchronize_dialog_filters() const;
+
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 

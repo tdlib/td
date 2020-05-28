@@ -11134,8 +11134,12 @@ void MessagesManager::init() {
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
   if (!td_->auth_manager_->is_bot()) {
-    auto cache_time = get_dialog_filters_cache_time();
-    schedule_dialog_filters_reload(cache_time - max(0, G()->unix_time() - dialog_filters_updated_date_));
+    if (need_synchronize_dialog_filters()) {
+      reload_dialog_filters();
+    } else {
+      auto cache_time = get_dialog_filters_cache_time();
+      schedule_dialog_filters_reload(cache_time - max(0, G()->unix_time() - dialog_filters_updated_date_));
+    }
   }
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
@@ -14392,6 +14396,23 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   if (need_dialog_filters_reload_) {
     reload_dialog_filters();
   }
+}
+
+bool MessagesManager::need_synchronize_dialog_filters() const {
+  vector<InputDialogId> empty_input_dialog_ids;
+  size_t server_dialog_filter_count = 0;
+  for (auto &dialog_filter : dialog_filters_) {
+    if (dialog_filter->is_empty(true)) {
+      continue;
+    }
+
+    server_dialog_filter_count++;
+    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->dialog_filter_id);
+    if (server_dialog_filter == nullptr || !DialogFilter::are_equivalent(*server_dialog_filter, *dialog_filter)) {
+      return true;
+    }
+  }
+  return server_dialog_filter_count != server_dialog_filters_.size();
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
