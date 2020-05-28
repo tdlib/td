@@ -2292,6 +2292,8 @@ class MessagesManager : public Actor {
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
+  static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters);
+
   static vector<FolderId> get_dialog_filter_folder_ids(const DialogFilter *filter);
 
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;

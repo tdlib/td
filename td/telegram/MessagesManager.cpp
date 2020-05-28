@@ -14385,8 +14385,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
       }
     }
     bool is_order_changed = [&] {
-      vector<DialogFilterId> new_server_dialog_filter_ids =
-          transform(new_server_dialog_filters, [](auto &filter) { return filter->dialog_filter_id; });
+      vector<DialogFilterId> new_server_dialog_filter_ids = get_dialog_filter_ids(new_server_dialog_filters);
       CHECK(new_server_dialog_filter_ids.size() >= left_old_server_dialog_filter_ids.size());
       new_server_dialog_filter_ids.resize(left_old_server_dialog_filter_ids.size());
       return new_server_dialog_filter_ids != left_old_server_dialog_filter_ids;
@@ -14431,7 +14430,7 @@ bool MessagesManager::need_synchronize_dialog_filters() const {
     // need delete dialog filter on server
     return true;
   }
-  if (dialog_filter_ids != transform(server_dialog_filters_, [](auto &filter) { return filter->dialog_filter_id; })) {
+  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_)) {
     // need reorder dialog filters on server
     return true;
   }
@@ -14472,7 +14471,7 @@ void MessagesManager::synchronize_dialog_filters() {
     dialog_filter_ids.push_back(dialog_filter->dialog_filter_id);
   }
 
-  if (dialog_filter_ids != transform(server_dialog_filters_, [](auto &filter) { return filter->dialog_filter_id; })) {
+  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_)) {
     return reorder_dialog_filters_on_server(std::move(dialog_filter_ids));
   }
 
@@ -15727,7 +15726,7 @@ void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_fi
 
 bool MessagesManager::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                vector<DialogFilterId> dialog_filter_ids) {
-  auto old_dialog_filter_ids = transform(dialog_filters, [](auto &filter) { return filter->dialog_filter_id; });
+  auto old_dialog_filter_ids = get_dialog_filter_ids(dialog_filters);
   if (old_dialog_filter_ids == dialog_filter_ids) {
     return false;
   }
@@ -30917,6 +30916,10 @@ const MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFi
     }
   }
   return nullptr;
+}
+
+vector<DialogFilterId> MessagesManager::get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters) {
+  return transform(dialog_filters, [](const auto &dialog_filter) { return dialog_filter->dialog_filter_id; });
 }
 
 vector<FolderId> MessagesManager::get_dialog_filter_folder_ids(const DialogFilter *filter) {
