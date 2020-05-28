@@ -2228,6 +2228,8 @@ class MessagesManager : public Actor {
 
   void reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise);
 
+  double get_dialog_filters_cache_time() const;
+
   void schedule_dialog_filters_reload(double timeout);
 
   static void reload_dialog_filters(void *td);

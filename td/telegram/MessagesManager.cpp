@@ -11120,7 +11120,8 @@ void MessagesManager::init() {
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
   if (!td_->auth_manager_->is_bot()) {
-    schedule_dialog_filters_reload(dialog_filters_updated_date_ + DIALOG_FILTERS_CACHE_TIME - G()->unix_time());
+    auto cache_time = get_dialog_filters_cache_time();
+    schedule_dialog_filters_reload(cache_time - max(0, G()->unix_time() - dialog_filters_updated_date_));
   }
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
@@ -14228,6 +14229,10 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   }
 }
 
+double MessagesManager::get_dialog_filters_cache_time() const {
+  return DIALOG_FILTERS_CACHE_TIME * 0.0001 * Random::fast(9000, 11000);
+}
+
 void MessagesManager::schedule_dialog_filters_reload(double timeout) {
   if (timeout < 0) {
     timeout = 0.0;
@@ -14358,7 +14363,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     server_dialog_filters_ = std::move(new_server_dialog_filters);
     send_update_chat_filters();
   }
-  schedule_dialog_filters_reload(DIALOG_FILTERS_CACHE_TIME * 0.0001 * Random::fast(9000, 11000));
+  schedule_dialog_filters_reload(get_dialog_filters_cache_time());
   save_dialog_filters();
 }
 
