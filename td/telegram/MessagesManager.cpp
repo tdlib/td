@@ -14238,22 +14238,25 @@ void MessagesManager::schedule_dialog_filters_reload(double timeout) {
     timeout = 0.0;
   }
   LOG(INFO) << "Schedule reload of dialog filters in " << timeout;
-  reload_dialog_filters_timeout_.set_callback(std::move(MessagesManager::reload_dialog_filters));
-  reload_dialog_filters_timeout_.set_callback_data(static_cast<void *>(td_));
+  reload_dialog_filters_timeout_.set_callback(std::move(MessagesManager::on_reload_dialog_filters_timeout));
+  reload_dialog_filters_timeout_.set_callback_data(static_cast<void *>(this));
   reload_dialog_filters_timeout_.set_timeout_in(timeout);
 }
 
-void MessagesManager::reload_dialog_filters(void *td) {
+void MessagesManager::on_reload_dialog_filters_timeout(void *messages_manager_ptr) {
   if (G()->close_flag()) {
     return;
   }
-  auto td_ptr = static_cast<Td *>(td);
-  auto messages_manager = td_ptr->messages_manager_.get();
-  auto promise = PromiseCreator::lambda([actor_id = messages_manager->actor_id(messages_manager)](
-                                            Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
-    send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
-  });
-  td_ptr->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::reload_dialog_filters);
+}
+
+void MessagesManager::reload_dialog_filters() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
+        send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
+      });
+  td_->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
 }
 
 void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters,

@@ -2232,7 +2232,9 @@ class MessagesManager : public Actor {
 
   void schedule_dialog_filters_reload(double timeout);
 
-  static void reload_dialog_filters(void *td);
+  static void on_reload_dialog_filters_timeout(void *messages_manager_ptr);
+
+  void reload_dialog_filters();
 
   void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters, bool dummy);
 
