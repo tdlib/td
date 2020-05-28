@@ -2240,6 +2240,8 @@ class MessagesManager : public Actor {
 
   bool need_synchronize_dialog_filters() const;
 
+  void synchronize_dialog_filters();
+
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
@@ -2262,13 +2264,13 @@ class MessagesManager : public Actor {
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
 
-  void update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter, Promise<Unit> &&promise);
+  void update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter);
 
-  void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result, Promise<Unit> &&promise);
+  void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result);
 
-  void delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
+  void delete_dialog_filter_on_server(DialogFilterId dialog_filter_id);
 
-  void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise);
+  void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result);
 
   void save_dialog_filters();
 
@@ -2892,6 +2894,7 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
+  bool are_dialog_filters_being_synchronized_ = false;
   bool are_dialog_filters_being_reloaded_ = false;
   bool need_dialog_filters_reload_ = false;
   int32 dialog_filters_updated_date_ = 0;

@@ -14270,10 +14270,12 @@ void MessagesManager::on_reload_dialog_filters_timeout(void *messages_manager_pt
 }
 
 void MessagesManager::reload_dialog_filters() {
-  if (are_dialog_filters_being_reloaded_) {
+  if (are_dialog_filters_being_synchronized_ || are_dialog_filters_being_reloaded_) {
     need_dialog_filters_reload_ = true;
     return;
   }
+  are_dialog_filters_being_reloaded_ = true;
+  need_dialog_filters_reload_ = false;
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
         send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
@@ -14393,13 +14395,10 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   schedule_dialog_filters_reload(get_dialog_filters_cache_time());
   save_dialog_filters();
 
-  if (need_dialog_filters_reload_) {
-    reload_dialog_filters();
-  }
+  synchronize_dialog_filters();
 }
 
 bool MessagesManager::need_synchronize_dialog_filters() const {
-  vector<InputDialogId> empty_input_dialog_ids;
   size_t server_dialog_filter_count = 0;
   for (auto &dialog_filter : dialog_filters_) {
     if (dialog_filter->is_empty(true)) {
@@ -14413,6 +14412,37 @@ bool MessagesManager::need_synchronize_dialog_filters() const {
     }
   }
   return server_dialog_filter_count != server_dialog_filters_.size();
+}
+
+void MessagesManager::synchronize_dialog_filters() {
+  if (are_dialog_filters_being_synchronized_ || are_dialog_filters_being_reloaded_) {
+    return;
+  }
+  if (need_dialog_filters_reload_) {
+    return reload_dialog_filters();
+  }
+  if (!need_synchronize_dialog_filters()) {
+    return;
+  }
+
+  for (auto &server_dialog_filter : server_dialog_filters_) {
+    if (get_dialog_filter(server_dialog_filter->dialog_filter_id) == nullptr) {
+      return delete_dialog_filter_on_server(server_dialog_filter->dialog_filter_id);
+    }
+  }
+
+  for (auto &dialog_filter : dialog_filters_) {
+    if (dialog_filter->is_empty(true)) {
+      continue;
+    }
+
+    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->dialog_filter_id);
+    if (server_dialog_filter == nullptr || !DialogFilter::are_equivalent(*server_dialog_filter, *dialog_filter)) {
+      return update_dialog_filter_on_server(make_unique<DialogFilter>(*dialog_filter));
+    }
+  }
+
+  UNREACHABLE();
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
@@ -15498,11 +15528,11 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   auto dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(dialog_filter != nullptr);
 
-  add_dialog_filter(make_unique<DialogFilter>(*dialog_filter), "create_dialog_filter");
+  add_dialog_filter(std::move(dialog_filter), "create_dialog_filter");
   save_dialog_filters();
   send_update_chat_filters();
 
-  update_dialog_filter_on_server(std::move(dialog_filter), Promise<Unit>());
+  synchronize_dialog_filters();
   promise.set_value(Unit());
 }
 
@@ -15525,36 +15555,35 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
     return promise.set_value(Unit());
   }
 
-  edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "edit_dialog_filter");
+  edit_dialog_filter(std::move(new_dialog_filter), "edit_dialog_filter");
   save_dialog_filters();
   send_update_chat_filters();
 
-  update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
+  synchronize_dialog_filters();
   promise.set_value(Unit());
 }
 
-void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter,
-                                                     Promise<Unit> &&promise) {
+void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter) {
   CHECK(dialog_filter != nullptr);
+  are_dialog_filters_being_synchronized_ = true;
   dialog_filter->remove_secret_chat_dialog_ids();
   auto dialog_filter_id = dialog_filter->dialog_filter_id;
   auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
-  // TODO SequenceDispatcher
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter = std::move(dialog_filter),
-                                               promise = std::move(promise)](Result<Unit> result) mutable {
-    send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
-                 result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
-  });
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_filter = std::move(dialog_filter)](Result<Unit> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_update_dialog_filter, std::move(dialog_filter),
+                     result.is_error() ? result.move_as_error() : Status::OK());
+      });
   td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))
       ->send(dialog_filter_id, std::move(input_dialog_filter));
 }
 
-void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result,
-                                              Promise<Unit> &&promise) {
+void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result) {
+  are_dialog_filters_being_synchronized_ = false;
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
-    return promise.set_error(result.move_as_error());
+    return synchronize_dialog_filters();
   }
 
   for (auto &filter : server_dialog_filters_) {
@@ -15563,14 +15592,14 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
         filter = std::move(dialog_filter);
         save_dialog_filters();
       }
-      promise.set_value(Unit());
-      return;
+      return synchronize_dialog_filters();
     }
   }
 
   server_dialog_filters_.push_back(std::move(dialog_filter));
   save_dialog_filters();
-  promise.set_value(Unit());
+
+  synchronize_dialog_filters();
 }
 
 void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
@@ -15584,23 +15613,24 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
   save_dialog_filters();
   send_update_chat_filters();
 
-  delete_dialog_filter_on_server(dialog_filter_id, std::move(promise));
+  synchronize_dialog_filters();
+  promise.set_value(Unit());
 }
 
-void MessagesManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
-  // TODO SequenceDispatcher
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> result) mutable {
-        send_closure(actor_id, &MessagesManager::on_delete_dialog_filter, dialog_filter_id,
-                     result.is_error() ? result.move_as_error() : Status::OK(), std::move(promise));
-      });
+void MessagesManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id) {
+  are_dialog_filters_being_synchronized_ = true;
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id](Result<Unit> result) {
+    send_closure(actor_id, &MessagesManager::on_delete_dialog_filter, dialog_filter_id,
+                 result.is_error() ? result.move_as_error() : Status::OK());
+  });
   td_->create_handler<UpdateDialogFilterQuery>(std::move(query_promise))->send(dialog_filter_id, nullptr);
 }
 
-void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result, Promise<Unit> &&promise) {
+void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result) {
+  are_dialog_filters_being_synchronized_ = false;
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
-    return promise.set_error(result.move_as_error());
+    return synchronize_dialog_filters();
   }
 
   for (auto it = server_dialog_filters_.begin(); it != server_dialog_filters_.end(); ++it) {
@@ -15611,7 +15641,7 @@ void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, S
     }
   }
 
-  promise.set_value(Unit());
+  synchronize_dialog_filters();
 }
 
 void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Promise<Unit> &&promise) {
@@ -16209,12 +16239,12 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
     sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
-    edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "toggle_dialog_is_pinned");
+    edit_dialog_filter(std::move(new_dialog_filter), "toggle_dialog_is_pinned");
     save_dialog_filters();
     send_update_chat_filters();
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
-      update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
+      synchronize_dialog_filters();
     }
 
     return Status::OK();
@@ -16356,12 +16386,12 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
     sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
-    edit_dialog_filter(make_unique<DialogFilter>(*new_dialog_filter), "set_pinned_dialogs");
+    edit_dialog_filter(std::move(new_dialog_filter), "set_pinned_dialogs");
     save_dialog_filters();
     send_update_chat_filters();
 
     if (server_old_dialog_ids != server_new_dialog_ids) {
-      update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
+      synchronize_dialog_filters();
     }
 
     return Status::OK();
