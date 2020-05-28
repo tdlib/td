@@ -15438,7 +15438,8 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   save_dialog_filters();
   send_update_chat_filters();
 
-  update_dialog_filter_on_server(std::move(dialog_filter), std::move(promise));
+  update_dialog_filter_on_server(std::move(dialog_filter), Promise<Unit>());
+  promise.set_value(Unit());
 }
 
 void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
@@ -15464,7 +15465,8 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   save_dialog_filters();
   send_update_chat_filters();
 
-  update_dialog_filter_on_server(std::move(new_dialog_filter), std::move(promise));
+  update_dialog_filter_on_server(std::move(new_dialog_filter), Promise<Unit>());
+  promise.set_value(Unit());
 }
 
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter,
