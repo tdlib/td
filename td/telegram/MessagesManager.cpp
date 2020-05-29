@@ -15442,9 +15442,6 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
                 };
                 return get_order(lhs) < get_order(rhs);
               });
-    for (size_t i = 0; i + 1 < input_dialog_ids.size(); i++) {
-      CHECK(input_dialog_ids[i].get_dialog_id() != input_dialog_ids[i + 1].get_dialog_id());
-    }
   };
 
   if (!dialog_filter->include_contacts && !dialog_filter->include_non_contacts && !dialog_filter->include_bots &&
@@ -15454,7 +15451,14 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
 
   sort_input_dialog_ids(dialog_filter->excluded_dialog_ids);
   sort_input_dialog_ids(dialog_filter->included_dialog_ids);
-  sort_input_dialog_ids(dialog_filter->pinned_dialog_ids);
+
+  std::unordered_set<DialogId, DialogIdHash> all_dialog_ids;
+  for (auto input_dialog_ids :
+       {&dialog_filter->pinned_dialog_ids, &dialog_filter->excluded_dialog_ids, &dialog_filter->included_dialog_ids}) {
+    for (auto input_dialog_id : *input_dialog_ids) {
+      CHECK(all_dialog_ids.insert(input_dialog_id.get_dialog_id()).second);
+    }
+  }
 }
 
 Status MessagesManager::check_dialog_filter_limits(const DialogFilter *dialog_filter) const {
