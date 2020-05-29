@@ -1289,6 +1289,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<string> dice_emojis;
   std::unordered_map<string, size_t> dice_emoji_index;
   std::unordered_map<string, string> dice_emoji_success_value;
+  string animation_search_provider;
+  string animation_search_emojis;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1394,6 +1396,38 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "gif_search_branding") {
+        if (value->get_id() == telegram_api::jsonString::ID) {
+          animation_search_provider = std::move(static_cast<telegram_api::jsonString *>(value)->value_);
+        } else {
+          LOG(ERROR) << "Receive unexpected gif_search_branding " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "gif_search_emojies") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto emojis = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &emoji : emojis) {
+            CHECK(emoji != nullptr);
+            if (emoji->get_id() == telegram_api::jsonString::ID) {
+              Slice emoji_str = static_cast<telegram_api::jsonString *>(emoji.get())->value_;
+              if (!emoji_str.empty() && emoji_str.find(',') == Slice::npos) {
+                if (!animation_search_emojis.empty()) {
+                  animation_search_emojis += ',';
+                }
+                animation_search_emojis.append(emoji_str.begin(), emoji_str.end());
+              } else {
+                LOG(ERROR) << "Receive unexpected animation search emoji " << emoji_str;
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected animation search emoji " << to_string(emoji);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected gif_search_emojies " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1436,6 +1470,17 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     }
     shared_config.set_option_string("dice_success_values", implode(dice_success_values, ','));
     shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
+  }
+
+  if (animation_search_provider.empty()) {
+    shared_config.set_option_empty("animation_search_provider");
+  } else {
+    shared_config.set_option_string("animation_search_provider", animation_search_provider);
+  }
+  if (animation_search_emojis.empty()) {
+    shared_config.set_option_empty("animation_search_emojis");
+  } else {
+    shared_config.set_option_string("animation_search_emojis", animation_search_emojis);
   }
 }
 

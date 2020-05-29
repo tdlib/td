@@ -3545,7 +3545,7 @@ void Td::on_result(NetQueryPtr query) {
 bool Td::is_internal_config_option(Slice name) {
   switch (name[0]) {
     case 'a':
-      return name == "auth";
+      return name == "animation_search_emojis" || name == "animation_search_provider" || name == "auth";
     case 'b':
       return name == "base_language_pack_version";
     case 'c':
@@ -3585,6 +3585,10 @@ void Td::on_config_option_updated(const string &name) {
     return on_authorization_lost();
   } else if (name == "saved_animations_limit") {
     return animations_manager_->on_update_saved_animations_limit(G()->shared_config().get_option_integer(name));
+  } else if (name == "animation_search_emojis") {
+    return animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
+  } else if (name == "animation_search_provider") {
+    return animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
   } else if (name == "recent_stickers_limit") {
     return stickers_manager_->on_update_recent_stickers_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "favorite_stickers_limit") {
@@ -4452,7 +4456,6 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateUnreadChatCount::ID / 2:
     case td_api::updateChatOnlineMemberCount::ID / 2:
     case td_api::updateUserChatAction::ID / 2:
-    case td_api::updateDiceEmojis::ID / 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

@@ -57,6 +57,10 @@ class AnimationsManager : public Actor {
 
   bool merge_animations(FileId new_id, FileId old_id, bool can_delete_old);
 
+  void on_update_animation_search_emojis(string animation_search_emojis);
+
+  void on_update_animation_search_provider(string animation_search_provider);
+
   void on_update_saved_animations_limit(int32 saved_animations_limit);
 
   void reload_saved_animations(bool force);
@@ -124,6 +128,10 @@ class AnimationsManager : public Actor {
 
   void on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database = false);
 
+  void try_send_update_animation_search_parameters() const;
+
+  td_api::object_ptr<td_api::updateAnimationSearchParameters> get_update_animation_search_parameters_object() const;
+
   td_api::object_ptr<td_api::updateSavedAnimations> get_update_saved_animations_object() const;
 
   void send_update_saved_animations(bool from_database = false);
@@ -147,6 +155,11 @@ class AnimationsManager : public Actor {
   vector<Promise<Unit>> load_saved_animations_queries_;
   vector<Promise<Unit>> repair_saved_animations_queries_;
   FileSourceId saved_animations_file_source_id_;
+
+  string animation_search_emojis_;
+  string animation_search_provider_;
+  bool is_animation_search_emojis_inited_ = false;
+  bool is_animation_search_provider_inited_ = false;
 };
 
 }  // namespace td

@@ -7,6 +7,7 @@
 #include "td/telegram/AnimationsManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -434,6 +435,42 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
           BufferSlice(encryption_key.iv_slice()), std::move(attributes), caption)};
 }
 
+void AnimationsManager::on_update_animation_search_emojis(string animation_search_emojis) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    G()->shared_config().set_option_empty("animation_search_emojis");
+    return;
+  }
+
+  is_animation_search_emojis_inited_ = true;
+  if (animation_search_emojis_ == animation_search_emojis) {
+    return;
+  }
+  animation_search_emojis_ = std::move(animation_search_emojis);
+
+  try_send_update_animation_search_parameters();
+}
+
+void AnimationsManager::on_update_animation_search_provider(string animation_search_provider) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    G()->shared_config().set_option_empty("animation_search_provider");
+    return;
+  }
+
+  is_animation_search_provider_inited_ = true;
+  if (animation_search_provider_ == animation_search_provider) {
+    return;
+  }
+  animation_search_provider_ = std::move(animation_search_provider);
+
+  try_send_update_animation_search_parameters();
+}
+
 void AnimationsManager::on_update_saved_animations_limit(int32 saved_animations_limit) {
   if (saved_animations_limit != saved_animations_limit_) {
     if (saved_animations_limit > 0) {
@@ -800,6 +837,22 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   send_update_saved_animations();
 }
 
+void AnimationsManager::try_send_update_animation_search_parameters() const {
+  auto update_animation_search_parameters = get_update_animation_search_parameters_object();
+  if (update_animation_search_parameters != nullptr) {
+    send_closure(G()->td(), &Td::send_update, std::move(update_animation_search_parameters));
+  }
+}
+
+td_api::object_ptr<td_api::updateAnimationSearchParameters>
+AnimationsManager::get_update_animation_search_parameters_object() const {
+  if (!is_animation_search_emojis_inited_ || !is_animation_search_provider_inited_) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::updateAnimationSearchParameters>(animation_search_provider_,
+                                                                      full_split(animation_search_emojis_, ','));
+}
+
 td_api::object_ptr<td_api::updateSavedAnimations> AnimationsManager::get_update_saved_animations_object() const {
   return td_api::make_object<td_api::updateSavedAnimations>(
       td_->file_manager_->get_file_ids_object(saved_animation_ids_));
@@ -867,6 +920,10 @@ void AnimationsManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
 
   if (are_saved_animations_loaded_) {
     updates.push_back(get_update_saved_animations_object());
+  }
+  auto update_animation_search_parameters = get_update_animation_search_parameters_object();
+  if (update_animation_search_parameters != nullptr) {
+    updates.push_back(std::move(update_animation_search_parameters));
   }
 }
 
