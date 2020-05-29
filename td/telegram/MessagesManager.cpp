@@ -13991,7 +13991,12 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         auto dialog_id = pinned_dialog.get_dialog_id();
         auto d = get_dialog_force(dialog_id);
         if (d == nullptr) {
-          LOG(ERROR) << "Failed to load pinned " << dialog_id;
+          LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
+          need_reload_pinned_dialogs = true;
+          continue;
+        }
+        if (d->order == DEFAULT_ORDER) {
+          LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
           need_reload_pinned_dialogs = true;
           continue;
         }
@@ -16353,7 +16358,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     }
   }
 
-  if (set_dialog_is_pinned(DialogListId(folder_id), d, is_pinned)) {
+  if (set_dialog_is_pinned(dialog_list_id, d, is_pinned)) {
     toggle_dialog_is_pinned_on_server(dialog_id, is_pinned, 0);
   }
   return Status::OK();
@@ -30537,7 +30542,13 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     LOG(INFO) << "Order of " << d->dialog_id << " is still " << new_order << " from " << source;
     if (new_order == DEFAULT_ORDER) {
       // first addition of a new left dialog
-      folder.ordered_dialogs_.insert(new_date);
+      if (folder.ordered_dialogs_.insert(new_date).second) {
+        for (auto &dialog_list : dialog_lists_) {
+          if (get_dialog_pinned_order(&dialog_list.second, d->dialog_id) != DEFAULT_ORDER) {
+            set_dialog_is_pinned(dialog_list.first, d, false);
+          }
+        }
+      }
     }
 
     return false;
