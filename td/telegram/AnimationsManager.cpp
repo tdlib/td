@@ -161,7 +161,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
   animation->is_changed = false;
   return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,
                                            animation->dimensions.height, animation->file_name, animation->mime_type,
-                                           get_minithumbnail_object(animation->minithumbnail),
+                                           animation->has_stickers, get_minithumbnail_object(animation->minithumbnail),
                                            get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
                                            td_->file_manager_->get_file_object(file_id));
 }
@@ -208,6 +208,14 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
                   << new_animation->thumbnail;
       }
       a->thumbnail = new_animation->thumbnail;
+      a->is_changed = true;
+    }
+    if (a->has_stickers != new_animation->has_stickers && new_animation->has_stickers) {
+      a->has_stickers = new_animation->has_stickers;
+      a->is_changed = true;
+    }
+    if (a->sticker_file_ids != new_animation->sticker_file_ids && !new_animation->sticker_file_ids.empty()) {
+      a->sticker_file_ids = std::move(new_animation->sticker_file_ids);
       a->is_changed = true;
     }
   }
@@ -288,8 +296,9 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
   return true;
 }
 
-void AnimationsManager::create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name,
-                                         string mime_type, int32 duration, Dimensions dimensions, bool replace) {
+void AnimationsManager::create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, bool has_stickers,
+                                         vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
+                                         int32 duration, Dimensions dimensions, bool replace) {
   auto a = make_unique<Animation>();
   a->file_id = file_id;
   a->file_name = std::move(file_name);
@@ -298,6 +307,8 @@ void AnimationsManager::create_animation(FileId file_id, string minithumbnail, P
   a->dimensions = dimensions;
   a->minithumbnail = std::move(minithumbnail);
   a->thumbnail = std::move(thumbnail);
+  a->has_stickers = has_stickers;
+  a->sticker_file_ids = std::move(sticker_file_ids);
   on_get_animation(std::move(a), replace);
 }
 
@@ -336,6 +347,11 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
                                                                                     animation->dimensions.height));
     }
     int32 flags = 0;
+    vector<tl_object_ptr<telegram_api::InputDocument>> added_stickers;
+    if (animation->has_stickers) {
+      flags |= telegram_api::inputMediaUploadedDocument::STICKERS_MASK;
+      added_stickers = td_->file_manager_->get_input_documents(animation->sticker_file_ids);
+    }
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }

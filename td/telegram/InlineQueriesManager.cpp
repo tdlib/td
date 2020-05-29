@@ -894,7 +894,8 @@ tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
 template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
   return make_tl_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                           copy(obj.minithumbnail_), copy(obj.thumbnail_), copy(obj.animation_));
+                                           obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
+                                           copy(obj.animation_));
 }
 
 template <>

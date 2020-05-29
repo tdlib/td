@@ -2939,8 +2939,8 @@ class CliClient final : public Actor {
       std::tie(message_id, animation) = split(args);
       send_request(td_api::make_object<td_api::editMessageMedia>(
           as_chat_id(chat_id), as_message_id(message_id), nullptr,
-          td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation), nullptr, 0, 0, 0,
-                                                             as_caption("animation"))));
+          td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation), nullptr, vector<int32>(), 0, 0,
+                                                             0, as_caption("animation"))));
     } else if (op == "emc") {
       string chat_id;
       string message_id;
@@ -3072,7 +3072,7 @@ class CliClient final : public Actor {
       std::tie(height, caption) = split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_input_file(animation_path), nullptr, 60, to_integer<int32>(width),
+                                as_input_file(animation_path), nullptr, vector<int32>(), 60, to_integer<int32>(width),
                                 to_integer<int32>(height), as_caption(caption)));
     } else if (op == "sang") {
       string chat_id;
@@ -3080,30 +3080,30 @@ class CliClient final : public Actor {
       string animation_conversion;
       std::tie(chat_id, args) = split(args);
       std::tie(animation_path, animation_conversion) = split(args);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageAnimation>(
-                       as_generated_file(animation_path, animation_conversion), nullptr, 60, 0, 0, as_caption("")));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
+                                as_generated_file(animation_path, animation_conversion), nullptr, vector<int32>(), 60,
+                                0, 0, as_caption("")));
     } else if (op == "sanid") {
       string chat_id;
       string file_id;
       std::tie(chat_id, file_id) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(as_input_file_id(file_id), nullptr, 0, 0,
-                                                                               0, as_caption("")));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
+                                as_input_file_id(file_id), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
     } else if (op == "sanurl") {
       string chat_id;
       string url;
       std::tie(chat_id, url) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(as_generated_file(url, "#url#"), nullptr,
-                                                                               0, 0, 0, as_caption("")));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
+                                as_generated_file(url, "#url#"), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
     } else if (op == "sanurl2") {
       string chat_id;
       string url;
       std::tie(chat_id, url) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(as_remote_file(url), nullptr, 0, 0, 0,
-                                                                               as_caption("")));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
+                                as_remote_file(url), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
     } else if (op == "sau") {
       string chat_id;
       string audio_path;

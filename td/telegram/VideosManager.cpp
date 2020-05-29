@@ -89,7 +89,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
       v->is_changed = true;
     }
     if (v->sticker_file_ids != new_video->sticker_file_ids && !new_video->sticker_file_ids.empty()) {
-      v->sticker_file_ids = new_video->sticker_file_ids;
+      v->sticker_file_ids = std::move(new_video->sticker_file_ids);
       v->is_changed = true;
     }
   }

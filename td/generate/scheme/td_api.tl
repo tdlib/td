@@ -224,8 +224,9 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4"
+//@has_stickers True, if stickers were added to the animation. The list of corresponding sticker set can be received using getAttachedStickerSets
 //@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null @animation File containing the animation
-animation duration:int32 width:int32 height:int32 file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:photoSize animation:file = Animation;
+animation duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool minithumbnail:minithumbnail thumbnail:photoSize animation:file = Animation;
 
 //@description Describes an audio file. Audio is usually in MP3 or M4A format @duration Duration of the audio, in seconds; as defined by the sender @title Title of the audio; as defined by the sender @performer Performer of the audio; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type The MIME type of the file; as defined by the sender @album_cover_minithumbnail The minithumbnail of the album cover; may be null @album_cover_thumbnail The thumbnail of the album cover; as defined by the sender. The full size thumbnail should be extracted from the downloaded file; may be null @audio File containing the audio
@@ -235,7 +236,8 @@ audio duration:int32 title:string performer:string file_name:string mime_type:st
 //@minithumbnail Document minithumbnail; may be null @thumbnail Document thumbnail in JPEG or PNG format (PNG will be used only for background patterns); as defined by the sender; may be null @document File containing the document
 document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:photoSize document:file = Document;
 
-//@description Describes a photo @has_stickers True, if stickers were added to the photo @minithumbnail Photo minithumbnail; may be null @sizes Available variants of the photo, in different sizes
+//@description Describes a photo @has_stickers True, if stickers were added to the photo. The list of corresponding sticker sets can be received using getAttachedStickerSets
+//@minithumbnail Photo minithumbnail; may be null @sizes Available variants of the photo, in different sizes
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
@@ -243,7 +245,8 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_mask:Bool mask_position:maskPosition thumbnail:photoSize sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
-//@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender @has_stickers True, if stickers were added to the video
+//@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
+//@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
 //@supports_streaming True, if the video should be tried to be streamed @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
 video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:photoSize video:file = Video;
 
@@ -1562,8 +1565,9 @@ sendMessageOptions disable_notification:Bool from_background:Bool scheduling_sta
 //@disable_web_page_preview True, if rich web page previews for URLs in the message text should be disabled @clear_draft True, if a chat message draft should be deleted
 inputMessageText text:formattedText disable_web_page_preview:Bool clear_draft:Bool = InputMessageContent;
 
-//@description An animation message (GIF-style). @animation Animation file to be sent @thumbnail Animation thumbnail, if available @duration Duration of the animation, in seconds @width Width of the animation; may be replaced by the server @height Height of the animation; may be replaced by the server @caption Animation caption; 0-GetOption("message_caption_length_max") characters
-inputMessageAnimation animation:InputFile thumbnail:inputThumbnail duration:int32 width:int32 height:int32 caption:formattedText = InputMessageContent;
+//@description An animation message (GIF-style). @animation Animation file to be sent @thumbnail Animation thumbnail, if available @added_sticker_file_ids File identifiers of the stickers added to the animation, if applicable
+//@duration Duration of the animation, in seconds @width Width of the animation; may be replaced by the server @height Height of the animation; may be replaced by the server @caption Animation caption; 0-GetOption("message_caption_length_max") characters
+inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText = InputMessageContent;
 
 //@description An audio message @audio Audio file to be sent @album_cover_thumbnail Thumbnail of the cover for the album, if available @duration Duration of the audio, in seconds; may be replaced by the server @title Title of the audio; 0-64 characters; may be replaced by the server
 //@performer Performer of the audio; 0-64 characters, may be replaced by the server @caption Audio caption; 0-GetOption("message_caption_length_max") characters

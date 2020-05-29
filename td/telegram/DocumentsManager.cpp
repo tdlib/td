@@ -388,10 +388,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
   switch (document_type) {
     case Document::Type::Animation:
-      // TODO use has_stickers
-      td_->animations_manager_->create_animation(file_id, std::move(minithumbnail), std::move(thumbnail),
-                                                 std::move(file_name), std::move(mime_type), video_duration, dimensions,
-                                                 !is_web);
+      td_->animations_manager_->create_animation(file_id, std::move(minithumbnail), std::move(thumbnail), has_stickers,
+                                                 vector<FileId>(), std::move(file_name), std::move(mime_type),
+                                                 video_duration, dimensions, !is_web);
       break;
     case Document::Type::Audio: {
       int32 duration = 0;

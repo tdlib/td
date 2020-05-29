@@ -1473,9 +1473,11 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
-      td->animations_manager_->create_animation(
-          file_id, string(), thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
-          get_dimensions(input_animation->width_, input_animation->height_), false);
+      bool has_stickers = !sticker_file_ids.empty();
+      td->animations_manager_->create_animation(file_id, string(), thumbnail, has_stickers, std::move(sticker_file_ids),
+                                                std::move(file_name), std::move(mime_type), input_animation->duration_,
+                                                get_dimensions(input_animation->width_, input_animation->height_),
+                                                false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption));
       break;
@@ -1840,6 +1842,9 @@ Result<InputMessageContent> get_input_message_content(
       r_file_id = td->file_manager_->get_input_file_id(FileType::Animation, input_message->animation_, dialog_id, false,
                                                        is_secret, true);
       input_thumbnail = std::move(input_message->thumbnail_);
+      if (!input_message->added_sticker_file_ids_.empty()) {
+        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
+      }
       break;
     }
     case td_api::inputMessageAudio::ID: {

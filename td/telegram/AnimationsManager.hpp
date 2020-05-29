@@ -22,6 +22,9 @@ void AnimationsManager::store_animation(FileId file_id, StorerT &storer) const {
   auto it = animations_.find(file_id);
   CHECK(it != animations_.end());
   const Animation *animation = it->second.get();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(animation->has_stickers);
+  END_STORE_FLAGS();
   store(animation->duration, storer);
   store(animation->dimensions, storer);
   store(animation->file_name, storer);
@@ -29,11 +32,19 @@ void AnimationsManager::store_animation(FileId file_id, StorerT &storer) const {
   store(animation->minithumbnail, storer);
   store(animation->thumbnail, storer);
   store(file_id, storer);
+  if (animation->has_stickers) {
+    store(animation->sticker_file_ids, storer);
+  }
 }
 
 template <class ParserT>
 FileId AnimationsManager::parse_animation(ParserT &parser) {
   auto animation = make_unique<Animation>();
+  if (parser.version() >= static_cast<int32>(Version::AddAnimationStickers)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(animation->has_stickers);
+    END_PARSE_FLAGS();
+  }
   if (parser.version() >= static_cast<int32>(Version::AddDurationToAnimation)) {
     parse(animation->duration, parser);
   }
@@ -45,6 +56,9 @@ FileId AnimationsManager::parse_animation(ParserT &parser) {
   }
   parse(animation->thumbnail, parser);
   parse(animation->file_id, parser);
+  if (animation->has_stickers) {
+    parse(animation->sticker_file_ids, parser);
+  }
   if (parser.get_error() != nullptr || !animation->file_id.is_valid()) {
     return FileId();
   }

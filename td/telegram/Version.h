@@ -37,6 +37,7 @@ enum class Version : int32 {
   AddFolders,
   SupportPolls2_0,
   AddDiceEmoji,
+  AddAnimationStickers,
   Next
 };
 
