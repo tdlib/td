@@ -12490,7 +12490,7 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   }
 
   CHECK(d != nullptr);
-  if ((is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) && is_pinned) {
+  if (d->order == DEFAULT_ORDER && is_pinned) {
     // the chat can't be pinned
     return false;
   }
@@ -16282,7 +16282,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(6, "Can't access the chat");
   }
-  if ((is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) && is_pinned) {
+  if (d->order == DEFAULT_ORDER && is_pinned) {
     return Status::Error(6, "The chat can't be pinned");
   }
 
@@ -16414,7 +16414,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       return Status::Error(6, "Can't access the chat");
     }
-    if (is_removed_from_dialog_list(d) || d->order == DEFAULT_ORDER) {
+    if (d->order == DEFAULT_ORDER) {
       return Status::Error(6, "The chat can't be pinned");
     }
     if (dialog_list_id.is_folder() && d->folder_id != dialog_list_id.get_folder_id()) {
