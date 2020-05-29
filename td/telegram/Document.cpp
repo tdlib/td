@@ -35,6 +35,7 @@ void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   }
 
   file_ids.push_back(file_id);
+
   FileId thumbnail_file_id = [&] {
     switch (type) {
       case Type::Animation:
@@ -53,6 +54,20 @@ void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   }();
   if (thumbnail_file_id.is_valid()) {
     file_ids.push_back(thumbnail_file_id);
+  }
+
+  FileId animated_thumbnail_file_id = [&] {
+    switch (type) {
+      case Type::Animation:
+        return td->animations_manager_->get_animation_animated_thumbnail_file_id(file_id);
+      case Type::Video:
+        return td->videos_manager_->get_video_animated_thumbnail_file_id(file_id);
+      default:
+        return FileId();
+    }
+  }();
+  if (animated_thumbnail_file_id.is_valid()) {
+    file_ids.push_back(animated_thumbnail_file_id);
   }
 }
 

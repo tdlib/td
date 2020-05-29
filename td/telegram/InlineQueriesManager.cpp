@@ -865,6 +865,11 @@ tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
   return make_tl_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_);
 }
 
+template <>
+tl_object_ptr<td_api::animatedThumbnail> copy(const td_api::animatedThumbnail &obj) {
+  return make_tl_object<td_api::animatedThumbnail>(obj.width_, obj.height_, copy(obj.animation_));
+}
+
 static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
   return copy(obj);
 }
@@ -895,7 +900,7 @@ template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
   return make_tl_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                            obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
-                                           copy(obj.animation_));
+                                           copy(obj.animated_thumbnail_), copy(obj.animation_));
 }
 
 template <>
@@ -928,7 +933,7 @@ template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
   return make_tl_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                        obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
-                                       copy(obj.thumbnail_), copy(obj.video_));
+                                       copy(obj.thumbnail_), copy(obj.animated_thumbnail_), copy(obj.video_));
 }
 
 template <>
@@ -1065,7 +1070,7 @@ tl_object_ptr<td_api::photoSize> InlineQueriesManager::register_thumbnail(
     tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const {
   PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                                     std::move(web_document_ptr));
-  if (!thumbnail.file_id.is_valid()) {
+  if (!thumbnail.file_id.is_valid() || thumbnail.type == 'v') {
     return nullptr;
   }
 
@@ -1390,7 +1395,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
 
           PhotoSize photo_size = get_web_document_photo_size(td_->file_manager_.get(), FileType::Temp, DialogId(),
                                                              std::move(result->content_));
-          if (!photo_size.file_id.is_valid()) {
+          if (!photo_size.file_id.is_valid() || photo_size.type == 'v') {
             LOG(ERROR) << "Receive invalid web document photo";
             continue;
           }
@@ -1398,7 +1403,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           Photo new_photo;
           PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                                             std::move(result->thumb_));
-          if (thumbnail.file_id.is_valid()) {
+          if (thumbnail.file_id.is_valid() && thumbnail.type != 'v') {
             new_photo.photos.push_back(std::move(thumbnail));
           }
           new_photo.photos.push_back(std::move(photo_size));

@@ -214,6 +214,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string file_reference;
   string minithumbnail;
   PhotoSize thumbnail;
+  PhotoSize animated_thumbnail;
   FileEncryptionKey encryption_key;
   bool is_animated_sticker = false;
   bool is_web = false;
@@ -269,6 +270,16 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         }
       }
     }
+    for (auto &thumb : document->video_thumbs_) {
+      if (thumb->type_ == "v") {
+        animated_thumbnail =
+            get_video_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash, file_reference,
+                                 DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+        if (animated_thumbnail.file_id.is_valid()) {
+          break;
+        }
+      }
+    }
   } else if (remote_document.secret_file != nullptr) {
     CHECK(remote_document.secret_document != nullptr);
     auto file = std::move(remote_document.secret_file);
@@ -297,7 +308,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     id = Random::fast(0, std::numeric_limits<int32>::max());
     dc_id = 0;
     access_hash = 0;
-    thumbnail = std::move(remote_document.thumbnail);
+    if (remote_document.thumbnail.type == 'v') {
+      animated_thumbnail = std::move(remote_document.thumbnail);
+    } else {
+      thumbnail = std::move(remote_document.thumbnail);
+    }
 
     auto web_document_ptr = std::move(remote_document.web_document);
     switch (web_document_ptr->get_id()) {
@@ -388,9 +403,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
   switch (document_type) {
     case Document::Type::Animation:
-      td_->animations_manager_->create_animation(file_id, std::move(minithumbnail), std::move(thumbnail), has_stickers,
-                                                 vector<FileId>(), std::move(file_name), std::move(mime_type),
-                                                 video_duration, dimensions, !is_web);
+      td_->animations_manager_->create_animation(
+          file_id, std::move(minithumbnail), std::move(thumbnail), std::move(animated_thumbnail), has_stickers,
+          vector<FileId>(), std::move(file_name), std::move(mime_type), video_duration, dimensions, !is_web);
       break;
     case Document::Type::Audio: {
       int32 duration = 0;
@@ -415,9 +430,10 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
                                              is_animated_sticker, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
-      td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail), has_stickers,
-                                         vector<FileId>(), std::move(file_name), std::move(mime_type), video_duration,
-                                         dimensions, supports_streaming, !is_web);
+      td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail),
+                                         std::move(animated_thumbnail), has_stickers, vector<FileId>(),
+                                         std::move(file_name), std::move(mime_type), video_duration, dimensions,
+                                         supports_streaming, !is_web);
       break;
     case Document::Type::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(minithumbnail), std::move(thumbnail),

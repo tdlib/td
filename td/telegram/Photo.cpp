@@ -105,6 +105,8 @@ static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat form
       return string_builder << "webp";
     case PhotoFormat::Tgs:
       return string_builder << "tgs";
+    case PhotoFormat::Mpeg4:
+      return string_builder << "mp4";
     default:
       UNREACHABLE();
       return string_builder;
@@ -362,6 +364,27 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
+PhotoSize get_video_photo_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
+                               std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
+                               tl_object_ptr<telegram_api::videoSize> &&size) {
+  CHECK(size != nullptr);
+  PhotoSize res;
+  if (size->type_ != "v") {
+    LOG(ERROR) << "Wrong videoSize \"" << size->type_ << "\" in " << to_string(size);
+  }
+  res.type = static_cast<uint8>('v');
+  res.dimensions = get_dimensions(size->w_, size->h_);
+  res.size = size->size_;
+
+  if (source.get_type() == PhotoSizeSource::Type::Thumbnail) {
+    source.thumbnail().thumbnail_type = res.type;
+  }
+
+  res.file_id = register_photo(file_manager, source, id, access_hash, file_reference, std::move(size->location_),
+                               owner_dialog_id, res.size, dc_id, PhotoFormat::Mpeg4);
+  return res;
+}
+
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr) {
   if (web_document_ptr == nullptr) {
@@ -371,6 +394,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   FileId file_id;
   vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
   int32 size = 0;
+  string mime_type;
   switch (web_document_ptr->get_id()) {
     case telegram_api::webDocument::ID: {
       auto web_document = move_tl_object_as<telegram_api::webDocument>(web_document_ptr);
@@ -385,6 +409,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
                                               FileLocationSource::FromServer, owner_dialog_id, 0, web_document->size_,
                                               get_url_query_file_name(http_url.query_));
       size = web_document->size_;
+      mime_type = std::move(web_document->mime_type_);
       attributes = std::move(web_document->attributes_);
       break;
     }
@@ -403,6 +428,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
       file_id = r_file_id.move_as_ok();
 
       size = web_document->size_;
+      mime_type = std::move(web_document->mime_type_);
       attributes = std::move(web_document->attributes_);
       break;
     }
@@ -410,6 +436,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
       UNREACHABLE();
   }
   CHECK(file_id.is_valid());
+  bool is_animation = mime_type == "video/mp4";
 
   Dimensions dimensions;
   for (auto &attribute : attributes) {
@@ -434,7 +461,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   }
 
   PhotoSize s;
-  s.type = file_type == FileType::Thumbnail ? 't' : 'u';
+  s.type = is_animation ? 'v' : (file_type == FileType::Thumbnail ? 't' : 'u');
   s.dimensions = dimensions;
   s.size = size;
   s.file_id = file_id;
@@ -450,6 +477,16 @@ tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager
       photo_size->type ? std::string(1, static_cast<char>(photo_size->type))
                        : std::string(),  // TODO replace string type with integer type
       file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height);
+}
+
+td_api::object_ptr<td_api::animatedThumbnail> get_animated_thumbnail_object(FileManager *file_manager,
+                                                                            const PhotoSize *photo_size) {
+  if (photo_size == nullptr || !photo_size->file_id.is_valid()) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::animatedThumbnail>(photo_size->dimensions.width, photo_size->dimensions.height,
+                                                        file_manager->get_file_object(photo_size->file_id));
 }
 
 vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
@@ -572,7 +609,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
                              DialogId owner_dialog_id) {
   PhotoSize s = get_web_document_photo_size(file_manager, FileType::Photo, owner_dialog_id, std::move(web_document));
   Photo photo;
-  if (!s.file_id.is_valid()) {
+  if (!s.file_id.is_valid() || s.type == 'v') {
     photo.id = -2;
   } else {
     photo.id = 0;

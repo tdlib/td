@@ -181,6 +181,9 @@ inputFileGenerated original_path:string conversion:string expected_size:int32 = 
 //@description Photo description @type Thumbnail type (see https://core.telegram.org/constructor/photoSize) @photo Information about the photo file @width Photo width @height Photo height
 photoSize type:string photo:file width:int32 height:int32 = PhotoSize;
 
+//@description A short animated thumbnail of a file in the MPEG4 format @width Animation width @height Animation height @animation The thumbnail
+animatedThumbnail width:int32 height:int32 animation:file = AnimatedThumbnail;
+
 //@description Thumbnail image of a very poor quality and low resolution @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
 minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;
 
@@ -225,8 +228,9 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4"
 //@has_stickers True, if stickers were added to the animation. The list of corresponding sticker set can be received using getAttachedStickerSets
-//@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null @animation File containing the animation
-animation duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool minithumbnail:minithumbnail thumbnail:photoSize animation:file = Animation;
+//@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null
+//@animated_thumbnail A short animated thumbnail of the animation in the MPEG4 format; may be null @animation File containing the animation
+animation duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool minithumbnail:minithumbnail thumbnail:photoSize animated_thumbnail:animatedThumbnail animation:file = Animation;
 
 //@description Describes an audio file. Audio is usually in MP3 or M4A format @duration Duration of the audio, in seconds; as defined by the sender @title Title of the audio; as defined by the sender @performer Performer of the audio; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type The MIME type of the file; as defined by the sender @album_cover_minithumbnail The minithumbnail of the album cover; may be null @album_cover_thumbnail The thumbnail of the album cover; as defined by the sender. The full size thumbnail should be extracted from the downloaded file; may be null @audio File containing the audio
@@ -247,8 +251,9 @@ sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_m
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
 //@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
-//@supports_streaming True, if the video should be tried to be streamed @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
-video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:photoSize video:file = Video;
+//@supports_streaming True, if the video should be tried to be streamed @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null
+//@animated_thumbnail A short animated thumbnail of the video in the MPEG4 format; may be null @video File containing the video
+video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:photoSize animated_thumbnail:animatedThumbnail video:file = Video;
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender @length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
 videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:photoSize video:file = VideoNote;

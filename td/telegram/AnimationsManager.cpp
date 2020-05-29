@@ -159,11 +159,12 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
                                   << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
   // TODO can we make that function const?
   animation->is_changed = false;
-  return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,
-                                           animation->dimensions.height, animation->file_name, animation->mime_type,
-                                           animation->has_stickers, get_minithumbnail_object(animation->minithumbnail),
-                                           get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
-                                           td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::animation>(
+      animation->duration, animation->dimensions.width, animation->dimensions.height, animation->file_name,
+      animation->mime_type, animation->has_stickers, get_minithumbnail_object(animation->minithumbnail),
+      get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
+      get_animated_thumbnail_object(td_->file_manager_.get(), &animation->animated_thumbnail),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, bool replace) {
@@ -210,6 +211,16 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
       a->thumbnail = new_animation->thumbnail;
       a->is_changed = true;
     }
+    if (a->animated_thumbnail != new_animation->animated_thumbnail) {
+      if (!a->animated_thumbnail.file_id.is_valid()) {
+        LOG(DEBUG) << "Animation " << file_id << " animated thumbnail has changed";
+      } else {
+        LOG(INFO) << "Animation " << file_id << " animated thumbnail has changed from " << a->animated_thumbnail
+                  << " to " << new_animation->animated_thumbnail;
+      }
+      a->animated_thumbnail = new_animation->animated_thumbnail;
+      a->is_changed = true;
+    }
     if (a->has_stickers != new_animation->has_stickers && new_animation->has_stickers) {
       a->has_stickers = new_animation->has_stickers;
       a->is_changed = true;
@@ -239,10 +250,17 @@ FileId AnimationsManager::get_animation_thumbnail_file_id(FileId file_id) const 
   return animation->thumbnail.file_id;
 }
 
+FileId AnimationsManager::get_animation_animated_thumbnail_file_id(FileId file_id) const {
+  auto animation = get_animation(file_id);
+  CHECK(animation != nullptr);
+  return animation->animated_thumbnail.file_id;
+}
+
 void AnimationsManager::delete_animation_thumbnail(FileId file_id) {
   auto &animation = animations_[file_id];
   CHECK(animation != nullptr);
   animation->thumbnail = PhotoSize();
+  animation->animated_thumbnail = PhotoSize();
 }
 
 FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
@@ -254,6 +272,8 @@ FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
   new_animation = make_unique<Animation>(*old_animation);
   new_animation->file_id = new_id;
   new_animation->thumbnail.file_id = td_->file_manager_->dup_file_id(new_animation->thumbnail.file_id);
+  new_animation->animated_thumbnail.file_id =
+      td_->file_manager_->dup_file_id(new_animation->animated_thumbnail.file_id);
   return new_id;
 }
 
@@ -296,7 +316,8 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
   return true;
 }
 
-void AnimationsManager::create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, bool has_stickers,
+void AnimationsManager::create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail,
+                                         PhotoSize animated_thumbnail, bool has_stickers,
                                          vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
                                          int32 duration, Dimensions dimensions, bool replace) {
   auto a = make_unique<Animation>();
@@ -307,6 +328,7 @@ void AnimationsManager::create_animation(FileId file_id, string minithumbnail, P
   a->dimensions = dimensions;
   a->minithumbnail = std::move(minithumbnail);
   a->thumbnail = std::move(thumbnail);
+  a->animated_thumbnail = std::move(animated_thumbnail);
   a->has_stickers = has_stickers;
   a->sticker_file_ids = std::move(sticker_file_ids);
   on_get_animation(std::move(a), replace);
@@ -787,9 +809,13 @@ void AnimationsManager::send_update_saved_animations(bool from_database) {
   if (are_saved_animations_loaded_) {
     vector<FileId> new_saved_animation_file_ids = saved_animation_ids_;
     for (auto &animation_id : saved_animation_ids_) {
-      auto thumbnail_file_id = get_animation_thumbnail_file_id(animation_id);
-      if (thumbnail_file_id.is_valid()) {
-        new_saved_animation_file_ids.push_back(thumbnail_file_id);
+      auto animation = get_animation(animation_id);
+      CHECK(animation != nullptr);
+      if (animation->thumbnail.file_id.is_valid()) {
+        new_saved_animation_file_ids.push_back(animation->thumbnail.file_id);
+      }
+      if (animation->animated_thumbnail.file_id.is_valid()) {
+        new_saved_animation_file_ids.push_back(animation->animated_thumbnail.file_id);
       }
     }
     std::sort(new_saved_animation_file_ids.begin(), new_saved_animation_file_ids.end());

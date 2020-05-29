@@ -1474,10 +1474,10 @@ static Result<InputMessageContent> create_input_message_content(
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->animations_manager_->create_animation(file_id, string(), thumbnail, has_stickers, std::move(sticker_file_ids),
-                                                std::move(file_name), std::move(mime_type), input_animation->duration_,
-                                                get_dimensions(input_animation->width_, input_animation->height_),
-                                                false);
+      td->animations_manager_->create_animation(
+          file_id, string(), thumbnail, PhotoSize(), has_stickers, std::move(sticker_file_ids), std::move(file_name),
+          std::move(mime_type), input_animation->duration_,
+          get_dimensions(input_animation->width_, input_animation->height_), false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption));
       break;
@@ -1577,10 +1577,10 @@ static Result<InputMessageContent> create_input_message_content(
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(file_id, string(), thumbnail, has_stickers, std::move(sticker_file_ids),
-                                        std::move(file_name), std::move(mime_type), input_video->duration_,
-                                        get_dimensions(input_video->width_, input_video->height_),
-                                        input_video->supports_streaming_, false);
+      td->videos_manager_->create_video(
+          file_id, string(), thumbnail, PhotoSize(), has_stickers, std::move(sticker_file_ids), std::move(file_name),
+          std::move(mime_type), input_video->duration_, get_dimensions(input_video->width_, input_video->height_),
+          input_video->supports_streaming_, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
@@ -4705,6 +4705,20 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
   return FileId();
 }
 
+FileId get_message_content_animated_thumbnail_file_id(const MessageContent *content, const Td *td) {
+  switch (content->get_type()) {
+    case MessageContentType::Animation:
+      return td->animations_manager_->get_animation_animated_thumbnail_file_id(
+          static_cast<const MessageAnimation *>(content)->file_id);
+    case MessageContentType::Video:
+      return td->videos_manager_->get_video_animated_thumbnail_file_id(
+          static_cast<const MessageVideo *>(content)->file_id);
+    default:
+      break;
+  }
+  return FileId();
+}
+
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Photo:
@@ -4724,6 +4738,10 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
       if (thumbnail_file_id.is_valid()) {
         result.push_back(thumbnail_file_id);
+      }
+      FileId animated_thumbnail_file_id = get_message_content_animated_thumbnail_file_id(content, td);
+      if (animated_thumbnail_file_id.is_valid()) {
+        result.push_back(animated_thumbnail_file_id);
       }
       return result;
     }

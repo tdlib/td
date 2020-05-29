@@ -35,9 +35,9 @@ class AnimationsManager : public Actor {
 
   tl_object_ptr<td_api::animation> get_animation_object(FileId file_id, const char *source);
 
-  void create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, bool has_stickers,
-                        vector<FileId> &&sticker_file_ids, string file_name, string mime_type, int32 duration,
-                        Dimensions dimensions, bool replace);
+  void create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, PhotoSize animated_thumbnail,
+                        bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
+                        int32 duration, Dimensions dimensions, bool replace);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -48,6 +48,8 @@ class AnimationsManager : public Actor {
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;
 
   FileId get_animation_thumbnail_file_id(FileId file_id) const;
+
+  FileId get_animation_animated_thumbnail_file_id(FileId file_id) const;
 
   void delete_animation_thumbnail(FileId file_id);
 
@@ -98,6 +100,7 @@ class AnimationsManager : public Actor {
     Dimensions dimensions;
     string minithumbnail;
     PhotoSize thumbnail;
+    PhotoSize animated_thumbnail;
 
     bool has_stickers = false;
     vector<FileId> sticker_file_ids;
