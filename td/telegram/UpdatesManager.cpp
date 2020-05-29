@@ -1982,6 +1982,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCall> upda
   send_closure(G()->call_manager(), &CallManager::update_call, std::move(update));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignalingData> update, bool /*force_apply*/) {
+  send_closure(G()->call_manager(), &CallManager::update_call_signaling_data, update->phone_call_id_,
+               update->data_.as_slice().str());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/) {
   td_->contacts_manager_->on_update_contacts_reset();
 }

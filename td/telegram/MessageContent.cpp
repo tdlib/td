@@ -3507,7 +3507,7 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
   thumbnails.push_back(secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_));
   return make_tl_object<telegram_api::document>(
       telegram_api::document::THUMBS_MASK, from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_,
-      from.size_, std::move(thumbnails), from.dc_id_, secret_to_telegram(from.attributes_));
+      from.size_, std::move(thumbnails), Auto(), from.dc_id_, secret_to_telegram(from.attributes_));
 }
 
 template <class ToT, class FromT>

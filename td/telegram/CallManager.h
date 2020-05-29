@@ -27,6 +27,7 @@ class CallManager : public Actor {
   using Update = telegram_api::object_ptr<telegram_api::updatePhoneCall>;
   explicit CallManager(ActorShared<> parent);
   void update_call(Update call);
+  void update_call_signaling_data(int64 call_id, string data);
 
   void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
                    bool is_video, Promise<CallId> promise);

@@ -23,7 +23,7 @@ CallManager::CallManager(ActorShared<> parent) : parent_(std::move(parent)) {
 void CallManager::update_call(Update call) {
   int64 call_id = 0;
   downcast_call(*call->phone_call_, [&](auto &update) { call_id = update.id_; });
-  LOG(DEBUG) << "Receive UpdateCall for call " << call_id;
+  LOG(DEBUG) << "Receive UpdateCall for " << call_id;
 
   auto &info = call_info_[call_id];
 
@@ -32,7 +32,7 @@ void CallManager::update_call(Update call) {
   }
 
   if (!info.call_id.is_valid()) {
-    LOG(INFO) << "Call_id is not valid for call " << call_id << ", postpone update " << to_string(call);
+    LOG(INFO) << "Call_id is not valid for " << call_id << ", postpone update " << to_string(call);
     info.updates.push_back(std::move(call));
     return;
   }
@@ -42,6 +42,20 @@ void CallManager::update_call(Update call) {
     LOG(INFO) << "Drop update: " << to_string(call);
   }
   send_closure(actor, &CallActor::update_call, std::move(call->phone_call_));
+}
+
+void CallManager::update_call_signaling_data(int64 call_id, string data) {
+  auto info_it = call_info_.find(call_id);
+  if (info_it == call_info_.end() || !info_it->second.call_id.is_valid()) {
+    LOG(INFO) << "Ignore signaling data for " << call_id;
+  }
+
+  auto actor = get_call_actor(info_it->second.call_id);
+  if (actor.empty()) {
+    LOG(INFO) << "Ignore signaling data for " << info_it->second.call_id;
+    return;
+  }
+  send_closure(actor, &CallActor::update_call_signaling_data, std::move(data));
 }
 
 void CallManager::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,

@@ -53,7 +53,7 @@ struct CallIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const CallId call_id) {
-  return sb << "CallId(" << call_id.get() << ")";
+  return sb << "call " << call_id.get();
 }
 
 }  // namespace td

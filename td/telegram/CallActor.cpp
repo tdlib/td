@@ -138,6 +138,10 @@ void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUse
   promise.set_value(CallId(local_call_id_));
 }
 
+void CallActor::update_call_signaling_data(string data) {
+  // nothing to do
+}
+
 void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
                              Promise<> promise) {
   promise.set_value(Unit());
@@ -726,7 +730,7 @@ void CallActor::on_get_call_config_result(NetQueryPtr net_query) {
 }
 
 void CallActor::loop() {
-  LOG(DEBUG) << "Enter loop for call " << call_id_ << " in state " << static_cast<int32>(state_) << '/'
+  LOG(DEBUG) << "Enter loop for " << call_id_ << " in state " << static_cast<int32>(state_) << '/'
              << static_cast<int32>(call_state_.type);
   flush_call_state();
   switch (state_) {
@@ -747,7 +751,7 @@ void CallActor::loop() {
           (call_state_.need_rating || call_state_.need_debug_information)) {
         break;
       }
-      LOG(INFO) << "Close call " << local_call_id_;
+      LOG(INFO) << "Close " << local_call_id_;
       stop();
       break;
     }
