@@ -2310,6 +2310,8 @@ class MessagesManager : public Actor {
 
   bool need_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
+  static bool need_send_update_chat_position(const DialogOrderInList &old_order, const DialogOrderInList &new_order);
+
   DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
 
   std::unordered_map<DialogListId, DialogOrderInList, DialogListIdHash> get_dialog_orders(const Dialog *d) const;

@@ -10971,6 +10971,7 @@ void MessagesManager::init() {
 
         const Dialog *d = get_dialog_force(dialog_id);
         if (d != nullptr) {
+          LOG(INFO) << "Loaded sponsored " << dialog_id;
           add_sponsored_dialog(d, r_source.move_as_ok());
         } else {
           LOG(ERROR) << "Can't load " << dialog_id;
@@ -15903,8 +15904,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
             }
           }
 
-          if (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
-              old_order.is_sponsored != new_order.is_sponsored) {
+          if (need_send_update_chat_position(old_order, new_order)) {
             updated_position_dialogs.emplace(DialogDate(new_order.public_order, dialog_id), d);
           }
 
@@ -16041,7 +16041,7 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
           if (is_dialog_in_list(d, dialog_list_id)) {
             remove_dialog_from_list(d, dialog_list_id);
 
-            if (old_order.public_order != 0 || old_order.is_pinned || old_order.is_sponsored) {
+            if (old_order.public_order != 0) {
               send_update_chat_position(dialog_list_id, d, source);
             }
           }
@@ -30662,9 +30662,7 @@ void MessagesManager::update_dialog_lists(
       }
     }
 
-    if (need_send_update &&
-        (old_order.public_order != new_order.public_order || old_order.is_pinned != new_order.is_pinned ||
-         old_order.is_sponsored != new_order.is_sponsored)) {
+    if (need_send_update && need_send_update_chat_position(old_order, new_order)) {
       send_update_chat_position(dialog_list_id, d, source);
     }
 
@@ -31092,6 +31090,17 @@ bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &lis
   }
   UNREACHABLE();
   return false;
+}
+
+bool MessagesManager::need_send_update_chat_position(const DialogOrderInList &old_order,
+                                                     const DialogOrderInList &new_order) {
+  if (old_order.public_order != new_order.public_order) {
+    return true;
+  }
+  if (old_order.public_order == 0) {
+    return false;
+  }
+  return old_order.is_pinned != new_order.is_pinned || old_order.is_sponsored != new_order.is_sponsored;
 }
 
 MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(const DialogList *list, const Dialog *d,
