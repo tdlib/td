@@ -15664,9 +15664,9 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
       if (filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
         if (*filter != *dialog_filter) {
           filter = std::move(dialog_filter);
-          is_edited = true;
-          break;
         }
+        is_edited = true;
+        break;
       }
     }
 
