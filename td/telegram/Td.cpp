@@ -3167,6 +3167,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
 }
 
 void Td::schedule_get_promo_data(int32 expires_in) {
+  LOG(INFO) << "Schedule getPromoData in " << expires_in;
   if (expires_in < 0) {
     LOG(ERROR) << "Receive wrong expires_in: " << expires_in;
     expires_in = 0;
@@ -4478,6 +4479,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateChatOnlineMemberCount::ID / 2:
     case td_api::updateUserChatAction::ID / 2:
     case td_api::updateChatFilters::ID / 2:
+    case td_api::updateChatPosition::ID / 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

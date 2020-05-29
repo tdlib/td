@@ -1158,7 +1158,8 @@ class ToggleDialogPinQuery : public Td::ResultHandler {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogPinQuery")) {
       LOG(ERROR) << "Receive error for ToggleDialogPinQuery: " << status;
     }
-    td->messages_manager_->set_dialog_is_pinned(dialog_id_, !is_pinned_);
+    td->messages_manager_->on_update_pinned_dialogs(FolderId::main());
+    td->messages_manager_->on_update_pinned_dialogs(FolderId::archive());
     promise_.set_error(std::move(status));
   }
 };

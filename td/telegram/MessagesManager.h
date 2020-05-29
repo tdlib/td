@@ -572,8 +572,6 @@ class MessagesManager : public Actor {
 
   void clear_all_draft_messages(bool exclude_secret_chats, Promise<Unit> &&promise);
 
-  void set_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
-
   Status toggle_dialog_is_pinned(DialogListId dialog_list_id, DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
@@ -2120,6 +2118,8 @@ class MessagesManager : public Actor {
   static int32 get_pinned_dialogs_limit(DialogListId dialog_list_id);
 
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
+
+  void set_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
 
   bool set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *d, bool is_pinned,
                             bool need_update_dialog_lists = true);
