@@ -1160,8 +1160,8 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
   auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports,
                              HostType type = HostType::IPv4) {
     IPAddress ip_address;
-    for (auto &ip : ips) {
-      for (auto port : ports) {
+    for (auto port : ports) {
+      for (auto &ip : ips) {
         switch (type) {
           case HostType::IPv4:
             ip_address.init_ipv4_port(ip, port).ensure();
@@ -1201,7 +1201,7 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
     add_ip_ports(3, {"2001:b28:f23d:f003::e"}, ports, HostType::IPv6);
   } else {
     add_ip_ports(1, {"149.154.175.50"}, ports);
-    add_ip_ports(2, {"149.154.167.51"}, ports);
+    add_ip_ports(2, {"149.154.167.51", "95.161.76.100"}, ports);
     add_ip_ports(3, {"149.154.175.100"}, ports);
     add_ip_ports(4, {"149.154.167.91"}, ports);
     add_ip_ports(5, {"149.154.171.5"}, ports);
