@@ -25744,8 +25744,14 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
 
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    LOG(INFO) << "Can't apply updateDialogPinned with unknown " << dialog_id;
+    LOG(INFO) << "Can't apply updateDialogPinned in " << folder_id << " with unknown " << dialog_id;
     on_update_pinned_dialogs(folder_id);
+    return;
+  }
+  if (d->order == DEFAULT_ORDER) {
+    // the chat can't be pinned or is already unpinned
+    // don't change it's folder_id
+    LOG(INFO) << "Can't apply updateDialogPinned in " << folder_id << " with " << dialog_id;
     return;
   }
 
