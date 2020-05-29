@@ -1339,6 +1339,13 @@ class MessagesManager : public Actor {
     bool is_sponsored = false;
 
     int32 total_dialog_count = 0;
+
+    friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogOrderInList &order) {
+      return string_builder << "order = " << order.order << ", private_order = " << order.private_order
+                            << ", public_order = " << order.public_order << ", is_pinned = " << order.is_pinned
+                            << ", is_sponsored = " << order.is_sponsored
+                            << ", total_dialog_count = " << order.total_dialog_count;
+    }
   };
 
   class MessagesIteratorBase {

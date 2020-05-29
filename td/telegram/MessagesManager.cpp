@@ -13013,7 +13013,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     // set is_pinned only after updating dialog pos to ensure that order is initialized
-    set_dialog_is_pinned(DialogListId(d->folder_id), d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0);
+    bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+    bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
+    if (is_pinned != was_pinned) {
+      set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+    }
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
         d->need_repair_server_unread_count) {
@@ -30614,6 +30618,10 @@ void MessagesManager::update_dialog_lists(
     bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
     CHECK(was_in_list == is_dialog_in_list(d, dialog_list_id));
 
+    LOG(DEBUG) << "Updated position of " << dialog_id << " in " << dialog_list_id << " from " << old_order << " to "
+               << new_order;
+
+    bool need_update_unread_chat_count = false;
     if (was_in_list != is_in_list) {
       const int32 delta = was_in_list ? -1 : 1;
       list.in_memory_dialog_total_count_ += delta;
@@ -30630,7 +30638,7 @@ void MessagesManager::update_dialog_lists(
       }
 
       if (!is_loaded_from_database) {
-        bool need_update_unread_chat_count =
+        need_update_unread_chat_count =
             list.is_dialog_unread_count_inited_ && old_order.total_dialog_count != get_dialog_total_count(list);
         auto unread_count = d->server_unread_count + d->local_unread_count;
         const char *change_source = was_in_list ? "on_dialog_leave" : "on_dialog_join";
@@ -30666,6 +30674,10 @@ void MessagesManager::update_dialog_lists(
       } else {
         add_dialog_to_list(d, dialog_list_id);
       }
+    }
+    if (!need_update_unread_chat_count && !is_loaded_from_database && list.is_dialog_unread_count_inited_ &&
+        old_order.total_dialog_count != get_dialog_total_count(list)) {
+      send_update_unread_chat_count(list, dialog_id, true, "changed total count");
     }
 
     if (need_send_update && need_send_update_chat_position(old_order, new_order)) {
@@ -31135,13 +31147,8 @@ MessagesManager::get_dialog_orders(const Dialog *d) const {
   CHECK(d != nullptr);
   std::unordered_map<DialogListId, MessagesManager::DialogOrderInList, DialogListIdHash> orders;
   if (!td_->auth_manager_->is_bot()) {
-    for (auto &dialog_list_id : get_dialog_list_ids(d)) {
-      orders.emplace(dialog_list_id, get_dialog_order_in_list(get_dialog_list(dialog_list_id), d));
-    }
-    if (is_dialog_sponsored(d)) {
-      CHECK(orders.empty());
-      DialogListId dialog_list_id(FolderId::main());
-      orders.emplace(dialog_list_id, get_dialog_order_in_list(get_dialog_list(dialog_list_id), d));
+    for (auto &dialog_list : dialog_lists_) {
+      orders.emplace(dialog_list.first, get_dialog_order_in_list(&dialog_list.second, d));
     }
   }
   return orders;
@@ -31705,7 +31712,11 @@ void MessagesManager::on_get_channel_difference(
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
 
       // set is_pinned only after updating dialog pos to ensure that order is initialized
-      set_dialog_is_pinned(DialogListId(d->folder_id), d, (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0);
+      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+      bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
+      if (is_pinned != was_pinned) {
+        set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+      }
 
       set_channel_pts(d, new_pts, "channel difference too long");
       break;
