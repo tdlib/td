@@ -11034,7 +11034,12 @@ void MessagesManager::init() {
       DialogFiltersLogEvent log_event;
       if (log_event_parse(log_event, dialog_filters).is_ok()) {
         dialog_filters_updated_date_ = log_event.updated_date;
-        server_dialog_filters_ = std::move(log_event.server_dialog_filters_out);
+        std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
+        for (auto &dialog_filter : log_event.server_dialog_filters_out) {
+          if (server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
+            server_dialog_filters_.push_back(std::move(dialog_filter));
+          }
+        }
         for (auto &dialog_filter : log_event.dialog_filters_out) {
           add_dialog_filter(std::move(dialog_filter), "binlog");
         }
