@@ -3517,6 +3517,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatFilter>(as_chat_filter_id(args)));
     } else if (op == "ccf") {
       send_request(td_api::make_object<td_api::createChatFilter>(as_chat_filter(args)));
+    } else if (op == "ccfe") {
+      auto chat_filter = td_api::make_object<td_api::chatFilter>();
+      chat_filter->title_ = "empty";
+      chat_filter->included_chat_ids_ = as_chat_ids(args);
+      send_request(td_api::make_object<td_api::createChatFilter>(std::move(chat_filter)));
     } else if (op == "ecf") {
       string chat_filter_id;
       string filter;
