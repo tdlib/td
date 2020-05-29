@@ -17509,8 +17509,13 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(c
     chat_ids.reserve(input_dialog_ids.size());
     for (auto &input_dialog_id : input_dialog_ids) {
       auto dialog_id = input_dialog_id.get_dialog_id();
-      if (have_dialog(dialog_id)) {
-        chat_ids.push_back(dialog_id.get());
+      const Dialog *d = get_dialog(dialog_id);
+      if (d != nullptr) {
+        if (d->order != DEFAULT_ORDER) {
+          chat_ids.push_back(dialog_id.get());
+        } else {
+          LOG(INFO) << "Skip nonjoined " << dialog_id << " from " << dialog_filter_id;
+        }
       } else {
         LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
       }
