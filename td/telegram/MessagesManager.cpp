@@ -10300,7 +10300,7 @@ void MessagesManager::on_get_secret_chat_total_count(DialogListId dialog_list_id
   }
 }
 
-void MessagesManager::recalc_unread_count(DialogListId dialog_list_id) {
+void MessagesManager::recalc_unread_count(DialogListId dialog_list_id, int32 old_dialog_total_count) {
   if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
@@ -10372,7 +10372,9 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id) {
     send_update_unread_message_count(list, DialogId(), true, "recalc_unread_count");
   }
 
-  auto old_dialog_total_count = get_dialog_total_count(list);
+  if (old_dialog_total_count == -1) {
+    old_dialog_total_count = get_dialog_total_count(list);
+  }
   if (list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
     if (server_dialog_total_count != list.server_dialog_total_count_ ||
         secret_chat_total_count != list.secret_chat_total_count_) {
@@ -14236,7 +14238,8 @@ void MessagesManager::preload_folder_dialog_list(FolderId folder_id) {
     load_folder_dialog_list(folder_id, MAX_GET_DIALOGS, false,
                             PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
                               if (result.is_ok()) {
-                                send_closure(actor_id, &MessagesManager::recalc_unread_count, DialogListId(folder_id));
+                                send_closure(actor_id, &MessagesManager::recalc_unread_count, DialogListId(folder_id),
+                                             -1);
                               }
                             }));
   } else {
@@ -30691,7 +30694,7 @@ void MessagesManager::update_dialog_lists(
         add_dialog_to_list(d, dialog_list_id);
       }
     }
-    if (!need_update_unread_chat_count && !is_loaded_from_database && list.is_dialog_unread_count_inited_ &&
+    if (!need_update_unread_chat_count && list.is_dialog_unread_count_inited_ &&
         old_order.total_dialog_count != get_dialog_total_count(list)) {
       send_update_unread_chat_count(list, dialog_id, true, "changed total count");
     }
@@ -30771,6 +30774,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
   }
 
   if (list.list_last_dialog_date_ != new_last_dialog_date) {
+    auto old_dialog_total_count = get_dialog_total_count(list);
     auto old_last_dialog_date = list.list_last_dialog_date_;
     CHECK(old_last_dialog_date < new_last_dialog_date);
     list.list_last_dialog_date_ = new_last_dialog_date;
@@ -30808,11 +30812,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
     }
 
     if (list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
-      bool need_update_unread_chat_count = list.server_dialog_total_count_ == -1 || list.secret_chat_total_count_ == -1;
-      recalc_unread_count(list.dialog_list_id);
-      if (list.is_dialog_unread_count_inited_ && need_update_unread_chat_count) {
-        send_update_unread_chat_count(list, DialogId(), true, "update_list_last_dialog_date");
-      }
+      recalc_unread_count(list.dialog_list_id, old_dialog_total_count);
     }
 
     if (is_list_further_loaded && !list.load_list_queries_.empty()) {
@@ -30983,7 +30983,7 @@ vector<DialogFilterId> MessagesManager::get_dialog_filter_ids(const vector<uniqu
 
 vector<FolderId> MessagesManager::get_dialog_filter_folder_ids(const DialogFilter *filter) {
   CHECK(filter != nullptr);
-  if (filter->exclude_archived) {
+  if (filter->exclude_archived && filter->pinned_dialog_ids.empty() && filter->included_dialog_ids.empty()) {
     return {FolderId::main()};
   }
   return {FolderId::main(), FolderId::archive()};
@@ -31009,7 +31009,7 @@ bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const Dial
     auto dialog_filter_id = list.dialog_list_id.get_filter_id();
     auto *filter = get_dialog_filter(dialog_filter_id);
     CHECK(filter != nullptr);
-    if (filter->exclude_archived) {
+    if (filter->exclude_archived && filter->pinned_dialog_ids.empty() && filter->included_dialog_ids.empty()) {
       return folder.folder_id == FolderId::main();
     }
     return true;
