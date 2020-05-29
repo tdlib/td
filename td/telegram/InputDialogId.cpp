@@ -112,7 +112,7 @@ tl_object_ptr<telegram_api::InputPeer> InputDialogId::get_input_peer() const {
 bool InputDialogId::are_equivalent(const vector<InputDialogId> &lhs, const vector<InputDialogId> &rhs) {
   auto lhs_it = lhs.begin();
   auto rhs_it = rhs.begin();
-  while (lhs_it != lhs.end() && rhs_it != rhs.end()) {
+  while (lhs_it != lhs.end() || rhs_it != rhs.end()) {
     while (lhs_it != lhs.end() && lhs_it->get_dialog_id().get_type() == DialogType::SecretChat) {
       ++lhs_it;
     }
