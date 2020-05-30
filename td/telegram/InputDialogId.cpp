@@ -131,6 +131,15 @@ bool InputDialogId::are_equivalent(const vector<InputDialogId> &lhs, const vecto
   return lhs_it == lhs.end() && rhs_it == rhs.end();
 }
 
+bool InputDialogId::contains(const vector<InputDialogId> &input_dialog_ids, DialogId dialog_id) {
+  for (auto &input_dialog_id : input_dialog_ids) {
+    if (input_dialog_id.get_dialog_id() == dialog_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 vector<DialogId> InputDialogId::get_dialog_ids(const vector<InputDialogId> &input_dialog_ids) {
   return transform(input_dialog_ids, [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
 }

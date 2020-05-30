@@ -31071,34 +31071,26 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
   CHECK(filter != nullptr);
   CHECK(d->order != DEFAULT_ORDER);
 
-  auto matches = [](const vector<InputDialogId> input_dialog_ids, DialogId dialog_id) {
-    for (auto &input_dialog_id : input_dialog_ids) {
-      if (input_dialog_id.get_dialog_id() == dialog_id) {
-        return true;
-      }
-    }
-    return false;
-  };
-  if (matches(filter->pinned_dialog_ids, d->dialog_id)) {
+  if (InputDialogId::contains(filter->pinned_dialog_ids, d->dialog_id)) {
     return true;
   }
-  if (matches(filter->included_dialog_ids, d->dialog_id)) {
+  if (InputDialogId::contains(filter->included_dialog_ids, d->dialog_id)) {
     return true;
   }
-  if (matches(filter->excluded_dialog_ids, d->dialog_id)) {
+  if (InputDialogId::contains(filter->excluded_dialog_ids, d->dialog_id)) {
     return false;
   }
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (user_id.is_valid()) {
       auto dialog_id = DialogId(user_id);
-      if (matches(filter->pinned_dialog_ids, dialog_id)) {
+      if (InputDialogId::contains(filter->pinned_dialog_ids, dialog_id)) {
         return true;
       }
-      if (matches(filter->included_dialog_ids, dialog_id)) {
+      if (InputDialogId::contains(filter->included_dialog_ids, dialog_id)) {
         return true;
       }
-      if (matches(filter->excluded_dialog_ids, dialog_id)) {
+      if (InputDialogId::contains(filter->excluded_dialog_ids, dialog_id)) {
         return false;
       }
     }

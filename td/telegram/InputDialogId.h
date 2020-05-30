@@ -42,6 +42,8 @@ class InputDialogId {
 
   static bool are_equivalent(const vector<InputDialogId> &lhs, const vector<InputDialogId> &rhs);
 
+  static bool contains(const vector<InputDialogId> &input_dialog_ids, DialogId dialog_id);
+
   bool operator==(const InputDialogId &other) const {
     return dialog_id == other.dialog_id && access_hash == other.access_hash;
   }
