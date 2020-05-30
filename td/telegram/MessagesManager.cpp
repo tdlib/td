@@ -26959,18 +26959,58 @@ SearchMessagesFilter MessagesManager::get_search_messages_filter(
   }
 }
 
-void MessagesManager::set_dialog_folder_id(DialogId dialog_id, FolderId folder_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatChatList request to change folder of " << dialog_id << " to " << folder_id;
+void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive addChatToList request to add " << dialog_id << " to " << dialog_list_id;
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(6, "Can't access the chat"));
   }
 
   if (d->order == DEFAULT_ORDER) {
     return promise.set_error(Status::Error(400, "Chat is not in a chat list"));
   }
 
+  if (get_dialog_list(dialog_list_id) == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat list not found"));
+  }
+
+  if (dialog_list_id.is_filter()) {
+    auto dialog_filter_id = dialog_list_id.get_filter_id();
+    auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
+    CHECK(old_dialog_filter != nullptr);
+    if (InputDialogId::contains(old_dialog_filter->included_dialog_ids, dialog_id) ||
+        InputDialogId::contains(old_dialog_filter->pinned_dialog_ids, dialog_id)) {
+      return promise.set_value(Unit());
+    }
+
+    auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
+    new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
+    td::remove_if(new_dialog_filter->excluded_dialog_ids,
+                  [dialog_id](InputDialogId input_dialog_id) { return dialog_id == input_dialog_id.get_dialog_id(); });
+
+    auto status = check_dialog_filter_limits(new_dialog_filter.get());
+    if (status.is_error()) {
+      return promise.set_error(std::move(status));
+    }
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
+
+    edit_dialog_filter(std::move(new_dialog_filter), "add_dialog_to_list");
+    save_dialog_filters();
+    send_update_chat_filters();
+
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      synchronize_dialog_filters();
+    }
+
+    return promise.set_value(Unit());
+  }
+
+  CHECK(dialog_list_id.is_folder());
+  auto folder_id = dialog_list_id.get_folder_id();
   if (d->folder_id == folder_id) {
     return promise.set_value(Unit());
   }
@@ -26979,10 +27019,6 @@ void MessagesManager::set_dialog_folder_id(DialogId dialog_id, FolderId folder_i
       (dialog_id == get_my_dialog_id() ||
        dialog_id == DialogId(td_->contacts_manager_->get_service_notifications_user_id()))) {
     return promise.set_error(Status::Error(400, "Chat can't be archived"));
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(6, "Can't access the chat"));
   }
 
   set_dialog_folder_id(d, folder_id);

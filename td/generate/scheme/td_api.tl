@@ -3712,8 +3712,9 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Moves a chat to a different chat list @chat_id Chat identifier @chat_list New chat list of the chat, must be one of chatListMain or chatListArchived. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
-setChatChatList chat_id:int53 chat_list:ChatList = Ok;
+//@description Adds a chat to a chat list. A chat can't be simultaneously in Main and Archive chat lists, so it is automatically removed from another one if needed. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
+//@chat_id Chat identifier @chat_list The chat list
+addChatToList chat_id:int53 chat_list:ChatList = Ok;
 
 //@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier
 getChatFilter chat_filter_id:int32 = ChatFilter;

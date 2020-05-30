@@ -447,7 +447,7 @@ class MessagesManager : public Actor {
 
   void send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise);
 
-  void set_dialog_folder_id(DialogId dialog_id, FolderId folder_id, Promise<Unit> &&promise);
+  void add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise);
 
   void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo, Promise<Unit> &&promise);
 

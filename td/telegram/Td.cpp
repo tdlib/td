@@ -5874,15 +5874,11 @@ void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupCh
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
 }
 
-void Td::on_request(uint64 id, const td_api::setChatChatList &request) {
+void Td::on_request(uint64 id, const td_api::addChatToList &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  DialogListId dialog_list_id(request.chat_list_);
-  if (!dialog_list_id.is_folder()) {
-    return send_error_raw(id, 400, "Wrong chat list specified");
-  }
-  messages_manager_->set_dialog_folder_id(DialogId(request.chat_id_), dialog_list_id.get_folder_id(),
-                                          std::move(promise));
+  messages_manager_->add_dialog_to_list(DialogId(request.chat_id_), DialogListId(request.chat_list_),
+                                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatFilter &request) {
