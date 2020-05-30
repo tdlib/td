@@ -203,20 +203,30 @@ class TestPingActor : public Actor {
   IPAddress ip_address_;
   unique_ptr<mtproto::PingConnection> ping_connection_;
   Status *result_;
+  bool is_inited_ = false;
 
   void start_up() override {
+    auto r_socket = SocketFd::open(ip_address_);
+    if (r_socket.is_error()) {
+      LOG(ERROR) << "Failed to open socket: " << r_socket.error();
+      return stop();
+    }
+
     ping_connection_ = mtproto::PingConnection::create_req_pq(
         make_unique<mtproto::RawConnection>(
-            SocketFd::open(ip_address_).move_as_ok(),
-            mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr),
+            r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
+            nullptr),
         3);
 
     Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
+    is_inited_ = true;
     set_timeout_in(10);
     yield();
   }
   void tear_down() override {
-    Scheduler::unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
+    if (is_inited_) {
+      Scheduler::unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
+    }
     Scheduler::instance()->finish();
   }
 
@@ -317,9 +327,15 @@ class HandshakeTestActor : public Actor {
   }
   void loop() override {
     if (!wait_for_raw_connection_ && !raw_connection_) {
+      auto r_socket = SocketFd::open(get_default_ip_address());
+      if (r_socket.is_error()) {
+        finish(Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error()));
+        return stop();
+      }
+
       raw_connection_ = make_unique<mtproto::RawConnection>(
-          SocketFd::open(get_default_ip_address()).move_as_ok(),
-          mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
+          r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
+          nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
       handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
@@ -440,6 +456,9 @@ class Socks5TestActor : public Actor {
     IPAddress mtproto_ip_address = get_default_ip_address();
 
     auto r_socket = SocketFd::open(socks5_ip);
+    if (r_socket.is_error()) {
+      return promise.set_error(Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error()));
+    }
     create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip_address, "", "",
                          make_unique<Callback>(std::move(promise)), actor_shared())
         .release();
@@ -513,9 +532,14 @@ class FastPingTestActor : public Actor {
 
   void start_up() override {
     // Run handshake to create key and salt
+    auto r_socket = SocketFd::open(get_default_ip_address());
+    if (r_socket.is_error()) {
+      *result_ = Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error());
+      return stop();
+    }
+
     auto raw_connection = make_unique<mtproto::RawConnection>(
-        SocketFd::open(get_default_ip_address()).move_as_ok(),
-        mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
+        r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
     create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
@@ -646,7 +670,9 @@ TEST(Mtproto, TlsTransport) {
         class Callback : public TransparentProxy::Callback {
          public:
           void set_result(Result<SocketFd> result) override {
-            CHECK(result.is_error() && result.error().message() == "Response hash mismatch");
+            if (!result.is_error() || result.error().message() != "Response hash mismatch") {
+              LOG(ERROR) << "Receive unexpected result";
+            }
             Scheduler::instance()->finish();
           }
           void on_connected() override {
@@ -661,9 +687,14 @@ TEST(Mtproto, TlsTransport) {
           Scheduler::instance()->finish();
           return;
         }
-        SocketFd fd = SocketFd::open(ip_address).move_as_ok();
-        create_actor<mtproto::TlsInit>("TlsInit", std::move(fd), domain, "0123456789secret", make_unique<Callback>(),
-                                       ActorShared<>(), Clocks::system() - Time::now())
+        auto r_socket = SocketFd::open(ip_address);
+        if (r_socket.is_error()) {
+          LOG(ERROR) << "Failed to open socket: " << r_socket.error();
+          Scheduler::instance()->finish();
+          return;
+        }
+        create_actor<mtproto::TlsInit>("TlsInit", r_socket.move_as_ok(), domain, "0123456789secret",
+                                       make_unique<Callback>(), ActorShared<>(), Clocks::system() - Time::now())
             .release();
       }
     };
