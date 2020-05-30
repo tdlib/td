@@ -1325,15 +1325,15 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     std::unordered_set<Slice, SliceHash> option_data;
     for (auto &answer : poll_server->answers_) {
       if (answer->option_.empty()) {
-        LOG(ERROR) << "Receive " << poll_id << " with empty option data: " << to_string(poll_server);
+        LOG(ERROR) << "Receive " << poll_id << " with an empty option data: " << to_string(poll_server);
         return PollId();
       }
       option_data.insert(answer->option_.as_slice());
     }
     if (option_data.size() != poll_server->answers_.size()) {
       LOG(ERROR) << "Receive " << poll_id << " with duplicate options: " << to_string(poll_server);
+      return PollId();
     }
-    return PollId();
   }
 
   auto poll = get_poll_force(poll_id);
