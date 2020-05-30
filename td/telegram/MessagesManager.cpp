@@ -29192,6 +29192,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
     return;
   }
 
+  // can be called multiple times before after_get_channel_difference
   const Dialog *d = get_dialog(dialog_id);
   if (d != nullptr) {
     if (d->message_notification_group.group_id.is_valid()) {
