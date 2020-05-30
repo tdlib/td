@@ -44,6 +44,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/PathView.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
@@ -2075,9 +2076,17 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
+    auto mime_type = get_sticker_mime_type(s);
+    if (!s->is_animated && !s->set_id.is_valid()) {
+      auto suggested_name = file_view.suggested_name();
+      const PathView path_view(suggested_name);
+      if (path_view.extension() == "tgs") {
+        mime_type = "application/x-tgsticker";
+      }
+    }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), get_sticker_mime_type(s),
-        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
+        vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
     CHECK(!file_view.has_remote_location());
   }
