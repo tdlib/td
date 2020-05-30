@@ -17350,23 +17350,6 @@ td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(Dialo
   }
 }
 
-td_api::object_ptr<td_api::ChatList> MessagesManager::get_chat_list_object(DialogListId dialog_list_id) {
-  if (dialog_list_id.is_folder()) {
-    if (dialog_list_id == DialogListId(FolderId::archive())) {
-      return td_api::make_object<td_api::chatListArchive>();
-    }
-    if (dialog_list_id == DialogListId(FolderId::main())) {
-      return td_api::make_object<td_api::chatListMain>();
-    }
-    return td_api::make_object<td_api::chatListMain>();
-  }
-  if (dialog_list_id.is_filter()) {
-    return td_api::make_object<td_api::chatListFilter>(dialog_list_id.get_filter_id().get());
-  }
-  UNREACHABLE();
-  return nullptr;
-}
-
 td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) const {
   CHECK(d != nullptr);
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
@@ -25014,7 +24997,7 @@ void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, con
   LOG(INFO) << "Send updateChatPosition for " << d->dialog_id << " in " << dialog_list_id << " from " << source;
   auto position = get_chat_position_object(dialog_list_id, d);
   if (position == nullptr) {
-    position = td_api::make_object<td_api::chatPosition>(get_chat_list_object(dialog_list_id), 0, false, nullptr);
+    position = td_api::make_object<td_api::chatPosition>(dialog_list_id.get_chat_list_object(), 0, false, nullptr);
   }
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatPosition>(d->dialog_id.get(), std::move(position)));
@@ -30477,7 +30460,7 @@ td_api::object_ptr<td_api::chatPosition> MessagesManager::get_chat_position_obje
   }
 
   auto chat_source = order.is_sponsored ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
-  return td_api::make_object<td_api::chatPosition>(get_chat_list_object(dialog_list_id), order.public_order,
+  return td_api::make_object<td_api::chatPosition>(dialog_list_id.get_chat_list_object(), order.public_order,
                                                    order.is_pinned, std::move(chat_source));
 }
 
@@ -33232,7 +33215,7 @@ td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update
   int32 unread_unmuted_count = list.unread_message_total_count_ - list.unread_message_muted_count_;
   CHECK(unread_count >= 0);
   CHECK(unread_unmuted_count >= 0);
-  return td_api::make_object<td_api::updateUnreadMessageCount>(get_chat_list_object(list.dialog_list_id), unread_count,
+  return td_api::make_object<td_api::updateUnreadMessageCount>(list.dialog_list_id.get_chat_list_object(), unread_count,
                                                                unread_unmuted_count);
 }
 
@@ -33249,7 +33232,7 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
   CHECK(unread_marked_count >= 0);
   CHECK(unread_unmuted_marked_count >= 0);
   return td_api::make_object<td_api::updateUnreadChatCount>(
-      get_chat_list_object(list.dialog_list_id), get_dialog_total_count(list), unread_count, unread_unmuted_count,
+      list.dialog_list_id.get_chat_list_object(), get_dialog_total_count(list), unread_count, unread_unmuted_count,
       unread_marked_count, unread_unmuted_marked_count);
 }
 

@@ -61,6 +61,24 @@ class DialogListId {
     }
   }
 
+  td_api::object_ptr<td_api::ChatList> get_chat_list_object() const {
+    if (is_folder()) {
+      auto folder_id = get_folder_id();
+      if (folder_id == FolderId::archive()) {
+        return td_api::make_object<td_api::chatListArchive>();
+      }
+      if (folder_id == FolderId::main()) {
+        return td_api::make_object<td_api::chatListMain>();
+      }
+      return td_api::make_object<td_api::chatListMain>();
+    }
+    if (is_filter()) {
+      return td_api::make_object<td_api::chatListFilter>(get_filter_id().get());
+    }
+    UNREACHABLE();
+    return nullptr;
+  }
+
   int64 get() const {
     return id;
   }
