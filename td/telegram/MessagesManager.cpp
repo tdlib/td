@@ -14280,6 +14280,10 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
 }
 
 void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
@@ -14297,8 +14301,16 @@ double MessagesManager::get_dialog_filters_cache_time() const {
 }
 
 void MessagesManager::schedule_dialog_filters_reload(double timeout) {
-  if (timeout < 0) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+  if (timeout <= 0) {
     timeout = 0.0;
+    if (dialog_filters_updated_date_ != 0) {
+      dialog_filters_updated_date_ = 0;
+      save_dialog_filters();
+    }
   }
   LOG(INFO) << "Schedule reload of chat filters in " << timeout;
   reload_dialog_filters_timeout_.set_callback(std::move(MessagesManager::on_reload_dialog_filters_timeout));
@@ -26055,8 +26067,6 @@ void MessagesManager::on_update_dialog_filters() {
     // just in case
     return;
   }
-
-  // TODO logevent
 
   schedule_dialog_filters_reload(0.0);
 }
