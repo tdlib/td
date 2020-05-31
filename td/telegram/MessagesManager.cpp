@@ -10488,8 +10488,9 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
       if (total_count < 0) {
-        LOG(ERROR) << "Total message notification count is " << total_count << " in " << d->dialog_id << " with "
-                   << d->pending_new_message_notifications.size() << " pending new message notifications";
+        LOG(ERROR) << "Total message notification count is " << total_count << " in " << d->dialog_id
+                   << " with old unread_count = " << old_unread_count << " and " << d->pending_new_message_notifications
+                   << " pending new message notifications after reading history up to " << message_id;
         total_count = 0;
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
