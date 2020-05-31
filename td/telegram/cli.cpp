@@ -3510,6 +3510,9 @@ class CliClient final : public Actor {
 
       std::tie(supergroup_id, force) = split(args);
       send_request(td_api::make_object<td_api::createSupergroupChat>(as_supergroup_id(supergroup_id), as_bool(force)));
+    } else if (op == "gcltac") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::getChatListsToAddChat>(as_chat_id(chat_id)));
     } else if (op == "actl" || op == "actla" || begins_with(op, "actl-")) {
       string chat_id = args;
       send_request(td_api::make_object<td_api::addChatToList>(as_chat_id(chat_id), as_chat_list(op)));

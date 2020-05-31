@@ -14366,7 +14366,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
               << get_dialog_filter_ids(new_server_dialog_filters);
     bool is_changed = false;
     std::unordered_map<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
-    for (auto &filter : server_dialog_filters_) {
+    for (const auto &filter : server_dialog_filters_) {
       old_server_dialog_filters.emplace(filter->dialog_filter_id, filter.get());
     }
     for (const auto &new_server_filter : new_server_dialog_filters) {
@@ -14405,7 +14405,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
       }
     }
     vector<DialogFilterId> left_old_server_dialog_filter_ids;
-    for (auto &filter : server_dialog_filters_) {
+    for (const auto &filter : server_dialog_filters_) {
       if (old_server_dialog_filters.count(filter->dialog_filter_id) == 0) {
         left_old_server_dialog_filter_ids.push_back(filter->dialog_filter_id);
       }
@@ -14496,7 +14496,7 @@ void MessagesManager::synchronize_dialog_filters() {
 
   LOG(INFO) << "Synchronize chat filter changes with server having local " << get_dialog_filter_ids(dialog_filters_)
             << " and server " << get_dialog_filter_ids(server_dialog_filters_);
-  for (auto &server_dialog_filter : server_dialog_filters_) {
+  for (const auto &server_dialog_filter : server_dialog_filters_) {
     if (get_dialog_filter(server_dialog_filter->dialog_filter_id) == nullptr) {
       return delete_dialog_filter_on_server(server_dialog_filter->dialog_filter_id);
     }
@@ -26942,6 +26942,45 @@ SearchMessagesFilter MessagesManager::get_search_messages_filter(
   }
 }
 
+vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId dialog_id) {
+  vector<DialogListId> result;
+  const Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr || d->order == DEFAULT_ORDER || !have_input_peer(dialog_id, AccessRights::Read)) {
+    return result;
+  }
+
+  if (dialog_id != get_my_dialog_id() &&
+      dialog_id != DialogId(td_->contacts_manager_->get_service_notifications_user_id())) {
+    result.push_back(DialogListId(d->folder_id == FolderId::archive() ? FolderId::main() : FolderId::archive()));
+  }
+
+  for (const auto &dialog_filter : dialog_filters_) {
+    auto dialog_filter_id = dialog_filter->dialog_filter_id;
+    if (!InputDialogId::contains(dialog_filter->included_dialog_ids, dialog_id) &&
+        !InputDialogId::contains(dialog_filter->pinned_dialog_ids, dialog_id)) {
+      // the dialog isn't added yet to the dialog list
+      // check that it can be actually added
+      if (dialog_filter->included_dialog_ids.size() + dialog_filter->pinned_dialog_ids.size() <
+          MAX_INCLUDED_FILTER_DIALOGS) {
+        // fast path
+        result.push_back(DialogListId(dialog_filter_id));
+        continue;
+      }
+
+      auto new_dialog_filter = make_unique<DialogFilter>(*dialog_filter);
+      new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
+      td::remove_if(new_dialog_filter->excluded_dialog_ids, [dialog_id](InputDialogId input_dialog_id) {
+        return dialog_id == input_dialog_id.get_dialog_id();
+      });
+
+      if (check_dialog_filter_limits(new_dialog_filter.get()).is_ok()) {
+        result.push_back(DialogListId(dialog_filter_id));
+      }
+    }
+  }
+  return result;
+}
+
 void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Receive addChatToList request to add " << dialog_id << " to " << dialog_list_id;
 
@@ -31002,7 +31041,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 }
 
 const MessagesManager::DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
-  for (auto &filter : server_dialog_filters_) {
+  for (const auto &filter : server_dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter_id) {
       return filter.get();
     }
@@ -31020,7 +31059,7 @@ MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId
 }
 
 const MessagesManager::DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) const {
-  for (auto &filter : dialog_filters_) {
+  for (const auto &filter : dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter_id) {
       return filter.get();
     }

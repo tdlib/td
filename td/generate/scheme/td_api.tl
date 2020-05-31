@@ -689,6 +689,9 @@ chatListArchive = ChatList;
 //@description A list of chats belonging to a chat filter @chat_filter_id Chat filter identifier
 chatListFilter chat_filter_id:int32 = ChatList;
 
+//@description Contains a list of chat lists @chat_lists List of chat lists
+chatLists chat_lists:vector<ChatList> = ChatLists;
+
 
 //@class ChatSource @description Describes a reason why an external chat is shown in a chat list
 
@@ -3712,8 +3715,11 @@ createNewSecretChat user_id:int32 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Adds a chat to a chat list. A chat can't be simultaneously in Main and Archive chat lists, so it is automatically removed from another one if needed. The chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be moved to the Archive chat list
-//@chat_id Chat identifier @chat_list The chat list
+//@description Returns chat lists to which the chat can be added. This is an offline request @chat_id Chat identifier
+getChatListsToAddChat chat_id:int53 = ChatLists;
+
+//@description Adds a chat to a chat list. A chat can't be simultaneously in Main and Archive chat lists, so it is automatically removed from another one if needed
+//@chat_id Chat identifier @chat_list The chat list. Use getChatListsToAddChat to get suitable chat lists
 addChatToList chat_id:int53 chat_list:ChatList = Ok;
 
 //@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier

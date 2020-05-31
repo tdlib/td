@@ -5874,6 +5874,14 @@ void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupCh
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::getChatListsToAddChat &request) {
+  CHECK_IS_USER();
+  auto dialog_lists = messages_manager_->get_dialog_lists_to_add_dialog(DialogId(request.chat_id_));
+  auto chat_lists =
+      transform(dialog_lists, [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::chatLists>(std::move(chat_lists)));
+}
+
 void Td::on_request(uint64 id, const td_api::addChatToList &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
