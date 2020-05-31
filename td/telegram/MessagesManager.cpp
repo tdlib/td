@@ -13031,11 +13031,13 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       update_dialog_pos(d, "on_get_dialogs");
     }
 
-    // set is_pinned only after updating dialog pos to ensure that order is initialized
-    bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
-    bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
-    if (is_pinned != was_pinned) {
-      set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+    if (!td_->auth_manager_->is_bot()) {
+      // set is_pinned only after updating dialog pos to ensure that order is initialized
+      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+      bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
+      if (is_pinned != was_pinned) {
+        set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+      }
     }
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
@@ -26999,6 +27001,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
 
 void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Receive addChatToList request to add " << dialog_id << " to " << dialog_list_id;
+  CHECK(!td_->auth_manager_->is_bot());
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -30849,6 +30852,7 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
 }
 
 void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (list.last_pinned_dialog_date_ == MAX_DIALOG_DATE) {
     return;
   }
@@ -30871,6 +30875,7 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool
 }
 
 void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_update) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto new_last_dialog_date = list.last_pinned_dialog_date_;
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
     const auto &folder = *get_dialog_folder(folder_id);
@@ -31825,11 +31830,13 @@ void MessagesManager::on_get_channel_difference(
                             std::move(difference->messages_));
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
 
-      // set is_pinned only after updating dialog pos to ensure that order is initialized
-      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
-      bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
-      if (is_pinned != was_pinned) {
-        set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+      if (!td_->auth_manager_->is_bot()) {
+        // set is_pinned only after updating dialog pos to ensure that order is initialized
+        bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+        bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
+        if (is_pinned != was_pinned) {
+          set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+        }
       }
 
       set_channel_pts(d, new_pts, "channel difference too long");
