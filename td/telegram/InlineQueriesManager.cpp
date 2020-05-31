@@ -866,8 +866,26 @@ tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
 }
 
 template <>
-tl_object_ptr<td_api::animatedThumbnail> copy(const td_api::animatedThumbnail &obj) {
-  return make_tl_object<td_api::animatedThumbnail>(obj.width_, obj.height_, copy(obj.animation_));
+tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
+  auto format = [&]() -> td_api::object_ptr<td_api::ThumbnailFormat> {
+    switch (obj.format_->get_id()) {
+      case td_api::thumbnailFormatJpeg::ID:
+        return td_api::make_object<td_api::thumbnailFormatJpeg>();
+      case td_api::thumbnailFormatPng::ID:
+        return td_api::make_object<td_api::thumbnailFormatPng>();
+      case td_api::thumbnailFormatWebp::ID:
+        return td_api::make_object<td_api::thumbnailFormatWebp>();
+      case td_api::thumbnailFormatTgs::ID:
+        return td_api::make_object<td_api::thumbnailFormatTgs>();
+      case td_api::thumbnailFormatMpeg4::ID:
+        return td_api::make_object<td_api::thumbnailFormatMpeg4>();
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
+
+  return make_tl_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.thumbnail_));
 }
 
 static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
@@ -900,7 +918,7 @@ template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
   return make_tl_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                            obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
-                                           copy(obj.animated_thumbnail_), copy(obj.animation_));
+                                           copy(obj.animation_));
 }
 
 template <>
@@ -933,7 +951,7 @@ template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
   return make_tl_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                        obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
-                                       copy(obj.thumbnail_), copy(obj.animated_thumbnail_), copy(obj.video_));
+                                       copy(obj.thumbnail_), copy(obj.video_));
 }
 
 template <>
@@ -1066,7 +1084,7 @@ tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending
   return copy(it->second.results);
 }
 
-tl_object_ptr<td_api::photoSize> InlineQueriesManager::register_thumbnail(
+tl_object_ptr<td_api::thumbnail> InlineQueriesManager::register_thumbnail(
     tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const {
   PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                                     std::move(web_document_ptr));
@@ -1074,7 +1092,7 @@ tl_object_ptr<td_api::photoSize> InlineQueriesManager::register_thumbnail(
     return nullptr;
   }
 
-  return get_photo_size_object(td_->file_manager_.get(), &thumbnail);
+  return get_thumbnail_object(td_->file_manager_.get(), thumbnail, PhotoFormat::Jpeg);
 }
 
 string InlineQueriesManager::get_web_document_url(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr) {
@@ -1207,7 +1225,8 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
 
               auto document = make_tl_object<td_api::inlineQueryResultDocument>();
               document->id_ = std::move(result->id_);
-              document->document_ = td_->documents_manager_->get_document_object(parsed_document.file_id);
+              document->document_ =
+                  td_->documents_manager_->get_document_object(parsed_document.file_id, PhotoFormat::Jpeg);
               document->title_ = std::move(result->title_);
               document->description_ = std::move(result->description_);
 
@@ -1473,7 +1492,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           } else if (result->type_ == "file" && parsed_document.type == Document::Type::General) {
             auto document = make_tl_object<td_api::inlineQueryResultDocument>();
             document->id_ = std::move(result->id_);
-            document->document_ = td_->documents_manager_->get_document_object(file_id);
+            document->document_ = td_->documents_manager_->get_document_object(file_id, PhotoFormat::Jpeg);
             document->title_ = std::move(result->title_);
             document->description_ = std::move(result->description_);
             if (!register_inline_message_content(results->query_id_, document->id_, file_id,

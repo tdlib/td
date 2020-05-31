@@ -37,12 +37,13 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
   CHECK(video != nullptr);
   video->is_changed = false;
 
-  return make_tl_object<td_api::video>(
-      video->duration, video->dimensions.width, video->dimensions.height, video->file_name, video->mime_type,
-      video->has_stickers, video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
-      get_photo_size_object(td_->file_manager_.get(), &video->thumbnail),
-      get_animated_thumbnail_object(td_->file_manager_.get(), &video->animated_thumbnail),
-      td_->file_manager_->get_file_object(file_id));
+  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
+                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
+                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  return make_tl_object<td_api::video>(video->duration, video->dimensions.width, video->dimensions.height,
+                                       video->file_name, video->mime_type, video->has_stickers,
+                                       video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
+                                       std::move(thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {

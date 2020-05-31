@@ -1054,7 +1054,8 @@ td_api::object_ptr<td_api::background> BackgroundManager::get_background_object(
   }
   return td_api::make_object<td_api::background>(
       background->id.get(), background->is_default, background->is_dark, background->name,
-      td_->documents_manager_->get_document_object(background->file_id), get_background_type_object(*type));
+      td_->documents_manager_->get_document_object(background->file_id, PhotoFormat::Png),
+      get_background_type_object(*type));
 }
 
 td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_object(bool for_dark_theme) const {

@@ -4366,8 +4366,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Document: {
       const MessageDocument *m = static_cast<const MessageDocument *>(content);
-      return make_tl_object<td_api::messageDocument>(td->documents_manager_->get_document_object(m->file_id),
-                                                     get_formatted_text_object(m->caption));
+      return make_tl_object<td_api::messageDocument>(
+          td->documents_manager_->get_document_object(m->file_id, PhotoFormat::Jpeg),
+          get_formatted_text_object(m->caption));
     }
     case MessageContentType::Game: {
       const MessageGame *m = static_cast<const MessageGame *>(content);

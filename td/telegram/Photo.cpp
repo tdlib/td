@@ -95,6 +95,24 @@ td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string 
   return nullptr;
 }
 
+static td_api::object_ptr<td_api::ThumbnailFormat> get_thumbnail_format_object(PhotoFormat format) {
+  switch (format) {
+    case PhotoFormat::Jpeg:
+      return td_api::make_object<td_api::thumbnailFormatJpeg>();
+    case PhotoFormat::Png:
+      return td_api::make_object<td_api::thumbnailFormatPng>();
+    case PhotoFormat::Webp:
+      return td_api::make_object<td_api::thumbnailFormatWebp>();
+    case PhotoFormat::Tgs:
+      return td_api::make_object<td_api::thumbnailFormatTgs>();
+    case PhotoFormat::Mpeg4:
+      return td_api::make_object<td_api::thumbnailFormatMpeg4>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat format) {
   switch (format) {
     case PhotoFormat::Jpeg:
@@ -468,7 +486,18 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   return s;
 }
 
-tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size) {
+td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
+                                                           PhotoFormat format) {
+  if (!photo_size.file_id.is_valid()) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::thumbnail>(get_thumbnail_format_object(format), photo_size.dimensions.width,
+                                                photo_size.dimensions.height,
+                                                file_manager->get_file_object(photo_size.file_id));
+}
+
+static tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size) {
   if (photo_size == nullptr || !photo_size->file_id.is_valid()) {
     return nullptr;
   }
@@ -479,18 +508,8 @@ tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager
       file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height);
 }
 
-td_api::object_ptr<td_api::animatedThumbnail> get_animated_thumbnail_object(FileManager *file_manager,
-                                                                            const PhotoSize *photo_size) {
-  if (photo_size == nullptr || !photo_size->file_id.is_valid()) {
-    return nullptr;
-  }
-
-  return td_api::make_object<td_api::animatedThumbnail>(photo_size->dimensions.width, photo_size->dimensions.height,
-                                                        file_manager->get_file_object(photo_size->file_id));
-}
-
-vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
-                                                                     const vector<PhotoSize> &photo_sizes) {
+static vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
+                                                                            const vector<PhotoSize> &photo_sizes) {
   auto sizes = transform(photo_sizes, [file_manager](const PhotoSize &photo_size) {
     return get_photo_size_object(file_manager, &photo_size);
   });

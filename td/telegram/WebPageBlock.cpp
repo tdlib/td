@@ -156,7 +156,7 @@ class RichText {
         auto width = static_cast<int32>(dimensions / 65536);
         auto height = static_cast<int32>(dimensions % 65536);
         return make_tl_object<td_api::richTextIcon>(
-            context->td_->documents_manager_->get_document_object(document_file_id), width, height);
+            context->td_->documents_manager_->get_document_object(document_file_id, PhotoFormat::Jpeg), width, height);
       }
       case RichText::Type::Anchor: {
         if (context->is_first_pass_) {

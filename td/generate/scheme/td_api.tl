@@ -181,11 +181,30 @@ inputFileGenerated original_path:string conversion:string expected_size:int32 = 
 //@description Photo description @type Thumbnail type (see https://core.telegram.org/constructor/photoSize) @photo Information about the photo file @width Photo width @height Photo height
 photoSize type:string photo:file width:int32 height:int32 = PhotoSize;
 
-//@description A short animated thumbnail of a file in the MPEG4 format @width Animation width @height Animation height @animation The thumbnail
-animatedThumbnail width:int32 height:int32 animation:file = AnimatedThumbnail;
-
 //@description Thumbnail image of a very poor quality and low resolution @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
 minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;
+
+
+//@class ThumbnailFormat @description Describes format of the thumbnail
+
+//@description The thumbnail is in JPEG format
+thumbnailFormatJpeg = ThumbnailFormat;
+
+//@description The thumbnail is in PNG format. It will be used only for background patterns
+thumbnailFormatPng = ThumbnailFormat;
+
+//@description The thumbnail is in WEBP format. It will be used only for some stickers
+thumbnailFormatWebp = ThumbnailFormat;
+
+//@description The thumbnail is in TGS format. It will be used only for animated sticker sets
+thumbnailFormatTgs = ThumbnailFormat;
+
+//@description The thumbnail is in MPEG4 format. It will be used only for some animations and videos
+thumbnailFormatMpeg4 = ThumbnailFormat;
+
+
+//@description Represents a thumbnail @format Thumbnail format @width Thumbnail width @height Thumbnail height @thumbnail The thumbnail
+thumbnail format:ThumbnailFormat width:int32 height:int32 thumbnail:file = Thumbnail;
 
 
 //@class MaskPoint @description Part of the face, relative to which a mask should be placed
@@ -228,35 +247,38 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4"
 //@has_stickers True, if stickers were added to the animation. The list of corresponding sticker set can be received using getAttachedStickerSets
-//@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail; may be null
-//@animated_thumbnail A short animated thumbnail of the animation in the MPEG4 format; may be null @animation File containing the animation
-animation duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool minithumbnail:minithumbnail thumbnail:photoSize animated_thumbnail:animatedThumbnail animation:file = Animation;
+//@minithumbnail Animation minithumbnail; may be null @thumbnail Animation thumbnail in JPEG or MPEG4 format; may be null @animation File containing the animation
+animation duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool minithumbnail:minithumbnail thumbnail:thumbnail animation:file = Animation;
 
 //@description Describes an audio file. Audio is usually in MP3 or M4A format @duration Duration of the audio, in seconds; as defined by the sender @title Title of the audio; as defined by the sender @performer Performer of the audio; as defined by the sender
-//@file_name Original name of the file; as defined by the sender @mime_type The MIME type of the file; as defined by the sender @album_cover_minithumbnail The minithumbnail of the album cover; may be null @album_cover_thumbnail The thumbnail of the album cover; as defined by the sender. The full size thumbnail should be extracted from the downloaded file; may be null @audio File containing the audio
-audio duration:int32 title:string performer:string file_name:string mime_type:string album_cover_minithumbnail:minithumbnail album_cover_thumbnail:photoSize audio:file = Audio;
+//@file_name Original name of the file; as defined by the sender @mime_type The MIME type of the file; as defined by the sender @album_cover_minithumbnail The minithumbnail of the album cover; may be null
+//@album_cover_thumbnail The thumbnail of the album cover in JPEG format; as defined by the sender. The full size thumbnail should be extracted from the downloaded file; may be null @audio File containing the audio
+audio duration:int32 title:string performer:string file_name:string mime_type:string album_cover_minithumbnail:minithumbnail album_cover_thumbnail:thumbnail audio:file = Audio;
 
 //@description Describes a document of any type @file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
 //@minithumbnail Document minithumbnail; may be null @thumbnail Document thumbnail in JPEG or PNG format (PNG will be used only for background patterns); as defined by the sender; may be null @document File containing the document
-document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:photoSize document:file = Document;
+document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail:thumbnail document:file = Document;
 
 //@description Describes a photo @has_stickers True, if stickers were added to the photo. The list of corresponding sticker sets can be received using getAttachedStickerSets
 //@minithumbnail Photo minithumbnail; may be null @sizes Available variants of the photo, in different sizes
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
-//@emoji Emoji corresponding to the sticker @is_animated True, if the sticker is an animated sticker in TGS format @is_mask True, if the sticker is a mask @mask_position Position where the mask should be placed; may be null @thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_mask:Bool mask_position:maskPosition thumbnail:photoSize sticker:file = Sticker;
+//@emoji Emoji corresponding to the sticker @is_animated True, if the sticker is an animated sticker in TGS format @is_mask True, if the sticker is a mask @mask_position Position where the mask should be placed; may be null
+//@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
+sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_mask:Bool mask_position:maskPosition thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
 //@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
-//@supports_streaming True, if the video should be tried to be streamed @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null
-//@animated_thumbnail A short animated thumbnail of the video in the MPEG4 format; may be null @video File containing the video
-video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:photoSize animated_thumbnail:animatedThumbnail video:file = Video;
+//@supports_streaming True, if the video should be tried to be streamed @minithumbnail Video minithumbnail; may be null
+//@thumbnail Video thumbnail in JPEG or MPEG4 format; as defined by the sender; may be null @video File containing the video
+video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail video:file = Video;
 
-//@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender @length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
-videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:photoSize video:file = VideoNote;
+//@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender
+//@length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null
+//@thumbnail Video thumbnail in JPEG format; as defined by the sender; may be null @video File containing the video
+videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thumbnail video:file = VideoNote;
 
 //@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel @duration Duration of the voice note, in seconds; as defined by the sender
 //@waveform A waveform representation of the voice note in 5-bit format @mime_type MIME type of the file; as defined by the sender @voice File containing the voice note
@@ -1784,18 +1806,18 @@ stickers stickers:vector<sticker> = Stickers;
 emojis emojis:vector<string> = Emojis;
 
 //@description Represents a sticker set
-//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format with width and height 100; may be null. The file can be downloaded only before the thumbnail is changed
+//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP or TGS format with width and height 100; may be null. The file can be downloaded only before the thumbnail is changed
 //@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
 //@is_official True, if the sticker set is official @is_animated True, is the stickers in the set are animated @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
 //@stickers List of stickers in this set @emojis A list of emoji corresponding to the stickers in the same order. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object
-stickerSet id:int64 title:string name:string thumbnail:photoSize is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<emojis> = StickerSet;
+stickerSet id:int64 title:string name:string thumbnail:thumbnail is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<emojis> = StickerSet;
 
 //@description Represents short information about a sticker set
-//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP format with width and height 100; may be null
+//@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP or TGS format with width and height 100; may be null
 //@is_installed True, if the sticker set has been installed by current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
 //@is_official True, if the sticker set is official @is_animated True, is the stickers in the set are animated @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
 //@size Total number of stickers in the set @covers Contains up to the first 5 stickers from the set, depending on the context. If the client needs more stickers the full set should be requested
-stickerSetInfo id:int64 title:string name:string thumbnail:photoSize is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
+stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
 
 //@description Represents a list of sticker sets @total_count Approximate total number of sticker sets found @sets List of sticker sets
 stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;
@@ -1980,17 +2002,17 @@ inputInlineQueryResultVoiceNote id:string title:string voice_note_url:string voi
 //@class InlineQueryResult @description Represents a single result of an inline query
 
 //@description Represents a link to an article or web page @id Unique identifier of the query result @url URL of the result, if it exists @hide_url True, if the URL must be not shown @title Title of the result
-//@param_description A short description of the result @thumbnail Result thumbnail; may be null
-inlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail:photoSize = InlineQueryResult;
+//@param_description A short description of the result @thumbnail Result thumbnail in JPEG format; may be null
+inlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents a user contact @id Unique identifier of the query result @contact A user contact @thumbnail Result thumbnail; may be null
-inlineQueryResultContact id:string contact:contact thumbnail:photoSize = InlineQueryResult;
+//@description Represents a user contact @id Unique identifier of the query result @contact A user contact @thumbnail Result thumbnail in JPEG format; may be null
+inlineQueryResultContact id:string contact:contact thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents a point on the map @id Unique identifier of the query result @location Location result @title Title of the result @thumbnail Result thumbnail; may be null
-inlineQueryResultLocation id:string location:location title:string thumbnail:photoSize = InlineQueryResult;
+//@description Represents a point on the map @id Unique identifier of the query result @location Location result @title Title of the result @thumbnail Result thumbnail in JPEG format; may be null
+inlineQueryResultLocation id:string location:location title:string thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents information about a venue @id Unique identifier of the query result @venue Venue result @thumbnail Result thumbnail; may be null
-inlineQueryResultVenue id:string venue:venue thumbnail:photoSize = InlineQueryResult;
+//@description Represents information about a venue @id Unique identifier of the query result @venue Venue result @thumbnail Result thumbnail in JPEG format; may be null
+inlineQueryResultVenue id:string venue:venue thumbnail:thumbnail = InlineQueryResult;
 
 //@description Represents information about a game @id Unique identifier of the query result @game Game result
 inlineQueryResultGame id:string game:game = InlineQueryResult;

@@ -48,7 +48,7 @@ namespace td {
 DocumentsManager::DocumentsManager(Td *td) : td_(td) {
 }
 
-tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id) {
+tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id, PhotoFormat thumbnail_format) {
   if (!file_id.is_valid()) {
     return nullptr;
   }
@@ -57,10 +57,10 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
   auto &document = documents_[file_id];
   LOG_CHECK(document != nullptr) << tag("file_id", file_id);
   document->is_changed = false;
-  return make_tl_object<td_api::document>(document->file_name, document->mime_type,
-                                          get_minithumbnail_object(document->minithumbnail),
-                                          get_photo_size_object(td_->file_manager_.get(), &document->thumbnail),
-                                          td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::document>(
+      document->file_name, document->mime_type, get_minithumbnail_object(document->minithumbnail),
+      get_thumbnail_object(td_->file_manager_.get(), document->thumbnail, thumbnail_format),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
@@ -234,6 +234,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       default_extension = Slice("tgs");
       owner_dialog_id = DialogId();
       file_name.clear();
+      thumbnail_format = PhotoFormat::Webp;
     }
   };
 

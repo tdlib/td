@@ -160,12 +160,14 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
                                   << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
   // TODO can we make that function const?
   animation->is_changed = false;
-  return make_tl_object<td_api::animation>(
-      animation->duration, animation->dimensions.width, animation->dimensions.height, animation->file_name,
-      animation->mime_type, animation->has_stickers, get_minithumbnail_object(animation->minithumbnail),
-      get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
-      get_animated_thumbnail_object(td_->file_manager_.get(), &animation->animated_thumbnail),
-      td_->file_manager_->get_file_object(file_id));
+  auto thumbnail =
+      animation->animated_thumbnail.file_id.is_valid()
+          ? get_thumbnail_object(td_->file_manager_.get(), animation->animated_thumbnail, PhotoFormat::Mpeg4)
+          : get_thumbnail_object(td_->file_manager_.get(), animation->thumbnail, PhotoFormat::Jpeg);
+  return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,
+                                           animation->dimensions.height, animation->file_name, animation->mime_type,
+                                           animation->has_stickers, get_minithumbnail_object(animation->minithumbnail),
+                                           std::move(thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, bool replace) {

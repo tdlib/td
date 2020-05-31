@@ -216,7 +216,7 @@ class NotificationTypePushMessage : public NotificationType {
         if (key == "MESSAGE_DOCUMENT") {
           auto documents_manager = G()->td().get_actor_unsafe()->documents_manager_.get();
           return td_api::make_object<td_api::pushMessageContentDocument>(
-              documents_manager->get_document_object(document.file_id), is_pinned);
+              documents_manager->get_document_object(document.file_id, PhotoFormat::Jpeg), is_pinned);
         }
         break;
       case 'F':

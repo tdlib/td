@@ -36,10 +36,11 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
   auto &audio = audios_[file_id];
   CHECK(audio != nullptr);
   audio->is_changed = false;
-  return make_tl_object<td_api::audio>(audio->duration, audio->title, audio->performer, audio->file_name,
-                                       audio->mime_type, get_minithumbnail_object(audio->minithumbnail),
-                                       get_photo_size_object(td_->file_manager_.get(), &audio->thumbnail),
-                                       td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::audio>(
+      audio->duration, audio->title, audio->performer, audio->file_name, audio->mime_type,
+      get_minithumbnail_object(audio->minithumbnail),
+      get_thumbnail_object(td_->file_manager_.get(), audio->thumbnail, PhotoFormat::Jpeg),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {

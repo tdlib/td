@@ -38,10 +38,10 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
   CHECK(video_note != nullptr);
   video_note->is_changed = false;
 
-  return make_tl_object<td_api::videoNote>(video_note->duration, video_note->dimensions.width,
-                                           get_minithumbnail_object(video_note->minithumbnail),
-                                           get_photo_size_object(td_->file_manager_.get(), &video_note->thumbnail),
-                                           td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::videoNote>(
+      video_note->duration, video_note->dimensions.width, get_minithumbnail_object(video_note->minithumbnail),
+      get_thumbnail_object(td_->file_manager_.get(), video_note->thumbnail, PhotoFormat::Jpeg),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace) {

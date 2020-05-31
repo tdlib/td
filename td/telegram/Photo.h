@@ -103,11 +103,8 @@ PhotoSize get_video_photo_size(FileManager *file_manager, PhotoSizeSource source
                                tl_object_ptr<telegram_api::videoSize> &&size);
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
-td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size);
-vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
-                                                                     const vector<PhotoSize> &photo_sizes);
-td_api::object_ptr<td_api::animatedThumbnail> get_animated_thumbnail_object(FileManager *file_manager,
-                                                                            const PhotoSize *photo_size);
+td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
+                                                           PhotoFormat format);
 
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs);
 bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs);

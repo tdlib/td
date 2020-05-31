@@ -1264,7 +1264,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
           ? td_->audios_manager_->get_audio_object(web_page->document.file_id)
           : nullptr,
       web_page->document.type == Document::Type::General
-          ? td_->documents_manager_->get_document_object(web_page->document.file_id)
+          ? td_->documents_manager_->get_document_object(web_page->document.file_id, PhotoFormat::Jpeg)
           : nullptr,
       web_page->document.type == Document::Type::Sticker
           ? td_->stickers_manager_->get_sticker_object(web_page->document.file_id)
