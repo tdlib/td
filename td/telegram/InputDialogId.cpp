@@ -105,7 +105,7 @@ tl_object_ptr<telegram_api::InputPeer> InputDialogId::get_input_peer() const {
       return nullptr;
     default:
       UNREACHABLE();
-      return false;
+      return nullptr;
   }
 }
 
