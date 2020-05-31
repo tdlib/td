@@ -28521,7 +28521,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent())) {
+  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && from_update)) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && pinned_message_id < message_id &&
         have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
