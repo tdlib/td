@@ -14453,7 +14453,9 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   schedule_dialog_filters_reload(get_dialog_filters_cache_time());
   save_dialog_filters();
 
-  synchronize_dialog_filters();
+  if (need_synchronize_dialog_filters()) {
+    synchronize_dialog_filters();
+  }
 }
 
 bool MessagesManager::need_synchronize_dialog_filters() const {
@@ -14494,7 +14496,8 @@ void MessagesManager::synchronize_dialog_filters() {
     return reload_dialog_filters();
   }
   if (!need_synchronize_dialog_filters()) {
-    return;
+    // reload filters to repair their order if the server added new filter to the beginning of the list
+    return reload_dialog_filters();
   }
 
   LOG(INFO) << "Synchronize chat filter changes with server having local " << get_dialog_filter_ids(dialog_filters_)
