@@ -4994,25 +4994,40 @@ struct MessagesManager::DialogFilter {
         InputDialogId::get_input_peers(excluded_dialog_ids));
   }
 
+  static bool is_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
+    if (lhs.title == rhs.title) {
+      return true;
+    }
+    if (!are_flags_equal(lhs, rhs)) {
+      return false;
+    }
+
+    vector<InputDialogId> empty_input_dialog_ids;
+    if (InputDialogId::are_equivalent(lhs.excluded_dialog_ids, empty_input_dialog_ids) !=
+        InputDialogId::are_equivalent(rhs.excluded_dialog_ids, empty_input_dialog_ids)) {
+      return false;
+    }
+    if ((InputDialogId::are_equivalent(lhs.pinned_dialog_ids, empty_input_dialog_ids) &&
+         InputDialogId::are_equivalent(lhs.included_dialog_ids, empty_input_dialog_ids)) !=
+        (InputDialogId::are_equivalent(rhs.pinned_dialog_ids, empty_input_dialog_ids) &&
+         InputDialogId::are_equivalent(rhs.included_dialog_ids, empty_input_dialog_ids))) {
+      return false;
+    }
+
+    return true;
+  }
+
   static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs) {
     return lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
            InputDialogId::are_equivalent(lhs.pinned_dialog_ids, rhs.pinned_dialog_ids) &&
            InputDialogId::are_equivalent(lhs.included_dialog_ids, rhs.included_dialog_ids) &&
-           InputDialogId::are_equivalent(lhs.excluded_dialog_ids, rhs.excluded_dialog_ids) &&
-           lhs.exclude_muted == rhs.exclude_muted && lhs.exclude_read == rhs.exclude_read &&
-           lhs.exclude_archived == rhs.exclude_archived && lhs.include_contacts == rhs.include_contacts &&
-           lhs.include_non_contacts == rhs.include_non_contacts && lhs.include_bots == rhs.include_bots &&
-           lhs.include_groups == rhs.include_groups && lhs.include_channels == rhs.include_channels;
+           InputDialogId::are_equivalent(lhs.excluded_dialog_ids, rhs.excluded_dialog_ids) && are_flags_equal(lhs, rhs);
   }
 
   friend bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
     return lhs.dialog_filter_id == rhs.dialog_filter_id && lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
            lhs.pinned_dialog_ids == rhs.pinned_dialog_ids && lhs.included_dialog_ids == rhs.included_dialog_ids &&
-           lhs.excluded_dialog_ids == rhs.excluded_dialog_ids && lhs.exclude_muted == rhs.exclude_muted &&
-           lhs.exclude_read == rhs.exclude_read && lhs.exclude_archived == rhs.exclude_archived &&
-           lhs.include_contacts == rhs.include_contacts && lhs.include_non_contacts == rhs.include_non_contacts &&
-           lhs.include_bots == rhs.include_bots && lhs.include_groups == rhs.include_groups &&
-           lhs.include_channels == rhs.include_channels;
+           lhs.excluded_dialog_ids == rhs.excluded_dialog_ids && are_flags_equal(lhs, rhs);
   }
 
   friend bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {
@@ -5052,6 +5067,13 @@ struct MessagesManager::DialogFilter {
       return true;
     }();
     CHECK(is_inited);
+  }
+
+  static bool are_flags_equal(const DialogFilter &lhs, const DialogFilter &rhs) {
+    return lhs.exclude_muted == rhs.exclude_muted && lhs.exclude_read == rhs.exclude_read &&
+           lhs.exclude_archived == rhs.exclude_archived && lhs.include_contacts == rhs.include_contacts &&
+           lhs.include_non_contacts == rhs.include_non_contacts && lhs.include_bots == rhs.include_bots &&
+           lhs.include_groups == rhs.include_groups && lhs.include_channels == rhs.include_channels;
   }
 };
 
@@ -11126,7 +11148,7 @@ void MessagesManager::init() {
           }
         }
         for (auto &dialog_filter : log_event.dialog_filters_out) {
-          add_dialog_filter(std::move(dialog_filter), "binlog");
+          add_dialog_filter(std::move(dialog_filter), false, "binlog");
         }
         LOG(INFO) << "Loaded server chat filters " << get_dialog_filter_ids(server_dialog_filters_)
                   << " and local chat filters " << get_dialog_filter_ids(dialog_filters_);
@@ -14051,6 +14073,7 @@ void MessagesManager::on_load_recommended_dialog_filters(
     return td_api::make_object<td_api::recommendedChatFilter>(get_chat_filter_object(filter.dialog_filter.get()),
                                                               filter.description);
   });
+  recommended_dialog_filters_ = std::move(filters);
   promise.set_value(td_api::make_object<td_api::recommendedChatFilters>(std::move(chat_filters)));
 }
 
@@ -14494,7 +14517,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         if (old_filter == nullptr) {
           // the filter was added from another client
           is_changed = true;
-          add_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters");
+          add_dialog_filter(make_unique<DialogFilter>(*new_server_filter), false, "on_get_dialog_filters");
         } else {
           // the filter was added from this client
           // after that it could be added from another client, or edited from this client, or edited from another client
@@ -15714,7 +15737,14 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   auto dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(dialog_filter != nullptr);
 
-  add_dialog_filter(std::move(dialog_filter), "create_dialog_filter");
+  bool at_beginning = false;
+  for (auto &recommended_dialog_filter : recommended_dialog_filters_) {
+    if (DialogFilter::is_similar(*recommended_dialog_filter.dialog_filter, *dialog_filter)) {
+      at_beginning = true;
+    }
+  }
+
+  add_dialog_filter(std::move(dialog_filter), at_beginning, "create_dialog_filter");
   save_dialog_filters();
   send_update_chat_filters();
 
@@ -15925,7 +15955,7 @@ bool MessagesManager::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> 
   return true;
 }
 
-void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source) {
+void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
@@ -15935,7 +15965,11 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
   auto dialog_filter_id = dialog_filter->dialog_filter_id;
   LOG(INFO) << "Add " << dialog_filter_id << " from " << source;
   CHECK(get_dialog_filter(dialog_filter_id) == nullptr);
-  dialog_filters_.push_back(std::move(dialog_filter));
+  if (at_beginning) {
+    dialog_filters_.insert(dialog_filters_.begin(), std::move(dialog_filter));
+  } else {
+    dialog_filters_.push_back(std::move(dialog_filter));
+  }
 
   auto dialog_list_id = DialogListId(dialog_filter_id);
   CHECK(dialog_lists_.find(dialog_list_id) == dialog_lists_.end());

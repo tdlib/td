@@ -2287,7 +2287,7 @@ class MessagesManager : public Actor {
 
   void save_dialog_filters();
 
-  void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, const char *source);
+  void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning, const char *source);
 
   void edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source);
 
@@ -2918,6 +2918,7 @@ class MessagesManager : public Actor {
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;
+  vector<RecommendedDialogFilter> recommended_dialog_filters_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
