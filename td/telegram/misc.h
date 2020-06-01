@@ -39,4 +39,7 @@ string get_emoji_fingerprint(uint64 num);
 // checks whether url is a valid tg, ton or HTTP(S) URL and returns its in a canonical form
 Result<string> check_url(Slice url);
 
+// removes all emoji modifiers
+string remove_emoji_modifiers(string emoji);
+
 }  // namespace td

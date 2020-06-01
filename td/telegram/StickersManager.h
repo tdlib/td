@@ -614,8 +614,6 @@ class StickersManager : public Actor {
   void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
                                     Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
 
-  static string remove_emoji_modifiers(string emoji);
-
   Td *td_;
   ActorShared<> parent_;
   std::unordered_map<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker

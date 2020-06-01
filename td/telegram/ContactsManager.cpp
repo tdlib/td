@@ -12016,6 +12016,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
     }
   }
 
+  LOG(INFO) << "Full " << chat_id << " is up-to-date with version " << chat_full->version;
   return false;
 }
 

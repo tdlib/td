@@ -1089,10 +1089,12 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::chatFilter> as_chat_filter(string filter) const {
     string title;
+    string icon_name;
     string pinned_chat_ids;
     string included_chat_ids;
     string excluded_chat_ids;
     std::tie(title, filter) = split(filter);
+    std::tie(icon_name, filter) = split(filter);
     std::tie(pinned_chat_ids, filter) = split(filter);
     std::tie(included_chat_ids, filter) = split(filter);
     std::tie(excluded_chat_ids, filter) = split(filter);
@@ -1102,7 +1104,7 @@ class CliClient final : public Actor {
     };
 
     return td_api::make_object<td_api::chatFilter>(
-        title, string(), as_chat_ids(pinned_chat_ids), as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids),
+        title, icon_name, as_chat_ids(pinned_chat_ids), as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids),
         rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
   }
 

@@ -137,6 +137,7 @@ class UpdateDialogFilterQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    LOG(ERROR) << "Receive error for UpdateDialogFilterQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -4908,8 +4909,59 @@ struct MessagesManager::DialogFilter {
     }
   }
 
+  static string get_emoji_by_icon_name(const string &icon_name) {
+    init_icon_names();
+    auto it = icon_name_to_emoji_.find(icon_name);
+    if (it != icon_name_to_emoji_.end()) {
+      return it->second;
+    }
+    return string();
+  }
+
+  string get_icon_name() const {
+    init_icon_names();
+    auto it = emoji_to_icon_name_.find(emoji);
+    if (it != emoji_to_icon_name_.end()) {
+      return it->second;
+    }
+
+    if (!pinned_dialog_ids.empty() || !included_dialog_ids.empty() || !excluded_dialog_ids.empty()) {
+      return "Custom";
+    }
+
+    if (include_contacts || include_non_contacts) {
+      if (!include_bots && !include_groups && !include_channels) {
+        return "Private";
+      }
+    } else {
+      if (!include_bots && !include_channels) {
+        if (!include_groups) {
+          // just in case
+          return "Custom";
+        }
+        return "Groups";
+      }
+      if (!include_bots && !include_groups) {
+        return "Channels";
+      }
+      if (!include_groups && !include_channels) {
+        return "Bots";
+      }
+    }
+    if (exclude_read && !exclude_muted) {
+      return "Unread";
+    }
+    if (exclude_muted && !exclude_read) {
+      return "Unmuted";
+    }
+    return "Custom";
+  }
+
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const {
-    int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
+    int32 flags = 0;
+    if (!emoji.empty()) {
+      flags |= telegram_api::dialogFilter::EMOTICON_MASK;
+    }
     if (exclude_muted) {
       flags |= telegram_api::dialogFilter::EXCLUDE_MUTED_MASK;
     }
@@ -4974,7 +5026,37 @@ struct MessagesManager::DialogFilter {
   friend bool operator!=(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
     return !(lhs == rhs);
   }
+
+ private:
+  static std::unordered_map<string, string> emoji_to_icon_name_;
+  static std::unordered_map<string, string> icon_name_to_emoji_;
+
+  static void init_icon_names() {
+    static bool is_inited = [&] {
+      vector<string> emojis{"\xF0\x9F\x92\xAC",         "\xE2\x9C\x85",     "\xF0\x9F\x94\x94",
+                            "\xF0\x9F\xA4\x96",         "\xF0\x9F\x93\xA2", "\xF0\x9F\x91\xA5",
+                            "\xF0\x9F\x91\xA4",         "\xF0\x9F\x93\x81", "\xF0\x9F\x93\x8B",
+                            "\xF0\x9F\x90\xB1",         "\xF0\x9F\x91\x91", "\xE2\xAD\x90\xEF\xB8\x8F",
+                            "\xF0\x9F\x8C\xB9",         "\xF0\x9F\x8E\xAE", "\xF0\x9F\x8F\xA0",
+                            "\xE2\x9D\xA4\xEF\xB8\x8F", "\xF0\x9F\x8E\xAD", "\xF0\x9F\x8D\xB8",
+                            "\xE2\x9A\xBD\xEF\xB8\x8F", "\xF0\x9F\x8E\x93", "\xF0\x9F\x93\x88",
+                            "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC"};
+      vector<string> icon_names{"All",   "Unread", "Unmuted", "Bots",     "Channels", "Groups", "Private", "Custom",
+                                "Setup", "Cat",    "Crown",   "Favorite", "Flower",   "Game",   "Home",    "Love",
+                                "Mask",  "Party",  "Sport",   "Study",    "Trade",    "Travel", "Work"};
+      CHECK(emojis.size() == icon_names.size());
+      for (size_t i = 0; i < emojis.size(); i++) {
+        emoji_to_icon_name_[remove_emoji_modifiers(emojis[i])] = icon_names[i];
+        icon_name_to_emoji_[icon_names[i]] = remove_emoji_modifiers(emojis[i]);
+      }
+      return true;
+    }();
+    CHECK(is_inited);
+  }
 };
+
+std::unordered_map<string, string> MessagesManager::DialogFilter::emoji_to_icon_name_;
+std::unordered_map<string, string> MessagesManager::DialogFilter::icon_name_to_emoji_;
 
 template <class StorerT>
 void MessagesManager::DialogFilter::store(StorerT &storer) const {
@@ -14730,7 +14812,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
     vector<DialogId> &common_dialog_ids = it->second.dialog_ids;
     bool use_cache = (!it->second.is_outdated && it->second.received_date >= Time::now() - 3600) || force ||
                      offset_chat_id != 0 || common_dialog_ids.size() >= static_cast<size_t>(MAX_GET_DIALOGS);
-    // use cache if it's up to date, or we required to use it or we can't update it
+    // use cache if it is up-to-date, or we required to use it or we can't update it
     if (use_cache) {
       auto offset_it = common_dialog_ids.begin();
       if (offset_dialog_id != DialogId()) {
@@ -15593,7 +15675,10 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
   if (dialog_filter->title.empty()) {
     return Status::Error(400, "Title must be non-empty");
   }
-  dialog_filter->emoji = std::move(filter->emoji_);
+  dialog_filter->emoji = DialogFilter::get_emoji_by_icon_name(filter->icon_name_);
+  if (dialog_filter->emoji.empty() && !filter->icon_name_.empty()) {
+    return Status::Error(400, "Wrong icon name specified");
+  }
   dialog_filter->exclude_muted = filter->exclude_muted_;
   dialog_filter->exclude_read = filter->exclude_read_;
   dialog_filter->exclude_archived = filter->exclude_archived_;
@@ -15645,12 +15730,25 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
     return promise.set_error(Status::Error(400, "Chat filter not found"));
   }
 
+  auto old_icon_name = old_dialog_filter->get_icon_name();
+  auto new_icon_name = filter->icon_name_;
   auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
   if (r_dialog_filter.is_error()) {
     return promise.set_error(r_dialog_filter.move_as_error());
   }
   auto new_dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(new_dialog_filter != nullptr);
+  if (new_icon_name.empty()) {
+    // keep old emoji
+    new_dialog_filter->emoji = old_dialog_filter->emoji;
+  } else if (new_icon_name == old_icon_name) {
+    // keep old emoji, but only if with it icon_name is exactly as specified
+    auto new_emoji = std::move(new_dialog_filter->emoji);
+    new_dialog_filter->emoji = old_dialog_filter->emoji;
+    if (new_dialog_filter->get_icon_name() != new_icon_name) {
+      new_dialog_filter->emoji = std::move(new_emoji);
+    }
+  }
 
   if (*new_dialog_filter == *old_dialog_filter) {
     return promise.set_value(Unit());
@@ -17531,10 +17629,10 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(c
     return chat_ids;
   };
   return td_api::make_object<td_api::chatFilter>(
-      filter->title, filter->emoji, get_chat_ids(filter->pinned_dialog_ids), get_chat_ids(filter->included_dialog_ids),
-      get_chat_ids(filter->excluded_dialog_ids), filter->exclude_muted, filter->exclude_read, filter->exclude_archived,
-      filter->include_contacts, filter->include_non_contacts, filter->include_bots, filter->include_groups,
-      filter->include_channels);
+      filter->title, filter->get_icon_name(), get_chat_ids(filter->pinned_dialog_ids),
+      get_chat_ids(filter->included_dialog_ids), get_chat_ids(filter->excluded_dialog_ids), filter->exclude_muted,
+      filter->exclude_read, filter->exclude_archived, filter->include_contacts, filter->include_non_contacts,
+      filter->include_bots, filter->include_groups, filter->include_channels);
 }
 
 td_api::object_ptr<td_api::updateScopeNotificationSettings>
@@ -33263,8 +33361,8 @@ td_api::object_ptr<td_api::updateChatFilters> MessagesManager::get_update_chat_f
   CHECK(!td_->auth_manager_->is_bot());
   auto update = td_api::make_object<td_api::updateChatFilters>();
   for (const auto &filter : dialog_filters_) {
-    update->chat_filters_.push_back(
-        td_api::make_object<td_api::chatFilterInfo>(filter->dialog_filter_id.get(), filter->title, filter->emoji));
+    update->chat_filters_.push_back(td_api::make_object<td_api::chatFilterInfo>(
+        filter->dialog_filter_id.get(), filter->title, filter->get_icon_name()));
   }
   return update;
 }

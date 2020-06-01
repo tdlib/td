@@ -673,7 +673,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 //@description Represents a filter of user chats
 //@title The title of the filter; 1-12 characters without line feeds
-//@emoji The emoji for short filter representation
+//@icon_name The icon name for short filter representation. Must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work". Pass an empty string for autodetection
 //@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list
 //@included_chat_ids The chat identifiers of always included chats in the filtered chat list
 //@excluded_chat_ids The chat identifiers of always excluded chats in the filtered chat list
@@ -685,13 +685,13 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@include_bots True, if bots need to be included
 //@include_groups True, if basic groups and supergroups need to be included
 //@include_channels True, if channels need to be included
-chatFilter title:string emoji:string pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
+chatFilter title:string icon_name:string pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
 
 //@description Contains basic information about a chat filter
 //@id Unique chat filter identifier
 //@title The title of the filter; 1-12 characters without line feeds
-//@emoji The emoji for short filter representation
-chatFilterInfo id:int32 title:string emoji:string = ChatFilterInfo;
+//@icon_name The icon name for short filter representation. One of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work"
+chatFilterInfo id:int32 title:string icon_name:string = ChatFilterInfo;
 
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
 recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
