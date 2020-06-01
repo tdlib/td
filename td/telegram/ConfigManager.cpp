@@ -579,7 +579,7 @@ class ConfigRecoverer : public Actor {
     loop();
   }
   void on_connecting(bool is_connecting) {
-    VLOG(config_recoverer) << "ON CONNECTING " << is_connecting;
+    VLOG(config_recoverer) << "On connecting " << is_connecting;
     if (is_connecting && !is_connecting_) {
       connecting_since_ = Time::now_cached();
     }
@@ -726,7 +726,7 @@ class ConfigRecoverer : public Actor {
 
   uint32 ref_cnt_{1};
   bool close_flag_{false};
-  uint8 simple_config_turn_{0};
+  uint32 simple_config_turn_{0};
 
   ActorShared<> parent_;
 
@@ -757,9 +757,9 @@ class ConfigRecoverer : public Actor {
     }
 
     if (is_connecting_) {
-      VLOG(config_recoverer) << "Failed to connect for " << Time::now_cached() - connecting_since_;
+      VLOG(config_recoverer) << "Failed to connect for " << Time::now() - connecting_since_;
     } else {
-      VLOG(config_recoverer) << "Successfully connected";
+      VLOG(config_recoverer) << "Successfully connected in " << Time::now() - connecting_since_;
     }
 
     Timestamp wakeup_timestamp;
@@ -786,24 +786,28 @@ class ConfigRecoverer : public Actor {
                             check_timeout(Timestamp::at(dc_options_at_ + (expect_blocking() ? 5 : 10)));
     if (need_simple_config) {
       ref_cnt_++;
-      VLOG(config_recoverer) << "ASK SIMPLE CONFIG";
+      VLOG(config_recoverer) << "Ask simple config with turn " << simple_config_turn_;
       auto promise =
           PromiseCreator::lambda([actor_id = actor_shared(this)](Result<SimpleConfigResult> r_simple_config) {
             send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
           });
       auto get_simple_config = [&] {
-        switch (simple_config_turn_ % 4) {
-          case 2:
+        switch (simple_config_turn_ % 10) {
+          case 6:
             return get_simple_config_azure;
-          case 3:
+          case 2:
             return get_simple_config_firebase_remote_config;
           case 4:
             return get_simple_config_firebase_realtime;
-          case 5:
+          case 9:
             return get_simple_config_firebase_firestore;
           case 0:
+          case 3:
+          case 8:
             return get_simple_config_google_dns;
           case 1:
+          case 5:
+          case 7:
           default:
             return get_simple_config_mozilla_dns;
         }
@@ -815,7 +819,7 @@ class ConfigRecoverer : public Actor {
 
     if (need_full_config) {
       ref_cnt_++;
-      VLOG(config_recoverer) << "ASK FULL CONFIG";
+      VLOG(config_recoverer) << "Ask full config with dc_options_i_ = " << dc_options_i_;
       full_config_query_ =
           get_full_config(dc_options_.dc_options[dc_options_i_],
                           PromiseCreator::lambda([actor_id = actor_id(this)](Result<FullConfig> r_full_config) {
@@ -829,7 +833,7 @@ class ConfigRecoverer : public Actor {
       VLOG(config_recoverer) << "Wakeup in " << format::as_time(wakeup_timestamp.in());
       set_timeout_at(wakeup_timestamp.at());
     } else {
-      VLOG(config_recoverer) << "Wakeup NEVER";
+      VLOG(config_recoverer) << "Wakeup never";
     }
   }
 
