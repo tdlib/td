@@ -313,6 +313,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       animated_thumbnail = std::move(remote_document.thumbnail);
     } else {
       thumbnail = std::move(remote_document.thumbnail);
+      if (remote_document.thumbnail.type == 'g') {
+        thumbnail_format = PhotoFormat::Gif;
+      }
     }
 
     auto web_document_ptr = std::move(remote_document.web_document);

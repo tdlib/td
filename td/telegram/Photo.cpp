@@ -103,6 +103,8 @@ static td_api::object_ptr<td_api::ThumbnailFormat> get_thumbnail_format_object(P
       return td_api::make_object<td_api::thumbnailFormatPng>();
     case PhotoFormat::Webp:
       return td_api::make_object<td_api::thumbnailFormatWebp>();
+    case PhotoFormat::Gif:
+      return td_api::make_object<td_api::thumbnailFormatGif>();
     case PhotoFormat::Tgs:
       return td_api::make_object<td_api::thumbnailFormatTgs>();
     case PhotoFormat::Mpeg4:
@@ -121,6 +123,8 @@ static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat form
       return string_builder << "png";
     case PhotoFormat::Webp:
       return string_builder << "webp";
+    case PhotoFormat::Gif:
+      return string_builder << "gif";
     case PhotoFormat::Tgs:
       return string_builder << "tgs";
     case PhotoFormat::Mpeg4:
@@ -455,6 +459,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   }
   CHECK(file_id.is_valid());
   bool is_animation = mime_type == "video/mp4";
+  bool is_gif = mime_type == "image/gif";
 
   Dimensions dimensions;
   for (auto &attribute : attributes) {
@@ -479,7 +484,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   }
 
   PhotoSize s;
-  s.type = is_animation ? 'v' : (file_type == FileType::Thumbnail ? 't' : 'u');
+  s.type = is_animation ? 'v' : (is_gif ? 'g' : (file_type == FileType::Thumbnail ? 't' : 'u'));
   s.dimensions = dimensions;
   s.size = size;
   s.file_id = file_id;
@@ -490,6 +495,10 @@ td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_man
                                                            PhotoFormat format) {
   if (!photo_size.file_id.is_valid()) {
     return nullptr;
+  }
+
+  if (format == PhotoFormat::Jpeg && photo_size.type == 'g') {
+    format = PhotoFormat::Gif;
   }
 
   return td_api::make_object<td_api::thumbnail>(get_thumbnail_format_object(format), photo_size.dimensions.width,
@@ -628,7 +637,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
                              DialogId owner_dialog_id) {
   PhotoSize s = get_web_document_photo_size(file_manager, FileType::Photo, owner_dialog_id, std::move(web_document));
   Photo photo;
-  if (!s.file_id.is_valid() || s.type == 'v') {
+  if (!s.file_id.is_valid() || s.type == 'v' || s.type == 'g') {
     photo.id = -2;
   } else {
     photo.id = 0;

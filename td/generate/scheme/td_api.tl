@@ -196,6 +196,9 @@ thumbnailFormatPng = ThumbnailFormat;
 //@description The thumbnail is in WEBP format. It will be used only for some stickers
 thumbnailFormatWebp = ThumbnailFormat;
 
+//@description The thumbnail is in static GIF format. It will be used only for some bot inline results
+thumbnailFormatGif = ThumbnailFormat;
+
 //@description The thumbnail is in TGS format. It will be used only for animated sticker sets
 thumbnailFormatTgs = ThumbnailFormat;
 

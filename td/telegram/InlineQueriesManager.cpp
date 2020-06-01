@@ -1092,7 +1092,8 @@ tl_object_ptr<td_api::thumbnail> InlineQueriesManager::register_thumbnail(
     return nullptr;
   }
 
-  return get_thumbnail_object(td_->file_manager_.get(), thumbnail, PhotoFormat::Jpeg);
+  return get_thumbnail_object(td_->file_manager_.get(), thumbnail,
+                              thumbnail.type == 'g' ? PhotoFormat::Gif : PhotoFormat::Jpeg);
 }
 
 string InlineQueriesManager::get_web_document_url(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr) {
@@ -1414,7 +1415,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
 
           PhotoSize photo_size = get_web_document_photo_size(td_->file_manager_.get(), FileType::Temp, DialogId(),
                                                              std::move(result->content_));
-          if (!photo_size.file_id.is_valid() || photo_size.type == 'v') {
+          if (!photo_size.file_id.is_valid() || photo_size.type == 'v' || photo_size.type == 'g') {
             LOG(ERROR) << "Receive invalid web document photo";
             continue;
           }
@@ -1422,7 +1423,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           Photo new_photo;
           PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                                             std::move(result->thumb_));
-          if (thumbnail.file_id.is_valid() && thumbnail.type != 'v') {
+          if (thumbnail.file_id.is_valid() && thumbnail.type != 'v' && thumbnail.type != 'g') {
             new_photo.photos.push_back(std::move(thumbnail));
           }
           new_photo.photos.push_back(std::move(photo_size));
