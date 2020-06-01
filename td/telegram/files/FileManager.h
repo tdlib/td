@@ -403,7 +403,8 @@ class FileManager : public FileLoadManager::Callback {
 
   FileId register_empty(FileType type);
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
-                                bool get_by_hash = false, bool force = false) TD_WARN_UNUSED_RESULT;
+                                bool get_by_hash = false, bool force = false,
+                                bool skip_file_size_checks = false) TD_WARN_UNUSED_RESULT;
   FileId register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
                          DialogId owner_dialog_id, int64 size, int64 expected_size, string name) TD_WARN_UNUSED_RESULT;
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
@@ -485,8 +486,8 @@ class FileManager : public FileLoadManager::Callback {
 
   FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
                       DialogId owner_dialog_id);
-  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
-                               bool force);
+  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source, bool force,
+                               bool skip_file_size_checks = false);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
 
@@ -581,7 +582,7 @@ class FileManager : public FileLoadManager::Callback {
 
   Status check_local_location(FileNodePtr node);
   bool try_fix_partial_local_location(FileNodePtr node);
-  Status check_local_location(FullLocalFileLocation &location, int64 &size);
+  Status check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks);
   void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);
   void try_flush_node(FileNodePtr node, const char *source);
   void try_flush_node_info(FileNodePtr node, const char *source);

@@ -868,7 +868,7 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
   return false;
 }
 
-Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size) {
+Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
   constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 KB */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
 
@@ -903,6 +903,9 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
                 << ", new mtime = " << stat.mtime_nsec_;
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
+  if (skip_file_size_checks) {
+    return Status::OK();
+  }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size >= MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
@@ -934,7 +937,7 @@ static Status check_partial_local_location(const PartialLocalFileLocation &locat
 Status FileManager::check_local_location(FileNodePtr node) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {
-    status = check_local_location(node->local_.full(), node->size_);
+    status = check_local_location(node->local_.full(), node->size_, false);
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     status = check_partial_local_location(node->local_.partial());
   }
@@ -1035,13 +1038,14 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
 }
 
 Result<FileId> FileManager::register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
-                                           bool get_by_hash, bool force) {
+                                           bool get_by_hash, bool force, bool skip_file_size_checks) {
   // TODO: use get_by_hash
   FileData data;
   data.local_ = LocalFileLocation(std::move(location));
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
-  return register_file(std::move(data), FileLocationSource::None /*won't be used*/, "register_local", force);
+  return register_file(std::move(data), FileLocationSource::None /*won't be used*/, "register_local", force,
+                       skip_file_size_checks);
 }
 
 FileId FileManager::register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
@@ -1094,7 +1098,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
 }
 
 Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
-                                          bool force) {
+                                          bool force, bool skip_file_size_checks) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
@@ -1107,7 +1111,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       }
     }
 
-    auto status = check_local_location(data.local_.full(), data.size_);
+    auto status = check_local_location(data.local_.full(), data.size_, skip_file_size_checks);
     if (status.is_error()) {
       LOG(WARNING) << "Invalid " << data.local_.full() << ": " << status << " from " << source;
       data.local_ = LocalFileLocation();
@@ -3311,10 +3315,10 @@ void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &
   std::tie(query, was_active) = finish_query(query_id);
   auto file_id = query.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK of " << (is_new ? "new" : "checked") << " file " << file_id << " of size " << size;
-  auto r_new_file_id = register_local(local, DialogId(), size);
+  auto r_new_file_id = register_local(local, DialogId(), size, false, false, true);
   Status status = Status::OK();
   if (r_new_file_id.is_error()) {
-    status = Status::Error(PSLICE() << "Can't register local file after download: " << r_new_file_id.message());
+    status = Status::Error(PSLICE() << "Can't register local file after download: " << r_new_file_id.error().message());
   } else {
     if (is_new) {
       context_->on_new_file(size, get_file_view(r_new_file_id.ok()).get_allocated_local_size(), 1);
