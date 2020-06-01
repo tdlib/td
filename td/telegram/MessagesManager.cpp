@@ -7141,7 +7141,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
         }
       }
       if (!dialog_filters_.empty()) {
-        update_dialog_lists(d, get_dialog_orders(d), true, false, "update_dialog_unmute_timeout");
+        update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
       }
     }
   }
@@ -7224,7 +7224,7 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
           Dialog *d = dialog.second.get();
           if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
               get_dialog_notification_setting_scope(d->dialog_id) == scope) {
-            update_dialog_lists(d, get_dialog_orders(d), true, false, "update_scope_unmute_timeout");
+            update_dialog_lists(d, get_dialog_positions(d), true, false, "update_scope_unmute_timeout");
           }
         }
       }
@@ -10568,7 +10568,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     bool was_unread = old_unread_count != 0 || d->is_marked_as_unread;
     bool is_unread = new_unread_count != 0 || d->is_marked_as_unread;
     if (!dialog_filters_.empty() && was_unread != is_unread) {
-      update_dialog_lists(d, get_dialog_orders(d), true, false, "set_dialog_last_read_inbox_message_id");
+      update_dialog_lists(d, get_dialog_positions(d), true, false, "set_dialog_last_read_inbox_message_id");
     }
   }
 
@@ -12618,7 +12618,7 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
     return false;
   }
 
-  auto orders = get_dialog_orders(d);
+  auto positions = get_dialog_positions(d);
   auto *list = get_dialog_list(dialog_list_id);
   if (list == nullptr) {
     return false;
@@ -12664,7 +12664,7 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   }
 
   if (need_update_dialog_lists) {
-    update_dialog_lists(d, std::move(orders), true, false, "set_dialog_is_pinned");
+    update_dialog_lists(d, std::move(positions), true, false, "set_dialog_is_pinned");
   }
   return true;
 }
@@ -16077,25 +16077,26 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
           Dialog *d = get_dialog(dialog_id);
           CHECK(d != nullptr);
 
-          const DialogOrderInList old_order = get_dialog_order_in_list(old_list_ptr, d);
-          DialogOrderInList new_order;
+          const DialogPositionInList old_position = get_dialog_position_in_list(old_list_ptr, d);
+          DialogPositionInList new_position;
           if (need_dialog_in_filter(d, new_dialog_filter.get())) {
-            new_order.private_order = get_dialog_private_order(&new_list, d);
-            if (new_order.private_order != 0) {
-              new_order.public_order = DialogDate(new_order.private_order, dialog_id) <= new_list.list_last_dialog_date_
-                                           ? new_order.private_order
-                                           : 0;
-              new_order.is_pinned = get_dialog_pinned_order(&new_list, dialog_id) != DEFAULT_ORDER;
-              new_order.is_sponsored = is_dialog_sponsored(d);
+            new_position.private_order = get_dialog_private_order(&new_list, d);
+            if (new_position.private_order != 0) {
+              new_position.public_order =
+                  DialogDate(new_position.private_order, dialog_id) <= new_list.list_last_dialog_date_
+                      ? new_position.private_order
+                      : 0;
+              new_position.is_pinned = get_dialog_pinned_order(&new_list, dialog_id) != DEFAULT_ORDER;
+              new_position.is_sponsored = is_dialog_sponsored(d);
             }
           }
 
-          if (need_send_update_chat_position(old_order, new_order)) {
-            updated_position_dialogs.emplace(DialogDate(new_order.public_order, dialog_id), d);
+          if (need_send_update_chat_position(old_position, new_position)) {
+            updated_position_dialogs.emplace(DialogDate(new_position.public_order, dialog_id), d);
           }
 
-          bool was_in_list = old_order.private_order != 0;
-          bool is_in_list = new_order.private_order != 0;
+          bool was_in_list = old_position.private_order != 0;
+          bool is_in_list = new_position.private_order != 0;
           if (is_in_list) {
             if (!was_in_list) {
               add_dialog_to_list(d, dialog_list_id);
@@ -16227,12 +16228,12 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
           Dialog *d = get_dialog(dialog_id);
           CHECK(d != nullptr);
 
-          const DialogOrderInList old_order = get_dialog_order_in_list(list, d);
+          const DialogPositionInList old_position = get_dialog_position_in_list(list, d);
 
           if (is_dialog_in_list(d, dialog_list_id)) {
             remove_dialog_from_list(d, dialog_list_id);
 
-            if (old_order.public_order != 0) {
+            if (old_position.public_order != 0) {
               send_update_chat_position(dialog_list_id, d, source);
             }
           }
@@ -26016,7 +26017,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
     }
 
     if (!dialog_filters_.empty()) {
-      update_dialog_lists(d, get_dialog_orders(d), true, false, "set_dialog_is_marked_as_unread");
+      update_dialog_lists(d, get_dialog_positions(d), true, false, "set_dialog_is_marked_as_unread");
     }
   }
 }
@@ -26174,7 +26175,7 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
   LOG(INFO) << "Change " << d->dialog_id << " folder from " << d->folder_id << " to " << folder_id;
 
-  auto dialog_orders = get_dialog_orders(d);
+  auto dialog_positions = get_dialog_positions(d);
 
   if (get_dialog_pinned_order(DialogListId(d->folder_id), d->dialog_id) != DEFAULT_ORDER) {
     set_dialog_is_pinned(DialogListId(d->folder_id), d, false, false);
@@ -26191,7 +26192,7 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
   get_dialog_folder(d->folder_id)->ordered_dialogs_.insert(dialog_date);
 
-  update_dialog_lists(d, std::move(dialog_orders), true, false, "set_dialog_folder_id");
+  update_dialog_lists(d, std::move(dialog_positions), true, false, "set_dialog_folder_id");
 
   on_dialog_updated(d->dialog_id, "set_dialog_folder_id");
 }
@@ -26325,13 +26326,13 @@ void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool
     }
 
     if (!dialog_filters_.empty() && d->order != DEFAULT_ORDER) {
-      update_dialog_lists(d, get_dialog_orders(d), true, false, "on_dialog_user_is_contact_updated");
+      update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_contact_updated");
       td_->contacts_manager_->for_each_secret_chat_with_user(
           d->dialog_id.get_user_id(), [this](SecretChatId secret_chat_id) {
             DialogId dialog_id(secret_chat_id);
             auto d = get_dialog(dialog_id);  // must not create the dialog
             if (d != nullptr && d->is_update_new_chat_sent && d->order != DEFAULT_ORDER) {
-              update_dialog_lists(d, get_dialog_orders(d), true, false, "on_dialog_user_is_contact_updated");
+              update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_contact_updated");
             }
           });
     }
@@ -26376,13 +26377,13 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
     }
 
     if (!dialog_filters_.empty() && d->order != DEFAULT_ORDER) {
-      update_dialog_lists(d, get_dialog_orders(d), true, false, "on_dialog_user_is_deleted_updated");
+      update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_deleted_updated");
       td_->contacts_manager_->for_each_secret_chat_with_user(
           d->dialog_id.get_user_id(), [this](SecretChatId secret_chat_id) {
             DialogId dialog_id(secret_chat_id);
             auto d = get_dialog(dialog_id);  // must not create the dialog
             if (d != nullptr && d->is_update_new_chat_sent && d->order != DEFAULT_ORDER) {
-              update_dialog_lists(d, get_dialog_orders(d), true, false, "on_dialog_user_is_deleted_updated");
+              update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_deleted_updated");
             }
           });
     }
@@ -30644,14 +30645,14 @@ td_api::object_ptr<td_api::chatPosition> MessagesManager::get_chat_position_obje
     return nullptr;
   }
 
-  auto order = get_dialog_order_in_list(list, d);
-  if (order.public_order == 0) {
+  auto position = get_dialog_position_in_list(list, d);
+  if (position.public_order == 0) {
     return nullptr;
   }
 
-  auto chat_source = order.is_sponsored ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
-  return td_api::make_object<td_api::chatPosition>(dialog_list_id.get_chat_list_object(), order.public_order,
-                                                   order.is_pinned, std::move(chat_source));
+  auto chat_source = position.is_sponsored ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
+  return td_api::make_object<td_api::chatPosition>(dialog_list_id.get_chat_list_object(), position.public_order,
+                                                   position.is_pinned, std::move(chat_source));
 }
 
 vector<td_api::object_ptr<td_api::chatPosition>> MessagesManager::get_chat_positions_object(const Dialog *d) const {
@@ -30804,7 +30805,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
   LOG(INFO) << "Update order of " << dialog_id << " from " << d->order << " to " << new_order << " from " << source;
 
-  auto dialog_orders = get_dialog_orders(d);
+  auto dialog_positions = get_dialog_positions(d);
 
   if (folder.ordered_dialogs_.erase(old_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list from " << source;
@@ -30822,7 +30823,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
   update_dialogs_hints_rating(d);
 
-  update_dialog_lists(d, std::move(dialog_orders), need_send_update, is_loaded_from_database, source);
+  update_dialog_lists(d, std::move(dialog_positions), need_send_update, is_loaded_from_database, source);
 
   if (!is_loaded_from_database) {
     auto dialog_type = dialog_id.get_type();
@@ -30842,7 +30843,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 }
 
 void MessagesManager::update_dialog_lists(
-    Dialog *d, std::unordered_map<DialogListId, DialogOrderInList, DialogListIdHash> &&old_orders,
+    Dialog *d, std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
     bool need_send_update, bool is_loaded_from_database, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -30853,9 +30854,9 @@ void MessagesManager::update_dialog_lists(
   LOG(INFO) << "Update lists of " << dialog_id << " from " << source;
 
   if (d->order == DEFAULT_ORDER) {
-    for (auto &old_order : old_orders) {
-      if (old_order.second.is_pinned) {
-        set_dialog_is_pinned(old_order.first, d, false, false);
+    for (auto &old_position : old_positions) {
+      if (old_position.second.is_pinned) {
+        set_dialog_is_pinned(old_position.first, d, false, false);
       }
     }
 
@@ -30870,16 +30871,16 @@ void MessagesManager::update_dialog_lists(
     auto dialog_list_id = dialog_list.first;
     auto &list = dialog_list.second;
 
-    const DialogOrderInList &old_order = old_orders[dialog_list_id];
-    const DialogOrderInList new_order = get_dialog_order_in_list(&list, d, true);
+    const DialogPositionInList &old_position = old_positions[dialog_list_id];
+    const DialogPositionInList new_position = get_dialog_position_in_list(&list, d, true);
 
     // sponsored chat is never "in list"
-    bool was_in_list = old_order.order != DEFAULT_ORDER && old_order.private_order != 0;
-    bool is_in_list = new_order.order != DEFAULT_ORDER && new_order.private_order != 0;
+    bool was_in_list = old_position.order != DEFAULT_ORDER && old_position.private_order != 0;
+    bool is_in_list = new_position.order != DEFAULT_ORDER && new_position.private_order != 0;
     CHECK(was_in_list == is_dialog_in_list(d, dialog_list_id));
 
-    LOG(DEBUG) << "Updated position of " << dialog_id << " in " << dialog_list_id << " from " << old_order << " to "
-               << new_order;
+    LOG(DEBUG) << "Update position of " << dialog_id << " in " << dialog_list_id << " from " << old_position << " to "
+               << new_position;
 
     bool need_update_unread_chat_count = false;
     if (was_in_list != is_in_list) {
@@ -30899,7 +30900,7 @@ void MessagesManager::update_dialog_lists(
 
       if (!is_loaded_from_database) {
         need_update_unread_chat_count =
-            list.is_dialog_unread_count_inited_ && old_order.total_dialog_count != get_dialog_total_count(list);
+            list.is_dialog_unread_count_inited_ && old_position.total_dialog_count != get_dialog_total_count(list);
         auto unread_count = d->server_unread_count + d->local_unread_count;
         const char *change_source = was_in_list ? "on_dialog_leave" : "on_dialog_join";
         if (unread_count != 0 && list.is_message_unread_count_inited_) {
@@ -30936,15 +30937,15 @@ void MessagesManager::update_dialog_lists(
       }
     }
     if (!need_update_unread_chat_count && list.is_dialog_unread_count_inited_ &&
-        old_order.total_dialog_count != get_dialog_total_count(list)) {
+        old_position.total_dialog_count != get_dialog_total_count(list)) {
       send_update_unread_chat_count(list, dialog_id, true, "changed total count");
     }
 
-    if (need_send_update && need_send_update_chat_position(old_order, new_order)) {
+    if (need_send_update && need_send_update_chat_position(old_position, new_position)) {
       send_update_chat_position(dialog_list_id, d, source);
     }
 
-    if (!is_loaded_from_database && !old_order.is_sponsored && new_order.is_sponsored) {
+    if (!is_loaded_from_database && !old_position.is_sponsored && new_position.is_sponsored) {
       // a chat is sponsored only if user isn't a chat member
       remove_all_dialog_notifications(d, false, "update_dialog_lists 3");
       remove_all_dialog_notifications(d, true, "update_dialog_lists 4");
@@ -31361,48 +31362,48 @@ bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &lis
   return false;
 }
 
-bool MessagesManager::need_send_update_chat_position(const DialogOrderInList &old_order,
-                                                     const DialogOrderInList &new_order) {
-  if (old_order.public_order != new_order.public_order) {
+bool MessagesManager::need_send_update_chat_position(const DialogPositionInList &old_position,
+                                                     const DialogPositionInList &new_position) {
+  if (old_position.public_order != new_position.public_order) {
     return true;
   }
-  if (old_order.public_order == 0) {
+  if (old_position.public_order == 0) {
     return false;
   }
-  return old_order.is_pinned != new_order.is_pinned || old_order.is_sponsored != new_order.is_sponsored;
+  return old_position.is_pinned != new_position.is_pinned || old_position.is_sponsored != new_position.is_sponsored;
 }
 
-MessagesManager::DialogOrderInList MessagesManager::get_dialog_order_in_list(const DialogList *list, const Dialog *d,
-                                                                             bool actual) const {
+MessagesManager::DialogPositionInList MessagesManager::get_dialog_position_in_list(const DialogList *list,
+                                                                                   const Dialog *d, bool actual) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(list != nullptr);
   CHECK(d != nullptr);
 
-  DialogOrderInList order;
-  order.order = d->order;
+  DialogPositionInList position;
+  position.order = d->order;
   if (is_dialog_sponsored(d) || (actual ? need_dialog_in_list(d, *list) : is_dialog_in_list(d, list->dialog_list_id))) {
-    order.private_order = get_dialog_private_order(list, d);
+    position.private_order = get_dialog_private_order(list, d);
   }
-  if (order.private_order != 0) {
-    order.public_order =
-        DialogDate(order.private_order, d->dialog_id) <= list->list_last_dialog_date_ ? order.private_order : 0;
-    order.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
-    order.is_sponsored = is_dialog_sponsored(d);
+  if (position.private_order != 0) {
+    position.public_order =
+        DialogDate(position.private_order, d->dialog_id) <= list->list_last_dialog_date_ ? position.private_order : 0;
+    position.is_pinned = get_dialog_pinned_order(list, d->dialog_id) != DEFAULT_ORDER;
+    position.is_sponsored = is_dialog_sponsored(d);
   }
-  order.total_dialog_count = get_dialog_total_count(*list);
-  return order;
+  position.total_dialog_count = get_dialog_total_count(*list);
+  return position;
 }
 
-std::unordered_map<DialogListId, MessagesManager::DialogOrderInList, DialogListIdHash>
-MessagesManager::get_dialog_orders(const Dialog *d) const {
+std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash>
+MessagesManager::get_dialog_positions(const Dialog *d) const {
   CHECK(d != nullptr);
-  std::unordered_map<DialogListId, MessagesManager::DialogOrderInList, DialogListIdHash> orders;
+  std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash> positions;
   if (!td_->auth_manager_->is_bot()) {
     for (auto &dialog_list : dialog_lists_) {
-      orders.emplace(dialog_list.first, get_dialog_order_in_list(&dialog_list.second, d));
+      positions.emplace(dialog_list.first, get_dialog_position_in_list(&dialog_list.second, d));
     }
   }
-  return orders;
+  return positions;
 }
 
 vector<DialogListId> MessagesManager::get_dialog_list_ids(const Dialog *d) const {

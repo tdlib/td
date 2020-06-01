@@ -1331,7 +1331,7 @@ class MessagesManager : public Actor {
     }
   };
 
-  struct DialogOrderInList {
+  struct DialogPositionInList {
     int64 order = DEFAULT_ORDER;
     int64 private_order = 0;
     int64 public_order = 0;
@@ -1340,7 +1340,7 @@ class MessagesManager : public Actor {
 
     int32 total_dialog_count = 0;
 
-    friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogOrderInList &order) {
+    friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogPositionInList &order) {
       return string_builder << "order = " << order.order << ", private_order = " << order.private_order
                             << ", public_order = " << order.public_order << ", is_pinned = " << order.is_pinned
                             << ", is_sponsored = " << order.is_sponsored
@@ -2319,11 +2319,12 @@ class MessagesManager : public Actor {
 
   bool need_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
-  static bool need_send_update_chat_position(const DialogOrderInList &old_order, const DialogOrderInList &new_order);
+  static bool need_send_update_chat_position(const DialogPositionInList &old_position,
+                                             const DialogPositionInList &new_position);
 
-  DialogOrderInList get_dialog_order_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
+  DialogPositionInList get_dialog_position_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
 
-  std::unordered_map<DialogListId, DialogOrderInList, DialogListIdHash> get_dialog_orders(const Dialog *d) const;
+  std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> get_dialog_positions(const Dialog *d) const;
 
   vector<DialogListId> get_dialog_list_ids(const Dialog *d) const;
   DialogListView get_dialog_lists(const Dialog *d);
@@ -2528,7 +2529,7 @@ class MessagesManager : public Actor {
                         const char *source);
 
   void update_dialog_lists(Dialog *d,
-                           std::unordered_map<DialogListId, DialogOrderInList, DialogListIdHash> &&old_orders,
+                           std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
                            bool need_send_update, bool is_loaded_from_database, const char *source);
 
   void update_last_dialog_date(FolderId folder_id);
