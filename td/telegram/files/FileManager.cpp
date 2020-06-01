@@ -3306,17 +3306,27 @@ void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &
     return;
   }
 
-  auto query = finish_query(query_id).first;
+  Query query;
+  bool was_active;
+  std::tie(query, was_active) = finish_query(query_id);
   auto file_id = query.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK of " << (is_new ? "new" : "checked") << " file " << file_id << " of size " << size;
   auto r_new_file_id = register_local(local, DialogId(), size);
+  Status status = Status::OK();
   if (r_new_file_id.is_error()) {
-    LOG(ERROR) << "Can't register local file after download: " << r_new_file_id.error();
+    status = Status::Error(PSLICE() << "Can't register local file after download: " << r_new_file_id.message());
   } else {
     if (is_new) {
       context_->on_new_file(size, get_file_view(r_new_file_id.ok()).get_allocated_local_size(), 1);
     }
-    LOG_STATUS(merge(r_new_file_id.ok(), file_id));
+    auto r_file_id = merge(r_new_file_id.ok(), file_id);
+    if (r_file_id.is_error()) {
+      status = r_file_id.move_as_error();
+    }
+  }
+  if (status.is_error()) {
+    LOG(ERROR) << status.message();
+    return on_error_impl(get_file_node(file_id), query.type_, was_active, std::move(status));
   }
 }
 
