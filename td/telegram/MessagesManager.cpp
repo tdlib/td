@@ -6758,6 +6758,15 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
   return need_update_server;
 }
 
+void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until) {
+  auto now = G()->unix_time_cached();
+  if (!use_default && mute_until >= now && mute_until < now + 366 * 86400) {
+    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), mute_until - now + 1);
+  } else {
+    dialog_unmute_timeout_.cancel_timeout(dialog_id.get());
+  }
+}
+
 void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_default, int32 old_mute_until,
                                                    bool new_use_default, int32 new_mute_until) {
   if (td_->auth_manager_->is_bot()) {
@@ -6770,12 +6779,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
   }
   CHECK(d != nullptr);
 
-  auto now = G()->unix_time_cached();
-  if (!new_use_default && new_mute_until >= now && new_mute_until < now + 366 * 86400) {
-    dialog_unmute_timeout_.set_timeout_in(d->dialog_id.get(), new_mute_until - now + 1);
-  } else {
-    dialog_unmute_timeout_.cancel_timeout(d->dialog_id.get());
-  }
+  schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until);
 
   if (old_mute_until != -1 && need_unread_counter(d->order)) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
@@ -6918,7 +6922,7 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
   if (d->notification_settings.mute_until > now) {
     LOG(ERROR) << "Failed to unmute " << dialog_id << " in " << now << ", will be unmuted in "
                << d->notification_settings.mute_until;
-    update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
+    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until);
     return;
   }
 
@@ -29933,7 +29937,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.mute_until <= G()->unix_time()) {
     d->notification_settings.mute_until = 0;
   } else {
-    update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
+    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until);
   }
   if (d->pinned_message_notification_message_id.is_valid()) {
     auto pinned_message_id = d->pinned_message_notification_message_id;
