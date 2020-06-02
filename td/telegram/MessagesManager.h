@@ -76,6 +76,8 @@ namespace td {
 
 struct BinlogEvent;
 
+class DialogFilter;
+
 class DraftMessage;
 
 struct InputMessageContent;
@@ -1236,8 +1238,6 @@ class MessagesManager : public Actor {
     template <class ParserT>
     void parse(ParserT &parser);
   };
-
-  struct DialogFilter;
 
   struct RecommendedDialogFilter {
     unique_ptr<DialogFilter> dialog_filter;
