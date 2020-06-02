@@ -38,8 +38,6 @@ class InputDialogId {
   static vector<telegram_api::object_ptr<telegram_api::InputPeer>> get_input_peers(
       const vector<InputDialogId> &input_dialog_ids);
 
-  static vector<DialogId> get_dialog_ids(const vector<InputDialogId> &input_dialog_ids);
-
   static bool are_equivalent(const vector<InputDialogId> &lhs, const vector<InputDialogId> &rhs);
 
   static bool contains(const vector<InputDialogId> &input_dialog_ids, DialogId dialog_id);

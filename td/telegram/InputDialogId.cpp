@@ -140,8 +140,4 @@ bool InputDialogId::contains(const vector<InputDialogId> &input_dialog_ids, Dial
   return false;
 }
 
-vector<DialogId> InputDialogId::get_dialog_ids(const vector<InputDialogId> &input_dialog_ids) {
-  return transform(input_dialog_ids, [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
-}
-
 }  // namespace td
