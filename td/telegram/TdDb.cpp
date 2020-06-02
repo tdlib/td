@@ -524,6 +524,29 @@ Result<string> TdDb::get_stats() {
   TRY_STATUS(run_kv_query("ch%"));
   TRY_STATUS(run_kv_query("ss%"));
   TRY_STATUS(run_kv_query("gr%"));
+
+  std::vector<int32> prev(1);
+  file_db_->pmc().get_by_range("file0", "file:", [&](Slice key, Slice value) {
+    if (value.substr(0, 2) != "@@") {
+      return true;
+    }
+    auto from = to_integer<td::int32>(key.substr(4));
+    auto to = to_integer<td::int32>(value.substr(2));
+    CHECK(from > to);
+    if (static_cast<size_t>(from) >= prev.size()) {
+      prev.resize(from + 1);
+    }
+    prev[from] = to;
+    return true;
+  });
+  for (size_t i = 1; i < prev.size(); i++) {
+    if (!prev[i]) {
+      continue;
+    }
+    prev[i] = prev[prev[i]] + 1;
+  }
+  sb << "Max filedb depth:" << *std::max_element(prev.begin(), prev.end()) << "\n";
+
   return sb.as_cslice().str();
 }
 
