@@ -6666,13 +6666,15 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     LOG_CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_dialog_notification_settings";
     bool was_muted = is_dialog_muted(d);
     bool was_dialog_mentions_disabled = is_dialog_mention_notifications_disabled(d);
-    update_dialog_unmute_timeout(d, current_settings->use_default_mute_until, current_settings->mute_until,
-                                 new_settings.use_default_mute_until, new_settings.mute_until);
-    on_dialog_updated(dialog_id, "update_dialog_notification_settings");
 
     VLOG(notifications) << "Update notification settings in " << dialog_id << " from " << *current_settings << " to "
                         << new_settings;
+
+    update_dialog_unmute_timeout(d, current_settings->use_default_mute_until, current_settings->mute_until,
+                                 new_settings.use_default_mute_until, new_settings.mute_until);
+
     *current_settings = new_settings;
+    on_dialog_updated(dialog_id, "update_dialog_notification_settings");
 
     if (!was_muted && is_dialog_muted(d)) {
       remove_all_dialog_notifications(d, false, "update_dialog_notification_settings 2");
@@ -6721,6 +6723,9 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
   if (is_changed) {
     save_scope_notification_settings(scope, new_settings);
 
+    VLOG(notifications) << "Update notification settings in " << scope << " from " << *current_settings << " to "
+                        << new_settings;
+
     update_scope_unmute_timeout(scope, current_settings->mute_until, new_settings.mute_until);
 
     if (!current_settings->disable_pinned_message_notifications && new_settings.disable_pinned_message_notifications) {
@@ -6749,8 +6754,6 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
       }
     }
 
-    VLOG(notifications) << "Update notification settings in " << scope << " from " << *current_settings << " to "
-                        << new_settings;
     *current_settings = new_settings;
 
     send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
@@ -6778,10 +6781,11 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
     return;
   }
   CHECK(d != nullptr);
+  CHECK(old_mute_until >= 0);
 
   schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until);
 
-  if (old_mute_until != -1 && need_unread_counter(d->order)) {
+  if (need_unread_counter(d->order)) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     if (old_use_default || new_use_default) {
       auto scope_mute_until = get_scope_mute_until(d->dialog_id);
@@ -6826,7 +6830,7 @@ void MessagesManager::schedule_scope_unmute(NotificationSettingsScope scope, int
   }
 }
 
-void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scope, int32 old_mute_until,
+void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scope, int32 &old_mute_until,
                                                   int32 new_mute_until) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -6837,70 +6841,70 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
   if (old_mute_until == new_mute_until) {
     return;
   }
+  CHECK(old_mute_until >= 0);
 
   schedule_scope_unmute(scope, new_mute_until);
 
-  if (old_mute_until != -1) {
-    auto was_muted = old_mute_until != 0;
-    auto is_muted = new_mute_until != 0;
-    if (was_muted != is_muted) {
-      if (G()->parameters().use_message_db) {
-        std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
-        std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
-        std::unordered_map<DialogListId, int32, DialogListIdHash> marked_count;
-        std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
-        for (auto &dialog : dialogs_) {
-          Dialog *d = dialog.second.get();
-          if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
-              get_dialog_notification_setting_scope(d->dialog_id) == scope) {
-            int32 unread_count = d->server_unread_count + d->local_unread_count;
-            if (unread_count != 0) {
-              for (auto dialog_list_id : get_dialog_list_ids(d)) {
-                delta[dialog_list_id] += unread_count;
-                total_count[dialog_list_id]++;
-                dialog_list_ids.insert(dialog_list_id);
-              }
-            } else if (d->is_marked_as_unread) {
-              for (auto dialog_list_id : get_dialog_list_ids(d)) {
-                total_count[dialog_list_id]++;
-                marked_count[dialog_list_id]++;
-                dialog_list_ids.insert(dialog_list_id);
-              }
+  auto was_muted = old_mute_until != 0;
+  auto is_muted = new_mute_until != 0;
+  if (was_muted != is_muted) {
+    if (G()->parameters().use_message_db) {
+      std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
+      std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
+      std::unordered_map<DialogListId, int32, DialogListIdHash> marked_count;
+      std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
+      for (auto &dialog : dialogs_) {
+        Dialog *d = dialog.second.get();
+        if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
+            get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+          int32 unread_count = d->server_unread_count + d->local_unread_count;
+          if (unread_count != 0) {
+            for (auto dialog_list_id : get_dialog_list_ids(d)) {
+              delta[dialog_list_id] += unread_count;
+              total_count[dialog_list_id]++;
+              dialog_list_ids.insert(dialog_list_id);
             }
-          }
-        }
-        for (auto dialog_list_id : dialog_list_ids) {
-          auto *list = get_dialog_list(dialog_list_id);
-          CHECK(list != nullptr);
-          if (delta[dialog_list_id] != 0 && list->is_message_unread_count_inited_) {
-            if (was_muted) {
-              list->unread_message_muted_count_ -= delta[dialog_list_id];
-            } else {
-              list->unread_message_muted_count_ += delta[dialog_list_id];
+          } else if (d->is_marked_as_unread) {
+            for (auto dialog_list_id : get_dialog_list_ids(d)) {
+              total_count[dialog_list_id]++;
+              marked_count[dialog_list_id]++;
+              dialog_list_ids.insert(dialog_list_id);
             }
-            send_update_unread_message_count(*list, DialogId(), true, "update_scope_unmute_timeout");
-          }
-          if (total_count[dialog_list_id] != 0 && list->is_dialog_unread_count_inited_) {
-            if (was_muted) {
-              list->unread_dialog_muted_count_ -= total_count[dialog_list_id];
-              list->unread_dialog_muted_marked_count_ -= marked_count[dialog_list_id];
-            } else {
-              list->unread_dialog_muted_count_ += total_count[dialog_list_id];
-              list->unread_dialog_muted_marked_count_ += marked_count[dialog_list_id];
-            }
-            send_update_unread_chat_count(*list, DialogId(), true, "update_scope_unmute_timeout");
           }
         }
       }
-
-      if (!dialog_filters_.empty()) {
-        for (auto &dialog : dialogs_) {
-          Dialog *d = dialog.second.get();
-          if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
-              get_dialog_notification_setting_scope(d->dialog_id) == scope) {
-            update_dialog_lists(d, get_dialog_positions(d), true, false, "update_scope_unmute_timeout");
+      for (auto dialog_list_id : dialog_list_ids) {
+        auto *list = get_dialog_list(dialog_list_id);
+        CHECK(list != nullptr);
+        if (delta[dialog_list_id] != 0 && list->is_message_unread_count_inited_) {
+          if (was_muted) {
+            list->unread_message_muted_count_ -= delta[dialog_list_id];
+          } else {
+            list->unread_message_muted_count_ += delta[dialog_list_id];
           }
+          send_update_unread_message_count(*list, DialogId(), true, "update_scope_unmute_timeout");
         }
+        if (total_count[dialog_list_id] != 0 && list->is_dialog_unread_count_inited_) {
+          if (was_muted) {
+            list->unread_dialog_muted_count_ -= total_count[dialog_list_id];
+            list->unread_dialog_muted_marked_count_ -= marked_count[dialog_list_id];
+          } else {
+            list->unread_dialog_muted_count_ += total_count[dialog_list_id];
+            list->unread_dialog_muted_marked_count_ += marked_count[dialog_list_id];
+          }
+          send_update_unread_chat_count(*list, DialogId(), true, "update_scope_unmute_timeout");
+        }
+      }
+    }
+  }
+
+  old_mute_until = new_mute_until;
+  if (was_muted != is_muted && !dialog_filters_.empty()) {
+    for (auto &dialog : dialogs_) {
+      Dialog *d = dialog.second.get();
+      if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
+          get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        update_dialog_lists(d, get_dialog_positions(d), true, false, "update_scope_unmute_timeout");
       }
     }
   }
@@ -6931,8 +6935,8 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
   }
 
   LOG(INFO) << "Unmute " << dialog_id;
-  update_dialog_unmute_timeout(d, false, d->notification_settings.mute_until, false, 0);
-  d->notification_settings.mute_until = 0;
+  update_dialog_unmute_timeout(d, d->notification_settings.use_default_mute_until, d->notification_settings.mute_until,
+                               false, 0);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatNotificationSettings>(
                    dialog_id.get(), get_chat_notification_settings_object(&d->notification_settings)));
@@ -6962,7 +6966,6 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
 
   LOG(INFO) << "Unmute " << scope;
   update_scope_unmute_timeout(scope, notification_settings->mute_until, 0);
-  notification_settings->mute_until = 0;
   send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   save_scope_notification_settings(scope, *notification_settings);
 }
