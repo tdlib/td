@@ -206,8 +206,8 @@ thumbnailFormatTgs = ThumbnailFormat;
 thumbnailFormatMpeg4 = ThumbnailFormat;
 
 
-//@description Represents a thumbnail @format Thumbnail format @width Thumbnail width @height Thumbnail height @thumbnail The thumbnail
-thumbnail format:ThumbnailFormat width:int32 height:int32 thumbnail:file = Thumbnail;
+//@description Represents a thumbnail @format Thumbnail format @width Thumbnail width @height Thumbnail height @file The thumbnail
+thumbnail format:ThumbnailFormat width:int32 height:int32 file:file = Thumbnail;
 
 
 //@class MaskPoint @description Part of the face, relative to which a mask should be placed

@@ -885,7 +885,7 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
     }
   }();
 
-  return make_tl_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.thumbnail_));
+  return make_tl_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.file_));
 }
 
 static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
