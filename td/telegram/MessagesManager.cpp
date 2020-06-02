@@ -4994,7 +4994,7 @@ struct MessagesManager::DialogFilter {
         InputDialogId::get_input_peers(excluded_dialog_ids));
   }
 
-  static bool is_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
+  static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
     if (lhs.title == rhs.title) {
       return true;
     }
@@ -15739,7 +15739,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
 
   bool at_beginning = false;
   for (auto &recommended_dialog_filter : recommended_dialog_filters_) {
-    if (DialogFilter::is_similar(*recommended_dialog_filter.dialog_filter, *dialog_filter)) {
+    if (DialogFilter::are_similar(*recommended_dialog_filter.dialog_filter, *dialog_filter)) {
       at_beginning = true;
     }
   }
