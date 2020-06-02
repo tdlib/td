@@ -5040,6 +5040,149 @@ struct MessagesManager::DialogFilter {
         InputDialogId::get_input_peers(excluded_dialog_ids));
   }
 
+  // merges changes from old_server_filter to new_server_filter in old_filter
+  static unique_ptr<DialogFilter> merge_dialog_filter_changes(const DialogFilter *old_filter,
+                                                              const DialogFilter *old_server_filter,
+                                                              const DialogFilter *new_server_filter) {
+    CHECK(old_filter != nullptr);
+    CHECK(old_server_filter != nullptr);
+    CHECK(new_server_filter != nullptr);
+    CHECK(old_filter->dialog_filter_id == old_server_filter->dialog_filter_id);
+    CHECK(old_filter->dialog_filter_id == new_server_filter->dialog_filter_id);
+    auto dialog_filter_id = old_filter->dialog_filter_id;
+    auto new_filter = make_unique<DialogFilter>(*old_filter);
+    new_filter->dialog_filter_id = dialog_filter_id;
+
+    auto merge_ordered_changes = [dialog_filter_id](auto &new_dialog_ids, auto old_server_dialog_ids,
+                                                    auto new_server_dialog_ids) {
+      if (old_server_dialog_ids == new_server_dialog_ids) {
+        LOG(INFO) << "Pinned chats was not changed remotely in " << dialog_filter_id << ", keep local changes";
+        return;
+      }
+
+      if (InputDialogId::are_equivalent(new_dialog_ids, old_server_dialog_ids)) {
+        LOG(INFO) << "Pinned chats was not changed locally in " << dialog_filter_id << ", keep remote changes";
+
+        size_t kept_server_dialogs = 0;
+        std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids;
+        auto old_it = old_server_dialog_ids.rbegin();
+        for (auto &input_dialog_id : reversed(new_server_dialog_ids)) {
+          auto dialog_id = input_dialog_id.get_dialog_id();
+          while (old_it < old_server_dialog_ids.rend()) {
+            if (old_it->get_dialog_id() == dialog_id) {
+              kept_server_dialogs++;
+              ++old_it;
+              break;
+            }
+
+            // remove the dialog, it could be added back later
+            removed_dialog_ids.insert(old_it->get_dialog_id());
+            ++old_it;
+          }
+        }
+        while (old_it < old_server_dialog_ids.rend()) {
+          // remove the dialog, it could be added back later
+          removed_dialog_ids.insert(old_it->get_dialog_id());
+          ++old_it;
+        }
+        td::remove_if(new_dialog_ids, [&removed_dialog_ids](auto input_dialog_id) {
+          return removed_dialog_ids.count(input_dialog_id.get_dialog_id()) > 0;
+        });
+        new_dialog_ids.insert(new_dialog_ids.begin(), new_server_dialog_ids.begin(),
+                              new_server_dialog_ids.end() - kept_server_dialogs);
+      } else {
+        LOG(WARNING) << "Ignore remote changes of pinned chats in " << dialog_filter_id;
+        // there are both local and remote changes; ignore remote changes for now
+      }
+    };
+
+    auto merge_changes = [](auto &new_dialog_ids, const auto &old_server_dialog_ids,
+                            const auto &new_server_dialog_ids) {
+      if (old_server_dialog_ids == new_server_dialog_ids) {
+        // fast path
+        return;
+      }
+
+      // merge additions and deletions from other clients to the local changes
+      std::unordered_set<DialogId, DialogIdHash> deleted_dialog_ids;
+      for (auto old_dialog_id : old_server_dialog_ids) {
+        deleted_dialog_ids.insert(old_dialog_id.get_dialog_id());
+      }
+      std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+      for (auto new_dialog_id : new_server_dialog_ids) {
+        auto dialog_id = new_dialog_id.get_dialog_id();
+        if (deleted_dialog_ids.erase(dialog_id) == 0) {
+          added_dialog_ids.insert(dialog_id);
+        }
+      }
+      vector<InputDialogId> result;
+      for (auto input_dialog_id : new_dialog_ids) {
+        // do not add dialog twice
+        added_dialog_ids.erase(input_dialog_id.get_dialog_id());
+      }
+      for (auto new_dialog_id : new_server_dialog_ids) {
+        if (added_dialog_ids.count(new_dialog_id.get_dialog_id()) == 1) {
+          result.push_back(new_dialog_id);
+        }
+      }
+      for (auto input_dialog_id : new_dialog_ids) {
+        if (deleted_dialog_ids.count(input_dialog_id.get_dialog_id()) == 0) {
+          result.push_back(input_dialog_id);
+        }
+      }
+      new_dialog_ids = std::move(result);
+    };
+
+    merge_ordered_changes(new_filter->pinned_dialog_ids, old_server_filter->pinned_dialog_ids,
+                          new_server_filter->pinned_dialog_ids);
+    merge_changes(new_filter->included_dialog_ids, old_server_filter->included_dialog_ids,
+                  new_server_filter->included_dialog_ids);
+    merge_changes(new_filter->excluded_dialog_ids, old_server_filter->excluded_dialog_ids,
+                  new_server_filter->excluded_dialog_ids);
+
+    {
+      std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+      auto remove_duplicates = [&added_dialog_ids](auto &input_dialog_ids) {
+        td::remove_if(input_dialog_ids, [&added_dialog_ids](auto input_dialog_id) {
+          return !added_dialog_ids.insert(input_dialog_id.get_dialog_id()).second;
+        });
+      };
+      remove_duplicates(new_filter->pinned_dialog_ids);
+      remove_duplicates(new_filter->included_dialog_ids);
+      remove_duplicates(new_filter->excluded_dialog_ids);
+    }
+
+    auto update_value = [](auto &new_value, const auto &old_server_value, const auto &new_server_value) {
+      // if the value was changed from other client and wasn't changed from the current client, update it
+      if (new_server_value != old_server_value && old_server_value == new_value) {
+        new_value = new_server_value;
+      }
+    };
+
+    update_value(new_filter->exclude_muted, old_server_filter->exclude_muted, new_server_filter->exclude_muted);
+    update_value(new_filter->exclude_read, old_server_filter->exclude_read, new_server_filter->exclude_read);
+    update_value(new_filter->exclude_archived, old_server_filter->exclude_archived,
+                 new_server_filter->exclude_archived);
+    update_value(new_filter->include_contacts, old_server_filter->include_contacts,
+                 new_server_filter->include_contacts);
+    update_value(new_filter->include_non_contacts, old_server_filter->include_non_contacts,
+                 new_server_filter->include_non_contacts);
+    update_value(new_filter->include_bots, old_server_filter->include_bots, new_server_filter->include_bots);
+    update_value(new_filter->include_groups, old_server_filter->include_groups, new_server_filter->include_groups);
+    update_value(new_filter->include_channels, old_server_filter->include_channels,
+                 new_server_filter->include_channels);
+
+    if (new_filter->check_limits().is_error()) {
+      LOG(WARNING) << "Failed to merge local and remote changes in " << new_filter->dialog_filter_id
+                   << ", keep only local changes";
+      *new_filter = *old_filter;
+    }
+
+    update_value(new_filter->title, old_server_filter->title, new_server_filter->title);
+    update_value(new_filter->emoji, old_server_filter->emoji, new_server_filter->emoji);
+    return new_filter;
+  }
+
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
     if (lhs.title == rhs.title) {
       return true;
@@ -5086,6 +5229,14 @@ struct MessagesManager::DialogFilter {
 
   friend bool operator!=(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
     return !(lhs == rhs);
+  }
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogFilter &filter) {
+    return string_builder << filter.dialog_filter_id << " (pinned " << filter.pinned_dialog_ids << ", included "
+                          << filter.included_dialog_ids << ", excluded " << filter.excluded_dialog_ids << ", "
+                          << filter.exclude_muted << ' ' << filter.exclude_read << ' ' << filter.exclude_archived << '/'
+                          << filter.include_contacts << ' ' << filter.include_non_contacts << ' ' << filter.include_bots
+                          << ' ' << filter.include_groups << ' ' << filter.include_channels << ')';
   }
 
  private:
@@ -13292,6 +13443,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         }
         if (old_it < pinned_dialog_ids.end()) {
           // leave dialog where it is
+          ++old_it;
           continue;
         }
         set_dialog_is_pinned(dialog_id, true);
@@ -14550,11 +14702,17 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
             if (DialogFilter::are_equivalent(*old_filter, *new_server_filter)) {  // fast path
               // the filter was edited from this client, nothing to do
             } else {
-              // TODO apply changes between old_server_filter and new_server_filter to old_filter
-              // remember that old_filter can contain secret chats, which must be kept
-              // also need to check that *filter != *edited_filter
-              is_changed = true;
-              edit_dialog_filter(make_unique<DialogFilter>(*new_server_filter), "on_get_dialog_filters");
+              auto new_filter =
+                  DialogFilter::merge_dialog_filter_changes(old_filter, old_server_filter, new_server_filter.get());
+              LOG(INFO) << "Old  local filter: " << *old_filter;
+              LOG(INFO) << "Old server filter: " << *old_server_filter;
+              LOG(INFO) << "New server filter: " << *new_server_filter;
+              LOG(INFO) << "New  local filter: " << *new_filter;
+              sort_dialog_filter_input_dialog_ids(new_filter.get());
+              if (*new_filter != *old_filter) {
+                is_changed = true;
+                edit_dialog_filter(std::move(new_filter), "on_get_dialog_filters");
+              }
             }
           }
         }
@@ -16048,6 +16206,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
         int64 order;
         if (old_it < old_list.pinned_dialogs_.rend()) {
           order = old_it->get_order();
+          ++old_it;
         } else {
           order = get_next_pinned_dialog_order();
         }
@@ -16681,6 +16840,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     }
     if (old_it < pinned_dialog_ids.end()) {
       // leave dialog where it is
+      ++old_it;
       continue;
     }
     set_dialog_is_pinned(dialog_id, true);
