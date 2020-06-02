@@ -6817,6 +6817,15 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
   }
 }
 
+void MessagesManager::schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until) {
+  auto now = G()->unix_time_cached();
+  if (mute_until >= now && mute_until < now + 366 * 86400) {
+    dialog_unmute_timeout_.set_timeout_in(static_cast<int64>(scope) + 1, mute_until - now + 1);
+  } else {
+    dialog_unmute_timeout_.cancel_timeout(static_cast<int64>(scope) + 1);
+  }
+}
+
 void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scope, int32 old_mute_until,
                                                   int32 new_mute_until) {
   if (td_->auth_manager_->is_bot()) {
@@ -6829,12 +6838,7 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
     return;
   }
 
-  auto now = G()->unix_time_cached();
-  if (new_mute_until >= now && new_mute_until < now + 366 * 86400) {
-    dialog_unmute_timeout_.set_timeout_in(static_cast<int64>(scope) + 1, new_mute_until - now + 1);
-  } else {
-    dialog_unmute_timeout_.cancel_timeout(static_cast<int64>(scope) + 1);
-  }
+  schedule_scope_unmute(scope, new_mute_until);
 
   if (old_mute_until != -1) {
     auto was_muted = old_mute_until != 0;
@@ -6952,7 +6956,7 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
   if (notification_settings->mute_until > now) {
     LOG(ERROR) << "Failed to unmute " << scope << " in " << now << ", will be unmuted in "
                << notification_settings->mute_until;
-    update_scope_unmute_timeout(scope, -1, notification_settings->mute_until);
+    schedule_scope_unmute(scope, notification_settings->mute_until);
     return;
   }
 
@@ -10735,6 +10739,37 @@ void MessagesManager::init() {
     add_dialog_list(DialogListId(FolderId::archive()));
   }
 
+  if (!td_->auth_manager_->is_bot()) {
+    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
+                                             NotificationSettingsScope::Channel};
+    for (auto scope : scopes) {
+      auto notification_settings_string =
+          G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
+      if (!notification_settings_string.empty()) {
+        auto current_settings = get_scope_notification_settings(scope);
+        CHECK(current_settings != nullptr);
+        log_event_parse(*current_settings, notification_settings_string).ensure();
+
+        VLOG(notifications) << "Load notification settings in " << scope << ": " << *current_settings;
+        LOG(ERROR) << "Load notification settings in " << scope << ": " << *current_settings;
+
+        schedule_scope_unmute(scope, current_settings->mute_until);
+
+        send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
+      }
+    }
+    if (!channels_notification_settings_.is_synchronized) {
+      channels_notification_settings_ = chats_notification_settings_;
+      channels_notification_settings_.disable_pinned_message_notifications = false;
+      channels_notification_settings_.disable_mention_notifications = false;
+      channels_notification_settings_.is_synchronized = false;
+      if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
+        send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+      }
+    }
+  }
+  G()->td_db()->get_binlog_pmc()->erase("nsfac");
+
   if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot()) {
     // erase old keys
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
@@ -10931,34 +10966,6 @@ void MessagesManager::init() {
   }
 
   load_calls_db_state();
-
-  if (!td_->auth_manager_->is_bot()) {
-    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
-                                             NotificationSettingsScope::Channel};
-    for (auto scope : scopes) {
-      auto notification_settings_string =
-          G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
-      if (!notification_settings_string.empty()) {
-        ScopeNotificationSettings notification_settings;
-        log_event_parse(notification_settings, notification_settings_string).ensure();
-
-        auto current_settings = get_scope_notification_settings(scope);
-        CHECK(current_settings != nullptr);
-        current_settings->mute_until = -1;
-        update_scope_notification_settings(scope, current_settings, notification_settings);
-      }
-    }
-    if (!channels_notification_settings_.is_synchronized) {
-      channels_notification_settings_ = chats_notification_settings_;
-      channels_notification_settings_.disable_pinned_message_notifications = false;
-      channels_notification_settings_.disable_mention_notifications = false;
-      channels_notification_settings_.is_synchronized = false;
-      if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
-        send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
-      }
-    }
-  }
-  G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
   if (!td_->auth_manager_->is_bot()) {
     if (need_synchronize_dialog_filters()) {

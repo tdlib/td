@@ -2175,6 +2175,8 @@ class MessagesManager : public Actor {
   void update_dialog_unmute_timeout(Dialog *d, bool old_use_default, int32 old_mute_until, bool new_use_default,
                                     int32 new_mute_until);
 
+  void schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until);
+
   void update_scope_unmute_timeout(NotificationSettingsScope scope, int32 old_mute_until, int32 new_mute_until);
 
   void on_dialog_unmute(DialogId dialog_id);
