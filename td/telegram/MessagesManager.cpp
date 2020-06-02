@@ -4836,6 +4836,8 @@ void MessagesManager::CallsDbState::parse(ParserT &parser) {
 }
 
 struct MessagesManager::DialogFilter {
+  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;  // server side limit
+
   DialogFilterId dialog_filter_id;
   string title;
   string emoji;
@@ -4907,6 +4909,50 @@ struct MessagesManager::DialogFilter {
     } else {
       return pinned_dialog_ids.empty() && included_dialog_ids.empty();
     }
+  }
+
+  Status check_limits() const {
+    auto get_server_dialog_count = [](const vector<InputDialogId> &input_dialog_ids) {
+      int32 result = 0;
+      for (auto &input_dialog_id : input_dialog_ids) {
+        if (input_dialog_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+          result++;
+        }
+      }
+      return result;
+    };
+
+    auto excluded_server_dialog_count = get_server_dialog_count(excluded_dialog_ids);
+    auto included_server_dialog_count = get_server_dialog_count(included_dialog_ids);
+    auto pinned_server_dialog_count = get_server_dialog_count(pinned_dialog_ids);
+
+    auto excluded_secret_dialog_count = static_cast<int32>(excluded_dialog_ids.size()) - excluded_server_dialog_count;
+    auto included_secret_dialog_count = static_cast<int32>(included_dialog_ids.size()) - included_server_dialog_count;
+    auto pinned_secret_dialog_count = static_cast<int32>(pinned_dialog_ids.size()) - pinned_server_dialog_count;
+
+    if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+        excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+      return Status::Error(400, "Maximum number of excluded chats exceeded");
+    }
+    if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+        included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+      return Status::Error(400, "Maximum number of included chats exceeded");
+    }
+    if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
+        included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+      return Status::Error(400, "Maximum number of pinned chats exceeded");
+    }
+
+    if (is_empty(false)) {
+      return Status::Error(400, "Folder must contain at least 1 chat");
+    }
+
+    if (include_contacts && include_non_contacts && include_bots && include_groups && include_channels &&
+        exclude_archived && !exclude_read && !exclude_muted) {
+      return Status::Error(400, "Folder must be different from the main chat list");
+    }
+
+    return Status::OK();
   }
 
   static string get_emoji_by_icon_name(const string &icon_name) {
@@ -15606,54 +15652,6 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
   }
 }
 
-Status MessagesManager::check_dialog_filter_limits(const DialogFilter *dialog_filter) const {
-  auto get_server_dialog_count = [](const vector<InputDialogId> &input_dialog_ids) {
-    int32 result = 0;
-    for (auto &input_dialog_id : input_dialog_ids) {
-      if (input_dialog_id.get_dialog_id().get_type() != DialogType::SecretChat) {
-        result++;
-      }
-    }
-    return result;
-  };
-
-  auto excluded_server_dialog_count = get_server_dialog_count(dialog_filter->excluded_dialog_ids);
-  auto included_server_dialog_count = get_server_dialog_count(dialog_filter->included_dialog_ids);
-  auto pinned_server_dialog_count = get_server_dialog_count(dialog_filter->pinned_dialog_ids);
-
-  auto excluded_secret_dialog_count =
-      static_cast<int32>(dialog_filter->excluded_dialog_ids.size()) - excluded_server_dialog_count;
-  auto included_secret_dialog_count =
-      static_cast<int32>(dialog_filter->included_dialog_ids.size()) - included_server_dialog_count;
-  auto pinned_secret_dialog_count =
-      static_cast<int32>(dialog_filter->pinned_dialog_ids.size()) - pinned_server_dialog_count;
-
-  if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of excluded chats exceeded");
-  }
-  if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of included chats exceeded");
-  }
-  if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of pinned chats exceeded");
-  }
-
-  if (dialog_filter->is_empty(false)) {
-    return Status::Error(400, "Folder must contain at least 1 chat");
-  }
-
-  if (dialog_filter->include_contacts && dialog_filter->include_non_contacts && dialog_filter->include_bots &&
-      dialog_filter->include_groups && dialog_filter->include_channels && dialog_filter->exclude_archived &&
-      !dialog_filter->exclude_read && !dialog_filter->exclude_muted) {
-    return Status::Error(400, "Folder must be different from the main chat list");
-  }
-
-  return Status::OK();
-}
-
 Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog_filter(
     DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter) {
   CHECK(filter != nullptr);
@@ -15711,7 +15709,7 @@ Result<unique_ptr<MessagesManager::DialogFilter>> MessagesManager::create_dialog
   dialog_filter->include_groups = filter->include_groups_;
   dialog_filter->include_channels = filter->include_channels_;
 
-  TRY_STATUS(check_dialog_filter_limits(dialog_filter.get()));
+  TRY_STATUS(dialog_filter->check_limits());
   sort_dialog_filter_input_dialog_ids(dialog_filter.get());
 
   return std::move(dialog_filter);
@@ -16441,7 +16439,7 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
 
 int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
   if (dialog_list_id.is_filter()) {
-    return MAX_INCLUDED_FILTER_DIALOGS;
+    return DialogFilter::MAX_INCLUDED_FILTER_DIALOGS;
   }
 
   Slice key{"pinned_chat_count_max"};
@@ -16505,7 +16503,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
       new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
     }
 
-    TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
+    TRY_STATUS(new_dialog_filter->check_limits());
     sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
     edit_dialog_filter(std::move(new_dialog_filter), "toggle_dialog_is_pinned");
@@ -16652,7 +16650,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     td::remove_if(new_dialog_filter->excluded_dialog_ids, is_new_pinned);
     append(new_dialog_filter->included_dialog_ids, old_pinned_dialog_ids);
 
-    TRY_STATUS(check_dialog_filter_limits(new_dialog_filter.get()));
+    TRY_STATUS(new_dialog_filter->check_limits());
     sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
 
     edit_dialog_filter(std::move(new_dialog_filter), "set_pinned_dialogs");
@@ -27112,7 +27110,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
       // the dialog isn't added yet to the dialog list
       // check that it can be actually added
       if (dialog_filter->included_dialog_ids.size() + dialog_filter->pinned_dialog_ids.size() <
-          MAX_INCLUDED_FILTER_DIALOGS) {
+          DialogFilter::MAX_INCLUDED_FILTER_DIALOGS) {
         // fast path
         result.push_back(DialogListId(dialog_filter_id));
         continue;
@@ -27124,7 +27122,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
         return dialog_id == input_dialog_id.get_dialog_id();
       });
 
-      if (check_dialog_filter_limits(new_dialog_filter.get()).is_ok()) {
+      if (new_dialog_filter->check_limits().is_ok()) {
         result.push_back(DialogListId(dialog_filter_id));
       }
     }
@@ -27166,7 +27164,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
     td::remove_if(new_dialog_filter->excluded_dialog_ids,
                   [dialog_id](InputDialogId input_dialog_id) { return dialog_id == input_dialog_id.get_dialog_id(); });
 
-    auto status = check_dialog_filter_limits(new_dialog_filter.get());
+    auto status = new_dialog_filter->check_limits();
     if (status.is_error()) {
       return promise.set_error(std::move(status));
     }

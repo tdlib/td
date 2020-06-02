@@ -1544,7 +1544,6 @@ class MessagesManager : public Actor {
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;          // server side limit
   static constexpr int32 MAX_DIALOG_FILTERS = 10;               // server side limit
-  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;     // server side limit
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
 
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
@@ -2267,8 +2266,6 @@ class MessagesManager : public Actor {
   InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
   void sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_filter) const;
-
-  Status check_dialog_filter_limits(const DialogFilter *dialog_filter) const;
 
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
