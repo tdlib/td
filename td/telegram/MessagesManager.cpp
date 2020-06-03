@@ -355,7 +355,7 @@ class GetPinnedDialogsActor : public NetActorOnce {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive pinned chats: " << to_string(result);
+    LOG(INFO) << "Receive pinned chats in " << folder_id_ << ": " << to_string(result);
 
     td->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsActor");
     td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsActor");
@@ -643,7 +643,7 @@ class GetDialogListActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetDialogListActor: " << to_string(ptr);
+    LOG(INFO) << "Receive chats from chat list of " << folder_id_ << ": " << to_string(ptr);
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
@@ -1193,7 +1193,7 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
     if (!result) {
       return on_error(id, Status::Error(400, "Result is false"));
     }
-    LOG(INFO) << "Pinned chats reordered";
+    LOG(INFO) << "Pinned chats reordered in " << folder_id_;
 
     promise_.set_value(Unit());
   }
@@ -30016,10 +30016,12 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     }
   }
 
-  set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8",
-                                     is_loaded_from_database);
+  if (dialog_id != being_added_dialog_id_) {
+    set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8",
+                                       is_loaded_from_database);
 
-  set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
+    set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
+  }
 
   if (dialog_type != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
       !d->last_new_message_id.is_server()) {
@@ -30148,7 +30150,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->has_loaded_scheduled_messages_from_database = true;
   }
 
-  update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
+  if (dialog_id != being_added_dialog_id_) {
+    update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
+  }
   if (is_loaded_from_database && d->order != order && order < MAX_ORDINARY_DIALOG_ORDER &&
       !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id)) {
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
