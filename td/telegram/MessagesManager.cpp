@@ -10754,8 +10754,7 @@ void MessagesManager::init() {
         CHECK(current_settings != nullptr);
         log_event_parse(*current_settings, notification_settings_string).ensure();
 
-        VLOG(notifications) << "Load notification settings in " << scope << ": " << *current_settings;
-        LOG(ERROR) << "Load notification settings in " << scope << ": " << *current_settings;
+        VLOG(notifications) << "Loaded notification settings in " << scope << ": " << *current_settings;
 
         schedule_scope_unmute(scope, current_settings->mute_until);
 
@@ -10980,7 +10979,7 @@ void MessagesManager::init() {
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
   if (!auth_notification_ids_string.empty()) {
-    VLOG(notifications) << "Load auth_notification_ids = " << auth_notification_ids_string;
+    VLOG(notifications) << "Loaded auth_notification_ids = " << auth_notification_ids_string;
     auto ids = full_split(auth_notification_ids_string, ',');
     CHECK(ids.size() % 2 == 0);
     bool is_changed = false;

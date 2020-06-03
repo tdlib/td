@@ -616,6 +616,9 @@ class StickersManager : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
+
+  bool is_inited_ = false;
+
   std::unordered_map<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
   std::unordered_map<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
   std::unordered_map<string, StickerSetId> short_name_to_sticker_set_id_;

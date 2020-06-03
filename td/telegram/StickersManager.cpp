@@ -1145,6 +1145,8 @@ void StickersManager::init() {
   if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag()) {
     return;
   }
+  LOG(INFO) << "Init StickersManager";
+  is_inited_ = true;
 
   {
     // add animated emoji sticker set
@@ -1159,10 +1161,15 @@ void StickersManager::init() {
                                            animated_emoji_sticker_set.short_name_);
   }
 
+  dice_emojis_str_ = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀");
+  dice_emojis_ = full_split(dice_emojis_str_, '\x01');
   for (auto &dice_emoji : dice_emojis_) {
     auto &animated_dice_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(dice_emoji));
     load_special_sticker_set_info_from_binlog(animated_dice_sticker_set);
   }
+  send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
+
+  on_update_dice_success_values();
 
   if (G()->parameters().use_file_db) {
     auto old_featured_sticker_set_count_str = G()->td_db()->get_binlog_pmc()->get("old_featured_sticker_set_count");
@@ -1713,6 +1720,7 @@ StickersManager::StickerSet *StickersManager::add_sticker_set(StickerSetId stick
   } else {
     CHECK(s->id == sticker_set_id);
     if (s->access_hash != access_hash) {
+      LOG(INFO) << "Access hash of " << sticker_set_id << " changed";
       s->access_hash = access_hash;
       s->need_save_to_database = true;
     }
@@ -2128,6 +2136,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     }
   }
   if (!s->is_inited) {
+    LOG(INFO) << "Init " << set_id;
     s->is_inited = true;
     s->title = std::move(set->title_);
     s->short_name = std::move(set->short_name_);
@@ -2172,11 +2181,13 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->is_changed = true;
     }
     if (!s->is_thumbnail_reloaded) {
+      LOG(INFO) << "Thumbnail of " << set_id << " was reloaded";
       s->is_thumbnail_reloaded = true;
       s->need_save_to_database = true;
     }
 
     if (s->sticker_count != set->count_ || s->hash != set->hash_) {
+      LOG(INFO) << "Number of stickers in " << set_id << " changed from " << s->sticker_count << " to " << set->count_;
       s->is_loaded = false;
 
       s->sticker_count = set->count_;
@@ -2189,6 +2200,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     }
 
     if (s->is_official != is_official) {
+      LOG(INFO) << "Official flag of " << set_id << " changed to " << is_official;
       s->is_official = is_official;
       s->is_changed = true;
     }
@@ -3015,7 +3027,7 @@ void StickersManager::change_sticker_set(StickerSetId set_id, bool is_installed,
 void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_installed, bool is_archived,
                                             bool is_changed, bool from_database) {
   LOG(INFO) << "Update " << sticker_set->id << ": installed = " << is_installed << ", archived = " << is_archived
-            << ", changed = " << is_changed;
+            << ", changed = " << is_changed << ", from_database = " << from_database;
   CHECK(sticker_set->is_inited);
   if (is_archived) {
     is_installed = true;
@@ -3428,6 +3440,9 @@ void StickersManager::on_update_dice_emojis() {
     G()->shared_config().set_option_empty("dice_emojis");
     return;
   }
+  if (!is_inited_) {
+    return;
+  }
 
   auto dice_emojis_str = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀");
   if (dice_emojis_str == dice_emojis_str_) {
@@ -3440,8 +3455,10 @@ void StickersManager::on_update_dice_emojis() {
       auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(emoji));
       CHECK(!special_sticker_set.id_.is_valid());
 
-      LOG(INFO) << "Load new dice sticker set for emoji " << emoji;
-      load_special_sticker_set(special_sticker_set);
+      if (G()->parameters().use_file_db) {
+        LOG(INFO) << "Load new dice sticker set for emoji " << emoji;
+        load_special_sticker_set(special_sticker_set);
+      }
     }
   }
   dice_emojis_ = std::move(new_dice_emojis);
@@ -3457,11 +3474,16 @@ void StickersManager::on_update_dice_success_values() {
     G()->shared_config().set_option_empty("dice_success_values");
     return;
   }
+  if (!is_inited_) {
+    return;
+  }
 
   auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,0,0");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
   }
+
+  LOG(INFO) << "Change dice success values to " << dice_success_values_str;
   dice_success_values_str_ = std::move(dice_success_values_str);
   dice_success_values_ = transform(full_split(dice_success_values_str_, ','), [](Slice value) {
     auto result = split(value, ':');
