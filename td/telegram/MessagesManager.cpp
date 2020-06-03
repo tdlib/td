@@ -10724,6 +10724,14 @@ void MessagesManager::start_up() {
   init();
 }
 
+void MessagesManager::create_folders() {
+  dialog_folders_[FolderId::main()].folder_id = FolderId::main();
+  dialog_folders_[FolderId::archive()].folder_id = FolderId::archive();
+
+  add_dialog_list(DialogListId(FolderId::main()));
+  add_dialog_list(DialogListId(FolderId::archive()));
+}
+
 void MessagesManager::init() {
   if (is_inited_) {
     return;
@@ -10735,12 +10743,8 @@ void MessagesManager::init() {
   start_time_ = Time::now();
 
   bool is_authorized_user = !td_->auth_manager_->is_bot() && td_->auth_manager_->is_authorized();
-  if (is_authorized_user) {  // ensure that Main and Archive dialog lists are created
-    dialog_folders_[FolderId::main()].folder_id = FolderId::main();
-    dialog_folders_[FolderId::archive()].folder_id = FolderId::archive();
-
-    add_dialog_list(DialogListId(FolderId::main()));
-    add_dialog_list(DialogListId(FolderId::archive()));
+  if (is_authorized_user) {
+    create_folders();  // ensure that Main and Archive dialog lists are created
   }
 
   if (is_authorized_user) {
@@ -11141,6 +11145,17 @@ void MessagesManager::init() {
     std::f close(f);
   }
   */
+}
+
+void MessagesManager::on_authorization_success() {
+  CHECK(td_->auth_manager_->is_authorized());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  create_folders();
+
+  reload_dialog_filters();
 }
 
 void MessagesManager::ttl_db_loop_start(double server_now) {

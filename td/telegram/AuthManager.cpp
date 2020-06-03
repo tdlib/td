@@ -720,9 +720,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
-  if (!is_bot()) {
-    td->messages_manager_->reload_dialog_filters();
-  }
+  td->messages_manager_->on_authorization_success();
   td->notification_manager_->init();
   td->stickers_manager_->init();
   send_closure(td->top_dialog_manager_, &TopDialogManager::do_start_up);
