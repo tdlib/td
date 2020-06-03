@@ -30684,7 +30684,11 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
   if (list.list_last_dialog_date_ != new_last_dialog_date) {
     auto old_dialog_total_count = get_dialog_total_count(list);
     auto old_last_dialog_date = list.list_last_dialog_date_;
-    CHECK(old_last_dialog_date < new_last_dialog_date);
+    LOG_CHECK(old_last_dialog_date < new_last_dialog_date)
+        << list.dialog_list_id << " " << old_last_dialog_date << " " << list.last_pinned_dialog_date_ << " "
+        << get_dialog_folder(FolderId::main())->folder_last_dialog_date_ << " "
+        << get_dialog_folder(FolderId::archive())->folder_last_dialog_date_ << " " << list.load_list_queries_.size()
+        << " " << list.pinned_dialogs_;
     list.list_last_dialog_date_ = new_last_dialog_date;
 
     if (only_update) {
