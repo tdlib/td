@@ -869,7 +869,7 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
 }
 
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
-  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 KB */;
+  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) - 1 /* 200 KB - 1 B */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
 
   if (location.path_.empty()) {
@@ -907,15 +907,15 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     return Status::OK();
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
-      size >= MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
+      size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
                                   << tag("size", format::as_size(size)));
   }
-  if (location.file_type_ == FileType::Photo && size >= MAX_PHOTO_SIZE) {
+  if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a photo "
                                   << tag("size", format::as_size(size)));
   }
-  if (size >= MAX_FILE_SIZE) {
+  if (size > MAX_FILE_SIZE) {
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big "
                                   << tag("size", format::as_size(size)));
   }
