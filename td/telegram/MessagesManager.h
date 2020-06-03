@@ -738,6 +738,8 @@ class MessagesManager : public Actor {
   void get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
                      Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
+  void reload_dialog_filters();
+
   void before_get_difference();
 
   void after_get_difference();
@@ -2245,8 +2247,6 @@ class MessagesManager : public Actor {
   void schedule_dialog_filters_reload(double timeout);
 
   static void on_reload_dialog_filters_timeout(void *messages_manager_ptr);
-
-  void reload_dialog_filters();
 
   void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters, bool dummy);
 

@@ -10734,7 +10734,8 @@ void MessagesManager::init() {
 
   start_time_ = Time::now();
 
-  if (!td_->auth_manager_->is_bot()) {  // ensure that Main and Archive dialog lists are created
+  bool is_authorized_user = !td_->auth_manager_->is_bot() && td_->auth_manager_->is_authorized();
+  if (is_authorized_user) {  // ensure that Main and Archive dialog lists are created
     dialog_folders_[FolderId::main()].folder_id = FolderId::main();
     dialog_folders_[FolderId::archive()].folder_id = FolderId::archive();
 
@@ -10742,7 +10743,7 @@ void MessagesManager::init() {
     add_dialog_list(DialogListId(FolderId::archive()));
   }
 
-  if (!td_->auth_manager_->is_bot()) {
+  if (is_authorized_user) {
     vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
                                              NotificationSettingsScope::Channel};
     for (auto scope : scopes) {
@@ -10766,14 +10767,12 @@ void MessagesManager::init() {
       channels_notification_settings_.disable_pinned_message_notifications = false;
       channels_notification_settings_.disable_mention_notifications = false;
       channels_notification_settings_.is_synchronized = false;
-      if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
-        send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
-      }
+      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
     }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
-  if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot()) {
+  if (G()->parameters().use_message_db && is_authorized_user) {
     // erase old keys
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
@@ -10970,7 +10969,7 @@ void MessagesManager::init() {
 
   load_calls_db_state();
 
-  if (!td_->auth_manager_->is_bot()) {
+  if (is_authorized_user) {
     if (need_synchronize_dialog_filters()) {
       reload_dialog_filters();
     } else {
@@ -14141,6 +14140,7 @@ void MessagesManager::reload_dialog_filters() {
   if (G()->close_flag()) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
   if (are_dialog_filters_being_synchronized_ || are_dialog_filters_being_reloaded_) {
     need_dialog_filters_reload_ = true;
     return;
@@ -14318,6 +14318,7 @@ void MessagesManager::synchronize_dialog_filters() {
   if (G()->close_flag()) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
   if (are_dialog_filters_being_synchronized_ || are_dialog_filters_being_reloaded_) {
     return;
   }
@@ -15455,6 +15456,7 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
 }
 
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(dialog_filter != nullptr);
   are_dialog_filters_being_synchronized_ = true;
   dialog_filter->remove_secret_chat_dialog_ids();
@@ -15471,6 +15473,7 @@ void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&
 }
 
 void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
@@ -15511,6 +15514,7 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
 }
 
 void MessagesManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   are_dialog_filters_being_synchronized_ = true;
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id](Result<Unit> result) {
     send_closure(actor_id, &MessagesManager::on_delete_dialog_filter, dialog_filter_id,
@@ -15520,6 +15524,7 @@ void MessagesManager::delete_dialog_filter_on_server(DialogFilterId dialog_filte
 }
 
 void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
@@ -15561,6 +15566,7 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
 }
 
 void MessagesManager::reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids) {
+  CHECK(!td_->auth_manager_->is_bot());
   are_dialog_filters_being_synchronized_ = true;
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_ids](Result<Unit> result) mutable {
     send_closure(actor_id, &MessagesManager::on_reorder_dialog_filters, std::move(dialog_filter_ids),
@@ -15570,6 +15576,7 @@ void MessagesManager::reorder_dialog_filters_on_server(vector<DialogFilterId> di
 }
 
 void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Status result) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
