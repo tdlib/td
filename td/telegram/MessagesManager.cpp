@@ -12625,7 +12625,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  LOG(INFO) << "Receive " << dialogs.size() << " dialogs out of " << total_count << " in result of GetDialogsQuery";
+  LOG(INFO) << "Receive " << dialogs.size() << " dialogs out of " << total_count << " in " << folder_id;
   std::unordered_map<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
   std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {

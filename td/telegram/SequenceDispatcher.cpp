@@ -69,7 +69,7 @@ void SequenceDispatcher::try_resend_query(Data &data, NetQueryPtr query) {
   data.state_ = State::Wait;
   wait_cnt_++;
   auto token = pos + id_offset_;
-  // TODO: is query is ok, use NetQueryCallback::on_result
+  // TODO: if query is ok, use NetQueryCallback::on_result
   auto promise = PromiseCreator::lambda([&, self = actor_shared(this, token)](NetQueryPtr query) mutable {
     if (!query.empty()) {
       send_closure(std::move(self), &SequenceDispatcher::on_resend_ok, std::move(query));

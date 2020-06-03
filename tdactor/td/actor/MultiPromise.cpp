@@ -47,7 +47,7 @@ void MultiPromiseActor::set_ignore_errors(bool ignore_errors) {
 }
 
 void MultiPromiseActor::set_result(Result<Unit> &&result) {
-  // MultiPromiseActor should be cleared before he begins to send out result
+  // MultiPromiseActor should be cleared before it begins to send out result
   auto promises_copy = std::move(promises_);
   promises_.clear();
   auto futures_copy = std::move(futures_);
