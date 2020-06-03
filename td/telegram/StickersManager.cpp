@@ -1604,7 +1604,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
       thumbnail = std::move(photo_size.get<0>());
       break;
     } else {
-      LOG(ERROR) << "Receive minithumbnail for a sticker";
+      LOG(ERROR) << "Receive minithumbnail for a sticker " << sticker_id << ": " << to_string(sticker);
     }
   }
 
