@@ -10863,6 +10863,7 @@ void MessagesManager::init() {
             list->pinned_dialog_id_orders_.emplace(dialog_id, order);
           }
           std::reverse(list->pinned_dialogs_.begin(), list->pinned_dialogs_.end());
+          list->are_pinned_dialogs_inited_ = true;
 
           update_list_last_pinned_dialog_date(*list);
         }
@@ -12136,6 +12137,9 @@ void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_messa
 void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id,
                                                            const char *source) {
   CHECK(!first_database_message_id.is_scheduled());
+  if (first_database_message_id == d->first_database_message_id) {
+    return;
+  }
 
   LOG(INFO) << "Set " << d->dialog_id << " first database message to " << first_database_message_id << " from "
             << source;
@@ -12146,6 +12150,9 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
                                                           const char *source, bool is_loaded_from_database) {
   CHECK(!last_database_message_id.is_scheduled());
+  if (last_database_message_id == d->last_database_message_id) {
+    return;
+  }
 
   LOG(INFO) << "Set " << d->dialog_id << " last database message to " << last_database_message_id << " from " << source;
   d->debug_set_dialog_last_database_message_id = source;
@@ -12338,6 +12345,9 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   auto *list = get_dialog_list(dialog_list_id);
   if (list == nullptr) {
     return false;
+  }
+  if (!list->are_pinned_dialogs_inited_) {
+    // return false;
   }
   bool was_pinned = false;
   for (size_t pos = 0; pos < list->pinned_dialogs_.size(); pos++) {
@@ -12639,7 +12649,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  LOG(INFO) << "Receive " << dialogs.size() << " dialogs out of " << total_count << " in " << folder_id;
+  LOG(INFO) << "Receive " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
   std::unordered_map<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
   std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
@@ -12778,6 +12788,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       CHECK(d->dialog_id == dialog_id);
     }
     bool is_new = d->last_new_message_id == MessageId();
+    auto positions = get_dialog_positions(d);
 
     set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
 
@@ -12924,7 +12935,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         send_update_chat_unread_mention_count(d);
       }
     }
+
     being_added_dialog_id_ = DialogId();
+
+    update_dialog_lists(d, std::move(positions), true, false, "on_get_dialogs");
   }
   if (from_dialog_list) {
     CHECK(total_count >= 0);
@@ -12946,7 +12960,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
     std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
     if (pinned_dialog_ids != added_dialog_ids) {
-      LOG(INFO) << "Repair pinned dialogs order from " << format::as_array(pinned_dialog_ids) << " to "
+      LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
                 << format::as_array(added_dialog_ids);
       std::unordered_set<DialogId, DialogIdHash> old_pinned_dialog_ids(pinned_dialog_ids.begin(),
                                                                        pinned_dialog_ids.end());
@@ -13593,7 +13607,7 @@ bool MessagesManager::have_dialog(DialogId dialog_id) const {
 }
 
 void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&promise) {
-  LOG(INFO) << "Load dialogs " << format::as_array(dialog_ids);
+  LOG(INFO) << "Load chats " << format::as_array(dialog_ids);
 
   Dependencies dependencies;
   for (auto dialog_id : dialog_ids) {
@@ -13830,6 +13844,12 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
       }
     }
   }
+
+  if (!list.are_pinned_dialogs_inited_) {
+    // reload_pinned_dialogs(dialog_list_id, std::move(promise));
+    // return result;
+  }
+
   bool need_reload_pinned_dialogs = false;
   if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
     for (auto &pinned_dialog : list.pinned_dialogs_) {
@@ -13951,7 +13971,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     load_folder_dialog_list_from_database(folder_id, limit, multipromise.get_promise());
     is_query_sent = true;
   } else {
-    LOG(INFO) << "Get dialogs from " << folder.last_server_dialog_date_;
+    LOG(INFO) << "Get chats from " << folder.last_server_dialog_date_;
     reload_pinned_dialogs(DialogListId(folder_id), multipromise.get_promise());
     if (folder.folder_last_dialog_date_ == folder.last_server_dialog_date_) {
       send_closure(
@@ -14097,7 +14117,7 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
   }
 
   auto *list = get_dialog_list(dialog_list_id);
-  if (list == nullptr) {
+  if (list == nullptr || !list->are_pinned_dialogs_inited_) {
     return {};
   }
   return transform(list->pinned_dialogs_, [](auto &pinned_dialog) { return pinned_dialog.get_dialog_id(); });
@@ -14106,7 +14126,7 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
 void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
-    return;
+    return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
@@ -14117,6 +14137,7 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   }
   if (dialog_list_id.is_filter()) {
     schedule_dialog_filters_reload(0.0);
+    dialog_filter_reload_queries_.push_back(std::move(promise));
   }
 }
 
@@ -14175,7 +14196,12 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   if (G()->close_flag()) {
     return;
   }
+  auto promises = std::move(dialog_filter_reload_queries_);
+  dialog_filter_reload_queries_.clear();
   if (r_filters.is_error()) {
+    for (auto &promise : promises) {
+      promise.set_error(r_filters.error().clone());
+    }
     LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
     need_dialog_filters_reload_ = false;
     schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
@@ -14298,6 +14324,9 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 
   if (need_synchronize_dialog_filters()) {
     synchronize_dialog_filters();
+  }
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
   }
 }
 
@@ -15688,6 +15717,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
     list.pinned_dialog_id_orders_.emplace(dialog_id, order);
   }
   std::reverse(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end());
+  list.are_pinned_dialogs_inited_ = true;
 
   update_list_last_pinned_dialog_date(list);
   update_list_last_dialog_date(list);
@@ -15741,6 +15771,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
         new_list.pinned_dialog_id_orders_.emplace(dialog_id, order);
       }
       std::reverse(new_list.pinned_dialogs_.begin(), new_list.pinned_dialogs_.end());
+      new_list.are_pinned_dialogs_inited_ = true;
 
       update_list_last_pinned_dialog_date(new_list, true);
       update_list_last_dialog_date(new_list, true);
@@ -25638,7 +25669,7 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
   // TODO logevent + delete_logevent_promise
 
   auto *list = get_dialog_list(DialogListId(folder_id));
-  if (list == nullptr) {
+  if (list == nullptr || !list->are_pinned_dialogs_inited_) {
     return;
   }
   // preload all pinned dialogs
@@ -30540,6 +30571,11 @@ void MessagesManager::update_dialog_lists(
 
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
+  if (being_added_dialog_id_ == dialog_id) {
+    // do not try to update dialog lists, while the dialog isn't inited
+    return;
+  }
+
   LOG(INFO) << "Update lists of " << dialog_id << " from " << source;
 
   if (d->order == DEFAULT_ORDER) {
@@ -30550,6 +30586,7 @@ void MessagesManager::update_dialog_lists(
     }
 
     if (d->folder_id != FolderId::main()) {
+      LOG(INFO) << "Change folder of " << dialog_id << " to " << FolderId::main();
       d->folder_id = FolderId::main();
       d->is_folder_id_inited = true;
       on_dialog_updated(dialog_id, "update_dialog_lists");
@@ -30678,6 +30715,9 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool
   if (list.last_pinned_dialog_date_ == MAX_DIALOG_DATE) {
     return;
   }
+  if (!list.are_pinned_dialogs_inited_) {
+    // return;
+  }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
   for (auto &pinned_dialog : list.pinned_dialogs_) {
@@ -30691,6 +30731,8 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool
     max_dialog_date = MAX_DIALOG_DATE;
   }
   if (list.last_pinned_dialog_date_ < max_dialog_date) {
+    LOG(INFO) << "Update last pinned dialog date in " << list.dialog_list_id << " from "
+              << list.last_pinned_dialog_date_ << " to " << max_dialog_date;
     list.last_pinned_dialog_date_ = max_dialog_date;
     update_list_last_dialog_date(list, only_update);
   }
@@ -30709,6 +30751,8 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
   if (list.list_last_dialog_date_ != new_last_dialog_date) {
     auto old_dialog_total_count = get_dialog_total_count(list);
     auto old_last_dialog_date = list.list_last_dialog_date_;
+    LOG(INFO) << "Update last dialog date in " << list.dialog_list_id << " from " << old_last_dialog_date << " to "
+              << new_last_dialog_date;
     LOG_CHECK(old_last_dialog_date < new_last_dialog_date)
         << list.dialog_list_id << " " << old_last_dialog_date << " " << list.last_pinned_dialog_date_ << " "
         << get_dialog_folder(FolderId::main())->folder_last_dialog_date_ << " "

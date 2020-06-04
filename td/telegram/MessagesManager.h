@@ -1265,6 +1265,7 @@ class MessagesManager : public Actor {
 
     std::unordered_map<DialogId, int64, DialogIdHash> pinned_dialog_id_orders_;
     vector<DialogDate> pinned_dialogs_;
+    bool are_pinned_dialogs_inited_ = false;
 
     DialogDate last_pinned_dialog_date_ = MIN_DIALOG_DATE;  // in memory
 
@@ -1325,11 +1326,12 @@ class MessagesManager : public Actor {
     }
 
     DialogListViewIterator begin() {
-      return DialogListViewIterator(messages_manager_, &dialog_list_ids_[0]);
+      return DialogListViewIterator(messages_manager_, dialog_list_ids_.empty() ? nullptr : &dialog_list_ids_[0]);
     }
 
     DialogListViewIterator end() {
-      return DialogListViewIterator(messages_manager_, &dialog_list_ids_[0] + dialog_list_ids_.size());
+      return DialogListViewIterator(
+          messages_manager_, dialog_list_ids_.empty() ? nullptr : &dialog_list_ids_[0] + dialog_list_ids_.size());
     }
   };
 
@@ -2924,6 +2926,7 @@ class MessagesManager : public Actor {
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;
   vector<RecommendedDialogFilter> recommended_dialog_filters_;
+  vector<Promise<Unit>> dialog_filter_reload_queries_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
