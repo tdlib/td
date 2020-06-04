@@ -359,7 +359,6 @@ class GetPinnedDialogsActor : public NetActorOnce {
 
     td->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsActor");
     td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsActor");
-    std::reverse(result->dialogs_.begin(), result->dialogs_.end());
     td->messages_manager_->on_get_dialogs(folder_id_, std::move(result->dialogs_), -2, std::move(result->messages_),
                                           std::move(promise_));
   }
@@ -12347,7 +12346,7 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
     return false;
   }
   if (!list->are_pinned_dialogs_inited_) {
-    // return false;
+    return false;
   }
   bool was_pinned = false;
   for (size_t pos = 0; pos < list->pinned_dialogs_.size(); pos++) {
@@ -12830,7 +12829,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       update_dialog_pos(d, "on_get_dialogs");
     }
 
-    if (!td_->auth_manager_->is_bot()) {
+    if (!td_->auth_manager_->is_bot() && !from_pinned_dialog_list) {
       // set is_pinned only after updating dialog pos to ensure that order is initialized
       bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
       bool was_pinned = get_dialog_pinned_order(DialogListId(d->folder_id), dialog_id) != DEFAULT_ORDER;
@@ -12946,13 +12945,15 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     auto *list = get_dialog_list(DialogListId(folder_id));
     CHECK(list != nullptr);
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
-    std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
+    list->are_pinned_dialogs_inited_ = true;
     if (pinned_dialog_ids != added_dialog_ids) {
       LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
                 << format::as_array(added_dialog_ids);
       std::unordered_set<DialogId, DialogIdHash> old_pinned_dialog_ids(pinned_dialog_ids.begin(),
                                                                        pinned_dialog_ids.end());
 
+      std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
+      std::reverse(added_dialog_ids.begin(), added_dialog_ids.end());
       auto old_it = pinned_dialog_ids.begin();
       for (auto dialog_id : added_dialog_ids) {
         old_pinned_dialog_ids.erase(dialog_id);
@@ -12972,6 +12973,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       for (auto dialog_id : old_pinned_dialog_ids) {
         set_dialog_is_pinned(dialog_id, false);
       }
+    } else {
+      LOG(INFO) << "Pinned chats are not changed";
     }
     update_list_last_pinned_dialog_date(*list);
   }
@@ -13834,70 +13837,67 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
   }
 
-  if (!list.are_pinned_dialogs_inited_) {
-    // reload_pinned_dialogs(dialog_list_id, std::move(promise));
-    // return result;
-  }
-
-  bool need_reload_pinned_dialogs = false;
-  if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
-    for (auto &pinned_dialog : list.pinned_dialogs_) {
-      if (offset < pinned_dialog) {
-        auto dialog_id = pinned_dialog.get_dialog_id();
-        auto d = get_dialog_force(dialog_id);
-        if (d == nullptr) {
-          LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
-          need_reload_pinned_dialogs = true;
-          continue;
-        }
-        if (d->order == DEFAULT_ORDER) {
-          LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
-          need_reload_pinned_dialogs = true;
-          continue;
-        }
-        result.push_back(dialog_id);
-        offset = pinned_dialog;
-        limit--;
-        if (limit == 0) {
-          break;
+  if (list.are_pinned_dialogs_inited_) {
+    bool need_reload_pinned_dialogs = false;
+    if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
+      for (auto &pinned_dialog : list.pinned_dialogs_) {
+        if (offset < pinned_dialog) {
+          auto dialog_id = pinned_dialog.get_dialog_id();
+          auto d = get_dialog_force(dialog_id);
+          if (d == nullptr) {
+            LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
+            need_reload_pinned_dialogs = true;
+            continue;
+          }
+          if (d->order == DEFAULT_ORDER) {
+            LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
+            need_reload_pinned_dialogs = true;
+            continue;
+          }
+          result.push_back(dialog_id);
+          offset = pinned_dialog;
+          limit--;
+          if (limit == 0) {
+            break;
+          }
         }
       }
     }
-  }
-  if (need_reload_pinned_dialogs) {
-    reload_pinned_dialogs(dialog_list_id, Auto());
-  }
-  update_list_last_pinned_dialog_date(list);
-
-  vector<const DialogFolder *> folders;
-  vector<std::set<DialogDate>::const_iterator> folder_iterators;
-  for (auto folder_id : get_dialog_list_folder_ids(list)) {
-    folders.push_back(get_dialog_folder(folder_id));
-    folder_iterators.push_back(folders.back()->ordered_dialogs_.upper_bound(offset));
-  }
-  while (limit > 0) {
-    size_t best_pos = 0;
-    DialogDate best_dialog_date = MAX_DIALOG_DATE;
-    for (size_t i = 0; i < folders.size(); i++) {
-      while (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
-             *folder_iterators[i] <= list.list_last_dialog_date_ &&
-             (!is_dialog_in_list(get_dialog(folder_iterators[i]->get_dialog_id()), dialog_list_id) ||
-              get_dialog_pinned_order(&list, folder_iterators[i]->get_dialog_id()) != DEFAULT_ORDER)) {
-        ++folder_iterators[i];
-      }
-      if (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
-          *folder_iterators[i] <= list.list_last_dialog_date_ && *folder_iterators[i] < best_dialog_date) {
-        best_pos = i;
-        best_dialog_date = *folder_iterators[i];
-      }
+    if (need_reload_pinned_dialogs) {
+      reload_pinned_dialogs(dialog_list_id, Auto());
     }
-    if (best_dialog_date == MAX_DIALOG_DATE || best_dialog_date.get_order() == DEFAULT_ORDER) {
-      break;
-    }
+    update_list_last_pinned_dialog_date(list);
 
-    limit--;
-    result.push_back(folder_iterators[best_pos]->get_dialog_id());
-    ++folder_iterators[best_pos];
+    vector<const DialogFolder *> folders;
+    vector<std::set<DialogDate>::const_iterator> folder_iterators;
+    for (auto folder_id : get_dialog_list_folder_ids(list)) {
+      folders.push_back(get_dialog_folder(folder_id));
+      folder_iterators.push_back(folders.back()->ordered_dialogs_.upper_bound(offset));
+    }
+    while (limit > 0) {
+      size_t best_pos = 0;
+      DialogDate best_dialog_date = MAX_DIALOG_DATE;
+      for (size_t i = 0; i < folders.size(); i++) {
+        while (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+               *folder_iterators[i] <= list.list_last_dialog_date_ &&
+               (!is_dialog_in_list(get_dialog(folder_iterators[i]->get_dialog_id()), dialog_list_id) ||
+                get_dialog_pinned_order(&list, folder_iterators[i]->get_dialog_id()) != DEFAULT_ORDER)) {
+          ++folder_iterators[i];
+        }
+        if (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+            *folder_iterators[i] <= list.list_last_dialog_date_ && *folder_iterators[i] < best_dialog_date) {
+          best_pos = i;
+          best_dialog_date = *folder_iterators[i];
+        }
+      }
+      if (best_dialog_date == MAX_DIALOG_DATE || best_dialog_date.get_order() == DEFAULT_ORDER) {
+        break;
+      }
+
+      limit--;
+      result.push_back(folder_iterators[best_pos]->get_dialog_id());
+      ++folder_iterators[best_pos];
+    }
   }
 
   if (!result.empty() || force) {
@@ -14101,10 +14101,7 @@ void MessagesManager::preload_folder_dialog_list(FolderId folder_id) {
 }
 
 vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list_id) const {
-  if (td_->auth_manager_->is_bot()) {
-    return {};
-  }
-
+  CHECK(!td_->auth_manager_->is_bot());
   auto *list = get_dialog_list(dialog_list_id);
   if (list == nullptr || !list->are_pinned_dialogs_inited_) {
     return {};
@@ -16182,8 +16179,12 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     return Status::Error(6, "The chat can't be pinned");
   }
 
-  if (get_dialog_list(dialog_list_id) == nullptr) {
+  auto *list = get_dialog_list(dialog_list_id);
+  if (list == nullptr) {
     return Status::Error(6, "Chat list not found");
+  }
+  if (!list->are_pinned_dialogs_inited_) {
+    return Status::Error(6, "Pinned chats must be loaded first");
   }
 
   bool was_pinned = get_dialog_pinned_order(dialog_list_id, dialog_id) != DEFAULT_ORDER;
@@ -16329,6 +16330,14 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   std::unordered_set<DialogId, DialogIdHash> new_pinned_dialog_ids(dialog_ids.begin(), dialog_ids.end());
   if (new_pinned_dialog_ids.size() != dialog_ids.size()) {
     return Status::Error(400, "Duplicate chats in the list of pinned chats");
+  }
+
+  auto *list = get_dialog_list(dialog_list_id);
+  if (list == nullptr) {
+    return Status::Error(6, "Chat list not found");
+  }
+  if (!list->are_pinned_dialogs_inited_) {
+    return Status::Error(6, "Pinned chats must be loaded first");
   }
 
   auto pinned_dialog_ids = get_pinned_dialog_ids(dialog_list_id);
@@ -25645,6 +25654,12 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
     return;
   }
 
+  auto *list = get_dialog_list(DialogListId(folder_id));
+  CHECK(list != nullptr);
+  if (!list->are_pinned_dialogs_inited_) {
+    return;
+  }
+
   set_dialog_folder_id(d, folder_id);
   set_dialog_is_pinned(DialogListId(folder_id), d, is_pinned);
 }
@@ -30705,7 +30720,7 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool
     return;
   }
   if (!list.are_pinned_dialogs_inited_) {
-    // return;
+    return;
   }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
