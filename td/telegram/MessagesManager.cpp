@@ -6663,7 +6663,6 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
   if (is_changed) {
     Dialog *d = get_dialog(dialog_id);
     LOG_CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_dialog_notification_settings";
-    bool was_muted = is_dialog_muted(d);
     bool was_dialog_mentions_disabled = is_dialog_mention_notifications_disabled(d);
 
     VLOG(notifications) << "Update notification settings in " << dialog_id << " from " << *current_settings << " to "
@@ -6675,7 +6674,8 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     *current_settings = new_settings;
     on_dialog_updated(dialog_id, "update_dialog_notification_settings");
 
-    if (!was_muted && is_dialog_muted(d)) {
+    if (is_dialog_muted(d)) {
+      // no check for was_muted to clean pending message notifications in chats with unsynchronized settings
       remove_all_dialog_notifications(d, false, "update_dialog_notification_settings 2");
     }
     if (is_dialog_pinned_message_notifications_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
@@ -6898,12 +6898,22 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
   }
 
   old_mute_until = new_mute_until;
+
   if (was_muted != is_muted && !dialog_filters_.empty()) {
     for (auto &dialog : dialogs_) {
       Dialog *d = dialog.second.get();
       if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         update_dialog_lists(d, get_dialog_positions(d), true, false, "update_scope_unmute_timeout");
+      }
+    }
+  }
+  if (!was_muted && is_muted) {
+    for (auto &dialog : dialogs_) {
+      Dialog *d = dialog.second.get();
+      if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
+          get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        remove_all_dialog_notifications(d, false, "update_scope_unmute_timeout");
       }
     }
   }
@@ -7980,7 +7990,9 @@ void MessagesManager::after_get_difference() {
     CHECK(list != nullptr);
     if (!list->is_dialog_unread_count_inited_) {
       get_dialogs(dialog_list_id, MIN_DIALOG_DATE, 1, false, PromiseCreator::lambda([dialog_list_id](Unit) {
-                    LOG(INFO) << "Inited total chat count in " << dialog_list_id;
+                    if (!G()->close_flag()) {
+                      LOG(INFO) << "Inited total chat count in " << dialog_list_id;
+                    }
                   }));
     }
   }
@@ -24218,7 +24230,7 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
       return 1;
     }
     if (is_dialog_muted(d)) {
-      return 0;
+      return d->pending_new_message_notifications.size();  // usually 0
     }
 
     return d->server_unread_count + d->local_unread_count;
