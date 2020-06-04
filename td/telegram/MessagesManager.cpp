@@ -12723,43 +12723,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  bool need_recalc_unread_count = false;
-  if (from_dialog_list) {
-    CHECK(!td_->auth_manager_->is_bot());
-
-    auto &folder = *get_dialog_folder(folder_id);
-    need_recalc_unread_count = folder.last_server_dialog_date_ == MIN_DIALOG_DATE;
-    if (dialogs.empty()) {
-      // if there are no more dialogs on the server
-      max_dialog_date = MAX_DIALOG_DATE;
-    }
-    if (folder.last_server_dialog_date_ < max_dialog_date) {
-      folder.last_server_dialog_date_ = max_dialog_date;
-      update_last_dialog_date(folder_id);
-    } else if (promise) {
-      LOG(ERROR) << "Last server dialog date didn't increased from " << folder.last_server_dialog_date_ << " to "
-                 << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
-                 << folder_id << ". last_dialog_date = " << folder.folder_last_dialog_date_
-                 << ", last_loaded_database_dialog_date = " << folder.last_loaded_database_dialog_date_;
-    }
-    if (total_count < narrow_cast<int32>(dialogs.size())) {
-      LOG(ERROR) << "Receive chat total_count = " << total_count << ", but " << dialogs.size() << " chats";
-      total_count = narrow_cast<int32>(dialogs.size());
-    }
-  }
-  if (from_pinned_dialog_list) {
-    CHECK(!td_->auth_manager_->is_bot());
-
-    auto *folder = get_dialog_folder(folder_id);
-    CHECK(folder != nullptr);
-    need_recalc_unread_count = folder->last_server_dialog_date_ == MIN_DIALOG_DATE;
-    max_dialog_date = DialogDate(MAX_ORDINARY_DIALOG_ORDER, DialogId());
-    if (folder->last_server_dialog_date_ < max_dialog_date) {
-      folder->last_server_dialog_date_ = max_dialog_date;
-      update_last_dialog_date(folder_id);
-    }
-
-    update_list_last_pinned_dialog_date(add_dialog_list(DialogListId(folder_id)));
+  bool need_recalc_unread_count = (from_dialog_list || from_pinned_dialog_list) &&
+                                  get_dialog_folder(folder_id)->last_server_dialog_date_ == MIN_DIALOG_DATE;
+  if (from_dialog_list && total_count < narrow_cast<int32>(dialogs.size())) {
+    LOG(ERROR) << "Receive chat total_count = " << total_count << ", but " << dialogs.size() << " chats";
+    total_count = narrow_cast<int32>(dialogs.size());
   }
 
   vector<DialogId> added_dialog_ids;
@@ -12941,6 +12909,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     update_dialog_lists(d, std::move(positions), true, false, "on_get_dialogs");
   }
   if (from_dialog_list) {
+    CHECK(!td_->auth_manager_->is_bot());
     CHECK(total_count >= 0);
 
     auto &list = add_dialog_list(DialogListId(folder_id));
@@ -12955,8 +12924,27 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         }
       }
     }
+
+    auto folder = get_dialog_folder(folder_id);
+    CHECK(folder != nullptr);
+    if (dialogs.empty()) {
+      // if there are no more dialogs on the server
+      max_dialog_date = MAX_DIALOG_DATE;
+    }
+    if (folder->last_server_dialog_date_ < max_dialog_date) {
+      folder->last_server_dialog_date_ = max_dialog_date;
+      update_last_dialog_date(folder_id);
+    } else if (promise) {
+      LOG(ERROR) << "Last server dialog date didn't increased from " << folder->last_server_dialog_date_ << " to "
+                 << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
+                 << folder_id << ". last_dialog_date = " << folder->folder_last_dialog_date_
+                 << ", last_loaded_database_dialog_date = " << folder->last_loaded_database_dialog_date_;
+    }
   }
   if (from_pinned_dialog_list) {
+    CHECK(!td_->auth_manager_->is_bot());
+    auto *list = get_dialog_list(DialogListId(folder_id));
+    CHECK(list != nullptr);
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
     std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
     if (pinned_dialog_ids != added_dialog_ids) {
@@ -12985,6 +12973,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_dialog_is_pinned(dialog_id, false);
       }
     }
+    update_list_last_pinned_dialog_date(*list);
   }
   promise.set_value(Unit());
 
