@@ -12959,8 +12959,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
             if (result.is_ok()) {
               LOG(INFO) << "Continue to load chat list in " << folder_id;
-              send_closure_later(actor_id, &MessagesManager::load_folder_dialog_list, folder_id, MAX_GET_DIALOGS, false,
-                                 Promise<Unit>());
+              send_closure_later(actor_id, &MessagesManager::load_folder_dialog_list, folder_id, int32{MAX_GET_DIALOGS},
+                                 false, Promise<Unit>());
             }
           }));
         }
