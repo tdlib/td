@@ -970,7 +970,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
                      std::move(result));
       });
   td_->create_handler<GetPollVotersQuery>(std::move(query_promise))
-      ->send(poll_id, full_message_id, BufferSlice(poll->options[option_id].data), voters.next_offset, max(limit, 15));
+      ->send(poll_id, full_message_id, BufferSlice(poll->options[option_id].data), voters.next_offset, max(limit, 10));
 }
 
 void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string offset, int32 limit,
