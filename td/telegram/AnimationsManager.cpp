@@ -729,6 +729,12 @@ void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Pr
 }
 
 void AnimationsManager::add_saved_animation_by_id(FileId animation_id) {
+  auto animation = get_animation(animation_id);
+  CHECK(animation != nullptr);
+  if (animation->has_stickers) {
+    return;
+  }
+
   // TODO log event
   add_saved_animation_impl(animation_id, false, Auto());
 }
