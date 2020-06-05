@@ -13979,7 +13979,12 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
   LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   auto &multipromise = folder.load_folder_dialog_list_multipromise_;
   multipromise.add_promise(std::move(promise));
-  if (multipromise.promise_count() != 1) {
+  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
+    if (result.is_error() && !G()->close_flag()) {
+      send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
+    }
+  }));
+  if (multipromise.promise_count() != 2) {
     // queries have already been sent, just wait for the result
     if (use_database && folder.load_dialog_list_limit_max_ != 0) {
       folder.load_dialog_list_limit_max_ = max(folder.load_dialog_list_limit_max_, limit);
@@ -14009,6 +14014,23 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     }
   }
   CHECK(is_query_sent);
+}
+
+void MessagesManager::on_load_folder_dialog_list_fail(FolderId folder_id, Status error) {
+  LOG(WARNING) << "Failed to load chats in " << folder_id << ": " << error;
+  const auto &folder = *get_dialog_folder(folder_id);
+  vector<Promise<Unit>> promises;
+  for (auto &list_it : dialog_lists_) {
+    auto &list = list_it.second;
+    if (!list.load_list_queries_.empty() && has_dialogs_from_folder(list, folder)) {
+      append(promises, std::move(list.load_list_queries_));
+      list.load_list_queries_.clear();
+    }
+  }
+
+  for (auto &promise : promises) {
+    promise.set_error(error.clone());
+  }
 }
 
 void MessagesManager::load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise) {

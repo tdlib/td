@@ -1897,6 +1897,8 @@ class MessagesManager : public Actor {
 
   void load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local, Promise<Unit> &&promise);
 
+  void on_load_folder_dialog_list_fail(FolderId folder_id, Status error);
+
   void load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
 
   void preload_folder_dialog_list(FolderId folderId);
