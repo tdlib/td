@@ -31090,11 +31090,13 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
       }
     }
   }
-  if (filter->exclude_muted && is_dialog_muted(d)) {
-    return false;
-  }
-  if (filter->exclude_read && d->server_unread_count + d->local_unread_count == 0 && !d->is_marked_as_unread) {
-    return false;
+  if (d->unread_mention_count == 0 || is_dialog_mention_notifications_disabled(d)) {
+    if (filter->exclude_muted && is_dialog_muted(d)) {
+      return false;
+    }
+    if (filter->exclude_read && d->server_unread_count + d->local_unread_count == 0 && !d->is_marked_as_unread) {
+      return false;
+    }
   }
   if (filter->exclude_archived && d->folder_id == FolderId::archive()) {
     return false;
@@ -31105,7 +31107,7 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
       if (td_->contacts_manager_->is_user_bot(user_id)) {
         return filter->include_bots;
       }
-      if (td_->contacts_manager_->is_user_contact(user_id)) {
+      if (user_id == td_->contacts_manager_->get_my_id() || td_->contacts_manager_->is_user_contact(user_id)) {
         return filter->include_contacts;
       }
       return filter->include_non_contacts;
