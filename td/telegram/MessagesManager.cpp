@@ -24259,7 +24259,7 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
       return 1;
     }
     if (is_dialog_muted(d)) {
-      return d->pending_new_message_notifications.size();  // usually 0
+      return narrow_cast<int32>(d->pending_new_message_notifications.size());  // usually 0
     }
 
     return d->server_unread_count + d->local_unread_count;

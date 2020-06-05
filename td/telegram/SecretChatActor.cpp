@@ -1547,7 +1547,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   MutableSlice data = state->message->encrypted_message.as_slice();
   CHECK(is_aligned_pointer<4>(data.data()));
 
-  // Rewrite with delete itself.
+  // Rewrite with delete itself
   tl_object_ptr<secret_api::DecryptedMessage> message = secret_api::make_object<secret_api::decryptedMessageService>(
       state->message->random_id, secret_api::make_object<secret_api::decryptedMessageActionDeleteMessages>(
                                      std::vector<int64>{static_cast<int64>(state->message->random_id)}));
