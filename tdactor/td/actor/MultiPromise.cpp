@@ -10,6 +10,7 @@ namespace td {
 
 void MultiPromiseActor::add_promise(Promise<Unit> &&promise) {
   promises_.emplace_back(std::move(promise));
+  LOG(DEBUG) << "Add promise #" << promises_.size() << " to " << name_;
 }
 
 Promise<Unit> MultiPromiseActor::get_promise() {
@@ -24,11 +25,13 @@ Promise<Unit> MultiPromiseActor::get_promise() {
 
   future.set_event(EventCreator::raw(actor_id(), nullptr));
   futures_.emplace_back(std::move(future));
+  LOG(DEBUG) << "Get promise #" << futures_.size() << " for " << name_;
   return PromiseCreator::from_promise_actor(std::move(promise));
 }
 
 void MultiPromiseActor::raw_event(const Event::Raw &event) {
   received_results_++;
+  LOG(DEBUG) << "Receive result #" << received_results_ << " out of " << futures_.size() << " for " << name_;
   if (received_results_ == futures_.size()) {
     if (!ignore_errors_) {
       for (auto &future : futures_) {
@@ -47,13 +50,21 @@ void MultiPromiseActor::set_ignore_errors(bool ignore_errors) {
 }
 
 void MultiPromiseActor::set_result(Result<Unit> &&result) {
+  result_ = std::move(result);
+  stop();
+}
+
+void MultiPromiseActor::tear_down() {
+  LOG(DEBUG) << "Set result for " << promises_.size() << " promises in " << name_;
+
   // MultiPromiseActor should be cleared before it begins to send out result
   auto promises_copy = std::move(promises_);
   promises_.clear();
   auto futures_copy = std::move(futures_);
   futures_.clear();
   received_results_ = 0;
-  stop();
+  auto result = std::move(result_);
+  result_ = Unit();
 
   if (!promises_copy.empty()) {
     for (size_t i = 0; i + 1 < promises_copy.size(); i++) {
