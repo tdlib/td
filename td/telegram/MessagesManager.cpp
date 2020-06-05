@@ -6769,7 +6769,7 @@ void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_defaul
   }
 }
 
-void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_default, int32 old_mute_until,
+void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_default, int32 &old_mute_until,
                                                    bool new_use_default, int32 new_mute_until) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -6784,39 +6784,34 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
 
   schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until);
 
-  if (need_unread_counter(d->order)) {
+  bool was_muted = (old_use_default ? get_scope_mute_until(d->dialog_id) : old_mute_until) != 0;
+  bool is_muted = (new_use_default ? get_scope_mute_until(d->dialog_id) : new_mute_until) != 0;
+  if (was_muted != is_muted && need_unread_counter(d->order)) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
-    if (old_use_default || new_use_default) {
-      auto scope_mute_until = get_scope_mute_until(d->dialog_id);
-      if (old_use_default) {
-        old_mute_until = scope_mute_until;
-      }
-      if (new_use_default) {
-        new_mute_until = scope_mute_until;
-      }
-    }
-    if ((old_mute_until != 0) != (new_mute_until != 0)) {
-      if (unread_count != 0 || d->is_marked_as_unread) {
-        for (auto &list : get_dialog_lists(d)) {
-          if (unread_count != 0 && list.is_message_unread_count_inited_) {
-            int32 delta = old_mute_until != 0 ? -unread_count : unread_count;
-            list.unread_message_muted_count_ += delta;
-            send_update_unread_message_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
+    if (unread_count != 0 || d->is_marked_as_unread) {
+      for (auto &list : get_dialog_lists(d)) {
+        if (unread_count != 0 && list.is_message_unread_count_inited_) {
+          int32 delta = was_muted ? -unread_count : unread_count;
+          list.unread_message_muted_count_ += delta;
+          send_update_unread_message_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
+        }
+        if (list.is_dialog_unread_count_inited_) {
+          int32 delta = was_muted ? -1 : 1;
+          list.unread_dialog_muted_count_ += delta;
+          if (unread_count == 0 && d->is_marked_as_unread) {
+            list.unread_dialog_muted_marked_count_ += delta;
           }
-          if (list.is_dialog_unread_count_inited_) {
-            int32 delta = old_mute_until != 0 ? -1 : 1;
-            list.unread_dialog_muted_count_ += delta;
-            if (unread_count == 0 && d->is_marked_as_unread) {
-              list.unread_dialog_muted_marked_count_ += delta;
-            }
-            send_update_unread_chat_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
-          }
+          send_update_unread_chat_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
         }
       }
-      if (!dialog_filters_.empty()) {
-        update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
-      }
     }
+  }
+
+  old_use_default = new_use_default;
+  old_mute_until = new_mute_until;
+
+  if (was_muted != is_muted && !dialog_filters_.empty()) {
+    update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
   }
 }
 
