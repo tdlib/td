@@ -15464,25 +15464,12 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
     return promise.set_error(Status::Error(400, "Chat filter not found"));
   }
 
-  auto old_icon_name = old_dialog_filter->get_icon_name();
-  auto new_icon_name = filter->icon_name_;
   auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
   if (r_dialog_filter.is_error()) {
     return promise.set_error(r_dialog_filter.move_as_error());
   }
   auto new_dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(new_dialog_filter != nullptr);
-  if (new_icon_name.empty()) {
-    // keep old emoji
-    new_dialog_filter->emoji = old_dialog_filter->emoji;
-  } else if (new_icon_name == old_icon_name) {
-    // keep old emoji, but only if with it icon_name is exactly as specified
-    auto new_emoji = std::move(new_dialog_filter->emoji);
-    new_dialog_filter->emoji = old_dialog_filter->emoji;
-    if (new_dialog_filter->get_icon_name() != new_icon_name) {
-      new_dialog_filter->emoji = std::move(new_emoji);
-    }
-  }
 
   if (*new_dialog_filter == *old_dialog_filter) {
     return promise.set_value(Unit());

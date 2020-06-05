@@ -1764,9 +1764,9 @@ class CliClient final : public Actor {
     }
 
     if (op == "gc" || op == "GetChats" || op == "gca" || begins_with(op, "gc-")) {
+      string limit;
       string offset_order_string;
       string offset_chat_id;
-      string limit;
 
       std::tie(limit, args) = split(args);
       std::tie(offset_order_string, offset_chat_id) = split(args);
@@ -3540,6 +3540,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(args)));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
+    } else if (op == "gcfdin") {
+      execute(td_api::make_object<td_api::getChatFilterDefaultIconName>(as_chat_filter(args)));
     } else if (op == "sct") {
       string chat_id;
       string title;

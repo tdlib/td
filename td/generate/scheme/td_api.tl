@@ -676,7 +676,8 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 
 //@description Represents a filter of user chats
 //@title The title of the filter; 1-12 characters without line feeds
-//@icon_name The icon name for short filter representation. Must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work". Pass an empty string for autodetection
+//@icon_name The icon name for short filter representation. If non-empty, must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work".
+//-If empty, use getChatFilterDefaultIconName to get default icon name for the filter
 //@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list
 //@included_chat_ids The chat identifiers of always included chats in the filtered chat list
 //@excluded_chat_ids The chat identifiers of always excluded chats in the filtered chat list
@@ -3750,7 +3751,7 @@ addChatToList chat_id:int53 chat_list:ChatList = Ok;
 //@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier
 getChatFilter chat_filter_id:int32 = ChatFilter;
 
-//@description Creates new chat filter @filter The chat filter
+//@description Creates new chat filter @filter Chat filter
 createChatFilter filter:chatFilter = Ok;
 
 //@description Edits existing chat filter @chat_filter_id Chat filter identifier @filter The edited chat filter
@@ -3762,8 +3763,11 @@ deleteChatFilter chat_filter_id:int32 = Ok;
 //@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order
 reorderChatFilters chat_filter_ids:vector<int32> = Ok;
 
-//@description Returns recommended chat filters for the user
+//@description Returns recommended chat filters for the current user
 getRecommendedChatFilters = RecommendedChatFilters;
+
+//@description Returns default icon name for a filter. This is an offline method. Can be called before authorization. Can be called synchronously @filter Chat filter
+getChatFilterDefaultIconName filter:chatFilter = Text;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed

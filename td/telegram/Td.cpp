@@ -24,6 +24,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAdministrator.h"
+#include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogLocation.h"
@@ -3229,6 +3230,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
+    case td_api::getChatFilterDefaultIconName::ID:
     case td_api::getJsonValue::ID:
     case td_api::getJsonString::ID:
     case td_api::getPushReceiverId::ID:
@@ -3452,6 +3454,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
       case td_api::cleanFileName::ID:
+      case td_api::getChatFilterDefaultIconName::ID:
       case td_api::getJsonValue::ID:
       case td_api::getJsonString::ID:
       case td_api::testReturnError::ID:
@@ -7735,6 +7738,10 @@ void Td::on_request(uint64 id, const td_api::getPushReceiverId &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::getChatFilterDefaultIconName &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getJsonValue &request) {
   UNREACHABLE();
 }
@@ -7884,6 +7891,19 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPushRe
     return make_error(r_push_receiver_id.error().code(), r_push_receiver_id.error().message());
   }
   return td_api::make_object<td_api::pushReceiverId>(r_push_receiver_id.ok());
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getChatFilterDefaultIconName &request) {
+  if (request.filter_ == nullptr) {
+    return make_error(400, "Chat filter must be non-empty");
+  }
+  if (!check_utf8(request.filter_->title_)) {
+    return make_error(400, "Chat filter title must be encoded in UTF-8");
+  }
+  if (!check_utf8(request.filter_->icon_name_)) {
+    return make_error(400, "Chat filter icon name must be encoded in UTF-8");
+  }
+  return td_api::make_object<td_api::text>(DialogFilter::get_default_icon_name(request.filter_.get()));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getJsonValue &request) {

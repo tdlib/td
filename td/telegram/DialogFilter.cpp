@@ -126,34 +126,41 @@ string DialogFilter::get_icon_name() const {
   if (it != emoji_to_icon_name_.end()) {
     return it->second;
   }
+  return string();
+}
 
-  if (!pinned_dialog_ids.empty() || !included_dialog_ids.empty() || !excluded_dialog_ids.empty()) {
+string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
+  if (!filter->icon_name_.empty() && !get_emoji_by_icon_name(filter->icon_name_).empty()) {
+    return filter->icon_name_;
+  }
+
+  if (!filter->pinned_chat_ids_.empty() || !filter->included_chat_ids_.empty() || !filter->excluded_chat_ids_.empty()) {
     return "Custom";
   }
 
-  if (include_contacts || include_non_contacts) {
-    if (!include_bots && !include_groups && !include_channels) {
+  if (filter->include_contacts_ || filter->include_non_contacts_) {
+    if (!filter->include_bots_ && !filter->include_groups_ && !filter->include_channels_) {
       return "Private";
     }
   } else {
-    if (!include_bots && !include_channels) {
-      if (!include_groups) {
+    if (!filter->include_bots_ && !filter->include_channels_) {
+      if (!filter->include_groups_) {
         // just in case
         return "Custom";
       }
       return "Groups";
     }
-    if (!include_bots && !include_groups) {
+    if (!filter->include_bots_ && !filter->include_groups_) {
       return "Channels";
     }
-    if (!include_groups && !include_channels) {
+    if (!filter->include_groups_ && !filter->include_channels_) {
       return "Bots";
     }
   }
-  if (exclude_read && !exclude_muted) {
+  if (filter->exclude_read_ && !filter->exclude_muted_) {
     return "Unread";
   }
-  if (exclude_muted && !exclude_read) {
+  if (filter->exclude_muted_ && !filter->exclude_read_) {
     return "Unmuted";
   }
   return "Custom";

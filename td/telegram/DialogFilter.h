@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/InputDialogId.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -54,6 +55,8 @@ class DialogFilter {
   static string get_emoji_by_icon_name(const string &icon_name);
 
   string get_icon_name() const;
+
+  static string get_default_icon_name(const td_api::chatFilter *filter);
 
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const;
 
