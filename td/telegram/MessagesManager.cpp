@@ -12916,19 +12916,20 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
     update_dialog_lists(d, std::move(positions), true, false, "on_get_dialogs");
   }
+
   if (from_dialog_list) {
     CHECK(!td_->auth_manager_->is_bot());
     CHECK(total_count >= 0);
 
-    auto &list = add_dialog_list(DialogListId(folder_id));
-    if (list.server_dialog_total_count_ != total_count) {
-      auto old_dialog_total_count = get_dialog_total_count(list);
-      list.server_dialog_total_count_ = total_count;
-      if (list.is_dialog_unread_count_inited_) {
-        if (old_dialog_total_count != get_dialog_total_count(list)) {
-          send_update_unread_chat_count(list, DialogId(), true, "on_get_dialogs");
+    auto &folder_list = add_dialog_list(DialogListId(folder_id));
+    if (folder_list.server_dialog_total_count_ != total_count) {
+      auto old_dialog_total_count = get_dialog_total_count(folder_list);
+      folder_list.server_dialog_total_count_ = total_count;
+      if (folder_list.is_dialog_unread_count_inited_) {
+        if (old_dialog_total_count != get_dialog_total_count(folder_list)) {
+          send_update_unread_chat_count(folder_list, DialogId(), true, "on_get_dialogs");
         } else {
-          save_unread_chat_count(list);
+          save_unread_chat_count(folder_list);
         }
       }
     }
@@ -12942,6 +12943,28 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (folder->last_server_dialog_date_ < max_dialog_date) {
       folder->last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
+
+      if (max_dialog_date != MAX_DIALOG_DATE) {
+        bool need_new_get_dialog_list = false;
+        for (const auto &list_it : dialog_lists_) {
+          auto &dialog_list = list_it.second;
+          if (!dialog_list.load_list_queries_.empty() && has_dialogs_from_folder(dialog_list, *folder)) {
+            LOG(INFO) << "Need to load more chats in " << folder_id << " for " << list_it.first;
+            need_new_get_dialog_list = true;
+          }
+        }
+        if (need_new_get_dialog_list) {
+          LOG(INFO) << "Schedule chats list load in " << folder_id;
+          auto &multipromise = folder->load_folder_dialog_list_multipromise_;
+          multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
+            if (result.is_ok()) {
+              LOG(INFO) << "Continue to load chat list in " << folder_id;
+              send_closure_later(actor_id, &MessagesManager::load_folder_dialog_list, folder_id, MAX_GET_DIALOGS, false,
+                                 Promise<Unit>());
+            }
+          }));
+        }
+      }
     } else if (promise) {
       LOG(ERROR) << "Last server dialog date didn't increased from " << folder->last_server_dialog_date_ << " to "
                  << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
@@ -12951,10 +12974,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   }
   if (from_pinned_dialog_list) {
     CHECK(!td_->auth_manager_->is_bot());
-    auto *list = get_dialog_list(DialogListId(folder_id));
-    CHECK(list != nullptr);
+    auto *folder_list = get_dialog_list(DialogListId(folder_id));
+    CHECK(folder_list != nullptr);
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
-    list->are_pinned_dialogs_inited_ = true;
+    folder_list->are_pinned_dialogs_inited_ = true;
     if (pinned_dialog_ids != added_dialog_ids) {
       LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
                 << format::as_array(added_dialog_ids);
@@ -12985,7 +13008,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     } else {
       LOG(INFO) << "Pinned chats are not changed";
     }
-    update_list_last_pinned_dialog_date(*list);
+    update_list_last_pinned_dialog_date(*folder_list);
   }
   promise.set_value(Unit());
 
