@@ -10781,6 +10781,30 @@ void MessagesManager::init() {
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
+  if (is_authorized_user) {
+    auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
+    if (!dialog_filters.empty()) {
+      DialogFiltersLogEvent log_event;
+      if (log_event_parse(log_event, dialog_filters).is_ok()) {
+        dialog_filters_updated_date_ = log_event.updated_date;
+        std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
+        for (auto &dialog_filter : log_event.server_dialog_filters_out) {
+          if (server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
+            server_dialog_filters_.push_back(std::move(dialog_filter));
+          }
+        }
+        for (auto &dialog_filter : log_event.dialog_filters_out) {
+          add_dialog_filter(std::move(dialog_filter), false, "binlog");
+        }
+        LOG(INFO) << "Loaded server chat filters " << get_dialog_filter_ids(server_dialog_filters_)
+                  << " and local chat filters " << get_dialog_filter_ids(dialog_filters_);
+      } else {
+        LOG(ERROR) << "Failed to parse chat filters from binlog";
+      }
+    }
+    send_update_chat_filters();  // always send updateChatFilters
+  }
+
   if (G()->parameters().use_message_db && is_authorized_user) {
     // erase old keys
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
@@ -10875,28 +10899,6 @@ void MessagesManager::init() {
         }
       }
     }
-
-    auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
-    if (!dialog_filters.empty()) {
-      DialogFiltersLogEvent log_event;
-      if (log_event_parse(log_event, dialog_filters).is_ok()) {
-        dialog_filters_updated_date_ = log_event.updated_date;
-        std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
-        for (auto &dialog_filter : log_event.server_dialog_filters_out) {
-          if (server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
-            server_dialog_filters_.push_back(std::move(dialog_filter));
-          }
-        }
-        for (auto &dialog_filter : log_event.dialog_filters_out) {
-          add_dialog_filter(std::move(dialog_filter), false, "binlog");
-        }
-        LOG(INFO) << "Loaded server chat filters " << get_dialog_filter_ids(server_dialog_filters_)
-                  << " and local chat filters " << get_dialog_filter_ids(dialog_filters_);
-      } else {
-        LOG(ERROR) << "Failed to parse chat filters from binlog";
-      }
-    }
-    send_update_chat_filters();  // always send updateChatFilters
 
     auto unread_message_counts = G()->td_db()->get_binlog_pmc()->prefix_get("unread_message_count");
     for (auto &it : unread_message_counts) {
