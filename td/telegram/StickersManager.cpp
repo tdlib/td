@@ -2333,7 +2333,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   }
   if (static_cast<int32>(s->sticker_ids.size()) != s->sticker_count) {
     LOG(ERROR) << "Wrong sticker set size " << s->sticker_count << " instead of " << s->sticker_ids.size()
-               << " specified in " << set_id << " from " << source;
+               << " specified in " << set_id << "/" << s->short_name << " from " << source;
     s->sticker_count = static_cast<int32>(s->sticker_ids.size());
   }
 
@@ -2346,7 +2346,8 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       for (int64 document_id : pack->documents_) {
         auto it = document_id_to_sticker_id.find(document_id);
         if (it == document_id_to_sticker_id.end()) {
-          LOG(ERROR) << "Can't find document with id " << document_id << " in " << set_id << " from " << source;
+          LOG(ERROR) << "Can't find document with id " << document_id << " in " << set_id << "/" << s->short_name
+                     << " from " << source;
           continue;
         }
 
