@@ -13887,6 +13887,32 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
     return result;
   }
+  if (dialog_list_id.is_filter()) {
+    auto *filter = get_dialog_filter(dialog_list_id.get_filter_id());
+    CHECK(filter != nullptr);
+    vector<InputDialogId> input_dialog_ids;
+    for (auto &input_dialog_id : filter->pinned_dialog_ids) {
+      auto dialog_id = input_dialog_id.get_dialog_id();
+      if (!have_dialog_force(dialog_id)) {
+        if (dialog_id.get_type() == DialogType::SecretChat) {
+          if (have_dialog_info_force(dialog_id)) {
+            force_create_dialog(dialog_id, "get_dialogs");
+          }
+        } else {
+          input_dialog_ids.push_back(input_dialog_id);
+        }
+      }
+    }
+
+    if (!input_dialog_ids.empty()) {
+      if (limit == 0 || force) {
+        promise.set_value(Unit());
+      } else {
+        td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
+      }
+      return result;
+    }
+  }
 
   bool need_reload_pinned_dialogs = false;
   if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
@@ -13896,12 +13922,13 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         auto d = get_dialog_force(dialog_id);
         if (d == nullptr) {
           LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
-          need_reload_pinned_dialogs = true;
+          if (dialog_id.get_type() != DialogType::SecretChat) {
+            need_reload_pinned_dialogs = true;
+          }
           continue;
         }
         if (d->order == DEFAULT_ORDER) {
-          LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
-          need_reload_pinned_dialogs = true;
+          LOG(INFO) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
           continue;
         }
         result.push_back(dialog_id);
