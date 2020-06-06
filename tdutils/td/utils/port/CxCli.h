@@ -6,19 +6,25 @@
 //
 #pragma once
 
+#pragma managed(push, off)
 #include "td/utils/port/config.h"
+#pragma managed(pop)
 
 #include "td/utils/common.h"
 
 #if TD_WINRT
 
+#pragma managed(push, off)
 #include "td/utils/port/wstring_convert.h"
+#pragma managed(pop)
 
 #include "collection.h"
 
+#pragma managed(push, off)
 #include <cstdint>
 #include <map>
 #include <mutex>
+#pragma managed(pop)
 
 #undef small
 

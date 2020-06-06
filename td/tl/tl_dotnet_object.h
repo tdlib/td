@@ -8,8 +8,10 @@
 
 #include "td/utils/port/CxCli.h"
 
+#pragma managed(push, off)
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
+#pragma managed(pop)
 
 namespace Telegram {
 namespace Td {

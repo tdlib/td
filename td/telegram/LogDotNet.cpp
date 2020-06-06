@@ -4,11 +4,15 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#pragma managed(push, off)
 #include "td/telegram/Log.h"
+#pragma managed(pop)
 
 #include "td/utils/port/CxCli.h"
 
+#pragma managed(push, off)
 #include <cstdint>
+#pragma managed(pop)
 
 namespace Telegram {
 namespace Td {
