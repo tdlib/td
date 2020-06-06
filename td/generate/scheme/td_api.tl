@@ -3231,7 +3231,9 @@ resendAuthenticationCode = Ok;
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code The verification code received via SMS, Telegram message, phone call, or flash call
 checkAuthenticationCode code:string = Ok;
 
-//@description Requests QR code authentication by scanning a QR code on another logged in device. Works only when the current authorization state is authorizationStateWaitPhoneNumber @other_user_ids List of user identifiers of other users currently using the client
+//@description Requests QR code authentication by scanning a QR code on another logged in device. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
+//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
+//@other_user_ids List of user identifiers of other users currently using the client
 requestQrCodeAuthentication other_user_ids:vector<int32> = Ok;
 
 //@description Finishes user registration. Works only when the current authorization state is authorizationStateWaitRegistration
