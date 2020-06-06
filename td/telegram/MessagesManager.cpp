@@ -13845,7 +13845,9 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
   auto &list = *list_ptr;
 
   LOG(INFO) << "Get chats in " << dialog_list_id << " with offset " << offset << " and limit " << limit
-            << ". last_dialog_date = " << list.list_last_dialog_date_;
+            << ". last_dialog_date = " << list.list_last_dialog_date_
+            << ", last_pinned_dialog_date_ = " << list.last_pinned_dialog_date_
+            << ", are_pinned_dialogs_inited_ = " << list.are_pinned_dialogs_inited_;
 
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit in getChats must be positive"));
@@ -13869,79 +13871,85 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
   }
 
-  if (list.are_pinned_dialogs_inited_) {
-    bool need_reload_pinned_dialogs = false;
-    if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
-      for (auto &pinned_dialog : list.pinned_dialogs_) {
-        if (offset < pinned_dialog) {
-          auto dialog_id = pinned_dialog.get_dialog_id();
-          auto d = get_dialog_force(dialog_id);
-          if (d == nullptr) {
-            LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
-            need_reload_pinned_dialogs = true;
-            continue;
-          }
-          if (d->order == DEFAULT_ORDER) {
-            LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
-            need_reload_pinned_dialogs = true;
-            continue;
-          }
-          result.push_back(dialog_id);
-          offset = pinned_dialog;
-          limit--;
-          if (limit == 0) {
-            break;
-          }
-        }
-      }
+  if (!list.are_pinned_dialogs_inited_) {
+    if (limit == 0 || force) {
+      promise.set_value(Unit());
+    } else {
+      reload_pinned_dialogs(dialog_list_id, std::move(promise));
     }
-    if (need_reload_pinned_dialogs) {
-      reload_pinned_dialogs(dialog_list_id, Auto());
-    }
-    update_list_last_pinned_dialog_date(list);
-
-    vector<const DialogFolder *> folders;
-    vector<std::set<DialogDate>::const_iterator> folder_iterators;
-    for (auto folder_id : get_dialog_list_folder_ids(list)) {
-      folders.push_back(get_dialog_folder(folder_id));
-      folder_iterators.push_back(folders.back()->ordered_dialogs_.upper_bound(offset));
-    }
-    while (limit > 0) {
-      size_t best_pos = 0;
-      DialogDate best_dialog_date = MAX_DIALOG_DATE;
-      for (size_t i = 0; i < folders.size(); i++) {
-        while (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
-               *folder_iterators[i] <= list.list_last_dialog_date_ &&
-               (!is_dialog_in_list(get_dialog(folder_iterators[i]->get_dialog_id()), dialog_list_id) ||
-                get_dialog_pinned_order(&list, folder_iterators[i]->get_dialog_id()) != DEFAULT_ORDER)) {
-          ++folder_iterators[i];
-        }
-        if (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
-            *folder_iterators[i] <= list.list_last_dialog_date_ && *folder_iterators[i] < best_dialog_date) {
-          best_pos = i;
-          best_dialog_date = *folder_iterators[i];
-        }
-      }
-      if (best_dialog_date == MAX_DIALOG_DATE || best_dialog_date.get_order() == DEFAULT_ORDER) {
-        break;
-      }
-
-      limit--;
-      result.push_back(folder_iterators[best_pos]->get_dialog_id());
-      ++folder_iterators[best_pos];
-    }
+    return result;
   }
 
-  if (!result.empty() || force) {
-    if (limit > 0) {
+  bool need_reload_pinned_dialogs = false;
+  if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
+    for (auto &pinned_dialog : list.pinned_dialogs_) {
+      if (offset < pinned_dialog) {
+        auto dialog_id = pinned_dialog.get_dialog_id();
+        auto d = get_dialog_force(dialog_id);
+        if (d == nullptr) {
+          LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
+          need_reload_pinned_dialogs = true;
+          continue;
+        }
+        if (d->order == DEFAULT_ORDER) {
+          LOG(ERROR) << "Loaded pinned " << dialog_id << " with default order in " << dialog_list_id;
+          need_reload_pinned_dialogs = true;
+          continue;
+        }
+        result.push_back(dialog_id);
+        offset = pinned_dialog;
+        limit--;
+        if (limit == 0) {
+          break;
+        }
+      }
+    }
+  }
+  if (need_reload_pinned_dialogs) {
+    reload_pinned_dialogs(dialog_list_id, Auto());
+  }
+  update_list_last_pinned_dialog_date(list);
+
+  vector<const DialogFolder *> folders;
+  vector<std::set<DialogDate>::const_iterator> folder_iterators;
+  for (auto folder_id : get_dialog_list_folder_ids(list)) {
+    folders.push_back(get_dialog_folder(folder_id));
+    folder_iterators.push_back(folders.back()->ordered_dialogs_.upper_bound(offset));
+  }
+  while (limit > 0) {
+    size_t best_pos = 0;
+    DialogDate best_dialog_date = MAX_DIALOG_DATE;
+    for (size_t i = 0; i < folders.size(); i++) {
+      while (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+             *folder_iterators[i] <= list.list_last_dialog_date_ &&
+             (!is_dialog_in_list(get_dialog(folder_iterators[i]->get_dialog_id()), dialog_list_id) ||
+              get_dialog_pinned_order(&list, folder_iterators[i]->get_dialog_id()) != DEFAULT_ORDER)) {
+        ++folder_iterators[i];
+      }
+      if (folder_iterators[i] != folders[i]->ordered_dialogs_.end() &&
+          *folder_iterators[i] <= list.list_last_dialog_date_ && *folder_iterators[i] < best_dialog_date) {
+        best_pos = i;
+        best_dialog_date = *folder_iterators[i];
+      }
+    }
+    if (best_dialog_date == MAX_DIALOG_DATE || best_dialog_date.get_order() == DEFAULT_ORDER) {
+      break;
+    }
+
+    limit--;
+    result.push_back(folder_iterators[best_pos]->get_dialog_id());
+    ++folder_iterators[best_pos];
+  }
+
+  if (!result.empty() || force || list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
+    if (limit > 0 && list.list_last_dialog_date_ != MAX_DIALOG_DATE) {
       load_dialog_list(list, limit, Promise<Unit>());
     }
 
     promise.set_value(Unit());
-    return result;
+  } else {
+    load_dialog_list(list, limit, std::move(promise));
   }
-
-  load_dialog_list(list, limit, std::move(promise));
   return result;
 }
 
@@ -13957,6 +13965,8 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
   if (is_request_sent) {
     list.load_list_queries_.push_back(std::move(promise));
   } else {
+    LOG(ERROR) << "There is nothing to load for " << list.dialog_list_id << " with folders "
+               << get_dialog_list_folder_ids(list);
     promise.set_value(Unit());
   }
 }
