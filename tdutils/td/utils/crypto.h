@@ -103,6 +103,10 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data);
 Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data);
 
 void init_openssl_threads();
+
+Status create_openssl_error(int code, Slice message);
+
+void clear_openssl_errors(Slice source);
 #endif
 
 #if TD_HAVE_ZLIB

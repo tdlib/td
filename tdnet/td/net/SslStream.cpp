@@ -8,6 +8,7 @@
 
 #if !TD_EMSCRIPTEN
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
@@ -142,42 +143,14 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   return preverify_ok;
 }
 
-Status create_openssl_error(int code, Slice message) {
-  const int max_result_size = 1 << 12;
-  auto result = StackAllocator::alloc(max_result_size);
-  StringBuilder sb(result.as_slice());
-
-  sb << message;
-  while (unsigned long error_code = ERR_get_error()) {
-    char error_buf[1024];
-    ERR_error_string_n(error_code, error_buf, sizeof(error_buf));
-    Slice error(error_buf, std::strlen(error_buf));
-    sb << "{" << error << "}";
-  }
-  LOG_IF(ERROR, sb.is_error()) << "OpenSSL error buffer overflow";
-  LOG(DEBUG) << sb.as_cslice();
-  return Status::Error(code, sb.as_cslice());
-}
-
-void openssl_clear_errors(Slice from) {
-  if (ERR_peek_error() != 0) {
-    LOG(ERROR) << from << ": " << create_openssl_error(0, "Unprocessed OPENSSL_ERROR");
-  }
-#if TD_PORT_WINDOWS  // TODO move to utils
-  WSASetLastError(0);
-#else
-  errno = 0;
-#endif
-}
-
 void do_ssl_shutdown(SSL *ssl_handle) {
   if (!SSL_is_init_finished(ssl_handle)) {
     return;
   }
-  openssl_clear_errors("Before SSL_shutdown");
+  clear_openssl_errors("Before SSL_shutdown");
   SSL_set_quiet_shutdown(ssl_handle, 1);
   SSL_shutdown(ssl_handle);
-  openssl_clear_errors("After SSL_shutdown");
+  clear_openssl_errors("After SSL_shutdown");
 }
 
 }  // namespace
@@ -209,7 +182,7 @@ class SslStreamImpl {
     }();
     CHECK(init_openssl);
 
-    openssl_clear_errors("Before SslFd::init");
+    clear_openssl_errors("Before SslFd::init");
 
     auto ssl_method =
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -385,7 +358,7 @@ class SslStreamImpl {
   friend class SslWriteByteFlow;
 
   Result<size_t> write(Slice slice) {
-    openssl_clear_errors("Before SslFd::write");
+    clear_openssl_errors("Before SslFd::write");
     auto size = SSL_write(ssl_handle_, slice.data(), static_cast<int>(slice.size()));
     if (size <= 0) {
       return process_ssl_error(size);
@@ -394,7 +367,7 @@ class SslStreamImpl {
   }
 
   Result<size_t> read(MutableSlice slice) {
-    openssl_clear_errors("Before SslFd::read");
+    clear_openssl_errors("Before SslFd::read");
     auto size = SSL_read(ssl_handle_, slice.data(), static_cast<int>(slice.size()));
     if (size <= 0) {
       return process_ssl_error(size);
