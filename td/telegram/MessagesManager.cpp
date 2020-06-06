@@ -12389,7 +12389,7 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   }
 
   LOG(INFO) << "Set " << d->dialog_id << " is pinned in " << dialog_list_id << " to " << is_pinned;
-  if (dialog_list_id.is_folder()) {
+  if (dialog_list_id.is_folder() && G()->parameters().use_message_db) {
     G()->td_db()->get_binlog_pmc()->set(
         PSTRING() << "pinned_dialog_ids" << dialog_list_id.get_folder_id().get(),
         implode(transform(list->pinned_dialogs_,
