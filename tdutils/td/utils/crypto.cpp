@@ -134,11 +134,13 @@ uint64 pq_factorize(uint64 pq) {
 void init_crypto() {
   static bool is_inited = [] {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    return OPENSSL_init_crypto(0, nullptr) != 0;
+    bool result = OPENSSL_init_crypto(0, nullptr) != 0;
 #else
     OpenSSL_add_all_algorithms();
-    return true;
+    bool result = true;
 #endif
+    clear_openssl_errors("Init crypto");
+    return result;
   }();
   CHECK(is_inited);
 }
