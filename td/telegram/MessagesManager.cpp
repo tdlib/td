@@ -7899,12 +7899,12 @@ void MessagesManager::after_get_difference() {
     }
   }
   while (!postponed_unread_message_count_updates_.empty()) {
-    auto list = get_dialog_list(*postponed_unread_message_count_updates_.begin());
+    auto *list = get_dialog_list(*postponed_unread_message_count_updates_.begin());
     CHECK(list != nullptr);
     send_update_unread_message_count(*list, DialogId(), true, "after_get_difference");
   }
   while (!postponed_unread_chat_count_updates_.empty()) {
-    auto list = get_dialog_list(*postponed_unread_chat_count_updates_.begin());
+    auto *list = get_dialog_list(*postponed_unread_chat_count_updates_.begin());
     CHECK(list != nullptr);
     send_update_unread_chat_count(*list, DialogId(), true, "after_get_difference");
   }
@@ -12934,7 +12934,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
     }
 
-    auto folder = get_dialog_folder(folder_id);
+    auto *folder = get_dialog_folder(folder_id);
     CHECK(folder != nullptr);
     if (dialogs.empty()) {
       // if there are no more dialogs on the server
@@ -13875,6 +13875,14 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     if (limit == 0 || force) {
       promise.set_value(Unit());
     } else {
+      if (dialog_list_id.is_folder()) {
+        auto &folder = *get_dialog_folder(dialog_list_id.get_folder_id());
+        if (folder.last_loaded_database_dialog_date_ == folder.last_database_server_dialog_date_ &&
+            folder.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
+          load_dialog_list(list, limit, std::move(promise));
+          return result;
+        }
+      }
       reload_pinned_dialogs(dialog_list_id, std::move(promise));
     }
     return result;
