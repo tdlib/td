@@ -8,7 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/USerId.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/logging.h"
 
