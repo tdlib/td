@@ -30804,13 +30804,14 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
   }
 }
 
-void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
+// must not call get_dialog_filter
+bool MessagesManager::do_update_list_last_pinned_dialog_date(DialogList &list) const {
   CHECK(!td_->auth_manager_->is_bot());
   if (list.last_pinned_dialog_date_ == MAX_DIALOG_DATE) {
-    return;
+    return false;
   }
   if (!list.are_pinned_dialogs_inited_) {
-    return;
+    return false;
   }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
@@ -30828,6 +30829,13 @@ void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool
     LOG(INFO) << "Update last pinned dialog date in " << list.dialog_list_id << " from "
               << list.last_pinned_dialog_date_ << " to " << max_dialog_date;
     list.last_pinned_dialog_date_ = max_dialog_date;
+    return true;
+  }
+  return false;
+}
+
+void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
+  if (do_update_list_last_pinned_dialog_date(list)) {
     update_list_last_dialog_date(list, only_update);
   }
 }
@@ -30848,7 +30856,8 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_u
     LOG(INFO) << "Update last dialog date in " << list.dialog_list_id << " from " << old_last_dialog_date << " to "
               << new_last_dialog_date;
     LOG_CHECK(old_last_dialog_date < new_last_dialog_date)
-        << list.dialog_list_id << " " << old_last_dialog_date << " " << list.last_pinned_dialog_date_ << " "
+        << list.dialog_list_id << " " << old_last_dialog_date << " " << new_last_dialog_date << " "
+        << get_dialog_list_folder_ids(list) << " " << list.last_pinned_dialog_date_ << " "
         << get_dialog_folder(FolderId::main())->folder_last_dialog_date_ << " "
         << get_dialog_folder(FolderId::archive())->folder_last_dialog_date_ << " " << list.load_list_queries_.size()
         << " " << list.pinned_dialogs_;

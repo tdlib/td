@@ -2543,6 +2543,8 @@ class MessagesManager : public Actor {
 
   void update_last_dialog_date(FolderId folder_id);
 
+  bool do_update_list_last_pinned_dialog_date(DialogList &list) const;
+
   void update_list_last_pinned_dialog_date(DialogList &list, bool only_update = false);
 
   void update_list_last_dialog_date(DialogList &list, bool only_update = false);
