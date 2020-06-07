@@ -14323,11 +14323,11 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     new_server_dialog_filters.push_back(std::move(dialog_filter));
   }
 
+  bool is_changed = false;
   dialog_filters_updated_date_ = G()->unix_time();
   if (server_dialog_filters_ != new_server_dialog_filters) {
     LOG(INFO) << "Change server chat filters from " << get_dialog_filter_ids(server_dialog_filters_) << " to "
               << get_dialog_filter_ids(new_server_dialog_filters);
-    bool is_changed = false;
     std::unordered_map<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
     for (const auto &filter : server_dialog_filters_) {
       old_server_dialog_filters.emplace(filter->dialog_filter_id, filter.get());
@@ -14412,9 +14412,9 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     }
 
     server_dialog_filters_ = std::move(new_server_dialog_filters);
-    if (is_changed) {
-      send_update_chat_filters();
-    }
+  }
+  if (is_changed || !is_update_chat_filters_sent_) {
+    send_update_chat_filters();
   }
   schedule_dialog_filters_reload(get_dialog_filters_cache_time());
   save_dialog_filters();
@@ -15527,6 +15527,9 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
     return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
   }
+  if (!is_update_chat_filters_sent_) {
+    return promise.set_error(Status::Error(400, "Chat folders are not synchronized yet"));
+  }
 
   DialogFilterId dialog_filter_id;
   do {
@@ -15565,6 +15568,7 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   if (old_dialog_filter == nullptr) {
     return promise.set_error(Status::Error(400, "Chat filter not found"));
   }
+  CHECK(is_update_chat_filters_sent_);
 
   auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
   if (r_dialog_filter.is_error()) {
@@ -16301,6 +16305,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
   }
 
   if (dialog_list_id.is_filter()) {
+    CHECK(is_update_chat_filters_sent_);
     auto dialog_filter_id = dialog_list_id.get_filter_id();
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
@@ -16458,6 +16463,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);
 
   if (dialog_list_id.is_filter()) {
+    CHECK(is_update_chat_filters_sent_);
     auto dialog_filter_id = dialog_list_id.get_filter_id();
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
@@ -24792,6 +24798,7 @@ void MessagesManager::send_update_chat_filters() {
     return;
   }
 
+  is_update_chat_filters_sent_ = true;
   send_closure(G()->td(), &Td::send_update, get_update_chat_filters_object());
 }
 
@@ -26983,6 +26990,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
   }
 
   if (dialog_list_id.is_filter()) {
+    CHECK(is_update_chat_filters_sent_);
     auto dialog_filter_id = dialog_list_id.get_filter_id();
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);

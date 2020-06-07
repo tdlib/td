@@ -2930,6 +2930,7 @@ class MessagesManager : public Actor {
   bool are_dialog_filters_being_reloaded_ = false;
   bool need_dialog_filters_reload_ = false;
   bool disable_get_dialog_filter_ = false;
+  bool is_update_chat_filters_sent_ = false;
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;
