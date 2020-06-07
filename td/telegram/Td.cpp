@@ -3282,7 +3282,6 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::setCustomLanguagePackString::ID:
     case td_api::deleteLanguagePack::ID:
     case td_api::processPushNotification::ID:
-    // case td_api::sendTonLiteServerRequest::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
     case td_api::getStorageStatistics::ID:
@@ -7304,18 +7303,6 @@ void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   CREATE_OK_REQUEST_PROMISE();
   delete_saved_credentials(std::move(promise));
 }
-
-// void Td::on_request(uint64 id, const td_api::sendTonLiteServerRequest &request) {
-//   CHECK_IS_USER();
-//   CREATE_REQUEST_PROMISE();
-//   send_ton_lite_server_request(request.request_, std::move(promise));
-// }
-
-// void Td::on_request(uint64 id, const td_api::getTonWalletPasswordSalt &request) {
-//   CHECK_IS_USER();
-//   CREATE_REQUEST_PROMISE();
-//   send_closure(password_manager_, &PasswordManager::get_ton_wallet_password_salt, std::move(promise));
-// }
 
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();

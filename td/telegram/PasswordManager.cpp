@@ -732,41 +732,7 @@ void PasswordManager::drop_cached_secret() {
   LOG(INFO) << "Drop passport secret";
   secret_ = optional<secure_storage::Secret>();
 }
-/*
-void PasswordManager::get_ton_wallet_password_salt(Promise<td_api::object_ptr<td_api::tonWalletPasswordSalt>> promise) {
-  if (!ton_wallet_password_salt_.empty()) {
-    return promise.set_value(td_api::make_object<td_api::tonWalletPasswordSalt>(ton_wallet_password_salt_));
-  }
 
-  get_ton_wallet_password_salt_queries_.push_back(std::move(promise));
-  if (get_ton_wallet_password_salt_queries_.size() == 1) {
-    send_with_promise(G()->net_query_creator().create(telegram_api::wallet_getKeySecretSalt(false)),
-                      PromiseCreator::lambda([actor_id = actor_id(this)](Result<NetQueryPtr> r_query) mutable {
-                        auto r_result = fetch_result<telegram_api::wallet_getKeySecretSalt>(std::move(r_query));
-                        send_closure(actor_id, &PasswordManager::on_get_ton_wallet_password_salt, std::move(r_result));
-                      }));
-  }
-}
-
-void PasswordManager::on_get_ton_wallet_password_salt(
-    Result<telegram_api::object_ptr<telegram_api::wallet_secretSalt>> result) {
-  auto promises = std::move(get_ton_wallet_password_salt_queries_);
-  reset_to_empty(get_ton_wallet_password_salt_queries_);
-  CHECK(!promises.empty());
-
-  if (result.is_ok()) {
-    ton_wallet_password_salt_ = result.ok()->salt_.as_slice().str();
-
-    for (auto &promise : promises) {
-      promise.set_value(td_api::make_object<td_api::tonWalletPasswordSalt>(ton_wallet_password_salt_));
-    }
-  } else {
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
-  }
-}
-*/
 void PasswordManager::timeout_expired() {
   if (Time::now() >= secret_expire_date_) {
     drop_cached_secret();

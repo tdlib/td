@@ -1287,8 +1287,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   LOG(INFO) << "Receive app config " << to_string(config);
 
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
-  string wallet_blockchain_name;
-  string wallet_config;
   string ignored_restriction_reasons;
   vector<string> dice_emojis;
   std::unordered_map<string, size_t> dice_emoji_index;
@@ -1299,23 +1297,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
       telegram_api::JSONValue *value = key_value->value_.get();
-      if (key == "test" || key == "wallet_enabled") {
-        continue;
-      }
-      if (key == "wallet_blockchain_name") {
-        if (value->get_id() == telegram_api::jsonString::ID) {
-          wallet_blockchain_name = std::move(static_cast<telegram_api::jsonString *>(value)->value_);
-        } else {
-          LOG(ERROR) << "Receive unexpected wallet_blockchain_name " << to_string(*value);
-        }
-        continue;
-      }
-      if (key == "wallet_config") {
-        if (value->get_id() == telegram_api::jsonString::ID) {
-          wallet_config = std::move(static_cast<telegram_api::jsonString *>(value)->value_);
-        } else {
-          LOG(ERROR) << "Receive unexpected wallet_config " << to_string(*value);
-        }
+      if (key == "test" || key == "wallet_enabled" || key == "wallet_blockchain_name" || key == "wallet_config") {
         continue;
       }
       if (key == "ignore_restriction_reasons") {
@@ -1441,13 +1423,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
 
   ConfigShared &shared_config = G()->shared_config();
-  if (wallet_config.empty()) {
-    shared_config.set_option_empty("default_ton_blockchain_config");
-    shared_config.set_option_empty("default_ton_blockchain_name");
-  } else {
-    shared_config.set_option_string("default_ton_blockchain_name", wallet_blockchain_name);
-    shared_config.set_option_string("default_ton_blockchain_config", wallet_config);
-  }
 
   if (ignored_restriction_reasons.empty()) {
     shared_config.set_option_empty("ignored_restriction_reasons");
@@ -1486,6 +1461,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_string("animation_search_emojis", animation_search_emojis);
   }
+
+  shared_config.set_option_empty("default_ton_blockchain_config");
+  shared_config.set_option_empty("default_ton_blockchain_name");
 }
 
 }  // namespace td
