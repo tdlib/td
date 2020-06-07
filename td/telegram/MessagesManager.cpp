@@ -15827,6 +15827,9 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
       auto *old_list_ptr = get_dialog_list(dialog_list_id);
       CHECK(old_list_ptr != nullptr);
       auto &old_list = *old_list_ptr;
+
+      disable_get_dialog_filter_ = true;  // to ensure crash if get_dialog_filter is called
+
       auto folder_ids = get_dialog_filter_folder_ids(old_dialog_filter.get());
       CHECK(!folder_ids.empty());
       for (auto folder_id : get_dialog_filter_folder_ids(new_dialog_filter.get())) {
@@ -15861,8 +15864,8 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
       std::reverse(new_list.pinned_dialogs_.begin(), new_list.pinned_dialogs_.end());
       new_list.are_pinned_dialogs_inited_ = true;
 
-      update_list_last_pinned_dialog_date(new_list, true);
-      update_list_last_dialog_date(new_list, true);
+      do_update_list_last_pinned_dialog_date(new_list);
+      do_update_list_last_dialog_date(new_list, get_dialog_filter_folder_ids(new_dialog_filter.get()));
 
       new_list.server_dialog_total_count_ = 0;
       new_list.secret_chat_total_count_ = 0;
@@ -15881,6 +15884,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
           CHECK(d != nullptr);
 
           const DialogPositionInList old_position = get_dialog_position_in_list(old_list_ptr, d);
+          // can't use get_dialog_position_in_list, because need_dialog_in_list calls get_dialog_filter
           DialogPositionInList new_position;
           if (need_dialog_in_filter(d, new_dialog_filter.get())) {
             new_position.private_order = get_dialog_private_order(&new_list, d);
@@ -15972,6 +15976,8 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
                                           old_list.secret_chat_total_count_ != new_list.secret_chat_total_count_);
 
       auto load_list_promises = std::move(old_list.load_list_queries_);
+
+      disable_get_dialog_filter_ = false;
 
       old_list = std::move(new_list);
       old_dialog_filter = std::move(new_dialog_filter);
@@ -30848,10 +30854,10 @@ bool MessagesManager::do_update_list_last_pinned_dialog_date(DialogList &list) c
   return false;
 }
 
-void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
+void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list) {
   CHECK(!td_->auth_manager_->is_bot());
   if (do_update_list_last_pinned_dialog_date(list)) {
-    update_list_last_dialog_date(list, only_update);
+    update_list_last_dialog_date(list);
   }
 }
 
@@ -30882,11 +30888,11 @@ bool MessagesManager::do_update_list_last_dialog_date(DialogList &list, const ve
   return false;
 }
 
-void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_update) {
+void MessagesManager::update_list_last_dialog_date(DialogList &list) {
   CHECK(!td_->auth_manager_->is_bot());
   auto old_dialog_total_count = get_dialog_total_count(list);
   auto old_last_dialog_date = list.list_last_dialog_date_;
-  if (!do_update_list_last_dialog_date(list, get_dialog_list_folder_ids(list)) || only_update) {
+  if (!do_update_list_last_dialog_date(list, get_dialog_list_folder_ids(list))) {
     return;
   }
 
