@@ -15508,7 +15508,8 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
   return std::move(dialog_filter);
 }
 
-void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter, Promise<Unit> &&promise) {
+void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
+                                           Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
     return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
@@ -15527,6 +15528,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   }
   auto dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(dialog_filter != nullptr);
+  auto chat_filter_info = dialog_filter->get_chat_filter_info_object();
 
   bool at_beginning = false;
   for (auto &recommended_dialog_filter : recommended_dialog_filters_) {
@@ -15540,11 +15542,11 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   send_update_chat_filters();
 
   synchronize_dialog_filters();
-  promise.set_value(Unit());
+  promise.set_value(std::move(chat_filter_info));
 }
 
 void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
-                                         Promise<Unit> &&promise) {
+                                         Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
   if (old_dialog_filter == nullptr) {
@@ -15557,9 +15559,10 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   }
   auto new_dialog_filter = r_dialog_filter.move_as_ok();
   CHECK(new_dialog_filter != nullptr);
+  auto chat_filter_info = new_dialog_filter->get_chat_filter_info_object();
 
   if (*new_dialog_filter == *old_dialog_filter) {
-    return promise.set_value(Unit());
+    return promise.set_value(std::move(chat_filter_info));
   }
 
   edit_dialog_filter(std::move(new_dialog_filter), "edit_dialog_filter");
@@ -15567,7 +15570,7 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   send_update_chat_filters();
 
   synchronize_dialog_filters();
-  promise.set_value(Unit());
+  promise.set_value(std::move(chat_filter_info));
 }
 
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter) {

@@ -560,10 +560,11 @@ class MessagesManager : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
-  void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter, Promise<Unit> &&promise);
+  void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
+                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
   void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
-                          Promise<Unit> &&promise);
+                          Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
 

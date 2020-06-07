@@ -5911,7 +5911,7 @@ void Td::on_request(uint64 id, td_api::createChatFilter &request) {
   }
   CLEAN_INPUT_STRING(request.filter_->title_);
   CLEAN_INPUT_STRING(request.filter_->icon_name_);
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   messages_manager_->create_dialog_filter(std::move(request.filter_), std::move(promise));
 }
 
@@ -5922,7 +5922,7 @@ void Td::on_request(uint64 id, td_api::editChatFilter &request) {
   }
   CLEAN_INPUT_STRING(request.filter_->title_);
   CLEAN_INPUT_STRING(request.filter_->icon_name_);
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   messages_manager_->edit_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(request.filter_),
                                         std::move(promise));
 }
