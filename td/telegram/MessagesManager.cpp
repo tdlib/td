@@ -10748,9 +10748,12 @@ void MessagesManager::init() {
 
   start_time_ = Time::now();
 
-  bool is_authorized_user = !td_->auth_manager_->is_bot() && td_->auth_manager_->is_authorized();
+  bool is_authorized_user = td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
   if (is_authorized_user) {
     create_folders();  // ensure that Main and Archive dialog lists are created
+  }
+  if (td_->auth_manager_->is_authorized() && td_->auth_manager_->is_bot()) {
+    disable_get_dialog_filter_ = true;
   }
 
   if (is_authorized_user) {
@@ -11159,6 +11162,7 @@ void MessagesManager::init() {
 void MessagesManager::on_authorization_success() {
   CHECK(td_->auth_manager_->is_authorized());
   if (td_->auth_manager_->is_bot()) {
+    disable_get_dialog_filter_ = true;
     return;
   }
 
@@ -13712,6 +13716,7 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
 }
 
 void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (!dialog_filter_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat filter identifier specified"));
   }
@@ -13725,6 +13730,7 @@ void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool f
 }
 
 void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   vector<InputDialogId> needed_dialog_ids;
   for (auto input_dialog_ids :
        {&filter->pinned_dialog_ids, &filter->excluded_dialog_ids, &filter->included_dialog_ids}) {
@@ -13776,6 +13782,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
 
 void MessagesManager::get_recommended_dialog_filters(
     Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                  Result<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> result) mutable {
@@ -13791,6 +13798,7 @@ void MessagesManager::on_get_recommended_dialog_filters(
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
+  CHECK(!td_->auth_manager_->is_bot());
   auto suggested_filters = result.move_as_ok();
 
   MultiPromiseActorSafe mpas{"LoadRecommendedFiltersMultiPromiseActor"};
@@ -13823,6 +13831,7 @@ void MessagesManager::on_load_recommended_dialog_filters(
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto chat_filters = transform(filters, [this](const RecommendedDialogFilter &filter) {
     return td_api::make_object<td_api::recommendedChatFilter>(get_chat_filter_object(filter.dialog_filter.get()),
@@ -13989,6 +13998,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
 }
 
 void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   bool is_request_sent = false;
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
     const auto &folder = *get_dialog_folder(folder_id);
@@ -14063,6 +14073,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
 
 void MessagesManager::on_load_folder_dialog_list_fail(FolderId folder_id, Status error) {
   LOG(WARNING) << "Failed to load chats in " << folder_id << ": " << error;
+  CHECK(!td_->auth_manager_->is_bot());
   const auto &folder = *get_dialog_folder(folder_id);
   vector<Promise<Unit>> promises;
   for (auto &list_it : dialog_lists_) {
@@ -14281,6 +14292,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   if (G()->close_flag()) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
   auto promises = std::move(dialog_filter_reload_queries_);
   dialog_filter_reload_queries_.clear();
   if (r_filters.is_error()) {
@@ -14416,6 +14428,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 }
 
 bool MessagesManager::need_synchronize_dialog_filters() const {
+  CHECK(!td_->auth_manager_->is_bot());
   size_t server_dialog_filter_count = 0;
   vector<DialogFilterId> dialog_filter_ids;
   for (const auto &dialog_filter : dialog_filters_) {
@@ -17438,6 +17451,7 @@ tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const vector<Dial
 }
 
 td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(DialogFilterId dialog_filter_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
   auto filter = get_dialog_filter(dialog_filter_id);
   if (filter == nullptr) {
     return nullptr;
@@ -30835,6 +30849,7 @@ bool MessagesManager::do_update_list_last_pinned_dialog_date(DialogList &list) c
 }
 
 void MessagesManager::update_list_last_pinned_dialog_date(DialogList &list, bool only_update) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (do_update_list_last_pinned_dialog_date(list)) {
     update_list_last_dialog_date(list, only_update);
   }
@@ -30868,47 +30883,50 @@ bool MessagesManager::do_update_list_last_dialog_date(DialogList &list, const ve
 }
 
 void MessagesManager::update_list_last_dialog_date(DialogList &list, bool only_update) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto old_dialog_total_count = get_dialog_total_count(list);
   auto old_last_dialog_date = list.list_last_dialog_date_;
-  if (do_update_list_last_dialog_date(list, get_dialog_list_folder_ids(list)) && !only_update) {
-    for (auto it = std::upper_bound(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end(), old_last_dialog_date);
-         it != list.pinned_dialogs_.end() && *it <= list.list_last_dialog_date_; ++it) {
+  if (!do_update_list_last_dialog_date(list, get_dialog_list_folder_ids(list)) || only_update) {
+    return;
+  }
+
+  for (auto it = std::upper_bound(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end(), old_last_dialog_date);
+       it != list.pinned_dialogs_.end() && *it <= list.list_last_dialog_date_; ++it) {
+    auto dialog_id = it->get_dialog_id();
+    auto d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+    send_update_chat_position(list.dialog_list_id, d, "update_list_last_dialog_date");
+  }
+
+  bool is_list_further_loaded = list.list_last_dialog_date_ == MAX_DIALOG_DATE;
+  for (auto folder_id : get_dialog_list_folder_ids(list)) {
+    const auto &folder = *get_dialog_folder(folder_id);
+    for (auto it = folder.ordered_dialogs_.upper_bound(old_last_dialog_date);
+         it != folder.ordered_dialogs_.end() && *it <= folder.folder_last_dialog_date_; ++it) {
+      if (it->get_order() == DEFAULT_ORDER) {
+        break;
+      }
       auto dialog_id = it->get_dialog_id();
-      auto d = get_dialog(dialog_id);
-      CHECK(d != nullptr);
-      send_update_chat_position(list.dialog_list_id, d, "update_list_last_dialog_date");
-    }
-
-    bool is_list_further_loaded = list.list_last_dialog_date_ == MAX_DIALOG_DATE;
-    for (auto folder_id : get_dialog_list_folder_ids(list)) {
-      const auto &folder = *get_dialog_folder(folder_id);
-      for (auto it = folder.ordered_dialogs_.upper_bound(old_last_dialog_date);
-           it != folder.ordered_dialogs_.end() && *it <= folder.folder_last_dialog_date_; ++it) {
-        if (it->get_order() == DEFAULT_ORDER) {
-          break;
-        }
-        auto dialog_id = it->get_dialog_id();
-        if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
-          auto d = get_dialog(dialog_id);
-          CHECK(d != nullptr);
-          if (is_dialog_in_list(d, list.dialog_list_id)) {
-            send_update_chat_position(list.dialog_list_id, d, "update_list_last_dialog_date 2");
-            is_list_further_loaded = true;
-          }
+      if (get_dialog_pinned_order(&list, dialog_id) == DEFAULT_ORDER) {
+        auto d = get_dialog(dialog_id);
+        CHECK(d != nullptr);
+        if (is_dialog_in_list(d, list.dialog_list_id)) {
+          send_update_chat_position(list.dialog_list_id, d, "update_list_last_dialog_date 2");
+          is_list_further_loaded = true;
         }
       }
     }
+  }
 
-    if (list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
-      recalc_unread_count(list.dialog_list_id, old_dialog_total_count);
-    }
+  if (list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
+    recalc_unread_count(list.dialog_list_id, old_dialog_total_count);
+  }
 
-    if (is_list_further_loaded && !list.load_list_queries_.empty()) {
-      auto promises = std::move(list.load_list_queries_);
-      list.load_list_queries_.clear();
-      for (auto &promise : promises) {
-        promise.set_value(Unit());
-      }
+  if (is_list_further_loaded && !list.load_list_queries_.empty()) {
+    auto promises = std::move(list.load_list_queries_);
+    list.load_list_queries_.clear();
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
     }
   }
 }
@@ -31039,6 +31057,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 }
 
 const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
+  CHECK(!disable_get_dialog_filter_);
   for (const auto &filter : server_dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter_id) {
       return filter.get();
@@ -31048,6 +31067,7 @@ const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dia
 }
 
 DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) {
+  CHECK(!disable_get_dialog_filter_);
   for (auto &filter : dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter_id) {
       return filter.get();
@@ -31057,6 +31077,7 @@ DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id
 }
 
 const DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) const {
+  CHECK(!disable_get_dialog_filter_);
   for (const auto &filter : dialog_filters_) {
     if (filter->dialog_filter_id == dialog_filter_id) {
       return filter.get();
@@ -31078,6 +31099,7 @@ vector<FolderId> MessagesManager::get_dialog_filter_folder_ids(const DialogFilte
 }
 
 vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (list.dialog_list_id.is_folder()) {
     return {list.dialog_list_id.get_folder_id()};
   }
@@ -31090,6 +31112,7 @@ vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &l
 }
 
 bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const DialogFolder &folder) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (list.dialog_list_id.is_folder()) {
     return list.dialog_list_id.get_folder_id() == folder.folder_id;
   }
@@ -31194,6 +31217,7 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
 }
 
 bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &list) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (d->order == DEFAULT_ORDER) {
     return false;
   }
