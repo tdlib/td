@@ -205,6 +205,10 @@ telegram_api::object_ptr<telegram_api::dialogFilter> DialogFilter::get_input_dia
       InputDialogId::get_input_peers(excluded_dialog_ids));
 }
 
+td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
+  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_icon_name());
+}
+
 // merges changes from old_server_filter to new_server_filter in old_filter
 unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogFilter *old_filter,
                                                                    const DialogFilter *old_server_filter,

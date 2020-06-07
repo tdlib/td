@@ -33226,8 +33226,7 @@ td_api::object_ptr<td_api::updateChatFilters> MessagesManager::get_update_chat_f
   CHECK(!td_->auth_manager_->is_bot());
   auto update = td_api::make_object<td_api::updateChatFilters>();
   for (const auto &filter : dialog_filters_) {
-    update->chat_filters_.push_back(td_api::make_object<td_api::chatFilterInfo>(
-        filter->dialog_filter_id.get(), filter->title, filter->get_icon_name()));
+    update->chat_filters_.push_back(filter->get_chat_filter_info_object());
   }
   return update;
 }

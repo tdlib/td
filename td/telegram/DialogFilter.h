@@ -61,6 +61,8 @@ class DialogFilter {
 
   telegram_api::object_ptr<telegram_api::dialogFilter> get_input_dialog_filter() const;
 
+  td_api::object_ptr<td_api::chatFilterInfo> get_chat_filter_info_object() const;
+
   // merges changes from old_server_filter to new_server_filter in old_filter
   static unique_ptr<DialogFilter> merge_dialog_filter_changes(const DialogFilter *old_filter,
                                                               const DialogFilter *old_server_filter,
