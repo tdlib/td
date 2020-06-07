@@ -43,6 +43,7 @@
 #include <sys/syslimits.h>
 #endif
 
+#include <cerrno>
 #include <cstdlib>
 #include <string>
 

@@ -6,6 +6,8 @@
 //
 #include "td/actor/MultiPromise.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 void MultiPromiseActor::add_promise(Promise<Unit> &&promise) {

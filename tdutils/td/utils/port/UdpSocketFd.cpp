@@ -20,6 +20,8 @@
 #endif
 
 #if TD_PORT_POSIX
+#include <cerrno>
+
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>

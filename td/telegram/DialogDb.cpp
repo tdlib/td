@@ -6,8 +6,6 @@
 //
 #include "td/telegram/DialogDb.h"
 
-#include "td/telegram/Global.h"
-#include "td/telegram/TdDb.h"
 #include "td/telegram/Version.h"
 
 #include "td/actor/actor.h"
@@ -18,8 +16,10 @@
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteStatement.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
 
@@ -80,7 +80,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog
     TRY_STATUS(db.exec("UPDATE dialogs SET folder_id = 0 WHERE dialog_id < -1500000000000 AND dialog_order > 0"));
   }
   if (version < static_cast<int32>(DbVersion::StorePinnedDialogsInBinlog)) {
-    // 9221294780217032704 == get_dialog_order(MessageId(), MIN_PINNED_DIALOG_DATE - 1)
+    // 9221294780217032704 == get_dialog_order(Auto(), MIN_PINNED_DIALOG_DATE - 1)
     TRY_RESULT(get_pinned_dialogs_stmt,
                db.get_statement("SELECT dialog_id FROM dialogs WHERE folder_id == ?1 AND dialog_order > "
                                 "9221294780217032704 ORDER BY dialog_order DESC, dialog_id DESC"));

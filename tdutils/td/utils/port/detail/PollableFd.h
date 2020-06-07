@@ -16,6 +16,7 @@
 #include "td/utils/SpinLock.h"
 
 #include <atomic>
+#include <cerrno>
 #include <memory>
 #include <type_traits>
 

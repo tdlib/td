@@ -13,9 +13,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/wstring_convert.h"
-#include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
-#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
 #include <openssl/err.h>

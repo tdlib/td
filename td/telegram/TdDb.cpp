@@ -29,9 +29,12 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
 #include "td/utils/StringBuilder.h"
+
+#include <algorithm>
 
 namespace td {
 
@@ -525,7 +528,7 @@ Result<string> TdDb::get_stats() {
   TRY_STATUS(run_kv_query("ss%"));
   TRY_STATUS(run_kv_query("gr%"));
 
-  std::vector<int32> prev(1);
+  vector<int32> prev(1);
   size_t count = 0;
   int32 max_bad_to = 0;
   size_t bad_count = 0;
@@ -534,8 +537,8 @@ Result<string> TdDb::get_stats() {
       return true;
     }
     count++;
-    auto from = to_integer<td::int32>(key.substr(4));
-    auto to = to_integer<td::int32>(value.substr(2));
+    auto from = to_integer<int32>(key.substr(4));
+    auto to = to_integer<int32>(value.substr(2));
     if (from <= to) {
       LOG(DEBUG) << "Have forward reference from " << from << " to " << to;
       if (to > max_bad_to) {

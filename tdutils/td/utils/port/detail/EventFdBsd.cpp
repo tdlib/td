@@ -16,6 +16,8 @@ char disable_linker_warning_about_empty_file_event_fd_bsd_cpp TD_UNUSED;
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 
+#include <cerrno>
+
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/socket.h>

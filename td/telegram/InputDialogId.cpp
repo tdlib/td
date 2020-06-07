@@ -6,8 +6,11 @@
 //
 #include "td/telegram/InputDialogId.h"
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
+#include "td/telegram/USerId.h"
+
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 namespace td {
 

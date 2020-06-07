@@ -25,6 +25,7 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogFilter.h"
+#include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogLocation.h"

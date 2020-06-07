@@ -6,9 +6,11 @@
 //
 #include "td/telegram/DialogFilter.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/misc.h"
 
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
 #include <unordered_set>
