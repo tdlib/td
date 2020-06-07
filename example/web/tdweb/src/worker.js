@@ -774,8 +774,8 @@ class TdClient {
     try {
       //const file_size = this.FS.stat(query.path).size;
       const stream = this.FS.open(query.path, 'r');
-      const buf = new Uint8Array(query.size);
-      this.FS.read(stream, buf, 0, query.size, query.offset);
+      const buf = new Uint8Array(query.count);
+      this.FS.read(stream, buf, 0, query.count, query.offset);
       this.FS.close(stream);
       res = buf;
     } catch (e) {
