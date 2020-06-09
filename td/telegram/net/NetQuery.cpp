@@ -15,8 +15,6 @@
 
 namespace td {
 
-TsList<NetQueryDebug> net_query_list_;
-
 int32 NetQuery::get_my_id() {
   return G()->get_my_id();
 }
@@ -64,14 +62,20 @@ void NetQuery::set_error(Status status, string source) {
   set_error_impl(std::move(status), std::move(source));
 }
 
+TsList<NetQueryDebug> &NetQuery::get_net_query_list() {
+  static TsList<NetQueryDebug> net_query_list;
+  return net_query_list;
+}
+
 void dump_pending_network_queries() {
   auto n = NetQueryCounter::get_count();
   LOG(WARNING) << tag("pending net queries", n);
 
   decltype(n) i = 0;
   bool was_gap = false;
-  auto guard = net_query_list_.lock();
-  for (auto end = net_query_list_.end(), cur = net_query_list_.begin(); cur != end; cur = cur->get_next(), i++) {
+  auto &net_query_list = NetQuery::get_net_query_list();
+  auto guard = net_query_list.lock();
+  for (auto end = net_query_list.end(), cur = net_query_list.begin(); cur != end; cur = cur->get_next(), i++) {
     if (i < 20 || i + 20 > n || i % (n / 20 + 1) == 0) {
       if (was_gap) {
         LOG(WARNING) << "...";

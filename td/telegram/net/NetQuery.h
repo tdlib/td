@@ -52,8 +52,6 @@ struct NetQueryDebug {
   bool debug_unknown_ = false;
 };
 
-extern TsList<NetQueryDebug> net_query_list_;
-
 class NetQuery : public TsListNode<NetQueryDebug> {
  public:
   NetQuery() = default;
@@ -281,6 +279,8 @@ class NetQuery : public TsListNode<NetQueryDebug> {
 
   static int32 tl_magic(const BufferSlice &buffer_slice);
 
+  static TsList<NetQueryDebug> &get_net_query_list();
+
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
@@ -360,7 +360,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     get_data_unsafe().my_id_ = get_my_id();
     get_data_unsafe().start_timestamp_ = Time::now();
     LOG(INFO) << *this;
-    net_query_list_.put(this);
+    get_net_query_list().put(this);
   }
 };
 
