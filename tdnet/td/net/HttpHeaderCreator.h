@@ -35,8 +35,7 @@ class HttpHeaderCreator {
     sb_ << "HTTP/1.1 " << code << " " << reason << "\r\n";
   }
   void init_status_line(int http_status_code) {
-    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
-    sb_ << "HTTP/1.1 " << http_status_code << " " << get_status_line(http_status_code) << "\r\n";
+    init_error(http_status_code, get_status_line(http_status_code));
   }
   void add_header(Slice key, Slice value) {
     sb_ << key << ": " << value << "\r\n";
