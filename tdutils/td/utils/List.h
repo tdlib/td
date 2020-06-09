@@ -83,7 +83,20 @@ struct ListNode {
     return next == this;
   }
 
- private:
+  ListNode *begin() {
+    return next;
+  }
+  ListNode *end() {
+    return this;
+  }
+  ListNode *get_next() {
+    return next;
+  }
+  ListNode *get_prev() {
+    return prev;
+  }
+
+ protected:
   void clear() {
     next = this;
     prev = this;
