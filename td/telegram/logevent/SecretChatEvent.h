@@ -321,8 +321,11 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   }
 
   bool is_sent = false;
-  bool is_service = false;
+  // need send push notification to the receiver
+  // should send such messages with messages_sendEncryptedsService
+  bool need_notify_user = false;
   bool is_rewritable = false;
+  // should notify our parent about state of this message (using context and random_id)
   bool is_external = false;
 
   tl_object_ptr<secret_api::DecryptedMessageAction> action;
@@ -331,7 +334,6 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   // Flags:
   // 2. can_fail = !file.empty() // send of other messages can't fail if chat is ok. It is usless to rewrite them with
   // empty
-  // 1. is_service // use messages_sendEncryptedsService
   // 3. can_rewrite_with_empty // false for almost all service messages
 
   // TODO: combine these two functions into one macros hell. Or a lambda hell.
@@ -351,7 +353,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     bool has_action = static_cast<bool>(action);
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_sent);
-    STORE_FLAG(is_service);
+    STORE_FLAG(need_notify_user);
     STORE_FLAG(has_action);
     STORE_FLAG(is_rewritable);
     STORE_FLAG(is_external);
@@ -381,7 +383,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     bool has_action;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_sent);
-    PARSE_FLAG(is_service);
+    PARSE_FLAG(need_notify_user);
     PARSE_FLAG(has_action);
     PARSE_FLAG(is_rewritable);
     PARSE_FLAG(is_external);
@@ -395,9 +397,9 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
 
   StringBuilder &print(StringBuilder &sb) const override {
     return sb << "[Logevent OutboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
-              << tag("is_sent", is_sent) << tag("is_service", is_service) << tag("is_rewritable", is_rewritable)
-              << tag("is_external", is_external) << tag("message_id", message_id) << tag("random_id", random_id)
-              << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
+              << tag("is_sent", is_sent) << tag("need_notify_user", need_notify_user)
+              << tag("is_rewritable", is_rewritable) << tag("is_external", is_external) << tag("message_id", message_id)
+              << tag("random_id", random_id) << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
               << tag("his_in_seq_no", his_in_seq_no) << tag("file", file) << tag("action", to_string(action)) << "]";
   }
 };

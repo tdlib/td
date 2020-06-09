@@ -342,7 +342,7 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
   binlog_event->encrypted_message =
       create_encrypted_message(current_layer(), binlog_event->my_in_seq_no, binlog_event->my_out_seq_no, message)
           .move_as_ok();
-  binlog_event->is_service = (flags & SendFlag::Push) == 0;
+  binlog_event->need_notify_user = (flags & SendFlag::Push) == 0;
   binlog_event->is_external = (flags & SendFlag::External) != 0;
   if (message->get_id() == secret_api::decryptedMessageService::ID) {
     binlog_event->is_rewritable = false;
@@ -1460,12 +1460,11 @@ void SecretChatActor::inbound_loop(InboundMessageState *state, uint64 state_id) 
 
 NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMessage &message) {
   NetQueryPtr query;
-  if (message.is_service) {
+  if (message.need_notify_user) {
     CHECK(message.file.empty());
     query = create_net_query(QueryType::Message,
                              telegram_api::messages_sendEncryptedService(get_input_chat(), message.random_id,
                                                                          message.encrypted_message.clone()));
-    query->total_timeout_limit = 1000000000;  // inf. We will re-sent it immediately anyway
   } else if (message.file.empty()) {
     query = create_net_query(
         QueryType::Message,
@@ -1475,6 +1474,9 @@ NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMess
         QueryType::Message,
         telegram_api::messages_sendEncryptedFile(get_input_chat(), message.random_id, message.encrypted_message.clone(),
                                                  message.file.as_input_encrypted_file()));
+  }
+  if (!message.is_rewritable) {
+    query->total_timeout_limit = 1000000000;  // inf. We will re-sent it immediately anyway
   }
   if (message.is_external && context_->get_config_option_boolean("use_quick_ack")) {
     query->quick_ack_promise_ =
@@ -1558,7 +1560,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   LOG(INFO) << tag("crc", crc64(state->message->encrypted_message.as_slice()));
   state->message->is_rewritable = false;
   state->message->is_external = false;
-  state->message->is_service = true;
+  state->message->need_notify_user = false;
   state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(nullptr);
   binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
                  create_storer(*state->message));
