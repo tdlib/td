@@ -16,6 +16,7 @@
 #include "td/utils/Status.h"
 
 #include <atomic>
+#include <functional>
 #include <utility>
 
 #define REGISTER_TESTS(x)                \
@@ -92,7 +93,7 @@ class TestsRunner : public TestContext {
 template <class T>
 class RegisterTest {
  public:
-  RegisterTest(string name, TestsRunner &runner = TestsRunner::get_default()) {
+  explicit RegisterTest(string name, TestsRunner &runner = TestsRunner::get_default()) {
     runner.add_test(name, make_unique<T>());
   }
 };
@@ -133,6 +134,36 @@ inline vector<string> rand_split(Slice str) {
   }
   return res;
 }
+
+struct Step {
+  std::function<void()> func;
+  uint32 weight;
+};
+
+class RandomSteps {
+ public:
+  explicit RandomSteps(vector<Step> steps) : steps_(std::move(steps)) {
+    for (const auto &step : steps_) {
+      steps_sum_ += step.weight;
+    }
+  }
+
+  template <class Random>
+  void step(Random &rnd) const {
+    auto w = rnd() % steps_sum_;
+    for (const auto &step : steps_) {
+      if (w < step.weight) {
+        step.func();
+        break;
+      }
+      w -= step.weight;
+    }
+  }
+
+ private:
+  vector<Step> steps_;
+  int32 steps_sum_ = 0;
+};
 
 template <class T1, class T2>
 void assert_eq_impl(const T1 &expected, const T2 &got, const char *file, int line) {
