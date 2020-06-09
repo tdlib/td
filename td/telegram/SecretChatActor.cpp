@@ -1476,7 +1476,7 @@ NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMess
                                                  message.file.as_input_encrypted_file()));
   }
   if (!message.is_rewritable) {
-    query->total_timeout_limit = 1000000000;  // inf. We will re-sent it immediately anyway
+    query->total_timeout_limit_ = 1000000000;  // inf. We will re-sent it immediately anyway
   }
   if (message.is_external && context_->get_config_option_boolean("use_quick_ack")) {
     query->quick_ack_promise_ =

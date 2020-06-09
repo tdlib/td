@@ -146,7 +146,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   void on_net_write(size_t size);
   void on_net_read(size_t size);
 
-  void set_error(Status status, string source = "");
+  void set_error(Status status, string source = string());
 
   void set_error_resend() {
     set_error_impl(Status::Error<Error::Resend>());
@@ -288,6 +288,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   GzipFlag gzip_flag_ = GzipFlag::Off;
   DcId dc_id_;
 
+  NetQueryCounter nq_counter_;
   Status status_;
   uint64 id_ = 0;
   BufferSlice query_;
@@ -296,6 +297,9 @@ class NetQuery : public TsListNode<NetQueryDebug> {
 
   NetQueryRef invoke_after_;
   uint32 session_rand_ = 0;
+
+  bool may_be_lost_ = false;
+
   template <class T>
   struct movable_atomic : public std::atomic<T> {
     movable_atomic() = default;
@@ -313,35 +317,32 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     ~movable_atomic() = default;
   };
 
-  static int32 get_my_id();
-
   movable_atomic<uint64> session_id_{0};
   uint64 message_id_{0};
 
   movable_atomic<int32> cancellation_token_{-1};  // == 0 if query is canceled
   ActorShared<NetQueryCallback> callback_;
 
-  void set_error_impl(Status status, string source = "") {
+  void set_error_impl(Status status, string source = string()) {
     VLOG(net_query) << "Got error " << *this << " " << status;
     status_ = std::move(status);
     state_ = State::Error;
     source_ = std::move(source);
   }
 
- public:
-  double next_timeout = 1;
-  double total_timeout = 0;
-  double total_timeout_limit = 60;
-  double last_timeout = 0;
-  bool need_resend_on_503 = true;
-  bool may_be_lost_ = false;
-  string source_;
-  int32 dispatch_ttl = -1;
-  Slot cancel_slot_;
-  Promise<> quick_ack_promise_;
-  int32 file_type_ = -1;
+  static int32 get_my_id();
 
-  NetQueryCounter nq_counter_;
+ public:
+  double next_timeout_ = 1;          // for NetQueryDelayer
+  double total_timeout_ = 0;         // for NetQueryDelayer/SequenceDispatcher
+  double total_timeout_limit_ = 60;  // for NetQueryDelayer/SequenceDispatcher and to be set by caller
+  double last_timeout_ = 0;          // for NetQueryDelayer/SequenceDispatcher
+  string source_;                    // for NetQueryDelayer/SequenceDispatcher
+  bool need_resend_on_503_ = true;   // for NetQueryDispatcher and to be set by caller
+  int32 dispatch_ttl_ = -1;          // for NetQueryDispatcher and to be set by caller
+  Slot cancel_slot_;                 // for Session and to be set by caller
+  Promise<> quick_ack_promise_;      // for Session and to be set by caller
+  int32 file_type_ = -1;             // to be set by caller
 
   NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type, AuthFlag auth_flag,
            GzipFlag gzip_flag, int32 tl_constructor, double total_timeout_limit)
@@ -350,13 +351,13 @@ class NetQuery : public TsListNode<NetQueryDebug> {
       , auth_flag_(auth_flag)
       , gzip_flag_(gzip_flag)
       , dc_id_(dc_id)
+      , nq_counter_(true)
       , status_()
       , id_(id)
       , query_(std::move(query))
       , answer_(std::move(answer))
       , tl_constructor_(tl_constructor)
-      , total_timeout_limit(total_timeout_limit)
-      , nq_counter_(true) {
+      , total_timeout_limit_(total_timeout_limit) {
     get_data_unsafe().my_id_ = get_my_id();
     get_data_unsafe().start_timestamp_ = Time::now();
     LOG(INFO) << *this;

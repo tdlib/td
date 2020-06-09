@@ -84,7 +84,7 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
         flags, std::move(bot_input_user), std::move(input_peer),
         user_location.empty() ? nullptr : user_location.get_input_geo_point(), query, offset));
     auto result = net_query.get_weak();
-    net_query->need_resend_on_503 = false;
+    net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));
     return result;
   }

@@ -582,7 +582,7 @@ void CallActor::try_send_request_query() {
   double timeout = call_receive_timeout_ms * 0.001;
   LOG(INFO) << "Set call timeout to " << timeout;
   set_timeout_in(timeout);
-  query->total_timeout_limit = timeout;
+  query->total_timeout_limit_ = max(timeout, 10.0);
   request_query_ref_ = query.get_weak();
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
                       send_closure(actor_id, &CallActor::on_request_query_result, std::move(net_query));
