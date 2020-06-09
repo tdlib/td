@@ -77,7 +77,7 @@ class FileDb : public FileDbInterface {
     }
 
     void load_file_data(const string &key, Promise<FileData> promise) {
-      promise.set_result(load_file_data_impl(actor_id(this), file_pmc(), key));
+      promise.set_result(load_file_data_impl(actor_id(this), file_pmc(), key, current_pmc_id_));
     }
 
     void clear_file_data(FileDbId id, const string &remote_key, const string &local_key, const string &generate_key) {
@@ -194,7 +194,7 @@ class FileDb : public FileDbInterface {
   }
 
   Result<FileData> get_file_data_sync_impl(string key) override {
-    return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key);
+    return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key, current_pmc_id_);
   }
 
   void clear_file_data(FileDbId id, const FileData &file_data) override {
@@ -247,7 +247,7 @@ class FileDb : public FileDbInterface {
   std::shared_ptr<SqliteKeyValueSafe> file_kv_safe_;
 
   static Result<FileData> load_file_data_impl(ActorId<FileDbActor> file_db_actor_id, SqliteKeyValue &pmc,
-                                              const string &key) {
+                                              const string &key, FileDbId current_pmc_id) {
     //LOG(DEBUG) << "Load by key " << format::as_hex_dump<4>(Slice(key));
     TRY_RESULT(id, get_id(pmc, key));
 
@@ -256,7 +256,8 @@ class FileDb : public FileDbInterface {
     int attempt_count = 0;
     while (true) {
       if (attempt_count > 100) {
-        LOG(FATAL) << "Cycle in file database?";
+        LOG(FATAL) << "Cycle in file database? current_pmc_id=" << current_pmc_id << " key=" << key
+                   << " links=" << td::format::as_array(ids);
       }
       attempt_count++;
 
