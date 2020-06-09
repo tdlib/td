@@ -77,14 +77,14 @@ void dump_pending_network_queries() {
         LOG(WARNING) << "...";
         was_gap = false;
       }
-      auto nq = &cur->get_data_unsafe();
-      LOG(WARNING) << tag("id", nq->my_id_) << *static_cast<NetQuery *>(cur)
-                   << /*tag("total_flood", format::as_time(nq->total_timeout_)) <<*/ " "
-                   << tag("since start", format::as_time(Time::now_cached() - nq->start_timestamp_))
-                   << tag("state", nq->debug_str_)
-                   << tag("since state", format::as_time(Time::now_cached() - nq->debug_timestamp_))
-                   << tag("resend_cnt", nq->debug_resend_cnt_) << tag("fail_cnt", nq->debug_send_failed_cnt_)
-                   << tag("ack", nq->debug_ack) << tag("unknown", nq->debug_unknown);
+      const NetQueryDebug &debug = cur->get_data_unsafe();
+      LOG(WARNING) << tag("id", debug.my_id_) << *static_cast<const NetQuery *>(cur)
+                   << /*tag("total_flood", format::as_time(debug.total_timeout_)) <<*/ " "
+                   << tag("since start", format::as_time(Time::now_cached() - debug.start_timestamp_))
+                   << tag("state", debug.debug_str_)
+                   << tag("since state", format::as_time(Time::now_cached() - debug.debug_timestamp_))
+                   << tag("resend_cnt", debug.debug_resend_cnt_) << tag("fail_cnt", debug.debug_send_failed_cnt_)
+                   << tag("ack", debug.debug_ack_) << tag("unknown", debug.debug_unknown_);
     } else {
       was_gap = true;
     }

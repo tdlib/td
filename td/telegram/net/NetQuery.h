@@ -48,8 +48,8 @@ struct NetQueryDebug {
   double debug_timestamp_ = 0;
   int32 debug_cnt_ = 0;
   int32 debug_send_failed_cnt_ = 0;
-  int debug_ack = 0;
-  bool debug_unknown = false;
+  int debug_ack_ = 0;
+  bool debug_unknown_ = false;
 };
 
 extern TsList<NetQueryDebug> net_query_list_;

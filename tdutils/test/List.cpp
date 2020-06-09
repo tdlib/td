@@ -6,12 +6,14 @@
 //
 #include "td/utils/common.h"
 #include "td/utils/List.h"
+#include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/tests.h"
 #include "td/utils/TsList.h"
 
 #include <atomic>
 #include <set>
+#include <utility>
 
 struct Data {
   td::uint64 value{0};

@@ -619,7 +619,7 @@ void Session::on_message_ack_impl_inner(uint64 id, int32 type, bool in_container
   it->second.ack = true;
   {
     auto lock = it->second.query->lock();
-    it->second.query->get_data_unsafe().debug_ack |= type;
+    it->second.query->get_data_unsafe().debug_ack_ |= type;
   }
   it->second.query->quick_ack_promise_.set_value(Unit());
   if (!in_container) {
@@ -657,7 +657,7 @@ void Session::cleanup_container(uint64 message_id, Query *query) {
 void Session::mark_as_known(uint64 id, Query *query) {
   {
     auto lock = query->query->lock();
-    query->query->get_data_unsafe().debug_unknown = false;
+    query->query->get_data_unsafe().debug_unknown_ = false;
   }
   if (!query->unknown) {
     return;
@@ -673,7 +673,7 @@ void Session::mark_as_known(uint64 id, Query *query) {
 void Session::mark_as_unknown(uint64 id, Query *query) {
   {
     auto lock = query->query->lock();
-    query->query->get_data_unsafe().debug_unknown = true;
+    query->query->get_data_unsafe().debug_unknown_ = true;
   }
   if (query->unknown) {
     return;
@@ -941,8 +941,8 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   LOG_CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;
   {
     auto lock = net_query->lock();
-    net_query->get_data_unsafe().debug_unknown = false;
-    net_query->get_data_unsafe().debug_ack = 0;
+    net_query->get_data_unsafe().debug_unknown_ = false;
+    net_query->get_data_unsafe().debug_ack_ = 0;
   }
   if (!net_query->cancel_slot_.empty()) {
     LOG(DEBUG) << "Set event for net_query cancellation " << tag("message_id", format::as_hex(message_id));
