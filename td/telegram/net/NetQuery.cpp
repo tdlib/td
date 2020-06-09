@@ -82,13 +82,14 @@ void dump_pending_network_queries() {
         was_gap = false;
       }
       const NetQueryDebug &debug = cur->get_data_unsafe();
-      LOG(WARNING) << tag("id", debug.my_id_) << *static_cast<const NetQuery *>(cur)
-                   << /*tag("total_flood", format::as_time(debug.total_timeout_)) <<*/ " "
+      const NetQuery &nq = *static_cast<const NetQuery *>(cur);
+      LOG(WARNING) << tag("user id", debug.my_id_) << nq << tag("total flood", format::as_time(nq.total_timeout))
                    << tag("since start", format::as_time(Time::now_cached() - debug.start_timestamp_))
-                   << tag("state", debug.debug_str_)
-                   << tag("since state", format::as_time(Time::now_cached() - debug.debug_timestamp_))
-                   << tag("resend_cnt", debug.debug_resend_cnt_) << tag("fail_cnt", debug.debug_send_failed_cnt_)
-                   << tag("ack", debug.debug_ack_) << tag("unknown", debug.debug_unknown_);
+                   << tag("state", debug.state_)
+                   << tag("in this state", format::as_time(Time::now_cached() - debug.state_timestamp_))
+                   << tag("state changed", debug.state_change_count_) << tag("resend count", debug.resend_count_)
+                   << tag("fail count", debug.send_failed_count_) << tag("ack state", debug.ack_state_)
+                   << tag("unknown", debug.unknown_state_);
     } else {
       was_gap = true;
     }

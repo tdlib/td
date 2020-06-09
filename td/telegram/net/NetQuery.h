@@ -43,13 +43,13 @@ class NetQueryCallback : public Actor {
 struct NetQueryDebug {
   double start_timestamp_ = 0;
   int32 my_id_ = 0;
-  int32 debug_resend_cnt_ = 0;
-  string debug_str_ = "empty";
-  double debug_timestamp_ = 0;
-  int32 debug_cnt_ = 0;
-  int32 debug_send_failed_cnt_ = 0;
-  int debug_ack_ = 0;
-  bool debug_unknown_ = false;
+  int32 resend_count_ = 0;
+  string state_ = "empty";
+  double state_timestamp_ = 0;
+  int32 state_change_count_ = 0;
+  int32 send_failed_count_ = 0;
+  int ack_state_ = 0;
+  bool unknown_state_ = false;
 };
 
 class NetQuery : public TsListNode<NetQueryDebug> {
@@ -90,7 +90,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     VLOG(net_query) << "Resend" << *this;
     {
       auto guard = lock();
-      get_data_unsafe().debug_resend_cnt_++;
+      get_data_unsafe().resend_count_++;
     }
     dc_id_ = new_dc_id;
     status_ = Status::OK();
@@ -228,7 +228,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   void clear() {
     if (!is_ready()) {
       auto guard = lock();
-      LOG(ERROR) << "Destroy not ready query " << *this << " " << tag("debug", get_data_unsafe().debug_str_);
+      LOG(ERROR) << "Destroy not ready query " << *this << " " << tag("state", get_data_unsafe().state_);
     }
     // TODO: CHECK if net_query is lost here
     cancel_slot_.close();
@@ -245,19 +245,19 @@ class NetQuery : public TsListNode<NetQueryDebug> {
 
   void debug_send_failed() {
     auto guard = lock();
-    get_data_unsafe().debug_send_failed_cnt_++;
+    get_data_unsafe().send_failed_count_++;
   }
 
-  void debug(string str, bool may_be_lost = false) {
+  void debug(string state, bool may_be_lost = false) {
     may_be_lost_ = may_be_lost;
     {
       auto guard = lock();
       auto &data = get_data_unsafe();
-      data.debug_str_ = str;
-      data.debug_timestamp_ = Time::now();
-      data.debug_cnt_++;
+      data.state_ = state;
+      data.state_timestamp_ = Time::now();
+      data.state_change_count_++;
     }
-    VLOG(net_query) << *this << " " << tag("debug", str);
+    VLOG(net_query) << *this << " " << tag("state", state);
   }
 
   void set_callback(ActorShared<NetQueryCallback> callback) {
