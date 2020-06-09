@@ -6,10 +6,10 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
 #include "td/utils/Span.h"
 
 #include <utility>
-#include <vector>
 
 namespace td {
 
@@ -18,7 +18,7 @@ class VectorQueue {
  public:
   template <class S>
   void push(S &&s) {
-    vector_.push_back(std::forward<S>(s));
+    vector_.emplace_back(std::forward<S>(s));
   }
   template <class... Args>
   void emplace(Args &&... args) {
@@ -32,10 +32,10 @@ class VectorQueue {
     read_pos_ += n;
     try_shrink();
   }
-  T &front() {
+  const T &front() const {
     return vector_[read_pos_];
   }
-  T &back() {
+  const T &back() const {
     return vector_.back();
   }
   bool empty() const {
@@ -44,9 +44,6 @@ class VectorQueue {
   size_t size() const {
     return vector_.size() - read_pos_;
   }
-  T *data() {
-    return vector_.data() + read_pos_;
-  }
   const T *data() const {
     return vector_.data() + read_pos_;
   }
@@ -54,11 +51,11 @@ class VectorQueue {
     return {data(), size()};
   }
   MutableSpan<T> as_mutable_span() {
-    return {data(), size()};
+    return {vector_.data() + read_pos_, size()};
   }
 
  private:
-  std::vector<T> vector_;
+  vector<T> vector_;
   size_t read_pos_{0};
 
   void try_shrink() {
