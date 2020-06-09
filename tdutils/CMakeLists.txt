@@ -247,6 +247,7 @@ set(TDUTILS_SOURCE
   td/utils/tl_storers.h
   td/utils/translit.h
   td/utils/TsFileLog.h
+  td/utils/TsList.h
   td/utils/type_traits.h
   td/utils/UInt.h
   td/utils/uint128.h
@@ -268,6 +269,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/heap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/json.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/List.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/log.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/misc.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/MpmcQueue.cpp
