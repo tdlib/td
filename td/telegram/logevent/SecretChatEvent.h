@@ -322,7 +322,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
 
   bool is_sent = false;
   // need send push notification to the receiver
-  // should send such messages with messages_sendEncryptedsService
+  // should send such messages with messages_sendEncryptedService
   bool need_notify_user = false;
   bool is_rewritable = false;
   // should notify our parent about state of this message (using context and random_id)

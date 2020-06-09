@@ -28,19 +28,19 @@ struct ListNode {
     if (other.empty()) {
       clear();
     } else {
-      ListNode *head = other.prev;
-      other.remove();
-      head->put(this);
+      init_from(std::move(other));
     }
   }
 
   ListNode &operator=(ListNode &&other) {
+    if (this == &other) {
+      return *this;
+    }
+
     this->remove();
 
     if (!other.empty()) {
-      ListNode *head = other.prev;
-      other.remove();
-      head->put(this);
+      init_from(std::move(other));
     }
 
     return *this;
@@ -58,11 +58,12 @@ struct ListNode {
   }
 
   void put(ListNode *other) {
-    other->connect(next);
-    this->connect(other);
+    DCHECK(other->empty());
+    put_unsafe(other);
   }
 
   void put_back(ListNode *other) {
+    DCHECK(other->empty());
     prev->connect(other);
     other->connect(this);
   }
@@ -86,6 +87,17 @@ struct ListNode {
   void clear() {
     next = this;
     prev = this;
+  }
+
+  void init_from(ListNode &&other) {
+    ListNode *head = other.prev;
+    other.remove();
+    head->put_unsafe(this);
+  }
+
+  void put_unsafe(ListNode *other) {
+    other->connect(next);
+    this->connect(other);
   }
 };
 
