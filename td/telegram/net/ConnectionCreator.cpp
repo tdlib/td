@@ -327,11 +327,11 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
         continue;
       }
 
-      ping_proxy_socket_fd(r_socket_fd.move_as_ok(), r_transport_type.move_as_ok(),
-                           PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
-                             send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token,
-                                          std::move(result));
-                           }));
+      ping_proxy_socket_fd(
+          r_socket_fd.move_as_ok(), r_transport_type.move_as_ok(), PSTRING() << info.option->get_ip_address(),
+          PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
+            send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token, std::move(result));
+          }));
     }
     return;
   }
@@ -367,14 +367,14 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
-  auto connection_promise =
-      PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
-                              transport_type = extra.transport_type](Result<ConnectionData> r_connection_data) mutable {
+  auto connection_promise = PromiseCreator::lambda(
+      [promise = std::move(promise), actor_id = actor_id(this), transport_type = extra.transport_type,
+       debug_str = std::move(extra.debug_str)](Result<ConnectionData> r_connection_data) mutable {
         if (r_connection_data.is_error()) {
           return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
         }
         send_closure(actor_id, &ConnectionCreator::ping_proxy_socket_fd, r_connection_data.move_as_ok().socket_fd,
-                     std::move(transport_type), std::move(promise));
+                     std::move(transport_type), std::move(debug_str), std::move(promise));
       });
   CHECK(proxy.use_proxy());
   auto token = next_token();
@@ -387,11 +387,11 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
 }
 
 void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type,
-                                             Promise<double> promise) {
+                                             string debug_str, Promise<double> promise) {
   auto token = next_token();
   auto raw_connection = make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
   children_[token] = {
-      false, create_ping_actor("", std::move(raw_connection), nullptr,
+      false, create_ping_actor(std::move(debug_str), std::move(raw_connection), nullptr,
                                PromiseCreator::lambda([promise = std::move(promise)](
                                                           Result<unique_ptr<mtproto::RawConnection>> result) mutable {
                                  if (result.is_error()) {

@@ -243,7 +243,8 @@ class ConnectionCreator : public NetQueryCallback {
 
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 
-  void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, Promise<double> promise);
+  void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, string debug_str,
+                            Promise<double> promise);
 
   void on_ping_main_dc_result(uint64 token, Result<double> result);
 };
