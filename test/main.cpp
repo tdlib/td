@@ -7,6 +7,7 @@
 #include "td/utils/tests.h"
 
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 
 #include <cstring>
@@ -16,6 +17,8 @@
 #endif
 
 int main(int argc, char **argv) {
+  td::init_openssl_threads();
+
   // TODO port OptionsParser to Windows
   td::TestsRunner &runner = td::TestsRunner::get_default();
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));

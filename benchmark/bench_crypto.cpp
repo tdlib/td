@@ -112,13 +112,13 @@ BENCH(SslRand, "ssl_rand_int32") {
   std::vector<td::thread> v;
   std::atomic<td::uint32> sum{0};
   for (int i = 0; i < 3; i++) {
-    v.push_back(td::thread([&] {
+    v.emplace_back([&sum, n] {
       td::int32 res = 0;
       for (int j = 0; j < n; j++) {
         res ^= td::Random::secure_int32();
       }
       sum += res;
-    }));
+    });
   }
   for (auto &x : v) {
     x.join();
@@ -196,6 +196,8 @@ class Crc64Bench : public td::Benchmark {
 };
 
 int main() {
+  td::init_openssl_threads();
+
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());
   td::bench(CppRandBench());
