@@ -18,6 +18,7 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 
 #include <functional>
@@ -68,9 +69,25 @@ class Binlog {
     return fd_.empty();
   }
 
-  //void add_raw_event(BufferSlice &&raw_event) {
-  //add_event(BinlogEvent(std::move(raw_event)));
-  //}
+  uint64 add(int32 type, const Storer &storer) {
+    auto logevent_id = next_id();
+    add_raw_event(BinlogEvent::create_raw(logevent_id, type, 0, storer), {});
+    return logevent_id;
+  }
+
+  uint64 rewrite(uint64 logevent_id, int32 type, const Storer &storer) {
+    auto seq_no = next_id();
+    add_raw_event(BinlogEvent::create_raw(logevent_id, type, BinlogEvent::Flags::Rewrite, storer), {});
+    return seq_no;
+  }
+
+  uint64 erase(uint64 logevent_id) {
+    auto seq_no = next_id();
+    add_raw_event(BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
+                                          EmptyStorer()),
+                  {});
+    return seq_no;
+  }
 
   void add_raw_event(BufferSlice &&raw_event, BinlogDebugInfo info) {
     add_event(BinlogEvent(std::move(raw_event), info));
