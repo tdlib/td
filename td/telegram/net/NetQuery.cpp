@@ -83,7 +83,7 @@ void dump_pending_network_queries() {
       }
       const NetQueryDebug &debug = cur->get_data_unsafe();
       const NetQuery &nq = *static_cast<const NetQuery *>(cur);
-      LOG(WARNING) << tag("user id", debug.my_id_) << nq << tag("total flood", format::as_time(nq.total_timeout_))
+      LOG(WARNING) << tag("user", debug.my_id_) << nq << tag("total flood", format::as_time(nq.total_timeout_))
                    << tag("since start", format::as_time(Time::now_cached() - debug.start_timestamp_))
                    << tag("state", debug.state_)
                    << tag("in this state", format::as_time(Time::now_cached() - debug.state_timestamp_))

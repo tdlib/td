@@ -14,10 +14,11 @@
 namespace td {
 
 template <class DataT>
-struct TsList;
+class TsList;
 
 template <class DataT>
-struct TsListNode : protected ListNode {
+class TsListNode : protected ListNode {
+ public:
   TsListNode() {
     clear();
   }
@@ -136,7 +137,7 @@ struct TsListNode : protected ListNode {
   bool is_root{false};
   DataT data_;
 
-  friend struct TsList<DataT>;
+  friend class TsList<DataT>;
 
   void clear() {
     ListNode::clear();
@@ -154,7 +155,7 @@ struct TsListNode : protected ListNode {
 };
 
 template <class DataT>
-struct TsList : public TsListNode<DataT> {
+class TsList : public TsListNode<DataT> {
  public:
   TsList() {
     this->parent = this;
