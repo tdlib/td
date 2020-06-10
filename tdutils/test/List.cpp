@@ -6,6 +6,7 @@
 //
 #include "td/utils/common.h"
 #include "td/utils/List.h"
+#include "td/utils/MovableValue.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/tests.h"
@@ -16,28 +17,12 @@
 #include <utility>
 
 struct Data {
-  td::uint64 value{0};
-  bool in_list{false};
+  td::MovableValue<td::uint64> value;
+  td::MovableValue<bool> in_list;
 
   Data() = default;
   Data(td::uint64 value, bool in_list) : value(value), in_list(in_list) {
   }
-  Data(const Data &from) = delete;
-  Data &operator=(const Data &from) = delete;
-  Data(Data &&from) {
-    *this = std::move(from);
-  }
-  Data &operator=(Data &&from) {
-    if (this == &from) {
-      return *this;
-    }
-    value = from.value;
-    in_list = from.in_list;
-    from.value = 0;
-    from.in_list = false;
-    return *this;
-  }
-  ~Data() = default;
 };
 
 struct Node : public td::ListNode {
@@ -48,24 +33,24 @@ struct Node : public td::ListNode {
   Data data;
 };
 
-Data &get_data(Node &node) {
+static Data &get_data(Node &node) {
   return node.data;
 }
 
-Data &get_data(td::TsListNode<Data> &node) {
+static Data &get_data(td::TsListNode<Data> &node) {
   return node.get_data_unsafe();
 }
 
-std::unique_lock<std::mutex> lock(td::ListNode &node) {
+static std::unique_lock<std::mutex> lock(td::ListNode &node) {
   return {};
 }
 
-std::unique_lock<std::mutex> lock(td::TsListNode<Data> &node) {
+static std::unique_lock<std::mutex> lock(td::TsListNode<Data> &node) {
   return node.lock();
 }
 
 template <class ListNodeT, class ListRootT, class NodeT>
-void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
+static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
   td::vector<NodeT> nodes;
 
   td::Random::Xorshift128plus rnd(123);
@@ -122,22 +107,22 @@ void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
   auto validate = [&] {
     std::multiset<td::uint64> in_list, not_in_list;
     for (auto &node : nodes) {
-      if (get_data(node).in_list) {
-        in_list.insert(get_data(node).value);
+      if (get_data(node).in_list.get()) {
+        in_list.insert(get_data(node).value.get());
       } else {
-        not_in_list.insert(get_data(node).value);
+        not_in_list.insert(get_data(node).value.get());
       }
     }
     auto guard = lock(root);
     for (auto *begin = root.begin(), *end = root.end(); begin != end; begin = begin->get_next()) {
       auto &data = get_data(*static_cast<NodeT *>(begin));
-      CHECK(data.in_list);
-      CHECK(data.value != 0);
-      auto it = in_list.find(data.value);
+      CHECK(data.in_list.get());
+      CHECK(data.value.get() != 0);
+      auto it = in_list.find(data.value.get());
       if (it != in_list.end()) {
         in_list.erase(it);
       } else {
-        ASSERT_EQ(0u, not_in_list.count(data.value));
+        ASSERT_EQ(0u, not_in_list.count(data.value.get()));
       }
     }
     ASSERT_EQ(0u, in_list.size());

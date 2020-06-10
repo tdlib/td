@@ -18,8 +18,10 @@ class MovableValue {
     other.clear();
   }
   MovableValue &operator=(MovableValue &&other) {
-    val_ = other.val_;
-    other.clear();
+    if (this != &other) {
+      val_ = other.val_;
+      other.clear();
+    }
     return *this;
   }
   MovableValue(const MovableValue &) = delete;
