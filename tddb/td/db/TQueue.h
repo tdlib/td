@@ -23,29 +23,40 @@ class TQueue {
   class EventId {
    public:
     static constexpr int32 MAX_ID = 2000000000;
+
     EventId();
+
     static Result<EventId> from_int32(int32 id);
+
     static EventId create_random();
+
     int32 value() const;
+
     Result<EventId> next() const;
+
     Result<EventId> advance(size_t offset) const;
+
     bool empty() const;
 
     bool operator==(const EventId &other) const;
+    bool operator!=(const EventId &other) const;
     bool operator<(const EventId &other) const;
 
    private:
     int32 id_{0};
+
     explicit EventId(int32 id);
+
     static bool is_valid(int32 id);
   };
-  using QueueId = int64;
+
   struct Event {
     EventId id;
     Slice data;
     int64 extra{0};
-    double expires_at;
+    double expires_at{0};
   };
+
   struct RawEvent {
     uint64 logevent_id{0};
     EventId event_id;
@@ -53,23 +64,39 @@ class TQueue {
     int64 extra{0};
     double expires_at{0};
   };
+
+  using QueueId = int64;
+
   class Callback {
    public:
-    using EventId = TQueue::EventId;
     using QueueId = TQueue::QueueId;
     using RawEvent = TQueue::RawEvent;
-    virtual ~Callback() {
-    }
+
+    Callback() = default;
+    Callback(const Callback &) = delete;
+    Callback &operator=(const Callback &) = delete;
+    Callback(Callback &&) = delete;
+    Callback &operator=(Callback &&) = delete;
+    virtual ~Callback() = default;
+
     virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
     virtual void pop(uint64 logevent_id) = 0;
   };
 
-  virtual ~TQueue() {
-  }
+  static unique_ptr<TQueue> create();
+
+  TQueue() = default;
+  TQueue(const TQueue &) = delete;
+  TQueue &operator=(const TQueue &) = delete;
+  TQueue(TQueue &&) = delete;
+  TQueue &operator=(TQueue &&) = delete;
+
+  virtual ~TQueue() = default;
+
   virtual void set_callback(unique_ptr<Callback> callback) = 0;
   virtual unique_ptr<Callback> extract_callback() = 0;
 
-  virtual void emulate_restart() = 0;
+  virtual void emulate_restart() = 0;  // for testing only
 
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
@@ -82,11 +109,9 @@ class TQueue {
   virtual EventId get_tail(QueueId queue_id) const = 0;
 
   virtual Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
-                             MutableSpan<Event> &events) = 0;
+                             MutableSpan<Event> &result_events) = 0;
 
   virtual void run_gc(double now) = 0;
-
-  static unique_ptr<TQueue> create(unique_ptr<Callback> callback = {});
 };
 
 StringBuilder &operator<<(StringBuilder &sb, const TQueue::EventId id);
@@ -97,6 +122,7 @@ template <class BinlogT>
 class TQueueBinlog : public TQueue::Callback {
  public:
   TQueueBinlog();
+
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
   Status replay(const BinlogEvent &binlog_event, TQueue &q);
@@ -111,7 +137,7 @@ class TQueueBinlog : public TQueue::Callback {
   double diff_{0};
 };
 
-class MemoryStorage : public TQueue::Callback {
+class TQueueMemoryStorage : public TQueue::Callback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;

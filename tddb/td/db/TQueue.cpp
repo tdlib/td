@@ -66,6 +66,10 @@ bool EventId::operator==(const EventId &other) const {
   return id_ == other.id_;
 }
 
+bool EventId::operator!=(const EventId &other) const {
+  return !(*this == other);
+}
+
 bool EventId::operator<(const EventId &other) const {
   return id_ < other.id_;
 }
@@ -177,11 +181,11 @@ class TQueueImpl : public TQueue {
   }
 
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
-                     MutableSpan<Event> &events) override {
+                     MutableSpan<Event> &result_events) override {
     //LOG(ERROR) << "Get " << queue_id << " " << from_id;
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
-      events.truncate(0);
+      result_events.truncate(0);
       return 0;
     }
     auto &q = it->second;
@@ -214,7 +218,7 @@ class TQueueImpl : public TQueue {
           continue;
         }
 
-        if (ready_n == events.size()) {
+        if (ready_n == result_events.size()) {
           break;
         }
 
@@ -224,7 +228,7 @@ class TQueueImpl : public TQueue {
           continue;
         }
 
-        auto &to = events[ready_n];
+        auto &to = result_events[ready_n];
         to.data = from.data;
         to.id = from.event_id;
         to.expires_at = from.expires_at;
@@ -241,7 +245,7 @@ class TQueueImpl : public TQueue {
       break;
     }
 
-    events.truncate(ready_n);
+    result_events.truncate(ready_n);
     size_t left_n = from_events.size() - i;
     return ready_n + left_n;
   }
@@ -299,12 +303,9 @@ class TQueueImpl : public TQueue {
     }
   }
 };
-unique_ptr<TQueue> TQueue::create(unique_ptr<Callback> callback) {
-  auto res = make_unique<TQueueImpl>();
-  if (callback) {
-    res->set_callback(std::move(callback));
-  }
-  return res;
+
+unique_ptr<TQueue> TQueue::create() {
+  return make_unique<TQueueImpl>();
 }
 
 struct TQueueLogEvent : public Storer {
@@ -358,6 +359,7 @@ template <class BinlogT>
 TQueueBinlog<BinlogT>::TQueueBinlog() {
   diff_ = Clocks::system() - Time::now();
 }
+
 template <class BinlogT>
 uint64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   TQueueLogEvent log_event;
@@ -367,8 +369,7 @@ uint64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   log_event.data = event.data;
   log_event.extra = event.extra;
   if (event.logevent_id == 0) {
-    auto res = binlog_->add(magic_ + (log_event.extra != 0), log_event);
-    return res;
+    return binlog_->add(magic_ + (log_event.extra != 0), log_event);
   }
   binlog_->rewrite(event.logevent_id, magic_ + (log_event.extra != 0), log_event);
   return event.logevent_id;
@@ -399,17 +400,16 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
 template class TQueueBinlog<BinlogInterface>;
 template class TQueueBinlog<Binlog>;
 
-uint64 MemoryStorage::push(QueueId queue_id, const RawEvent &event) {
+uint64 TQueueMemoryStorage::push(QueueId queue_id, const RawEvent &event) {
   auto logevent_id = event.logevent_id == 0 ? next_logevent_id_++ : event.logevent_id;
   events_[logevent_id] = std::make_pair(queue_id, event);
-
   return logevent_id;
 }
-void MemoryStorage::pop(uint64 logevent_id) {
+void TQueueMemoryStorage::pop(uint64 logevent_id) {
   events_.erase(logevent_id);
 }
 
-void MemoryStorage::replay(TQueue &q) {
+void TQueueMemoryStorage::replay(TQueue &q) {
   for (auto e : events_) {
     auto x = e.second;
     x.second.logevent_id = e.first;

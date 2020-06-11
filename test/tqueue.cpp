@@ -46,7 +46,7 @@ class TestTQueue {
     baseline_ = TQueue::create();
     memory_ = TQueue::create();
 
-    auto memory_storage = td::make_unique<MemoryStorage>();
+    auto memory_storage = td::make_unique<TQueueMemoryStorage>();
     memory_storage_ = memory_storage.get();
     memory_->set_callback(std::move(memory_storage));
 
@@ -66,7 +66,7 @@ class TestTQueue {
     }
 
     memory_->extract_callback().release();
-    auto memory_storage = unique_ptr<MemoryStorage>(memory_storage_);
+    auto memory_storage = unique_ptr<TQueueMemoryStorage>(memory_storage_);
     memory_ = TQueue::create();
     memory_storage->replay(*memory_);
     memory_->set_callback(std::move(memory_storage));
@@ -144,7 +144,7 @@ class TestTQueue {
   unique_ptr<TQueue> baseline_;
   unique_ptr<TQueue> memory_;
   unique_ptr<TQueue> binlog_;
-  MemoryStorage *memory_storage_{nullptr};
+  TQueueMemoryStorage *memory_storage_{nullptr};
 };
 
 TEST(TQueue, random) {
