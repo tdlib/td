@@ -60,7 +60,6 @@ class TestTQueue {
   }
 
   void restart(Random::Xorshift128plus &rnd, double now) {
-    baseline_->emulate_restart();
     if (rnd.fast(0, 10) == 0) {
       baseline_->run_gc(now);
     }
@@ -75,11 +74,10 @@ class TestTQueue {
     }
 
     if (rnd.fast(0, 100) != 0) {
-      binlog_->emulate_restart();
       return;
     }
 
-    LOG(ERROR) << "RESTART BINLOG";
+    LOG(INFO) << "Restart binlog";
     binlog_ = TQueue::create();
     auto tqueue_binlog = make_unique<TQueueBinlog<Binlog>>();
     auto binlog = std::make_shared<Binlog>();
@@ -179,7 +177,7 @@ TEST(TQueue, random) {
     q.check_get(next_qid(), rnd, now);
   };
   RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
-  for (int i = 0; i < 1000000; i++) {
+  for (int i = 0; i < 100000; i++) {
     steps.step(rnd);
   }
 }

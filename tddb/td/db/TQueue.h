@@ -30,6 +30,8 @@ class TQueue {
 
     static EventId create_random();
 
+    bool is_valid() const;
+
     int32 value() const;
 
     Result<EventId> next() const;
@@ -47,7 +49,7 @@ class TQueue {
 
     explicit EventId(int32 id);
 
-    static bool is_valid(int32 id);
+    static bool is_valid_id(int32 id);
   };
 
   struct Event {
@@ -67,17 +69,17 @@ class TQueue {
 
   using QueueId = int64;
 
-  class Callback {
+  class StorageCallback {
    public:
     using QueueId = TQueue::QueueId;
     using RawEvent = TQueue::RawEvent;
 
-    Callback() = default;
-    Callback(const Callback &) = delete;
-    Callback &operator=(const Callback &) = delete;
-    Callback(Callback &&) = delete;
-    Callback &operator=(Callback &&) = delete;
-    virtual ~Callback() = default;
+    StorageCallback() = default;
+    StorageCallback(const StorageCallback &) = delete;
+    StorageCallback &operator=(const StorageCallback &) = delete;
+    StorageCallback(StorageCallback &&) = delete;
+    StorageCallback &operator=(StorageCallback &&) = delete;
+    virtual ~StorageCallback() = default;
 
     virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
     virtual void pop(uint64 logevent_id) = 0;
@@ -93,10 +95,8 @@ class TQueue {
 
   virtual ~TQueue() = default;
 
-  virtual void set_callback(unique_ptr<Callback> callback) = 0;
-  virtual unique_ptr<Callback> extract_callback() = 0;
-
-  virtual void emulate_restart() = 0;  // for testing only
+  virtual void set_callback(unique_ptr<StorageCallback> callback) = 0;
+  virtual unique_ptr<StorageCallback> extract_callback() = 0;
 
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
@@ -114,12 +114,12 @@ class TQueue {
   virtual void run_gc(double now) = 0;
 };
 
-StringBuilder &operator<<(StringBuilder &sb, const TQueue::EventId id);
+StringBuilder &operator<<(StringBuilder &string_builder, const TQueue::EventId id);
 
 struct BinlogEvent;
 
 template <class BinlogT>
-class TQueueBinlog : public TQueue::Callback {
+class TQueueBinlog : public TQueue::StorageCallback {
  public:
   TQueueBinlog();
 
@@ -137,7 +137,7 @@ class TQueueBinlog : public TQueue::Callback {
   double diff_{0};
 };
 
-class TQueueMemoryStorage : public TQueue::Callback {
+class TQueueMemoryStorage : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
