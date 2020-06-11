@@ -47,7 +47,7 @@ class TQueue {
     double expires_at;
   };
   struct RawEvent {
-    int64 logevent_id{0};
+    uint64 logevent_id{0};
     EventId event_id;
     string data;
     int64 extra{0};
@@ -60,8 +60,8 @@ class TQueue {
     using RawEvent = TQueue::RawEvent;
     virtual ~Callback() {
     }
-    virtual int64 push(QueueId queue_id, const RawEvent &event) = 0;
-    virtual void pop(int64 logevent_id) = 0;
+    virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
+    virtual void pop(uint64 logevent_id) = 0;
   };
 
   virtual ~TQueue() {
@@ -97,8 +97,8 @@ template <class BinlogT>
 class TQueueBinlog : public TQueue::Callback {
  public:
   TQueueBinlog();
-  int64 push(QueueId queue_id, const RawEvent &event) override;
-  void pop(int64 logevent_id) override;
+  uint64 push(QueueId queue_id, const RawEvent &event) override;
+  void pop(uint64 logevent_id) override;
   Status replay(const BinlogEvent &binlog_event, TQueue &q);
 
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
@@ -113,13 +113,13 @@ class TQueueBinlog : public TQueue::Callback {
 
 class MemoryStorage : public TQueue::Callback {
  public:
-  int64 push(QueueId queue_id, const RawEvent &event) override;
-  void pop(int64 logevent_id) override;
+  uint64 push(QueueId queue_id, const RawEvent &event) override;
+  void pop(uint64 logevent_id) override;
   void replay(TQueue &q);
 
  private:
-  int64 next_logevent_id_{1};
-  std::map<int64, std::pair<QueueId, RawEvent>> events_;
+  uint64 next_logevent_id_{1};
+  std::map<uint64, std::pair<QueueId, RawEvent>> events_;
 };
 
 }  // namespace td

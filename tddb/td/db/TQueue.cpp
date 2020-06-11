@@ -359,7 +359,7 @@ TQueueBinlog<BinlogT>::TQueueBinlog() {
   diff_ = Clocks::system() - Time::now();
 }
 template <class BinlogT>
-int64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
+uint64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   TQueueLogEvent log_event;
   log_event.queue_id = queue_id;
   log_event.event_id = event.event_id.value();
@@ -375,7 +375,7 @@ int64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
 }
 
 template <class BinlogT>
-void TQueueBinlog<BinlogT>::pop(int64 logevent_id) {
+void TQueueBinlog<BinlogT>::pop(uint64 logevent_id) {
   binlog_->erase(logevent_id);
 }
 
@@ -399,13 +399,13 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
 template class TQueueBinlog<BinlogInterface>;
 template class TQueueBinlog<Binlog>;
 
-int64 MemoryStorage::push(QueueId queue_id, const RawEvent &event) {
+uint64 MemoryStorage::push(QueueId queue_id, const RawEvent &event) {
   auto logevent_id = event.logevent_id == 0 ? next_logevent_id_++ : event.logevent_id;
   events_[logevent_id] = std::make_pair(queue_id, event);
 
   return logevent_id;
 }
-void MemoryStorage::pop(int64 logevent_id) {
+void MemoryStorage::pop(uint64 logevent_id) {
   events_.erase(logevent_id);
 }
 
