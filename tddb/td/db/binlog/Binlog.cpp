@@ -118,10 +118,10 @@ class BinlogReader {
       it.advance(4, MutableSlice(buf, 4));
       size_ = static_cast<size_t>(TlParser(Slice(buf, 4)).fetch_int());
 
-      if (size_ > MAX_EVENT_SIZE) {
+      if (size_ > BinlogEvent::MAX_SIZE) {
         return Status::Error(PSLICE() << "Too big event " << tag("size", size_));
       }
-      if (size_ < MIN_EVENT_SIZE) {
+      if (size_ < BinlogEvent::MIN_SIZE) {
         return Status::Error(PSLICE() << "Too small event " << tag("size", size_));
       }
       if (size_ % 4 != 0) {
