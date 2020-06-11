@@ -13,6 +13,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/StorerBase.h"
 
 namespace td {
 

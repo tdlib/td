@@ -6,10 +6,15 @@
 //
 #pragma once
 
-#include "td/utils/misc.h"
+#include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Span.h"
+#include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 #include <map>
+#include <memory>
+#include <utility>
 
 namespace td {
 
@@ -17,7 +22,7 @@ class TQueue {
  public:
   class EventId {
    public:
-    constexpr static int32 MAX_ID = 2000000000;
+    static constexpr int32 MAX_ID = 2000000000;
     EventId();
     static Result<EventId> from_int32(int32 id);
     static EventId create_random();
@@ -39,14 +44,14 @@ class TQueue {
     EventId id;
     Slice data;
     int64 extra{0};
-    double expire_at;
+    double expires_at;
   };
   struct RawEvent {
     int64 logevent_id{0};
     EventId event_id;
     string data;
     int64 extra{0};
-    double expire_at{0};
+    double expires_at{0};
   };
   class Callback {
    public:
@@ -68,7 +73,7 @@ class TQueue {
 
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
-  virtual Result<EventId> push(QueueId queue_id, string data, double expire_at, EventId new_id = EventId(),
+  virtual Result<EventId> push(QueueId queue_id, string data, double expires_at, EventId new_id = EventId(),
                                int64 extra = 0) = 0;
 
   virtual void forget(QueueId queue_id, EventId event_id) = 0;
@@ -87,6 +92,7 @@ class TQueue {
 StringBuilder &operator<<(StringBuilder &sb, const TQueue::EventId id);
 
 struct BinlogEvent;
+
 template <class BinlogT>
 class TQueueBinlog : public TQueue::Callback {
  public:

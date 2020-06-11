@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 #SOURCE SETS
 set(TD_TEST_SOURCE
-  ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mtproto.cpp
@@ -13,6 +12,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/set_with_position.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h
