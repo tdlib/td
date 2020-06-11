@@ -100,8 +100,7 @@ class TQueue {
 
   virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
-  virtual Result<EventId> push(QueueId queue_id, string data, double expires_at, EventId new_id = EventId(),
-                               int64 extra = 0) = 0;
+  virtual Result<EventId> push(QueueId queue_id, string data, double expires_at, int64 extra, EventId hint_new_id) = 0;
 
   virtual void forget(QueueId queue_id, EventId event_id) = 0;
 
