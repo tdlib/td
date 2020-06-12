@@ -71,9 +71,38 @@ class AesBench : public td::Benchmark {
     state.init(td::as_slice(key), true);
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i <= n; i++) {
-      for (size_t offset = 0; offset + 16 <= data_slice.size(); offset += 16) {
-        state.encrypt(data_slice.ubegin() + offset, data_slice.ubegin() + offset);
+      size_t step = 16;
+      for (size_t offset = 0; offset + 16 <= data_slice.size(); offset += step) {
+        state.encrypt(data_slice.ubegin() + offset, data_slice.ubegin() + offset, (int)step);
       }
+    }
+  }
+};
+
+class AesCtrBench : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[DATA_SIZE];
+  td::UInt256 key;
+  td::UInt128 iv;
+
+  std::string get_description() const override {
+    return PSTRING() << "AES CTR OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+  }
+
+  void start_up() override {
+    for (int i = 0; i < DATA_SIZE; i++) {
+      data[i] = 123;
+    }
+    td::Random::secure_bytes(key.raw, sizeof(key));
+    td::Random::secure_bytes(iv.raw, sizeof(iv));
+  }
+
+  void run(int n) override {
+    td::AesCtrState state;
+    state.init(as_slice(key), as_slice(iv));
+    td::MutableSlice data_slice(data, DATA_SIZE);
+    for (int i = 0; i < n; i++) {
+      state.encrypt(data_slice, data_slice);
     }
   }
 };
@@ -227,6 +256,7 @@ class Crc64Bench : public td::Benchmark {
 
 int main() {
   td::init_openssl_threads();
+  td::bench(AesCtrBench());
   td::bench(AesBench());
   td::bench(AESBench());
 

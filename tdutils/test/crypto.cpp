@@ -32,8 +32,8 @@ TEST(Crypto, Aes) {
   td::AesState decryptor;
   decryptor.init(as_slice(key), false);
 
-  encryptor.encrypt(td::as_slice(plaintext).ubegin(), td::as_slice(encrypted).ubegin());
-  decryptor.decrypt(td::as_slice(encrypted).ubegin(), td::as_slice(decrypted).ubegin());
+  encryptor.encrypt(td::as_slice(plaintext).ubegin(), td::as_slice(encrypted).ubegin(), 16);
+  decryptor.decrypt(td::as_slice(encrypted).ubegin(), td::as_slice(decrypted).ubegin(), 16);
 
   CHECK(decrypted == plaintext);
   CHECK(decrypted != encrypted);
