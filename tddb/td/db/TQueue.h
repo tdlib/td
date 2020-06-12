@@ -28,8 +28,6 @@ class TQueue {
 
     static Result<EventId> from_int32(int32 id);
 
-    static EventId create_random();
-
     bool is_valid() const;
 
     int32 value() const;
@@ -98,7 +96,7 @@ class TQueue {
   virtual void set_callback(unique_ptr<StorageCallback> callback) = 0;
   virtual unique_ptr<StorageCallback> extract_callback() = 0;
 
-  virtual void do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
+  virtual bool do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
   virtual Result<EventId> push(QueueId queue_id, string data, double expires_at, int64 extra, EventId hint_new_id) = 0;
 
@@ -124,7 +122,7 @@ class TQueueBinlog : public TQueue::StorageCallback {
 
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
-  Status replay(const BinlogEvent &binlog_event, TQueue &q);
+  Status replay(const BinlogEvent &binlog_event, TQueue &q) const;
 
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
     binlog_ = std::move(binlog);
@@ -140,7 +138,7 @@ class TQueueMemoryStorage : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
-  void replay(TQueue &q);
+  void replay(TQueue &q) const;
 
  private:
   uint64 next_logevent_id_{1};

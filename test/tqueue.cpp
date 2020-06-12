@@ -29,10 +29,16 @@ TEST(TQueue, hands) {
   auto qid = 12;
   ASSERT_EQ(true, tqueue->get_head(qid).empty());
   ASSERT_EQ(true, tqueue->get_tail(qid).empty());
-  tqueue->push(qid, "hello", 0, 0, td::Auto());
+  tqueue->push(qid, "hello", 0, 0, td::TQueue::EventId());
   auto head = tqueue->get_head(qid);
-  ASSERT_EQ(head.next().ok(), tqueue->get_tail(qid));
+  auto tail = tqueue->get_tail(qid);
+  ASSERT_EQ(head.next().ok(), tail);
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
+  ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
+  ASSERT_EQ(0u, tqueue->get(qid, tail, false, 0, events_span).move_as_ok());
+  ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
+  ASSERT_EQ(0u, tqueue->get(qid, tail, true, 0, events_span).move_as_ok());
+  ASSERT_EQ(0u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
 }
 
 class TestTQueue {
