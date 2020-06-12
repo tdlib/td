@@ -249,6 +249,56 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
   return 0;
 }
 
+class AesState::Impl {
+ public:
+  EVP_CIPHER_CTX *ctx{nullptr};
+  AES_KEY key;
+  bool encrypt;
+
+  ~Impl() {
+    if (ctx != nullptr) {
+      EVP_CIPHER_CTX_free(ctx);
+    }
+  }
+};
+
+AesState::AesState() = default;
+AesState::~AesState() = default;
+
+void AesState::init(Slice key, bool encrypt) {
+  CHECK(key.size() == 32);
+  impl_ = make_unique<Impl>();
+  impl_->ctx = EVP_CIPHER_CTX_new();
+  CHECK(impl_->ctx);
+
+  if (encrypt) {
+    CHECK(1 == EVP_EncryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr));
+    AES_set_encrypt_key(key.ubegin(), 256, &impl_->key);
+  } else {
+    CHECK(1 == EVP_DecryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr));
+    AES_set_decrypt_key(key.ubegin(), 256, &impl_->key);
+  }
+  EVP_CIPHER_CTX_set_padding(impl_->ctx, 0);
+  impl_->encrypt = encrypt;
+}
+
+void AesState::encrypt(const uint8 *src, uint8 *dst) {
+  CHECK(impl_->encrypt);
+  CHECK(impl_->ctx);
+  int len;
+  CHECK(1 == EVP_EncryptUpdate(impl_->ctx, dst, &len, src, 16));
+  CHECK(len == 16);
+  //AES_encrypt(src, dst, &impl_->key);
+}
+void AesState::decrypt(const uint8 *src, uint8 *dst) {
+  CHECK(!impl_->encrypt);
+  CHECK(impl_->ctx);
+  int len;
+  CHECK(1 == EVP_DecryptUpdate(impl_->ctx, dst, &len, src, 16));
+  LOG_CHECK(len == 16) << len;
+  //AES_decrypt(src, dst, &impl_->key);
+}
+
 static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
   CHECK(aes_key.size() == 32);
   CHECK(aes_iv.size() == 32);

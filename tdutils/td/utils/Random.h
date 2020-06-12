@@ -37,6 +37,7 @@ class Random {
     Xorshift128plus(uint64 seed_a, uint64 seed_b);
     uint64 operator()();
     int fast(int min, int max);
+    void bytes(MutableSlice dest);
 
    private:
     uint64 seed_[2];

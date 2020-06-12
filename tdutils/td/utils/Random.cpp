@@ -164,4 +164,18 @@ int Random::Xorshift128plus::fast(int min, int max) {
   return static_cast<int>((*this)() % (max - min + 1) + min);
 }
 
+void Random::Xorshift128plus::bytes(MutableSlice dest) {
+  int cnt = 0;
+  td::uint64 buf = 0;
+  for (auto &c : dest) {
+    if (cnt == 0) {
+      buf = operator()();
+      cnt = 8;
+    }
+    cnt--;
+    c = buf & 255;
+    buf >>= 8;
+  }
+}
+
 }  // namespace td

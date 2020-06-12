@@ -18,6 +18,28 @@
 static td::vector<td::string> strings{"", "1", "short test string", td::string(1000000, 'a')};
 
 #if TD_HAVE_OPENSSL
+TEST(Crypto, Aes) {
+  td::Random::Xorshift128plus rnd(123);
+  td::UInt256 key;
+  rnd.bytes(as_slice(key));
+  std::string plaintext(16, 0);
+  std::string encrypted(16, 0);
+  std::string decrypted(16, 0);
+  rnd.bytes(plaintext);
+
+  td::AesState encryptor;
+  encryptor.init(as_slice(key), true);
+  td::AesState decryptor;
+  decryptor.init(as_slice(key), false);
+
+  encryptor.encrypt(td::as_slice(plaintext).ubegin(), td::as_slice(encrypted).ubegin());
+  decryptor.decrypt(td::as_slice(encrypted).ubegin(), td::as_slice(decrypted).ubegin());
+
+  CHECK(decrypted == plaintext);
+  CHECK(decrypted != encrypted);
+  CHECK(td::crc32(encrypted) == 178892237);
+}
+
 TEST(Crypto, AesCtrState) {
   td::vector<td::uint32> answers1{0u,         1141589763u, 596296607u,  3673001485u, 2302125528u,
                                   330967191u, 2047392231u, 3537459563u, 307747798u,  2149598133u};

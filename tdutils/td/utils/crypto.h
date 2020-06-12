@@ -19,6 +19,23 @@ uint64 pq_factorize(uint64 pq);
 #if TD_HAVE_OPENSSL
 void init_crypto();
 
+struct AesState {
+ public:
+  AesState();
+  AesState(const AesState &from) = delete;
+  AesState &operator=(const AesState &from) = delete;
+  AesState(AesState &&from);
+  AesState &operator=(AesState &&from);
+  ~AesState();
+  void init(Slice key, bool encrypt);
+  void encrypt(const uint8 *src, uint8 *dst);
+  void decrypt(const uint8 *src, uint8 *dst);
+
+ private:
+  class Impl;
+  unique_ptr<Impl> impl_;
+};
+
 int pq_factorize(Slice pq_str, string *p_str, string *q_str);
 
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
