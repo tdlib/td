@@ -15,6 +15,7 @@
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SharedSlice.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 
@@ -405,7 +406,7 @@ class AesCtrState::Impl {
   static constexpr size_t N = 32;
   SecureString counter{AES_BLOCK_SIZE * N};
   SecureString encrypted_counter{AES_BLOCK_SIZE * N};
-  td::Slice current;
+  Slice current;
 
   void inc(uint8 *ptr) {
     for (int j = 15; j >= 0; j--) {

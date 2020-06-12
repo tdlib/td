@@ -41,7 +41,6 @@ TEST(Crypto, Aes) {
   CHECK(decrypted != encrypted);
   CHECK(td::crc32(encrypted) == 178892237);
 }
-#endif
 
 TEST(Crypto, AesCtrState) {
   td::vector<td::uint32> answers1{0u,         1141589763u, 596296607u,  3673001485u, 2302125528u,
@@ -88,6 +87,7 @@ TEST(Crypto, AesCtrState) {
     i++;
   }
 }
+#endif
 
 TEST(Crypto, Sha256State) {
   for (auto length : {0, 1, 31, 32, 33, 9999, 10000, 10001, 999999, 1000001}) {

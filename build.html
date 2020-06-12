@@ -515,7 +515,7 @@ function onOptionsChanged() {
     pre_text.push('Note that following calls to <code>pkg</code> needs to be run as <code>root</code>.');
   }
   if (os_openbsd) {
-    pre_text.push('Note that following instruction is for OpenBSD 6.4 and default KSH shell.');
+    pre_text.push('Note that following instruction is for OpenBSD 6.7 and default KSH shell.');
   }
   if (os_netbsd) {
     pre_text.push('Note that following instruction is for NetBSD 8.0 and default SH shell.');
@@ -648,7 +648,7 @@ function onOptionsChanged() {
     if (target === 'JNI') {
       packages += ' jdk';
     }
-    commands.push('pkg_add ' + packages);
+    commands.push('pkg_add -z ' + packages);
     if (!use_root) {
       commands.push('exit');
     }
