@@ -45,13 +45,14 @@ class TestTQueue {
  public:
   using EventId = td::TQueue::EventId;
 
-  td::CSlice binlog_path() {
-    return "test_binlog";
+  static td::CSlice binlog_path() {
+    return td::CSlice("tqueue_binlog");
   }
+
   TestTQueue() {
     baseline_ = td::TQueue::create();
-    memory_ = td::TQueue::create();
 
+    memory_ = td::TQueue::create();
     auto memory_storage = td::make_unique<td::TQueueMemoryStorage>();
     memory_storage_ = memory_storage.get();
     memory_->set_callback(std::move(memory_storage));
@@ -61,7 +62,7 @@ class TestTQueue {
     td::Binlog::destroy(binlog_path()).ensure();
     auto binlog = std::make_shared<td::Binlog>();
     binlog->init(binlog_path().str(), [&](const td::BinlogEvent &event) { UNREACHABLE(); }).ensure();
-    tqueue_binlog->set_binlog(binlog);
+    tqueue_binlog->set_binlog(std::move(binlog));
     binlog_->set_callback(std::move(tqueue_binlog));
   }
 
@@ -79,7 +80,7 @@ class TestTQueue {
       memory_->run_gc(now);
     }
 
-    if (rnd.fast(0, 100) != 0) {
+    if (rnd.fast(0, 30) != 0) {
       return;
     }
 
@@ -89,9 +90,9 @@ class TestTQueue {
     auto binlog = std::make_shared<td::Binlog>();
     binlog->init(binlog_path().str(), [&](const td::BinlogEvent &event) { tqueue_binlog->replay(event, *binlog_); })
         .ensure();
-    tqueue_binlog->set_binlog(binlog);
+    tqueue_binlog->set_binlog(std::move(binlog));
     binlog_->set_callback(std::move(tqueue_binlog));
-    if (rnd.fast(0, 10) == 0) {
+    if (rnd.fast(0, 2) == 0) {
       binlog_->run_gc(now);
     }
   }
@@ -153,33 +154,36 @@ class TestTQueue {
 TEST(TQueue, random) {
   using EventId = td::TQueue::EventId;
   td::Random::Xorshift128plus rnd(123);
-  auto next_qid = [&] {
+  auto next_queue_id = [&rnd] {
     return rnd.fast(1, 10);
   };
-  auto next_first_id = [&] {
-    return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
-    //if (rnd.fast(0, 3) == 0) {
-    //return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
-    //}
-    //return EventId::from_int32(rnd.fast(1000000000, 1500000000)).move_as_ok();
+  auto next_first_id = [&rnd] {
+    if (rnd.fast(0, 3) == 0) {
+      return EventId::from_int32(EventId::MAX_ID - 20).move_as_ok();
+    }
+    return EventId::from_int32(rnd.fast(1000000000, 1500000000)).move_as_ok();
   };
+
   TestTQueue q;
   double now = 0;
   auto push_event = [&] {
     auto data = PSTRING() << rnd();
-    q.push(next_qid(), data, now + rnd.fast(-10, 10) * 10 + 5, next_first_id());
+    if (rnd.fast(0, 10000) == 0) {
+      data = td::string(1 << 19, '\0');
+    }
+    q.push(next_queue_id(), data, now + rnd.fast(-10, 10) * 10 + 5, next_first_id());
   };
   auto inc_now = [&] {
     now += 10;
   };
   auto check_head_tail = [&] {
-    q.check_head_tail(next_qid(), now);
+    q.check_head_tail(next_queue_id(), now);
   };
   auto restart = [&] {
     q.restart(rnd, now);
   };
   auto get = [&] {
-    q.check_get(next_qid(), rnd, now);
+    q.check_get(next_queue_id(), rnd, now);
   };
   td::RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
   for (int i = 0; i < 100000; i++) {

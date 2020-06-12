@@ -17,28 +17,28 @@
 #include <set>
 #include <utility>
 
-struct Data {
+struct ListData {
   td::MovableValue<td::uint64> value;
   td::MovableValue<bool> in_list;
 
-  Data() = default;
-  Data(td::uint64 value, bool in_list) : value(value), in_list(in_list) {
+  ListData() = default;
+  ListData(td::uint64 value, bool in_list) : value(value), in_list(in_list) {
   }
 };
 
 struct Node : public td::ListNode {
   Node() = default;
-  explicit Node(Data data) : data(std::move(data)) {
+  explicit Node(ListData data) : data(std::move(data)) {
   }
 
-  Data data;
+  ListData data;
 };
 
-static Data &get_data(Node &node) {
+static ListData &get_data(Node &node) {
   return node.data;
 }
 
-static Data &get_data(td::TsListNode<Data> &node) {
+static ListData &get_data(td::TsListNode<ListData> &node) {
   return node.get_data_unsafe();
 }
 
@@ -46,7 +46,7 @@ static std::unique_lock<std::mutex> lock(td::ListNode &node) {
   return {};
 }
 
-static std::unique_lock<std::mutex> lock(td::TsListNode<Data> &node) {
+static std::unique_lock<std::mutex> lock(td::TsListNode<ListData> &node) {
   return node.lock();
 }
 
@@ -78,7 +78,7 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     }
     auto i = rnd.fast(0, (int)nodes.size() - 1);
     nodes[i].remove();
-    get_data(nodes[i]) = Data(next_id(), true);
+    get_data(nodes[i]) = ListData(next_id(), true);
     root.put(&nodes[i]);
   };
   auto unlink_node = [&] {
@@ -144,19 +144,19 @@ TEST(Misc, List) {
 }
 
 TEST(Misc, TsList) {
-  td::TsList<Data> root;
+  td::TsList<ListData> root;
   std::atomic<td::uint64> id{0};
   for (std::size_t i = 0; i < 4; i++) {
-    do_run_list_test<td::TsListNode<Data>, td::TsList<Data>, td::TsListNode<Data>>(root, id);
+    do_run_list_test<td::TsListNode<ListData>, td::TsList<ListData>, td::TsListNode<ListData>>(root, id);
   }
 }
 
 TEST(Misc, TsListConcurrent) {
-  td::TsList<Data> root;
+  td::TsList<ListData> root;
   td::vector<td::thread> threads;
   std::atomic<td::uint64> id{0};
   for (std::size_t i = 0; i < 4; i++) {
     threads.emplace_back(
-        [&] { do_run_list_test<td::TsListNode<Data>, td::TsList<Data>, td::TsListNode<Data>>(root, id); });
+        [&] { do_run_list_test<td::TsListNode<ListData>, td::TsList<ListData>, td::TsListNode<ListData>>(root, id); });
   }
 }
