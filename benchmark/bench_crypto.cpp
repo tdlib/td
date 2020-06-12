@@ -48,7 +48,7 @@ class SHA1Bench : public td::Benchmark {
   }
 };
 
-class AesBench : public td::Benchmark {
+class AesEcbBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -72,7 +72,7 @@ class AesBench : public td::Benchmark {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i <= n; i++) {
       size_t step = 16;
-      for (size_t offset = 0; offset + 16 <= data_slice.size(); offset += step) {
+      for (size_t offset = 0; offset + step <= data_slice.size(); offset += step) {
         state.encrypt(data_slice.ubegin() + offset, data_slice.ubegin() + offset, (int)step);
       }
     }
@@ -107,14 +107,14 @@ class AesCtrBench : public td::Benchmark {
   }
 };
 
-class AESBench : public td::Benchmark {
+class AesIgeBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
   td::UInt256 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+    return PSTRING() << "AES IGE OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -256,9 +256,9 @@ class Crc64Bench : public td::Benchmark {
 
 int main() {
   td::init_openssl_threads();
+  td::bench(AesEcbBench());
   td::bench(AesCtrBench());
-  td::bench(AesBench());
-  td::bench(AESBench());
+  td::bench(AesIgeBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());

@@ -27,6 +27,7 @@ struct AesState {
   AesState(AesState &&from);
   AesState &operator=(AesState &&from);
   ~AesState();
+
   void init(Slice key, bool encrypt);
   void encrypt(const uint8 *src, uint8 *dst, int size);
   void decrypt(const uint8 *src, uint8 *dst, int size);

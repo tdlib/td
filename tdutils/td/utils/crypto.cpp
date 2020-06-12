@@ -252,9 +252,13 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
 class AesState::Impl {
  public:
   EVP_CIPHER_CTX *ctx{nullptr};
-  AES_KEY key;
   bool encrypt;
 
+  Impl() = default;
+  Impl(const Impl &from) = delete;
+  Impl &operator=(const Impl &from) = delete;
+  Impl(Impl &&from) = delete;
+  Impl &operator=(Impl &&from) = delete;
   ~Impl() {
     if (ctx != nullptr) {
       EVP_CIPHER_CTX_free(ctx);
@@ -281,19 +285,24 @@ void AesState::init(Slice key, bool encrypt) {
 }
 
 void AesState::encrypt(const uint8 *src, uint8 *dst, int size) {
+  CHECK(impl_ != nullptr);
   CHECK(impl_->encrypt);
-  CHECK(impl_->ctx);
+  CHECK(impl_->ctx != nullptr);
   CHECK(size % 16 == 0);
   int len;
-  CHECK(1 == EVP_EncryptUpdate(impl_->ctx, dst, &len, src, size));
+  int res = EVP_EncryptUpdate(impl_->ctx, dst, &len, src, size);
+  LOG_IF(FATAL, res != 1);
   CHECK(len == size);
 }
+
 void AesState::decrypt(const uint8 *src, uint8 *dst, int size) {
+  CHECK(impl_ != nullptr);
   CHECK(!impl_->encrypt);
-  CHECK(impl_->ctx);
+  CHECK(impl_->ctx != nullptr);
   CHECK(size % 16 == 0);
   int len;
-  CHECK(1 == EVP_DecryptUpdate(impl_->ctx, dst, &len, src, size));
+  int res = EVP_DecryptUpdate(impl_->ctx, dst, &len, src, size);
+  LOG_IF(FATAL, res != 1);
   CHECK(len == size);
 }
 
