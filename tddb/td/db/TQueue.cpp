@@ -203,7 +203,7 @@ class TQueueImpl : public TQueue {
     if (from_id.value() > q.tail_id.value() + 10) {
       return Status::Error("Specified from_id is in the future");
     }
-    if (from_id.value() < q.tail_id.value() - narrow_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
+    if (from_id.value() < q.tail_id.value() - static_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
       return Status::Error("Specified from_id is in the past");
     }
 
