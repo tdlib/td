@@ -1,0 +1,27 @@
+name: ubuntu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: tdlib build
+      run: |
+        sudo apt-get install gperf ccache gcc libssl-dev zlib1g-dev cmake php -y
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
+    - name: upload tdlib build
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build

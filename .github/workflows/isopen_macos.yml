@@ -1,0 +1,28 @@
+name: macos
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-10.15
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: tdlib build
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        brew install gperf cmake openssl
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
+        cmake --build .
+    - name: upload tdlib build
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build

@@ -1,0 +1,34 @@
+name: ubuntu_web
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: tdlib build
+      run: |
+        git clone https://github.com/emscripten-core/emsdk.git
+        cd emsdk
+        git pull
+        ./emsdk install latest
+        ./emsdk activate latest
+        source ./emsdk_env.sh
+        sudo apt-get install gperf ccache gcc libssl-dev zlib1g-dev cmake php -y
+        cd ../example/web
+        ./build-openssl.sh
+        ./build-tdlib.sh
+        ./copy-tdlib.sh
+        ./build-tdweb.sh
+    - name: upload tdlib build
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: example/web/build
