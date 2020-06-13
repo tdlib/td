@@ -113,13 +113,13 @@ class Global : public ActorContext {
   }
 
   bool have_net_query_dispatcher() const {
-    return net_query_dispatcher_ != nullptr;
+    return net_query_dispatcher_.get() != nullptr;
   }
 
   void set_shared_config(unique_ptr<ConfigShared> shared_config);
 
   ConfigShared &shared_config() {
-    CHECK(shared_config_ != nullptr);
+    CHECK(shared_config_.get() != nullptr);
     return *shared_config_;
   }
 
