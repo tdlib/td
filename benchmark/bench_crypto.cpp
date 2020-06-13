@@ -73,7 +73,7 @@ class AesEcbBench : public td::Benchmark {
     for (int i = 0; i <= n; i++) {
       size_t step = 16;
       for (size_t offset = 0; offset + step <= data_slice.size(); offset += step) {
-        state.encrypt(data_slice.ubegin() + offset, data_slice.ubegin() + offset, (int)step);
+        state.encrypt(data_slice.ubegin() + offset, data_slice.ubegin() + offset, static_cast<int>(step));
       }
     }
   }

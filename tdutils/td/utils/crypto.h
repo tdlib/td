@@ -19,7 +19,7 @@ uint64 pq_factorize(uint64 pq);
 #if TD_HAVE_OPENSSL
 void init_crypto();
 
-struct AesState {
+class AesState {
  public:
   AesState();
   AesState(const AesState &from) = delete;

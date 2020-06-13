@@ -382,8 +382,8 @@ class AesCtrState::Impl {
     auto n = from.size();
     while (n != 0) {
       if (current.empty()) {
-        if (N != 1) {
-          counter.as_mutable_slice().copy_from(counter.as_slice().substr((N - 1) * AES_BLOCK_SIZE));
+        if (BLOCK_COUNT != 1) {
+          counter.as_mutable_slice().copy_from(counter.as_slice().substr((BLOCK_COUNT - 1) * AES_BLOCK_SIZE));
         }
         inc(counter.as_mutable_slice().ubegin());
         fill();
@@ -403,9 +403,9 @@ class AesCtrState::Impl {
  private:
   AesState aes_state;
 
-  static constexpr size_t N = 32;
-  SecureString counter{AES_BLOCK_SIZE * N};
-  SecureString encrypted_counter{AES_BLOCK_SIZE * N};
+  static constexpr size_t BLOCK_COUNT = 32;
+  SecureString counter{AES_BLOCK_SIZE * BLOCK_COUNT};
+  SecureString encrypted_counter{AES_BLOCK_SIZE * BLOCK_COUNT};
   Slice current;
 
   void inc(uint8 *ptr) {
@@ -415,17 +415,19 @@ class AesCtrState::Impl {
       }
     }
   }
+
   void fill() {
     auto *src = counter.as_slice().ubegin();
     auto *dst = counter.as_mutable_slice().ubegin() + AES_BLOCK_SIZE;
-    for (size_t i = 0; i + 1 < N; i++) {
-      memcpy(dst, src, AES_BLOCK_SIZE);
+    for (size_t i = 0; i + 1 < BLOCK_COUNT; i++) {
+      std::memcpy(dst, src, AES_BLOCK_SIZE);
       inc(dst);
       src += AES_BLOCK_SIZE;
       dst += AES_BLOCK_SIZE;
     }
 
-    aes_state.encrypt(counter.as_slice().ubegin(), encrypted_counter.as_mutable_slice().ubegin(), (int)counter.size());
+    aes_state.encrypt(counter.as_slice().ubegin(), encrypted_counter.as_mutable_slice().ubegin(),
+                      static_cast<int>(counter.size()));
     current = encrypted_counter.as_slice();
   }
 };
