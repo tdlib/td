@@ -302,7 +302,9 @@ Status cpu_stat_self(CpuStat &stat) {
   constexpr int TMEM_SIZE = 10000;
   char mem[TMEM_SIZE];
   TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
-  CHECK(size < TMEM_SIZE - 1);
+  if (size >= TMEM_SIZE - 1) {
+    return Status::Error("Failed for read /proc/self/stat");
+  }
   mem[size] = 0;
 
   char *s = mem;
@@ -338,14 +340,17 @@ Status cpu_stat_total(CpuStat &stat) {
   constexpr int TMEM_SIZE = 10000;
   char mem[TMEM_SIZE];
   TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
-  CHECK(size < TMEM_SIZE - 1);
+  if (size >= TMEM_SIZE - 1) {
+    return Status::Error("Failed for read /proc/stat");
+  }
   mem[size] = 0;
 
-  uint64 sum = 0, cur = 0;
+  uint64 sum = 0;
+  uint64 cur = 0;
   for (size_t i = 0; i < size; i++) {
-    int c = mem[i];
+    char c = mem[i];
     if (c >= '0' && c <= '9') {
-      cur = cur * 10 + (uint64)c - '0';
+      cur = cur * 10 + static_cast<uint64>(c) - '0';
     } else {
       sum += cur;
       cur = 0;
