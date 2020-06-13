@@ -32,14 +32,6 @@ struct CpuStat {
 };
 Result<CpuStat> cpu_stat() TD_WARN_UNUSED_RESULT;
 
-#if TD_PORT_POSIX
-
-namespace detail {
-Result<Stat> fstat(int native_fd);
-}  // namespace detail
-
-Status update_atime(CSlice path) TD_WARN_UNUSED_RESULT;
-
 struct MemStat {
   uint64 resident_size_ = 0;
   uint64 resident_size_peak_ = 0;
@@ -48,6 +40,14 @@ struct MemStat {
 };
 
 Result<MemStat> mem_stat() TD_WARN_UNUSED_RESULT;
+
+#if TD_PORT_POSIX
+
+namespace detail {
+Result<Stat> fstat(int native_fd);
+}  // namespace detail
+
+Status update_atime(CSlice path) TD_WARN_UNUSED_RESULT;
 
 #endif
 

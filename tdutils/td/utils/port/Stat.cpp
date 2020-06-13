@@ -10,7 +10,6 @@
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_POSIX
-
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -38,8 +37,16 @@
 #include <sys/syscall.h>
 #endif
 
+#elif TD_PORT_WINDOWS
+#ifndef PSAPI_VERSION
+#define PSAPI_VERSION 1
+#endif
+#include <psapi.h>
+#endif
+
 namespace td {
 
+#if TD_PORT_POSIX
 namespace detail {
 
 template <class...>
@@ -176,14 +183,20 @@ Status update_atime(CSlice path) {
   };
   return detail::update_atime(file.get_native_fd().fd());
 }
+#endif
 
 Result<Stat> stat(CSlice path) {
+#if TD_PORT_POSIX
   struct ::stat buf;
   int err = detail::skip_eintr([&] { return ::stat(path.c_str(), &buf); });
   if (err < 0) {
     return OS_ERROR(PSLICE() << "Stat for file \"" << path << "\" failed");
   }
   return detail::from_native_stat(buf);
+#elif TD_PORT_WINDOWS
+  TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read | FileFd::PrivateFlags::WinStat));
+  return fd.stat();
+#endif
 }
 
 Result<MemStat> mem_stat() {
@@ -261,6 +274,19 @@ Result<MemStat> mem_stat() {
   }
 
   return res;
+#elif TD_WINDOWS
+  PROCESS_MEMORY_COUNTERS_EX counters;
+  if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&counters),
+                            sizeof(counters))) {
+    return Status::Error("Call to GetProcessMemoryInfo failed");
+  }
+
+  MemStat res;
+  res.resident_size_ = counters.WorkingSetSize;
+  res.resident_size_peak_ = counters.PeakWorkingSetSize;
+  res.virtual_size_ = counters.PrivateUsage;
+  res.virtual_size_peak_ = counters.PeakPagefileUsage;
+  return res;
 #else
   return Status::Error("Not supported");
 #endif
@@ -302,6 +328,7 @@ Status cpu_stat_self(CpuStat &stat) {
   }
   return Status::OK();
 }
+
 Status cpu_stat_total(CpuStat &stat) {
   TRY_RESULT(fd, FileFd::open("/proc/stat", FileFd::Read));
   SCOPE_EXIT {
@@ -343,20 +370,5 @@ Result<CpuStat> cpu_stat() {
   return Status::Error("Not supported");
 #endif
 }
-}  // namespace td
-#endif
-
-#if TD_PORT_WINDOWS
-namespace td {
-
-Result<Stat> stat(CSlice path) {
-  TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read | FileFd::PrivateFlags::WinStat));
-  return fd.stat();
-}
-
-Result<CpuStat> cpu_stat() {
-  return Status::Error("Not supported");
-}
 
 }  // namespace td
-#endif

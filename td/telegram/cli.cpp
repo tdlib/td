@@ -4060,6 +4060,15 @@ class CliClient final : public Actor {
       fd.write("a").ignore();
       fd.seek(size).ignore();
       fd.truncate_to_current_position(size).ignore();
+    } else if (op == "mem") {
+      new int[1000000];
+      auto r_mem_stats = mem_stat();
+      if (r_mem_stats.is_error()) {
+        LOG(ERROR) << r_mem_stats.error();
+      } else {
+        auto stats = r_mem_stats.move_as_ok();
+        LOG(ERROR) << stats.resident_size_ << " " << stats.resident_size_peak_ << " " << stats.virtual_size_ << " " << stats.virtual_size_peak_;
+      }
     } else if (op == "SetVerbosity" || op == "SV") {
       Log::set_verbosity_level(to_integer<int>(args));
     } else if (op[0] == 'v' && op[1] == 'v') {
