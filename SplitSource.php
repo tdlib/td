@@ -39,9 +39,9 @@ function split_file($file, $chunks, $undo) {
     $cmake_new_files = $new_files;
     if ($is_generated) {
         foreach ($cmake_new_files as &$file_ref) {
-            $file_ref = str_replace('td/generate', '${CMAKE_CURRENT_SOURCE_DIR}', $file_ref);
+            $file_ref = str_replace('td/generate/auto/td', '${TD_AUTO_INCLUDE_DIR}', $file_ref);
         }
-        $cmake_cpp_name = str_replace('td/generate', '${CMAKE_CURRENT_SOURCE_DIR}', $cmake_cpp_name);
+        $cmake_cpp_name = str_replace('td/generate/auto/td', '${TD_AUTO_INCLUDE_DIR}', $cmake_cpp_name);
     }
 
     if ($undo) {
