@@ -277,9 +277,11 @@ void AesState::init(Slice key, bool encrypt) {
   CHECK(impl_->ctx);
 
   if (encrypt) {
-    CHECK(1 == EVP_EncryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr));
+    int res = EVP_EncryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr);
+    LOG_IF(FATAL, res != 1);
   } else {
-    CHECK(1 == EVP_DecryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr));
+    int res = EVP_DecryptInit_ex(impl_->ctx, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr);
+    LOG_IF(FATAL, res != 1);
   }
   EVP_CIPHER_CTX_set_padding(impl_->ctx, 0);
   impl_->encrypt = encrypt;
