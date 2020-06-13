@@ -24,8 +24,8 @@ MutableSlice HttpQuery::get_arg(Slice key) const {
   return it == args_.end() ? MutableSlice() : it->second;
 }
 
-std::vector<std::pair<string, string>> HttpQuery::get_args() const {
-  std::vector<std::pair<string, string>> res;
+td::vector<std::pair<string, string>> HttpQuery::get_args() const {
+  td::vector<std::pair<string, string>> res;
   res.reserve(args_.size());
   for (auto &it : args_) {
     res.emplace_back(it.first.str(), it.second.str());
