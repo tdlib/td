@@ -253,7 +253,7 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
 class AesState::Impl {
  public:
   EVP_CIPHER_CTX *ctx{nullptr};
-  bool encrypt;
+  bool encrypt{false};
 
   Impl() = default;
   Impl(const Impl &from) = delete;
