@@ -197,7 +197,7 @@ class HashMapBenchmark : public td::Benchmark {
     return HashMap::get_name();
   }
   void start_up_n(int n) override {
-    n *= (int)threads_n;
+    n *= static_cast<int>(threads_n);
     n_ = n;
     hash_map = td::make_unique<HashMap>(n * 2);
   }

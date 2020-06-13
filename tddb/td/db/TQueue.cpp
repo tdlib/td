@@ -17,9 +17,9 @@
 #include "td/utils/Random.h"
 #include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
-#include "td/utils/tl_helpers.h"
 #include "td/utils/VectorQueue.h"
 
 #include <algorithm>
@@ -97,7 +97,6 @@ class TQueueImpl : public TQueue {
   }
 
   bool do_push(QueueId queue_id, RawEvent &&raw_event) override {
-    // LOG(ERROR) << "Push to queue " << queue_id << " " << raw_event.event_id;
     CHECK(raw_event.event_id.is_valid());
     auto &q = queues_[queue_id];
     if (q.events.empty() || q.events.back().event_id < raw_event.event_id) {
@@ -192,7 +191,6 @@ class TQueueImpl : public TQueue {
 
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
                      MutableSpan<Event> &result_events) override {
-    // LOG(ERROR) << "Get " << queue_id << " " << from_id;
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       result_events.truncate(0);
@@ -220,7 +218,6 @@ class TQueueImpl : public TQueue {
                                    [](auto &event, EventId event_id) { return event.event_id < event_id; }) -
                   from_events.begin();
       }
-      // LOG(ERROR) << tag("first_i", first_i) << tag("size", from_events.size());
       for (i = first_i; i < from_events.size(); i++) {
         auto &from = from_events[i];
         try_pop(queue_id, from, forget_previous ? from_id : EventId{}, q.tail_id, now);
@@ -285,8 +282,6 @@ class TQueueImpl : public TQueue {
   }
 
   void try_pop(QueueId queue_id, RawEvent &event, EventId from_id, EventId tail_id, double now) {
-    // LOG(ERROR) << event.expires_at << " < " << now << " = " << (event.expires_at < now) << " "
-    //            << (event.event_id < from_id) << " " << event.data.empty();
     if (event.expires_at < now || event.event_id < from_id || event.data.empty()) {
       pop(queue_id, event, tail_id);
     }
@@ -299,7 +294,6 @@ class TQueueImpl : public TQueue {
       return;
     }
 
-    // LOG(ERROR) << "Drop " << queue_id << " " << event.event_id;
     if (event.event_id.next().ok() == tail_id) {
       if (!event.data.empty()) {
         event.data = {};

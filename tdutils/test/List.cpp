@@ -66,17 +66,21 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     nodes.emplace_back(NodeT({next_id(), false}));
   };
   auto pop_node = [&] {
-    if (nodes.size() == 0) {
+    if (nodes.empty()) {
       return;
     }
     nodes.pop_back();
+  };
+  auto random_node_index = [&] {
+    CHECK(!nodes.empty());
+    return rnd.fast(0, static_cast<int>(nodes.size()) - 1);
   };
 
   auto link_node = [&] {
     if (nodes.empty()) {
       return;
     }
-    auto i = rnd.fast(0, (int)nodes.size() - 1);
+    auto i = random_node_index();
     nodes[i].remove();
     get_data(nodes[i]) = ListData(next_id(), true);
     root.put(&nodes[i]);
@@ -85,7 +89,7 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     if (nodes.empty()) {
       return;
     }
-    auto i = rnd.fast(0, (int)nodes.size() - 1);
+    auto i = random_node_index();
     nodes[i].remove();
     get_data(nodes[i]).in_list = false;
   };
@@ -93,16 +97,16 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     if (nodes.empty()) {
       return;
     }
-    auto i = rnd.fast(0, (int)nodes.size() - 1);
-    auto j = rnd.fast(0, (int)nodes.size() - 1);
+    auto i = random_node_index();
+    auto j = random_node_index();
     std::swap(nodes[i], nodes[j]);
   };
   auto set_node = [&] {
     if (nodes.empty()) {
       return;
     }
-    auto i = rnd.fast(0, (int)nodes.size() - 1);
-    auto j = rnd.fast(0, (int)nodes.size() - 1);
+    auto i = random_node_index();
+    auto j = random_node_index();
     nodes[i] = std::move(nodes[j]);
   };
   auto validate = [&] {

@@ -257,7 +257,7 @@ class FileDb : public FileDbInterface {
     while (true) {
       if (attempt_count > 100) {
         LOG(FATAL) << "Cycle in file database? current_pmc_id=" << current_pmc_id << " key=" << key
-                   << " links=" << td::format::as_array(ids);
+                   << " links=" << format::as_array(ids);
       }
       attempt_count++;
 
