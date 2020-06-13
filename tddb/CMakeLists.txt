@@ -32,7 +32,6 @@ set(TDDB_SOURCE
   td/db/BinlogKeyValue.h
   td/db/DbKey.h
   td/db/KeyValueSyncInterface.h
-  td/db/Pmc.h
   td/db/SeqKeyValue.h
   td/db/SqliteConnectionSafe.h
   td/db/SqliteDb.h
