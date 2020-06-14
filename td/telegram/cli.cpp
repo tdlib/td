@@ -4061,13 +4061,27 @@ class CliClient final : public Actor {
       fd.seek(size).ignore();
       fd.truncate_to_current_position(size).ignore();
     } else if (op == "mem") {
-      new int[1000000];
       auto r_mem_stats = mem_stat();
       if (r_mem_stats.is_error()) {
         LOG(ERROR) << r_mem_stats.error();
       } else {
         auto stats = r_mem_stats.move_as_ok();
-        LOG(ERROR) << stats.resident_size_ << " " << stats.resident_size_peak_ << " " << stats.virtual_size_ << " " << stats.virtual_size_peak_;
+        LOG(ERROR) << "RSS = " << stats.resident_size_ << ", peak RSS = " << stats.resident_size_peak_ << ", VSZ "
+                   << stats.virtual_size_ << ", peak VSZ = " << stats.virtual_size_peak_;
+      }
+    } else if (op == "cpu") {
+      uint32 inc_count = to_integer<uint32>(args);
+      while (inc_count-- > 0) {
+        cpu_counter_++;
+      }
+      auto r_cpu_stats = cpu_stat();
+      if (r_cpu_stats.is_error()) {
+        LOG(ERROR) << r_cpu_stats.error();
+      } else {
+        auto stats = r_cpu_stats.move_as_ok();
+        LOG(ERROR) << cpu_counter_ << ", total ticks = " << stats.total_ticks_
+                   << ", user ticks = " << stats.process_user_ticks_
+                   << ", system ticks = " << stats.process_system_ticks_;
       }
     } else if (op == "SetVerbosity" || op == "SV") {
       Log::set_verbosity_level(to_integer<int>(args));
@@ -4254,8 +4268,11 @@ class CliClient final : public Actor {
   bool disable_network_ = false;
   int api_id_ = 0;
   std::string api_hash_;
+
+  static std::atomic<uint64> cpu_counter_;
 };
 CliClient *CliClient::instance_ = nullptr;
+std::atomic<uint64> CliClient::cpu_counter_;
 
 void quit() {
   CliClient::quit_instance();

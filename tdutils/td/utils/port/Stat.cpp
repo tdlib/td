@@ -10,6 +10,7 @@
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_POSIX
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -38,10 +39,14 @@
 #endif
 
 #elif TD_PORT_WINDOWS
+
+#include "td/utils/port/thread.h"
+
 #ifndef PSAPI_VERSION
 #define PSAPI_VERSION 1
 #endif
 #include <psapi.h>
+
 #endif
 
 namespace td {
@@ -313,10 +318,10 @@ Status cpu_stat_self(CpuStat &stat) {
 
   while (pass_cnt < 15) {
     if (pass_cnt == 13) {
-      stat.process_user_ticks = to_integer<uint64>(Slice(s, t));
+      stat.process_user_ticks_ = to_integer<uint64>(Slice(s, t));
     }
     if (pass_cnt == 14) {
-      stat.process_system_ticks = to_integer<uint64>(Slice(s, t));
+      stat.process_system_ticks_ = to_integer<uint64>(Slice(s, t));
     }
     while (*s && *s != ' ') {
       s++;
@@ -360,7 +365,7 @@ Status cpu_stat_total(CpuStat &stat) {
     }
   }
 
-  stat.total_ticks = sum;
+  stat.total_ticks_ = sum;
   return Status::OK();
 }
 #endif
@@ -370,6 +375,24 @@ Result<CpuStat> cpu_stat() {
   CpuStat stat;
   TRY_STATUS(cpu_stat_self(stat));
   TRY_STATUS(cpu_stat_total(stat));
+  return stat;
+#elif TD_WINDOWS
+  CpuStat stat;
+  stat.total_ticks_ = static_cast<uint64>(GetTickCount64()) * 10000;
+  auto hardware_concurrency = thread::hardware_concurrency();
+  if (hardware_concurrency != 0) {
+    stat.total_ticks_ *= hardware_concurrency;
+  }
+
+  FILETIME ignored_time;
+  FILETIME kernel_time;
+  FILETIME user_time;
+  if (!GetProcessTimes(GetCurrentProcess(), &ignored_time, &ignored_time, &kernel_time, &user_time)) {
+    return Status::Error("Failed to call GetProcessTimes");
+  }
+  stat.process_system_ticks_ = kernel_time.dwLowDateTime + (static_cast<uint64>(kernel_time.dwHighDateTime) << 32);
+  stat.process_user_ticks_ = user_time.dwLowDateTime + (static_cast<uint64>(user_time.dwHighDateTime) << 32);
+
   return stat;
 #else
   return Status::Error("Not supported");
