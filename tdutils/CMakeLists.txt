@@ -58,6 +58,7 @@ set(TDUTILS_SOURCE
   td/utils/port/MemoryMapping.cpp
   td/utils/port/path.cpp
   td/utils/port/PollFlags.cpp
+  td/utils/port/rlimit.cpp
   td/utils/port/ServerSocketFd.cpp
   td/utils/port/signals.cpp
   td/utils/port/sleep.cpp
@@ -133,6 +134,7 @@ set(TDUTILS_SOURCE
   td/utils/port/Poll.h
   td/utils/port/PollBase.h
   td/utils/port/PollFlags.h
+  td/utils/port/rlimit.h
   td/utils/port/RwMutex.h
   td/utils/port/ServerSocketFd.h
   td/utils/port/signals.h
