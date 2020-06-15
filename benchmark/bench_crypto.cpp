@@ -348,8 +348,8 @@ int main() {
 
   td::bench(AesIgeEncryptBench());
   td::bench(AesIgeDecryptBench());
-  td::bench(AesCtrBench());
   td::bench(AesEcbBench());
+  td::bench(AesCtrBench());
   td::bench(AesIgeShortBench());
 
   td::bench(Pbkdf2Bench());

@@ -453,8 +453,8 @@ void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
 class AesIgeState::Impl {
  public:
   AesState state;
-  AesBlock iv;
-  AesBlock iv2;
+  AesBlock encrypted_iv;
+  AesBlock plaintext_iv;
 
   void encrypt(Slice from, MutableSlice to) {
     CHECK(from.size() % AES_BLOCK_SIZE == 0);
@@ -463,18 +463,18 @@ class AesIgeState::Impl {
     auto in = from.ubegin();
     auto out = to.ubegin();
 
-    AesBlock tmp;
-    AesBlock tmp2;
+    AesBlock plaintext;
 
     while (len) {
-      tmp.load(in);
-      tmp2 = tmp ^ iv;
-      state.encrypt(tmp2.raw(), tmp2.raw(), AES_BLOCK_SIZE);
+      plaintext.load(in);
 
-      tmp2 ^= iv2;
-      tmp2.store(out);
-      iv = tmp2;
-      iv2 = tmp;
+      encrypted_iv ^= plaintext;
+      state.encrypt(encrypted_iv.raw(), encrypted_iv.raw(), AES_BLOCK_SIZE);
+      encrypted_iv ^= plaintext_iv;
+
+      encrypted_iv.store(out);
+      plaintext_iv = plaintext;
+
       --len;
       in += AES_BLOCK_SIZE;
       out += AES_BLOCK_SIZE;
@@ -488,18 +488,18 @@ class AesIgeState::Impl {
     auto in = from.ubegin();
     auto out = to.ubegin();
 
-    AesBlock tmp;
-    AesBlock tmp2;
+    AesBlock encrypted;
 
     while (len) {
-      tmp.load(in);
-      tmp2 = tmp;
-      tmp ^= iv2;
-      state.decrypt(tmp.raw(), tmp.raw(), AES_BLOCK_SIZE);
-      tmp ^= iv;
-      tmp.store(out);
-      iv = tmp2;
-      iv2 = tmp;
+      encrypted.load(in);
+
+      plaintext_iv ^= encrypted;
+      state.decrypt(plaintext_iv.raw(), plaintext_iv.raw(), AES_BLOCK_SIZE);
+      plaintext_iv ^= encrypted_iv;
+
+      plaintext_iv.store(out);
+      encrypted_iv = encrypted;
+
       --len;
       in += AES_BLOCK_SIZE;
       out += AES_BLOCK_SIZE;
@@ -517,8 +517,8 @@ void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
     impl_ = make_unique<Impl>();
   }
   impl_->state.init(key, encrypt);
-  impl_->iv.load(iv.ubegin());
-  impl_->iv2.load(iv.ubegin() + AES_BLOCK_SIZE);
+  impl_->encrypted_iv.load(iv.ubegin());
+  impl_->plaintext_iv.load(iv.ubegin() + AES_BLOCK_SIZE);
 }
 
 void AesIgeState::encrypt(Slice from, MutableSlice to) {
