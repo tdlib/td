@@ -127,8 +127,10 @@ class AesIgeBench : public td::Benchmark {
 
   void run(int n) override {
     td::MutableSlice data_slice(data, DATA_SIZE);
+    td::AesIgeState state;
+    state.init(as_slice(key), as_slice(iv), true);
     for (int i = 0; i < n; i++) {
-      td::aes_ige_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+      state.encrypt(data_slice, data_slice);
     }
   }
 };
@@ -257,8 +259,8 @@ class Crc64Bench : public td::Benchmark {
 int main() {
   td::init_openssl_threads();
   td::bench(AesEcbBench());
-  td::bench(AesCtrBench());
   td::bench(AesIgeBench());
+  td::bench(AesCtrBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());

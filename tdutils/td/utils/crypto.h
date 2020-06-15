@@ -42,6 +42,23 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str);
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 
+struct AesIgeState {
+ public:
+  AesIgeState();
+  AesIgeState(const AesIgeState &from) = delete;
+  AesIgeState &operator=(const AesIgeState &from) = delete;
+  AesIgeState(AesIgeState &&from);
+  AesIgeState &operator=(AesIgeState &&from);
+  ~AesIgeState();
+  void init(Slice key, Slice iv, bool encrypt);
+  void encrypt(Slice from, MutableSlice to);
+  void decrypt(Slice from, MutableSlice to);
+
+ private:
+  class Impl;
+  unique_ptr<Impl> impl_;
+};
+
 void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 

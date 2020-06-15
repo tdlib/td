@@ -89,6 +89,43 @@ TEST(Crypto, AesCtrState) {
 }
 #endif
 
+TEST(Crypto, AesIgeState) {
+  td::vector<td::uint32> answers1{0u, 2045698207u, 2423540300u, 525522475u, 1545267325u};
+
+  std::size_t i = 0;
+  for (auto length : {0, 16, 32, 256, 1024}) {
+    td::uint32 seed = length;
+    td::string s(length, '\0');
+    for (auto &c : s) {
+      seed = seed * 123457567u + 987651241u;
+      c = static_cast<char>((seed >> 23) & 255);
+    }
+
+    td::UInt256 key;
+    for (auto &c : key.raw) {
+      seed = seed * 123457567u + 987651241u;
+      c = (seed >> 23) & 255;
+    }
+    td::UInt256 iv;
+    for (auto &c : iv.raw) {
+      seed = seed * 123457567u + 987651241u;
+      c = (seed >> 23) & 255;
+    }
+
+    td::AesIgeState state;
+    state.init(as_slice(key), as_slice(iv), true);
+    td::string t(length, '\0');
+    state.encrypt(s, t);
+
+    ASSERT_EQ(answers1[i], td::crc32(t));
+
+    state.init(as_slice(key), as_slice(iv), false);
+    state.decrypt(t, t);
+    ASSERT_STREQ(s, t);
+    i++;
+  }
+}
+
 TEST(Crypto, Sha256State) {
   for (auto length : {0, 1, 31, 32, 33, 9999, 10000, 10001, 999999, 1000001}) {
     auto s = td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), length);

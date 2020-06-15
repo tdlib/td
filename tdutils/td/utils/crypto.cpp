@@ -32,6 +32,16 @@
 #include <openssl/sha.h>
 #endif
 
+#if TD_HAVE_OPENSSL
+#define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
+typedef struct {
+  unsigned long data[N_WORDS];
+} aes_block_t;
+
+#define load_block(d, s) memcpy((d).data, (s), AES_BLOCK_SIZE)
+#define store_block(d, s) memcpy((d), (s).data, AES_BLOCK_SIZE)
+#endif
+
 #if TD_HAVE_ZLIB
 #include <zlib.h>
 #endif
@@ -330,6 +340,87 @@ void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
 
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
+}
+
+class AesIgeState::Impl {
+ public:
+  AesState state;
+  aes_block_t iv;
+  aes_block_t iv2;
+  void encrypt(Slice from, MutableSlice to) {
+    CHECK(from.size() % AES_BLOCK_SIZE == 0);
+    CHECK(to.size() >= from.size());
+    auto len = to.size() / AES_BLOCK_SIZE;
+    auto in = from.ubegin();
+    auto out = to.begin();
+
+    aes_block_t tmp, tmp2;
+
+    while (len) {
+      load_block(tmp, in);
+      for (size_t n = 0; n < N_WORDS; ++n) {
+        tmp2.data[n] = tmp.data[n] ^ iv.data[n];
+      }
+
+      state.encrypt((unsigned char *)tmp2.data, (unsigned char *)tmp2.data, AES_BLOCK_SIZE);
+      for (size_t n = 0; n < N_WORDS; ++n) {
+        tmp2.data[n] ^= iv2.data[n];
+      }
+      store_block(out, tmp2);
+      iv = tmp2;
+      iv2 = tmp;
+      --len;
+      in += AES_BLOCK_SIZE;
+      out += AES_BLOCK_SIZE;
+    }
+  }
+  void decrypt(Slice from, MutableSlice to) {
+    CHECK(from.size() % AES_BLOCK_SIZE == 0);
+    CHECK(to.size() >= from.size());
+    auto len = to.size() / AES_BLOCK_SIZE;
+    auto in = from.ubegin();
+    auto out = to.begin();
+
+    aes_block_t tmp, tmp2;
+
+    while (len) {
+      load_block(tmp, in);
+      tmp2 = tmp;
+      for (size_t n = 0; n < N_WORDS; ++n) {
+        tmp.data[n] ^= iv2.data[n];
+      }
+      state.decrypt((unsigned char *)tmp.data, (unsigned char *)tmp.data, AES_BLOCK_SIZE);
+      for (size_t n = 0; n < N_WORDS; ++n) {
+        tmp.data[n] ^= iv.data[n];
+      }
+      store_block(out, tmp);
+      iv = tmp2;
+      iv2 = tmp;
+      --len;
+      in += AES_BLOCK_SIZE;
+      out += AES_BLOCK_SIZE;
+    }
+  }
+};
+
+AesIgeState::AesIgeState() = default;
+AesIgeState::~AesIgeState() = default;
+
+void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
+  CHECK(key.size() == 32);
+  CHECK(iv.size() == 32);
+  impl_ = make_unique<Impl>();
+  impl_->state.init(key, encrypt);
+  load_block(impl_->iv, iv.ubegin());
+  load_block(impl_->iv2, iv.ubegin() + AES_BLOCK_SIZE);
+}
+
+void AesIgeState::encrypt(Slice from, MutableSlice to) {
+  impl_->encrypt(from, to);
+}
+
+void AesIgeState::decrypt(Slice from, MutableSlice to) {
+  impl_->decrypt(from, to);
 }
 
 static void aes_cbc_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
