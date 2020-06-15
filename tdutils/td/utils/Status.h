@@ -104,7 +104,7 @@ string winerror_to_string(int code);
 #endif
 
 class Status {
-  enum class ErrorType : int8 { general, os };
+  enum class ErrorType : int8 { General, Os };
 
  public:
   Status() = default;
@@ -129,7 +129,7 @@ class Status {
   }
 
   static Status Error(int err, Slice message = Slice()) TD_WARN_UNUSED_RESULT {
-    return Status(false, ErrorType::general, err, message);
+    return Status(false, ErrorType::General, err, message);
   }
 
   static Status Error(Slice message) TD_WARN_UNUSED_RESULT {
@@ -138,13 +138,13 @@ class Status {
 
 #if TD_PORT_WINDOWS
   static Status WindowsError(int saved_error, Slice message) TD_WARN_UNUSED_RESULT {
-    return Status(false, ErrorType::os, saved_error, message);
+    return Status(false, ErrorType::Os, saved_error, message);
   }
 #endif
 
 #if TD_PORT_POSIX
   static Status PosixError(int32 saved_errno, Slice message) TD_WARN_UNUSED_RESULT {
-    return Status(false, ErrorType::os, saved_errno, message);
+    return Status(false, ErrorType::Os, saved_errno, message);
   }
 #endif
 
@@ -154,7 +154,7 @@ class Status {
 
   template <int Code>
   static Status Error() {
-    static Status status(true, ErrorType::general, Code, "");
+    static Status status(true, ErrorType::General, Code, "");
     return status.clone_static();
   }
 
@@ -164,10 +164,10 @@ class Status {
     }
     Info info = get_info();
     switch (info.error_type) {
-      case ErrorType::general:
+      case ErrorType::General:
         sb << "[Error";
         break;
-      case ErrorType::os:
+      case ErrorType::Os:
 #if TD_PORT_POSIX
         sb << "[PosixError : " << strerror_safe(info.error_code);
 #elif TD_PORT_WINDOWS
@@ -246,9 +246,9 @@ class Status {
     }
     Info info = get_info();
     switch (info.error_type) {
-      case ErrorType::general:
+      case ErrorType::General:
         return message().str();
-      case ErrorType::os:
+      case ErrorType::Os:
 #if TD_PORT_POSIX
         return strerror_safe(info.error_code).str();
 #elif TD_PORT_WINDOWS
@@ -276,10 +276,10 @@ class Status {
     CHECK(is_error());
     Info info = get_info();
     switch (info.error_type) {
-      case ErrorType::general:
+      case ErrorType::General:
         return Error(code(), PSLICE() << prefix << message());
-      case ErrorType::os:
-        return Status(false, ErrorType::os, code(), PSLICE() << prefix << message());
+      case ErrorType::Os:
+        return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
       default:
         UNREACHABLE();
         return {};

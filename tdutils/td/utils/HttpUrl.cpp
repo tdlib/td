@@ -17,10 +17,10 @@ namespace td {
 string HttpUrl::get_url() const {
   string result;
   switch (protocol_) {
-    case Protocol::HTTP:
+    case Protocol::Http:
       result += "http://";
       break;
-    case Protocol::HTTPS:
+    case Protocol::Https:
       result += "https://";
       break;
     default:
@@ -49,9 +49,9 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   if (parser.start_with("://")) {
     parser.advance(3);
     if (protocol_str == "http") {
-      protocol = HttpUrl::Protocol::HTTP;
+      protocol = HttpUrl::Protocol::Http;
     } else if (protocol_str == "https") {
-      protocol = HttpUrl::Protocol::HTTPS;
+      protocol = HttpUrl::Protocol::Https;
     } else {
       return Status::Error("Unsupported URL protocol");
     }
@@ -99,10 +99,10 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
 
   int specified_port = port;
   if (port == 0) {
-    if (protocol == HttpUrl::Protocol::HTTP) {
+    if (protocol == HttpUrl::Protocol::Http) {
       port = 80;
     } else {
-      CHECK(protocol == HttpUrl::Protocol::HTTPS);
+      CHECK(protocol == HttpUrl::Protocol::Https);
       port = 443;
     }
   }
@@ -169,7 +169,7 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url) {
-  sb << tag("protocol", url.protocol_ == HttpUrl::Protocol::HTTP ? "HTTP" : "HTTPS") << tag("userinfo", url.userinfo_)
+  sb << tag("protocol", url.protocol_ == HttpUrl::Protocol::Http ? "HTTP" : "HTTPS") << tag("userinfo", url.userinfo_)
      << tag("host", url.host_) << tag("port", url.port_) << tag("query", url.query_);
   return sb;
 }

@@ -48,20 +48,20 @@ int HttpQuery::get_retry_after() const {
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpQuery &q) {
   switch (q.type_) {
-    case HttpQuery::Type::EMPTY:
+    case HttpQuery::Type::Empty:
       sb << "EMPTY";
       return sb;
-    case HttpQuery::Type::GET:
+    case HttpQuery::Type::Get:
       sb << "GET";
       break;
-    case HttpQuery::Type::POST:
+    case HttpQuery::Type::Post:
       sb << "POST";
       break;
-    case HttpQuery::Type::RESPONSE:
+    case HttpQuery::Type::Response:
       sb << "RESPONSE";
       break;
   }
-  if (q.type_ == HttpQuery::Type::RESPONSE) {
+  if (q.type_ == HttpQuery::Type::Response) {
     sb << ":" << q.code_ << ":" << q.reason_;
   } else {
     sb << ":" << q.url_path_;

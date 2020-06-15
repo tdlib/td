@@ -663,12 +663,12 @@ Status HttpReader::parse_head(MutableSlice head) {
   parser.skip(' ');
   // GET POST HTTP/1.1
   if (type == "GET") {
-    query_->type_ = HttpQuery::Type::GET;
+    query_->type_ = HttpQuery::Type::Get;
   } else if (type == "POST") {
-    query_->type_ = HttpQuery::Type::POST;
+    query_->type_ = HttpQuery::Type::Post;
   } else if (type.size() >= 4 && type.substr(0, 4) == "HTTP") {
     if (type == "HTTP/1.1" || type == "HTTP/1.0") {
-      query_->type_ = HttpQuery::Type::RESPONSE;
+      query_->type_ = HttpQuery::Type::Response;
     } else {
       LOG(INFO) << "Unsupported HTTP version: " << type;
       return Status::Error(505, "HTTP Version Not Supported");
@@ -680,7 +680,7 @@ Status HttpReader::parse_head(MutableSlice head) {
 
   query_->args_.clear();
 
-  if (query_->type_ == HttpQuery::Type::RESPONSE) {
+  if (query_->type_ == HttpQuery::Type::Response) {
     query_->code_ = to_integer<int32>(parser.read_till(' '));
     parser.skip(' ');
     query_->reason_ = parser.read_till('\r');

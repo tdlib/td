@@ -19,10 +19,10 @@ namespace td {
 
 class HttpQuery {
  public:
-  enum class Type : int8 { EMPTY, GET, POST, RESPONSE };
+  enum class Type : int8 { Empty, Get, Post, Response };
 
   td::vector<BufferSlice> container_;
-  Type type_ = Type::EMPTY;
+  Type type_ = Type::Empty;
   int32 code_ = 0;
   MutableSlice url_path_;
   td::vector<std::pair<MutableSlice, MutableSlice>> args_;

@@ -332,7 +332,7 @@ Result<string> check_url(Slice url) {
   }
   TRY_RESULT(http_url, parse_url(url));
   if (is_tg || is_ton) {
-    if (tolower_begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS ||
+    if (tolower_begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::Https ||
         !http_url.userinfo_.empty() || http_url.specified_port_ != 0 || http_url.is_ipv6_) {
       return Status::Error(is_tg ? Slice("Wrong tg URL") : Slice("Wrong ton URL"));
     }
