@@ -47,7 +47,6 @@ class RequestActor : public Actor {
       }
       stop();
     } else {
-      LOG_CHECK(!promise.was_set_value) << future.empty() << " " << future.get_state();
       CHECK(!future.empty());
       CHECK(future.get_state() == FutureActor<T>::State::Waiting);
       if (--tries_left_ == 0) {

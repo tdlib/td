@@ -62,12 +62,10 @@ class SafePromise;
 template <class T = Unit>
 class Promise {
  public:
-  bool was_set_value{false};
   void set_value(T &&value) {
     if (!promise_) {
       return;
     }
-    was_set_value = true;
     promise_->set_value(std::move(value));
     promise_.reset();
   }
@@ -75,7 +73,6 @@ class Promise {
     if (!promise_) {
       return;
     }
-    was_set_value = true;
     promise_->set_error(std::move(error));
     promise_.reset();
   }
@@ -83,7 +80,6 @@ class Promise {
     if (!promise_) {
       return;
     }
-    was_set_value = true;
     promise_->set_result(std::move(result));
     promise_.reset();
   }
