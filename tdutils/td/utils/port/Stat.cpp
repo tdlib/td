@@ -6,7 +6,6 @@
 //
 #include "td/utils/port/Stat.h"
 
-#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_POSIX
@@ -15,6 +14,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
+#include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/ScopeGuard.h"
 
 #include <utility>

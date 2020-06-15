@@ -16,9 +16,7 @@
 #include "td/utils/SpinLock.h"
 
 #include <atomic>
-#include <cerrno>
 #include <memory>
-#include <type_traits>
 
 namespace td {
 
@@ -208,30 +206,6 @@ inline PollFlags PollableFd::get_flags_unsafe() const {
 inline const NativeFd &PollableFd::native_fd() const {
   return fd_info_->native_fd();
 }
-
-#if TD_PORT_POSIX
-namespace detail {
-template <class F>
-auto skip_eintr(F &&f) {
-  decltype(f()) res;
-  static_assert(std::is_integral<decltype(res)>::value, "integral type expected");
-  do {
-    errno = 0;  // just in case
-    res = f();
-  } while (res < 0 && errno == EINTR);
-  return res;
-}
-template <class F>
-auto skip_eintr_cstr(F &&f) {
-  char *res;
-  do {
-    errno = 0;  // just in case
-    res = f();
-  } while (res == nullptr && errno == EINTR);
-  return res;
-}
-}  // namespace detail
-#endif
 
 template <class FdT>
 bool can_read(const FdT &fd) {
