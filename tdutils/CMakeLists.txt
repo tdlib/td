@@ -68,6 +68,7 @@ set(TDUTILS_SOURCE
   td/utils/port/StdStreams.cpp
   td/utils/port/thread_local.cpp
   td/utils/port/UdpSocketFd.cpp
+  td/utils/port/user.cpp
   td/utils/port/wstring_convert.cpp
 
   td/utils/port/detail/Epoll.cpp
@@ -146,6 +147,7 @@ set(TDUTILS_SOURCE
   td/utils/port/thread.h
   td/utils/port/thread_local.h
   td/utils/port/UdpSocketFd.h
+  td/utils/port/user.h
   td/utils/port/wstring_convert.h
 
   td/utils/port/detail/Epoll.h
