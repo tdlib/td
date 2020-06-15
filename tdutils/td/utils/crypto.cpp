@@ -78,13 +78,12 @@ struct alignas(8) AesBlock {
 
   AesBlock inc() const {
     AesBlock res;
-    res.lo = bswap64(bswap64(lo) + 1);
-    if (res.lo == 0) {
-      res.hi = bswap64(bswap64(hi) + 1);
-    } else {
-      res.hi = hi;
+    auto ptr = res.raw();
+    for (int i = 15; i >= 0; i--) {
+      if (++ptr[i] != 0) {
+        break;
+      }
     }
-
     return res;
   }
 };
