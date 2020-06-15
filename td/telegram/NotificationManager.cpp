@@ -3073,7 +3073,9 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     dialog_id = DialogId(secret_chat_id);
   }
   if (!dialog_id.is_valid()) {
-    // TODO if (loc_key == "ENCRYPTED_MESSAGE") ?
+    if (loc_key == "ENCRYPTED_MESSAGE" || loc_key == "MESSAGE_MUTED") {
+      return Status::Error(406, "Force loading data from the server");
+    }
     return Status::Error("Can't find dialog_id");
   }
 
