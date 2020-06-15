@@ -75,7 +75,7 @@ TEST(Crypto, AesCtrState) {
     ASSERT_EQ(answers1[i], td::crc32(t));
     state.init(as_slice(key), as_slice(iv));
     state.decrypt(t, t);
-    ASSERT_STREQ(s, t);
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
 
     for (auto &c : iv.raw) {
       c = 0xFF;
@@ -87,7 +87,6 @@ TEST(Crypto, AesCtrState) {
     i++;
   }
 }
-#endif
 
 TEST(Crypto, AesIgeState) {
   td::vector<td::uint32> answers1{0u, 2045698207u, 2423540300u, 525522475u, 1545267325u};
@@ -121,10 +120,11 @@ TEST(Crypto, AesIgeState) {
 
     state.init(as_slice(key), as_slice(iv), false);
     state.decrypt(t, t);
-    ASSERT_STREQ(s, t);
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
     i++;
   }
 }
+#endif
 
 TEST(Crypto, Sha256State) {
   for (auto length : {0, 1, 31, 32, 33, 9999, 10000, 10001, 999999, 1000001}) {

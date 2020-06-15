@@ -79,14 +79,14 @@ class AesEcbBench : public td::Benchmark {
   }
 };
 
-class AesIgeBench : public td::Benchmark {
+class AesIgeEncryptBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
   td::UInt256 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES IGE OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+    return PSTRING() << "AES IGE OpenSSL encrypt [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -103,6 +103,34 @@ class AesIgeBench : public td::Benchmark {
     state.init(as_slice(key), as_slice(iv), true);
     for (int i = 0; i < n; i++) {
       state.encrypt(data_slice, data_slice);
+    }
+  }
+};
+
+class AesIgeDecryptBench : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[DATA_SIZE];
+  td::UInt256 key;
+  td::UInt256 iv;
+
+  std::string get_description() const override {
+    return PSTRING() << "AES IGE OpenSSL decrypt [" << (DATA_SIZE >> 10) << "KB]";
+  }
+
+  void start_up() override {
+    for (int i = 0; i < DATA_SIZE; i++) {
+      data[i] = 123;
+    }
+    td::Random::secure_bytes(key.raw, sizeof(key));
+    td::Random::secure_bytes(iv.raw, sizeof(iv));
+  }
+
+  void run(int n) override {
+    td::MutableSlice data_slice(data, DATA_SIZE);
+    td::AesIgeState state;
+    state.init(as_slice(key), as_slice(iv), false);
+    for (int i = 0; i < n; i++) {
+      state.decrypt(data_slice, data_slice);
     }
   }
 };
@@ -163,17 +191,17 @@ class AesCbcBench : public td::Benchmark {
 
 class AesIgeShortBench : public td::Benchmark {
  public:
-  static constexpr int DATA_SIZE = 16;
-  alignas(64) unsigned char data[DATA_SIZE];
+  static constexpr int SHORT_DATA_SIZE = 16;
+  alignas(64) unsigned char data[SHORT_DATA_SIZE];
   td::UInt256 key;
   td::UInt256 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES IGE OpenSSL [" << (DATA_SIZE) << "B]";
+    return PSTRING() << "AES IGE OpenSSL [" << SHORT_DATA_SIZE << "B]";
   }
 
   void start_up() override {
-    for (int i = 0; i < DATA_SIZE; i++) {
+    for (int i = 0; i < SHORT_DATA_SIZE; i++) {
       data[i] = 123;
     }
     td::Random::secure_bytes(as_slice(key));
@@ -181,12 +209,15 @@ class AesIgeShortBench : public td::Benchmark {
   }
 
   void run(int n) override {
-    td::MutableSlice data_slice(data, DATA_SIZE);
+    td::MutableSlice data_slice(data, SHORT_DATA_SIZE);
     td::AesIgeState ige;
     for (int i = 0; i < n; i++) {
-      ige.init(as_slice(key), as_slice(iv), true);
-      ige.encrypt(data_slice, data_slice);
-      //td::aes_ige_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+      if (true) {
+        ige.init(as_slice(key), as_slice(iv), true);
+        ige.encrypt(data_slice, data_slice);
+      } else {
+        td::aes_ige_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+      }
     }
   }
 };
@@ -316,9 +347,10 @@ int main() {
   td::init_openssl_threads();
 
   td::bench(AesIgeShortBench());
+  td::bench(AesIgeEncryptBench());
+  td::bench(AesIgeDecryptBench());
   td::bench(AesCtrBench());
   td::bench(AesEcbBench());
-  td::bench(AesIgeBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());
