@@ -393,8 +393,10 @@ AesState::~AesState() = default;
 
 void AesState::init(Slice key, bool encrypt) {
   CHECK(key.size() == 32);
-  impl_ = make_unique<Impl>();
-  impl_->ctx = EVP_CIPHER_CTX_new();
+  if (!impl_) {
+    impl_ = make_unique<Impl>();
+    impl_->ctx = EVP_CIPHER_CTX_new();
+  }
   CHECK(impl_->ctx);
 
   if (encrypt) {
@@ -446,11 +448,21 @@ static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, Mutab
 }
 
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
+  if (from.size() <= 128) {
+    return aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
+  }
+  AesIgeState state;
+  state.init(aes_key, aes_iv, true);
+  state.encrypt(from, to);
 }
 
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
+  if (from.size() <= 128) {
+    return aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
+  }
+  AesIgeState state;
+  state.init(aes_key, aes_iv, false);
+  state.decrypt(from, to);
 }
 
 class AesIgeState::Impl {
@@ -512,7 +524,9 @@ AesIgeState::~AesIgeState() = default;
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
   CHECK(key.size() == 32);
   CHECK(iv.size() == 32);
-  impl_ = make_unique<Impl>();
+  if (!impl_) {
+    impl_ = make_unique<Impl>();
+  }
   impl_->state.init(key, encrypt);
   impl_->iv.load(iv.ubegin());
   impl_->iv2.load(iv.ubegin() + AES_BLOCK_SIZE);
