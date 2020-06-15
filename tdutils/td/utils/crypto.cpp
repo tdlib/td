@@ -75,11 +75,13 @@ struct AesBlock {
   }
 
   AesBlock inc() const {
-    AesBlock res;
+    AesBlock res = *this;
     auto ptr = res.raw();
-    for (int i = 15; i >= 0; i--) {
-      if (++ptr[i] != 0) {
-        break;
+    if (++ptr[15] == 0) {
+      for (int i = 14; i >= 0; i--) {
+        if (++ptr[i] != 0) {
+          break;
+        }
       }
     }
     return res;
@@ -91,21 +93,23 @@ static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
 class XorBytes {
  public:
   static void run(const uint8 *a, const uint8 *b, uint8 *c, size_t n) {
-    XorBytes xorer;
-    xorer.a = a;
-    xorer.b = b;
-    xorer.c = c;
-    xorer.n = n;
-    xorer.step<16>();
-    xorer.step<1>();
+    static constexpr int BLOCK_SIZE = 16;
+    auto block_cnt = n / BLOCK_SIZE;
+    n -= block_cnt * BLOCK_SIZE;
+    while (block_cnt-- > 0) {
+      Block<BLOCK_SIZE> a_big = as<Block<BLOCK_SIZE>>(a);
+      Block<BLOCK_SIZE> b_big = as<Block<BLOCK_SIZE>>(b);
+      as<Block<BLOCK_SIZE>>(c) = a_big ^ b_big;
+      a += BLOCK_SIZE;
+      b += BLOCK_SIZE;
+      c += BLOCK_SIZE;
+    }
+    while (n-- > 0) {
+      c[n] = a[n] ^ b[n];
+    }
   }
 
  private:
-  const uint8 *a;
-  const uint8 *b;
-  uint8 *c;
-  size_t n;
-
   template <size_t N>
   struct alignas(N) Block {
     uint8 data[N];
@@ -117,20 +121,6 @@ class XorBytes {
       return res;
     }
   };
-
-  template <size_t N>
-  void step() {
-    auto cnt = n / N;
-    n -= cnt * N;
-    for (size_t i = 0; i < cnt; i++) {
-      Block<N> a_big = as<Block<N>>(a);
-      Block<N> b_big = as<Block<N>>(b);
-      as<Block<N>>(c) = a_big ^ b_big;
-      a += N;
-      b += N;
-      c += N;
-    }
-  }
 };
 
 struct AesCtrCounterPack {

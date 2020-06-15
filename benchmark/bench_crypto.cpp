@@ -346,11 +346,11 @@ class Crc64Bench : public td::Benchmark {
 int main() {
   td::init_openssl_threads();
 
-  td::bench(AesIgeShortBench());
   td::bench(AesIgeEncryptBench());
   td::bench(AesIgeDecryptBench());
   td::bench(AesCtrBench());
   td::bench(AesEcbBench());
+  td::bench(AesIgeShortBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());
