@@ -170,7 +170,8 @@ class UdpSocketFdImpl : private Iocp::Callback {
   UdpMessage to_receive_;
   WSAMSG receive_message_;
   UdpSocketReceiveHelper receive_helper_;
-  enum : size_t { MAX_PACKET_SIZE = 2048, RESERVED_SIZE = MAX_PACKET_SIZE * 8 };
+  static constexpr size_t MAX_PACKET_SIZE = 2048;
+  static constexpr size_t RESERVED_SIZE = MAX_PACKET_SIZE * 8;
   BufferSlice receive_buffer_;
 
   UdpMessage to_send_;

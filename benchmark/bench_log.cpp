@@ -40,8 +40,8 @@ class IostreamWriteBench : public td::Benchmark {
  protected:
   std::string file_name_;
   std::ofstream stream;
-  enum { buffer_size = 1 << 20 };
-  char buffer[buffer_size];
+  static constexpr std::size_t BUFFER_SIZE = 1 << 20;
+  char buffer[BUFFER_SIZE];
 
  public:
   std::string get_description() const override {
@@ -52,7 +52,7 @@ class IostreamWriteBench : public td::Benchmark {
     file_name_ = create_tmp_file();
     stream.open(file_name_.c_str());
     CHECK(stream.is_open());
-    //    stream.rdbuf()->pubsetbuf(buffer, buffer_size);
+    //    stream.rdbuf()->pubsetbuf(buffer, BUFFER_SIZE);
   }
 
   void run(int n) override {
@@ -71,8 +71,8 @@ class FILEWriteBench : public td::Benchmark {
  protected:
   std::string file_name_;
   FILE *file;
-  enum { buffer_size = 1 << 20 };
-  char buffer[buffer_size];
+  static constexpr std::size_t BUFFER_SIZE = 1 << 20;
+  char buffer[BUFFER_SIZE];
 
  public:
   std::string get_description() const override {
@@ -82,7 +82,7 @@ class FILEWriteBench : public td::Benchmark {
   void start_up() override {
     file_name_ = create_tmp_file();
     file = fopen(file_name_.c_str(), "w");
-    //    setvbuf(file, buffer, _IOFBF, buffer_size);
+    //    setvbuf(file, buffer, _IOFBF, BUFFER_SIZE);
   }
 
   void run(int n) override {
@@ -123,8 +123,8 @@ class LogWriteBench : public td::Benchmark {
   std::string file_name_;
   std::ofstream stream;
   std::streambuf *old_buf;
-  enum { buffer_size = 1 << 20 };
-  char buffer[buffer_size];
+  static constexpr std::size_t BUFFER_SIZE = 1 << 20;
+  char buffer[BUFFER_SIZE];
 
  public:
   std::string get_description() const override {

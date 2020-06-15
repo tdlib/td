@@ -66,7 +66,9 @@ class AuthKey {
     auth_key_.clear();
   }
 
-  enum : int32 { AUTH_FLAG = 1, WAS_AUTH_FLAG = 2, HAS_CREATED_AT = 4 };
+  static constexpr int32 AUTH_FLAG = 1;
+  static constexpr int32 WAS_AUTH_FLAG = 2;
+  static constexpr int32 HAS_CREATED_AT = 4;
 
   template <class StorerT>
   void store(StorerT &storer) const {

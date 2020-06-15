@@ -837,7 +837,7 @@ class QueueBenchmark : public td::Benchmark {
 
 template <class QueueT>
 class RingBenchmark : public td::Benchmark {
-  enum { QN = 504 };
+  static constexpr int QN = 504;
 
   struct Thread {
     int int_id;
