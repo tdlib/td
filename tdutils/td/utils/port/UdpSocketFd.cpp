@@ -814,11 +814,11 @@ static Result<uint32> maximize_buffer(int socket_fd, int optname, uint32 max) {
 }
 
 Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {
-  return maximize_buffer(get_native_fd().fd(), SO_SNDBUF, max == 0 ? default_udp_max_snd_buffer_size : max);
+  return maximize_buffer(get_native_fd().fd(), SO_SNDBUF, max == 0 ? DEFAULT_UDP_MAX_SND_BUFFER_SIZE : max);
 }
 
 Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max) {
-  return maximize_buffer(get_native_fd().fd(), SO_RCVBUF, max == 0 ? default_udp_max_rcv_buffer_size : max);
+  return maximize_buffer(get_native_fd().fd(), SO_RCVBUF, max == 0 ? DEFAULT_UDP_MAX_RCV_BUFFER_SIZE : max);
 }
 #else
 Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {

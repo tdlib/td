@@ -26,7 +26,7 @@ class StringBuilder {
   }
 
   MutableCSlice as_cslice() {
-    if (current_ptr_ >= end_ptr_ + reserved_size) {
+    if (current_ptr_ >= end_ptr_ + RESERVED_SIZE) {
       std::abort();  // shouldn't happen
     }
     *current_ptr_ = 0;
@@ -104,7 +104,7 @@ class StringBuilder {
   bool error_flag_ = false;
   bool use_buffer_ = false;
   std::unique_ptr<char[]> buffer_;
-  static constexpr size_t reserved_size = 30;
+  static constexpr size_t RESERVED_SIZE = 30;
 
   StringBuilder &on_error() {
     error_flag_ = true;
@@ -115,7 +115,7 @@ class StringBuilder {
     if (end_ptr_ > current_ptr_) {
       return true;
     }
-    return reserve_inner(reserved_size);
+    return reserve_inner(RESERVED_SIZE);
   }
   bool reserve(size_t size) {
     if (end_ptr_ > current_ptr_ && static_cast<size_t>(end_ptr_ - current_ptr_) >= size) {

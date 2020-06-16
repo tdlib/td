@@ -408,7 +408,7 @@ class FutureActor final : public Actor {
  public:
   enum State { Waiting, Ready };
 
-  static constexpr int Hangup = 426487;
+  static constexpr int HANGUP_ERROR_CODE = 426487;
 
   FutureActor() = default;
 
@@ -487,7 +487,7 @@ class FutureActor final : public Actor {
   }
 
   void hangup() override {
-    set_error(Status::Error<Hangup>());
+    set_error(Status::Error<HANGUP_ERROR_CODE>());
   }
 
   void start_up() override {

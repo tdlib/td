@@ -119,7 +119,7 @@ class NetStatsManager : public Actor {
   NetStatsInfo media_net_stats_;
   std::array<NetStatsInfo, file_type_size> files_stats_;
   NetStatsInfo call_net_stats_;
-  static constexpr int32 call_net_stats_id_{file_type_size + 2};
+  static constexpr int32 CALL_NET_STATS_ID{file_type_size + 2};
 
   template <class F>
   void for_each_stat(F &&f) {
@@ -130,7 +130,7 @@ class NetStatsManager : public Actor {
       auto file_type = static_cast<FileType>(file_type_i);
       f(stat, file_type_i + 2, get_file_type_name(file_type), file_type);
     }
-    f(call_net_stats_, call_net_stats_id_, CSlice("calls"), FileType::None);
+    f(call_net_stats_, CALL_NET_STATS_ID, CSlice("calls"), FileType::None);
   }
 
   void add_network_stats_impl(NetStatsInfo &info, const NetworkStatsEntry &entry);

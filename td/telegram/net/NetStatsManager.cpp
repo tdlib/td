@@ -86,7 +86,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
       if (id == 0) {
       } else if (id == 1) {
         total = stats;
-      } else if (id == call_net_stats_id_) {
+      } else if (id == CALL_NET_STATS_ID) {
       } else if (file_type != FileType::None) {
         total_files = total_files + stats;
       }
@@ -109,7 +109,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
       entry.duration = stats.duration;
       if (id == 0) {
         result.entries.push_back(std::move(entry));
-      } else if (id == call_net_stats_id_) {
+      } else if (id == CALL_NET_STATS_ID) {
         entry.is_call = true;
         result.entries.push_back(std::move(entry));
       } else if (file_type != FileType::None) {

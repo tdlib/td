@@ -34,7 +34,7 @@ namespace td {
 template <class BinlogT>
 class BinlogKeyValue : public KeyValueSyncInterface {
  public:
-  static constexpr int32 magic = 0x2a280000;
+  static constexpr int32 MAGIC = 0x2a280000;
 
   struct Event : public Storer {
     Event() = default;
@@ -236,7 +236,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   std::unordered_map<string, std::pair<string, uint64>> map_;
   std::shared_ptr<BinlogT> binlog_;
   RwMutex rw_mutex_;
-  int32 magic_ = magic;
+  int32 magic_ = MAGIC;
 };
 
 template <>

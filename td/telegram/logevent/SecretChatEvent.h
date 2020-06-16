@@ -65,7 +65,7 @@ class SecretChatLogEventBase : public SecretChatEvent {
 // inputEncryptedFile#5a17b5e5 id:long access_hash:long = InputEncryptedFile;
 // inputEncryptedFileBigUploaded#2dc173c8 id:long parts:int key_fingerprint:int = InputEncryptedFile;
 struct EncryptedInputFile {
-  static constexpr int32 magic = 0x4328d38a;
+  static constexpr int32 MAGIC = 0x4328d38a;
   enum Type : int32 { Empty = 0, Uploaded = 1, BigUploaded = 2, Location = 3 } type = Type::Empty;
   int64 id = 0;
   int64 access_hash = 0;
@@ -75,7 +75,7 @@ struct EncryptedInputFile {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(magic, storer);
+    store(MAGIC, storer);
     store(type, storer);
     store(id, storer);
     store(access_hash, storer);
@@ -104,7 +104,7 @@ struct EncryptedInputFile {
     parse(parts, parser);
     parse(key_fingerprint, parser);
 
-    if (got_magic != magic) {
+    if (got_magic != MAGIC) {
       parser.set_error("EncryptedInputFile magic mismatch");
       return;
     }
@@ -156,7 +156,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedInputFile &fi
 
 // encryptedFile#4a70994c id:long access_hash:long size:int dc_id:int key_fingerprint:int = EncryptedFile;
 struct EncryptedFileLocation {
-  static constexpr int32 magic = 0x473d738a;
+  static constexpr int32 MAGIC = 0x473d738a;
   int64 id = 0;
   int64 access_hash = 0;
   int32 size = 0;
@@ -169,7 +169,7 @@ struct EncryptedFileLocation {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(magic, storer);
+    store(MAGIC, storer);
     store(id, storer);
     store(access_hash, storer);
     store(size, storer);
@@ -189,7 +189,7 @@ struct EncryptedFileLocation {
     parse(dc_id, parser);
     parse(key_fingerprint, parser);
 
-    if (got_magic != magic) {
+    if (got_magic != MAGIC) {
       parser.set_error("EncryptedFileLocation magic mismatch");
       return;
     }
