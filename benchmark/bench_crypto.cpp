@@ -211,9 +211,9 @@ class AesIgeShortBench : public td::Benchmark {
 
   void run(int n) override {
     td::MutableSlice data_slice(data, SHORT_DATA_SIZE);
-    td::AesIgeState ige;
     for (int i = 0; i < n; i++) {
       if (use_state) {
+        td::AesIgeState ige;
         ige.init(as_slice(key), as_slice(iv), false);
         ige.decrypt(data_slice, data_slice);
       } else {
