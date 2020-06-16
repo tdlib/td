@@ -47,6 +47,11 @@ inline uint64 lower_bit64(uint64 x) {
   return x & bits_negate64(x);
 }
 
+inline uint64 native_vs_bigendian64(uint64 x) {
+  // NB: works only for litte endian systems
+  return bswap64(x);
+}
+
 //TODO: optimize
 inline int32 count_leading_zeroes_non_zero32(uint32 x) {
   DCHECK(x != 0);

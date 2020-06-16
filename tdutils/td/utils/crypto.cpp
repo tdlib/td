@@ -9,6 +9,7 @@
 #include "td/utils/Slice-decl.h"
 #include "td/utils/as.h"
 #include "td/utils/BigNum.h"
+#include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -79,6 +80,16 @@ struct AesBlock {
   }
 
   AesBlock inc() const {
+#if __aarch64__ || __x86_64__
+    AesBlock res;
+    res.lo = native_vs_bigendian64(native_vs_bigendian64(lo) + 1);
+    if (res.lo == 0) {
+      res.hi = native_vs_bigendian64(native_vs_bigendian64(hi) + 1);
+    } else {
+      res.hi = hi;
+    }
+    return res;
+#else
     AesBlock res = *this;
     auto ptr = res.raw();
     if (++ptr[15] == 0) {
@@ -89,8 +100,9 @@ struct AesBlock {
       }
     }
     return res;
+#endif
   }
-};
+};  // namespace td
 static_assert(sizeof(AesBlock) == 16, "");
 static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
 
