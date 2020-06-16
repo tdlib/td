@@ -189,15 +189,16 @@ class AesCbcBench : public td::Benchmark {
   }
 };
 
+template <bool use_state>
 class AesIgeShortBench : public td::Benchmark {
  public:
-  static constexpr int SHORT_DATA_SIZE = 16;
+  static constexpr int SHORT_DATA_SIZE = 64;
   alignas(64) unsigned char data[SHORT_DATA_SIZE];
   td::UInt256 key;
   td::UInt256 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES IGE OpenSSL [" << SHORT_DATA_SIZE << "B]";
+    return PSTRING() << "AES IGE OpenSSL " << (use_state ? "EVP" : "C  ") << "[" << SHORT_DATA_SIZE << "B]";
   }
 
   void start_up() override {
@@ -212,11 +213,11 @@ class AesIgeShortBench : public td::Benchmark {
     td::MutableSlice data_slice(data, SHORT_DATA_SIZE);
     td::AesIgeState ige;
     for (int i = 0; i < n; i++) {
-      if (true) {
-        ige.init(as_slice(key), as_slice(iv), true);
-        ige.encrypt(data_slice, data_slice);
+      if (use_state) {
+        ige.init(as_slice(key), as_slice(iv), false);
+        ige.decrypt(data_slice, data_slice);
       } else {
-        td::aes_ige_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+        td::aes_ige_decrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
       }
     }
   }
@@ -346,7 +347,8 @@ class Crc64Bench : public td::Benchmark {
 int main() {
   td::init_openssl_threads();
 
-  td::bench(AesIgeShortBench());
+  td::bench(AesIgeShortBench<true>());
+  td::bench(AesIgeShortBench<false>());
   td::bench(AesIgeEncryptBench());
   td::bench(AesIgeDecryptBench());
   td::bench(AesEcbBench());
