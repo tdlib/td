@@ -124,6 +124,44 @@ TEST(Crypto, AesIgeState) {
     i++;
   }
 }
+
+TEST(Crypto, AesCbcState) {
+  td::vector<td::uint32> answers1{0u, 3617355989u, 3449188102u, 186999968u, 4244808847u};
+
+  std::size_t i = 0;
+  for (auto length : {0, 16, 32, 256, 1024}) {
+    td::uint32 seed = length;
+    td::string s(length, '\0');
+    for (auto &c : s) {
+      seed = seed * 123457567u + 987651241u;
+      c = static_cast<char>((seed >> 23) & 255);
+    }
+
+    td::UInt256 key;
+    for (auto &c : key.raw) {
+      seed = seed * 123457567u + 987651241u;
+      c = (seed >> 23) & 255;
+    }
+    td::UInt128 iv;
+    for (auto &c : iv.raw) {
+      seed = seed * 123457567u + 987651241u;
+      c = (seed >> 23) & 255;
+    }
+
+    td::AesCbcState state(as_slice(key), as_slice(iv));
+    //state.init(as_slice(key), as_slice(iv), true);
+    td::string t(length, '\0');
+    state.encrypt(s, t);
+
+    ASSERT_EQ(answers1[i], td::crc32(t));
+
+    //state.init(as_slice(key), as_slice(iv), false);
+    state = td::AesCbcState(as_slice(key), as_slice(iv));
+    state.decrypt(t, t);
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
+    i++;
+  }
+}
 #endif
 
 TEST(Crypto, Sha256State) {
