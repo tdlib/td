@@ -18,19 +18,19 @@ namespace td {
 class OptionsParser {
   class Option {
    public:
-    enum class Type { NoArg, Arg, OptionalArg };
+    enum class Type { NoArg, Arg };
     Type type;
     char short_key;
-    std::string long_key;
-    std::string description;
+    string long_key;
+    string description;
     std::function<Status(Slice)> arg_callback;
   };
 
- public:
-  void set_description(std::string description);
-
   void add_option(Option::Type type, char short_key, Slice long_key, Slice description,
                   std::function<Status(Slice)> callback);
+
+ public:
+  void set_description(string description);
 
   void add_option(char short_key, Slice long_key, Slice description, std::function<Status(Slice)> callback);
 
@@ -41,8 +41,8 @@ class OptionsParser {
   friend StringBuilder &operator<<(StringBuilder &sb, const OptionsParser &o);
 
  private:
-  std::vector<Option> options_;
-  std::string description_;
+  vector<Option> options_;
+  string description_;
 };
 
 }  // namespace td

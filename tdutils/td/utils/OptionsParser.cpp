@@ -17,7 +17,7 @@
 
 namespace td {
 
-void OptionsParser::set_description(std::string description) {
+void OptionsParser::set_description(string description) {
   description_ = std::move(description);
 }
 
@@ -44,7 +44,6 @@ Result<int> OptionsParser::run(int argc, char *argv[]) {
   char buff[1024];
   StringBuilder sb(MutableSlice{buff, sizeof(buff)});
   for (auto &opt : options_) {
-    CHECK(opt.type != Option::Type::OptionalArg);
     sb << opt.short_key;
     if (opt.type == Option::Type::Arg) {
       sb << ":";
@@ -112,14 +111,8 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionsParser &o) {
     if (!opt.long_key.empty()) {
       sb << "|--" << opt.long_key;
     }
-    if (opt.type == OptionsParser::Option::Type::OptionalArg) {
-      sb << "[";
-    }
     if (opt.type != OptionsParser::Option::Type::NoArg) {
       sb << "<arg>";
-    }
-    if (opt.type == OptionsParser::Option::Type::OptionalArg) {
-      sb << "]";
     }
     sb << "\t" << opt.description;
     sb << "\n";
