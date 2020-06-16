@@ -35,7 +35,7 @@ class AesState {
   void decrypt(const uint8 *src, uint8 *dst, int size);
 
  private:
-  class Impl;
+  struct Impl;
   unique_ptr<Impl> impl_;
 
   friend class AesIgeState;
