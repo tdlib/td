@@ -9,6 +9,9 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/OptionParser.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 #include <cstring>
 
@@ -19,18 +22,24 @@
 int main(int argc, char **argv) {
   td::init_openssl_threads();
 
-  // TODO use OptionParser
   td::TestsRunner &runner = td::TestsRunner::get_default();
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  for (int i = 1; i < argc; i++) {
-    if (!std::strcmp(argv[i], "--filter")) {
-      CHECK(i + 1 < argc);
-      runner.add_substr_filter(argv[++i]);
-    }
-    if (!std::strcmp(argv[i], "--stress")) {
-      runner.set_stress_flag(true);
-    }
+
+  td::OptionParser options;
+  options.add_option('\0', "filter", "Run only specified tests", [&](td::Slice filter) {
+    runner.add_substr_filter(filter.str());
+    return td::Status::OK();
+  });
+  options.add_option('\0', "stress", "Run tests infinitely", [&] {
+    runner.set_stress_flag(true);
+    return td::Status::OK();
+  });
+  auto result = options.run(argc, argv);
+  if (result.is_error() || !result.ok().empty()) {
+    LOG(PLAIN) << options;
+    return 1;
   }
+
 #if TD_EMSCRIPTEN
   emscripten_set_main_loop(
       [] {
