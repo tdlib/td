@@ -20,64 +20,6 @@ uint64 pq_factorize(uint64 pq);
 void init_crypto();
 
 int pq_factorize(Slice pq_str, string *p_str, string *q_str);
-class Evp {
- public:
-  Evp() = default;
-  Evp(const Evp &from) = delete;
-  Evp &operator=(const Evp &from) = delete;
-  Evp(Evp &&from);
-  Evp &operator=(Evp &&from);
-  ~Evp();
-
-  void init_encrypt_ecb(Slice key);
-  void init_decrypt_ecb(Slice key);
-  void init_encrypt_cbc(Slice key);
-  void init_decrypt_cbc(Slice key);
-  void init_iv(Slice iv);
-  void encrypt(const uint8 *src, uint8 *dst, int size);
-  void decrypt(const uint8 *src, uint8 *dst, int size);
-
-  struct EvpDeleter {
-   public:
-    void operator()(void *ptr);
-  };
-  enum class Type : int8 { Empty, Ecb, Cbc };
-
- private:
-  std::unique_ptr<void, EvpDeleter> ctx_;
-};
-
-struct AesBlock {
-  uint64 hi;
-  uint64 lo;
-
-  uint8 *raw();
-  const uint8 *raw() const;
-  Slice as_slice() const;
-
-  AesBlock operator^(const AesBlock &b) const;
-  void operator^=(const AesBlock &b);
-
-  void load(const uint8 *from);
-  void store(uint8 *to);
-
-  AesBlock inc() const;
-};
-
-struct AesCtrCounterPack {
-  static constexpr size_t BLOCK_COUNT = 32;
-  AesBlock blocks[BLOCK_COUNT];
-  uint8 *raw();
-  const uint8 *raw() const;
-
-  size_t size() const;
-
-  Slice as_slice() const;
-  MutableSlice as_mutable_slice();
-
-  void init(AesBlock block);
-  void rotate();
-};
 
 class AesState {
  public:
@@ -118,9 +60,8 @@ class AesIgeState {
   void decrypt(Slice from, MutableSlice to);
 
  private:
-  AesBlock encrypted_iv_;
-  AesBlock plaintext_iv_;
-  Evp evp_;
+  class Impl;
+  unique_ptr<Impl> impl_;
 };
 
 void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
@@ -128,12 +69,12 @@ void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
 
 class AesCtrState {
  public:
-  AesCtrState() = default;
+  AesCtrState();
   AesCtrState(const AesCtrState &from) = delete;
   AesCtrState &operator=(const AesCtrState &from) = delete;
-  AesCtrState(AesCtrState &&from) = default;
-  AesCtrState &operator=(AesCtrState &&from) = default;
-  ~AesCtrState() = default;
+  AesCtrState(AesCtrState &&from);
+  AesCtrState &operator=(AesCtrState &&from);
+  ~AesCtrState();
 
   void init(Slice key, Slice iv);
 
@@ -142,13 +83,8 @@ class AesCtrState {
   void decrypt(Slice from, MutableSlice to);
 
  private:
-  Evp evp_;
-
-  AesCtrCounterPack counter_;
-  AesCtrCounterPack encrypted_counter_;
-  Slice current_;
-
-  void fill();
+  class Impl;
+  unique_ptr<Impl> ctx_;
 };
 
 class AesCbcState {

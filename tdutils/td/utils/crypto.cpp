@@ -251,57 +251,62 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
   return 0;
 }
 
-uint8 *AesBlock::raw() {
-  return reinterpret_cast<uint8 *>(this);
-}
-const uint8 *AesBlock::raw() const {
-  return reinterpret_cast<const uint8 *>(this);
-}
-Slice AesBlock::as_slice() const {
-  return Slice(raw(), AES_BLOCK_SIZE);
-}
+struct AesBlock {
+  uint64 hi;
+  uint64 lo;
 
-AesBlock AesBlock::operator^(const AesBlock &b) const {
-  AesBlock res;
-  res.hi = hi ^ b.hi;
-  res.lo = lo ^ b.lo;
-  return res;
-}
-void AesBlock::operator^=(const AesBlock &b) {
-  hi ^= b.hi;
-  lo ^= b.lo;
-}
-
-void AesBlock::load(const uint8 *from) {
-  *this = as<AesBlock>(from);
-}
-void AesBlock::store(uint8 *to) {
-  as<AesBlock>(to) = *this;
-}
-
-AesBlock AesBlock::inc() const {
-#if SIZE_MAX == UINT64_MAX
-  AesBlock res;
-  res.lo = host_to_big_endian64(big_endian_to_host64(lo) + 1);
-  if (res.lo == 0) {
-    res.hi = host_to_big_endian64(big_endian_to_host64(hi) + 1);
-  } else {
-    res.hi = hi;
+  uint8 *raw() {
+    return reinterpret_cast<uint8 *>(this);
   }
-  return res;
+  const uint8 *raw() const {
+    return reinterpret_cast<const uint8 *>(this);
+  }
+  Slice as_slice() const {
+    return Slice(raw(), AES_BLOCK_SIZE);
+  }
+
+  AesBlock operator^(const AesBlock &b) const {
+    AesBlock res;
+    res.hi = hi ^ b.hi;
+    res.lo = lo ^ b.lo;
+    return res;
+  }
+  void operator^=(const AesBlock &b) {
+    hi ^= b.hi;
+    lo ^= b.lo;
+  }
+
+  void load(const uint8 *from) {
+    *this = as<AesBlock>(from);
+  }
+  void store(uint8 *to) {
+    as<AesBlock>(to) = *this;
+  }
+
+  AesBlock inc() const {
+#if SIZE_MAX == UINT64_MAX
+    AesBlock res;
+    res.lo = host_to_big_endian64(big_endian_to_host64(lo) + 1);
+    if (res.lo == 0) {
+      res.hi = host_to_big_endian64(big_endian_to_host64(hi) + 1);
+    } else {
+      res.hi = hi;
+    }
+    return res;
 #else
-  AesBlock res = *this;
-  auto ptr = res.raw();
-  if (++ptr[15] == 0) {
-    for (int i = 14; i >= 0; i--) {
-      if (++ptr[i] != 0) {
-        break;
+    AesBlock res = *this;
+    auto ptr = res.raw();
+    if (++ptr[15] == 0) {
+      for (int i = 14; i >= 0; i--) {
+        if (++ptr[i] != 0) {
+          break;
+        }
       }
     }
-  }
-  return res;
+    return res;
 #endif
-}
+  }
+};
 static_assert(sizeof(AesBlock) == 16, "");
 static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
 
@@ -338,101 +343,109 @@ class XorBytes {
   };
 };
 
-uint8 *AesCtrCounterPack::raw() {
-  return reinterpret_cast<uint8 *>(this);
-}
-const uint8 *AesCtrCounterPack::raw() const {
-  return reinterpret_cast<const uint8 *>(this);
-}
-
-size_t AesCtrCounterPack::size() const {
-  return sizeof(blocks);
-}
-
-Slice AesCtrCounterPack::as_slice() const {
-  return Slice(raw(), size());
-}
-MutableSlice AesCtrCounterPack::as_mutable_slice() {
-  return MutableSlice(raw(), size());
-}
-
-void AesCtrCounterPack::init(AesBlock block) {
-  blocks[0] = block;
-  for (size_t i = 1; i < BLOCK_COUNT; i++) {
-    blocks[i] = blocks[i - 1].inc();
+struct AesCtrCounterPack {
+  static constexpr size_t BLOCK_COUNT = 32;
+  AesBlock blocks[BLOCK_COUNT];
+  uint8 *raw() {
+    return reinterpret_cast<uint8 *>(this);
   }
-}
-
-void AesCtrCounterPack::rotate() {
-  blocks[0] = blocks[BLOCK_COUNT - 1].inc();
-  for (size_t i = 1; i < BLOCK_COUNT; i++) {
-    blocks[i] = blocks[i - 1].inc();
+  const uint8 *raw() const {
+    return reinterpret_cast<const uint8 *>(this);
   }
-}
 
-static EVP_CIPHER_CTX *evp_load(std::unique_ptr<void, Evp::EvpDeleter> &ptr) {
-  if (!ptr) {
-    ptr.reset(EVP_CIPHER_CTX_new());
-    LOG_IF(FATAL, !ptr);
+  size_t size() const {
+    return sizeof(blocks);
   }
-  return reinterpret_cast<EVP_CIPHER_CTX *>(ptr.get());
+
+  Slice as_slice() const {
+    return Slice(raw(), size());
+  }
+  MutableSlice as_mutable_slice() {
+    return MutableSlice(raw(), size());
+  }
+
+  void init(AesBlock block) {
+    blocks[0] = block;
+    for (size_t i = 1; i < BLOCK_COUNT; i++) {
+      blocks[i] = blocks[i - 1].inc();
+    }
+  }
+  void rotate() {
+    blocks[0] = blocks[BLOCK_COUNT - 1].inc();
+    for (size_t i = 1; i < BLOCK_COUNT; i++) {
+      blocks[i] = blocks[i - 1].inc();
+    }
+  }
 };
 
-static void evp_init(EVP_CIPHER_CTX *ctx, Evp::Type type, bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
-  // type_ = type;
-  // is_encrypt_ = is_encrypt;
-  int res = EVP_CipherInit_ex(ctx, cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
-  LOG_IF(FATAL, res != 1);
-  EVP_CIPHER_CTX_set_padding(ctx, 0);
-}
+class Evp {
+ public:
+  Evp() {
+    ctx_ = EVP_CIPHER_CTX_new();
+    LOG_IF(FATAL, ctx_ == nullptr);
+  }
+  Evp(const Evp &from) = delete;
+  Evp &operator=(const Evp &from) = delete;
+  Evp(Evp &&from) = delete;
+  Evp &operator=(Evp &&from) = delete;
+  ~Evp() {
+    CHECK(ctx_ != nullptr);
+    EVP_CIPHER_CTX_free(ctx_);
+  }
 
-void Evp::EvpDeleter::operator()(void *ptr) {
-  CHECK(ptr != nullptr);
-  EVP_CIPHER_CTX_free(reinterpret_cast<EVP_CIPHER_CTX *>(ptr));
-}
+  void init_encrypt_ecb(Slice key) {
+    init(Type::Ecb, true, EVP_aes_256_ecb(), key);
+  }
 
-Evp::~Evp() = default;
-Evp &Evp::operator=(Evp &&from) = default;
-Evp::Evp(Evp &&from) = default;
+  void init_decrypt_ecb(Slice key) {
+    init(Type::Ecb, false, EVP_aes_256_ecb(), key);
+  }
 
-void Evp::init_encrypt_ecb(Slice key) {
-  evp_init(evp_load(ctx_), Type::Ecb, true, EVP_aes_256_ecb(), key);
-}
+  void init_encrypt_cbc(Slice key) {
+    init(Type::Cbc, true, EVP_aes_256_cbc(), key);
+  }
 
-void Evp::init_decrypt_ecb(Slice key) {
-  evp_init(evp_load(ctx_), Type::Ecb, false, EVP_aes_256_ecb(), key);
-}
+  void init_decrypt_cbc(Slice key) {
+    init(Type::Cbc, false, EVP_aes_256_cbc(), key);
+  }
 
-void Evp::init_encrypt_cbc(Slice key) {
-  evp_init(evp_load(ctx_), Type::Cbc, true, EVP_aes_256_cbc(), key);
-}
+  void init_iv(Slice iv) {
+    int res = EVP_CipherInit_ex(ctx_, nullptr, nullptr, nullptr, iv.ubegin(), -1);
+    LOG_IF(FATAL, res != 1);
+  }
 
-void Evp::init_decrypt_cbc(Slice key) {
-  evp_init(evp_load(ctx_), Type::Cbc, false, EVP_aes_256_cbc(), key);
-}
+  void encrypt(const uint8 *src, uint8 *dst, int size) {
+    // CHECK(type_ != Type::Empty && is_encrypt_);
+    CHECK(size % AES_BLOCK_SIZE == 0);
+    int len;
+    int res = EVP_EncryptUpdate(ctx_, dst, &len, src, size);
+    LOG_IF(FATAL, res != 1);
+    CHECK(len == size);
+  }
 
-void Evp::init_iv(Slice iv) {
-  int res = EVP_CipherInit_ex(evp_load(ctx_), nullptr, nullptr, nullptr, iv.ubegin(), -1);
-  LOG_IF(FATAL, res != 1);
-}
+  void decrypt(const uint8 *src, uint8 *dst, int size) {
+    // CHECK(type_ != Type::Empty && !is_encrypt_);
+    CHECK(size % AES_BLOCK_SIZE == 0);
+    int len;
+    int res = EVP_DecryptUpdate(ctx_, dst, &len, src, size);
+    LOG_IF(FATAL, res != 1);
+    CHECK(len == size);
+  }
 
-void Evp::encrypt(const uint8 *src, uint8 *dst, int size) {
-  // CHECK(type_ != Type::Empty && is_encrypt_);
-  CHECK(size % AES_BLOCK_SIZE == 0);
-  int len;
-  int res = EVP_EncryptUpdate(evp_load(ctx_), dst, &len, src, size);
-  LOG_IF(FATAL, res != 1);
-  CHECK(len == size);
-}
+ private:
+  EVP_CIPHER_CTX *ctx_{nullptr};
+  enum class Type : int8 { Empty, Ecb, Cbc };
+  // Type type_{Type::Empty};
+  // bool is_encrypt_ = false;
 
-void Evp::decrypt(const uint8 *src, uint8 *dst, int size) {
-  // CHECK(type_ != Type::Empty && !is_encrypt_);
-  CHECK(size % AES_BLOCK_SIZE == 0);
-  int len;
-  int res = EVP_DecryptUpdate(evp_load(ctx_), dst, &len, src, size);
-  LOG_IF(FATAL, res != 1);
-  CHECK(len == size);
-}
+  void init(Type type, bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
+    // type_ = type;
+    // is_encrypt_ = is_encrypt;
+    int res = EVP_CipherInit_ex(ctx_, cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
+    LOG_IF(FATAL, res != 1);
+    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+  }
+};
 
 struct AesState::Impl {
   Evp evp;
@@ -498,87 +511,111 @@ void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
   state.decrypt(from, to);
 }
 
-void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
-  CHECK(key.size() == 32);
-  CHECK(iv.size() == 32);
-  if (encrypt) {
-    evp_.init_encrypt_cbc(key);
-  } else {
-    evp_.init_decrypt_ecb(key);
+class AesIgeState::Impl {
+ public:
+  void init(Slice key, Slice iv, bool encrypt) {
+    CHECK(key.size() == 32);
+    CHECK(iv.size() == 32);
+    if (encrypt) {
+      evp_.init_encrypt_cbc(key);
+    } else {
+      evp_.init_decrypt_ecb(key);
+    }
+
+    encrypted_iv_.load(iv.ubegin());
+    plaintext_iv_.load(iv.ubegin() + AES_BLOCK_SIZE);
   }
+  void encrypt(Slice from, MutableSlice to) {
+    CHECK(from.size() % AES_BLOCK_SIZE == 0);
+    CHECK(to.size() >= from.size());
+    auto len = to.size() / AES_BLOCK_SIZE;
+    auto in = from.ubegin();
+    auto out = to.ubegin();
 
-  encrypted_iv_.load(iv.ubegin());
-  plaintext_iv_.load(iv.ubegin() + AES_BLOCK_SIZE);
-}
-void AesIgeState::encrypt(Slice from, MutableSlice to) {
-  CHECK(from.size() % AES_BLOCK_SIZE == 0);
-  CHECK(to.size() >= from.size());
-  auto len = to.size() / AES_BLOCK_SIZE;
-  auto in = from.ubegin();
-  auto out = to.ubegin();
+    static constexpr size_t BLOCK_COUNT = 31;
+    while (len != 0) {
+      AesBlock data[BLOCK_COUNT];
+      AesBlock data_xored[BLOCK_COUNT];
 
-  static constexpr size_t BLOCK_COUNT = 31;
-  while (len != 0) {
-    AesBlock data[BLOCK_COUNT];
-    AesBlock data_xored[BLOCK_COUNT];
-
-    auto count = td::min(BLOCK_COUNT, len);
-    std::memcpy(data, in, AES_BLOCK_SIZE * count);
-    data_xored[0] = data[0];
-    if (count > 1) {
-      data_xored[1] = plaintext_iv_ ^ data[1];
-      for (size_t i = 2; i < count; i++) {
-        data_xored[i] = data[i - 2] ^ data[i];
+      auto count = td::min(BLOCK_COUNT, len);
+      std::memcpy(data, in, AES_BLOCK_SIZE * count);
+      data_xored[0] = data[0];
+      if (count > 1) {
+        data_xored[1] = plaintext_iv_ ^ data[1];
+        for (size_t i = 2; i < count; i++) {
+          data_xored[i] = data[i - 2] ^ data[i];
+        }
       }
+
+      evp_.init_iv(encrypted_iv_.as_slice());
+      int inlen = static_cast<int>(AES_BLOCK_SIZE * count);
+      evp_.encrypt(data_xored[0].raw(), data_xored[0].raw(), inlen);
+
+      data_xored[0] ^= plaintext_iv_;
+      for (size_t i = 1; i < count; i++) {
+        data_xored[i] ^= data[i - 1];
+      }
+      plaintext_iv_ = data[count - 1];
+      encrypted_iv_ = data_xored[count - 1];
+
+      std::memcpy(out, data_xored, AES_BLOCK_SIZE * count);
+      len -= count;
+      in += AES_BLOCK_SIZE * count;
+      out += AES_BLOCK_SIZE * count;
     }
+  }
 
-    evp_.init_iv(encrypted_iv_.as_slice());
-    int inlen = static_cast<int>(AES_BLOCK_SIZE * count);
-    evp_.encrypt(data_xored[0].raw(), data_xored[0].raw(), inlen);
+  void decrypt(Slice from, MutableSlice to) {
+    CHECK(from.size() % AES_BLOCK_SIZE == 0);
+    CHECK(to.size() >= from.size());
+    auto len = to.size() / AES_BLOCK_SIZE;
+    auto in = from.ubegin();
+    auto out = to.ubegin();
 
-    data_xored[0] ^= plaintext_iv_;
-    for (size_t i = 1; i < count; i++) {
-      data_xored[i] ^= data[i - 1];
+    AesBlock encrypted;
+
+    while (len) {
+      encrypted.load(in);
+
+      plaintext_iv_ ^= encrypted;
+      evp_.decrypt(plaintext_iv_.raw(), plaintext_iv_.raw(), AES_BLOCK_SIZE);
+      plaintext_iv_ ^= encrypted_iv_;
+
+      plaintext_iv_.store(out);
+      encrypted_iv_ = encrypted;
+
+      --len;
+      in += AES_BLOCK_SIZE;
+      out += AES_BLOCK_SIZE;
     }
-    plaintext_iv_ = data[count - 1];
-    encrypted_iv_ = data_xored[count - 1];
-
-    std::memcpy(out, data_xored, AES_BLOCK_SIZE * count);
-    len -= count;
-    in += AES_BLOCK_SIZE * count;
-    out += AES_BLOCK_SIZE * count;
   }
-}
 
-void AesIgeState::decrypt(Slice from, MutableSlice to) {
-  CHECK(from.size() % AES_BLOCK_SIZE == 0);
-  CHECK(to.size() >= from.size());
-  auto len = to.size() / AES_BLOCK_SIZE;
-  auto in = from.ubegin();
-  auto out = to.ubegin();
-
-  AesBlock encrypted;
-
-  while (len) {
-    encrypted.load(in);
-
-    plaintext_iv_ ^= encrypted;
-    evp_.decrypt(plaintext_iv_.raw(), plaintext_iv_.raw(), AES_BLOCK_SIZE);
-    plaintext_iv_ ^= encrypted_iv_;
-
-    plaintext_iv_.store(out);
-    encrypted_iv_ = encrypted;
-
-    --len;
-    in += AES_BLOCK_SIZE;
-    out += AES_BLOCK_SIZE;
-  }
-}
+ private:
+  Evp evp_;
+  AesBlock encrypted_iv_;
+  AesBlock plaintext_iv_;
+};
 
 AesIgeState::AesIgeState() = default;
 AesIgeState::AesIgeState(AesIgeState &&from) = default;
 AesIgeState &AesIgeState::operator=(AesIgeState &&from) = default;
 AesIgeState::~AesIgeState() = default;
+
+void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
+  if (!impl_) {
+    impl_ = make_unique<Impl>();
+  }
+
+  impl_->init(key, iv, encrypt);
+}
+
+void AesIgeState::encrypt(Slice from, MutableSlice to) {
+  impl_->encrypt(from, to);
+}
+
+void AesIgeState::decrypt(Slice from, MutableSlice to) {
+  impl_->decrypt(from, to);
+}
 
 static void aes_cbc_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
   CHECK(aes_key.size() == 32);
@@ -615,41 +652,65 @@ void AesCbcState::decrypt(Slice from, MutableSlice to) {
   ::td::aes_cbc_decrypt(key_.as_slice(), iv_.as_mutable_slice(), from, to);
 }
 
+class AesCtrState::Impl {
+ public:
+  Impl(Slice key, Slice iv) {
+    CHECK(key.size() == 32);
+    CHECK(iv.size() == 16);
+    static_assert(AES_BLOCK_SIZE == 16, "");
+    evp_.init_encrypt_ecb(key);
+    AesBlock block;
+    block.load(iv.ubegin());
+    counter_.init(block);
+    fill();
+  }
+
+  void encrypt(Slice from, MutableSlice to) {
+    auto *src = from.ubegin();
+    auto *dst = to.ubegin();
+    auto n = from.size();
+    while (n != 0) {
+      if (current_.empty()) {
+        counter_.rotate();
+        fill();
+      }
+      size_t min_n = td::min(n, current_.size());
+      XorBytes::run(src, current_.ubegin(), dst, min_n);
+      src += min_n;
+      dst += min_n;
+      n -= min_n;
+      current_.remove_prefix(min_n);
+    }
+  }
+
+ private:
+  Evp evp_;
+
+  AesCtrCounterPack counter_;
+  AesCtrCounterPack encrypted_counter_;
+  Slice current_;
+
+  void fill() {
+    evp_.encrypt(counter_.raw(), encrypted_counter_.raw(), static_cast<int>(counter_.size()));
+    current_ = encrypted_counter_.as_slice();
+  }
+};
+
+AesCtrState::AesCtrState() = default;
+AesCtrState::AesCtrState(AesCtrState &&from) = default;
+AesCtrState &AesCtrState::operator=(AesCtrState &&from) = default;
+AesCtrState::~AesCtrState() = default;
+
 void AesCtrState::init(Slice key, Slice iv) {
-  CHECK(key.size() == 32);
-  CHECK(iv.size() == 16);
-  static_assert(AES_BLOCK_SIZE == 16, "");
-  evp_.init_encrypt_ecb(key);
-  AesBlock block;
-  block.load(iv.ubegin());
-  counter_.init(block);
-  fill();
+  ctx_ = make_unique<AesCtrState::Impl>(key, iv);
 }
 
 void AesCtrState::encrypt(Slice from, MutableSlice to) {
-  auto *src = from.ubegin();
-  auto *dst = to.ubegin();
-  auto n = from.size();
-  while (n != 0) {
-    if (current_.empty()) {
-      counter_.rotate();
-      fill();
-    }
-    size_t min_n = td::min(n, current_.size());
-    XorBytes::run(src, current_.ubegin(), dst, min_n);
-    src += min_n;
-    dst += min_n;
-    n -= min_n;
-    current_.remove_prefix(min_n);
-  }
+  ctx_->encrypt(from, to);
 }
 
 void AesCtrState::decrypt(Slice from, MutableSlice to) {
   encrypt(from, to);  // it is the same as decrypt
-}
-void AesCtrState::fill() {
-  evp_.encrypt(counter_.raw(), encrypted_counter_.raw(), static_cast<int>(counter_.size()));
-  current_ = encrypted_counter_.as_slice();
 }
 
 void sha1(Slice data, unsigned char output[20]) {
@@ -1016,6 +1077,7 @@ uint32 crc32c_extend(uint32 old_crc, Slice data) {
 }
 
 namespace {
+
 uint32 gf32_matrix_times(const uint32 *matrix, uint32 vector) {
   uint32 sum = 0;
   while (vector) {
