@@ -6,7 +6,6 @@
 //
 #include "td/utils/crypto.h"
 
-#include "td/utils/Slice-decl.h"
 #include "td/utils/as.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
