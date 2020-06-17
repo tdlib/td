@@ -15,11 +15,12 @@ TEST(OptionParser, run) {
   td::OptionParser options;
   options.set_description("test description");
 
+  td::string exename = "exename";
   td::vector<td::string> args;
   auto run_option_parser = [&](td::string command_line) {
     args = td::full_split(command_line, ' ');
     td::vector<char *> argv;
-    argv.push_back("exename");
+    argv.push_back(&exename[0]);
     for (auto &arg : args) {
       argv.push_back(&arg[0]);
     }
