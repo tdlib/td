@@ -370,12 +370,6 @@ struct AesCtrCounterPack {
       blocks[i] = blocks[i - 1].inc();
     }
   }
-  void rotate() {
-    blocks[0] = blocks[BLOCK_COUNT - 1].inc();
-    for (size_t i = 1; i < BLOCK_COUNT; i++) {
-      blocks[i] = blocks[i - 1].inc();
-    }
-  }
 };
 
 class Evp {
@@ -659,9 +653,7 @@ class AesCtrState::Impl {
     CHECK(iv.size() == 16);
     static_assert(AES_BLOCK_SIZE == 16, "");
     evp_.init_encrypt_ecb(key);
-    AesBlock block;
-    block.load(iv.ubegin());
-    counter_.init(block);
+    counter_.load(iv.ubegin());
     fill();
   }
 
@@ -671,7 +663,6 @@ class AesCtrState::Impl {
     auto n = from.size();
     while (n != 0) {
       if (current_.empty()) {
-        counter_.rotate();
         fill();
       }
       size_t min_n = td::min(n, current_.size());
@@ -686,12 +677,14 @@ class AesCtrState::Impl {
  private:
   Evp evp_;
 
-  AesCtrCounterPack counter_;
+  AesBlock counter_;
   AesCtrCounterPack encrypted_counter_;
   Slice current_;
 
   void fill() {
-    evp_.encrypt(counter_.raw(), encrypted_counter_.raw(), static_cast<int>(counter_.size()));
+    encrypted_counter_.init(counter_);
+    counter_ = encrypted_counter_.blocks[AesCtrCounterPack::BLOCK_COUNT - 1].inc();
+    evp_.encrypt(encrypted_counter_.raw(), encrypted_counter_.raw(), static_cast<int>(encrypted_counter_.size()));
     current_ = encrypted_counter_.as_slice();
   }
 };
