@@ -353,15 +353,8 @@ struct AesCtrCounterPack {
     return reinterpret_cast<const uint8 *>(this);
   }
 
-  size_t size() const {
+  static size_t size() {
     return sizeof(blocks);
-  }
-
-  Slice as_slice() const {
-    return Slice(raw(), size());
-  }
-  MutableSlice as_mutable_slice() {
-    return MutableSlice(raw(), size());
   }
 
   void init(AesBlock block) {
@@ -662,30 +655,32 @@ class AesCtrState::Impl {
     auto *dst = to.ubegin();
     auto n = from.size();
     while (n != 0) {
-      if (current_.empty()) {
+      size_t left = encrypted_counter_.raw() + AesCtrCounterPack::size() - current_;
+      if (left == 0) {
         fill();
+        left = AesCtrCounterPack::size();
       }
-      size_t min_n = td::min(n, current_.size());
-      XorBytes::run(src, current_.ubegin(), dst, min_n);
+      size_t min_n = td::min(n, left);
+      XorBytes::run(src, current_, dst, min_n);
       src += min_n;
       dst += min_n;
       n -= min_n;
-      current_.remove_prefix(min_n);
+      current_ += min_n;
     }
   }
 
  private:
   Evp evp_;
 
+  uint8 *current_;
   AesBlock counter_;
   AesCtrCounterPack encrypted_counter_;
-  Slice current_;
 
   void fill() {
     encrypted_counter_.init(counter_);
     counter_ = encrypted_counter_.blocks[AesCtrCounterPack::BLOCK_COUNT - 1].inc();
-    evp_.encrypt(encrypted_counter_.raw(), encrypted_counter_.raw(), static_cast<int>(encrypted_counter_.size()));
-    current_ = encrypted_counter_.as_slice();
+    current_ = encrypted_counter_.raw();
+    evp_.encrypt(current_, current_, static_cast<int>(AesCtrCounterPack::size()));
   }
 };
 
