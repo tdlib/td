@@ -452,6 +452,8 @@ struct AesState::Impl {
 };
 
 AesState::AesState() = default;
+AesState::AesState(AesState &&from) = default;
+AesState &AesState::operator=(AesState &&from) = default;
 AesState::~AesState() = default;
 
 void AesState::init(Slice key, bool encrypt) {
@@ -595,6 +597,8 @@ class AesIgeState::Impl {
 };
 
 AesIgeState::AesIgeState() = default;
+AesIgeState::AesIgeState(AesIgeState &&from) = default;
+AesIgeState &AesIgeState::operator=(AesIgeState &&from) = default;
 AesIgeState::~AesIgeState() = default;
 
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
