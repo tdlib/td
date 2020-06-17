@@ -4335,7 +4335,7 @@ void main(int argc, char **argv) {
     use_test_dc = true;
     return Status::OK();
   });
-  options.add_option('v', "verbosity", "Verbosity level", [&](Slice level) {
+  options.add_option('v', "verbosity", "Set verbosity level", [&](Slice level) {
     int new_verbosity = 1;
     while (begins_with(level, "v")) {
       new_verbosity++;
@@ -4347,7 +4347,7 @@ void main(int argc, char **argv) {
     new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
     return Status::OK();
   });
-  options.add_option('l', "log", "Log file", [&](Slice file_name) {
+  options.add_option('l', "log", "Log to file", [&](Slice file_name) {
     if (file_log.init(file_name.str()).is_ok() && file_log.init(file_name.str()).is_ok() &&
         file_log.init(file_name.str(), 1000 << 20).is_ok()) {
       log_interface = &ts_log;
@@ -4362,19 +4362,19 @@ void main(int argc, char **argv) {
     disable_network = true;
     return Status::OK();
   });
-  options.add_option('\0', "api-id", "Telegram API ID", [&](Slice parameter) {
+  options.add_option('\0', "api-id", "Set Telegram API ID", [&](Slice parameter) {
     api_id = to_integer<int32>(parameter);
     return Status::OK();
   });
-  options.add_option('\0', "api_id", "Telegram API ID", [&](Slice parameter) {
+  options.add_option('\0', "api_id", "Set Telegram API ID", [&](Slice parameter) {
     api_id = to_integer<int32>(parameter);
     return Status::OK();
   });
-  options.add_option('\0', "api-hash", "Telegram API hash", [&](Slice parameter) {
+  options.add_option('\0', "api-hash", "Set Telegram API hash", [&](Slice parameter) {
     api_hash = parameter.str();
     return Status::OK();
   });
-  options.add_option('\0', "api_hash", "Telegram API hash", [&](Slice parameter) {
+  options.add_option('\0', "api_hash", "Set Telegram API hash", [&](Slice parameter) {
     api_hash = parameter.str();
     return Status::OK();
   });

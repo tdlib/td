@@ -135,22 +135,46 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
-  sb << o.description_ << "\n";
+  if (!o.description_.empty()) {
+    sb << o.description_ << ". ";
+  }
+  sb << "Options:\n";
+
+  size_t max_length = 0;
   for (auto &opt : o.options_) {
     bool has_short_key = opt.short_key != '\0';
+    bool has_long_key = !opt.long_key.empty();
+    size_t length = (has_short_key ? 2 : 0) + (has_long_key ? 2 + opt.long_key.size() + 2 * has_short_key : 0);
+    if (opt.type != OptionParser::Option::Type::NoArg) {
+      length += 5;
+    }
+    if (length > max_length) {
+      max_length = length;
+    }
+  }
+  max_length++;
+
+  for (auto &opt : o.options_) {
+    bool has_short_key = opt.short_key != '\0';
+    sb << "  ";
+    size_t length = max_length;
     if (has_short_key) {
-      sb << "-" << opt.short_key;
+      sb << '-' << opt.short_key;
+      length -= 2;
     }
     if (!opt.long_key.empty()) {
       if (has_short_key) {
-        sb << '|';
+        sb << ", ";
+        length -= 2;
       }
       sb << "--" << opt.long_key;
+      length -= 2 + opt.long_key.size();
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       sb << "<arg>";
+      length -= 5;
     }
-    sb << "    " << opt.description;
+    sb << string(length, ' ') << opt.description;
     sb << '\n';
   }
   return sb;
