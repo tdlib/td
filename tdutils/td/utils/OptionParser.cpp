@@ -137,15 +137,21 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
 StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
   sb << o.description_ << "\n";
   for (auto &opt : o.options_) {
-    sb << "-" << opt.short_key;
+    bool has_short_key = opt.short_key != '\0';
+    if (has_short_key) {
+      sb << "-" << opt.short_key;
+    }
     if (!opt.long_key.empty()) {
-      sb << "|--" << opt.long_key;
+      if (has_short_key) {
+        sb << '|';
+      }
+      sb << "--" << opt.long_key;
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       sb << "<arg>";
     }
-    sb << "\t" << opt.description;
-    sb << "\n";
+    sb << "    " << opt.description;
+    sb << '\n';
   }
   return sb;
 }
