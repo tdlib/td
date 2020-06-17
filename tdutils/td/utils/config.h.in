@@ -5,5 +5,4 @@
 #cmakedefine01 TD_HAVE_CRC32C
 #cmakedefine01 TD_HAVE_COROUTINES
 #cmakedefine01 TD_HAVE_ABSL
-#cmakedefine01 TD_HAVE_GETOPT
 #cmakedefine01 TD_FD_DEBUG

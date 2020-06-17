@@ -19,7 +19,7 @@
 int main(int argc, char **argv) {
   td::init_openssl_threads();
 
-  // TODO port OptionsParser to Windows
+  // TODO use OptionParser
   td::TestsRunner &runner = td::TestsRunner::get_default();
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   for (int i = 1; i < argc; i++) {

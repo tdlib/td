@@ -4331,7 +4331,7 @@ void main(int argc, char **argv) {
     }
     return std::string();
   }(std::getenv("TD_API_HASH"));
-  // TODO port OptionsParser to Windows
+  // TODO use OptionParser
   for (int i = 1; i < argc; i++) {
     if (!std::strcmp(argv[i], "--test")) {
       use_test_dc = true;

@@ -15,7 +15,7 @@
 
 namespace td {
 
-class OptionsParser {
+class OptionParser {
   class Option {
    public:
     enum class Type { NoArg, Arg };
@@ -36,9 +36,10 @@ class OptionsParser {
 
   void add_option(char short_key, Slice long_key, Slice description, std::function<Status(void)> callback);
 
-  Result<int> run(int argc, char *argv[]) TD_WARN_UNUSED_RESULT;
+  // returns found non-option parameters
+  Result<vector<char *>> run(int argc, char *argv[]) TD_WARN_UNUSED_RESULT;
 
-  friend StringBuilder &operator<<(StringBuilder &sb, const OptionsParser &o);
+  friend StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o);
 
  private:
   vector<Option> options_;
