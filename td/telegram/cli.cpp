@@ -23,6 +23,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/OptionParser.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/signals.h"
@@ -4285,10 +4286,6 @@ static void fail_signal(int sig) {
   }
 }
 
-static void usage() {
-  //TODO:
-}
-
 static void on_fatal_error(const char *error) {
   std::cerr << "Fatal error: " << error << std::endl;
 }
@@ -4331,52 +4328,72 @@ void main(int argc, char **argv) {
     }
     return std::string();
   }(std::getenv("TD_API_HASH"));
-  // TODO use OptionParser
-  for (int i = 1; i < argc; i++) {
-    if (!std::strcmp(argv[i], "--test")) {
-      use_test_dc = true;
-    } else if (!std::strncmp(argv[i], "-v", 2)) {
-      const char *arg = argv[i] + 2;
-      if (*arg == '\0' && i + 1 < argc) {
-        arg = argv[++i];
-      }
-      int new_verbosity = 1;
-      while (*arg == 'v') {
-        new_verbosity++;
-        arg++;
-      }
-      if (*arg) {
-        new_verbosity += to_integer<int>(Slice(arg)) - (new_verbosity == 1);
-      }
-      new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
-    } else if (!std::strncmp(argv[i], "-l", 2)) {
-      const char *arg = argv[i] + 2;
-      if (*arg == '\0' && i + 1 < argc) {
-        arg = argv[++i];
-      }
-      if (file_log.init(arg).is_ok() && file_log.init(arg).is_ok() && file_log.init(arg, 1000 << 20).is_ok()) {
-        log_interface = &ts_log;
-      }
-    } else if (!std::strcmp(argv[i], "-W")) {
-      get_chat_list = true;
-    } else if (!std::strcmp(argv[i], "--disable-network") || !std::strcmp(argv[i], "-n")) {
-      disable_network = true;
-    } else if (!std::strcmp(argv[i], "--api_id") || !std::strcmp(argv[i], "--api-id")) {
-      if (i + 1 >= argc) {
-        return usage();
-      }
-      api_id = to_integer<int32>(Slice(argv[++i]));
-    } else if (!std::strcmp(argv[i], "--api_hash") || !std::strcmp(argv[i], "--api-hash")) {
-      if (i + 1 >= argc) {
-        return usage();
-      }
-      api_hash = argv[++i];
+
+  td::OptionParser options;
+  options.set_description("TDLib test client");
+  options.add_option('\0', "test", "Use test DC", [&] {
+    use_test_dc = true;
+    return Status::OK();
+  });
+  options.add_option('v', "verbosity", "Verbosity level", [&](Slice level) {
+    int new_verbosity = 1;
+    while (begins_with(level, "v")) {
+      new_verbosity++;
+      level.remove_prefix(1);
     }
+    if (!level.empty()) {
+      new_verbosity += to_integer<int>(level) - (new_verbosity == 1);
+    }
+    new_verbosity_level = VERBOSITY_NAME(FATAL) + new_verbosity;
+    return Status::OK();
+  });
+  options.add_option('l', "log", "Log file", [&](Slice file_name) {
+    if (file_log.init(file_name.str()).is_ok() && file_log.init(file_name.str()).is_ok() &&
+        file_log.init(file_name.str(), 1000 << 20).is_ok()) {
+      log_interface = &ts_log;
+    }
+    return Status::OK();
+  });
+  options.add_option('W', "", "Preload chat list", [&] {
+    get_chat_list = true;
+    return Status::OK();
+  });
+  options.add_option('n', "disable-network", "Disable network", [&] {
+    disable_network = true;
+    return Status::OK();
+  });
+  options.add_option('\0', "api-id", "Telegram API ID", [&](Slice parameter) {
+    api_id = to_integer<int32>(parameter);
+    return Status::OK();
+  });
+  options.add_option('\0', "api_id", "Telegram API ID", [&](Slice parameter) {
+    api_id = to_integer<int32>(parameter);
+    return Status::OK();
+  });
+  options.add_option('\0', "api-hash", "Telegram API hash", [&](Slice parameter) {
+    api_hash = parameter.str();
+    return Status::OK();
+  });
+  options.add_option('\0', "api_hash", "Telegram API hash", [&](Slice parameter) {
+    api_hash = parameter.str();
+    return Status::OK();
+  });
+  auto res = options.run(argc, argv);
+  if (res.is_error()) {
+    LOG(ERROR) << res.error();
+    LOG(PLAIN) << options;
+    return;
+  }
+  if (!res.ok().empty()) {
+    LOG(ERROR) << "Have unexpected non-option parameters";
+    LOG(PLAIN) << options;
+    return;
   }
 
   if (api_id == 0 || api_hash.empty()) {
     LOG(ERROR) << "You should provide some valid api_id and api_hash";
-    return usage();
+    LOG(PLAIN) << options;
+    return;
   }
 
   SET_VERBOSITY_LEVEL(new_verbosity_level);
