@@ -50,133 +50,6 @@
 
 namespace td {
 
-struct AesBlock {
-  uint64 hi;
-  uint64 lo;
-
-  uint8 *raw() {
-    return reinterpret_cast<uint8 *>(this);
-  }
-  const uint8 *raw() const {
-    return reinterpret_cast<const uint8 *>(this);
-  }
-  Slice as_slice() const {
-    return Slice(raw(), AES_BLOCK_SIZE);
-  }
-
-  AesBlock operator^(const AesBlock &b) const {
-    AesBlock res;
-    res.hi = hi ^ b.hi;
-    res.lo = lo ^ b.lo;
-    return res;
-  }
-  void operator^=(const AesBlock &b) {
-    hi ^= b.hi;
-    lo ^= b.lo;
-  }
-
-  void load(const uint8 *from) {
-    *this = as<AesBlock>(from);
-  }
-  void store(uint8 *to) {
-    as<AesBlock>(to) = *this;
-  }
-
-  AesBlock inc() const {
-#if SIZE_MAX == UINT64_MAX
-    AesBlock res;
-    res.lo = host_to_big_endian64(big_endian_to_host64(lo) + 1);
-    if (res.lo == 0) {
-      res.hi = host_to_big_endian64(big_endian_to_host64(hi) + 1);
-    } else {
-      res.hi = hi;
-    }
-    return res;
-#else
-    AesBlock res = *this;
-    auto ptr = res.raw();
-    if (++ptr[15] == 0) {
-      for (int i = 14; i >= 0; i--) {
-        if (++ptr[i] != 0) {
-          break;
-        }
-      }
-    }
-    return res;
-#endif
-  }
-};
-static_assert(sizeof(AesBlock) == 16, "");
-static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
-
-class XorBytes {
- public:
-  static void run(const uint8 *a, const uint8 *b, uint8 *c, size_t n) {
-    static constexpr int BLOCK_SIZE = 16;
-    auto block_cnt = n / BLOCK_SIZE;
-    n -= block_cnt * BLOCK_SIZE;
-    while (block_cnt-- > 0) {
-      Block<BLOCK_SIZE> a_big = as<Block<BLOCK_SIZE>>(a);
-      Block<BLOCK_SIZE> b_big = as<Block<BLOCK_SIZE>>(b);
-      as<Block<BLOCK_SIZE>>(c) = a_big ^ b_big;
-      a += BLOCK_SIZE;
-      b += BLOCK_SIZE;
-      c += BLOCK_SIZE;
-    }
-    while (n-- > 0) {
-      c[n] = a[n] ^ b[n];
-    }
-  }
-
- private:
-  template <size_t N>
-  struct alignas(N) Block {
-    uint8 data[N];
-    Block operator^(const Block &b) const & {
-      Block res;
-      for (size_t i = 0; i < N; i++) {
-        res.data[i] = data[i] ^ b.data[i];
-      }
-      return res;
-    }
-  };
-};
-
-struct AesCtrCounterPack {
-  static constexpr size_t BLOCK_COUNT = 32;
-  AesBlock blocks[BLOCK_COUNT];
-  uint8 *raw() {
-    return reinterpret_cast<uint8 *>(this);
-  }
-  const uint8 *raw() const {
-    return reinterpret_cast<const uint8 *>(this);
-  }
-
-  size_t size() const {
-    return sizeof(blocks);
-  }
-
-  Slice as_slice() const {
-    return Slice(raw(), size());
-  }
-  MutableSlice as_mutable_slice() {
-    return MutableSlice(raw(), size());
-  }
-
-  void init(AesBlock block) {
-    blocks[0] = block;
-    for (size_t i = 1; i < BLOCK_COUNT; i++) {
-      blocks[i] = blocks[i - 1].inc();
-    }
-  }
-  void rotate() {
-    blocks[0] = blocks[BLOCK_COUNT - 1].inc();
-    for (size_t i = 1; i < BLOCK_COUNT; i++) {
-      blocks[i] = blocks[i - 1].inc();
-    }
-  }
-};
-
 static uint64 gcd(uint64 a, uint64 b) {
   if (a == 0) {
     return b;
@@ -378,6 +251,133 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
   // CHECK(*q_str == q2);
   return 0;
 }
+
+struct AesBlock {
+  uint64 hi;
+  uint64 lo;
+
+  uint8 *raw() {
+    return reinterpret_cast<uint8 *>(this);
+  }
+  const uint8 *raw() const {
+    return reinterpret_cast<const uint8 *>(this);
+  }
+  Slice as_slice() const {
+    return Slice(raw(), AES_BLOCK_SIZE);
+  }
+
+  AesBlock operator^(const AesBlock &b) const {
+    AesBlock res;
+    res.hi = hi ^ b.hi;
+    res.lo = lo ^ b.lo;
+    return res;
+  }
+  void operator^=(const AesBlock &b) {
+    hi ^= b.hi;
+    lo ^= b.lo;
+  }
+
+  void load(const uint8 *from) {
+    *this = as<AesBlock>(from);
+  }
+  void store(uint8 *to) {
+    as<AesBlock>(to) = *this;
+  }
+
+  AesBlock inc() const {
+#if SIZE_MAX == UINT64_MAX
+    AesBlock res;
+    res.lo = host_to_big_endian64(big_endian_to_host64(lo) + 1);
+    if (res.lo == 0) {
+      res.hi = host_to_big_endian64(big_endian_to_host64(hi) + 1);
+    } else {
+      res.hi = hi;
+    }
+    return res;
+#else
+    AesBlock res = *this;
+    auto ptr = res.raw();
+    if (++ptr[15] == 0) {
+      for (int i = 14; i >= 0; i--) {
+        if (++ptr[i] != 0) {
+          break;
+        }
+      }
+    }
+    return res;
+#endif
+  }
+};
+static_assert(sizeof(AesBlock) == 16, "");
+static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
+
+class XorBytes {
+ public:
+  static void run(const uint8 *a, const uint8 *b, uint8 *c, size_t n) {
+    static constexpr int BLOCK_SIZE = 16;
+    auto block_cnt = n / BLOCK_SIZE;
+    n -= block_cnt * BLOCK_SIZE;
+    while (block_cnt-- > 0) {
+      Block<BLOCK_SIZE> a_big = as<Block<BLOCK_SIZE>>(a);
+      Block<BLOCK_SIZE> b_big = as<Block<BLOCK_SIZE>>(b);
+      as<Block<BLOCK_SIZE>>(c) = a_big ^ b_big;
+      a += BLOCK_SIZE;
+      b += BLOCK_SIZE;
+      c += BLOCK_SIZE;
+    }
+    while (n-- > 0) {
+      c[n] = a[n] ^ b[n];
+    }
+  }
+
+ private:
+  template <size_t N>
+  struct alignas(N) Block {
+    uint8 data[N];
+    Block operator^(const Block &b) const & {
+      Block res;
+      for (size_t i = 0; i < N; i++) {
+        res.data[i] = data[i] ^ b.data[i];
+      }
+      return res;
+    }
+  };
+};
+
+struct AesCtrCounterPack {
+  static constexpr size_t BLOCK_COUNT = 32;
+  AesBlock blocks[BLOCK_COUNT];
+  uint8 *raw() {
+    return reinterpret_cast<uint8 *>(this);
+  }
+  const uint8 *raw() const {
+    return reinterpret_cast<const uint8 *>(this);
+  }
+
+  size_t size() const {
+    return sizeof(blocks);
+  }
+
+  Slice as_slice() const {
+    return Slice(raw(), size());
+  }
+  MutableSlice as_mutable_slice() {
+    return MutableSlice(raw(), size());
+  }
+
+  void init(AesBlock block) {
+    blocks[0] = block;
+    for (size_t i = 1; i < BLOCK_COUNT; i++) {
+      blocks[i] = blocks[i - 1].inc();
+    }
+  }
+  void rotate() {
+    blocks[0] = blocks[BLOCK_COUNT - 1].inc();
+    for (size_t i = 1; i < BLOCK_COUNT; i++) {
+      blocks[i] = blocks[i - 1].inc();
+    }
+  }
+};
 
 class Evp {
  public:

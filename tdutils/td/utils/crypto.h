@@ -19,6 +19,8 @@ uint64 pq_factorize(uint64 pq);
 #if TD_HAVE_OPENSSL
 void init_crypto();
 
+int pq_factorize(Slice pq_str, string *p_str, string *q_str);
+
 class AesState {
  public:
   AesState();
@@ -38,8 +40,6 @@ class AesState {
   struct Impl;
   unique_ptr<Impl> impl_;
 };
-
-int pq_factorize(Slice pq_str, string *p_str, string *q_str);
 
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
