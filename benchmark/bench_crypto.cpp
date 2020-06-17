@@ -24,6 +24,7 @@
 #include <vector>
 
 static constexpr int DATA_SIZE = 8 << 10;
+static constexpr int SHORT_DATA_SIZE = 64;
 
 class SHA1Bench : public td::Benchmark {
  public:
@@ -192,7 +193,6 @@ class AesCbcBench : public td::Benchmark {
 template <bool use_state>
 class AesIgeShortBench : public td::Benchmark {
  public:
-  static constexpr int SHORT_DATA_SIZE = 64;
   alignas(64) unsigned char data[SHORT_DATA_SIZE];
   td::UInt256 key;
   td::UInt256 iv;
