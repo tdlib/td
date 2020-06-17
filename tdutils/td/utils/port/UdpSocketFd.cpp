@@ -64,7 +64,7 @@ class UdpSocketReceiveHelper {
     message.error = Status::OK();
 
     if ((message_header.dwFlags & (MSG_TRUNC | MSG_CTRUNC)) != 0) {
-      message.error = Status::Error(501, "message too long");
+      message.error = Status::Error(501, "Message too long");
       message.data = BufferSlice();
       return;
     }
@@ -426,7 +426,7 @@ class UdpSocketReceiveHelper {
     }
     if (message_header.msg_flags & MSG_TRUNC) {
       if (message.error) {
-        *message.error = Status::Error(501, "message too long");
+        *message.error = Status::Error(501, "Message too long");
       }
       message.data.truncate(0);
       return;
