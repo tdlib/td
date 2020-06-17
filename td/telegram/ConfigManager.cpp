@@ -544,6 +544,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 class ConfigRecoverer : public Actor {
  public:
   explicit ConfigRecoverer(ActorShared<> parent) : parent_(std::move(parent)) {
+    connecting_since_ = Time::now();
   }
 
   void on_dc_options_update(DcOptions dc_options) {
