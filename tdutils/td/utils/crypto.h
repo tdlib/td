@@ -37,8 +37,6 @@ class AesState {
  private:
   struct Impl;
   unique_ptr<Impl> impl_;
-
-  friend class AesIgeState;
 };
 
 int pq_factorize(Slice pq_str, string *p_str, string *q_str);

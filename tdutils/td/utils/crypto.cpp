@@ -57,8 +57,11 @@ struct AesBlock {
   uint8 *raw() {
     return reinterpret_cast<uint8 *>(this);
   }
-  Slice as_mutable_slice() {
-    return td::MutableSlice(raw(), 16);
+  const uint8 *raw() const {
+    return reinterpret_cast<const uint8 *>(this);
+  }
+  Slice as_slice() const {
+    return Slice(raw(), AES_BLOCK_SIZE);
   }
 
   AesBlock operator^(const AesBlock &b) const {
@@ -80,11 +83,11 @@ struct AesBlock {
   }
 
   AesBlock inc() const {
-#if __aarch64__ || __x86_64__
+#if SIZE_MAX == UINT64_MAX
     AesBlock res;
-    res.lo = native_vs_bigendian64(native_vs_bigendian64(lo) + 1);
+    res.lo = host_to_big_endian64(big_endian_to_host64(lo) + 1);
     if (res.lo == 0) {
-      res.hi = native_vs_bigendian64(native_vs_bigendian64(hi) + 1);
+      res.hi = host_to_big_endian64(big_endian_to_host64(hi) + 1);
     } else {
       res.hi = hi;
     }
@@ -102,7 +105,7 @@ struct AesBlock {
     return res;
 #endif
   }
-};  // namespace td
+};
 static_assert(sizeof(AesBlock) == 16, "");
 static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
 
@@ -380,69 +383,50 @@ class Evp {
  public:
   Evp() {
     ctx_ = EVP_CIPHER_CTX_new();
-    LOG_IF(FATAL, !ctx_);
+    LOG_IF(FATAL, ctx_ == nullptr);
   }
   Evp(const Evp &from) = delete;
   Evp &operator=(const Evp &from) = delete;
   Evp(Evp &&from) = delete;
   Evp &operator=(Evp &&from) = delete;
   ~Evp() {
-    if (ctx_ != nullptr) {
-      EVP_CIPHER_CTX_free(ctx_);
-    }
+    CHECK(ctx_ != nullptr);
+    EVP_CIPHER_CTX_free(ctx_);
   }
 
   void init_encrypt_ecb(Slice key) {
-    type_ = EncryptEcb;
-    int res = EVP_EncryptInit_ex(ctx_, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr);
-    LOG_IF(FATAL, res != 1);
-    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+    init(Type::Ecb, true, EVP_aes_256_ecb(), key);
   }
 
   void init_decrypt_ecb(Slice key) {
-    type_ = DecryptEcb;
-    int res = EVP_DecryptInit_ex(ctx_, EVP_aes_256_ecb(), nullptr, key.ubegin(), nullptr);
-    LOG_IF(FATAL, res != 1);
-    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+    init(Type::Ecb, false, EVP_aes_256_ecb(), key);
   }
 
   void init_encrypt_cbc(Slice key) {
-    type_ = EncryptCbc;
-    int res = EVP_EncryptInit_ex(ctx_, EVP_aes_256_cbc(), nullptr, key.ubegin(), nullptr);
-    LOG_IF(FATAL, res != 1);
-    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+    init(Type::Cbc, true, EVP_aes_256_cbc(), key);
   }
 
   void init_decrypt_cbc(Slice key) {
-    type_ = DecryptCbc;
-    int res = EVP_DecryptInit_ex(ctx_, EVP_aes_256_cbc(), nullptr, key.ubegin(), nullptr);
-    LOG_IF(FATAL, res != 1);
-    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+    init(Type::Cbc, false, EVP_aes_256_cbc(), key);
   }
 
-  void init_encrypt_cbc_iv(Slice iv) {
-    CHECK(type_ == EncryptCbc);
-    int res = EVP_EncryptInit(ctx_, nullptr, nullptr, iv.ubegin());
-    LOG_IF(FATAL, res != 1);
-  }
-
-  void init_decrypt_cbc_iv(Slice iv) {
-    CHECK(type_ == DecryptCbc);
-    int res = EVP_DecryptInit(ctx_, nullptr, nullptr, iv.ubegin());
+  void init_iv(Slice iv) {
+    int res = EVP_CipherInit_ex(ctx_, nullptr, nullptr, nullptr, iv.ubegin(), -1);
     LOG_IF(FATAL, res != 1);
   }
 
   void encrypt(const uint8 *src, uint8 *dst, int size) {
-    CHECK(type_ == EncryptCbc || type_ == EncryptEcb);
-    CHECK(size % 16 == 0);
+    // CHECK(type_ != Type::Empty && is_encrypt_);
+    CHECK(size % AES_BLOCK_SIZE == 0);
     int len;
     int res = EVP_EncryptUpdate(ctx_, dst, &len, src, size);
     LOG_IF(FATAL, res != 1);
     CHECK(len == size);
   }
+
   void decrypt(const uint8 *src, uint8 *dst, int size) {
-    CHECK(type_ == DecryptCbc || type_ == DecryptEcb);
-    CHECK(size % 16 == 0);
+    // CHECK(type_ != Type::Empty && !is_encrypt_);
+    CHECK(size % AES_BLOCK_SIZE == 0);
     int len;
     int res = EVP_DecryptUpdate(ctx_, dst, &len, src, size);
     LOG_IF(FATAL, res != 1);
@@ -451,7 +435,17 @@ class Evp {
 
  private:
   EVP_CIPHER_CTX *ctx_{nullptr};
-  enum Type { Empty, EncryptEcb, DecryptEcb, EncryptCbc, DecryptCbc } type_{Empty};
+  enum class Type : int8 { Empty, Ecb, Cbc };
+  // Type type_{Type::Empty};
+  // bool is_encrypt_ = false;
+
+  void init(Type type, bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
+    // type_ = type;
+    // is_encrypt_ = is_encrypt;
+    int res = EVP_CipherInit_ex(ctx_, cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
+    LOG_IF(FATAL, res != 1);
+    EVP_CIPHER_CTX_set_padding(ctx_, 0);
+  }
 };
 
 struct AesState::Impl {
@@ -552,7 +546,7 @@ class AesIgeState::Impl {
         }
       }
 
-      evp_.init_encrypt_cbc_iv(encrypted_iv_.as_mutable_slice());
+      evp_.init_iv(encrypted_iv_.as_slice());
       int inlen = static_cast<int>(AES_BLOCK_SIZE * count);
       evp_.encrypt(data_xored[0].raw(), data_xored[0].raw(), inlen);
 

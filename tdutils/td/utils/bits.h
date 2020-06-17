@@ -47,8 +47,12 @@ inline uint64 lower_bit64(uint64 x) {
   return x & bits_negate64(x);
 }
 
-inline uint64 native_vs_bigendian64(uint64 x) {
-  // NB: works only for litte endian systems
+inline uint64 host_to_big_endian64(uint64 x) {
+  // NB: works only for little-endian systems
+  return bswap64(x);
+}
+inline uint64 big_endian_to_host64(uint64 x) {
+  // NB: works only for little-endian systems
   return bswap64(x);
 }
 
