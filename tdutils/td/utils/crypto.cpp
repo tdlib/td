@@ -480,25 +480,7 @@ static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, Mutab
   AES_ige_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv.ubegin(), encrypt_flag);
 }
 
-void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  if (from.size() <= 128) {
-    return aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
-  }
-  AesIgeState state;
-  state.init(aes_key, aes_iv, true);
-  state.encrypt(from, to);
-}
-
-void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  if (from.size() <= 128) {
-    return aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
-  }
-  AesIgeState state;
-  state.init(aes_key, aes_iv, false);
-  state.decrypt(from, to);
-}
-
-class AesIgeState::Impl {
+class AesIgeStateImpl {
  public:
   void init(Slice key, Slice iv, bool encrypt) {
     CHECK(key.size() == 32);
@@ -590,7 +572,7 @@ AesIgeState::~AesIgeState() = default;
 
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
   if (!impl_) {
-    impl_ = make_unique<Impl>();
+    impl_ = make_unique<AesIgeStateImpl>();
   }
 
   impl_->init(key, iv, encrypt);
@@ -602,6 +584,24 @@ void AesIgeState::encrypt(Slice from, MutableSlice to) {
 
 void AesIgeState::decrypt(Slice from, MutableSlice to) {
   impl_->decrypt(from, to);
+}
+
+void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
+  if (from.size() <= 128) {
+    return aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
+  }
+  AesIgeStateImpl state;
+  state.init(aes_key, aes_iv, true);
+  state.encrypt(from, to);
+}
+
+void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
+  if (from.size() <= 128) {
+    return aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
+  }
+  AesIgeStateImpl state;
+  state.init(aes_key, aes_iv, false);
+  state.decrypt(from, to);
 }
 
 static void aes_cbc_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {

@@ -44,6 +44,8 @@ class AesState {
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
 
+class AesIgeStateImpl;
+
 class AesIgeState {
  public:
   AesIgeState();
@@ -60,8 +62,7 @@ class AesIgeState {
   void decrypt(Slice from, MutableSlice to);
 
  private:
-  class Impl;
-  unique_ptr<Impl> impl_;
+  unique_ptr<AesIgeStateImpl> impl_;
 };
 
 void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to);
