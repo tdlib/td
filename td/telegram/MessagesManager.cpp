@@ -12970,8 +12970,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
     } else if (promise) {
       LOG(ERROR) << "Last server dialog date didn't increased from " << folder->last_server_dialog_date_ << " to "
-                 << max_dialog_date << " after receiving " << dialogs.size() << " chats from " << total_count << " in "
-                 << folder_id << ". last_dialog_date = " << folder->folder_last_dialog_date_
+                 << max_dialog_date << " after receiving " << dialogs.size() << " chats " << added_dialog_ids
+                 << " from " << total_count << " in " << folder_id
+                 << ". last_dialog_date = " << folder->folder_last_dialog_date_
                  << ", last_loaded_database_dialog_date = " << folder->last_loaded_database_dialog_date_;
     }
   }
