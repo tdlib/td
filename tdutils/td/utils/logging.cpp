@@ -45,6 +45,9 @@ TD_THREAD_LOCAL const char *Logger::tag2_ = nullptr;
 Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slice file_name, int line_num,
                Slice comment)
     : Logger(log, options, log_level) {
+  if (log_level == VERBOSITY_NAME(PLAIN) && &options == &log_options) {
+    return;
+  }
   if (!options_.add_info) {
     return;
   }

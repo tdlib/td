@@ -4380,18 +4380,18 @@ void main(int argc, char **argv) {
   });
   auto res = options.run(argc, argv);
   if (res.is_error()) {
-    LOG(ERROR) << res.error();
+    LOG(PLAIN) << "tg_cli: " << res.error().message();
     LOG(PLAIN) << options;
     return;
   }
   if (!res.ok().empty()) {
-    LOG(ERROR) << "Have unexpected non-option parameters";
+    LOG(PLAIN) << "tg_cli: " << "Have unexpected non-option parameters";
     LOG(PLAIN) << options;
     return;
   }
 
   if (api_id == 0 || api_hash.empty()) {
-    LOG(ERROR) << "You should provide some valid api_id and api_hash";
+    LOG(PLAIN) << "tg_cli: " << "You should provide some valid api_id and api_hash";
     LOG(PLAIN) << options;
     return;
   }
