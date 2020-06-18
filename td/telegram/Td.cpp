@@ -3169,7 +3169,6 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
 }
 
 void Td::schedule_get_promo_data(int32 expires_in) {
-  LOG(INFO) << "Schedule getPromoData in " << expires_in;
   if (expires_in < 0) {
     LOG(ERROR) << "Receive wrong expires_in: " << expires_in;
     expires_in = 0;
@@ -3181,6 +3180,7 @@ void Td::schedule_get_promo_data(int32 expires_in) {
     expires_in = 86400;
   }
   if (!close_flag_ && !auth_manager_->is_bot()) {
+    LOG(INFO) << "Schedule getPromoData in " << expires_in;
     alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
   }
 }
@@ -7035,7 +7035,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
                            std::move(promise));
         return;
       }
-      if (set_boolean_option("is_location_visible")) {
+      if (!is_bot && set_boolean_option("is_location_visible")) {
         contacts_manager_->set_location_visibility();
         return;
       }
