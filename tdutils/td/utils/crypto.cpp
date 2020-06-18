@@ -465,21 +465,6 @@ void AesState::decrypt(const uint8 *src, uint8 *dst, int size) {
   impl_->evp.decrypt(src, dst, size);
 }
 
-static void aes_ige_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
-  CHECK(aes_key.size() == 32);
-  CHECK(aes_iv.size() == 32);
-  AES_KEY key;
-  int err;
-  if (encrypt_flag) {
-    err = AES_set_encrypt_key(aes_key.ubegin(), 256, &key);
-  } else {
-    err = AES_set_decrypt_key(aes_key.ubegin(), 256, &key);
-  }
-  LOG_IF(FATAL, err != 0);
-  CHECK(from.size() <= to.size());
-  AES_ige_encrypt(from.ubegin(), to.ubegin(), from.size(), &key, aes_iv.ubegin(), encrypt_flag);
-}
-
 class AesIgeStateImpl {
  public:
   void init(Slice key, Slice iv, bool encrypt) {
@@ -587,18 +572,12 @@ void AesIgeState::decrypt(Slice from, MutableSlice to) {
 }
 
 void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  if (from.size() <= 128) {
-    return aes_ige_xcrypt(aes_key, aes_iv, from, to, true);
-  }
   AesIgeStateImpl state;
   state.init(aes_key, aes_iv, true);
   state.encrypt(from, to);
 }
 
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
-  if (from.size() <= 128) {
-    return aes_ige_xcrypt(aes_key, aes_iv, from, to, false);
-  }
   AesIgeStateImpl state;
   state.init(aes_key, aes_iv, false);
   state.decrypt(from, to);
