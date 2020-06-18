@@ -427,7 +427,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
-  LOG(DEBUG + 10) << "Try to init IP address of " << host << " with port " << port;
+  LOG(DEBUG + 10) << "Trying to init IP address of " << host << " with port " << port;
   auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (err != 0) {
 #if TD_WINDOWS

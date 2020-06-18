@@ -9884,7 +9884,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     }
 
     if (max_message_id != MessageId() && max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Try to update last read inbox message in " << dialog_id << " with " << max_message_id << " from "
+      LOG(ERROR) << "Tried to update last read inbox message in " << dialog_id << " with " << max_message_id << " from "
                  << source;
       return;
     }
@@ -9963,7 +9963,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
     }
 
     if (max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Try to update last read outbox message with " << max_message_id;
+      LOG(ERROR) << "Tried to update last read outbox message with " << max_message_id;
       return;
     }
 
@@ -10335,7 +10335,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     }
 
     if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Try to update " << dialog_id << " last read outbox message with " << max_unavailable_message_id
+      LOG(ERROR) << "Tried to update " << dialog_id << " last read outbox message with " << max_unavailable_message_id
                  << " from " << source;
       return;
     }
@@ -18299,7 +18299,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   auto filter_type = only_missed ? SearchMessagesFilter::MissedCall : SearchMessagesFilter::Call;
 
   if (use_db && G()->parameters().use_message_db) {
-    // Try to use database
+    // try to use database
     MessageId first_db_message_id =
         calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter_type)];
     int32 message_count = calls_db_state_.message_count_by_index[search_calls_filter_index(filter_type)];
