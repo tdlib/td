@@ -34,7 +34,7 @@ ok = Ok;
 //@api_hash Application identifier hash for Telegram API access, which can be obtained at https://my.telegram.org
 //@system_language_code IETF language tag of the user's operating system language; must be non-empty
 //@device_model Model of the device the application is being run on; must be non-empty
-//@system_version Version of the operating system the application is being run on; must be non-empty
+//@system_version Version of the operating system the application is being run on. If empty, the version is automatically detected by TDLib
 //@application_version Application version; must be non-empty
 //@enable_storage_optimizer If set to true, old files will automatically be deleted
 //@ignore_file_names If set to true, original file names will be ignored. Otherwise, downloaded files will be saved under names as close as possible to the original name

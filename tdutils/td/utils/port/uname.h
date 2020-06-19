@@ -10,6 +10,6 @@
 
 namespace td {
 
-Slice get_operating_system_name();
+Slice get_operating_system_version();
 
 }

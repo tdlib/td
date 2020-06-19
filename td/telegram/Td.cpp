@@ -118,6 +118,7 @@
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/port/uname.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -4676,7 +4677,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
     return Status::Error(400, "Device model must be non-empty");
   }
   if (options_.system_version.empty()) {
-    return Status::Error(400, "System version must be non-empty");
+    options_.system_version = get_operating_system_version().str();
   }
   if (options_.application_version.empty()) {
     return Status::Error(400, "Application version must be non-empty");

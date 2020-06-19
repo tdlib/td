@@ -22,13 +22,15 @@
 
 namespace td {
 
-Slice get_operating_system_name() {
+Slice get_operating_system_version() {
   static string result = []() -> string {
 #if TD_PORT_POSIX
 #if TD_ANDROID
     char version[PROP_VALUE_MAX + 1];
     int length = __system_property_get("ro.build.version.release", version);
-    return length <= 0 ? string("Android") : "Android " + string(version, length);
+    if (length > 0) {
+      return "Android " + string(version, length);
+    }
 #else
     utsname name;
     int err = uname(&name);
@@ -38,8 +40,8 @@ Slice get_operating_system_name() {
         return os_name;
       }
     }
-    LOG(ERROR) << "Failed to identify OS name; use generic one";
 #endif
+    LOG(ERROR) << "Failed to identify OS name; use generic one";
 
 #if TD_DARWIN_IOS
     return "iOS";

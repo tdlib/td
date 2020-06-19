@@ -407,7 +407,6 @@ class CliClient final : public Actor {
         parameters->api_hash_ = api_hash_;
         parameters->system_language_code_ = "en";
         parameters->device_model_ = "Desktop";
-        parameters->system_version_ = "Unknown";
         parameters->application_version_ = "1.0";
         send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
         break;
@@ -4385,13 +4384,15 @@ void main(int argc, char **argv) {
     return;
   }
   if (!res.ok().empty()) {
-    LOG(PLAIN) << "tg_cli: " << "Have unexpected non-option parameters";
+    LOG(PLAIN) << "tg_cli: "
+               << "Have unexpected non-option parameters";
     LOG(PLAIN) << options;
     return;
   }
 
   if (api_id == 0 || api_hash.empty()) {
-    LOG(PLAIN) << "tg_cli: " << "You should provide some valid api_id and api_hash";
+    LOG(PLAIN) << "tg_cli: "
+               << "You should provide some valid api_id and api_hash";
     LOG(PLAIN) << options;
     return;
   }

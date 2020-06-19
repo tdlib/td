@@ -1103,10 +1103,9 @@ TEST(Misc, CancellationToken) {
 }
 
 TEST(Misc, uname) {
-  auto first_name = get_operating_system_name();
-  auto second_name = get_operating_system_name();
-  ASSERT_STREQ(first_name, second_name);
-  ASSERT_EQ(first_name.begin(), second_name.begin());
-  ASSERT_TRUE(!first_name.empty());
-  LOG(ERROR) << first_name;
+  auto first_version = get_operating_system_version();
+  auto second_version = get_operating_system_version();
+  ASSERT_STREQ(first_version, second_version);
+  ASSERT_EQ(first_version.begin(), second_version.begin());
+  ASSERT_TRUE(!first_version.empty());
 }

@@ -43,7 +43,6 @@ namespace TdApp
                     parameters.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
                     parameters.SystemLanguageCode = "en";
                     parameters.DeviceModel = "Desktop";
-                    parameters.SystemVersion = "Unknown";
                     parameters.ApplicationVersion = "1.0.0";
                     _client.Send(new TdApi.SetTdlibParameters(parameters), null);
                     _client.Send(new TdApi.CheckDatabaseEncryptionKey(), null);

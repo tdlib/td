@@ -107,7 +107,6 @@ public final class Example {
                 parameters.apiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
                 parameters.systemLanguageCode = "en";
                 parameters.deviceModel = "Desktop";
-                parameters.systemVersion = "Unknown";
                 parameters.applicationVersion = "1.0";
                 parameters.enableStorageOptimizer = true;
 

@@ -291,7 +291,6 @@ class TdExample {
               parameters->api_hash_ = "a3406de8d171bb422bb6ddf3bbd800e2";
               parameters->system_language_code_ = "en";
               parameters->device_model_ = "Desktop";
-              parameters->system_version_ = "Unknown";
               parameters->application_version_ = "1.0";
               parameters->enable_storage_optimizer_ = true;
               send_query(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)),

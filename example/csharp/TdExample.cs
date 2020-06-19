@@ -80,7 +80,6 @@ namespace TdExample
                 parameters.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
                 parameters.SystemLanguageCode = "en";
                 parameters.DeviceModel = "Desktop";
-                parameters.SystemVersion = "Unknown";
                 parameters.ApplicationVersion = "1.0";
                 parameters.EnableStorageOptimizer = true;
 
