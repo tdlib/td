@@ -47,6 +47,10 @@ void OptionParser::add_option(char short_key, Slice long_key, Slice description,
   });
 }
 
+void OptionParser::add_check(std::function<Status()> check) {
+  checks_.push_back(std::move(check));
+}
+
 Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
   std::unordered_map<char, const Option *> short_options;
   std::unordered_map<string, const Option *> long_options;
@@ -142,6 +146,9 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
 
       TRY_STATUS(option->arg_callback(parameter));
     }
+  }
+  for (auto &check : checks_) {
+    TRY_STATUS(check());
   }
 
   return std::move(non_options);

@@ -4356,6 +4356,12 @@ void main(int argc, char **argv) {
                      [&](Slice parameter) { api_id = to_integer<int32>(parameter); });
   options.add_option('\0', "api-hash", "Set Telegram API hash", [&](Slice parameter) { api_hash = parameter.str(); });
   options.add_option('\0', "api_hash", "Set Telegram API hash", [&](Slice parameter) { api_hash = parameter.str(); });
+  options.add_check([&] {
+    if (api_id == 0 || api_hash.empty()) {
+      return Status::Error("You must provide valid api-id and api-hash obtained at https://my.telegram.org");
+    }
+    return Status::OK();
+  });
   auto res = options.run(argc, argv);
   if (res.is_error()) {
     LOG(PLAIN) << "tg_cli: " << res.error().message();
@@ -4365,13 +4371,6 @@ void main(int argc, char **argv) {
   if (!res.ok().empty()) {
     LOG(PLAIN) << "tg_cli: "
                << "Have unexpected non-option parameters";
-    LOG(PLAIN) << options;
-    return;
-  }
-
-  if (api_id == 0 || api_hash.empty()) {
-    LOG(PLAIN) << "tg_cli: "
-               << "You should provide some valid api_id and api_hash";
     LOG(PLAIN) << options;
     return;
   }
