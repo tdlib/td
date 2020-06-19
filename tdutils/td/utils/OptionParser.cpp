@@ -22,16 +22,29 @@ void OptionParser::add_option(Option::Type type, char short_key, Slice long_key,
   options_.push_back(Option{type, short_key, long_key.str(), description.str(), std::move(callback)});
 }
 
-void OptionParser::add_option(char short_key, Slice long_key, Slice description,
-                              std::function<Status(Slice)> callback) {
+void OptionParser::add_checked_option(char short_key, Slice long_key, Slice description,
+                                      std::function<Status(Slice)> callback) {
   add_option(Option::Type::Arg, short_key, long_key, description, std::move(callback));
 }
 
-void OptionParser::add_option(char short_key, Slice long_key, Slice description, std::function<Status(void)> callback) {
-  // Ouch. There must be some better way
+void OptionParser::add_checked_option(char short_key, Slice long_key, Slice description,
+                                      std::function<Status(void)> callback) {
   add_option(Option::Type::NoArg, short_key, long_key, description,
-             std::bind([](std::function<Status(void)> &func, Slice) { return func(); }, std::move(callback),
-                       std::placeholders::_1));
+             [callback = std::move(callback)](Slice) { return callback(); });
+}
+
+void OptionParser::add_option(char short_key, Slice long_key, Slice description, std::function<void(Slice)> callback) {
+  add_option(Option::Type::Arg, short_key, long_key, description, [callback = std::move(callback)](Slice parameter) {
+    callback(parameter);
+    return Status::OK();
+  });
+}
+
+void OptionParser::add_option(char short_key, Slice long_key, Slice description, std::function<void(void)> callback) {
+  add_option(Option::Type::NoArg, short_key, long_key, description, [callback = std::move(callback)](Slice) {
+    callback();
+    return Status::OK();
+  });
 }
 
 Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
@@ -64,11 +77,11 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
     if (arg[1] == '-') {
       // long option
       Slice long_arg(arg + 2, std::strlen(arg + 2));
-      Slice param;
+      Slice parameter;
       auto equal_pos = long_arg.find('=');
       bool has_equal = equal_pos != Slice::npos;
       if (has_equal) {
-        param = long_arg.substr(equal_pos + 1);
+        parameter = long_arg.substr(equal_pos + 1);
         long_arg = long_arg.substr(0, equal_pos);
       }
 
@@ -89,14 +102,14 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
             if (++arg_pos == argc) {
               return Status::Error(PSLICE() << "Option " << long_arg << " must have argument");
             }
-            param = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
           }
           break;
         default:
           UNREACHABLE();
       }
 
-      TRY_STATUS(option->arg_callback(param));
+      TRY_STATUS(option->arg_callback(parameter));
       continue;
     }
 
@@ -107,7 +120,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
       }
 
       auto option = it->second;
-      Slice param;
+      Slice parameter;
       switch (option->type) {
         case Option::Type::NoArg:
           // nothing to do
@@ -117,17 +130,17 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
             if (++arg_pos == argc) {
               return Status::Error(PSLICE() << "Option " << arg[opt_pos] << " must have argument");
             }
-            param = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
           } else {
-            param = Slice(arg + opt_pos + 1, std::strlen(arg + opt_pos + 1));
-            opt_pos += param.size();
+            parameter = Slice(arg + opt_pos + 1, std::strlen(arg + opt_pos + 1));
+            opt_pos += parameter.size();
           }
           break;
         default:
           UNREACHABLE();
       }
 
-      TRY_STATUS(option->arg_callback(param));
+      TRY_STATUS(option->arg_callback(parameter));
     }
   }
 
