@@ -43,7 +43,7 @@ class OptionParser {
   void add_check(std::function<Status()> check);
 
   // returns found non-option parameters
-  Result<vector<char *>> run(int argc, char *argv[]) TD_WARN_UNUSED_RESULT;
+  Result<vector<char *>> run(int argc, char *argv[], int expected_non_option_count = -1) TD_WARN_UNUSED_RESULT;
 
   friend StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o);
 

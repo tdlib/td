@@ -4362,15 +4362,9 @@ void main(int argc, char **argv) {
     }
     return Status::OK();
   });
-  auto res = options.run(argc, argv);
-  if (res.is_error()) {
-    LOG(PLAIN) << "tg_cli: " << res.error().message();
-    LOG(PLAIN) << options;
-    return;
-  }
-  if (!res.ok().empty()) {
-    LOG(PLAIN) << "tg_cli: "
-               << "Have unexpected non-option parameters";
+  auto r_non_options = options.run(argc, argv, 0);
+  if (r_non_options.is_error()) {
+    LOG(PLAIN) << argv[0] << ": " << r_non_options.error().message();
     LOG(PLAIN) << options;
     return;
   }

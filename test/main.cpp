@@ -29,8 +29,9 @@ int main(int argc, char **argv) {
   options.add_option('\0', "filter", "Run only specified tests",
                      [&](td::Slice filter) { runner.add_substr_filter(filter.str()); });
   options.add_option('\0', "stress", "Run tests infinitely", [&] { runner.set_stress_flag(true); });
-  auto result = options.run(argc, argv);
-  if (result.is_error() || !result.ok().empty()) {
+  auto r_non_options = options.run(argc, argv, 0);
+  if (r_non_options.is_error()) {
+    LOG(PLAIN) << argv[0] << ": " << r_non_options.error().message();
     LOG(PLAIN) << options;
     return 1;
   }

@@ -51,7 +51,7 @@ void OptionParser::add_check(std::function<Status()> check) {
   checks_.push_back(std::move(check));
 }
 
-Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
+Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_non_option_count) {
   std::unordered_map<char, const Option *> short_options;
   std::unordered_map<string, const Option *> long_options;
   for (auto &opt : options_) {
@@ -145,6 +145,16 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[]) {
       }
 
       TRY_STATUS(option->arg_callback(parameter));
+    }
+  }
+  if (expected_non_option_count >= 0 && non_options.size() != static_cast<size_t>(expected_non_option_count)) {
+    if (expected_non_option_count == 0) {
+      return Status::Error("Unexpected non-option parameters specified");
+    }
+    if (non_options.size() > static_cast<size_t>(expected_non_option_count)) {
+      return Status::Error("Too much non-option parameters specified");
+    } else {
+      return Status::Error("Too few non-option parameters specified");
     }
   }
   for (auto &check : checks_) {
