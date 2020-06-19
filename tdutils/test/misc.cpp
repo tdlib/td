@@ -24,6 +24,7 @@
 #include "td/utils/port/sleep.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/port/uname.h"
 #include "td/utils/port/wstring_convert.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
@@ -1080,6 +1081,7 @@ TEST(Misc, Hasher) {
   test_hash<AbslHash>();
 #endif
 }
+
 TEST(Misc, CancellationToken) {
   CancellationTokenSource source;
   source.cancel();
@@ -1098,4 +1100,13 @@ TEST(Misc, CancellationToken) {
   CHECK(!token4);
   source = CancellationTokenSource{};
   CHECK(token4);
+}
+
+TEST(Misc, uname) {
+  auto first_name = get_operating_system_name();
+  auto second_name = get_operating_system_name();
+  ASSERT_STREQ(first_name, second_name);
+  ASSERT_EQ(first_name.begin(), second_name.begin());
+  ASSERT_TRUE(!first_name.empty());
+  LOG(ERROR) << first_name;
 }
