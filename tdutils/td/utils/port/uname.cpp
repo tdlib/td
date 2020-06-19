@@ -15,18 +15,73 @@
 #include "td/utils/port/Stat.h"
 
 #if TD_PORT_POSIX
+
 #if TD_ANDROID
 #include <sys/system_properties.h>
 #else
+#if TD_DARWIN
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#endif
 #include <sys/utsname.h>
 #endif
+
 #endif
 
 namespace td {
 
+#if TD_DARWIN || TD_LINUX
+static string read_os_name(CSlice os_version_file_path, CSlice prefix, CSlice suffix) {
+  auto r_stat = stat(os_version_file_path);
+  if (r_stat.is_ok() && r_stat.ok().is_reg_ && r_stat.ok().size_ < (1 << 16)) {
+    auto r_file = read_file_str(os_version_file_path, r_stat.ok().size_);
+    if (r_file.is_ok()) {
+      auto begin_pos = r_file.ok().find(prefix.c_str());
+      if (begin_pos != string::npos) {
+        begin_pos += prefix.size();
+        auto end_pos = r_file.ok().find(suffix.c_str(), begin_pos);
+        if (end_pos != string::npos) {
+          auto os_version = trim(r_file.ok().substr(begin_pos, end_pos - begin_pos));
+          if (os_version.find("\n") == string::npos) {
+            return os_version;
+          }
+        }
+      }
+    }
+  }
+  return string();
+}
+#endif
+
 Slice get_operating_system_version() {
   static string result = []() -> string {
-#if TD_PORT_POSIX
+#if TD_DARWIN
+    char version[256];
+    size_t size = sizeof(version);
+    string os_version;
+    if (sysctlbyname("kern.osproductversion", version, &size, nullptr, 0) == 0) {
+      os_version = trim(string(version, size));
+    }
+    if (os_version.empty()) {
+      os_version = read_os_name("/System/Library/CoreServices/SystemVersion.plist",
+                                "<key>ProductUserVisibleVersion</key>\n\t<string>", "</string>\n");
+    }
+    if (!os_version.empty()) {
+      os_version = " " + os_version;
+    }
+
+#if TD_DARWIN_IOS
+    return "iOS" + os_version;
+#elif TD_DARWIN_TV_OS
+    return "tvOS" + os_version;
+#elif TD_DARWIN_WATCH_OS
+    return "watchOS" + os_version;
+#elif TD_DARWIN_MAC
+    return "macOS" + os_version;
+#else
+    return "Darwin" + os_version;
+#endif
+#elif TD_PORT_POSIX
 #if TD_ANDROID
     char version[PROP_VALUE_MAX + 1];
     int length = __system_property_get("ro.build.version.release", version);
@@ -35,24 +90,9 @@ Slice get_operating_system_version() {
     }
 #else
 #if TD_LINUX
-    CSlice os_release_path = "/etc/os-release";
-    auto r_stat = stat(os_release_path);
-    if (r_stat.is_ok() && r_stat.ok().is_reg_ && r_stat.ok().size_ < (1 << 16)) {
-      auto r_file = read_file_str(os_release_path, r_stat.ok().size_);
-      if (r_file.is_ok()) {
-        CSlice prefix = "PRETTY_NAME=\"";
-        auto begin_pos = r_file.ok().find(prefix.c_str());
-        if (begin_pos != string::npos) {
-          begin_pos += prefix.size();
-          auto end_pos = r_file.ok().find("\"\n", begin_pos);
-          if (end_pos != string::npos) {
-            auto os_name = trim(r_file.ok().substr(begin_pos, end_pos - begin_pos));
-            if (!os_name.empty()) {
-              return os_name;
-            }
-          }
-        }
-      }
+    auto os_name = read_os_name("/etc/os-release", "PRETTY_NAME=\"", "\"\n");
+    if (!os_name.empty()) {
+      return os_name;
     }
 #endif
 
@@ -67,17 +107,7 @@ Slice get_operating_system_version() {
 #endif
     LOG(ERROR) << "Failed to identify OS name; use generic one";
 
-#if TD_DARWIN_IOS
-    return "iOS";
-#elif TD_DARWIN_TV_OS
-    return "tvOS";
-#elif TD_DARWIN_WATCH_OS
-    return "watchOS";
-#elif TD_DARWIN_MAC
-    return "macOS";
-#elif TD_DARWIN
-    return "Darwin";
-#elif TD_ANDROID
+#if TD_ANDROID
     return "Android";
 #elif TD_TIZEN
     return "Tizen";

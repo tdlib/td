@@ -4678,6 +4678,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   }
   if (options_.system_version.empty()) {
     options_.system_version = get_operating_system_version().str();
+    VLOG(td_init) << "Set system version to " << options_.system_version;
   }
   if (options_.application_version.empty()) {
     return Status::Error(400, "Application version must be non-empty");
