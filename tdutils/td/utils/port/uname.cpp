@@ -9,8 +9,10 @@
 #include "td/utils/port/config.h"
 
 #include "td/utils/common.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/Stat.h"
 
 #if TD_PORT_POSIX
 #if TD_ANDROID
@@ -32,6 +34,28 @@ Slice get_operating_system_version() {
       return "Android " + string(version, length);
     }
 #else
+#if TD_LINUX
+    CSlice os_release_path = "/etc/os-release";
+    auto r_stat = stat(os_release_path);
+    if (r_stat.is_ok() && r_stat.ok().is_reg_ && r_stat.ok().size_ < (1 << 16)) {
+      auto r_file = read_file_str(os_release_path, r_stat.ok().size_);
+      if (r_file.is_ok()) {
+        CSlice prefix = "PRETTY_NAME=\"";
+        auto begin_pos = r_file.ok().find(prefix.c_str());
+        if (begin_pos != string::npos) {
+          begin_pos += prefix.size();
+          auto end_pos = r_file.ok().find("\"\n", begin_pos);
+          if (end_pos != string::npos) {
+            auto os_name = trim(r_file.ok().substr(begin_pos, end_pos - begin_pos));
+            if (!os_name.empty()) {
+              return os_name;
+            }
+          }
+        }
+      }
+    }
+#endif
+
     utsname name;
     int err = uname(&name);
     if (err == 0) {
