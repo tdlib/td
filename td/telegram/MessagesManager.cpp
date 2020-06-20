@@ -621,10 +621,8 @@ class GetDialogListActor : public NetActorOnce {
   void send(FolderId folder_id, int32 offset_date, ServerMessageId offset_message_id, DialogId offset_dialog_id,
             int32 limit, uint64 sequence_id) {
     folder_id_ = folder_id;
-    auto input_peer = td->messages_manager_->get_input_peer(offset_dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
-    }
+    auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
+    CHECK(input_peer != nullptr);
 
     int32 flags =
         telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK | telegram_api::messages_getDialogs::FOLDER_ID_MASK;
@@ -1666,10 +1664,8 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
     limit_ = limit;
     random_id_ = random_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(offset_dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
-    }
+    auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
+    CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (!ignore_folder_id) {
@@ -5251,6 +5247,29 @@ tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer(DialogId 
     }
     case DialogType::SecretChat:
       return nullptr;
+    case DialogType::None:
+      return make_tl_object<telegram_api::inputPeerEmpty>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer_force(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      UserId user_id = dialog_id.get_user_id();
+      return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), 0);
+    }
+    case DialogType::Chat: {
+      ChatId chat_id = dialog_id.get_chat_id();
+      return make_tl_object<telegram_api::inputPeerChat>(chat_id.get());
+    }
+    case DialogType::Channel: {
+      ChannelId channel_id = dialog_id.get_channel_id();
+      return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), 0);
+    }
+    case DialogType::SecretChat:
     case DialogType::None:
       return make_tl_object<telegram_api::inputPeerEmpty>();
     default:

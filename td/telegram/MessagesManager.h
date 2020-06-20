@@ -194,6 +194,8 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
+  static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
+
   vector<tl_object_ptr<telegram_api::InputPeer>> get_input_peers(const vector<DialogId> &dialog_ids,
                                                                  AccessRights access_rights) const;
 
