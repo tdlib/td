@@ -55,7 +55,7 @@ void FileStats::add(FullFileInfo &&info) {
 
 FileTypeStat get_nontemp_stat(const FileStats::StatByType &by_type) {
   FileTypeStat stat;
-  for (int32 i = 0; i < file_type_size; i++) {
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
     if (FileType(i) != FileType::Temp) {
       stat.size += by_type[i].size;
       stat.cnt += by_type[i].cnt;
@@ -116,7 +116,7 @@ void FileStats::apply_dialog_limit(int32 limit) {
     if (all_dialogs.count(it->first)) {
       ++it;
     } else {
-      for (int32 i = 0; i < file_type_size; i++) {
+      for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
         other_stats[i].size += it->second[i].size;
         other_stats[i].cnt += it->second[i].cnt;
       }
@@ -140,7 +140,7 @@ tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
   int32 wallpaper_raw_cnt = 0;
   int64 document_raw_size = 0;
   int32 document_raw_cnt = 0;
-  for (int32 i = 0; i < file_type_size; i++) {
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
     FileType file_type = static_cast<FileType>(i);
     auto size = stat_by_type[i].size;
     auto cnt = stat_by_type[i].cnt;
@@ -236,7 +236,7 @@ StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats) {
     }
 
     sb << "[FileStat " << tag("total", total_stat);
-    for (int32 i = 0; i < file_type_size; i++) {
+    for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
       sb << tag(get_file_type_name(FileType(i)), file_stats.stat_by_type[i]);
     }
     sb << "]";
@@ -259,7 +259,7 @@ StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats) {
       }
 
       sb << "[FileStat " << tag("owner_dialog_id", by_type.first) << tag("total", dialog_stat);
-      for (int32 i = 0; i < file_type_size; i++) {
+      for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
         sb << tag(get_file_type_name(FileType(i)), by_type.second[i]);
       }
       sb << "]";

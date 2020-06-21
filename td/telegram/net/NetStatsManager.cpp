@@ -126,14 +126,14 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
           entry.rx = static_cast<int64>(static_cast<double>(total.read_size) *
                                         (static_cast<double>(entry.rx) / static_cast<double>(total_files.read_size)));
         } else {
-          // entry.rx += total.read_size / file_type_size;
+          // entry.rx += total.read_size / MAX_FILE_TYPE;
         }
 
         if (total_files.write_size != 0) {
           entry.tx = static_cast<int64>(static_cast<double>(total.write_size) *
                                         (static_cast<double>(entry.tx) / static_cast<double>(total_files.write_size)));
         } else {
-          // entry.tx += total.write_size / file_type_size;
+          // entry.tx += total.write_size / MAX_FILE_TYPE;
         }
         check.read_size += entry.rx;
         check.write_size += entry.tx;
@@ -175,7 +175,7 @@ void NetStatsManager::add_network_stats(const NetworkStatsEntry &entry) {
   }
   add_network_stats_impl(media_net_stats_, entry);
   size_t file_type_n = static_cast<size_t>(entry.file_type);
-  CHECK(file_type_n < static_cast<size_t>(file_type_size));
+  CHECK(file_type_n < static_cast<size_t>(MAX_FILE_TYPE));
   add_network_stats_impl(files_stats_[file_type_n], entry);
 }
 

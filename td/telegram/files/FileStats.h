@@ -72,7 +72,7 @@ struct FileStats {
   bool need_all_files{false};
   bool split_by_owner_dialog_id{false};
 
-  using StatByType = std::array<FileTypeStat, file_type_size>;
+  using StatByType = std::array<FileTypeStat, MAX_FILE_TYPE>;
 
   StatByType stat_by_type;
   std::unordered_map<DialogId, StatByType, DialogIdHash> stat_by_owner_dialog_id;

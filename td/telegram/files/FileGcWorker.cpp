@@ -35,7 +35,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   // may write something more clever, but i will need at least 2 passes over the files
   // TODO update atime for all files in android (?)
 
-  std::array<bool, file_type_size> immune_types{{false}};
+  std::array<bool, MAX_FILE_TYPE> immune_types{{false}};
 
   if (G()->parameters().use_file_db) {
     // immune by default

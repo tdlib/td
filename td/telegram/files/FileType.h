@@ -39,7 +39,7 @@ enum class FileType : int32 {
 
 enum class FileDirType : int8 { Secure, Common };
 
-constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
+constexpr int32 MAX_FILE_TYPE = static_cast<int32>(FileType::Size);
 
 FileType from_td_api(const td_api::FileType &file_type);
 

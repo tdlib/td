@@ -764,7 +764,7 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
     FileFd::open(dirs.back() + ".nomedia", FileFd::Create | FileFd::Read).ignore();
 #endif
   };
-  for (int32 i = 0; i < file_type_size; i++) {
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
     FileType file_type = static_cast<FileType>(i);
     if (file_type == FileType::SecureRaw || file_type == FileType::Background ||
         file_type == FileType::DocumentAsFile) {
