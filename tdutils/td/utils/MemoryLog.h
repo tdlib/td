@@ -34,30 +34,30 @@ class MemoryLog : public LogInterface {
     size_t slice_size = slice.size();
     CHECK(slice_size * 3 < buffer_size);
     size_t pad_size = ((slice_size + 15) & ~15) - slice_size;
-    constexpr size_t magic_size = 16;
-    uint32 total_size = static_cast<uint32>(slice_size + pad_size + magic_size);
+    constexpr size_t MAGIC_SIZE = 16;
+    uint32 total_size = static_cast<uint32>(slice_size + pad_size + MAGIC_SIZE);
     uint32 real_pos = pos_.fetch_add(total_size, std::memory_order_relaxed);
     CHECK((total_size & 15) == 0);
 
     uint32 start_pos = real_pos & (buffer_size - 1);
     uint32 end_pos = start_pos + total_size;
     if (likely(end_pos <= buffer_size)) {
-      std::memcpy(&buffer_[start_pos + magic_size], slice.data(), slice_size);
-      std::memcpy(&buffer_[start_pos + magic_size + slice_size], "                     ", pad_size);
+      std::memcpy(&buffer_[start_pos + MAGIC_SIZE], slice.data(), slice_size);
+      std::memcpy(&buffer_[start_pos + MAGIC_SIZE + slice_size], "                     ", pad_size);
     } else {
-      size_t first = buffer_size - start_pos - magic_size;
+      size_t first = buffer_size - start_pos - MAGIC_SIZE;
       size_t second = slice_size - first;
-      std::memcpy(&buffer_[start_pos + magic_size], slice.data(), first);
+      std::memcpy(&buffer_[start_pos + MAGIC_SIZE], slice.data(), first);
       std::memcpy(&buffer_[0], slice.data() + first, second);
       std::memcpy(&buffer_[second], "                            ", pad_size);
     }
 
     CHECK((start_pos & 15) == 0);
-    CHECK(start_pos <= buffer_size - magic_size);
+    CHECK(start_pos <= buffer_size - MAGIC_SIZE);
     buffer_[start_pos] = '\n';
-    size_t printed = std::snprintf(&buffer_[start_pos + 1], magic_size - 1, "LOG:%08x: ", real_pos);
-    CHECK(printed == magic_size - 2);
-    buffer_[start_pos + magic_size - 1] = ' ';
+    size_t printed = std::snprintf(&buffer_[start_pos + 1], MAGIC_SIZE - 1, "LOG:%08x: ", real_pos);
+    CHECK(printed == MAGIC_SIZE - 2);
+    buffer_[start_pos + MAGIC_SIZE - 1] = ' ';
 
     if (log_level == VERBOSITY_NAME(FATAL)) {
       process_fatal_error(new_slice);

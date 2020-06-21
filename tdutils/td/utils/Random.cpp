@@ -31,20 +31,20 @@ void Random::secure_bytes(MutableSlice dest) {
 }
 
 void Random::secure_bytes(unsigned char *ptr, size_t size) {
-  constexpr size_t buf_size = 512;
+  constexpr size_t BUF_SIZE = 512;
   static TD_THREAD_LOCAL unsigned char *buf;  // static zero-initialized
   static TD_THREAD_LOCAL size_t buf_pos;
   static TD_THREAD_LOCAL int64 generation;
-  if (init_thread_local<unsigned char[]>(buf, buf_size)) {
-    buf_pos = buf_size;
+  if (init_thread_local<unsigned char[]>(buf, BUF_SIZE)) {
+    buf_pos = BUF_SIZE;
     generation = 0;
   }
   if (generation != random_seed_generation.load(std::memory_order_relaxed)) {
     generation = random_seed_generation.load(std::memory_order_acquire);
-    buf_pos = buf_size;
+    buf_pos = BUF_SIZE;
   }
 
-  auto ready = min(size, buf_size - buf_pos);
+  auto ready = min(size, BUF_SIZE - buf_pos);
   if (ready != 0) {
     std::memcpy(ptr, buf + buf_pos, ready);
     buf_pos += ready;
@@ -54,8 +54,8 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
       return;
     }
   }
-  if (size < buf_size) {
-    int err = RAND_bytes(buf, static_cast<int>(buf_size));
+  if (size < BUF_SIZE) {
+    int err = RAND_bytes(buf, static_cast<int>(BUF_SIZE));
     // TODO: it CAN fail
     LOG_IF(FATAL, err != 1);
     buf_pos = size;
