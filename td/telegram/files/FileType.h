@@ -32,6 +32,7 @@ enum class FileType : int32 {
   SecureRaw,
   Secure,
   Background,
+  DocumentAsFile,
   Size,
   None
 };
@@ -113,6 +114,8 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
       return make_tl_object<td_api::fileTypeSecure>();
     case FileType::Background:
       return make_tl_object<td_api::fileTypeWallpaper>();
+    case FileType::DocumentAsFile:
+      return make_tl_object<td_api::fileTypeDocument>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -159,6 +162,8 @@ inline CSlice get_file_type_name(FileType file_type) {
       return CSlice("passport");
     case FileType::Background:
       return CSlice("wallpapers");
+    case FileType::DocumentAsFile:
+      return CSlice("documents");
     case FileType::Size:
     case FileType::None:
     default:

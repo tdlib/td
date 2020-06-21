@@ -29774,6 +29774,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
               case FileType::Animation:
               case FileType::Audio:
               case FileType::Document:
+              case FileType::DocumentAsFile:
               case FileType::Sticker:
               case FileType::Video:
               case FileType::VideoNote:

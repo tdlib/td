@@ -108,11 +108,12 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.ready_parts = bitmask.as_vector();
   res.use_part_count_limit = false;
   res.only_check = only_check_;
+  auto file_type = remote_.file_type_;
   res.need_delay =
-      !is_small_ && (remote_.file_type_ == FileType::VideoNote || remote_.file_type_ == FileType::Document ||
-                     remote_.file_type_ == FileType::VoiceNote || remote_.file_type_ == FileType::Audio ||
-                     remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
-                     (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
+      !is_small_ &&
+      (file_type == FileType::VideoNote || file_type == FileType::Document || file_type == FileType::DocumentAsFile ||
+       file_type == FileType::VoiceNote || file_type == FileType::Audio || file_type == FileType::Video ||
+       file_type == FileType::Animation || (file_type == FileType::Encrypted && size_ > (1 << 20)));
   res.offset = offset_;
   res.limit = limit_;
   return res;

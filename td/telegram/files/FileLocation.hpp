@@ -238,6 +238,7 @@ void FullRemoteFileLocation::AsUnique::store(StorerT &storer) const {
       case FileType::Animation:
       case FileType::VideoNote:
       case FileType::Background:
+      case FileType::DocumentAsFile:
         return 2;
       case FileType::SecureRaw:
       case FileType::Secure:

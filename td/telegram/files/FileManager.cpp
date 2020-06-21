@@ -766,7 +766,8 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
   };
   for (int32 i = 0; i < file_type_size; i++) {
     FileType file_type = static_cast<FileType>(i);
-    if (file_type == FileType::SecureRaw || file_type == FileType::Background) {
+    if (file_type == FileType::SecureRaw || file_type == FileType::Background ||
+        file_type == FileType::DocumentAsFile) {
       continue;
     }
     auto path = get_files_dir(file_type);
@@ -847,6 +848,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::EncryptedThumbnail:
     case FileType::Secure:
     case FileType::SecureRaw:
+    case FileType::DocumentAsFile:
       break;
     default:
       UNREACHABLE();
@@ -2726,7 +2728,7 @@ void FileManager::cancel_upload(FileId file_id) {
 
 static bool is_document_type(FileType type) {
   return type == FileType::Document || type == FileType::Sticker || type == FileType::Audio ||
-         type == FileType::Animation || type == FileType::Background;
+         type == FileType::Animation || type == FileType::Background || type == FileType::DocumentAsFile;
 }
 
 static bool is_background_type(FileType type) {

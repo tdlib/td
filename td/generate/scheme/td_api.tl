@@ -1644,8 +1644,8 @@ inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker
 //@performer Performer of the audio; 0-64 characters, may be replaced by the server @caption Audio caption; 0-GetOption("message_caption_length_max") characters
 inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 title:string performer:string caption:formattedText = InputMessageContent;
 
-//@description A document message (general file) @document Document to be sent @thumbnail Document thumbnail, if available @caption Document caption; 0-GetOption("message_caption_length_max") characters
-inputMessageDocument document:InputFile thumbnail:inputThumbnail caption:formattedText = InputMessageContent;
+//@description A document message (general file) @document Document to be sent @thumbnail Document thumbnail, if available @force_file If true, automatic file type detection will be disabled and the document will be always sent as file. Always true for files sent to secret chats @caption Document caption; 0-GetOption("message_caption_length_max") characters
+inputMessageDocument document:InputFile thumbnail:inputThumbnail force_file:Bool caption:formattedText = InputMessageContent;
 
 //@description A photo message @photo Photo to send @thumbnail Photo thumbnail to be sent, this is sent to the other party in secret chats only @added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable @width Photo width @height Photo height @caption Photo caption; 0-GetOption("message_caption_length_max") characters
 //@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats

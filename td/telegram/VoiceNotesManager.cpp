@@ -192,7 +192,7 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
       mime_type = "audio/ogg";
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
-        0, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes),
+        0, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes),
         vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
     CHECK(!file_view.has_remote_location());

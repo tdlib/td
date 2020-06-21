@@ -53,6 +53,8 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
         immune_types[narrow_cast<size_t>(FileType::SecureRaw)] = false;
       } else if (file_type == FileType::Background) {
         immune_types[narrow_cast<size_t>(FileType::Wallpaper)] = false;
+      } else if (file_type == FileType::Document) {
+        immune_types[narrow_cast<size_t>(FileType::DocumentAsFile)] = false;
       }
       immune_types[narrow_cast<size_t>(file_type)] = false;
     }

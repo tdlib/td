@@ -490,14 +490,14 @@ class TestFileGenerated : public Task {
                              make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
                              make_tl_object<td_api::inputThumbnail>(
                                  make_tl_object<td_api::inputFileGenerated>(file_path, "thumbnail", 0), 0, 0),
-                             make_tl_object<td_api::formattedText>(tag_, Auto()))),
+                             true, make_tl_object<td_api::formattedText>(tag_, Auto()))),
                      [](auto res) { check_td_error(res); });
 
     this->send_query(
         make_tl_object<td_api::sendMessage>(chat_id_, 0, nullptr, nullptr,
                                             make_tl_object<td_api::inputMessageDocument>(
                                                 make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
-                                                nullptr, make_tl_object<td_api::formattedText>(tag_, Auto()))),
+                                                nullptr, true, make_tl_object<td_api::formattedText>(tag_, Auto()))),
         [](auto res) { check_td_error(res); });
   }
 

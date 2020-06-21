@@ -102,7 +102,7 @@ template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   for (int32 i = 0; i < file_type_size; i++) {
     auto file_type = static_cast<FileType>(i);
-    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper) {
+    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper || file_type == FileType::DocumentAsFile) {
       continue;
     }
     auto files_dir = get_files_dir(file_type);

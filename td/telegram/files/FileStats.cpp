@@ -138,6 +138,8 @@ tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
   int32 secure_raw_cnt = 0;
   int64 wallpaper_raw_size = 0;
   int32 wallpaper_raw_cnt = 0;
+  int64 document_raw_size = 0;
+  int32 document_raw_cnt = 0;
   for (int32 i = 0; i < file_type_size; i++) {
     FileType file_type = static_cast<FileType>(i);
     auto size = stat_by_type[i].size;
@@ -153,6 +155,11 @@ tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
       wallpaper_raw_cnt = cnt;
       continue;
     }
+    if (file_type == FileType::Document) {
+      document_raw_size = size;
+      document_raw_cnt = cnt;
+      continue;
+    }
     if (file_type == FileType::Secure) {
       size += secure_raw_size;
       cnt += secure_raw_cnt;
@@ -160,6 +167,11 @@ tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
     if (file_type == FileType::Background) {
       size += wallpaper_raw_size;
       cnt += wallpaper_raw_cnt;
+    }
+    if (file_type == FileType::DocumentAsFile) {
+      size += document_raw_size;
+      cnt += document_raw_cnt;
+      continue;
     }
     if (size == 0) {
       continue;
