@@ -403,13 +403,19 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
             << " from version " << difference->from_version_ << " with version " << difference->version_ << " of size "
             << difference->strings_.size();
   to_lower_inplace(difference->lang_code_);
+  if (language_code_.empty()) {
+    LOG(INFO) << "Ignore difference for language pack " << difference->lang_code_
+              << ", because have no used language pack";
+    return;
+  }
   if (language_pack_.empty()) {
     LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_
-                 << ", because used language pack was unset";
+                 << ", because localization target is not set";
     return;
   }
   if (difference->lang_code_ != language_code_ && difference->lang_code_ != base_language_code_) {
-    LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_;
+    LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_ << ", because using language pack "
+                 << language_code_ << " based on " << base_language_code_;
     return;
   }
   if (is_custom_language_code(difference->lang_code_) || difference->lang_code_.empty()) {
