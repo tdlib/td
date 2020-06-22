@@ -59,7 +59,7 @@ static CSlice top_dialog_category_name(TopDialogCategory category) {
   }
 }
 
-static TopDialogCategory top_dialog_category_from_telegram_api(const telegram_api::TopPeerCategory &category) {
+static TopDialogCategory get_top_dialog_category(const telegram_api::TopPeerCategory &category) {
   switch (category.get_id()) {
     case telegram_api::topPeerCategoryCorrespondents::ID:
       return TopDialogCategory::Correspondent;
@@ -82,7 +82,7 @@ static TopDialogCategory top_dialog_category_from_telegram_api(const telegram_ap
   }
 }
 
-static tl_object_ptr<telegram_api::TopPeerCategory> top_dialog_category_as_telegram_api(TopDialogCategory category) {
+static tl_object_ptr<telegram_api::TopPeerCategory> get_top_peer_category(TopDialogCategory category) {
   switch (category) {
     case TopDialogCategory::Correspondent:
       return make_tl_object<telegram_api::topPeerCategoryCorrespondents>();
@@ -199,8 +199,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   LOG(INFO) << "Remove " << top_dialog_category_name(category) << " rating of " << dialog_id;
 
   if (input_peer != nullptr) {
-    auto query =
-        telegram_api::contacts_resetTopPeerRating(top_dialog_category_as_telegram_api(category), std::move(input_peer));
+    auto query = telegram_api::contacts_resetTopPeerRating(get_top_peer_category(category), std::move(input_peer));
     auto net_query = G()->net_query_creator().create(query);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, 1));
   }
@@ -470,7 +469,7 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
       send_closure(G()->contacts_manager(), &ContactsManager::on_get_chats, std::move(top_peers->chats_),
                    "on get top chats");
       for (auto &category : top_peers->categories_) {
-        auto dialog_category = top_dialog_category_from_telegram_api(*category->category_);
+        auto dialog_category = get_top_dialog_category(*category->category_);
         auto pos = static_cast<size_t>(dialog_category);
         CHECK(pos < by_category_.size());
         auto &top_dialogs = by_category_[pos];

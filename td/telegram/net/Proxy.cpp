@@ -10,7 +10,7 @@
 
 namespace td {
 
-Result<Proxy> Proxy::from_td_api(string server, int port, td_api::ProxyType *proxy_type) {
+Result<Proxy> Proxy::create_proxy(string server, int port, td_api::ProxyType *proxy_type) {
   if (proxy_type == nullptr) {
     return Status::Error(400, "Proxy type must be non-empty");
   }

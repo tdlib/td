@@ -34,12 +34,12 @@ struct NetworkStatsEntry {
   int64 count{0};
   double duration{0};
 
-  tl_object_ptr<td_api::NetworkStatisticsEntry> as_td_api() const {
+  tl_object_ptr<td_api::NetworkStatisticsEntry> get_network_statistics_entry_object() const {
     if (is_call) {
-      return make_tl_object<td_api::networkStatisticsEntryCall>(::td::as_td_api(net_type), tx, rx, duration);
+      return make_tl_object<td_api::networkStatisticsEntryCall>(get_network_type_object(net_type), tx, rx, duration);
     } else {
-      return make_tl_object<td_api::networkStatisticsEntryFile>(::td::as_td_api(file_type), ::td::as_td_api(net_type),
-                                                                tx, rx);
+      return make_tl_object<td_api::networkStatisticsEntryFile>(get_file_type_object(file_type),
+                                                                get_network_type_object(net_type), tx, rx);
     }
   }
 };
@@ -48,13 +48,13 @@ struct NetworkStats {
   int32 since = 0;
   std::vector<NetworkStatsEntry> entries;
 
-  auto as_td_api() const {
+  auto get_network_statistics_object() const {
     auto result = make_tl_object<td_api::networkStatistics>();
     result->since_date_ = since;
     result->entries_.reserve(entries.size());
     for (const auto &entry : entries) {
       if ((entry.rx != 0 || entry.tx != 0) && entry.file_type != FileType::SecureRaw) {
-        result->entries_.push_back(entry.as_td_api());
+        result->entries_.push_back(entry.get_network_statistics_entry_object());
       }
     }
     return result;
@@ -83,7 +83,7 @@ class NetStatsManager : public Actor {
   static constexpr size_t net_type_size() {
     return static_cast<size_t>(NetType::Size);
   }
-  // TODO constexpr
+
   static CSlice net_type_string(NetType type) {
     switch (type) {
       case NetType::Other:

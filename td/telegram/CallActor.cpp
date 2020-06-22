@@ -28,6 +28,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 
 #include <tuple>
@@ -35,17 +36,15 @@
 
 namespace td {
 
-CallProtocol CallProtocol::from_telegram_api(const telegram_api::phoneCallProtocol &protocol) {
-  CallProtocol res;
-  res.udp_p2p = protocol.udp_p2p_;
-  res.udp_reflector = protocol.udp_reflector_;
-  res.min_layer = protocol.min_layer_;
-  res.max_layer = protocol.max_layer_;
-  res.library_versions = protocol.library_versions_;
-  return res;
+CallProtocol::CallProtocol(const telegram_api::phoneCallProtocol &protocol)
+    : udp_p2p(protocol.udp_p2p_)
+    , udp_reflector(protocol.udp_reflector_)
+    , min_layer(protocol.min_layer_)
+    , max_layer(protocol.max_layer_)
+    , library_versions(protocol.library_versions_) {
 }
 
-tl_object_ptr<telegram_api::phoneCallProtocol> CallProtocol::as_telegram_api() const {
+tl_object_ptr<telegram_api::phoneCallProtocol> CallProtocol::get_input_phone_call_protocol() const {
   int32 flags = 0;
   if (udp_p2p) {
     flags |= telegram_api::phoneCallProtocol::UDP_P2P_MASK;
@@ -57,51 +56,45 @@ tl_object_ptr<telegram_api::phoneCallProtocol> CallProtocol::as_telegram_api() c
                                                          vector<string>(library_versions));
 }
 
-CallProtocol CallProtocol::from_td_api(const td_api::callProtocol &protocol) {
-  CallProtocol res;
-  res.udp_p2p = protocol.udp_p2p_;
-  res.udp_reflector = protocol.udp_reflector_;
-  res.min_layer = protocol.min_layer_;
-  res.max_layer = protocol.max_layer_;
-  res.library_versions = protocol.library_versions_;
-  return res;
+CallProtocol::CallProtocol(const td_api::callProtocol &protocol)
+    : udp_p2p(protocol.udp_p2p_)
+    , udp_reflector(protocol.udp_reflector_)
+    , min_layer(protocol.min_layer_)
+    , max_layer(protocol.max_layer_)
+    , library_versions(protocol.library_versions_) {
 }
 
-tl_object_ptr<td_api::callProtocol> CallProtocol::as_td_api() const {
+CallConnection::CallConnection(const telegram_api::phoneConnection &connection)
+    : id(connection.id_)
+    , ip(connection.ip_)
+    , ipv6(connection.ipv6_)
+    , port(connection.port_)
+    , peer_tag(connection.peer_tag_.as_slice().str()) {
+}
+
+tl_object_ptr<td_api::callProtocol> CallProtocol::get_call_protocol_object() const {
   return make_tl_object<td_api::callProtocol>(udp_p2p, udp_reflector, min_layer, max_layer,
                                               vector<string>(library_versions));
 }
 
-CallConnection CallConnection::from_telegram_api(const telegram_api::phoneConnection &connection) {
-  CallConnection res;
-  res.id = connection.id_;
-  res.ip = connection.ip_;
-  res.ipv6 = connection.ipv6_;
-  res.port = connection.port_;
-  res.peer_tag = connection.peer_tag_.as_slice().str();
-  return res;
-}
-tl_object_ptr<telegram_api::phoneConnection> CallConnection::as_telegram_api() const {
+tl_object_ptr<telegram_api::phoneConnection> CallConnection::get_input_phone_connection() const {
   return make_tl_object<telegram_api::phoneConnection>(id, ip, ipv6, port, BufferSlice(peer_tag));
 }
-tl_object_ptr<td_api::callConnection> CallConnection::as_td_api() const {
+
+tl_object_ptr<td_api::callConnection> CallConnection::get_call_connection_object() const {
   return make_tl_object<td_api::callConnection>(id, ip, ipv6, port, peer_tag);
 }
 
-// CallState
-tl_object_ptr<td_api::CallState> CallState::as_td_api() const {
+tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
   switch (type) {
     case Type::Pending:
       return make_tl_object<td_api::callStatePending>(is_created, is_received);
     case Type::ExchangingKey:
       return make_tl_object<td_api::callStateExchangingKeys>();
     case Type::Ready: {
-      std::vector<tl_object_ptr<td_api::callConnection>> v;
-      for (auto &c : connections) {
-        v.push_back(c.as_td_api());
-      }
-      return make_tl_object<td_api::callStateReady>(protocol.as_td_api(), std::move(v), config, key,
-                                                    vector<string>(emojis_fingerprint), allow_p2p);
+      auto call_connections = transform(connections, [](auto &c) { return c.get_call_connection_object(); });
+      return make_tl_object<td_api::callStateReady>(protocol.get_call_protocol_object(), std::move(call_connections),
+                                                    config, key, vector<string>(emojis_fingerprint), allow_p2p);
     }
     case Type::HangingUp:
       return make_tl_object<td_api::callStateHangingUp>();
@@ -428,9 +421,9 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
       get_emojis_fingerprint(call_state_.key, is_outgoing_ ? dh_handshake_.get_g_b() : dh_handshake_.get_g_a());
 
   for (auto &connection : call.connections_) {
-    call_state_.connections.push_back(CallConnection::from_telegram_api(*connection));
+    call_state_.connections.push_back(CallConnection(*connection));
   }
-  call_state_.protocol = CallProtocol::from_telegram_api(*call.protocol_);
+  call_state_.protocol = CallProtocol(*call.protocol_);
   call_state_.allow_p2p = (call.flags_ & telegram_api::phoneCall::P2P_ALLOWED_MASK) != 0;
   call_state_.type = CallState::Type::Ready;
   call_state_need_flush_ = true;
@@ -575,7 +568,7 @@ void CallActor::try_send_request_query() {
   }
   auto tl_query = telegram_api::phone_requestCall(flags, false /*ignored*/, std::move(input_user_),
                                                   Random::secure_int32(), BufferSlice(dh_handshake_.get_g_b_hash()),
-                                                  call_state_.protocol.as_telegram_api());
+                                                  call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitRequestResult;
   int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
@@ -608,9 +601,9 @@ void CallActor::try_send_accept_query() {
     return;
   }
   dh_handshake_.set_config(dh_config_->g, dh_config_->prime);
-  auto tl_query =
-      telegram_api::phone_acceptCall(get_input_phone_call("try_send_accept_query"),
-                                     BufferSlice(dh_handshake_.get_g_b()), call_state_.protocol.as_telegram_api());
+  auto tl_query = telegram_api::phone_acceptCall(get_input_phone_call("try_send_accept_query"),
+                                                 BufferSlice(dh_handshake_.get_g_b()),
+                                                 call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitAcceptResult;
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
@@ -634,7 +627,7 @@ void CallActor::try_send_confirm_query() {
   }
   auto tl_query = telegram_api::phone_confirmCall(get_input_phone_call("try_send_confirm_query"),
                                                   BufferSlice(dh_handshake_.get_g_b()), call_state_.key_fingerprint,
-                                                  call_state_.protocol.as_telegram_api());
+                                                  call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitConfirmResult;
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
@@ -708,7 +701,7 @@ void CallActor::flush_call_state() {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateCall>(
                      make_tl_object<td_api::call>(local_call_id_.get(), is_outgoing_ ? user_id_.get() : call_admin_id_,
-                                                  is_outgoing_, call_state_.as_td_api())));
+                                                  is_outgoing_, call_state_.get_call_state_object())));
   }
 }
 

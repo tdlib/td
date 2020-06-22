@@ -281,7 +281,7 @@ function split_file($file, $chunks, $undo) {
                 'secret_chats_manager[_(-][^.]|SecretChatsManager' => 'SecretChatsManager',
                 'stickers_manager[_(-][^.]|StickersManager' => 'StickersManager',
                 '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',
-                'TopDialogCategory|top_dialog_category_from_td_api' => 'TopDialogCategory',
+                'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
                 'top_dialog_manager[_(-][^.]|TopDialogManager' => 'TopDialogManager',
                 'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]' => 'UpdatesManager',
                 'WebPageId(Hash)?' => 'WebPageId',

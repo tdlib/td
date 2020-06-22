@@ -30,7 +30,7 @@ struct TempPasswordState {
   string temp_password;
   int32 valid_until = 0;  // unix_time
 
-  tl_object_ptr<td_api::temporaryPasswordState> as_td_api() const;
+  tl_object_ptr<td_api::temporaryPasswordState> get_temporary_password_state_object() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -116,7 +116,7 @@ class PasswordManager : public NetQueryCallback {
 
     string new_secure_salt;
 
-    State as_td_api() const {
+    State get_password_state_object() const {
       td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo> code_info;
       if (!unconfirmed_recovery_email_address_pattern.empty()) {
         code_info = td_api::make_object<td_api::emailAddressAuthenticationCodeInfo>(

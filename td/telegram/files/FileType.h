@@ -41,9 +41,9 @@ enum class FileDirType : int8 { Secure, Common };
 
 constexpr int32 MAX_FILE_TYPE = static_cast<int32>(FileType::Size);
 
-FileType from_td_api(const td_api::FileType &file_type);
+FileType get_file_type(const td_api::FileType &file_type);
 
-tl_object_ptr<td_api::FileType> as_td_api(FileType file_type);
+tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type);
 
 CSlice get_file_type_name(FileType file_type);
 

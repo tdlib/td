@@ -26,7 +26,7 @@
 
 namespace td {
 
-tl_object_ptr<td_api::databaseStatistics> DatabaseStats::as_td_api() const {
+tl_object_ptr<td_api::databaseStatistics> DatabaseStats::get_database_statistics_object() const {
   return make_tl_object<td_api::databaseStatistics>(debug);
 }
 

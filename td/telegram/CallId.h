@@ -34,8 +34,8 @@ class CallId {
     return id;
   }
 
-  auto as_td_api() const {
-    return make_tl_object<td_api::callId>(id);
+  auto get_call_id_object() const {
+    return td_api::make_object<td_api::callId>(id);
   }
 
   bool operator==(const CallId &other) const {

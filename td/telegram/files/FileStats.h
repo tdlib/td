@@ -65,7 +65,7 @@ struct FileStatsFast {
       , language_pack_database_size(language_pack_database_size)
       , log_size(log_size) {
   }
-  tl_object_ptr<td_api::storageStatisticsFast> as_td_api() const;
+  tl_object_ptr<td_api::storageStatisticsFast> get_storage_statistics_fast_object() const;
 };
 
 struct FileStats {
@@ -83,7 +83,7 @@ struct FileStats {
   void add(FullFileInfo &&info);
   void apply_dialog_limit(int32 limit);
 
-  tl_object_ptr<td_api::storageStatistics> as_td_api() const;
+  tl_object_ptr<td_api::storageStatistics> get_storage_statistics_object() const;
   std::vector<DialogId> get_dialog_ids() const;
   FileTypeStat get_total_nontemp_stat() const;
 

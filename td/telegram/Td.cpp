@@ -5105,7 +5105,7 @@ void Td::on_request(uint64 id, const td_api::getFile &request) {
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
   CLEAN_INPUT_STRING(request.remote_file_id_);
-  auto file_type = request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_);
+  auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
   auto r_file_id = file_manager_->from_persistent_id(request.remote_file_id_, file_type);
   if (r_file_id.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_file_id.move_as_error());
@@ -5120,7 +5120,7 @@ void Td::on_request(uint64 id, td_api::getStorageStatistics &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_storage_statistics_object());
     }
   });
   send_closure(storage_manager_, &StorageManager::get_storage_stats, false /*need_all_files*/, request.chat_limit_,
@@ -5133,7 +5133,7 @@ void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_storage_statistics_fast_object());
     }
   });
   send_closure(storage_manager_, &StorageManager::get_storage_stats_fast, std::move(query_promise));
@@ -5144,7 +5144,7 @@ void Td::on_request(uint64 id, td_api::getDatabaseStatistics &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_database_statistics_object());
     }
   });
   send_closure(storage_manager_, &StorageManager::get_database_stats, std::move(query_promise));
@@ -5157,7 +5157,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
       return send_error_raw(id, 400, "File type must be non-empty");
     }
 
-    file_types.push_back(from_td_api(*file_type));
+    file_types.push_back(get_file_type(*file_type));
   }
   std::vector<DialogId> owner_dialog_ids;
   for (auto chat_id : request.chat_ids_) {
@@ -5184,7 +5184,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_storage_statistics_object());
     }
   });
   send_closure(storage_manager_, &StorageManager::run_gc, std::move(parameters),
@@ -5197,7 +5197,7 @@ void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_network_statistics_object());
     }
   });
   send_closure(net_stats_manager_, &NetStatsManager::get_network_stats, request.only_current_,
@@ -5221,9 +5221,9 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
       auto file_entry = move_tl_object_as<td_api::networkStatisticsEntryFile>(request.entry_);
       entry.is_call = false;
       if (file_entry->file_type_ != nullptr) {
-        entry.file_type = from_td_api(*file_entry->file_type_);
+        entry.file_type = get_file_type(*file_entry->file_type_);
       }
-      entry.net_type = from_td_api(file_entry->network_type_);
+      entry.net_type = get_net_type(file_entry->network_type_);
       entry.rx = file_entry->received_bytes_;
       entry.tx = file_entry->sent_bytes_;
       break;
@@ -5231,7 +5231,7 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
     case td_api::networkStatisticsEntryCall::ID: {
       auto call_entry = move_tl_object_as<td_api::networkStatisticsEntryCall>(request.entry_);
       entry.is_call = true;
-      entry.net_type = from_td_api(call_entry->network_type_);
+      entry.net_type = get_net_type(call_entry->network_type_);
       entry.rx = call_entry->received_bytes_;
       entry.tx = call_entry->sent_bytes_;
       entry.duration = call_entry->duration_;
@@ -5263,7 +5263,7 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
 
 void Td::on_request(uint64 id, const td_api::setNetworkType &request) {
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(state_manager_, &StateManager::on_network, from_td_api(request.type_));
+  send_closure(state_manager_, &StateManager::on_network, get_net_type(request.type_));
   promise.set_value(Unit());
 }
 
@@ -5279,7 +5279,7 @@ void Td::on_request(uint64 id, const td_api::setAutoDownloadSettings &request) {
   if (request.settings_ == nullptr) {
     return send_error_raw(id, 400, "New settings must be non-empty");
   }
-  set_auto_download_settings(this, from_td_api(request.type_), get_auto_download_settings(request.settings_),
+  set_auto_download_settings(this, get_net_type(request.type_), get_auto_download_settings(request.settings_),
                              std::move(promise));
 }
 
@@ -5299,9 +5299,8 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
       promise.set_value(MessagesManager::get_chats_object(result.ok()));
     }
   });
-  send_closure(top_dialog_manager_, &TopDialogManager::get_top_dialogs,
-               top_dialog_category_from_td_api(*request.category_), narrow_cast<size_t>(request.limit_),
-               std::move(query_promise));
+  send_closure(top_dialog_manager_, &TopDialogManager::get_top_dialogs, get_top_dialog_category(*request.category_),
+               narrow_cast<size_t>(request.limit_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
@@ -5314,9 +5313,8 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   if (!dialog_id.is_valid()) {
     return send_error_raw(id, 400, "Invalid chat identifier");
   }
-  send_closure(top_dialog_manager_, &TopDialogManager::remove_dialog,
-               top_dialog_category_from_td_api(*request.category_), dialog_id,
-               messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
+  send_closure(top_dialog_manager_, &TopDialogManager::remove_dialog, get_top_dialog_category(*request.category_),
+               dialog_id, messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
@@ -5819,7 +5817,7 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.ok().as_td_api());
+      promise.set_value(result.ok().get_call_id_object());
     }
   });
 
@@ -5838,7 +5836,7 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
   }
 
   send_closure(G()->call_manager(), &CallManager::create_call, user_id, std::move(input_user),
-               CallProtocol::from_td_api(*request.protocol_), false, std::move(query_promise));
+               CallProtocol(*request.protocol_), false, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::discardCall &request) {
@@ -5855,7 +5853,7 @@ void Td::on_request(uint64 id, td_api::acceptCall &request) {
     return promise.set_error(Status::Error(5, "Call protocol must be non-empty"));
   }
   send_closure(G()->call_manager(), &CallManager::accept_call, CallId(request.call_id_),
-               CallProtocol::from_td_api(*request.protocol_), std::move(promise));
+               CallProtocol(*request.protocol_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendCallRating &request) {
@@ -6240,7 +6238,7 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
     return send_error_raw(id, 5, "Upload priority must be in [1;32] range");
   }
 
-  auto file_type = request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_);
+  auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
   bool is_secret = file_type == FileType::Encrypted || file_type == FileType::EncryptedThumbnail;
   bool is_secure = file_type == FileType::Secure;
   auto r_file_id = file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret,
@@ -7984,7 +7982,7 @@ void Td::on_request(uint64 id, const td_api::testNetwork &request) {
 }
 
 void Td::on_request(uint64 id, td_api::testProxy &request) {
-  auto r_proxy = Proxy::from_td_api(std::move(request.server_), request.port_, request.type_.get());
+  auto r_proxy = Proxy::create_proxy(std::move(request.server_), request.port_, request.type_.get());
   if (r_proxy.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_proxy.move_as_error());
   }

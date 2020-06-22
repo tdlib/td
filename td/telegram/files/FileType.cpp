@@ -8,7 +8,7 @@
 
 namespace td {
 
-FileType from_td_api(const td_api::FileType &file_type) {
+FileType get_file_type(const td_api::FileType &file_type) {
   switch (file_type.get_id()) {
     case td_api::fileTypeThumbnail::ID:
       return FileType::Thumbnail;
@@ -48,7 +48,7 @@ FileType from_td_api(const td_api::FileType &file_type) {
   }
 }
 
-tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
+tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
   switch (file_type) {
     case FileType::Thumbnail:
       return make_tl_object<td_api::fileTypeThumbnail>();

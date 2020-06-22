@@ -34,10 +34,15 @@ struct CallProtocol {
   int32 max_layer{65};
   vector<string> library_versions;
 
-  static CallProtocol from_telegram_api(const telegram_api::phoneCallProtocol &protocol);
-  tl_object_ptr<telegram_api::phoneCallProtocol> as_telegram_api() const;
-  static CallProtocol from_td_api(const td_api::callProtocol &protocol);
-  tl_object_ptr<td_api::callProtocol> as_td_api() const;
+  CallProtocol() = default;
+
+  explicit CallProtocol(const td_api::callProtocol &protocol);
+
+  explicit CallProtocol(const telegram_api::phoneCallProtocol &protocol);
+
+  tl_object_ptr<telegram_api::phoneCallProtocol> get_input_phone_call_protocol() const;
+
+  tl_object_ptr<td_api::callProtocol> get_call_protocol_object() const;
 };
 
 struct CallConnection {
@@ -47,9 +52,11 @@ struct CallConnection {
   int32 port;
   string peer_tag;
 
-  static CallConnection from_telegram_api(const telegram_api::phoneConnection &connection);
-  tl_object_ptr<telegram_api::phoneConnection> as_telegram_api() const;
-  tl_object_ptr<td_api::callConnection> as_td_api() const;
+  explicit CallConnection(const telegram_api::phoneConnection &connection);
+
+  tl_object_ptr<telegram_api::phoneConnection> get_input_phone_connection() const;
+
+  tl_object_ptr<td_api::callConnection> get_call_connection_object() const;
 };
 
 struct CallState {
@@ -71,7 +78,7 @@ struct CallState {
 
   Status error;
 
-  tl_object_ptr<td_api::CallState> as_td_api() const;
+  tl_object_ptr<td_api::CallState> get_call_state_object() const;
 };
 
 class CallActor : public NetQueryCallback {

@@ -26,7 +26,7 @@
 
 namespace td {
 
-tl_object_ptr<td_api::temporaryPasswordState> TempPasswordState::as_td_api() const {
+tl_object_ptr<td_api::temporaryPasswordState> TempPasswordState::get_temporary_password_state_object() const {
   if (!has_temp_password || valid_until <= G()->unix_time()) {
     return make_tl_object<td_api::temporaryPasswordState>(false, 0);
   }
@@ -234,7 +234,7 @@ void PasswordManager::do_get_secure_secret(bool allow_recursive, string password
 }
 
 void PasswordManager::get_temp_password_state(Promise<TempState> promise) /*const*/ {
-  promise.set_value(temp_password_state_.as_td_api());
+  promise.set_value(temp_password_state_.get_temporary_password_state_object());
 }
 
 TempPasswordState PasswordManager::get_temp_password_state_sync() {
@@ -298,7 +298,7 @@ void PasswordManager::on_finish_create_temp_password(Result<TempPasswordState> r
   }
   temp_password_state_ = result.move_as_ok();
   G()->td_db()->get_binlog_pmc()->set("temp_password", log_event_store(temp_password_state_).as_slice().str());
-  create_temp_password_promise_.set_value(temp_password_state_.as_td_api());
+  create_temp_password_promise_.set_value(temp_password_state_.get_temporary_password_state_object());
 }
 
 void PasswordManager::get_full_state(string password, Promise<PasswordFullState> promise) {
@@ -625,7 +625,7 @@ void PasswordManager::get_state(Promise<State> promise) {
     if (r_state.is_error()) {
       return promise.set_error(r_state.move_as_error());
     }
-    promise.set_value(r_state.move_as_ok().as_td_api());
+    promise.set_value(r_state.move_as_ok().get_password_state_object());
   }));
 }
 

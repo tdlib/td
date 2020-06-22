@@ -26,7 +26,7 @@ struct DatabaseStats {
   DatabaseStats() = default;
   explicit DatabaseStats(string debug) : debug(debug) {
   }
-  tl_object_ptr<td_api::databaseStatistics> as_td_api() const;
+  tl_object_ptr<td_api::databaseStatistics> get_database_statistics_object() const;
 };
 
 class StorageManager : public Actor {

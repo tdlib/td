@@ -14,7 +14,7 @@ namespace td {
 
 enum class NetType : int8 { Other, WiFi, Mobile, MobileRoaming, Size, None, Unknown };
 
-inline NetType from_td_api(const tl_object_ptr<td_api::NetworkType> &net_type) {
+inline NetType get_net_type(const tl_object_ptr<td_api::NetworkType> &net_type) {
   if (net_type == nullptr) {
     return NetType::Other;
   }
@@ -35,7 +35,7 @@ inline NetType from_td_api(const tl_object_ptr<td_api::NetworkType> &net_type) {
   }
 }
 
-inline tl_object_ptr<td_api::NetworkType> as_td_api(NetType net_type) {
+inline tl_object_ptr<td_api::NetworkType> get_network_type_object(NetType net_type) {
   switch (net_type) {
     case NetType::Other:
       return make_tl_object<td_api::networkTypeOther>();

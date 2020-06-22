@@ -24,7 +24,7 @@ enum class TopDialogCategory : int32 {
   Size
 };
 
-inline TopDialogCategory top_dialog_category_from_td_api(const td_api::TopChatCategory &category) {
+inline TopDialogCategory get_top_dialog_category(const td_api::TopChatCategory &category) {
   switch (category.get_id()) {
     case td_api::topChatCategoryUsers::ID:
       return TopDialogCategory::Correspondent;

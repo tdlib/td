@@ -19,7 +19,7 @@
 
 namespace td {
 
-tl_object_ptr<td_api::storageStatisticsFast> FileStatsFast::as_td_api() const {
+tl_object_ptr<td_api::storageStatisticsFast> FileStatsFast::get_storage_statistics_fast_object() const {
   return make_tl_object<td_api::storageStatisticsFast>(size, count, database_size, language_pack_database_size,
                                                        log_size);
 }
@@ -131,8 +131,8 @@ void FileStats::apply_dialog_limit(int32 limit) {
   }
 }
 
-tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
-                                                         const FileStats::StatByType &stat_by_type) {
+static tl_object_ptr<td_api::storageStatisticsByChat> get_storage_statistics_by_chat_object(
+    DialogId dialog_id, const FileStats::StatByType &stat_by_type) {
   auto stats = make_tl_object<td_api::storageStatisticsByChat>(dialog_id.get(), 0, 0, Auto());
   int64 secure_raw_size = 0;
   int32 secure_raw_cnt = 0;
@@ -180,20 +180,20 @@ tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
     stats->size_ += size;
     stats->count_ += cnt;
     stats->by_file_type_.push_back(
-        make_tl_object<td_api::storageStatisticsByFileType>(as_td_api(file_type), size, cnt));
+        make_tl_object<td_api::storageStatisticsByFileType>(get_file_type_object(file_type), size, cnt));
   }
   return stats;
 }
 
-tl_object_ptr<td_api::storageStatistics> FileStats::as_td_api() const {
+tl_object_ptr<td_api::storageStatistics> FileStats::get_storage_statistics_object() const {
   auto stats = make_tl_object<td_api::storageStatistics>(0, 0, Auto());
   if (!split_by_owner_dialog_id) {
     stats->by_chat_.reserve(1);
-    stats->by_chat_.push_back(::td::as_td_api(DialogId(), stat_by_type));
+    stats->by_chat_.push_back(get_storage_statistics_by_chat_object(DialogId(), stat_by_type));
   } else {
     stats->by_chat_.reserve(stat_by_owner_dialog_id.size());
     for (auto &by_dialog : stat_by_owner_dialog_id) {
-      stats->by_chat_.push_back(::td::as_td_api(by_dialog.first, by_dialog.second));
+      stats->by_chat_.push_back(get_storage_statistics_by_chat_object(by_dialog.first, by_dialog.second));
     }
     std::sort(stats->by_chat_.begin(), stats->by_chat_.end(), [](const auto &x, const auto &y) {
       if (x->chat_id_ == 0 || y->chat_id_ == 0) {
