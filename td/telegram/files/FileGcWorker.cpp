@@ -49,14 +49,13 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   if (!parameters.file_types.empty()) {
     std::fill(immune_types.begin(), immune_types.end(), true);
     for (auto file_type : parameters.file_types) {
-      if (file_type == FileType::Secure) {
-        immune_types[narrow_cast<size_t>(FileType::SecureRaw)] = false;
-      } else if (file_type == FileType::Background) {
-        immune_types[narrow_cast<size_t>(FileType::Wallpaper)] = false;
-      } else if (file_type == FileType::Document) {
-        immune_types[narrow_cast<size_t>(FileType::DocumentAsFile)] = false;
-      }
       immune_types[narrow_cast<size_t>(file_type)] = false;
+    }
+    for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
+      auto main_file_type = narrow_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+      if (immune_types[main_file_type] == false) {
+        immune_types[i] = false;
+      }
     }
   }
 

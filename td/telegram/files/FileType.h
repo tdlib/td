@@ -45,6 +45,8 @@ FileType get_file_type(const td_api::FileType &file_type);
 
 tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type);
 
+FileType get_main_file_type(FileType file_type);
+
 CSlice get_file_type_name(FileType file_type);
 
 StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type);

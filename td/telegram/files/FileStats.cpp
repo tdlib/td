@@ -134,49 +134,22 @@ void FileStats::apply_dialog_limit(int32 limit) {
 static tl_object_ptr<td_api::storageStatisticsByChat> get_storage_statistics_by_chat_object(
     DialogId dialog_id, const FileStats::StatByType &stat_by_type) {
   auto stats = make_tl_object<td_api::storageStatisticsByChat>(dialog_id.get(), 0, 0, Auto());
-  int64 secure_raw_size = 0;
-  int32 secure_raw_cnt = 0;
-  int64 wallpaper_raw_size = 0;
-  int32 wallpaper_raw_cnt = 0;
-  int64 document_raw_size = 0;
-  int32 document_raw_cnt = 0;
+  FileStats::StatByType aggregated_stats;
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    FileType file_type = static_cast<FileType>(i);
-    auto size = stat_by_type[i].size;
-    auto cnt = stat_by_type[i].cnt;
+    size_t file_type = narrow_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    aggregated_stats[file_type].size += stat_by_type[i].size;
+    aggregated_stats[file_type].cnt += stat_by_type[i].cnt;
+  }
 
-    if (file_type == FileType::SecureRaw) {
-      secure_raw_size = size;
-      secure_raw_cnt = cnt;
-      continue;
-    }
-    if (file_type == FileType::Wallpaper) {
-      wallpaper_raw_size = size;
-      wallpaper_raw_cnt = cnt;
-      continue;
-    }
-    if (file_type == FileType::Document) {
-      document_raw_size = size;
-      document_raw_cnt = cnt;
-      continue;
-    }
-    if (file_type == FileType::Secure) {
-      size += secure_raw_size;
-      cnt += secure_raw_cnt;
-    }
-    if (file_type == FileType::Background) {
-      size += wallpaper_raw_size;
-      cnt += wallpaper_raw_cnt;
-    }
-    if (file_type == FileType::DocumentAsFile) {
-      size += document_raw_size;
-      cnt += document_raw_cnt;
-      continue;
-    }
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
+    auto size = aggregated_stats[i].size;
+    auto cnt = aggregated_stats[i].cnt;
+
     if (size == 0) {
       continue;
     }
 
+    FileType file_type = static_cast<FileType>(i);
     stats->size_ += size;
     stats->count_ += cnt;
     stats->by_file_type_.push_back(

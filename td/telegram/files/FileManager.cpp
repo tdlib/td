@@ -46,6 +46,7 @@
 #include <limits>
 #include <numeric>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -748,9 +749,15 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
   next_file_id();
   next_file_node_id();
 
-  std::vector<string> dirs;
-  auto create_dir = [&](CSlice path) {
-    dirs.push_back(path.str());
+  std::unordered_set<string> dir_paths;
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
+    dir_paths.insert(get_files_dir(static_cast<FileType>(i)));
+  }
+  // add both temp dirs
+  dir_paths.insert(get_files_temp_dir(FileType::Encrypted));
+  dir_paths.insert(get_files_temp_dir(FileType::Video));
+
+  for (const auto &path : dir_paths) {
     auto status = mkdir(path, 0750);
     if (status.is_error()) {
       auto r_stat = stat(path);
@@ -761,22 +768,9 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
       }
     }
 #if TD_ANDROID
-    FileFd::open(dirs.back() + ".nomedia", FileFd::Create | FileFd::Read).ignore();
+    FileFd::open(path + ".nomedia", FileFd::Create | FileFd::Read).ignore();
 #endif
   };
-  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    FileType file_type = static_cast<FileType>(i);
-    if (file_type == FileType::SecureRaw || file_type == FileType::Background ||
-        file_type == FileType::DocumentAsFile) {
-      continue;
-    }
-    auto path = get_files_dir(file_type);
-    create_dir(path);
-  }
-
-  // Create both temp dirs.
-  create_dir(get_files_temp_dir(FileType::Encrypted));
-  create_dir(get_files_temp_dir(FileType::Video));
 
   G()->td_db()->with_db_path([this](CSlice path) { this->bad_paths_.insert(path.str()); });
 }

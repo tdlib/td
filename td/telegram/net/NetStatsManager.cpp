@@ -60,13 +60,9 @@ void NetStatsManager::init() {
   };
 
   for_each_stat([&](NetStatsInfo &stat, size_t id, CSlice name, FileType file_type) {
-    if (file_type == FileType::SecureRaw) {
-      id += static_cast<size_t>(FileType::SecureRaw) - static_cast<size_t>(FileType::Secure);
-    } else if (file_type == FileType::Wallpaper) {
-      id += static_cast<size_t>(FileType::Background) - static_cast<size_t>(FileType::Wallpaper);
-    } else if (file_type == FileType::DocumentAsFile) {
-      id += static_cast<size_t>(FileType::Document) - static_cast<size_t>(FileType::DocumentAsFile);
-    }
+    auto main_file_type = get_main_file_type(file_type);
+    id += static_cast<size_t>(main_file_type) - static_cast<size_t>(file_type);
+
     stat.key = "net_stats_" + name.str();
     stat.stats.set_callback(make_unique<NetStatsInternalCallback>(actor_id(this), id));
   });
@@ -117,8 +113,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
         entry.is_call = true;
         result.entries.push_back(std::move(entry));
       } else if (file_type != FileType::None) {
-        if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper ||
-            file_type == FileType::DocumentAsFile) {
+        if (get_main_file_type(file_type) != file_type) {
           return;
         }
 
@@ -198,7 +193,7 @@ void NetStatsManager::add_network_stats_impl(NetStatsInfo &info, const NetworkSt
 
 void NetStatsManager::start_up() {
   for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
-    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper || file_type == FileType::DocumentAsFile) {
+    if (get_main_file_type(file_type) != file_type) {
       return;
     }
 
@@ -261,9 +256,12 @@ std::shared_ptr<NetStatsCallback> NetStatsManager::get_media_stats_callback() co
 
 std::vector<std::shared_ptr<NetStatsCallback>> NetStatsManager::get_file_stats_callbacks() const {
   auto result = transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
-  result[static_cast<int32>(FileType::SecureRaw)] = result[static_cast<int32>(FileType::Secure)];
-  result[static_cast<int32>(FileType::Wallpaper)] = result[static_cast<int32>(FileType::Background)];
-  result[static_cast<int32>(FileType::DocumentAsFile)] = result[static_cast<int32>(FileType::Document)];
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
+    int32 main_file_type = static_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    if (main_file_type != i) {
+      result[i] = result[main_file_type];
+    }
+  }
   return result;
 }
 

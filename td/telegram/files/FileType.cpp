@@ -95,6 +95,19 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
   }
 }
 
+FileType get_main_file_type(FileType file_type) {
+  switch (file_type) {
+    case FileType::Wallpaper:
+      return FileType::Background;
+    case FileType::SecureRaw:
+      return FileType::Secure;
+    case FileType::DocumentAsFile:
+      return FileType::Document;
+    default:
+      return file_type;
+  }
+}
+
 CSlice get_file_type_name(FileType file_type) {
   switch (file_type) {
     case FileType::Thumbnail:

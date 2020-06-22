@@ -31,6 +31,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace td {
 namespace {
@@ -101,12 +102,13 @@ struct FsFileInfo {
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    auto file_type = static_cast<FileType>(i);
-    if (file_type == FileType::SecureRaw || file_type == FileType::Wallpaper || file_type == FileType::DocumentAsFile) {
+    int32 main_file_type = static_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    if (i != main_file_type) {
       continue;
     }
-    auto files_dir = get_files_dir(file_type);
-    walk_path(files_dir, [&](CSlice path, WalkPath::Type type) {
+    auto file_type = static_cast<FileType>(i);
+    auto file_dir = get_files_dir(file_type);
+    walk_path(file_dir, [&](CSlice path, WalkPath::Type type) {
       if (token) {
         return WalkPath::Action::Abort;
       }
