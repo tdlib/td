@@ -1122,7 +1122,7 @@ class Td final : public NetQueryCallback {
 
   template <class T>
   static td_api::object_ptr<td_api::Object> do_static_request(const T &request) {
-    return td_api::make_object<td_api::error>(400, "Function can't be executed synchronously");
+    return td_api::make_object<td_api::error>(400, "The method can't be executed synchronously");
   }
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
