@@ -603,6 +603,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::Photo> &&
 }
 
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id) {
+  CHECK(photo != nullptr);
   Photo res;
 
   res.id = photo->id_;

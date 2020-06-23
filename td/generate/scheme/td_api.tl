@@ -344,6 +344,13 @@ botInfo description:string commands:vector<botCommand> = BotInfo;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@description Contains full information about a user profile photo @id Unique user profile photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the user photo, in different sizes
+userProfilePhoto id:int64 added_date:int32 sizes:vector<photoSize> = UserProfilePhoto;
+
+//@description Contains part of the list of user photos @total_count Total number of user profile photos @photos A list of photos
+userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfilePhotos;
+
+
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
 //@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
 //@is_contact The user is a contact of the current user
@@ -354,17 +361,13 @@ chatLocation location:location address:string = ChatLocation;
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser @type Type of the user @language_code IETF language tag of the user's language; only available to bots
 user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool have_access:Bool type:UserType language_code:string = User;
 
-//@description Contains full information about a user (except the full list of profile photos) @is_blocked True, if the user is blacklisted by the current user
+//@description Contains full information about a user
+//@photo User profile photo; may be null
+//@is_blocked True, if the user is blocked by the current user
 //@can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null
-userFullInfo is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
-
-//@description Contains full information about a user profile photo @id Unique user profile photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the user photo, in different sizes
-userProfilePhoto id:int64 added_date:int32 sizes:vector<photoSize> = UserProfilePhoto;
-
-//@description Contains part of the list of user photos @total_count Total number of user profile photos @photos A list of photos
-userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfilePhotos;
+userFullInfo photo:userProfilePhoto is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total count of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int32> = Users;
@@ -3956,10 +3959,10 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
 
-//@description Adds a user to the blacklist @user_id User identifier
+//@description Blocks a user @user_id User identifier
 blockUser user_id:int32 = Ok;
 
-//@description Removes a user from the blacklist @user_id User identifier
+//@description Unblocks a user @user_id User identifier
 unblockUser user_id:int32 = Ok;
 
 //@description Returns users that were blocked by the current user @offset Number of users to skip in the result; must be non-negative @limit The maximum number of users to return; up to 100

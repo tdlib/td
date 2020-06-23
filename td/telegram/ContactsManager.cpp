@@ -8455,7 +8455,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
     add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
 
-    drop_user_photos(user_id, u->photo.id <= 0, "update_user");
+    drop_user_photos(user_id, u->photo.id <= 0, true, "update_user");
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
@@ -8850,7 +8850,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   on_get_user(std::move(user_full->user_), "on_get_user_full");
-  const User *u = get_user(user_id);
+  User *u = get_user(user_id);
   if (u == nullptr) {
     return;
   }
@@ -8900,10 +8900,13 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user->is_changed = true;
   }
 
-  Photo photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
-  if (photo.id == -2) {
-    drop_user_photos(user_id, true, "on_get_user_full");
+  user->photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+  if (user->photo.id == -2) {
+    drop_user_photos(user_id, true, false, "on_get_user_full");
+  } else {
+    add_user_photo_id(u, user_id, user->photo.id, photo_get_file_ids(user->photo));
   }
+
   if (user_full->bot_info_ != nullptr) {
     if (on_update_bot_info(std::move(user_full->bot_info_), false)) {
       user->need_send_update = true;
@@ -9417,7 +9420,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
     old_photo = std::move(photo);
 
-    drop_user_photos(user_id, is_empty, "on_update_user_photo");
+    drop_user_photos(user_id, is_empty, true, "on_update_user_photo");
     return;
   }
 
@@ -9704,7 +9707,7 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   UserId my_id = get_my_id();
 
-  drop_user_photos(my_id, false, "on_delete_profile_photo");
+  drop_user_photos(my_id, false, true, "on_delete_profile_photo");
 
   if (G()->close_flag()) {
     return promise.set_value(Unit());
@@ -9713,7 +9716,7 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   reload_user(my_id, std::move(promise));
 }
 
-void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
+void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end()) {
     auto user_photos = &it->second;
@@ -9729,10 +9732,33 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char
     user_photos->count = new_count;
     user_photos->offset = user_photos->count;
   }
+
+  if (drop_user_full_photo) {
+    auto user_full = get_user_full_force(user_id);
+    if (user_full == nullptr) {
+      return;
+    }
+
+    if (is_empty) {
+      if (user_full->photo.id != -2) {
+        user_full->photo = Photo();
+        user_full->photo.id = -2;
+        user_full->is_changed = true;
+      }
+    } else {
+      if (user_full->expires_at > 0.0) {
+        user_full->expires_at = 0.0;
+        user_full->need_save_to_database = true;
+
+        get_user_full(user_id, true, Auto());
+      }
+    }
+    update_user_full(user_full, user_id);
+  }
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
-  drop_user_photos(user_id, false, "drop_user_full");
+  drop_user_photos(user_id, false, false, "drop_user_full");
 
   bot_infos_.erase(user_id);
   if (G()->parameters().use_chat_info_db) {
@@ -9746,6 +9772,8 @@ void ContactsManager::drop_user_full(UserId user_id) {
 
   user_full->expires_at = 0.0;
 
+  user_full->photo = Photo();
+  user_full->photo.id = -2;
   user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->has_private_calls = false;
@@ -13439,9 +13467,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
   return make_tl_object<td_api::userFullInfo>(
-      user_full->is_blocked, user_full->can_be_called, user_full->has_private_calls,
-      user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
-      is_bot ? user_full->about : string(), user_full->common_chat_count,
+      get_user_profile_photo_object(td_->file_manager_.get(), &user_full->photo), user_full->is_blocked,
+      user_full->can_be_called, user_full->has_private_calls, user_full->need_phone_number_privacy_exception,
+      is_bot ? string() : user_full->about, is_bot ? user_full->about : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
 }
 

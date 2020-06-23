@@ -646,6 +646,8 @@ class ContactsManager : public Actor {
 
   // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
+    Photo photo;
+
     string about;
 
     int32 common_chat_count = 0;
@@ -1105,7 +1107,7 @@ class ContactsManager : public Actor {
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
-  void drop_user_photos(UserId user_id, bool is_empty, const char *source);
+  void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);
 
   void on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error);
