@@ -227,7 +227,8 @@ class ContactsManager : public Actor {
                                   tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
 
   void on_get_dialog_invite_link_info(const string &invite_link,
-                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr);
+                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
+                                      Promise<Unit> &&promise);
 
   void invalidate_invite_link_info(const string &invite_link);
 
@@ -862,13 +863,14 @@ class ContactsManager : public Actor {
   };
 
   struct InviteLinkInfo {
-    ChatId chat_id;  // TODO DialogId
-    ChannelId channel_id;
+    // known dialog
+    DialogId dialog_id;
+
+    // unknown dialog
     string title;
     Photo photo;
     int32 participant_count = 0;
     vector<UserId> participant_user_ids;
-
     bool is_chat = false;
     bool is_channel = false;
     bool is_public = false;
@@ -1286,6 +1288,8 @@ class ContactsManager : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
+  void remove_dialog_access_by_invite_link(DialogId dialog_id);
+
   static bool is_valid_invite_link(const string &invite_link);
 
   bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
@@ -1369,11 +1373,15 @@ class ContactsManager : public Actor {
 
   static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
+  static void on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long);
+
   void on_user_online_timeout(UserId user_id);
 
   void on_user_nearby_timeout(UserId user_id);
 
   void on_slow_mode_delay_timeout(ChannelId channel_id);
+
+  void on_invite_link_info_expire_timeout(DialogId dialog_id);
 
   void tear_down() override;
 
@@ -1412,9 +1420,13 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
 
-  std::unordered_map<ChatId, string, ChatIdHash> chat_invite_links_;           // in-memory cache for invite links
-  std::unordered_map<ChannelId, string, ChannelIdHash> channel_invite_links_;  // in-memory cache for invite links
+  struct DialogAccessByInviteLink {
+    std::unordered_set<string> invite_links;
+    int32 accessible_before = 0;
+  };
+  std::unordered_map<DialogId, string, DialogIdHash> dialog_invite_links_;  // in-memory cache for invite links
   std::unordered_map<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
+  std::unordered_map<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
 
   bool created_public_channels_inited_[2] = {false, false};
   vector<ChannelId> created_public_channels_[2];
@@ -1504,6 +1516,7 @@ class ContactsManager : public Actor {
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
+  MultiTimeout invite_link_info_expire_timeout_{"InviteLinkInfoExpireTimeout"};
 };
 
 }  // namespace td

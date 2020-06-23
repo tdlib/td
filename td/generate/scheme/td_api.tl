@@ -777,14 +777,15 @@ chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby
 chatInviteLink invite_link:string = ChatInviteLink;
 
 //@description Contains information about a chat invite link
-//@chat_id Chat identifier of the invite link; 0 if the user is not a member of this chat
+//@chat_id Chat identifier of the invite link; 0 if the user have no access to the chat before joining
+//@accessible_for If non-zero, the remaining time for which read access is granted to the chat, in seconds
 //@type Contains information about the type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
 //@member_count Number of members in the chat
 //@member_user_ids User identifiers of some chat members that may be known to the current user
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
-chatInviteLinkInfo chat_id:int53 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhoto member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
 
 //@class PublicChatType @description Describes a type of public chats

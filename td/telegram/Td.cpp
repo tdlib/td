@@ -266,9 +266,14 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
         case telegram_api::recentMeUrlChatInvite::ID: {
           auto url = move_tl_object_as<telegram_api::recentMeUrlChatInvite>(url_ptr);
           result->url_ = std::move(url->url_);
-          td->contacts_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_));
-          result->type_ = make_tl_object<td_api::tMeUrlTypeChatInvite>(
-              td->contacts_manager_->get_chat_invite_link_info_object(result->url_));
+          td->contacts_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
+                                                                Promise<Unit>());
+          auto info_object = td->contacts_manager_->get_chat_invite_link_info_object(result->url_);
+          if (info_object == nullptr) {
+            result = nullptr;
+            break;
+          }
+          result->type_ = make_tl_object<td_api::tMeUrlTypeChatInvite>(std::move(info_object));
           break;
         }
         case telegram_api::recentMeUrlStickerSet::ID: {

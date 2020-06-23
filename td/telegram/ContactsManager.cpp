@@ -1701,8 +1701,7 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for checkChatInvite: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_dialog_invite_link_info(invite_link_, std::move(ptr));
-    promise_.set_value(Unit());
+    td->contacts_manager_->on_get_dialog_invite_link_info(invite_link_, std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2886,6 +2885,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   slow_mode_delay_timeout_.set_callback(on_slow_mode_delay_timeout_callback);
   slow_mode_delay_timeout_.set_callback_data(static_cast<void *>(this));
+
+  invite_link_info_expire_timeout_.set_callback(on_invite_link_info_expire_timeout_callback);
+  invite_link_info_expire_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void ContactsManager::tear_down() {
@@ -3005,6 +3007,34 @@ void ContactsManager::on_slow_mode_delay_timeout(ChannelId channel_id) {
   }
 
   on_update_channel_slow_mode_next_send_date(channel_id, 0);
+}
+
+void ContactsManager::on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_invite_link_info_expire_timeout,
+                     DialogId(dialog_id_long));
+}
+
+void ContactsManager::on_invite_link_info_expire_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
+  if (access_it == dialog_access_by_invite_link_.end()) {
+    return;
+  }
+  auto expires_in = access_it->second.accessible_before - G()->unix_time() - 1;
+  if (expires_in >= 3) {
+    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
+    return;
+  }
+
+  remove_dialog_access_by_invite_link(dialog_id);
 }
 
 template <class StorerT>
@@ -3913,6 +3943,9 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
           have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
         return true;
       }
+    }
+    if (dialog_access_by_invite_link_.count(DialogId(channel_id))) {
+      return true;
     }
   }
   if (!c->status.is_member()) {
@@ -6316,8 +6349,8 @@ void ContactsManager::import_dialog_invite_link(const string &invite_link, Promi
 string ContactsManager::get_chat_invite_link(ChatId chat_id) const {
   auto chat_full = get_chat_full(chat_id);
   if (chat_full == nullptr) {
-    auto it = chat_invite_links_.find(chat_id);
-    return it == chat_invite_links_.end() ? string() : it->second;
+    auto it = dialog_invite_links_.find(DialogId(chat_id));
+    return it == dialog_invite_links_.end() ? string() : it->second;
   }
   return chat_full->invite_link;
 }
@@ -6326,8 +6359,8 @@ string ContactsManager::get_channel_invite_link(
     ChannelId channel_id) {  // should be non-const to update ChannelFull cache
   auto channel_full = get_channel_full(channel_id, "get_channel_invite_link");
   if (channel_full == nullptr) {
-    auto it = channel_invite_links_.find(channel_id);
-    return it == channel_invite_links_.end() ? string() : it->second;
+    auto it = dialog_invite_links_.find(DialogId(channel_id));
+    return it == dialog_invite_links_.end() ? string() : it->second;
   }
   return channel_full->invite_link;
 }
@@ -10019,12 +10052,15 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
         on_update_channel_username(c, channel_id, "");
         update_channel(c, channel_id);
       }
+
       if (c->has_location) {
         LOG(INFO) << "Drop location of " << channel_id;
         c->has_location = false;
         update_channel(c, channel_id);
       }
       on_update_channel_linked_channel_id(channel_id, ChannelId());
+
+      remove_dialog_access_by_invite_link(DialogId(channel_id));
     }
     invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
@@ -10398,9 +10434,12 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
       channel_full->is_changed = true;
     }
     update_channel_full(channel_full, channel_id);
-  } else if (drop_invite_link) {
-    auto it = channel_invite_links_.find(channel_id);
-    if (it != channel_invite_links_.end()) {
+  }
+  if (drop_invite_link) {
+    remove_dialog_access_by_invite_link(DialogId(channel_id));
+
+    auto it = dialog_invite_links_.find(DialogId(channel_id));
+    if (it != dialog_invite_links_.end()) {
       invalidate_invite_link_info(it->second);
     }
   }
@@ -10416,7 +10455,7 @@ void ContactsManager::on_get_chat_invite_link(ChatId chat_id,
 
   auto chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
-    update_invite_link(chat_invite_links_[chat_id], std::move(invite_link_ptr));
+    update_invite_link(dialog_invite_links_[DialogId(chat_id)], std::move(invite_link_ptr));
     return;
   }
   on_update_chat_full_invite_link(chat_full, std::move(invite_link_ptr));
@@ -10441,7 +10480,7 @@ void ContactsManager::on_get_channel_invite_link(ChannelId channel_id,
 
   auto channel_full = get_channel_full_force(channel_id, "on_get_channel_invite_link");
   if (channel_full == nullptr) {
-    update_invite_link(channel_invite_links_[channel_id], std::move(invite_link_ptr));
+    update_invite_link(dialog_invite_links_[DialogId(channel_id)], std::move(invite_link_ptr));
     return;
   }
   on_update_channel_full_invite_link(channel_full, std::move(invite_link_ptr));
@@ -10609,30 +10648,63 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
 }
 
 void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
-                                                     tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr) {
+                                                     tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
+                                                     Promise<Unit> &&promise) {
   CHECK(chat_invite_ptr != nullptr);
   switch (chat_invite_ptr->get_id()) {
-    case telegram_api::chatInviteAlready::ID: {
-      auto chat_invite_already = move_tl_object_as<telegram_api::chatInviteAlready>(chat_invite_ptr);
-      auto chat_id = get_chat_id(chat_invite_already->chat_);
+    case telegram_api::chatInviteAlready::ID:
+    case telegram_api::chatInvitePeek::ID: {
+      telegram_api::object_ptr<telegram_api::Chat> chat = nullptr;
+      int32 accessible_before = 0;
+      if (chat_invite_ptr->get_id() == telegram_api::chatInviteAlready::ID) {
+        auto chat_invite_already = move_tl_object_as<telegram_api::chatInviteAlready>(chat_invite_ptr);
+        chat = std::move(chat_invite_already->chat_);
+      } else {
+        auto chat_invite_peek = move_tl_object_as<telegram_api::chatInvitePeek>(chat_invite_ptr);
+        chat = std::move(chat_invite_peek->chat_);
+        accessible_before = chat_invite_peek->expires_;
+      }
+      auto chat_id = get_chat_id(chat);
       if (chat_id != ChatId() && !chat_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << chat_id;
         chat_id = ChatId();
       }
-      auto channel_id = get_channel_id(chat_invite_already->chat_);
+      auto channel_id = get_channel_id(chat);
       if (channel_id != ChannelId() && !channel_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << channel_id;
         channel_id = ChannelId();
       }
-      on_get_chat(std::move(chat_invite_already->chat_), "chatInviteAlready");
+      if (!channel_id.is_valid() || accessible_before < 0) {
+        LOG(ERROR) << "Receive expires = " << accessible_before << " for invite link " << invite_link << " to "
+                   << to_string(chat);
+        accessible_before = 0;
+      }
+      on_get_chat(std::move(chat), "chatInviteAlready");
 
       CHECK(chat_id == ChatId() || channel_id == ChannelId());
+
+      // the access is already expired, reget the info
+      if (accessible_before != 0 && accessible_before <= G()->unix_time() + 1) {
+        td_->create_handler<CheckDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
+        return;
+      }
+
+      DialogId dialog_id = chat_id.is_valid() ? DialogId(chat_id) : DialogId(channel_id);
       auto &invite_link_info = invite_link_infos_[invite_link];
       if (invite_link_info == nullptr) {
         invite_link_info = make_unique<InviteLinkInfo>();
       }
-      invite_link_info->chat_id = chat_id;
-      invite_link_info->channel_id = channel_id;
+      invite_link_info->dialog_id = dialog_id;
+      if (accessible_before != 0) {
+        auto &access = dialog_access_by_invite_link_[dialog_id];
+        access.invite_links.insert(invite_link);
+        if (access.accessible_before < accessible_before) {
+          access.accessible_before = accessible_before;
+
+          auto expires_in = accessible_before - G()->unix_time() - 1;
+          invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
+        }
+      }
 
       if (chat_id.is_valid()) {
         on_get_chat_invite_link(chat_id, make_tl_object<telegram_api::chatInviteExported>(invite_link));
@@ -10660,8 +10732,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       if (invite_link_info == nullptr) {
         invite_link_info = make_unique<InviteLinkInfo>();
       }
-      invite_link_info->chat_id = ChatId();
-      invite_link_info->channel_id = ChannelId();
+      invite_link_info->dialog_id = DialogId();
       invite_link_info->title = chat_invite->title_;
       invite_link_info->photo = get_photo(td_->file_manager_.get(), std::move(chat_invite->photo_), DialogId());
       invite_link_info->participant_count = chat_invite->participants_count_;
@@ -10689,6 +10760,21 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
     default:
       UNREACHABLE();
   }
+  promise.set_value(Unit());
+}
+
+void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
+  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
+  if (access_it == dialog_access_by_invite_link_.end()) {
+    return;
+  }
+
+  for (auto &invite_link : access_it->second.invite_links) {
+    invalidate_invite_link_info(invite_link);
+  }
+  dialog_access_by_invite_link_.erase(access_it);
+
+  invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
 bool ContactsManager::is_valid_invite_link(const string &invite_link) {
@@ -10968,8 +11054,8 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
       drop_chat_full(chat_id);
     }
     if (drop_invite_link) {
-      auto it = chat_invite_links_.find(chat_id);
-      if (it != chat_invite_links_.end()) {
+      auto it = dialog_invite_links_.find(DialogId(chat_id));
+      if (it != dialog_invite_links_.end()) {
         invalidate_invite_link_info(it->second);
       }
     }
@@ -11231,8 +11317,8 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
 void ContactsManager::drop_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
-    auto it = chat_invite_links_.find(chat_id);
-    if (it != chat_invite_links_.end()) {
+    auto it = dialog_invite_links_.find(DialogId(chat_id));
+    if (it != dialog_invite_links_.end()) {
       invalidate_invite_link_info(it->second);
     }
     return;
@@ -13523,50 +13609,56 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   auto invite_link_info = it->second.get();
   CHECK(invite_link_info != nullptr);
 
-  DialogId dialog_id;
+  DialogId dialog_id = invite_link_info->dialog_id;
   string title;
   const DialogPhoto *photo = nullptr;
   DialogPhoto invite_link_photo;
   int32 participant_count = 0;
   vector<int32> member_user_ids;
   bool is_public = false;
+  bool is_member = false;
   td_api::object_ptr<td_api::ChatType> chat_type;
 
-  if (invite_link_info->chat_id != ChatId()) {
-    CHECK(invite_link_info->channel_id == ChannelId());
-    auto chat_id = invite_link_info->chat_id;
-    const Chat *c = get_chat(chat_id);
+  if (dialog_id.is_valid()) {
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat: {
+        auto chat_id = dialog_id.get_chat_id();
+        const Chat *c = get_chat(chat_id);
 
-    dialog_id = DialogId(invite_link_info->chat_id);
+        if (c != nullptr) {
+          title = c->title;
+          photo = &c->photo;
+          participant_count = c->participant_count;
+          is_member = c->status.is_member();
+        } else {
+          LOG(ERROR) << "Have no information about " << chat_id;
+        }
+        chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(
+            get_basic_group_id_object(chat_id, "get_chat_invite_link_info_object"));
+        break;
+      }
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        const Channel *c = get_channel(channel_id);
 
-    if (c != nullptr) {
-      title = c->title;
-      photo = &c->photo;
-      participant_count = c->participant_count;
-    } else {
-      LOG(ERROR) << "Have no information about " << chat_id;
+        bool is_megagroup = false;
+        if (c != nullptr) {
+          title = c->title;
+          photo = &c->photo;
+          is_public = is_channel_public(c);
+          is_megagroup = c->is_megagroup;
+          participant_count = c->participant_count;
+          is_member = c->status.is_member();
+        } else {
+          LOG(ERROR) << "Have no information about " << channel_id;
+        }
+        chat_type = td_api::make_object<td_api::chatTypeSupergroup>(
+            get_supergroup_id_object(channel_id, "get_chat_invite_link_info_object"), !is_megagroup);
+        break;
+      }
+      default:
+        UNREACHABLE();
     }
-    chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(
-        get_basic_group_id_object(chat_id, "get_chat_invite_link_info_object"));
-  } else if (invite_link_info->channel_id != ChannelId()) {
-    CHECK(invite_link_info->chat_id == ChatId());
-    auto channel_id = invite_link_info->channel_id;
-    const Channel *c = get_channel(channel_id);
-
-    dialog_id = DialogId(invite_link_info->channel_id);
-
-    bool is_megagroup = false;
-    if (c != nullptr) {
-      title = c->title;
-      photo = &c->photo;
-      is_public = is_channel_public(c);
-      is_megagroup = c->is_megagroup;
-      participant_count = c->participant_count;
-    } else {
-      LOG(ERROR) << "Have no information about " << channel_id;
-    }
-    chat_type = td_api::make_object<td_api::chatTypeSupergroup>(
-        get_supergroup_id_object(channel_id, "get_chat_invite_link_info_object"), !is_megagroup);
   } else {
     title = invite_link_info->title;
     invite_link_photo = as_dialog_photo(invite_link_info->photo);
@@ -13582,11 +13674,18 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     }
   }
 
-  if (dialog_id != DialogId()) {
+  if (dialog_id.is_valid()) {
     td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_invite_link_info_object");
   }
+  int32 accessible_for = 0;
+  if (dialog_id.is_valid() && !is_member) {
+    auto access_it = dialog_access_by_invite_link_.find(dialog_id);
+    if (access_it != dialog_access_by_invite_link_.end()) {
+      accessible_for = td::max(1, access_it->second.accessible_before - G()->unix_time() - 1);
+    }
+  }
 
-  return make_tl_object<td_api::chatInviteLinkInfo>(dialog_id.get(), std::move(chat_type), title,
+  return make_tl_object<td_api::chatInviteLinkInfo>(dialog_id.get(), accessible_for, std::move(chat_type), title,
                                                     get_chat_photo_object(td_->file_manager_.get(), photo),
                                                     participant_count, std::move(member_user_ids), is_public);
 }
