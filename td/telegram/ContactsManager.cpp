@@ -3241,6 +3241,7 @@ template <class StorerT>
 void ContactsManager::UserFull::store(StorerT &storer) const {
   using td::store;
   bool has_about = !about.empty();
+  bool has_photo = photo.id != -2;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3248,18 +3249,23 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_private_calls);
   STORE_FLAG(can_pin_messages);
   STORE_FLAG(need_phone_number_privacy_exception);
+  STORE_FLAG(has_photo);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
   }
   store(common_chat_count, storer);
   store_time(expires_at, storer);
+  if (has_photo) {
+    store(photo, storer);
+  }
 }
 
 template <class ParserT>
 void ContactsManager::UserFull::parse(ParserT &parser) {
   using td::parse;
   bool has_about;
+  bool has_photo;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3267,12 +3273,16 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_private_calls);
   PARSE_FLAG(can_pin_messages);
   PARSE_FLAG(need_phone_number_privacy_exception);
+  PARSE_FLAG(has_photo);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
   }
   parse(common_chat_count, parser);
   parse_time(expires_at, parser);
+  if (has_photo) {
+    parse(photo, parser);
+  }
 }
 
 template <class StorerT>
@@ -9742,7 +9752,6 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
     if (is_empty) {
       if (user_full->photo.id != -2) {
         user_full->photo = Photo();
-        user_full->photo.id = -2;
         user_full->is_changed = true;
       }
     } else {
@@ -9773,7 +9782,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->expires_at = 0.0;
 
   user_full->photo = Photo();
-  user_full->photo.id = -2;
   user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->has_private_calls = false;

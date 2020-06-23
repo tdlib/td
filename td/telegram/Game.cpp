@@ -58,6 +58,7 @@ Game::Game(UserId bot_user_id, string short_name) : bot_user_id_(bot_user_id), s
   if (!bot_user_id_.is_valid()) {
     bot_user_id_ = UserId();
   }
+  photo_.id = 0;  // to prevent null photo in td_api
 }
 
 bool Game::empty() const {

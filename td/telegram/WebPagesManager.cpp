@@ -358,8 +358,6 @@ class WebPagesManager::WebPage {
     }
     if (has_photo) {
       parse(photo, parser);
-    } else {
-      photo.id = -2;
     }
     if (has_embed) {
       parse(embed_url, parser);

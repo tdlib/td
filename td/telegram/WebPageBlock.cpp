@@ -423,8 +423,6 @@ class RelatedArticle {
     }
     if (has_photo) {
       parse(photo, parser);
-    } else {
-      photo.id = -2;
     }
     if (has_author) {
       parse(author, parser);
@@ -2019,9 +2017,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = move_tl_object_as<telegram_api::pageBlockPhoto>(page_block_ptr);
       auto it = photos.find(page_block->photo_id_);
       Photo photo;
-      if (it == photos.end()) {
-        photo.id = -2;
-      } else {
+      if (it != photos.end()) {
         photo = it->second;
       }
       string url;
@@ -2071,9 +2067,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                     ? photos.find(page_block->poster_photo_id_)
                     : photos.end();
       Photo poster_photo;
-      if (it == photos.end()) {
-        poster_photo.id = -2;
-      } else {
+      if (it != photos.end()) {
         poster_photo = it->second;
       }
       Dimensions dimensions;
@@ -2088,9 +2082,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbedPost>(page_block_ptr);
       auto it = photos.find(page_block->author_photo_id_);
       Photo author_photo;
-      if (it == photos.end()) {
-        author_photo.id = -2;
-      } else {
+      if (it != photos.end()) {
         author_photo = it->second;
       }
       return td::make_unique<WebPageBlockEmbeddedPost>(
@@ -2215,9 +2207,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             auto it = (related_article->flags_ & telegram_api::pageRelatedArticle::PHOTO_ID_MASK) != 0
                           ? photos.find(related_article->photo_id_)
                           : photos.end();
-            if (it == photos.end()) {
-              article.photo.id = -2;
-            } else {
+            if (it != photos.end()) {
               article.photo = it->second;
             }
             article.author = std::move(related_article->author_);

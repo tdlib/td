@@ -1529,6 +1529,8 @@ static Result<InputMessageContent> create_input_message_content(
 
       if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
         message_photo->photo.id = file_view.remote_location().get_id();
+      } else {
+        message_photo->photo.id = 0;
       }
       message_photo->photo.date = G()->unix_time();
       int32 type = 'i';
@@ -1673,13 +1675,11 @@ static Result<InputMessageContent> create_input_message_content(
         if (!input_invoice->photo_url_.empty()) {
           LOG(INFO) << "Can't register url " << input_invoice->photo_url_;
         }
-        message_invoice->photo.id = -2;
       } else {
         auto url = r_http_url.ok().get_url();
         auto r_invoice_file_id = td->file_manager_->from_persistent_id(url, FileType::Temp);
         if (r_invoice_file_id.is_error()) {
           LOG(INFO) << "Can't register url " << url;
-          message_invoice->photo.id = -2;
         } else {
           auto invoice_file_id = r_invoice_file_id.move_as_ok();
 
@@ -1689,6 +1689,7 @@ static Result<InputMessageContent> create_input_message_content(
           s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
           s.file_id = invoice_file_id;
 
+          message_invoice->photo.id = 0;
           message_invoice->photo.photos.push_back(s);
         }
       }

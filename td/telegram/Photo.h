@@ -49,7 +49,7 @@ struct PhotoSize {
 };
 
 struct Photo {
-  int64 id = 0;
+  int64 id = -2;
   int32 date = 0;
   string minithumbnail;
   vector<PhotoSize> photos;

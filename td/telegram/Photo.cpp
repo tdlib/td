@@ -575,6 +575,7 @@ Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram
   file_manager->set_encryption_key(file_id, FileEncryptionKey{photo->key_.as_slice(), photo->iv_.as_slice()});
 
   Photo res;
+  res.id = 0;
   res.date = 0;
 
   if (!photo->thumb_.empty()) {
@@ -594,9 +595,7 @@ Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram
 
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id) {
   if (photo == nullptr || photo->get_id() == telegram_api::photoEmpty::ID) {
-    Photo result;
-    result.id = -2;
-    return result;
+    return Photo();
   }
   CHECK(photo->get_id() == telegram_api::photo::ID);
   return get_photo(file_manager, move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id);
@@ -638,9 +637,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
                              DialogId owner_dialog_id) {
   PhotoSize s = get_web_document_photo_size(file_manager, FileType::Photo, owner_dialog_id, std::move(web_document));
   Photo photo;
-  if (!s.file_id.is_valid() || s.type == 'v' || s.type == 'g') {
-    photo.id = -2;
-  } else {
+  if (s.file_id.is_valid() && s.type != 'v' && s.type != 'g') {
     photo.id = 0;
     photo.photos.push_back(s);
   }

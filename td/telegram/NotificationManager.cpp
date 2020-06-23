@@ -3258,7 +3258,6 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   Photo attached_photo;
-  attached_photo.id = -2;
   Document attached_document;
   if (has_json_object_field(custom, "attachb64")) {
     TRY_RESULT(attachb64, get_json_object_string_field(custom, "attachb64", false));
@@ -3510,8 +3509,6 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     }
     if (has_photo) {
       td::parse(photo_, parser);
-    } else {
-      photo_.id = -2;
     }
     if (has_document) {
       td::parse(document_, parser);
@@ -3681,8 +3678,6 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
     }
     if (has_photo) {
       td::parse(photo_, parser);
-    } else {
-      photo_.id = -2;
     }
     if (has_document) {
       td::parse(document_, parser);
