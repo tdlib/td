@@ -1300,7 +1300,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
           photo->id_ = std::move(result->id_);
           Photo p = get_photo(td_->file_manager_.get(), std::move(result->photo_), DialogId());
-          if (p.id == -2) {
+          if (p.is_empty()) {
             LOG(ERROR) << "Receive empty cached photo in the result of inline query";
             break;
           }

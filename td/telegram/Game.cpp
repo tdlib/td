@@ -36,7 +36,7 @@ Game::Game(Td *td, string title, string description, tl_object_ptr<telegram_api:
   CHECK(td != nullptr);
   CHECK(photo != nullptr);
   photo_ = get_photo(td->file_manager_.get(), std::move(photo), owner_dialog_id);
-  if (photo_.id == -2) {
+  if (photo_.is_empty()) {
     LOG(ERROR) << "Receive empty photo for game " << title;
     photo_.id = 0;  // to prevent null photo in td_api
   }

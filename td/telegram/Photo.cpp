@@ -267,7 +267,7 @@ vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo) {
 
 DialogPhoto as_dialog_photo(const Photo &photo) {
   DialogPhoto result;
-  if (photo.id != -2) {
+  if (!photo.is_empty()) {
     for (auto &size : photo.photos) {
       if (size.type == 'a') {
         result.small_file_id = size.file_id;
@@ -609,7 +609,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.date = photo->date_;
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
-  if (res.id == -2) {
+  if (res.is_empty()) {
     LOG(ERROR) << "Receive photo with id " << res.id;
     res.id = -3;
   }
@@ -645,7 +645,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
 }
 
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo) {
-  if (photo == nullptr || photo->id == -2) {
+  if (photo == nullptr || photo->is_empty()) {
     return nullptr;
   }
 
@@ -654,7 +654,7 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
 }
 
 tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo) {
-  if (photo == nullptr || photo->id == -2) {
+  if (photo == nullptr || photo->is_empty()) {
     return nullptr;
   }
 

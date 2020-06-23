@@ -3425,7 +3425,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_sender = sender_user_id_.is_valid();
     bool has_sender_name = !sender_name_.empty();
     bool has_arg = !arg_.empty();
-    bool has_photo = photo_.id != -2;
+    bool has_photo = !photo_.is_empty();
     bool has_document = !document_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(contains_mention_);
@@ -3630,7 +3630,7 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
   void store(StorerT &storer) const {
     bool has_message_id = message_id_.is_valid();
     bool has_arg = !arg_.empty();
-    bool has_photo = photo_.id != -2;
+    bool has_photo = !photo_.is_empty();
     bool has_document = !document_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_message_id);

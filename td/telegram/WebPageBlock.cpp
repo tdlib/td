@@ -369,7 +369,7 @@ class RelatedArticle {
     using ::td::store;
     bool has_title = !title.empty();
     bool has_description = !description.empty();
-    bool has_photo = photo.id != -2;
+    bool has_photo = !photo.is_empty();
     bool has_author = !author.empty();
     bool has_date = published_date != 0;
     BEGIN_STORE_FLAGS();
@@ -1622,7 +1622,7 @@ class WebPageBlockRelatedArticles : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const override {
     header.append_file_ids(td, file_ids);
     for (auto &article : related_articles) {
-      if (article.photo.id != -2) {
+      if (!article.photo.is_empty()) {
         append(file_ids, photo_get_file_ids(article.photo));
       }
     }

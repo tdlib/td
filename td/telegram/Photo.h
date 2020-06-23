@@ -56,6 +56,10 @@ struct Photo {
 
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
+
+  bool is_empty() const {
+    return id == -2;
+  }
 };
 
 Dimensions get_dimensions(int32 width, int32 height);

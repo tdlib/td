@@ -2129,7 +2129,7 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
                                                                             const Photo &photo) {
-  if (photo.id == -2) {
+  if (photo.is_empty()) {
     return nullptr;
   }
 
@@ -3785,7 +3785,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
 
       auto photo = get_photo(td->file_manager_.get(), std::move(message_photo->photo_), owner_dialog_id);
-      if (photo.id == -2) {
+      if (photo.is_empty()) {
         return make_unique<MessageExpiredPhoto>();
       }
 
@@ -4197,7 +4197,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionChatEditPhoto::ID: {
       auto chat_edit_photo = move_tl_object_as<telegram_api::messageActionChatEditPhoto>(action);
       auto photo = get_photo(td->file_manager_.get(), std::move(chat_edit_photo->photo_), owner_dialog_id);
-      if (photo.id == -2) {
+      if (photo.is_empty()) {
         break;
       }
       return make_unique<MessageChatChangePhoto>(std::move(photo));

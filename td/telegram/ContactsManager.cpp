@@ -3241,7 +3241,7 @@ template <class StorerT>
 void ContactsManager::UserFull::store(StorerT &storer) const {
   using td::store;
   bool has_about = !about.empty();
-  bool has_photo = photo.id != -2;
+  bool has_photo = !photo.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -8911,7 +8911,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   user->photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
-  if (user->photo.id == -2) {
+  if (user->photo.is_empty()) {
     drop_user_photos(user_id, true, false, "on_get_user_full");
   } else {
     add_user_photo_id(u, user_id, user->photo.id, photo_get_file_ids(user->photo));
@@ -8990,7 +8990,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 
   for (auto &photo : photos) {
     auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId());
-    if (user_photo.id == -2) {
+    if (user_photo.is_empty()) {
       LOG(ERROR) << "Receive empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
                  << " and limit " << limit << ". Receive " << photo_count << " photos out of " << total_count
                  << " photos";
@@ -9750,7 +9750,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
     }
 
     if (is_empty) {
-      if (user_full->photo.id != -2) {
+      if (!user_full->photo.is_empty()) {
         user_full->photo = Photo();
         user_full->is_changed = true;
       }

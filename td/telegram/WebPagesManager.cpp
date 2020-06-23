@@ -239,7 +239,7 @@ class WebPagesManager::WebPage {
     bool has_site_name = !site_name.empty();
     bool has_title = !title.empty();
     bool has_description = !description.empty();
-    bool has_photo = photo.id != -2;
+    bool has_photo = !photo.is_empty();
     bool has_embed = !embed_url.empty();
     bool has_embed_dimensions = has_embed && embed_dimensions != Dimensions();
     bool has_duration = duration > 0;
@@ -1391,14 +1391,14 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   std::unordered_map<int64, Photo> photos;
   for (auto &photo_ptr : page->photos_) {
     Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
-    if (photo.id == -2 || photo.id == 0) {
+    if (photo.is_empty() || photo.id == 0) {
       LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
     } else {
       auto photo_id = photo.id;
       photos.emplace(photo_id, std::move(photo));
     }
   }
-  if (web_page->photo.id != -2 && web_page->photo.id != 0) {
+  if (!web_page->photo.is_empty() && web_page->photo.id != 0) {
     photos.emplace(web_page->photo.id, web_page->photo);
   }
 
