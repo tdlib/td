@@ -8910,7 +8910,11 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user->is_changed = true;
   }
 
-  user->photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+  auto photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+  if (photo != user->photo) {
+    user->photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+    user->is_changed = true;
+  }
   if (user->photo.is_empty()) {
     drop_user_photos(user_id, true, false, "on_get_user_full");
   } else {
