@@ -108,6 +108,8 @@ class TQueue {
   virtual Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
                              MutableSpan<Event> &result_events) = 0;
 
+  virtual size_t get_size(QueueId queue_id) = 0;
+
   virtual void run_gc(double now) = 0;
 };
 
