@@ -344,8 +344,12 @@ botInfo description:string commands:vector<botCommand> = BotInfo;
 chatLocation location:location address:string = ChatLocation;
 
 
-//@description Describes a chat or user profile photo @id Unique photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the photo, in different size
-chatPhoto id:int64 added_date:int32 sizes:vector<photoSize> = ChatPhoto;
+//@description Describes a chat or user profile photo
+//@id Unique photo identifier
+//@added_date Point in time (Unix timestamp) when the photo has been added
+//@sizes Available variants of the photo in JPEG format, in different size
+//@animation Animated variant of the photo in MPEG4 format; may be null
+chatPhoto id:int64 added_date:int32 sizes:vector<photoSize> animation:photoSize = ChatPhoto;
 
 //@description Contains a list of chat or user profile photos @total_count Total number of photos @photos List of photos
 chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;

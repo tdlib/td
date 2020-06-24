@@ -56,6 +56,8 @@ struct Photo {
   string minithumbnail;
   vector<PhotoSize> photos;
 
+  vector<PhotoSize> animated_photos;
+
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
 

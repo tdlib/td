@@ -1684,7 +1684,7 @@ static Result<InputMessageContent> create_input_message_content(
           auto invoice_file_id = r_invoice_file_id.move_as_ok();
 
           PhotoSize s;
-          s.type = 'u';
+          s.type = 'n';
           s.dimensions = get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_);
           s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
           s.file_id = invoice_file_id;

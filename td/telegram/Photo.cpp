@@ -279,6 +279,7 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
         result.big_file_id = size.file_id;
       }
     }
+    result.is_animated = !photo.animated_photos.empty();
     if (!result.small_file_id.is_valid() || !result.big_file_id.is_valid()) {
       LOG(ERROR) << "Failed to convert " << photo << " to chat photo";
       return DialogPhoto();
@@ -397,10 +398,10 @@ PhotoSize get_video_photo_size(FileManager *file_manager, PhotoSizeSource source
                                tl_object_ptr<telegram_api::videoSize> &&size) {
   CHECK(size != nullptr);
   PhotoSize res;
-  if (size->type_ != "v") {
+  if (size->type_ != "v" && size->type_ != "u") {
     LOG(ERROR) << "Wrong videoSize \"" << size->type_ << "\" in " << to_string(size);
   }
-  res.type = static_cast<uint8>('v');
+  res.type = static_cast<uint8>(size->type_[0]);
   res.dimensions = get_dimensions(size->w_, size->h_);
   res.size = size->size_;
 
@@ -490,7 +491,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   }
 
   PhotoSize s;
-  s.type = is_animation ? 'v' : (is_gif ? 'g' : (file_type == FileType::Thumbnail ? 't' : 'u'));
+  s.type = is_animation ? 'v' : (is_gif ? 'g' : (file_type == FileType::Thumbnail ? 't' : 'n'));
   s.dimensions = dimensions;
   s.size = size;
   s.file_id = file_id;
@@ -620,13 +621,14 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
     res.id = -3;
   }
 
+  DcId dc_id = DcId::create(photo->dc_id_);
   for (auto &size_ptr : photo->sizes_) {
     auto photo_size = get_photo_size(file_manager, {FileType::Photo, 0}, photo->id_, photo->access_hash_,
-                                     photo->file_reference_.as_slice().str(), DcId::create(photo->dc_id_),
-                                     owner_dialog_id, std::move(size_ptr), PhotoFormat::Jpeg);
+                                     photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id,
+                                     std::move(size_ptr), PhotoFormat::Jpeg);
     if (photo_size.get_offset() == 0) {
       PhotoSize &size = photo_size.get<0>();
-      if (size.type == 0 || size.type == 't' || size.type == 'i') {
+      if (size.type == 0 || size.type == 't' || size.type == 'i' || size.type == 'u' || size.type == 'v') {
         LOG(ERROR) << "Skip unallowed photo size " << size;
         continue;
       }
@@ -634,6 +636,12 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
     } else {
       res.minithumbnail = std::move(photo_size.get<1>());
     }
+  }
+
+  for (auto &size_ptr : photo->video_sizes_) {
+    res.animated_photos.push_back(get_video_photo_size(file_manager, {FileType::Photo, 0}, photo->id_,
+                                                       photo->access_hash_, photo->file_reference_.as_slice().str(),
+                                                       dc_id, owner_dialog_id, std::move(size_ptr)));
   }
 
   return res;
@@ -664,8 +672,10 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
     return nullptr;
   }
 
+  const PhotoSize *animation = photo.animated_photos.empty() ? nullptr : &photo.animated_photos.back();
   return td_api::make_object<td_api::chatPhoto>(photo.id.get(), photo.date,
-                                                get_photo_sizes_object(file_manager, photo.photos));
+                                                get_photo_sizes_object(file_manager, photo.photos),
+                                                get_photo_size_object(file_manager, animation));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
@@ -803,11 +813,15 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
 }
 
 vector<FileId> photo_get_file_ids(const Photo &photo) {
-  return transform(photo.photos, [](auto &size) { return size.file_id; });
+  auto result = transform(photo.photos, [](auto &size) { return size.file_id; });
+  if (!photo.animated_photos.empty()) {
+    append(result, transform(photo.animated_photos, [](auto &size) { return size.file_id; }));
+  }
+  return result;
 }
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
-  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos;
+  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animated_photos == rhs.animated_photos;
 }
 
 bool operator!=(const Photo &lhs, const Photo &rhs) {
@@ -815,7 +829,11 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
-  return string_builder << "[id = " << photo.id.get() << ", photos = " << format::as_array(photo.photos) << "]";
+  string_builder << "[id = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
+  if (!photo.animated_photos.empty()) {
+    string_builder << ", animated photos = " << format::as_array(photo.animated_photos);
+  }
+  return string_builder << "]";
 }
 
 static tl_object_ptr<telegram_api::fileLocationToBeDeprecated> copy_location(
@@ -865,6 +883,9 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
     return nullptr;
   }
   int32 flags = 0;
+  if (!photo->video_sizes_.empty()) {
+    flags |= telegram_api::userProfilePhoto::HAS_VIDEO_MASK;
+  }
   return make_tl_object<telegram_api::userProfilePhoto>(flags, false /*ignored*/, photo->id_, std::move(photo_small),
                                                         std::move(photo_big), photo->dc_id_);
 }
