@@ -815,7 +815,9 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
 
     file_id_ = file_id;
 
-    send_query(G()->net_query_creator().create(telegram_api::photos_uploadProfilePhoto(std::move(input_file))));
+    int32 flags = telegram_api::photos_uploadProfilePhoto::FILE_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::photos_uploadProfilePhoto(flags, std::move(input_file), nullptr, 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -7363,7 +7365,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
                   telegram_api::user::SUPPORT_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-        3337190045231023, telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13226),
+        0, false /*ignored*/, 3337190045231023,
+        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13226),
         telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13228), 1);
     if (G()->is_test_dc()) {
       profile_photo = nullptr;

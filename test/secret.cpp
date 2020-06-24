@@ -838,9 +838,9 @@ class Master : public Actor {
     CHECK(get_link_token() == 1);
     send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChatWaiting>(123, 321, 0, 1, 2));
-    send_closure(
-        bob_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
-        make_tl_object<telegram_api::encryptedChatRequested>(123, 321, 0, 1, 2, request_encryption.g_a_.clone()));
+    send_closure(bob_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
+                 make_tl_object<telegram_api::encryptedChatRequested>(0, false, 123, 321, 0, 1, 2,
+                                                                      request_encryption.g_a_.clone()));
     net_query->clear();
   }
   void process_net_query(my_api::messages_acceptEncryption &&request_encryption, NetQueryPtr net_query,

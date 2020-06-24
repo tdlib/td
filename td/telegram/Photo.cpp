@@ -164,6 +164,7 @@ ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 
       auto profile_photo = move_tl_object_as<telegram_api::userProfilePhoto>(profile_photo_ptr);
 
       auto dc_id = DcId::create(profile_photo->dc_id_);
+      result.is_animated = (profile_photo->flags_ & telegram_api::userProfilePhoto::HAS_VIDEO_MASK) != 0;
       result.id = profile_photo->photo_id_;
       result.small_file_id =
           register_photo(file_manager, {DialogId(user_id), user_access_hash, false}, result.id, 0, "",
@@ -206,7 +207,7 @@ bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
                                << ", second profilePhoto: " << rhs;
     return false;
   }
-  return true;
+  return lhs.is_animated == rhs.is_animated && !id_differs;
 }
 
 bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
@@ -215,7 +216,8 @@ bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &profile_photo) {
   return string_builder << "<id = " << profile_photo.id << ", small_file_id = " << profile_photo.small_file_id
-                        << ", big_file_id = " << profile_photo.big_file_id << ">";
+                        << ", big_file_id = " << profile_photo.big_file_id
+                        << ", is_animated = " << profile_photo.is_animated << ">";
 }
 
 DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64 dialog_access_hash,
@@ -230,6 +232,7 @@ DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int6
       auto chat_photo = move_tl_object_as<telegram_api::chatPhoto>(chat_photo_ptr);
 
       auto dc_id = DcId::create(chat_photo->dc_id_);
+      result.is_animated = (chat_photo->flags_ & telegram_api::chatPhoto::HAS_VIDEO_MASK) != 0;
       result.small_file_id =
           register_photo(file_manager, {dialog_id, dialog_access_hash, false}, 0, 0, "",
                          std::move(chat_photo->photo_small_), DialogId(), 0, dc_id, PhotoFormat::Jpeg);
@@ -285,7 +288,8 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
 }
 
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
-  return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id;
+  return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
+         lhs.is_animated == rhs.is_animated;
 }
 
 bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs) {
@@ -294,7 +298,8 @@ bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo) {
   return string_builder << "<small_file_id = " << dialog_photo.small_file_id
-                        << ", big_file_id = " << dialog_photo.big_file_id << ">";
+                        << ", big_file_id = " << dialog_photo.big_file_id
+                        << ", is_animated = " << dialog_photo.is_animated << ">";
 }
 
 PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
@@ -859,8 +864,9 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
   if (photo_small == nullptr || photo_big == nullptr) {
     return nullptr;
   }
-  return make_tl_object<telegram_api::userProfilePhoto>(photo->id_, std::move(photo_small), std::move(photo_big),
-                                                        photo->dc_id_);
+  int32 flags = 0;
+  return make_tl_object<telegram_api::userProfilePhoto>(flags, false /*ignored*/, photo->id_, std::move(photo_small),
+                                                        std::move(photo_big), photo->dc_id_);
 }
 
 }  // namespace td

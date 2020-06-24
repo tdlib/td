@@ -3607,7 +3607,8 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
     td->messages_manager_->on_get_peer_settings(
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/),
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                   false /*ignored*/, 0),
         true);
 
     promise_.set_value(Unit());
@@ -3648,7 +3649,8 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
     td->messages_manager_->on_get_peer_settings(
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/),
+                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                   false /*ignored*/, 0),
         true);
 
     promise_.set_value(Unit());
@@ -7838,7 +7840,8 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
     auto input_photo = file_view.main_remote_location().as_input_photo();
     input_chat_photo = make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo));
   } else {
-    input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(std::move(input_file));
+    int32 flags = telegram_api::inputChatUploadedPhoto::FILE_MASK;
+    input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(flags, std::move(input_file), nullptr, 0.0);
   }
 
   send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));

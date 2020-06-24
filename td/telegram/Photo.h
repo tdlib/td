@@ -36,6 +36,7 @@ struct Dimensions {
 struct DialogPhoto {
   FileId small_file_id;
   FileId big_file_id;
+  bool is_animated = false;
 };
 
 struct ProfilePhoto : public DialogPhoto {
