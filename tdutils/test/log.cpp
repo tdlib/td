@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #include "td/utils/benchmark.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/format.h"
@@ -16,11 +17,6 @@
 
 #include <functional>
 #include <limits>
-
-// Thread safe logging with tests
-//
-// LOG uses thread local LogInterface
-// void append(CSlice slice, int log_level);
 
 char disable_linker_warning_about_empty_file_tdutils_test_log_cpp TD_UNUSED;
 
@@ -56,6 +52,9 @@ class LogBenchmark : public td::Benchmark {
   void run_thread(int n) {
     auto str = PSTRING() << "#" << n << " : fsjklfdjsklfjdsklfjdksl\n";
     for (int i = 0; i < n; i++) {
+      if (i % 10000 == 0) {
+        log_->rotate();
+      }
       log_->append(str);
     }
   }
@@ -74,7 +73,8 @@ static void bench_log(std::string name, int threads_n, F &&f) {
 };
 
 TEST(Log, TsLogger) {
-  bench_log("NewTsFileLog", 4, [] { return td::TsFileLog::create("tmplog").move_as_ok(); });
+  bench_log("NewTsFileLog", 4,
+            [] { return td::TsFileLog::create("tmplog", std::numeric_limits<td::int64>::max(), false).move_as_ok(); });
   bench_log("TsFileLog", 8, [] {
     class FileLog : public td::LogInterface {
      public:

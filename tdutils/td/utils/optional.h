@@ -47,9 +47,11 @@ class optional {
     return impl_.is_ok();
   }
   T &value() {
+    DCHECK(*this);
     return impl_.ok_ref();
   }
   const T &value() const {
+    DCHECK(*this);
     return impl_.ok_ref();
   }
   T &operator*() {
@@ -60,6 +62,13 @@ class optional {
     auto res = std::move(value());
     impl_ = {};
     return res;
+  }
+
+  td::optional<T> copy() const {
+    if (*this) {
+      return value();
+    }
+    return {};
   }
 
   template <class... ArgsT>

@@ -154,8 +154,7 @@ TEST(Misc, get_last_argument) {
 }
 
 TEST(Misc, call_n_arguments) {
-  auto f = [](int, int) {
-  };
+  auto f = [](int, int) {};
   call_n_arguments<2>(f, 1, 3, 4);
 }
 
@@ -254,18 +253,10 @@ static void test_remove_if(vector<int> v, const T &func, vector<int> expected) {
 }
 
 TEST(Misc, remove_if) {
-  auto odd = [](int x) {
-    return x % 2 == 1;
-  };
-  auto even = [](int x) {
-    return x % 2 == 0;
-  };
-  auto all = [](int x) {
-    return true;
-  };
-  auto none = [](int x) {
-    return false;
-  };
+  auto odd = [](int x) { return x % 2 == 1; };
+  auto even = [](int x) { return x % 2 == 0; };
+  auto all = [](int x) { return true; };
+  auto none = [](int x) { return false; };
 
   vector<int> v{1, 2, 3, 4, 5, 6};
   test_remove_if(v, odd, {2, 4, 6});
@@ -346,6 +337,26 @@ TEST(Misc, contains) {
   ASSERT_TRUE(td::contains(str, 'a'));
   ASSERT_TRUE(td::contains(str, 'b'));
   ASSERT_TRUE(td::contains(str, 'c'));
+}
+
+TEST(Misc, base32) {
+  ASSERT_EQ("", base32_encode(""));
+  ASSERT_EQ("me", base32_encode("a"));
+  base32_decode("me").ensure();
+  ASSERT_EQ("mfra", base32_encode("ab"));
+  ASSERT_EQ("mfrgg", base32_encode("abc"));
+  ASSERT_EQ("mfrggza", base32_encode("abcd"));
+  ASSERT_EQ("mfrggzdg", base32_encode("abcdf"));
+  ASSERT_EQ("mfrggzdgm4", base32_encode("abcdfg"));
+  for (int l = 0; l < 300000; l += l / 20 + l / 1000 * 500 + 1) {
+    for (int t = 0; t < 10; t++) {
+      string s = rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
+      auto encoded = base32_encode(s);
+      auto decoded = base32_decode(encoded);
+      ASSERT_TRUE(decoded.is_ok());
+      ASSERT_TRUE(decoded.ok() == s);
+    }
+  }
 }
 
 TEST(Misc, to_integer) {
@@ -721,6 +732,10 @@ static void test_full_split(Slice str, vector<Slice> expected) {
   ASSERT_EQ(expected, td::full_split(str));
 }
 
+static void test_full_split(Slice str, char c, size_t max_parts, vector<Slice> expected) {
+  ASSERT_EQ(expected, td::full_split(str, c, max_parts));
+}
+
 TEST(Misc, full_split) {
   test_full_split("", {});
   test_full_split(" ", {"", ""});
@@ -736,6 +751,7 @@ TEST(Misc, full_split) {
   test_full_split(" abcdef ", {"", "abcdef", ""});
   test_full_split(" ab cd ef ", {"", "ab", "cd", "ef", ""});
   test_full_split("  ab  cd  ef  ", {"", "", "ab", "", "cd", "", "ef", "", ""});
+  test_full_split("ab cd ef gh", ' ', 3, {"ab", "cd", "ef gh"});
 }
 
 TEST(Misc, StringBuilder) {
@@ -844,6 +860,39 @@ TEST(Misc, Bits) {
   ASSERT_EQ(4, count_bits64((1ull << 63) | 7));
 }
 
+TEST(Misc, BitsRange) {
+  auto to_vec_a = [](td::uint64 x) {
+    std::vector<td::int32> bits;
+    for (auto i : td::BitsRange(x)) {
+      bits.push_back(i);
+    }
+    return bits;
+  };
+
+  auto to_vec_b = [](td::uint64 x) {
+    std::vector<td::int32> bits;
+    td::int32 pos = 0;
+    while (x != 0) {
+      if ((x & 1) != 0) {
+        bits.push_back(pos);
+      }
+      x >>= 1;
+      pos++;
+    }
+    return bits;
+  };
+
+  auto do_check = [](std::vector<td::int32> a, std::vector<td::int32> b) { ASSERT_EQ(b, a); };
+  auto check = [&](td::uint64 x) { do_check(to_vec_a(x), to_vec_b(x)); };
+
+  do_check(to_vec_a(21), {0, 2, 4});
+  for (int x = 0; x < 100; x++) {
+    check(x);
+    check(std::numeric_limits<td::uint32>::max() - x);
+    check(std::numeric_limits<td::uint64>::max() - x);
+  }
+}
+
 #if !TD_THREAD_UNSUPPORTED
 TEST(Misc, Time) {
   Stage run;
@@ -905,12 +954,8 @@ TEST(Misc, uint128) {
                                      static_cast<int64>(std::numeric_limits<int32>::min()) - 1};
 
 #if TD_HAVE_INT128
-  auto to_intrinsic = [](uint128_emulated num) {
-    return uint128_intrinsic(num.hi(), num.lo());
-  };
-  auto eq = [](uint128_emulated a, uint128_intrinsic b) {
-    return a.hi() == b.hi() && a.lo() == b.lo();
-  };
+  auto to_intrinsic = [](uint128_emulated num) { return uint128_intrinsic(num.hi(), num.lo()); };
+  auto eq = [](uint128_emulated a, uint128_intrinsic b) { return a.hi() == b.hi() && a.lo() == b.lo(); };
   auto ensure_eq = [&](uint128_emulated a, uint128_intrinsic b) {
     if (!eq(a, b)) {
       LOG(FATAL) << "[" << a.hi() << ";" << a.lo() << "] vs [" << b.hi() << ";" << b.lo() << "]";
@@ -1102,6 +1147,13 @@ TEST(Misc, CancellationToken) {
   CHECK(token4);
 }
 
+TEST(Misc, Xorshift128plus) {
+  Random::Xorshift128plus rnd(123);
+  ASSERT_EQ(11453256657207062272ull, rnd());
+  ASSERT_EQ(14917490455889357332ull, rnd());
+  ASSERT_EQ(5645917797309401285ull, rnd());
+  ASSERT_EQ(13554822455746959330ull, rnd());
+}
 TEST(Misc, uname) {
   auto first_version = get_operating_system_version();
   auto second_version = get_operating_system_version();

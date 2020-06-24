@@ -23,13 +23,9 @@ TEST(Heap, sort_random_perm) {
   for (int i = 0; i < n; i++) {
     v[i] = i;
   }
-
-  // random shuffle
-  for (int i = 1; i < n; i++) {
-    std::swap(v[td::Random::fast(0, i)], v[i]);
-  }
-
-  td::vector<td::HeapNode> nodes(n);
+  td::Random::Xorshift128plus rnd(123);
+  td::random_shuffle(td::as_mutable_span(v), rnd);
+  std::vector<td::HeapNode> nodes(n);
   td::KHeap<int> kheap;
   for (int i = 0; i < n; i++) {
     kheap.insert(v[i], &nodes[i]);

@@ -281,6 +281,17 @@ Result<size_t> FileFd::read(MutableSlice slice) {
 #if TD_PORT_POSIX
   auto bytes_read = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   bool success = bytes_read >= 0;
+  if (!success) {
+    auto read_errno = errno;
+    if (read_errno == EAGAIN
+#if EAGAIN != EWOULDBLOCK
+        || read_errno == EWOULDBLOCK
+#endif
+    ) {
+      success = true;
+      bytes_read = 0;
+    }
+  }
   bool is_eof = success && narrow_cast<size_t>(bytes_read) < slice.size();
 #elif TD_PORT_WINDOWS
   DWORD bytes_read = 0;

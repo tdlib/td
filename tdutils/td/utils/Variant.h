@@ -241,6 +241,10 @@ class Variant {
     return offset_;
   }
 
+  bool empty() const {
+    return offset_ == npos;
+  }
+
  private:
   union {
     int64 align_;

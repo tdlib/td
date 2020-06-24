@@ -40,8 +40,8 @@
 
 #define VERBOSITY_NAME(x) verbosity_##x
 
-#define GET_VERBOSITY_LEVEL() (::td::log_options.level)
-#define SET_VERBOSITY_LEVEL(new_level) (::td::log_options.level = (new_level))
+#define GET_VERBOSITY_LEVEL() (::td::get_verbosity_level())
+#define SET_VERBOSITY_LEVEL(new_level) (::td::set_verbosity_level(new_level))
 
 #ifndef STRIP_LOG
 #define STRIP_LOG VERBOSITY_NAME(DEBUG)
@@ -52,7 +52,7 @@
 #define LOGGER(interface, options, level, comment) ::td::Logger(interface, options, level, __FILE__, __LINE__, comment)
 
 #define LOG_IMPL_FULL(interface, options, strip_level, runtime_level, condition, comment) \
-  LOG_IS_STRIPPED(strip_level) || runtime_level > options.level || !(condition)           \
+  LOG_IS_STRIPPED(strip_level) || runtime_level > options.get_level() || !(condition)     \
       ? (void)0                                                                           \
       : ::td::detail::Voidify() & LOGGER(interface, options, runtime_level, comment)
 
@@ -121,11 +121,18 @@ extern int VERBOSITY_NAME(files);
 extern int VERBOSITY_NAME(sqlite);
 
 struct LogOptions {
-  int level{VERBOSITY_NAME(DEBUG) + 1};
+  std::atomic<int> level{VERBOSITY_NAME(DEBUG) + 1};
   bool fix_newlines{true};
   bool add_info{true};
 
-  static constexpr LogOptions plain() {
+  int get_level() const {
+    return level.load(std::memory_order_relaxed);
+  }
+  int set_level(int new_level) {
+    return level.exchange(new_level);
+  }
+
+  static LogOptions plain() {
     return LogOptions{0, false, false};
   }
 
@@ -133,9 +140,31 @@ struct LogOptions {
   constexpr LogOptions(int level, bool fix_newlines, bool add_info)
       : level(level), fix_newlines(fix_newlines), add_info(add_info) {
   }
+
+  LogOptions(const LogOptions &other) : LogOptions(other.level.load(), other.fix_newlines, other.add_info) {
+  }
+
+  LogOptions &operator=(const LogOptions &other) {
+    level = other.level.load();
+    fix_newlines = other.fix_newlines;
+    add_info = other.add_info;
+    return *this;
+  }
 };
 
 extern LogOptions log_options;
+inline int set_verbosity_level(int level) {
+  return log_options.set_level(level);
+}
+inline int get_verbosity_level() {
+  return log_options.get_level();
+}
+
+class ScopedDisableLog {
+ public:
+  ScopedDisableLog();
+  ~ScopedDisableLog();
+};
 
 class LogInterface {
  public:

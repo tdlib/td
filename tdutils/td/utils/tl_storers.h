@@ -12,6 +12,8 @@
 #include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 
+#include "td/utils/SharedSlice.h"
+
 #include <cstring>
 
 namespace td {
@@ -214,10 +216,22 @@ class TlStorerToString {
     store_field_end();
   }
 
+  void store_field(const char *name, const SecureString &value) {
+    store_field_begin(name);
+    result.append("<secret>");
+    store_field_end();
+  }
+
   template <class T>
   void store_field(const char *name, const T &value) {
     store_field_begin(name);
     result.append(value.data(), value.size());
+    store_field_end();
+  }
+
+  void store_bytes_field(const char *name, const SecureString &value) {
+    store_field_begin(name);
+    result.append("<secret>");
     store_field_end();
   }
 

@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #include "td/utils/common.h"
 #include "td/utils/misc.h"
 #include "td/utils/OptionParser.h"
@@ -47,23 +48,13 @@ TEST(OptionParser, run) {
     ASSERT_TRUE(result.is_error());
   };
 
-  options.add_option('q', "", "", [&] {
-    chosen_options += 1;
-    return td::Status::OK();
-  });
-  options.add_option('\0', "http-port2", "", [&] {
-    chosen_options += 10;
-    return td::Status::OK();
-  });
+  options.add_option('q', "", "", [&] { chosen_options += 1; });
+  options.add_option('\0', "http-port2", "", [&] { chosen_options += 10; });
   options.add_option('p', "http-port", "", [&](td::Slice parameter) {
     chosen_options += 100;
     chosen_parameters.push_back(parameter.str());
-    return td::Status::OK();
   });
-  options.add_option('v', "test", "", [&] {
-    chosen_options += 1000;
-    return td::Status::OK();
-  });
+  options.add_option('v', "test", "", [&] { chosen_options += 1000; });
 
   test_fail("-http-port2");
   test_success("-", 0, {}, {"-"});

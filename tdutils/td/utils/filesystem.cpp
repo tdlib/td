@@ -11,6 +11,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/path.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/unicode.h"
@@ -32,7 +33,6 @@ template <>
 BufferSlice create_empty<BufferSlice>(size_t size) {
   return BufferSlice{size};
 }
-
 template <>
 SecureString create_empty<SecureString>(size_t size) {
   return SecureString{size};
@@ -41,16 +41,20 @@ SecureString create_empty<SecureString>(size_t size) {
 template <class T>
 Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
   TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
+  TRY_RESULT(file_size, from_file.get_size());
+  if (offset < 0 || offset > file_size) {
+    return Status::Error("Failed to read file: invalid offset");
+  }
   if (size == -1) {
-    TRY_RESULT_ASSIGN(size, from_file.get_size());
+    size = file_size - offset;
+  } else if (size >= 0) {
+    if (size + offset > file_size) {
+      size = file_size - offset;
+    }
   }
   if (size < 0) {
     return Status::Error("Failed to read file: invalid size");
   }
-  if (offset < 0 || offset > size) {
-    return Status::Error("Failed to read file: invalid offset");
-  }
-  size -= offset;
   auto content = create_empty<T>(narrow_cast<size_t>(size));
   TRY_RESULT(got_size, from_file.pread(as_mutable_slice(content), offset));
   if (got_size != static_cast<size_t>(size)) {
@@ -80,12 +84,22 @@ Status copy_file(CSlice from, CSlice to, int64 size) {
   return write_file(to, content.as_slice());
 }
 
-Status write_file(CSlice to, Slice data) {
+Status write_file(CSlice to, Slice data, WriteFileOptions options) {
   auto size = data.size();
   TRY_RESULT(to_file, FileFd::open(to, FileFd::Truncate | FileFd::Create | FileFd::Write));
+  if (options.need_lock) {
+    TRY_STATUS(to_file.lock(FileFd::LockFlags::Write, to.str(), 10));
+    TRY_STATUS(to_file.truncate_to_current_position(0));
+  }
   TRY_RESULT(written, to_file.write(data));
   if (written != size) {
     return Status::Error(PSLICE() << "Failed to write file: written " << written << " bytes instead of " << size);
+  }
+  if (options.need_sync) {
+    TRY_STATUS(to_file.sync());
+  }
+  if (options.need_lock) {
+    to_file.lock(FileFd::LockFlags::Unlock, to.str(), 10).ignore();
   }
   to_file.close();
   return Status::OK();
@@ -166,4 +180,17 @@ string clean_filename(CSlice name) {
   return filename;
 }
 
+Status atomic_write_file(CSlice path, Slice data, CSlice path_tmp) {
+  string path_tmp_buf;
+  if (path_tmp.empty()) {
+    path_tmp_buf = path.str() + ".tmp";
+    path_tmp = path_tmp_buf;
+  }
+
+  WriteFileOptions options;
+  options.need_sync = true;
+  options.need_lock = true;
+  TRY_STATUS(write_file(path_tmp, data, options));
+  return rename(path_tmp, path);
+}
 }  // namespace td

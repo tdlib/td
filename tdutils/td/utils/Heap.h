@@ -37,6 +37,10 @@ class KHeap {
     return array_[0].key_;
   }
 
+  HeapNode *top() const {
+    return array_[0].node_;
+  }
+
   HeapNode *pop() {
     CHECK(!empty());
     HeapNode *result = array_[0].node_;

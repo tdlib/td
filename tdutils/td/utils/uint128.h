@@ -30,11 +30,17 @@ class uint128_emulated {
   uint64 lo() const {
     return lo_;
   }
+  uint64 rounded_hi() const {
+    return hi_ + (lo_ >> 63);
+  }
   static uint128 from_signed(int64 x) {
     if (x >= 0) {
       return uint128(0, x);
     }
     return uint128(std::numeric_limits<uint64>::max(), static_cast<uint64>(x));
+  }
+  static uint128 from_unsigned(uint64 x) {
+    return uint128(0, x);
   }
 
   uint128 add(uint128 other) const {
@@ -200,13 +206,18 @@ class uint128_intrinsic {
   static uint128 from_signed(int64 x) {
     return uint128(static_cast<ValueT>(x));
   }
+  static uint128 from_unsigned(uint64 x) {
+    return uint128(static_cast<ValueT>(x));
+  }
   uint64 hi() const {
     return uint64(value() >> 64);
   }
   uint64 lo() const {
     return uint64(value() & std::numeric_limits<uint64>::max());
   }
-
+  uint64 rounded_hi() const {
+    return uint64((value() + (1ULL << 63)) >> 64);
+  }
   uint128 add(uint128 other) const {
     return uint128(value() + other.value());
   }

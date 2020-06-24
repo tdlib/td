@@ -13,6 +13,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 
 #include <atomic>
@@ -26,6 +27,34 @@
 #define LOAD_TESTS(x) TD_CONCAT(register_tests_, x)()
 
 namespace td {
+
+class RandomSteps {
+ public:
+  struct Step {
+    std::function<void()> func;
+    td::uint32 weight;
+  };
+  RandomSteps(std::vector<Step> steps) : steps_(std::move(steps)) {
+    for (auto &step : steps_) {
+      steps_sum_ += step.weight;
+    }
+  }
+  template <class Random>
+  void step(Random &rnd) {
+    auto w = rnd() % steps_sum_;
+    for (auto &step : steps_) {
+      if (w < step.weight) {
+        step.func();
+        break;
+      }
+      w -= step.weight;
+    }
+  }
+
+ private:
+  std::vector<Step> steps_;
+  td::int32 steps_sum_ = 0;
+};
 
 class RegressionTester {
  public:
@@ -78,6 +107,7 @@ class TestsRunner : public TestContext {
     size_t it{0};
     bool is_running = false;
     double start{0};
+    double start_unadjusted{0};
     size_t end{0};
   };
   bool stress_flag_{false};
@@ -134,36 +164,6 @@ inline vector<string> rand_split(Slice str) {
   }
   return res;
 }
-
-struct Step {
-  std::function<void()> func;
-  uint32 weight;
-};
-
-class RandomSteps {
- public:
-  explicit RandomSteps(vector<Step> steps) : steps_(std::move(steps)) {
-    for (const auto &step : steps_) {
-      steps_sum_ += step.weight;
-    }
-  }
-
-  template <class Random>
-  void step(Random &rnd) const {
-    auto w = rnd() % steps_sum_;
-    for (const auto &step : steps_) {
-      if (w < step.weight) {
-        step.func();
-        break;
-      }
-      w -= step.weight;
-    }
-  }
-
- private:
-  vector<Step> steps_;
-  int32 steps_sum_ = 0;
-};
 
 template <class T1, class T2>
 void assert_eq_impl(const T1 &expected, const T2 &got, const char *file, int line) {

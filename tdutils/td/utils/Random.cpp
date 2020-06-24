@@ -39,6 +39,11 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
     buf_pos = BUF_SIZE;
     generation = 0;
   }
+  if (ptr == nullptr) {
+    td::MutableSlice(buf, BUF_SIZE).fill_zero_secure();
+    buf_pos = BUF_SIZE;
+    return;
+  }
   if (generation != random_seed_generation.load(std::memory_order_relaxed)) {
     generation = random_seed_generation.load(std::memory_order_acquire);
     buf_pos = BUF_SIZE;
@@ -97,6 +102,10 @@ void Random::add_seed(Slice bytes, double entropy) {
   RAND_add(bytes.data(), static_cast<int>(bytes.size()), entropy);
   random_seed_generation++;
 }
+
+void Random::secure_cleanup() {
+  Random::secure_bytes(nullptr, 0);
+}
 #endif
 
 static unsigned int rand_device_helper() {
@@ -134,13 +143,21 @@ int Random::fast(int min, int max) {
   return static_cast<int>(min + fast_uint32() % (max - min + 1));  // TODO signed_cast
 }
 
+double Random::fast(double min, double max) {
+  DCHECK(min <= max);
+  return min +
+         fast_uint32() * 1.0 /
+             (static_cast<double>(std::numeric_limits<td::uint32>::max()) - std::numeric_limits<td::uint32>::min()) *
+             (max - min);
+}
+
 Random::Xorshift128plus::Xorshift128plus(uint64 seed) {
   auto next = [&] {
     // splitmix64
-    seed += static_cast<uint64>(0x9E3779B97F4A7C15);
+    seed += static_cast<uint64>(0x9E3779B97F4A7C15ull);
     uint64 z = seed;
-    z = (z ^ (z >> 30)) * static_cast<uint64>(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)) * static_cast<uint64>(0x94D049BB133111EB);
+    z = (z ^ (z >> 30)) * static_cast<uint64>(0xBF58476D1CE4E5B9ull);
+    z = (z ^ (z >> 27)) * static_cast<uint64>(0x94D049BB133111EBull);
     return z ^ (z >> 31);
   };
   seed_[0] = next();
@@ -163,6 +180,9 @@ uint64 Random::Xorshift128plus::operator()() {
 
 int Random::Xorshift128plus::fast(int min, int max) {
   return static_cast<int>((*this)() % (max - min + 1) + min);
+}
+int64 Random::Xorshift128plus::fast64(int64 min, int64 max) {
+  return static_cast<int64>((*this)() % (max - min + 1) + min);
 }
 
 void Random::Xorshift128plus::bytes(MutableSlice dest) {

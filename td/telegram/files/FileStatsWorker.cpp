@@ -102,7 +102,7 @@ struct FsFileInfo {
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    int32 main_file_type = static_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    int32 main_file_type = static_cast<int32>(get_main_file_type(static_cast<FileType>(i)));
     if (i != main_file_type) {
       continue;
     }

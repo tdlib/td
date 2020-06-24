@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
+option(TDUTILS_MIME_TYPE "Generate mime types conversion (gperf is required)" ON)
+
+if (WIN32)
+  if (WINGETOPT_FOUND)
+    set(TD_HAVE_GETOPT 1)
+  endif()
+else()
+  set(TD_HAVE_GETOPT 1)
+endif()
+
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
@@ -59,6 +69,7 @@ set(TDUTILS_SOURCE
   td/utils/port/Stat.cpp
   td/utils/port/StdStreams.cpp
   td/utils/port/thread_local.cpp
+  td/utils/port/user.cpp
   td/utils/port/UdpSocketFd.cpp
   td/utils/port/uname.cpp
   td/utils/port/user.cpp
@@ -95,7 +106,6 @@ set(TDUTILS_SOURCE
   td/utils/JsonBuilder.cpp
   td/utils/logging.cpp
   td/utils/misc.cpp
-  td/utils/MimeType.cpp
   td/utils/MpmcQueue.cpp
   td/utils/OptionParser.cpp
   td/utils/PathView.cpp
@@ -105,9 +115,10 @@ set(TDUTILS_SOURCE
   td/utils/StackAllocator.cpp
   td/utils/Status.cpp
   td/utils/StringBuilder.cpp
-  td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
+  td/utils/TsFileLog.cpp
+  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/TsFileLog.cpp
@@ -139,6 +150,7 @@ set(TDUTILS_SOURCE
   td/utils/port/StdStreams.h
   td/utils/port/thread.h
   td/utils/port/thread_local.h
+  td/utils/port/user.h
   td/utils/port/UdpSocketFd.h
   td/utils/port/uname.h
   td/utils/port/user.h
@@ -205,7 +217,6 @@ set(TDUTILS_SOURCE
   td/utils/List.h
   td/utils/logging.h
   td/utils/MemoryLog.h
-  td/utils/MimeType.h
   td/utils/misc.h
   td/utils/MovableValue.h
   td/utils/MpmcQueue.h
@@ -232,6 +243,7 @@ set(TDUTILS_SOURCE
   td/utils/SpinLock.h
   td/utils/StackAllocator.h
   td/utils/Status.h
+  td/utils/StealingQueue.h
   td/utils/Storer.h
   td/utils/StorerBase.h
   td/utils/StringBuilder.h
@@ -241,6 +253,7 @@ set(TDUTILS_SOURCE
   td/utils/Time.h
   td/utils/TimedStat.h
   td/utils/Timer.h
+  td/utils/TsFileLog.h
   td/utils/tl_helpers.h
   td/utils/tl_parsers.h
   td/utils/tl_storers.h
@@ -257,12 +270,19 @@ set(TDUTILS_SOURCE
   td/utils/VectorQueue.h
 )
 
+if (TDUTILS_MIME_TYPE)
+  set(TDUTILS_SOURCE
+    ${TDUTILS_SOURCE}
+    td/utils/MimeType.cpp
+    td/utils/MimeType.h
+  )
+endif()
+
 set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/ConcurrentHashMap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/crypto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/Enumerator.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test/EpochBasedMemoryReclamation.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/filesystem.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/gzip.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp
@@ -280,6 +300,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/pq.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SharedObjectPool.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SharedSlice.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/StealingQueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/variant.cpp
   PARENT_SCOPE
 )
@@ -293,7 +314,7 @@ if (WIN32)
   # target_link_libraries(tdutils PRIVATE ${WS2_32_LIBRARY} ${MSWSOCK_LIBRARY})
   target_link_libraries(tdutils PRIVATE ws2_32 Mswsock Normaliz psapi)
 endif()
-if (NOT CMAKE_CROSSCOMPILING)
+if (NOT CMAKE_CROSSCOMPILING AND TDUTILS_MIME_TYPE)
   add_dependencies(tdutils tdmime_auto)
 endif()
 
@@ -316,7 +337,11 @@ if (CRC32C_FOUND)
   target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 if (ABSL_FOUND)
-  target_link_libraries(tdutils PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
+  target_link_libraries_system(tdutils absl::flat_hash_map absl::flat_hash_set absl::hash)
+endif()
+
+if (WIN32 AND WINGETOPT_FOUND)
+  target_link_libraries(tdutils PRIVATE wingetopt)
 endif()
 
 if (ANDROID)

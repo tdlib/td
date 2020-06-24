@@ -85,6 +85,16 @@ class SpanImpl {
     return data_[size() - 1];
   }
 
+  InnerT &front() {
+    DCHECK(!empty());
+    return data_[0];
+  }
+
+  const InnerT &front() const {
+    DCHECK(!empty());
+    return data_[0];
+  }
+
   InnerT *data() const {
     return data_;
   }
@@ -95,7 +105,6 @@ class SpanImpl {
   InnerT *end() const {
     return data_ + size_;
   }
-
   std::reverse_iterator<InnerT *> rbegin() const {
     return std::reverse_iterator<InnerT *>(end());
   }
@@ -111,8 +120,9 @@ class SpanImpl {
   }
 
   SpanImpl &truncate(size_t size) {
-    CHECK(size <= size_);
-    size_ = size;
+    if (size < size_) {
+      size_ = size;
+    }
     return *this;
   }
 
@@ -139,8 +149,44 @@ Span<T> span(const T *ptr, size_t size) {
   return Span<T>(ptr, size);
 }
 template <class T>
+Span<T> span(const std::vector<T> &vec) {
+  return Span<T>(vec);
+}
+
+template <class T>
 MutableSpan<T> mutable_span(T *ptr, size_t size) {
   return MutableSpan<T>(ptr, size);
+}
+template <class T>
+MutableSpan<T> mutable_span(std::vector<T> &vec) {
+  return MutableSpan<T>(vec);
+}
+
+template <class T>
+Span<T> span_one(const T &value) {
+  return td::Span<T>(&value, 1);
+}
+template <class T>
+MutableSpan<T> mutable_span_one(T &value) {
+  return td::MutableSpan<T>(&value, 1);
+}
+
+template <class T>
+Span<T> as_span(Span<T> span) {
+  return span;
+}
+template <class T>
+Span<T> as_span(const std::vector<T> &vec) {
+  return Span<T>(vec);
+}
+
+template <class T>
+MutableSpan<T> as_mutable_span(MutableSpan<T> span) {
+  return span;
+}
+template <class T>
+MutableSpan<T> as_mutable_span(std::vector<T> &vec) {
+  return MutableSpan<T>(vec);
 }
 
 }  // namespace td

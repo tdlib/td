@@ -82,7 +82,7 @@ void FileLog::append(CSlice cslice, int log_level) {
     process_fatal_error(cslice);
   }
 
-  if (size_ > rotate_threshold_) {
+  if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
     auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
       process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
@@ -98,9 +98,13 @@ void FileLog::rotate() {
   do_rotate();
 }
 
+void FileLog::lazy_rotate() {
+  want_rotate_ = true;
+}
+
 void FileLog::do_rotate() {
-  auto current_verbosity_level = GET_VERBOSITY_LEVEL();
-  SET_VERBOSITY_LEVEL(std::numeric_limits<int>::min());  // to ensure that nothing will be printed to the closed log
+  want_rotate_ = false;
+  td::ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
   CHECK(!path_.empty());
   fd_.close();
   auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Truncate | FileFd::Write);
@@ -112,7 +116,12 @@ void FileLog::do_rotate() {
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
   size_ = 0;
-  SET_VERBOSITY_LEVEL(current_verbosity_level);
+}
+
+Result<td::unique_ptr<LogInterface>> FileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
+  auto l = make_unique<FileLog>();
+  TRY_STATUS(l->init(std::move(path), rotate_threshold, redirect_stderr));
+  return std::move(l);
 }
 
 }  // namespace td

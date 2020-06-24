@@ -36,6 +36,10 @@ class OptionParser {
 
   void add_checked_option(char short_key, Slice long_key, Slice description, std::function<Status(void)> callback);
 
+  void add_option(char short_key, Slice long_key, Slice description, std::function<Status(Slice)> callback) = delete;
+
+  void add_option(char short_key, Slice long_key, Slice description, std::function<Status(void)> callback) = delete;
+
   void add_option(char short_key, Slice long_key, Slice description, std::function<void(Slice)> callback);
 
   void add_option(char short_key, Slice long_key, Slice description, std::function<void(void)> callback);

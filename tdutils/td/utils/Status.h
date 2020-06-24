@@ -36,15 +36,45 @@
     }                                                 \
   }
 
+#define TRY_STATUS_PROMISE(promise_name, status)     \
+  {                                                  \
+    auto try_status = (status);                      \
+    if (try_status.is_error()) {                     \
+      promise_name.set_error(std::move(try_status)); \
+      return;                                        \
+    }                                                \
+  }
+
+#define TRY_STATUS_PROMISE_PREFIX(promise_name, status, prefix)        \
+  {                                                                    \
+    auto try_status = (status);                                        \
+    if (try_status.is_error()) {                                       \
+      promise_name.set_error(try_status.move_as_error_prefix(prefix)); \
+      return;                                                          \
+    }                                                                  \
+  }
+
 #define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
 
+#define TRY_RESULT_PROMISE(promise_name, name, result) \
+  TRY_RESULT_PROMISE_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
+
 #define TRY_RESULT_ASSIGN(name, result) TRY_RESULT_IMPL(TD_CONCAT(r_response, __LINE__), name, result)
+
+#define TRY_RESULT_PROMISE_ASSIGN(promise_name, name, result) \
+  TRY_RESULT_PROMISE_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
 
 #define TRY_RESULT_PREFIX(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result, prefix)
 
 #define TRY_RESULT_PREFIX_ASSIGN(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
+
+#define TRY_RESULT_PROMISE_PREFIX(promise_name, name, result, prefix) \
+  TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result, prefix)
+
+#define TRY_RESULT_PROMISE_PREFIX_ASSIGN(promise_name, name, result, prefix) \
+  TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
 
 #define TRY_RESULT_IMPL(r_name, name, result) \
   auto r_name = (result);                     \
@@ -58,6 +88,22 @@
   if (r_name.is_error()) {                                   \
     return r_name.move_as_error_prefix(prefix);              \
   }                                                          \
+  name = r_name.move_as_ok();
+
+#define TRY_RESULT_PROMISE_IMPL(promise_name, r_name, name, result) \
+  auto r_name = (result);                                           \
+  if (r_name.is_error()) {                                          \
+    promise_name.set_error(r_name.move_as_error());                 \
+    return;                                                         \
+  }                                                                 \
+  name = r_name.move_as_ok();
+
+#define TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, r_name, name, result, prefix) \
+  auto r_name = (result);                                                          \
+  if (r_name.is_error()) {                                                         \
+    promise_name.set_error(r_name.move_as_error_prefix(prefix));                   \
+    return;                                                                        \
+  }                                                                                \
   name = r_name.move_as_ok();
 
 #define LOG_STATUS(status)                      \
@@ -272,7 +318,16 @@ class Status {
     return std::move(*this);
   }
 
-  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
+  Auto move_as_ok() {
+    UNREACHABLE();
+    return {};
+  }
+
+  Status move_as_error_prefix(const Status &status) const TD_WARN_UNUSED_RESULT {
+    return status.move_as_error_suffix(message());
+  }
+
+  Status move_as_error_prefix(Slice prefix) const TD_WARN_UNUSED_RESULT {
     CHECK(is_error());
     Info info = get_info();
     switch (info.error_type) {
@@ -280,6 +335,19 @@ class Status {
         return Error(code(), PSLICE() << prefix << message());
       case ErrorType::Os:
         return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
+      default:
+        UNREACHABLE();
+        return {};
+    }
+  }
+  Status move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT {
+    CHECK(is_error());
+    Info info = get_info();
+    switch (info.error_type) {
+      case ErrorType::General:
+        return Error(code(), PSLICE() << message() << suffix);
+      case ErrorType::Os:
+        return Status(false, ErrorType::Os, code(), PSLICE() << message() << suffix);
       default:
         UNREACHABLE();
         return {};
@@ -366,6 +434,7 @@ class Status {
 template <class T = Unit>
 class Result {
  public:
+  using ValueT = T;
   Result() : status_(Status::Error<-1>()) {
   }
   template <class S, std::enable_if_t<!std::is_same<std::decay_t<S>, Result>::value, int> = 0>
@@ -462,6 +531,18 @@ class Result {
     };
     return status_.move_as_error_prefix(prefix);
   }
+  Status move_as_error_prefix(const Status &prefix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-5>();
+    };
+    return status_.move_as_error_prefix(prefix);
+  }
+  Status move_as_error_suffix(Slice suffix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-5>();
+    };
+    return status_.move_as_error_suffix(suffix);
+  }
   const T &ok() const {
     LOG_CHECK(status_.is_ok()) << status_;
     return value_;
@@ -487,6 +568,22 @@ class Result {
   }
   void clear() {
     *this = Result<T>();
+  }
+
+  template <class F>
+  td::Result<decltype(std::declval<F>()(std::declval<T>()))> move_map(F &&f) {
+    if (is_error()) {
+      return move_as_error();
+    }
+    return f(move_as_ok());
+  }
+
+  template <class F>
+  decltype(std::declval<F>()(std::declval<T>())) move_fmap(F &&f) {
+    if (is_error()) {
+      return move_as_error();
+    }
+    return f(move_as_ok());
   }
 
  private:

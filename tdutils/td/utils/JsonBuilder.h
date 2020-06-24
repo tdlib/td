@@ -172,7 +172,7 @@ class JsonObjectScope;
 
 class JsonBuilder {
  public:
-  explicit JsonBuilder(StringBuilder &&sb, int32 offset = -1) : sb_(std::move(sb)), offset_(offset) {
+  explicit JsonBuilder(StringBuilder &&sb = {}, int32 offset = -1) : sb_(std::move(sb)), offset_(offset) {
   }
   StringBuilder &string_builder() {
     return sb_;
@@ -350,7 +350,10 @@ class JsonArrayScope : public JsonScope {
   }
   void leave() {
     jb_->dec_offset();
-    jb_->print_offset();
+    if (jb_->is_pretty()) {
+      *sb_ << "\n";
+      jb_->print_offset();
+    }
     *sb_ << "]";
   }
   template <class T>
@@ -369,7 +372,10 @@ class JsonArrayScope : public JsonScope {
     } else {
       is_first_ = true;
     }
-    jb_->print_offset();
+    if (jb_->is_pretty()) {
+      *sb_ << "\n";
+      jb_->print_offset();
+    }
     return jb_->enter_value();
   }
 
@@ -391,7 +397,10 @@ class JsonObjectScope : public JsonScope {
   }
   void leave() {
     jb_->dec_offset();
-    jb_->print_offset();
+    if (jb_->is_pretty()) {
+      *sb_ << "\n";
+      jb_->print_offset();
+    }
     *sb_ << "}";
   }
   template <class T>
@@ -402,7 +411,10 @@ class JsonObjectScope : public JsonScope {
     } else {
       is_first_ = true;
     }
-    jb_->print_offset();
+    if (jb_->is_pretty()) {
+      *sb_ << "\n";
+      jb_->print_offset();
+    }
     jb_->enter_value() << key;
     if (jb_->is_pretty()) {
       *sb_ << " : ";

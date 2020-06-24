@@ -136,6 +136,7 @@ inline uint64 bswap64(uint64 x) {
 }
 
 inline int32 count_bits32(uint32 x) {
+  // Do not use __popcnt because it will fail on some platforms.
   x -= (x >> 1) & 0x55555555;
   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
   x = (x + (x >> 4)) & 0x0F0F0F0F;
@@ -268,5 +269,41 @@ inline int32 count_bits64(uint64 x) {
 }
 
 #endif
+
+struct BitsRange {
+  td::uint64 bits{0};
+  mutable td::int32 pos{-1};
+
+  explicit BitsRange(td::uint64 bits = 0) : bits{bits}, pos{-1} {
+  }
+
+  BitsRange begin() const {
+    return *this;
+  }
+
+  BitsRange end() const {
+    return BitsRange{};
+  }
+
+  td::int32 operator*() const {
+    if (pos == -1) {
+      pos = td::count_trailing_zeroes64(bits);
+    }
+    return pos;
+  }
+
+  bool operator!=(const BitsRange &other) const {
+    return bits != other.bits;
+  }
+
+  BitsRange &operator++() {
+    auto i = **this;
+    if (i != 64) {
+      bits ^= 1ull << i;
+    }
+    pos = -1;
+    return *this;
+  }
+};
 
 }  // namespace td

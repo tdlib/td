@@ -72,6 +72,12 @@ class BufferedFd : public BufferedFdBase<FdT> {
   ~BufferedFd();
 
   void close();
+  size_t left_unread() {
+    return input_reader_.size();
+  }
+  size_t left_unwritten() {
+    return output_reader_.size();
+  }
 
   Result<size_t> flush_read(size_t max_read = std::numeric_limits<size_t>::max()) TD_WARN_UNUSED_RESULT;
   Result<size_t> flush_write() TD_WARN_UNUSED_RESULT;

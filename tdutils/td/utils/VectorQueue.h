@@ -32,6 +32,12 @@ class VectorQueue {
     read_pos_ += n;
     try_shrink();
   }
+  T &front() {
+    return vector_[read_pos_];
+  }
+  T &back() {
+    return vector_.back();
+  }
   const T &front() const {
     return vector_[read_pos_];
   }
@@ -45,6 +51,9 @@ class VectorQueue {
     return vector_.size() - read_pos_;
   }
   const T *data() const {
+    return vector_.data() + read_pos_;
+  }
+  T *data() {
     return vector_.data() + read_pos_;
   }
   Span<T> as_span() const {

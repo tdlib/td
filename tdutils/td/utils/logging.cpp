@@ -14,6 +14,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <mutex>
 
 #if TD_ANDROID
 #include <android/log.h>
@@ -261,6 +262,28 @@ void process_fatal_error(CSlice message) {
     callback(message);
   }
   std::abort();
+}
+
+namespace {
+std::mutex sdl_mutex;
+int sdl_cnt = 0;
+int sdl_verbosity = 0;
+
+}  // namespace
+ScopedDisableLog::ScopedDisableLog() {
+  std::unique_lock<std::mutex> guard(sdl_mutex);
+  if (sdl_cnt == 0) {
+    sdl_verbosity = set_verbosity_level(std::numeric_limits<int>::min());
+  }
+  sdl_cnt++;
+}
+
+ScopedDisableLog::~ScopedDisableLog() {
+  std::unique_lock<std::mutex> guard(sdl_mutex);
+  sdl_cnt--;
+  if (sdl_cnt == 0) {
+    set_verbosity_level(sdl_verbosity);
+  }
 }
 
 }  // namespace td

@@ -340,7 +340,7 @@ void StorageManager::schedule_next_gc() {
   if (next_gc_at > sys_time + GC_EACH) {
     next_gc_at = sys_time + GC_EACH;
   }
-  next_gc_at += Random::fast(GC_DELAY, GC_DELAY + GC_RAND_DELAY);
+  next_gc_at += Random::fast(static_cast<int>(GC_DELAY), static_cast<int>(GC_DELAY + GC_RAND_DELAY));
   CHECK(next_gc_at >= sys_time);
   auto next_gc_in = next_gc_at - sys_time;
 

@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #include "td/utils/PathView.h"
 
 #include "td/utils/misc.h"
@@ -34,6 +35,24 @@ Slice PathView::relative(Slice path, Slice dir, bool force) {
     return Slice();
   }
   return path;
+}
+
+Slice PathView::dir_and_file(Slice path) {
+  auto last_slash = static_cast<int32>(path.size()) - 1;
+  while (last_slash >= 0 && !is_slash(path[last_slash])) {
+    last_slash--;
+  }
+  if (last_slash < 0) {
+    return Slice();
+  }
+  last_slash--;
+  while (last_slash >= 0 && !is_slash(path[last_slash])) {
+    last_slash--;
+  }
+  if (last_slash < 0) {
+    return Slice();
+  }
+  return path.substr(last_slash + 1);
 }
 
 }  // namespace td
