@@ -68,13 +68,14 @@ static void dump_memory_usage() {
   if (is_memprof_on()) {
     LOG(WARNING) << "Memory dump:";
     clear_thread_locals();
-    std::vector<AllocInfo> v;
-    dump_alloc([&](const AllocInfo &info) { v.push_back(info); });
-    std::sort(v.begin(), v.end(), [](const AllocInfo &a, const AllocInfo &b) { return a.size > b.size; });
+    std::vector<AllocInfo> alloc_info;
+    dump_alloc([&](const AllocInfo &info) { alloc_info.push_back(info); });
+    std::sort(alloc_info.begin(), alloc_info.end(),
+              [](const AllocInfo &lhs, const AllocInfo &rhs) { return lhs.size > rhs.size; });
     size_t total_size = 0;
     size_t other_size = 0;
     int cnt = 0;
-    for (auto &info : v) {
+    for (auto &info : alloc_info) {
       if (cnt++ < 50) {
         LOG(WARNING) << format::as_size(info.size) << format::as_array(info.backtrace);
       } else {

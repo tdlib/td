@@ -264,11 +264,11 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
     TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
     auto &answer_array = answer.get_array();
     vector<string> parts;
-    for (auto &v : answer_array) {
-      if (v.type() != JsonValue::Type::Object) {
+    for (auto &answer_part : answer_array) {
+      if (answer_part.type() != JsonValue::Type::Object) {
         return Status::Error("Expected JSON object");
       }
-      auto &data_object = v.get_object();
+      auto &data_object = answer_part.get_object();
       TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
       parts.push_back(std::move(part));
     }
@@ -863,10 +863,11 @@ class ConfigRecoverer : public Actor {
   }
 
   void update_dc_options() {
-    auto v = simple_config_.dc_options;
-    v.insert(v.begin(), dc_options_update_.dc_options.begin(), dc_options_update_.dc_options.end());
-    if (v != dc_options_.dc_options) {
-      dc_options_.dc_options = std::move(v);
+    auto new_dc_options = simple_config_.dc_options;
+    new_dc_options.insert(new_dc_options.begin(), dc_options_update_.dc_options.begin(),
+                          dc_options_update_.dc_options.end());
+    if (new_dc_options != dc_options_.dc_options) {
+      dc_options_.dc_options = std::move(new_dc_options);
       dc_options_i_ = 0;
       dc_options_at_ = Time::now();
     }

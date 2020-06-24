@@ -1442,10 +1442,9 @@ void UpdatesManager::set_seq_gap_timeout(double timeout) {
 }
 
 void UpdatesManager::on_pending_update(tl_object_ptr<telegram_api::Update> update, int32 seq, const char *source) {
-  vector<tl_object_ptr<telegram_api::Update>> v;
-  v.push_back(std::move(update));
-
-  on_pending_updates(std::move(v), seq, seq, 0, source);  // TODO can be optimized
+  vector<tl_object_ptr<telegram_api::Update>> updates;
+  updates.push_back(std::move(update));
+  on_pending_updates(std::move(updates), seq, seq, 0, source);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewMessage> update, bool force_apply) {
