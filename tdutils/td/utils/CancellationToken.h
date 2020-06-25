@@ -20,7 +20,7 @@ struct RawCancellationToken {
 class CancellationToken {
  public:
   explicit operator bool() const {
-    // Empty CancellationToken is never cancelled
+    // empty CancellationToken is never cancelled
     if (!token_) {
       return false;
     }

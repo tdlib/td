@@ -37,7 +37,9 @@ class AtomicRefCnt {
 };
 
 template <class DataT, class DeleterT>
-class SharedPtrRaw : public DeleterT, private MpscLinkQueueImpl::Node {
+class SharedPtrRaw
+    : public DeleterT
+    , private MpscLinkQueueImpl::Node {
  public:
   explicit SharedPtrRaw(DeleterT deleter) : DeleterT(std::move(deleter)), ref_cnt_{0}, option_magic_(Magic) {
   }

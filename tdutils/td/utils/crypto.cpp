@@ -606,7 +606,7 @@ void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
   aes_cbc_xcrypt(aes_key, aes_iv, from, to, false);
 }
 
-AesCbcState::AesCbcState(Slice key256, Slice iv128) : raw_{td::SecureString(key256), td::SecureString(iv128)} {
+AesCbcState::AesCbcState(Slice key256, Slice iv128) : raw_{SecureString(key256), SecureString(iv128)} {
   CHECK(raw_.key.size() == 32);
   CHECK(raw_.iv.size() == 16);
 }

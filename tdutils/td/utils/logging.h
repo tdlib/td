@@ -150,6 +150,9 @@ struct LogOptions {
     add_info = other.add_info;
     return *this;
   }
+  LogOptions(LogOptions &&) = default;             // i.e. deleted
+  LogOptions &operator=(LogOptions &&) = default;  // i.e. deleted
+  ~LogOptions() = default;
 };
 
 extern LogOptions log_options;
@@ -163,6 +166,10 @@ inline int get_verbosity_level() {
 class ScopedDisableLog {
  public:
   ScopedDisableLog();
+  ScopedDisableLog(const ScopedDisableLog &) = delete;
+  ScopedDisableLog &operator=(const ScopedDisableLog &) = delete;
+  ScopedDisableLog(ScopedDisableLog &&) = delete;
+  ScopedDisableLog &operator=(ScopedDisableLog &&) = delete;
   ~ScopedDisableLog();
 };
 

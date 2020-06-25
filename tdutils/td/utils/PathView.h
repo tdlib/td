@@ -28,9 +28,7 @@ class PathView {
   Slice parent_dir() const {
     return path_.substr(0, last_slash_ + 1);
   }
-  Slice parent_dir_noslash() const {
-    return last_slash_ <= 0 ? td::Slice(".") : path_.substr(0, last_slash_);
-  }
+  Slice parent_dir_noslash() const;
 
   Slice extension() const {
     if (last_dot_ == static_cast<int32>(path_.size())) {

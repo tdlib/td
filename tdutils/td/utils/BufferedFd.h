@@ -72,10 +72,11 @@ class BufferedFd : public BufferedFdBase<FdT> {
   ~BufferedFd();
 
   void close();
-  size_t left_unread() {
+
+  size_t left_unread() const {
     return input_reader_.size();
   }
-  size_t left_unwritten() {
+  size_t left_unwritten() const {
     return output_reader_.size();
   }
 

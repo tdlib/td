@@ -11,7 +11,6 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/binlog/BinlogInterface.h"
 
-#include "td/utils/format.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/Random.h"
@@ -226,7 +225,7 @@ class TQueueImpl : public TQueue {
       return 0;
     }
 
-    td::MutableSpan<td::TQueue::Event> span;
+    MutableSpan<Event> span;
     return do_get(queue_id, q, q.events.front().event_id, true, Time::now(), span);
   }
 

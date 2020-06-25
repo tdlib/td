@@ -257,7 +257,7 @@ std::shared_ptr<NetStatsCallback> NetStatsManager::get_media_stats_callback() co
 std::vector<std::shared_ptr<NetStatsCallback>> NetStatsManager::get_file_stats_callbacks() const {
   auto result = transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    int32 main_file_type = static_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    int32 main_file_type = static_cast<int32>(get_main_file_type(static_cast<FileType>(i)));
     if (main_file_type != i) {
       result[i] = result[main_file_type];
     }

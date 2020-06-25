@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <unordered_set>

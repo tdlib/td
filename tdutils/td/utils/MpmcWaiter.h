@@ -10,8 +10,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 
-#include <atomic>
 #include <algorithm>
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 
@@ -149,7 +149,7 @@ class MpmcSleepyWaiter {
     }
 
     void unpark() {
-      //TODO: try unlock guard before notify_all
+      //TODO: try to unlock guard before notify_all
       std::unique_lock<std::mutex> guard(mutex_);
       unpark_flag_ = true;
       condition_variable_.notify_all();
@@ -182,10 +182,10 @@ class MpmcSleepyWaiter {
   //
   // When worker found nothing it may try to call wait.
   // This may put it in a Sleep for some time.
-  // After wait return worker will be in Search state again.
+  // After wait returns worker will be in Search state again.
   //
   // Suppose worker found a work and ready to process it.
-  // Than it may call stop_wait. This will cause transition from
+  // Then it may call stop_wait. This will cause transition from
   // Search to Work state.
   //
   // Main invariant:
@@ -200,7 +200,7 @@ class MpmcSleepyWaiter {
     VLOG(waiter) << "Init slot " << worker_id;
   }
 
-  int VERBOSITY_NAME(waiter) = VERBOSITY_NAME(DEBUG) + 10;
+  static constexpr int VERBOSITY_NAME(waiter) = VERBOSITY_NAME(DEBUG) + 10;
   void wait(Slot &slot) {
     if (slot.state_ == Slot::State::Work) {
       VLOG(waiter) << "Work -> Search";
@@ -225,10 +225,10 @@ class MpmcSleepyWaiter {
       }
       sleepers_.push_back(&slot);
       LOG_CHECK(slot.unpark_flag_ == false) << slot.worker_id;
-      VLOG(waiter) << "add to sleepers " << slot.worker_id;
+      VLOG(waiter) << "Add to sleepers " << slot.worker_id;
       //guard.unlock();
       if (should_search) {
-        VLOG(waiter) << "Search -> Search once then Sleep ";
+        VLOG(waiter) << "Search -> Search once, then Sleep ";
         return;
       }
       VLOG(waiter) << "Search -> Sleep " << state_view.searching_count << " " << state_view.parked_count;
@@ -247,22 +247,22 @@ class MpmcSleepyWaiter {
       return;
     }
     if (slot.state_ == Slot::State::Sleep) {
-      VLOG(waiter) << "Search once then Sleep -> Work/Search " << slot.worker_id;
+      VLOG(waiter) << "Search once, then Sleep -> Work/Search " << slot.worker_id;
       slot.state_ = Slot::State::Work;
       std::unique_lock<std::mutex> guard(sleepers_mutex_);
       auto it = std::find(sleepers_.begin(), sleepers_.end(), &slot);
       if (it != sleepers_.end()) {
         sleepers_.erase(it);
-        VLOG(waiter) << "remove from sleepers " << slot.worker_id;
+        VLOG(waiter) << "Remove from sleepers " << slot.worker_id;
         state_.fetch_sub((1 << PARKING_SHIFT) - 1);
         guard.unlock();
       } else {
         guard.unlock();
-        VLOG(waiter) << "not in sleepers" << slot.worker_id;
+        VLOG(waiter) << "Not in sleepers" << slot.worker_id;
         CHECK(slot.cancel_park());
       }
     }
-    VLOG(waiter) << "Search once then Sleep -> Work " << slot.worker_id;
+    VLOG(waiter) << "Search once, then Sleep -> Work " << slot.worker_id;
     slot.state_ = Slot::State::Search;
     auto state_view = StateView(state_.fetch_sub(1));
     CHECK(state_view.searching_count != 0);
@@ -313,19 +313,19 @@ class MpmcSleepyWaiter {
   }
 
  private:
-  static constexpr td::int32 PARKING_SHIFT = 16;
+  static constexpr int32 PARKING_SHIFT = 16;
   struct StateView {
-    td::int32 parked_count;
-    td::int32 searching_count;
+    int32 parked_count;
+    int32 searching_count;
     explicit StateView(int32 x) {
       parked_count = x >> PARKING_SHIFT;
       searching_count = x & ((1 << PARKING_SHIFT) - 1);
     }
   };
-  std::atomic<td::int32> state_{0};
+  std::atomic<int32> state_{0};
 
   std::mutex sleepers_mutex_;
-  std::vector<Slot *> sleepers_;
+  vector<Slot *> sleepers_;
 
   bool closed_ = false;
 };

@@ -37,7 +37,7 @@ class KHeap {
     return array_[0].key_;
   }
 
-  HeapNode *top() const {
+  const HeapNode *top() const {
     return array_[0].node_;
   }
 

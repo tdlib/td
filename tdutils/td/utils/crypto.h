@@ -10,7 +10,6 @@
 #include "td/utils/common.h"
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
-#include "td/utils/SharedSlice.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -95,11 +94,11 @@ class AesCbcState {
 
   void encrypt(Slice from, MutableSlice to);
   void decrypt(Slice from, MutableSlice to);
+
   struct Raw {
     SecureString key;
     SecureString iv;
   };
-
   const Raw &raw() const {
     return raw_;
   }

@@ -105,6 +105,7 @@ class SpanImpl {
   InnerT *end() const {
     return data_ + size_;
   }
+
   std::reverse_iterator<InnerT *> rbegin() const {
     return std::reverse_iterator<InnerT *>(end());
   }
@@ -149,7 +150,7 @@ Span<T> span(const T *ptr, size_t size) {
   return Span<T>(ptr, size);
 }
 template <class T>
-Span<T> span(const std::vector<T> &vec) {
+Span<T> span(const vector<T> &vec) {
   return Span<T>(vec);
 }
 
@@ -158,17 +159,17 @@ MutableSpan<T> mutable_span(T *ptr, size_t size) {
   return MutableSpan<T>(ptr, size);
 }
 template <class T>
-MutableSpan<T> mutable_span(std::vector<T> &vec) {
+MutableSpan<T> mutable_span(vector<T> &vec) {
   return MutableSpan<T>(vec);
 }
 
 template <class T>
 Span<T> span_one(const T &value) {
-  return td::Span<T>(&value, 1);
+  return Span<T>(&value, 1);
 }
 template <class T>
 MutableSpan<T> mutable_span_one(T &value) {
-  return td::MutableSpan<T>(&value, 1);
+  return MutableSpan<T>(&value, 1);
 }
 
 template <class T>

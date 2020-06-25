@@ -64,7 +64,7 @@ class optional {
     return res;
   }
 
-  td::optional<T> copy() const {
+  optional<T> copy() const {
     if (*this) {
       return value();
     }

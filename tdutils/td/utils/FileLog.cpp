@@ -13,8 +13,6 @@
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/Slice.h"
 
-#include <limits>
-
 namespace td {
 
 Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
@@ -104,7 +102,7 @@ void FileLog::lazy_rotate() {
 
 void FileLog::do_rotate() {
   want_rotate_ = false;
-  td::ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
+  ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
   CHECK(!path_.empty());
   fd_.close();
   auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Truncate | FileFd::Write);
@@ -118,7 +116,7 @@ void FileLog::do_rotate() {
   size_ = 0;
 }
 
-Result<td::unique_ptr<LogInterface>> FileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
+Result<unique_ptr<LogInterface>> FileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
   auto l = make_unique<FileLog>();
   TRY_STATUS(l->init(std::move(path), rotate_threshold, redirect_stderr));
   return std::move(l);

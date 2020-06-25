@@ -11,9 +11,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/OptionParser.h"
 #include "td/utils/Slice.h"
-#include "td/utils/Status.h"
-
-#include <cstring>
 
 #if TD_EMSCRIPTEN
 #include <emscripten.h>

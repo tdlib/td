@@ -4,7 +4,6 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-
 #pragma once
 
 #include "td/utils/common.h"
@@ -28,6 +27,8 @@ bool is_base64_characters(Slice input);
 bool is_base64url_characters(Slice input);
 
 string base64_filter(Slice input);
+
 string base32_encode(Slice input, bool upper_case = false);
 Result<string> base32_decode(Slice base32);
+
 }  // namespace td

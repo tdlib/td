@@ -127,14 +127,14 @@ TEST(Misc, errno_tls_bug) {
       event.release();
     }
     for (auto &event : events) {
-      threads.push_back(td::thread([&] {
+      threads.emplace_back([&] {
         {
           EventFd tmp;
           tmp.init();
           tmp.acquire();
         }
         event.acquire();
-      }));
+      });
     }
     for (auto &thread : threads) {
       thread.join();
@@ -154,7 +154,8 @@ TEST(Misc, get_last_argument) {
 }
 
 TEST(Misc, call_n_arguments) {
-  auto f = [](int, int) {};
+  auto f = [](int, int) {
+  };
   call_n_arguments<2>(f, 1, 3, 4);
 }
 
@@ -253,10 +254,18 @@ static void test_remove_if(vector<int> v, const T &func, vector<int> expected) {
 }
 
 TEST(Misc, remove_if) {
-  auto odd = [](int x) { return x % 2 == 1; };
-  auto even = [](int x) { return x % 2 == 0; };
-  auto all = [](int x) { return true; };
-  auto none = [](int x) { return false; };
+  auto odd = [](int x) {
+    return x % 2 == 1;
+  };
+  auto even = [](int x) {
+    return x % 2 == 0;
+  };
+  auto all = [](int x) {
+    return true;
+  };
+  auto none = [](int x) {
+    return false;
+  };
 
   vector<int> v{1, 2, 3, 4, 5, 6};
   test_remove_if(v, odd, {2, 4, 6});
@@ -862,7 +871,7 @@ TEST(Misc, Bits) {
 
 TEST(Misc, BitsRange) {
   auto to_vec_a = [](td::uint64 x) {
-    std::vector<td::int32> bits;
+    td::vector<td::int32> bits;
     for (auto i : td::BitsRange(x)) {
       bits.push_back(i);
     }
@@ -870,7 +879,7 @@ TEST(Misc, BitsRange) {
   };
 
   auto to_vec_b = [](td::uint64 x) {
-    std::vector<td::int32> bits;
+    td::vector<td::int32> bits;
     td::int32 pos = 0;
     while (x != 0) {
       if ((x & 1) != 0) {
@@ -882,8 +891,12 @@ TEST(Misc, BitsRange) {
     return bits;
   };
 
-  auto do_check = [](std::vector<td::int32> a, std::vector<td::int32> b) { ASSERT_EQ(b, a); };
-  auto check = [&](td::uint64 x) { do_check(to_vec_a(x), to_vec_b(x)); };
+  auto do_check = [](const td::vector<td::int32> &a, const td::vector<td::int32> &b) {
+    ASSERT_EQ(b, a);
+  };
+  auto check = [&](td::uint64 x) {
+    do_check(to_vec_a(x), to_vec_b(x));
+  };
 
   do_check(to_vec_a(21), {0, 2, 4});
   for (int x = 0; x < 100; x++) {
@@ -954,8 +967,12 @@ TEST(Misc, uint128) {
                                      static_cast<int64>(std::numeric_limits<int32>::min()) - 1};
 
 #if TD_HAVE_INT128
-  auto to_intrinsic = [](uint128_emulated num) { return uint128_intrinsic(num.hi(), num.lo()); };
-  auto eq = [](uint128_emulated a, uint128_intrinsic b) { return a.hi() == b.hi() && a.lo() == b.lo(); };
+  auto to_intrinsic = [](uint128_emulated num) {
+    return uint128_intrinsic(num.hi(), num.lo());
+  };
+  auto eq = [](uint128_emulated a, uint128_intrinsic b) {
+    return a.hi() == b.hi() && a.lo() == b.lo();
+  };
   auto ensure_eq = [&](uint128_emulated a, uint128_intrinsic b) {
     if (!eq(a, b)) {
       LOG(FATAL) << "[" << a.hi() << ";" << a.lo() << "] vs [" << b.hi() << ";" << b.lo() << "]";

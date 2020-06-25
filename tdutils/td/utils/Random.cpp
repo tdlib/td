@@ -40,7 +40,7 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
     generation = 0;
   }
   if (ptr == nullptr) {
-    td::MutableSlice(buf, BUF_SIZE).fill_zero_secure();
+    MutableSlice(buf, BUF_SIZE).fill_zero_secure();
     buf_pos = BUF_SIZE;
     return;
   }
@@ -145,10 +145,7 @@ int Random::fast(int min, int max) {
 
 double Random::fast(double min, double max) {
   DCHECK(min <= max);
-  return min +
-         fast_uint32() * 1.0 /
-             (static_cast<double>(std::numeric_limits<td::uint32>::max()) - std::numeric_limits<td::uint32>::min()) *
-             (max - min);
+  return min + fast_uint32() * 1.0 / std::numeric_limits<uint32>::max() * (max - min);
 }
 
 Random::Xorshift128plus::Xorshift128plus(uint64 seed) {

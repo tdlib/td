@@ -40,12 +40,11 @@ vector<T> full_split(T s, char delimiter = ' ', size_t max_parts = std::numeric_
   while (result.size() + 1 < max_parts) {
     auto delimiter_pos = s.find(delimiter);
     if (delimiter_pos == string::npos) {
-      result.push_back(std::move(s));
-      return result;
-    } else {
-      result.push_back(s.substr(0, delimiter_pos));
-      s = s.substr(delimiter_pos + 1);
+      break;
     }
+
+    result.push_back(s.substr(0, delimiter_pos));
+    s = s.substr(delimiter_pos + 1);
   }
   result.push_back(std::move(s));
   return result;
@@ -349,10 +348,14 @@ Result<typename std::enable_if<std::is_unsigned<T>::value, T>::type> hex_to_inte
   auto begin = str.begin();
   auto end = str.end();
   while (begin != end) {
-    if (!is_hex_digit(*begin)) {
-      return Status::Error("not a hex digit");
+    T digit = hex_to_int(*begin++);
+    if (digit == 16) {
+      return Status::Error("Not a hex digit");
     }
-    integer_value = static_cast<T>(integer_value * 16 + hex_to_int(*begin++));
+    if (integer_value > std::numeric_limits<T>::max() / 16) {
+      return Status::Error("Hex number overflow");
+    }
+    integer_value = integer_value * 16 + digit;
   }
   return integer_value;
 }
@@ -380,8 +383,8 @@ string url_encode(Slice data);
 
 namespace detail {
 template <class T, class U>
-struct is_same_signedness : public std::integral_constant<bool, std::is_signed<T>::value == std::is_signed<U>::value> {
-};
+struct is_same_signedness
+    : public std::integral_constant<bool, std::is_signed<T>::value == std::is_signed<U>::value> {};
 
 template <class T, class Enable = void>
 struct safe_undeflying_type {

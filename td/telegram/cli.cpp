@@ -46,7 +46,6 @@
 #include <clocale>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <ctime>
 #include <iostream>
 #include <limits>
@@ -4330,7 +4329,7 @@ void main(int argc, char **argv) {
     return std::string();
   }(std::getenv("TD_API_HASH"));
 
-  td::OptionParser options;
+  OptionParser options;
   options.set_description("TDLib test client");
   options.add_option('\0', "test", "Use test DC", [&] { use_test_dc = true; });
   options.add_option('v', "verbosity", "Set verbosity level", [&](Slice level) {

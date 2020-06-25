@@ -15,19 +15,19 @@ class Timer {
   Timer() : Timer(false) {
   }
   explicit Timer(bool is_paused);
-  Timer(const Timer &other) = default;
-  Timer &operator=(const Timer &other) = default;
 
   double elapsed() const;
+
   void pause();
+
   void resume();
 
  private:
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Timer &timer);
 
   double elapsed_{0};
-  double start_time_;
-  bool is_paused_{false};
+  double start_time_{0};
+  bool is_paused_{true};
 };
 
 class PerfWarningTimer {

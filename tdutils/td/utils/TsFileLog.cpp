@@ -4,7 +4,6 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-
 #include "td/utils/TsFileLog.h"
 
 #include "td/utils/common.h"
@@ -14,17 +13,20 @@
 #include "td/utils/Slice.h"
 
 #include <array>
+#include <atomic>
 #include <limits>
+#include <mutex>
 
 namespace td {
+
 namespace detail {
 class TsFileLog : public LogInterface {
  public:
-  Status init(string path, td::int64 rotate_threshold, bool redirect_stderr) {
+  Status init(string path, int64 rotate_threshold, bool redirect_stderr) {
     path_ = std::move(path);
     rotate_threshold_ = rotate_threshold;
     redirect_stderr_ = redirect_stderr;
-    for (int i = 0; i < (int)logs_.size(); i++) {
+    for (size_t i = 0; i < logs_.size(); i++) {
       logs_[i].id = i;
     }
     return init_info(&logs_[0]);
@@ -49,18 +51,23 @@ class TsFileLog : public LogInterface {
   struct Info {
     FileLog log;
     std::atomic<bool> is_inited{false};
-    int id;
+    size_t id;
   };
-  static constexpr int MAX_THREAD_ID = 128;
-  td::int64 rotate_threshold_;
+
+  static constexpr size_t MAX_THREAD_ID = 128;
+  int64 rotate_threshold_;
   bool redirect_stderr_;
   std::string path_;
   std::array<Info, MAX_THREAD_ID> logs_;
+  std::mutex init_mutex_;
 
   LogInterface *get_current_logger() {
     auto *info = get_current_info();
     if (!info->is_inited.load(std::memory_order_relaxed)) {
-      CHECK(init_info(info).is_ok());
+      std::unique_lock<std::mutex> lock(init_mutex_);
+      if (!info->is_inited.load(std::memory_order_relaxed)) {
+        init_info(info).ensure();
+      }
     }
     return &info->log;
   }
@@ -75,7 +82,7 @@ class TsFileLog : public LogInterface {
     return Status::OK();
   }
 
-  string get_path(Info *info) {
+  string get_path(const Info *info) const {
     if (info->id == 0) {
       return path_;
     }
@@ -84,7 +91,7 @@ class TsFileLog : public LogInterface {
 
   void rotate() override {
     for (auto &info : logs_) {
-      if (info.is_inited.load(std::memory_order_consume)) {
+      if (info.is_inited.load(std::memory_order_acquire)) {
         info.log.lazy_rotate();
       }
     }
@@ -92,9 +99,10 @@ class TsFileLog : public LogInterface {
 };
 }  // namespace detail
 
-Result<td::unique_ptr<LogInterface>> TsFileLog::create(string path, td::int64 rotate_threshold, bool redirect_stderr) {
-  auto res = td::make_unique<detail::TsFileLog>();
+Result<unique_ptr<LogInterface>> TsFileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
+  auto res = make_unique<detail::TsFileLog>();
   TRY_STATUS(res->init(path, rotate_threshold, redirect_stderr));
   return std::move(res);
 }
+
 }  // namespace td

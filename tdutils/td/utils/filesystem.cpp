@@ -33,6 +33,7 @@ template <>
 BufferSlice create_empty<BufferSlice>(size_t size) {
   return BufferSlice{size};
 }
+
 template <>
 SecureString create_empty<SecureString>(size_t size) {
   return SecureString{size};
@@ -45,15 +46,8 @@ Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
   if (offset < 0 || offset > file_size) {
     return Status::Error("Failed to read file: invalid offset");
   }
-  if (size == -1) {
+  if (size < 0 || size > file_size - offset) {
     size = file_size - offset;
-  } else if (size >= 0) {
-    if (size + offset > file_size) {
-      size = file_size - offset;
-    }
-  }
-  if (size < 0) {
-    return Status::Error("Failed to read file: invalid size");
   }
   auto content = create_empty<T>(narrow_cast<size_t>(size));
   TRY_RESULT(got_size, from_file.pread(as_mutable_slice(content), offset));
@@ -193,4 +187,5 @@ Status atomic_write_file(CSlice path, Slice data, CSlice path_tmp) {
   TRY_STATUS(write_file(path_tmp, data, options));
   return rename(path_tmp, path);
 }
+
 }  // namespace td

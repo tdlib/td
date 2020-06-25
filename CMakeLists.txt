@@ -276,7 +276,7 @@ if (NOT CMAKE_CROSSCOMPILING)
 endif()
 
 if (NOT OPENSSL_FOUND)
-  message(WARNING "Not found OpenSSL: skip TDLib, tdactor, tdnet, tddb")
+  message(WARNING "Can't find OpenSSL: stop TDLib building")
   return()
 endif()
 
@@ -284,7 +284,12 @@ if (NOT ZLIB_FOUND)
   find_package(ZLIB)
 endif()
 if (NOT ZLIB_FOUND)
-  message(WARNING "Not found zlib: skip TDLib, tdactor, tdnet, tddb")
+  message(WARNING "Can't find zlib: stop TDLib building")
+  return()
+endif()
+
+if (NOT TDUTILS_MIME_TYPE)
+  message(WARNING "Option TDUTILS_MIME_TYPE must not be disabled: stop TDLib building")
   return()
 endif()
 

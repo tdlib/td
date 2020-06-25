@@ -213,13 +213,13 @@ string BigNum::to_le_binary(int exact_size) const {
   } else {
     CHECK(exact_size >= num_size);
   }
-  string res(exact_size, '\0');
+  string result(exact_size, '\0');
 #if defined(OPENSSL_IS_BORINGSSL)
-  BN_bn2le_padded(MutableSlice(res).ubegin(), exact_size, impl_->big_num);
+  BN_bn2le_padded(MutableSlice(result).ubegin(), exact_size, impl_->big_num);
 #else
-  BN_bn2lebinpad(impl_->big_num, MutableSlice(res).ubegin(), exact_size);
+  BN_bn2lebinpad(impl_->big_num, MutableSlice(result).ubegin(), exact_size);
 #endif
-  return res;
+  return result;
 #else
   string result = to_binary(exact_size);
   std::reverse(result.begin(), result.end());

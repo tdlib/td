@@ -15,7 +15,6 @@
 #include "td/utils/Slice.h"
 
 #include <atomic>
-#include <cassert>
 
 namespace td {
 
@@ -23,7 +22,9 @@ namespace td {
 template <int id>
 static FileFd &get_file_fd() {
   static FileFd result = FileFd::from_native_fd(NativeFd(id, true));
-  static auto guard = ScopeExit() + [&] { result.move_as_native_fd().release(); };
+  static auto guard = ScopeExit() + [&] {
+    result.move_as_native_fd().release();
+  };
   return result;
 }
 
@@ -43,7 +44,9 @@ static FileFd &get_file_fd() {
   static auto handle = GetStdHandle(id);
   LOG_IF(FATAL, handle == INVALID_HANDLE_VALUE) << "Failed to GetStdHandle " << id;
   static FileFd result = FileFd::from_native_fd(NativeFd(handle, true));
-  static auto guard = ScopeExit() + [&] { result.move_as_native_fd().release(); };
+  static auto guard = ScopeExit() + [&] {
+    result.move_as_native_fd().release();
+  };
 #else
   static FileFd result;
 #endif

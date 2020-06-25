@@ -318,10 +318,7 @@ class Status {
     return std::move(*this);
   }
 
-  Auto move_as_ok() {
-    UNREACHABLE();
-    return {};
-  }
+  Status move_as_ok() = delete;
 
   Status move_as_error_prefix(const Status &status) const TD_WARN_UNUSED_RESULT {
     return status.move_as_error_suffix(message());
@@ -533,13 +530,13 @@ class Result {
   }
   Status move_as_error_prefix(const Status &prefix) TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
-      status_ = Status::Error<-5>();
+      status_ = Status::Error<-6>();
     };
     return status_.move_as_error_prefix(prefix);
   }
   Status move_as_error_suffix(Slice suffix) TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
-      status_ = Status::Error<-5>();
+      status_ = Status::Error<-7>();
     };
     return status_.move_as_error_suffix(suffix);
   }
@@ -571,7 +568,7 @@ class Result {
   }
 
   template <class F>
-  td::Result<decltype(std::declval<F>()(std::declval<T>()))> move_map(F &&f) {
+  Result<decltype(std::declval<F>()(std::declval<T>()))> move_map(F &&f) {
     if (is_error()) {
       return move_as_error();
     }

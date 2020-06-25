@@ -9,6 +9,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Random.h"
+#include "td/utils/Span.h"
 
 #include <cstdio>
 #include <set>
@@ -25,7 +26,7 @@ TEST(Heap, sort_random_perm) {
   }
   td::Random::Xorshift128plus rnd(123);
   td::random_shuffle(td::as_mutable_span(v), rnd);
-  std::vector<td::HeapNode> nodes(n);
+  td::vector<td::HeapNode> nodes(n);
   td::KHeap<int> kheap;
   for (int i = 0; i < n; i++) {
     kheap.insert(v[i], &nodes[i]);

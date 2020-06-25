@@ -12,11 +12,9 @@
 
 namespace td {
 
-Timer::Timer(bool is_paused) : is_paused_(is_paused) {
-  if (is_paused_) {
-    start_time_ = 0;
-  } else {
-    start_time_ = Time::now();
+Timer::Timer(bool is_paused) {
+  if (!is_paused) {
+    resume();
   }
 }
 
@@ -45,7 +43,7 @@ double Timer::elapsed() const {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Timer &timer) {
-  return string_builder << format::as_time(timer.elapsed());
+  return string_builder << " in " << format::as_time(timer.elapsed());
 }
 
 PerfWarningTimer::PerfWarningTimer(string name, double max_duration)

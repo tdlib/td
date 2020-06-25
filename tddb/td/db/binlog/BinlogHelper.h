@@ -16,12 +16,13 @@
 
 namespace td {
 
-inline uint64 binlog_add(BinlogInterface *binlog_ptr, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
+inline uint64 binlog_add(BinlogInterface *binlog_ptr, int32 type, const Storer &storer,
+                         Promise<> promise = Promise<>()) {
   return binlog_ptr->add(type, storer, std::move(promise));
 }
 
 inline uint64 binlog_rewrite(BinlogInterface *binlog_ptr, uint64 logevent_id, int32 type, const Storer &storer,
-                      Promise<> promise = Promise<>()) {
+                             Promise<> promise = Promise<>()) {
   return binlog_ptr->rewrite(logevent_id, type, storer, std::move(promise));
 }
 

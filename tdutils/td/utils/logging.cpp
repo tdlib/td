@@ -14,6 +14,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <limits>
 #include <mutex>
 
 #if TD_ANDROID
@@ -268,8 +269,8 @@ namespace {
 std::mutex sdl_mutex;
 int sdl_cnt = 0;
 int sdl_verbosity = 0;
-
 }  // namespace
+
 ScopedDisableLog::ScopedDisableLog() {
   std::unique_lock<std::mutex> guard(sdl_mutex);
   if (sdl_cnt == 0) {

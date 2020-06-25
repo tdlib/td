@@ -1,14 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-option(TDUTILS_MIME_TYPE "Generate mime types conversion (gperf is required)" ON)
-
-if (WIN32)
-  if (WINGETOPT_FOUND)
-    set(TD_HAVE_GETOPT 1)
-  endif()
-else()
-  set(TD_HAVE_GETOPT 1)
-endif()
+option(TDUTILS_MIME_TYPE "Generate mime types conversion; requires gperf" ON)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
@@ -69,7 +61,6 @@ set(TDUTILS_SOURCE
   td/utils/port/Stat.cpp
   td/utils/port/StdStreams.cpp
   td/utils/port/thread_local.cpp
-  td/utils/port/user.cpp
   td/utils/port/UdpSocketFd.cpp
   td/utils/port/uname.cpp
   td/utils/port/user.cpp
@@ -115,10 +106,10 @@ set(TDUTILS_SOURCE
   td/utils/StackAllocator.cpp
   td/utils/Status.cpp
   td/utils/StringBuilder.cpp
+  td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
   td/utils/TsFileLog.cpp
-  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/TsFileLog.cpp
@@ -150,7 +141,6 @@ set(TDUTILS_SOURCE
   td/utils/port/StdStreams.h
   td/utils/port/thread.h
   td/utils/port/thread_local.h
-  td/utils/port/user.h
   td/utils/port/UdpSocketFd.h
   td/utils/port/uname.h
   td/utils/port/user.h
@@ -174,6 +164,7 @@ set(TDUTILS_SOURCE
 
   td/utils/AesCtrByteFlow.h
   td/utils/as.h
+  td/utils/AtomicRead.h
   td/utils/base64.h
   td/utils/benchmark.h
   td/utils/BigNum.h
@@ -283,6 +274,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/ConcurrentHashMap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/crypto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/Enumerator.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/EpochBasedMemoryReclamation.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/filesystem.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/gzip.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp
@@ -337,11 +329,7 @@ if (CRC32C_FOUND)
   target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 if (ABSL_FOUND)
-  target_link_libraries_system(tdutils absl::flat_hash_map absl::flat_hash_set absl::hash)
-endif()
-
-if (WIN32 AND WINGETOPT_FOUND)
-  target_link_libraries(tdutils PRIVATE wingetopt)
+  target_link_libraries(tdutils SYSTEM PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
 endif()
 
 if (ANDROID)

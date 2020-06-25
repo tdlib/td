@@ -4,9 +4,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-
 #include "td/utils/PathView.h"
 
+#include "td/utils/common.h"
 #include "td/utils/misc.h"
 
 namespace td {
@@ -24,6 +24,18 @@ PathView::PathView(Slice path) : path_(path) {
       break;
     }
   }
+}
+
+Slice PathView::parent_dir_noslash() const {
+  if (last_slash_ < 0) {
+    return Slice(".");
+  }
+  if (last_slash_ == 0) {
+    static char buf[1];
+    buf[0] = TD_DIR_SLASH;
+    return Slice(buf, 1);
+  }
+  return path_.substr(0, last_slash_);
 }
 
 Slice PathView::relative(Slice path, Slice dir, bool force) {

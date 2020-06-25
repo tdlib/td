@@ -317,6 +317,6 @@ class ConcurrentHashMap {
 };
 
 template <class KeyT, class ValueT>
-td::HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
+HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
 
 }  // namespace td

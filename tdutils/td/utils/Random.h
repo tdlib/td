@@ -10,6 +10,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
 
+#include <utility>
+
 namespace td {
 
 class Random {
@@ -55,10 +57,11 @@ class Random {
 };
 
 template <class T, class R>
-void random_shuffle(td::MutableSpan<T> v, R &rnd) {
-  for (std::size_t i = 1; i < v.size(); i++) {
-    auto pos = static_cast<std::size_t>(rnd() % (i + 1));
-    std::swap(v[i], v[pos]);
+void random_shuffle(MutableSpan<T> v, R &rnd) {
+  for (size_t i = 1; i < v.size(); i++) {
+    auto pos = static_cast<size_t>(rnd()) % (i + 1);
+    using std::swap;
+    swap(v[i], v[pos]);
   }
 }
 

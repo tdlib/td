@@ -62,11 +62,11 @@ class Timestamp {
     return Timestamp{timeout - Clocks::system() + Time::now()};
   }
 
-  static Timestamp in(double timeout, td::Timestamp now = td::Timestamp::now_cached()) {
+  static Timestamp in(double timeout, Timestamp now = now_cached()) {
     return Timestamp{now.at() + timeout};
   }
 
-  bool is_in_past(td::Timestamp now) const {
+  bool is_in_past(Timestamp now) const {
     return at_ <= now.at();
   }
   bool is_in_past() const {

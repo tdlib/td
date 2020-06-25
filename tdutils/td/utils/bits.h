@@ -271,10 +271,7 @@ inline int32 count_bits64(uint64 x) {
 #endif
 
 struct BitsRange {
-  td::uint64 bits{0};
-  mutable td::int32 pos{-1};
-
-  explicit BitsRange(td::uint64 bits = 0) : bits{bits}, pos{-1} {
+  explicit BitsRange(uint64 bits = 0) : bits{bits}, pos{-1} {
   }
 
   BitsRange begin() const {
@@ -285,9 +282,9 @@ struct BitsRange {
     return BitsRange{};
   }
 
-  td::int32 operator*() const {
+  int32 operator*() const {
     if (pos == -1) {
-      pos = td::count_trailing_zeroes64(bits);
+      pos = count_trailing_zeroes64(bits);
     }
     return pos;
   }
@@ -304,6 +301,10 @@ struct BitsRange {
     pos = -1;
     return *this;
   }
+
+ private:
+  uint64 bits{0};
+  mutable int32 pos{-1};
 };
 
 }  // namespace td

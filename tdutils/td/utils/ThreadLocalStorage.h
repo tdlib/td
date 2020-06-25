@@ -4,7 +4,6 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-
 #pragma once
 
 #include "td/utils/common.h"
@@ -14,6 +13,7 @@
 #include <atomic>
 
 namespace td {
+
 template <class T>
 class ThreadLocalStorage {
  public:
@@ -51,4 +51,5 @@ class ThreadLocalStorage {
     return nodes_[thread_id];
   }
 };
+
 }  // namespace td
