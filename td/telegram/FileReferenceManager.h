@@ -40,8 +40,9 @@ class FileReferenceManager : public Actor {
 
   FileSourceId create_message_file_source(FullMessageId full_message_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
-  FileSourceId create_chat_photo_file_source(ChatId chat_id);
-  FileSourceId create_channel_photo_file_source(ChannelId channel_id);
+  // file reference aren't used for chat/channel photo download and the photos can't be reused
+  // FileSourceId create_chat_photo_file_source(ChatId chat_id);
+  // FileSourceId create_channel_photo_file_source(ChannelId channel_id);
   // FileSourceId create_wallpapers_file_source();  old wallpapers can't be repaired
   FileSourceId create_web_page_file_source(string url);
   FileSourceId create_saved_animations_file_source();

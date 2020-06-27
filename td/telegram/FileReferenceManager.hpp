@@ -69,12 +69,12 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
     case 2: {
       ChatId chat_id;
       td::parse(chat_id, parser);
-      return td->contacts_manager_->get_chat_photo_file_source_id(chat_id);
+      return FileSourceId();  // there is no need to repair chat photos
     }
     case 3: {
       ChannelId channel_id;
       td::parse(channel_id, parser);
-      return td->contacts_manager_->get_channel_photo_file_source_id(channel_id);
+      return FileSourceId();  // there is no need to repair channel photos
     }
     case 4:
       return FileSourceId();  // there is no way to repair old wallpapers

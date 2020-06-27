@@ -8462,9 +8462,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
                                    [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
                                      messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
                                    });
-
-    add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
-
     drop_user_photos(user_id, u->photo.id <= 0, true, "update_user");
   }
   if (u->is_status_changed && user_id != get_my_id()) {
@@ -8543,15 +8540,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
-    auto file_ids = dialog_photo_get_file_ids(c->photo);
-    if (!file_ids.empty()) {
-      if (!c->photo_source_id.is_valid()) {
-        c->photo_source_id = td_->file_reference_manager_->create_chat_photo_file_source(chat_id);
-      }
-      for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, c->photo_source_id);
-      }
-    }
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
   }
   if (c->is_title_changed) {
@@ -8599,15 +8587,6 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
-    auto file_ids = dialog_photo_get_file_ids(c->photo);
-    if (!file_ids.empty()) {
-      if (!c->photo_source_id.is_valid()) {
-        c->photo_source_id = td_->file_reference_manager_->create_channel_photo_file_source(channel_id);
-      }
-      for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, c->photo_source_id);
-      }
-    }
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
   }
   if (c->is_title_changed) {
@@ -9132,6 +9111,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
 
     // Ignoring chat_full->photo
+    // If not ignored, file reference needs to be repaired with getChatFull
 
     for (auto &bot_info : chat_full->bot_info_) {
       if (on_update_bot_info(std::move(bot_info))) {
@@ -9184,6 +9164,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         DialogId(channel_id), std::move(channel_full->notify_settings_), "on_get_channel_full");
 
     // Ignoring channel_full->photo
+    // If not ignored, file reference needs to be repaired with getChannelFull
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
@@ -11251,11 +11232,6 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
       get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
-    if (c->photo_source_id.is_valid()) {
-      for (auto file_id : dialog_photo_get_file_ids(c->photo)) {
-        td_->file_manager_->remove_file_source(file_id, c->photo_source_id);
-      }
-    }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
     c->need_save_to_database = true;
@@ -11380,11 +11356,6 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
       get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
-    if (c->photo_source_id.is_valid()) {
-      for (auto file_id : dialog_photo_get_file_ids(c->photo)) {
-        td_->file_manager_->remove_file_source(file_id, c->photo_source_id);
-      }
-    }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
     c->need_save_to_database = true;
@@ -12049,12 +12020,6 @@ ContactsManager::Chat *ContactsManager::add_chat(ChatId chat_id) {
   auto &chat_ptr = chats_[chat_id];
   if (chat_ptr == nullptr) {
     chat_ptr = make_unique<Chat>();
-    auto it = chat_photo_file_source_ids_.find(chat_id);
-    if (it != chat_photo_file_source_ids_.end()) {
-      VLOG(file_references) << "Move " << it->second << " inside of " << chat_id;
-      chat_ptr->photo_source_id = it->second;
-      chat_photo_file_source_ids_.erase(it);
-    }
   }
   return chat_ptr.get();
 }
@@ -12231,15 +12196,6 @@ bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
   return c->status.is_administrator();
 }
 
-FileSourceId ContactsManager::get_chat_photo_file_source_id(ChatId chat_id) {
-  auto c = get_chat(chat_id);
-  auto &source_id = c == nullptr ? chat_photo_file_source_ids_[chat_id] : c->photo_source_id;
-  if (!source_id.is_valid()) {
-    source_id = td_->file_reference_manager_->create_chat_photo_file_source(chat_id);
-  }
-  return source_id;
-}
-
 bool ContactsManager::is_channel_public(ChannelId channel_id) const {
   return is_channel_public(get_channel(channel_id));
 }
@@ -12321,15 +12277,6 @@ bool ContactsManager::get_channel_sign_messages(const Channel *c) {
   return c->sign_messages;
 }
 
-FileSourceId ContactsManager::get_channel_photo_file_source_id(ChannelId channel_id) {
-  auto c = get_channel(channel_id);
-  auto &source_id = c == nullptr ? channel_photo_file_source_ids_[channel_id] : c->photo_source_id;
-  if (!source_id.is_valid()) {
-    source_id = td_->file_reference_manager_->create_channel_photo_file_source(channel_id);
-  }
-  return source_id;
-}
-
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
   auto channel_full = get_channel_full_force(channel_id, ":get_channel_slow_mode_delay");
   if (channel_full == nullptr) {
@@ -12369,12 +12316,6 @@ ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, con
   auto &channel_ptr = channels_[channel_id];
   if (channel_ptr == nullptr) {
     channel_ptr = make_unique<Channel>();
-    auto it = channel_photo_file_source_ids_.find(channel_id);
-    if (it != channel_photo_file_source_ids_.end()) {
-      VLOG(file_references) << "Move " << it->second << " inside of " << channel_id;
-      channel_ptr->photo_source_id = it->second;
-      channel_photo_file_source_ids_.erase(it);
-    }
   }
   return channel_ptr.get();
 }

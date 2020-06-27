@@ -451,7 +451,6 @@ class ContactsManager : public Actor {
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
   DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;
-  FileSourceId get_chat_photo_file_source_id(ChatId chat_id);
 
   bool have_channel(ChannelId channel_id) const;
   bool have_min_channel(ChannelId channel_id) const;
@@ -473,7 +472,6 @@ class ContactsManager : public Actor {
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
-  FileSourceId get_channel_photo_file_source_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
 
   std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query, int32 limit);
@@ -678,7 +676,6 @@ class ContactsManager : public Actor {
   struct Chat {
     string title;
     DialogPhoto photo;
-    FileSourceId photo_source_id;
     int32 participant_count = 0;
     int32 date = 0;
     int32 version = -1;
@@ -743,7 +740,6 @@ class ContactsManager : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
-    FileSourceId photo_source_id;
     string username;
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
@@ -1409,13 +1405,11 @@ class ContactsManager : public Actor {
   std::unordered_map<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
   std::unordered_map<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
   mutable std::unordered_set<ChatId, ChatIdHash> unknown_chats_;
-  std::unordered_map<ChatId, FileSourceId, ChatIdHash> chat_photo_file_source_ids_;
 
   std::unordered_set<ChannelId, ChannelIdHash> min_channels_;
   std::unordered_map<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
   std::unordered_map<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
   mutable std::unordered_set<ChannelId, ChannelIdHash> unknown_channels_;
-  std::unordered_map<ChannelId, FileSourceId, ChannelIdHash> channel_photo_file_source_ids_;
 
   std::unordered_map<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable std::unordered_set<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

@@ -45,7 +45,7 @@ size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
 fileSourceMessage chat_id:int53 message_id:int53 = FileSource;           // repaired with get_message_from_server
 fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;    // repaired with photos.getUserPhotos
 fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;             // repaired with messages.getChats
-fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;              // repaired with channels.getChannels
+fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;              // no need to repair
 fileSourceWebPage url:string = FileSource;                               // repaired with messages.getWebPage
 fileSourceWallpapers = FileSource;                                       // can't be repaired
 fileSourceSavedAnimations = FileSource;                                  // repaired with messages.getSavedGifs
@@ -73,16 +73,6 @@ FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full
 FileSourceId FileReferenceManager::create_user_photo_file_source(UserId user_id, int64 photo_id) {
   FileSourceUserPhoto source{photo_id, user_id};
   return add_file_source_id(source, PSLICE() << "photo " << photo_id << " of " << user_id);
-}
-
-FileSourceId FileReferenceManager::create_chat_photo_file_source(ChatId chat_id) {
-  FileSourceChatPhoto source{chat_id};
-  return add_file_source_id(source, PSLICE() << "photo of " << chat_id);
-}
-
-FileSourceId FileReferenceManager::create_channel_photo_file_source(ChannelId channel_id) {
-  FileSourceChannelPhoto source{channel_id};
-  return add_file_source_id(source, PSLICE() << "photo of " << channel_id);
 }
 
 FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
