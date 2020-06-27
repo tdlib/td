@@ -8895,9 +8895,9 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user->is_changed = true;
   }
 
-  auto photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+  auto photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId(user_id));
   if (photo != user->photo) {
-    user->photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId());
+    user->photo = std::move(photo);
     user->is_changed = true;
   }
   if (user->photo.is_empty()) {
@@ -8951,7 +8951,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
           }
         }
 
-        auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId());
+        auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId(user_id));
         register_user_photo(u, user_id, photo);
       }
     }
@@ -8978,7 +8978,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
 
   for (auto &photo : photos) {
-    auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId());
+    auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId(user_id));
     if (user_photo.is_empty()) {
       LOG(ERROR) << "Receive empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
                  << " and limit " << limit << ". Receive " << photo_count << " photos out of " << total_count
