@@ -3539,6 +3539,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
       if (node->local_.type() == LocalFileLocation::Type::Partial &&
           !begins_with(status.message(), "FILE_UPLOAD_RESTART") &&
           !begins_with(status.message(), "FILE_DOWNLOAD_RESTART") &&
+          !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
           !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
         CSlice path = node->local_.partial().path_;
         if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
