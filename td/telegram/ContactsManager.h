@@ -1097,7 +1097,7 @@ class ContactsManager : public Actor {
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
 
-  void add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids);
+  void register_user_photo(User *u, UserId user_id, const Photo &photo);
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
@@ -1401,6 +1401,7 @@ class ContactsManager : public Actor {
     }
   };
   std::unordered_map<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
+  std::unordered_map<int64, FileId> my_photo_file_id_;
 
   std::unordered_map<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
   std::unordered_map<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;

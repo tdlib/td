@@ -319,7 +319,6 @@ class FileView {
     auto type = remote_location().get_source().get_type();
     return type == PhotoSizeSource::Type::DialogPhotoBig || type == PhotoSizeSource::Type::DialogPhotoSmall ||
            type == PhotoSizeSource::Type::StickerSetThumbnail;
-    return false;
   }
 
  private:

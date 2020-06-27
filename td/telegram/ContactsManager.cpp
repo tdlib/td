@@ -8146,6 +8146,12 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
   get_bot_info_force(user_id, false);
 
+  if (!user_full->photo.is_empty()) {
+    User *u = get_user(user_id);
+    CHECK(u != nullptr);
+    register_user_photo(u, user_id, user_full->photo);
+  }
+
   update_user_full(user_full, user_id, true);
 
   if (is_user_deleted(user_id)) {
@@ -8897,7 +8903,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   if (user->photo.is_empty()) {
     drop_user_photos(user_id, true, false, "on_get_user_full");
   } else {
-    add_user_photo_id(u, user_id, user->photo.id, photo_get_file_ids(user->photo));
+    register_user_photo(u, user_id, user->photo);
   }
 
   if (user_full->bot_info_ != nullptr) {
@@ -8946,7 +8952,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
         }
 
         auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId());
-        add_user_photo_id(u, user_id, photo.id, photo_get_file_ids(photo));
+        register_user_photo(u, user_id, photo);
       }
     }
     return;
@@ -8983,7 +8989,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     }
 
     user_photos->photos.push_back(std::move(user_photo));
-    add_user_photo_id(u, user_id, user_photos->photos.back().id, photo_get_file_ids(user_photos->photos.back()));
+    register_user_photo(u, user_id, user_photos->photos.back());
   }
   if (user_photos->offset > user_photos->count) {
     user_photos->offset = user_photos->count;
@@ -9437,17 +9443,30 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id,
   }
 }
 
-void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids) {
-  if (photo_id > 0 && !photo_file_ids.empty() && u->photo_ids.insert(photo_id).second) {
+void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &photo) {
+  auto photo_file_ids = photo_get_file_ids(photo);
+  if (photo.id <= 0 || photo_file_ids.empty()) {
+    return;
+  }
+  auto first_file_id = photo_file_ids[0];
+  auto file_type = td_->file_manager_->get_file_view(first_file_id).get_type();
+  if (file_type == FileType::ProfilePhoto) {
+    return;
+  }
+  CHECK(file_type == FileType::Photo);
+  if (u->photo_ids.emplace(photo.id).second) {
+    if (user_id == get_my_id()) {
+      my_photo_file_id_[photo.id] = first_file_id;
+    }
     FileSourceId file_source_id;
-    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo_id));
+    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo.id));
     if (it != user_profile_photo_file_source_ids_.end()) {
       VLOG(file_references) << "Move " << it->second << " inside of " << user_id;
       file_source_id = it->second;
       user_profile_photo_file_source_ids_.erase(it);
     } else {
-      VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
-      file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
+      VLOG(file_references) << "Need to create new file source for photo " << photo.id << " of " << user_id;
+      file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo.id);
     }
     for (auto &file_id : photo_file_ids) {
       td_->file_manager_->add_file_source(file_id, file_source_id);
@@ -11981,7 +12000,7 @@ FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_
   auto u = get_user(user_id);
   if (u != nullptr && u->photo_ids.count(photo_id) != 0) {
     VLOG(file_references) << "Don't need to create file source for photo " << photo_id << " of " << user_id;
-    // photo was already added, source id was registered and shouldn't be needed
+    // photo was already added, source ID was registered and shouldn't be needed
     return FileSourceId();
   }
 
