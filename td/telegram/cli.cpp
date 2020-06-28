@@ -2027,7 +2027,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::getChatMessageCount>(
           as_chat_id(chat_id), get_search_messages_filter(filter), as_bool(return_local)));
-    } else if (op == "gup" || op == "gupf") {
+    } else if (op == "gup" || op == "gupp") {
       string user_id;
       string offset;
       string limit;
@@ -3840,13 +3840,15 @@ class CliClient final : public Actor {
       std::tie(url, force_full) = split(args);
 
       send_request(td_api::make_object<td_api::getWebPageInstantView>(url, as_bool(force_full)));
+    } else if (op == "sppp") {
+      send_request(td_api::make_object<td_api::setProfilePhoto>(
+          td_api::make_object<td_api::inputChatPhotoPrevious>(to_integer<int64>(args))));
     } else if (op == "spp") {
-      send_request(td_api::make_object<td_api::setProfilePhoto>(as_input_file(args)));
-    } else if (op == "sppg") {
-      string path;
-      string conversion;
-      std::tie(path, conversion) = split(args);
-      send_request(td_api::make_object<td_api::setProfilePhoto>(as_generated_file(path, conversion)));
+      send_request(td_api::make_object<td_api::setProfilePhoto>(
+          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args))));
+    } else if (op == "sppa" || op == "sppv") {
+      send_request(td_api::make_object<td_api::setProfilePhoto>(
+          td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(args))));
     } else if (op == "sh") {
       auto prefix = std::move(args);
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));

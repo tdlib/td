@@ -63,7 +63,7 @@ authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type
 emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
-//@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
+//@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 
 //@description Contains a list of text entities @entities List of text entities
@@ -353,6 +353,18 @@ chatPhoto id:int64 added_date:int32 sizes:vector<photoSize> animation:photoSize 
 
 //@description Contains a list of chat or user profile photos @total_count Total number of photos @photos List of photos
 chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;
+
+
+//@class InputChatPhoto @description Describes a photo to be set as a user profile or chat photo
+
+//@description A previously used profile photo of the current user @chat_photo_id Identifier of the profile photo to reuse
+inputChatPhotoPrevious chat_photo_id:int64 = InputChatPhoto;
+
+//@description A static photo in JPEG format @photo Photo to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
+inputChatPhotoStatic photo:InputFile = InputChatPhoto;
+
+//@description An animation in MPEG4 format; must be square, shorter than 10 seconds, have width between 160 and 800 and be at most 2MB in size @animation Animation to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
+inputChatPhotoAnimation animation:InputFile = InputChatPhoto;
 
 
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
@@ -1623,7 +1635,7 @@ textEntityTypeTextUrl url:string = TextEntityType;
 textEntityTypeMentionName user_id:int32 = TextEntityType;
 
 
-//@description A thumbnail to be sent along with a file; should be in JPEG or WEBP format for stickers, and less than 200 KB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
+//@description A thumbnail to be sent along with a file; must be in JPEG or WEBP format for stickers, and less than 200 KB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
 //@width Thumbnail width, usually shouldn't exceed 320. Use 0 if unknown @height Thumbnail height, usually shouldn't exceed 320. Use 0 if unknown
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
@@ -4117,19 +4129,19 @@ getWebPagePreview text:formattedText = WebPage;
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
 
 
-//@description Uploads a new profile photo for the current user. If something changes, updateUser will be sent @photo Profile photo to set. inputFileId and inputFileRemote may still be unsupported
-setProfilePhoto photo:InputFile = Ok;
+//@description Changes a profile photo for the current user @photo Profile photo to set
+setProfilePhoto photo:InputChatPhoto = Ok;
 
-//@description Deletes a profile photo. If something changes, updateUser will be sent @profile_photo_id Identifier of the profile photo to delete
+//@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;
 
-//@description Changes the first and last name of the current user. If something changes, updateUser will be sent @first_name The new value of the first name for the user; 1-64 characters @last_name The new value of the optional last name for the user; 0-64 characters
+//@description Changes the first and last name of the current user @first_name The new value of the first name for the user; 1-64 characters @last_name The new value of the optional last name for the user; 0-64 characters
 setName first_name:string last_name:string = Ok;
 
 //@description Changes the bio of the current user @bio The new value of the user bio; 0-70 characters without line feeds
 setBio bio:string = Ok;
 
-//@description Changes the username of the current user. If something changes, updateUser will be sent @username The new value of the username. Use an empty string to remove the username
+//@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
 //@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user

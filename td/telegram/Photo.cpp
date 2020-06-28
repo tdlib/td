@@ -815,6 +815,7 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
 vector<FileId> photo_get_file_ids(const Photo &photo) {
   auto result = transform(photo.photos, [](auto &size) { return size.file_id; });
   if (!photo.animated_photos.empty()) {
+    // photo file IDs must be first
     append(result, transform(photo.animated_photos, [](auto &size) { return size.file_id; }));
   }
   return result;

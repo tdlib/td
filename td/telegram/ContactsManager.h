@@ -322,11 +322,11 @@ class ContactsManager : public Actor {
 
   void set_location_visibility();
 
-  void set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise);
+  void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
+
+  void send_update_profile_photo_query(FileId file_id, Promise<Unit> &&promise);
 
   void delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise);
-
-  void upload_profile_photo(FileId file_id, Promise<Unit> &&promise);
 
   void set_name(const string &first_name, const string &last_name, Promise<Unit> &&promise);
 
@@ -530,9 +530,6 @@ class ContactsManager : public Actor {
 
   void on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id, SecretChatState state,
                              bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer);
-
-  void on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
-  void on_upload_profile_photo_error(FileId file_id, Status status);
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant) const;
 
@@ -1113,6 +1110,11 @@ class ContactsManager : public Actor {
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
 
+  void upload_profile_photo(FileId file_id, bool is_animation, Promise<Unit> &&promise, vector<int> bad_parts = {});
+
+  void on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_profile_photo_error(FileId file_id, Status status);
+
   void register_user_photo(User *u, UserId user_id, const Photo &photo);
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
@@ -1495,7 +1497,16 @@ class ContactsManager : public Actor {
   class UploadProfilePhotoCallback;
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;
 
-  std::unordered_map<FileId, Promise<Unit>, FileIdHash> uploaded_profile_photos_;  // file_id -> promise
+  struct UploadedProfilePhoto {
+    bool is_animation;
+    bool is_reupload;
+    Promise<Unit> promise;
+
+    UploadedProfilePhoto(bool is_animation, bool is_reupload, Promise<Unit> promise)
+        : is_animation(is_animation), is_reupload(is_reupload), promise(std::move(promise)) {
+    }
+  };
+  std::unordered_map<FileId, UploadedProfilePhoto, FileIdHash> uploaded_profile_photos_;  // file_id -> promise
 
   std::unordered_map<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
 
