@@ -100,13 +100,14 @@ struct FsFileInfo {
 
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
+  std::unordered_set<string> scanned_file_dirs;
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    int32 main_file_type = static_cast<int32>(get_main_file_type(static_cast<FileType>(i)));
-    if (i != main_file_type) {
-      continue;
-    }
     auto file_type = static_cast<FileType>(i);
     auto file_dir = get_files_dir(file_type);
+    if (!scanned_file_dirs.insert(file_dir).second) {
+      continue;
+    }
+    auto main_file_type = get_main_file_type(file_type);
     walk_path(file_dir, [&](CSlice path, WalkPath::Type type) {
       if (token) {
         return WalkPath::Action::Abort;
@@ -120,7 +121,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
         return WalkPath::Action::Continue;
       }
       auto stat = r_stat.move_as_ok();
-      if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
+      if (stat.size_ == 0 && ends_with(path, "/.nomedia")) {
         // skip .nomedia file
         return WalkPath::Action::Continue;
       }
@@ -128,7 +129,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       FsFileInfo info;
       info.path = path.str();
       info.size = stat.real_size_;
-      info.file_type = file_type;
+      info.file_type = main_file_type;
       info.atime_nsec = stat.atime_nsec_;
       info.mtime_nsec = stat.mtime_nsec_;
       callback(info);
