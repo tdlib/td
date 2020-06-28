@@ -325,7 +325,9 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
 }
 
 void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promise) {
-  VLOG(file_references) << "Repair file reference for file " << node_id;
+  auto main_file_id = G()->file_manager().get_actor_unsafe()->get_file_view(node_id).file_id();
+  VLOG(file_references) << "Repair file reference for file " << node_id << "/" << main_file_id;
+  node_id = main_file_id;
   auto &node = nodes_[node_id];
   if (!node.query) {
     node.query = make_unique<Query>();
