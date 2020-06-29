@@ -2138,7 +2138,10 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
   if (pfs_state_.state != PfsState::Empty) {
     return Status::Error("Unexpected RequestKey");
   }
-  LOG_CHECK(pfs_state_.other_auth_key.empty()) << "TODO: got requestKey, before old key is dropped";
+  if (!pfs_state_.other_auth_key.empty()) {
+    LOG_CHECK(pfs_state_.can_forget_other_key) << "TODO: got requestKey, before old key is dropped";
+    return Status::Error("Unexpected RequestKey (old key is used)");
+  }
   pfs_state_.state = PfsState::SendAccept;
   pfs_state_.handshake = DhHandshake();
   pfs_state_.exchange_id = request_key.exchange_id_;
