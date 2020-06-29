@@ -2692,6 +2692,11 @@ class GetSupportUserQuery : public Td::ResultHandler {
   }
 };
 
+tl_object_ptr<td_api::dateRange> ContactsManager::convert_date_range(
+    const tl_object_ptr<telegram_api::statsDateRangeDays> &obj) {
+  return make_tl_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
+}
+
 tl_object_ptr<td_api::StatisticsGraph> ContactsManager::convert_stats_graph(
     tl_object_ptr<telegram_api::StatsGraph> obj) {
   CHECK(obj != nullptr);
@@ -2734,19 +2739,61 @@ tl_object_ptr<td_api::statisticsValue> ContactsManager::convert_stats_absolute_v
                                                  get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
 }
 
-tl_object_ptr<td_api::chatStatistics> ContactsManager::convert_broadcast_stats(
+tl_object_ptr<td_api::ChatStatistics> ContactsManager::convert_megagroup_stats(
+    tl_object_ptr<telegram_api::stats_megagroupStats> obj) {
+  CHECK(obj != nullptr);
+
+  on_get_users(std::move(obj->users_), "convert_megagroup_stats");
+
+  // just in case
+  td::remove_if(obj->top_posters_, [](auto &obj) {
+    return !UserId(obj->user_id_).is_valid() || obj->messages_ < 0 || obj->avg_chars_ < 0;
+  });
+  td::remove_if(obj->top_admins_, [](auto &obj) {
+    return !UserId(obj->user_id_).is_valid() || obj->deleted_ < 0 || obj->kicked_ < 0 || obj->banned_ < 0;
+  });
+  td::remove_if(obj->top_inviters_,
+                [](auto &obj) { return !UserId(obj->user_id_).is_valid() || obj->invitations_ < 0; });
+
+  auto top_senders = transform(std::move(obj->top_posters_), [this](auto &&top_poster) {
+    return td_api::make_object<td_api::chatStatisticsMessageSenderInfo>(
+        this->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"), top_poster->messages_,
+        top_poster->avg_chars_);
+  });
+  auto top_administrators = transform(std::move(obj->top_admins_), [this](auto &&top_admin) {
+    return td_api::make_object<td_api::chatStatisticsAdministratorActionsInfo>(
+        this->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"), top_admin->deleted_,
+        top_admin->kicked_, top_admin->banned_);
+  });
+  auto top_inviters = transform(std::move(obj->top_inviters_), [this](auto &&top_inviter) {
+    return td_api::make_object<td_api::chatStatisticsInviterInfo>(
+        this->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"), top_inviter->invitations_);
+  });
+
+  return make_tl_object<td_api::chatStatisticsSupergroup>(
+      convert_date_range(obj->period_), convert_stats_absolute_value(obj->members_),
+      convert_stats_absolute_value(obj->messages_), convert_stats_absolute_value(obj->viewers_),
+      convert_stats_absolute_value(obj->posters_), convert_stats_graph(std::move(obj->growth_graph_)),
+      convert_stats_graph(std::move(obj->members_graph_)),
+      convert_stats_graph(std::move(obj->new_members_by_source_graph_)),
+      convert_stats_graph(std::move(obj->languages_graph_)), convert_stats_graph(std::move(obj->messages_graph_)),
+      convert_stats_graph(std::move(obj->actions_graph_)), convert_stats_graph(std::move(obj->top_hours_graph_)),
+      convert_stats_graph(std::move(obj->weekdays_graph_)), std::move(top_senders), std::move(top_administrators),
+      std::move(top_inviters));
+}
+
+tl_object_ptr<td_api::ChatStatistics> ContactsManager::convert_broadcast_stats(
     tl_object_ptr<telegram_api::stats_broadcastStats> obj) {
   CHECK(obj != nullptr);
 
   auto recent_message_interactions = transform(std::move(obj->recent_message_interactions_), [](auto &&interaction) {
-    return make_tl_object<td_api::chatStatisticsMessageInteractionCounters>(
+    return make_tl_object<td_api::chatStatisticsMessageInteractionInfo>(
         MessageId(ServerMessageId(interaction->msg_id_)).get(), interaction->views_, interaction->forwards_);
   });
 
-  return make_tl_object<td_api::chatStatistics>(
-      make_tl_object<td_api::dateRange>(obj->period_->min_date_, obj->period_->max_date_),
-      convert_stats_absolute_value(obj->followers_), convert_stats_absolute_value(obj->views_per_post_),
-      convert_stats_absolute_value(obj->shares_per_post_),
+  return make_tl_object<td_api::chatStatisticsChannel>(
+      convert_date_range(obj->period_), convert_stats_absolute_value(obj->followers_),
+      convert_stats_absolute_value(obj->views_per_post_), convert_stats_absolute_value(obj->shares_per_post_),
       get_percentage_value(obj->enabled_notifications_->part_, obj->enabled_notifications_->total_),
       convert_stats_graph(std::move(obj->growth_graph_)), convert_stats_graph(std::move(obj->followers_graph_)),
       convert_stats_graph(std::move(obj->mute_graph_)), convert_stats_graph(std::move(obj->top_hours_graph_)),
@@ -2756,12 +2803,51 @@ tl_object_ptr<td_api::chatStatistics> ContactsManager::convert_broadcast_stats(
       convert_stats_graph(std::move(obj->iv_interactions_graph_)), std::move(recent_message_interactions));
 }
 
-class GetBroadcastStatsQuery : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chatStatistics>> promise_;
+class GetMegagroupStatsQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::ChatStatistics>> promise_;
   ChannelId channel_id_;
 
  public:
-  explicit GetBroadcastStatsQuery(Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise)
+  explicit GetMegagroupStatsQuery(Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool is_dark, DcId dc_id) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::stats_getMegagroupStats::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getMegagroupStats(flags, false /*ignored*/, std::move(input_channel)), dc_id));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stats_getMegagroupStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(td->contacts_manager_->convert_megagroup_stats(std::move(result)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetMegagroupStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetBroadcastStatsQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::ChatStatistics>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetBroadcastStatsQuery(Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -5867,9 +5953,6 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  if (c->is_megagroup) {
-    return promise.set_error(Status::Error(400, "Chat is not a channel"));
-  }
 
   auto channel_full = get_channel_full_force(channel_id, "get_channel_statistics_dc_id");
   if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact()) {
@@ -5902,25 +5985,30 @@ void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, Pr
 }
 
 void ContactsManager::get_channel_statistics(DialogId dialog_id, bool is_dark,
-                                             Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise) {
+                                             Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise) {
   auto dc_id_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, is_dark, promise = std::move(promise)](Result<DcId> r_dc_id) mutable {
         if (r_dc_id.is_error()) {
           return promise.set_error(r_dc_id.move_as_error());
         }
-        send_closure(actor_id, &ContactsManager::send_get_broadcast_stats_query, r_dc_id.move_as_ok(),
+        send_closure(actor_id, &ContactsManager::send_get_channel_stats_query, r_dc_id.move_as_ok(),
                      dialog_id.get_channel_id(), is_dark, std::move(promise));
       });
   get_channel_statistics_dc_id(dialog_id, std::move(dc_id_promise));
 }
 
-void ContactsManager::send_get_broadcast_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
-                                                     Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise) {
+void ContactsManager::send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
+                                                   Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
-
-  td_->create_handler<GetBroadcastStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
+  const Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (c->is_megagroup) {
+    td_->create_handler<GetMegagroupStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
+  } else {
+    td_->create_handler<GetBroadcastStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
+  }
 }
 
 void ContactsManager::load_statistics_graph(DialogId dialog_id, const string &token, int64 x,

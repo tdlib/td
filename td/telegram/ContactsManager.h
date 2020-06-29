@@ -361,7 +361,7 @@ class ContactsManager : public Actor {
   void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
-                              Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise);
+                              Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
 
   void load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);
@@ -543,6 +543,9 @@ class ContactsManager : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
+  static tl_object_ptr<td_api::dateRange> convert_date_range(
+      const tl_object_ptr<telegram_api::statsDateRangeDays> &obj);
+
   static tl_object_ptr<td_api::StatisticsGraph> convert_stats_graph(tl_object_ptr<telegram_api::StatsGraph> obj);
 
   static double get_percentage_value(double new_value, double old_value);
@@ -550,7 +553,9 @@ class ContactsManager : public Actor {
   static tl_object_ptr<td_api::statisticsValue> convert_stats_absolute_value(
       const tl_object_ptr<telegram_api::statsAbsValueAndPrev> &obj);
 
-  static tl_object_ptr<td_api::chatStatistics> convert_broadcast_stats(
+  tl_object_ptr<td_api::ChatStatistics> convert_megagroup_stats(tl_object_ptr<telegram_api::stats_megagroupStats> obj);
+
+  static tl_object_ptr<td_api::ChatStatistics> convert_broadcast_stats(
       tl_object_ptr<telegram_api::stats_broadcastStats> obj);
 
  private:
@@ -1393,8 +1398,8 @@ class ContactsManager : public Actor {
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, Promise<DcId> &&promise);
 
-  void send_get_broadcast_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
-                                      Promise<td_api::object_ptr<td_api::chatStatistics>> &&promise);
+  void send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
+                                    Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
 
   void send_load_async_graph_query(DcId dc_id, string token, int64 x,
                                    Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);

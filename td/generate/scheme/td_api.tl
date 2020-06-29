@@ -2908,10 +2908,49 @@ statisticsGraphError error_message:string = StatisticsGraph;
 //@message_id Message identifier
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-chatStatisticsMessageInteractionCounters message_id:int53 view_count:int32 forward_count:int32 = ChatStatisticsMessageInteractionCounters;
+chatStatisticsMessageInteractionInfo message_id:int53 view_count:int32 forward_count:int32 = ChatStatisticsMessageInteractionInfo;
+
+//@description Contains statistics about messages sent by a user
+//@user_id User identifier
+//@sent_message_count Number of sent messages
+//@average_character_count Average number of characters in sent messages
+chatStatisticsMessageSenderInfo user_id:int32 sent_message_count:int32 average_character_count:int32 = ChatStatisticsMessageSenderInfo;
+
+//@description Contains statistics about administrator actions done by a user
+//@user_id Administrator user identifier
+//@deleted_message_count Number of messages deleted by the administrator
+//@banned_user_count Number of users banned by the administrator
+//@restricted_user_count Number of users restricted by the administrator
+chatStatisticsAdministratorActionsInfo user_id:int32 deleted_message_count:int32 banned_user_count:int32 restricted_user_count:int32 = ChatStatisticsAdministratorActionsInfo;
+
+//@description Contains statistics about number of new members invited by a user
+//@user_id User identifier
+//@added_member_count Number of new members invited by the user
+chatStatisticsInviterInfo user_id:int32 added_member_count:int32 = ChatStatisticsInviterInfo;
 
 
-//@description A detailed statistics about a chat
+//@class ChatStatistics @description Contains a detailed statistics about a chat
+
+//@description A detailed statistics about a supergroup chat
+//@period A period to which the statistics applies
+//@member_count Number of members in the chat
+//@message_count Number of messages sent to the chat
+//@viewer_count Number of users who viewed messages in the chat
+//@sender_count Number of users who sent messages to the chat
+//@member_count_graph A graph containing number of members in the chat
+//@join_graph A graph containing number of members joined and left the chat
+//@join_by_source_graph A graph containing number of new member joins per source
+//@language_graph A graph containing distribution of active users per language
+//@message_content_graph A graph containing distribution of sent messages by content type
+//@action_graph A graph containing number of different actions in the chat
+//@day_graph A graph containing distribution of message views per hour
+//@week_graph A graph containing distribution of message views per day of week
+//@top_senders List of users sent most messages in the last week
+//@top_administrators List of most active administrators in the last week
+//@top_inviters List of most active inviters of new members in the last week
+chatStatisticsSupergroup period:dateRange member_count:statisticsValue message_count:statisticsValue viewer_count:statisticsValue sender_count:statisticsValue member_count_graph:StatisticsGraph join_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_content_graph:StatisticsGraph action_graph:StatisticsGraph day_graph:StatisticsGraph week_graph:StatisticsGraph top_senders:vector<chatStatisticsMessageSenderInfo> top_administrators:vector<chatStatisticsAdministratorActionsInfo> top_inviters:vector<chatStatisticsInviterInfo> = ChatStatistics;
+
+//@description A detailed statistics about a channel chat
 //@period A period to which the statistics applies
 //@member_count Number of members in the chat
 //@mean_view_count Mean number of times the recently sent messages was viewed
@@ -2927,7 +2966,7 @@ chatStatisticsMessageInteractionCounters message_id:int53 view_count:int32 forwa
 //@message_interaction_graph A graph containing number of chat message views and shares
 //@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
 //@recent_message_interactions Detailed statistics about number of views and shares of recently sent messages
-chatStatistics period:dateRange member_count:statisticsValue mean_view_count:statisticsValue mean_share_count:statisticsValue enabled_notifications_percentage:double member_count_graph:StatisticsGraph join_graph:StatisticsGraph mute_graph:StatisticsGraph view_count_by_hour_graph:StatisticsGraph view_count_by_source_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_interaction_graph:StatisticsGraph instant_view_interaction_graph:StatisticsGraph recent_message_interactions:vector<chatStatisticsMessageInteractionCounters> = ChatStatistics;
+chatStatisticsChannel period:dateRange member_count:statisticsValue mean_view_count:statisticsValue mean_share_count:statisticsValue enabled_notifications_percentage:double member_count_graph:StatisticsGraph join_graph:StatisticsGraph mute_graph:StatisticsGraph view_count_by_hour_graph:StatisticsGraph view_count_by_source_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_interaction_graph:StatisticsGraph instant_view_interaction_graph:StatisticsGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
 
 
 //@class Update @description Contains notifications about data changes
@@ -4342,7 +4381,7 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics is disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
-//@description Returns detailed statistics about a chat. Currently this method can be used only for channels. Requires administrator rights in the channel @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the app
+//@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Requires administrator rights in the channel @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the app
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
 //@description Loads asynchronous or zoomed in chat statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
