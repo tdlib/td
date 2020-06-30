@@ -1835,6 +1835,10 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatRequested &upd
   auth_state_.date = context_->unix_time();
   TRY_STATUS(save_common_info(update));
   auth_state_.handshake.set_g_a(update.g_a_.as_slice());
+  if ((update.flags_ & telegram_api::encryptedChatRequested::FOLDER_ID_MASK) != 0) {
+    auth_state_.initial_folder_id = FolderId(update.folder_id_);
+  }
+
   send_update_secret_chat();
   return Status::OK();
 }
@@ -2014,7 +2018,8 @@ void SecretChatActor::send_update_secret_chat() {
     state = SecretChatState::Waiting;
   }
   context_->on_update_secret_chat(auth_state_.access_hash, get_user_id(), state, auth_state_.x == 0, config_state_.ttl,
-                                  auth_state_.date, auth_state_.key_hash, current_layer());
+                                  auth_state_.date, auth_state_.key_hash, current_layer(),
+                                  auth_state_.initial_folder_id);
 }
 
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionSetMessageTTL &set_ttl) {

@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
@@ -425,9 +426,9 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
     }
 
     void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound, int32 ttl,
-                               int32 date, string key_hash, int32 layer) override {
+                               int32 date, string key_hash, int32 layer, FolderId initial_folder_id) override {
       send_closure(G()->contacts_manager(), &ContactsManager::on_update_secret_chat, secret_chat_id_, access_hash,
-                   user_id, state, is_outbound, ttl, date, key_hash, layer);
+                   user_id, state, is_outbound, ttl, date, key_hash, layer, initial_folder_id);
     }
 
     void on_inbound_message(UserId user_id, MessageId message_id, int32 date,

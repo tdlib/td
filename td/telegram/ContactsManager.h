@@ -19,6 +19,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
@@ -130,6 +131,7 @@ class ContactsManager : public Actor {
   bool get_secret_chat_is_outbound(SecretChatId secret_chat_id) const;
   SecretChatState get_secret_chat_state(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_layer(SecretChatId secret_chat_id) const;
+  FolderId get_secret_chat_initial_folder_id(SecretChatId secret_chat_id) const;
 
   void on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
                             vector<int32> unimported_contact_invites);
@@ -529,7 +531,8 @@ class ContactsManager : public Actor {
   tl_object_ptr<td_api::secretChat> get_secret_chat_object(SecretChatId secret_chat_id);
 
   void on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id, SecretChatState state,
-                             bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer);
+                             bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer,
+                             FolderId initial_folder_id);
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant) const;
 
@@ -860,6 +863,7 @@ class ContactsManager : public Actor {
     int32 ttl = 0;
     int32 date = 0;
     int32 layer = 0;
+    FolderId initial_folder_id;
 
     bool is_outbound = false;
 

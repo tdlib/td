@@ -16,6 +16,7 @@
 #include "td/mtproto/DhHandshake.h"
 
 #include "td/telegram/DhConfig.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/NetQuery.h"
@@ -82,7 +83,8 @@ class SecretChatActor : public NetQueryCallback {
     virtual void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) = 0;
 
     virtual void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
-                                       int32 ttl, int32 date, string key_hash, int32 layer) = 0;
+                                       int32 ttl, int32 date, string key_hash, int32 layer,
+                                       FolderId initial_folder_id) = 0;
 
     // Promise must be set only after the update is processed.
     //
@@ -376,6 +378,8 @@ class SecretChatActor : public NetQueryCallback {
 
     int32 date = 0;
 
+    FolderId initial_folder_id;
+
     DhConfig dh_config;
     DhHandshake handshake;
 
@@ -385,13 +389,17 @@ class SecretChatActor : public NetQueryCallback {
     template <class StorerT>
     void store(StorerT &storer) const {
       uint32 flags = 0;
-      bool date_flag = date != 0;
-      bool key_hash_flag = true;
-      if (date_flag) {
+      bool has_date = date != 0;
+      bool has_key_hash = true;
+      bool has_initial_folder_id = initial_folder_id != FolderId();
+      if (has_date) {
         flags |= 1;
       }
-      if (key_hash_flag) {
+      if (has_key_hash) {
         flags |= 2;
+      }
+      if (has_initial_folder_id) {
+        flags |= 4;
       }
       storer.store_int((flags << 8) | static_cast<int32>(state));
       storer.store_int(x);
@@ -401,15 +409,18 @@ class SecretChatActor : public NetQueryCallback {
       storer.store_int(user_id);
       storer.store_long(user_access_hash);
       storer.store_int(random_id);
-      if (date_flag) {
+      if (has_date) {
         storer.store_int(date);
       }
-      if (key_hash_flag) {
+      if (has_key_hash) {
         storer.store_string(key_hash);
       }
       dh_config.store(storer);
       if (state == State::SendRequest || state == State::WaitRequestResponse) {
         handshake.store(storer);
+      }
+      if (has_initial_folder_id) {
+        initial_folder_id.store(storer);
       }
     }
 
@@ -418,8 +429,9 @@ class SecretChatActor : public NetQueryCallback {
       uint32 tmp = parser.fetch_int();
       state = static_cast<State>(tmp & 255);
       uint32 flags = tmp >> 8;
-      bool date_flag = (flags & 1) != 0;
-      bool key_hash_flag = (flags & 2) != 0;
+      bool has_date = (flags & 1) != 0;
+      bool has_key_hash = (flags & 2) != 0;
+      bool has_initial_folder_id = (flags & 4) != 0;
 
       x = parser.fetch_int();
 
@@ -428,15 +440,18 @@ class SecretChatActor : public NetQueryCallback {
       user_id = parser.fetch_int();
       user_access_hash = parser.fetch_long();
       random_id = parser.fetch_int();
-      if (date_flag) {
+      if (has_date) {
         date = parser.fetch_int();
       }
-      if (key_hash_flag) {
+      if (has_key_hash) {
         key_hash = parser.template fetch_string<std::string>();
       }
       dh_config.parse(parser);
       if (state == State::SendRequest || state == State::WaitRequestResponse) {
         handshake.parse(parser);
+      }
+      if (has_initial_folder_id) {
+        initial_folder_id.parse(parser);
       }
     }
   };

@@ -30034,8 +30034,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         d->last_new_message_id = MessageId::min();
       }
 
-      if (!d->notification_settings.is_secret_chat_show_preview_fixed &&
-          d->dialog_id.get_type() == DialogType::SecretChat) {
+      if (!d->notification_settings.is_secret_chat_show_preview_fixed) {
         d->notification_settings.use_default_show_preview = true;
         d->notification_settings.show_preview = false;
         d->notification_settings.is_secret_chat_show_preview_fixed = true;
@@ -30047,7 +30046,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
       d->is_pinned_message_id_inited = true;
-      d->is_folder_id_inited = true;
+      if (!d->is_folder_id_inited) {
+        d->folder_id = td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id());
+        d->is_folder_id_inited = true;
+      }
       break;
     case DialogType::None:
     default:

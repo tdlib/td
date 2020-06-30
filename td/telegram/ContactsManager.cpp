@@ -3896,9 +3896,11 @@ template <class StorerT>
 void ContactsManager::SecretChat::store(StorerT &storer) const {
   using td::store;
   bool has_layer = layer > SecretChatActor::DEFAULT_LAYER;
+  bool has_initial_folder_id = initial_folder_id != FolderId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_outbound);
   STORE_FLAG(has_layer);
+  STORE_FLAG(has_initial_folder_id);
   END_STORE_FLAGS();
 
   store(access_hash, storer);
@@ -3910,15 +3912,20 @@ void ContactsManager::SecretChat::store(StorerT &storer) const {
   if (has_layer) {
     store(layer, storer);
   }
+  if (has_initial_folder_id) {
+    store(initial_folder_id, storer);
+  }
 }
 
 template <class ParserT>
 void ContactsManager::SecretChat::parse(ParserT &parser) {
   using td::parse;
   bool has_layer;
+  bool has_initial_folder_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_outbound);
   PARSE_FLAG(has_layer);
+  PARSE_FLAG(has_initial_folder_id);
   END_PARSE_FLAGS();
 
   if (parser.version() >= static_cast<int32>(Version::AddAccessHashToSecretChat)) {
@@ -3935,6 +3942,9 @@ void ContactsManager::SecretChat::parse(ParserT &parser) {
     parse(layer, parser);
   } else {
     layer = SecretChatActor::DEFAULT_LAYER;
+  }
+  if (has_initial_folder_id) {
+    parse(initial_folder_id, parser);
   }
 }
 
@@ -4305,6 +4315,14 @@ int32 ContactsManager::get_secret_chat_layer(SecretChatId secret_chat_id) const 
     return 0;
   }
   return c->layer;
+}
+
+FolderId ContactsManager::get_secret_chat_initial_folder_id(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return FolderId::main();
+  }
+  return c->initial_folder_id;
 }
 
 UserId ContactsManager::get_my_id() const {
@@ -12871,7 +12889,7 @@ bool ContactsManager::get_secret_chat(SecretChatId secret_chat_id, bool force, P
 
 void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id,
                                             SecretChatState state, bool is_outbound, int32 ttl, int32 date,
-                                            string key_hash, int32 layer) {
+                                            string key_hash, int32 layer, FolderId initial_folder_id) {
   LOG(INFO) << "Update " << secret_chat_id << " with " << user_id << " and access_hash " << access_hash;
   auto *secret_chat = add_secret_chat(secret_chat_id);
   if (access_hash != secret_chat->access_hash) {
@@ -12912,6 +12930,10 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   }
   if (layer != 0 && layer != secret_chat->layer) {
     secret_chat->layer = layer;
+    secret_chat->is_changed = true;
+  }
+  if (initial_folder_id != FolderId() && initial_folder_id != secret_chat->initial_folder_id) {
+    secret_chat->initial_folder_id = initial_folder_id;
     secret_chat->is_changed = true;
   }
 
