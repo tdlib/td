@@ -2492,8 +2492,12 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
 
     td->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
-    promise_.set_value(
-        td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant->participant_)));
+    auto result = td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant->participant_));
+    if (!result.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << result;
+      return promise_.set_error(Status::Error(500, "Receive invalid chat member"));
+    }
+    promise_.set_value(std::move(result));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2609,9 +2613,8 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
         for (auto &participant : participants->participants_) {
           DialogParticipant dialog_participant =
               td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant));
-          if (!dialog_participant.user_id.is_valid() || !dialog_participant.status.is_administrator()) {
-            LOG(ERROR) << "Receive " << dialog_participant.user_id << " with status " << dialog_participant.status
-                       << " as an administrator of " << channel_id_;
+          if (!dialog_participant.is_valid() || !dialog_participant.status.is_administrator()) {
+            LOG(ERROR) << "Receive " << dialog_participant << " as an administrator of " << channel_id_;
             continue;
           }
           administrators.emplace_back(dialog_participant.user_id, dialog_participant.status.get_rank(),
@@ -10106,16 +10109,17 @@ void ContactsManager::on_get_channel_participants_success(
   for (auto &participant_ptr : participants) {
     auto debug_participant = to_string(participant_ptr);
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
-    if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
-        (filter.is_administrators() && !result.back().status.is_administrator()) ||
-        ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !result.back().status.is_member()) ||
-        (filter.is_contacts() && !is_user_contact(result.back().user_id)) ||
-        (filter.is_restricted() && !result.back().status.is_restricted()) ||
-        (filter.is_banned() && !result.back().status.is_banned())) {
-      bool skip_error = (filter.is_administrators() && is_user_deleted(result.back().user_id)) ||
-                        (filter.is_contacts() && result.back().user_id == get_my_id());
+    const auto &participant = result.back();
+    if (!participant.is_valid() || (filter.is_bots() && !is_user_bot(participant.user_id)) ||
+        (filter.is_administrators() && !participant.status.is_administrator()) ||
+        ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !participant.status.is_member()) ||
+        (filter.is_contacts() && !is_user_contact(participant.user_id)) ||
+        (filter.is_restricted() && !participant.status.is_restricted()) ||
+        (filter.is_banned() && !participant.status.is_banned())) {
+      bool skip_error = (filter.is_administrators() && is_user_deleted(participant.user_id)) ||
+                        (filter.is_contacts() && participant.user_id == get_my_id());
       if (!skip_error) {
-        LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter << " in " << channel_id
+        LOG(ERROR) << "Receive " << participant << ", while searching for " << filter << " in " << channel_id
                    << " with offset " << offset << " and limit " << limit << ": " << oneline(debug_participant);
       }
       result.pop_back();

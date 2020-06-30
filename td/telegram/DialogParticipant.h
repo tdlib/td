@@ -365,12 +365,12 @@ struct DialogParticipant {
 
   DialogParticipant() = default;
 
-  DialogParticipant(UserId user_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status)
-      : user_id(user_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(status) {
-  }
+  DialogParticipant(UserId user_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
                     DialogParticipantStatus my_status);
+
+  bool is_valid() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

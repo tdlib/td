@@ -27802,6 +27802,10 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       auto member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->participant_));
+      if (!member.is_valid()) {
+        LOG(ERROR) << "Wrong invite: " << member;
+        return nullptr;
+      }
       return make_tl_object<td_api::chatEventMemberInvited>(
           td_->contacts_manager_->get_user_id_object(member.user_id, "chatEventMemberInvited"),
           member.status.get_chat_member_status_object());
@@ -27815,6 +27819,10 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
         return nullptr;
       }
+      if (!old_member.is_valid() || !new_member.is_valid()) {
+        LOG(ERROR) << "Wrong restrict: " << old_member << " -> " << new_member;
+        return nullptr;
+      }
       return make_tl_object<td_api::chatEventMemberRestricted>(
           td_->contacts_manager_->get_user_id_object(old_member.user_id, "chatEventMemberRestricted"),
           old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
@@ -27826,6 +27834,10 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->new_participant_));
       if (old_member.user_id != new_member.user_id) {
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
+        return nullptr;
+      }
+      if (!old_member.is_valid() || !new_member.is_valid()) {
+        LOG(ERROR) << "Wrong edit administrator: " << old_member << " -> " << new_member;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberPromoted>(
