@@ -10004,38 +10004,7 @@ const DialogParticipant *ContactsManager::get_chat_participant(const ChatFull *c
 
 DialogParticipant ContactsManager::get_dialog_participant(
     ChannelId channel_id, tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const {
-  switch (participant_ptr->get_id()) {
-    case telegram_api::channelParticipant::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipant>(participant_ptr);
-      return {UserId(participant->user_id_), UserId(), participant->date_, DialogParticipantStatus::Member()};
-    }
-    case telegram_api::channelParticipantSelf::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantSelf>(participant_ptr);
-      return {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
-              get_channel_status(channel_id)};
-    }
-    case telegram_api::channelParticipantCreator::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantCreator>(participant_ptr);
-      return {UserId(participant->user_id_), UserId(), 0,
-              DialogParticipantStatus::Creator(true, std::move(participant->rank_))};
-    }
-    case telegram_api::channelParticipantAdmin::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
-      bool can_be_edited = (participant->flags_ & telegram_api::channelParticipantAdmin::CAN_EDIT_MASK) != 0;
-      return {UserId(participant->user_id_), UserId(participant->promoted_by_), participant->date_,
-              get_dialog_participant_status(can_be_edited, std::move(participant->admin_rights_),
-                                            std::move(participant->rank_))};
-    }
-    case telegram_api::channelParticipantBanned::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
-      auto is_member = (participant->flags_ & telegram_api::channelParticipantBanned::LEFT_MASK) == 0;
-      return {UserId(participant->user_id_), UserId(participant->kicked_by_), participant->date_,
-              get_dialog_participant_status(is_member, std::move(participant->banned_rights_))};
-    }
-    default:
-      UNREACHABLE();
-      return DialogParticipant();
-  }
+  return DialogParticipant(std::move(participant_ptr), get_channel_status(channel_id));
 }
 
 tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(

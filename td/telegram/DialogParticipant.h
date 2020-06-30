@@ -369,6 +369,9 @@ struct DialogParticipant {
       : user_id(user_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(status) {
   }
 
+  DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
+                    DialogParticipantStatus my_status);
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(user_id, storer);
