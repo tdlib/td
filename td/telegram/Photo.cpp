@@ -673,9 +673,9 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
   }
 
   const PhotoSize *animation = photo.animated_photos.empty() ? nullptr : &photo.animated_photos.back();
-  return td_api::make_object<td_api::chatPhoto>(photo.id.get(), photo.date,
-                                                get_photo_sizes_object(file_manager, photo.photos),
-                                                get_photo_size_object(file_manager, animation));
+  return td_api::make_object<td_api::chatPhoto>(
+      photo.id.get(), photo.date, get_minithumbnail_object(photo.minithumbnail),
+      get_photo_sizes_object(file_manager, photo.photos), get_photo_size_object(file_manager, animation));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
