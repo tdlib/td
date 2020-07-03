@@ -209,12 +209,6 @@ void SecretChatsManager::before_get_difference(int32 qts) {
   // We will receive all updates later than qts anyway.
 }
 
-void SecretChatsManager::after_get_difference() {
-  if (dummy_mode_ || close_flag_) {
-    return;
-  }
-}
-
 void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update) {
   if (dummy_mode_ || close_flag_) {
     return;

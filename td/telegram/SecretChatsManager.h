@@ -34,7 +34,6 @@ class SecretChatsManager : public Actor {
   // we can forget all pending_updates after start_get_difference they will be received after this point anyway
   // It is not necessary, but it will help.
   void before_get_difference(int32 qts);
-  void after_get_difference();
 
   // Proxy query to corrensponding SecretChatActor.
   // Look for more info in SecretChatActor.h

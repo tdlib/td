@@ -1100,7 +1100,6 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
 
 void UpdatesManager::after_get_difference() {
   CHECK(!running_get_difference_);
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::after_get_difference);
 
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
