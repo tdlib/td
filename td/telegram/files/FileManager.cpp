@@ -51,7 +51,7 @@
 
 namespace td {
 namespace {
-constexpr int64 MAX_FILE_SIZE = 1500 * (1 << 20) /* 1500MB */;
+constexpr int64 MAX_FILE_SIZE = 2000 * (1 << 20) /* 2000MB */;
 }  // namespace
 
 int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);

@@ -13,7 +13,6 @@
 
 namespace td {
 
-/*** PartsManager***/
 struct Part {
   int id;
   int64 offset;
@@ -54,9 +53,9 @@ class PartsManager {
   string get_bitmask();
 
  private:
-  static constexpr int MAX_PART_COUNT = 3000;
-  static constexpr int MAX_PART_SIZE = 512 * (1 << 10);
-  static constexpr int64 MAX_FILE_SIZE = MAX_PART_SIZE * MAX_PART_COUNT;
+  static constexpr int MAX_PART_COUNT = 4000;
+  static constexpr size_t MAX_PART_SIZE = 512 * (1 << 10);
+  static constexpr int64 MAX_FILE_SIZE = static_cast<int64>(MAX_PART_SIZE) * MAX_PART_COUNT;
 
   enum class PartStatus : int32 { Empty, Pending, Ready };
 

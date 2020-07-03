@@ -15,7 +15,6 @@
 #include <numeric>
 
 namespace td {
-/*** PartsManager ***/
 
 namespace {
 int64 calc_part_count(int64 size, int64 part_size) {
