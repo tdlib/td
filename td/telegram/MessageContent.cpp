@@ -1744,9 +1744,9 @@ static Result<InputMessageContent> create_input_message_content(
       break;
     }
     case td_api::inputMessagePoll::ID: {
-      constexpr size_t MAX_POLL_QUESTION_LENGTH = 255;  // server-side limit
-      constexpr size_t MAX_POLL_OPTION_LENGTH = 100;    // server-side limit
-      constexpr size_t MAX_POLL_OPTIONS = 10;           // server-side limit
+      const size_t MAX_POLL_QUESTION_LENGTH = is_bot ? 300 : 255;  // server-side limit
+      constexpr size_t MAX_POLL_OPTION_LENGTH = 100;               // server-side limit
+      constexpr size_t MAX_POLL_OPTIONS = 10;                      // server-side limit
       auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
       if (!clean_input_string(input_poll->question_)) {
         return Status::Error(400, "Poll question must be encoded in UTF-8");
