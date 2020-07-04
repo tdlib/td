@@ -24,6 +24,7 @@
 
 #include <cstring>
 #include <map>
+#include <memory>
 #include <mutex>
 
 #if TD_PORT_WINDOWS
@@ -141,44 +142,23 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   return preverify_ok;
 }
 
-void do_ssl_shutdown(SSL *ssl_handle) {
-  if (!SSL_is_init_finished(ssl_handle)) {
-    return;
-  }
-  clear_openssl_errors("Before SSL_shutdown");
-  SSL_set_quiet_shutdown(ssl_handle, 1);
-  SSL_shutdown(ssl_handle);
-  clear_openssl_errors("After SSL_shutdown");
-}
-
-struct SslCtxDeleter {
-  void operator()(SSL_CTX *ssl_ctx) {
-    if (!ssl_ctx) {
-      return;
-    }
-    SSL_CTX_free(ssl_ctx);
-  }
-};
-
-using SslCtx = std::unique_ptr<SSL_CTX, SslCtxDeleter>;
+using SslCtx = std::shared_ptr<SSL_CTX>;
 
 struct SslHandleDeleter {
   void operator()(SSL *ssl_handle) {
-    if (!ssl_handle) {
-      return;
+    if (SSL_is_init_finished(ssl_handle)) {
+      clear_openssl_errors("Before SSL_shutdown");
+      SSL_set_quiet_shutdown(ssl_handle, 1);
+      SSL_shutdown(ssl_handle);
+      clear_openssl_errors("After SSL_shutdown");
     }
-    do_ssl_shutdown(ssl_handle);
     SSL_free(ssl_handle);
   }
 };
 
 using SslHandle = std::unique_ptr<SSL, SslHandleDeleter>;
 
-static constexpr int VERIFY_DEPTH = 10;
-
-td::Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
-  using VerifyPeer = SslStream::VerifyPeer;
-
+Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
   auto ssl_method =
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
       TLS_client_method();
@@ -188,11 +168,11 @@ td::Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer ver
   if (ssl_method == nullptr) {
     return create_openssl_error(-6, "Failed to create an SSL client method");
   }
-  auto ssl_ctx_ptr = SslCtx(SSL_CTX_new(ssl_method));
-  if (!ssl_ctx_ptr) {
+  auto ssl_ctx = SSL_CTX_new(ssl_method);
+  if (!ssl_ctx) {
     return create_openssl_error(-7, "Failed to create an SSL context");
   }
-  auto ssl_ctx = ssl_ctx_ptr.get();
+  auto ssl_ctx_ptr = SslCtx(ssl_ctx, SSL_CTX_free);
   long options = 0;
 #ifdef SSL_OP_NO_SSLv2
   options |= SSL_OP_NO_SSLv2;
@@ -208,7 +188,6 @@ td::Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer ver
 
   if (cert_file.empty()) {
 #if TD_PORT_WINDOWS
-    // TODO thread-local SSL_CTX cache
     LOG(DEBUG) << "Begin to load system store";
     auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
     HCERTSTORE system_store =
@@ -249,7 +228,7 @@ td::Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer ver
 #else
     if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
       auto error = create_openssl_error(-8, "Failed to load default verify paths");
-      if (verify_peer == VerifyPeer::On) {
+      if (verify_peer == SslStream::VerifyPeer::On) {
         return error;
       } else {
         LOG(ERROR) << error;
@@ -262,45 +241,48 @@ td::Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer ver
     }
   }
 
-  if (verify_peer == VerifyPeer::On) {
+  if (verify_peer == SslStream::VerifyPeer::On) {
     SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, verify_callback);
 
-    if (VERIFY_DEPTH != -1) {
-      SSL_CTX_set_verify_depth(ssl_ctx, VERIFY_DEPTH);
-    }
+    constexpr int DEFAULT_VERIFY_DEPTH = 10;
+    SSL_CTX_set_verify_depth(ssl_ctx, DEFAULT_VERIFY_DEPTH);
   } else {
     SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, nullptr);
   }
 
-  // TODO(now): cipher list
   string cipher_list;
   if (SSL_CTX_set_cipher_list(ssl_ctx, cipher_list.empty() ? "DEFAULT" : cipher_list.c_str()) == 0) {
     return create_openssl_error(-9, PSLICE() << "Failed to set cipher list \"" << cipher_list << '"');
   }
 
-  return ssl_ctx_ptr;
+  return std::move(ssl_ctx_ptr);
 }
 
-td::Result<SslCtx> clone(const SslCtx &ctx_ptr) {
-  auto ctx = ctx_ptr.get();
-  if (!SSL_CTX_up_ref(ctx)) {
-    return create_openssl_error(-23, "Failed to increase reference counter in ssl context");
-  }
-  return SslCtx(ctx);
-}
-
-td::Result<SslCtx> get_default_ssl_ctx() {
+Result<SslCtx> get_default_ssl_ctx() {
   static auto ctx = do_create_ssl_ctx("", SslStream::VerifyPeer::On);
   if (ctx.is_error()) {
     return ctx.error().clone();
   }
 
-  return clone(ctx.ok());
+  return ctx.ok();
 }
 
-td::Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
-  if (cert_file.empty() && verify_peer == SslStream::VerifyPeer::On) {
-    return get_default_ssl_ctx();
+Result<SslCtx> get_default_unverified_ssl_ctx() {
+  static auto ctx = do_create_ssl_ctx("", SslStream::VerifyPeer::Off);
+  if (ctx.is_error()) {
+    return ctx.error().clone();
+  }
+
+  return ctx.ok();
+}
+
+Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
+  if (cert_file.empty()) {
+    if (verify_peer == SslStream::VerifyPeer::On) {
+      return get_default_ssl_ctx();
+    } else {
+      return get_default_unverified_ssl_ctx();
+    }
   }
   return do_create_ssl_ctx(cert_file, verify_peer);
 }
@@ -309,8 +291,7 @@ td::Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify
 
 class SslStreamImpl {
  public:
-  using VerifyPeer = SslStream::VerifyPeer;
-  Status init(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
+  Status init(CSlice host, CSlice cert_file, SslStream::VerifyPeer verify_peer) {
     static bool init_openssl = [] {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
       return OPENSSL_init_ssl(0, nullptr) != 0;
