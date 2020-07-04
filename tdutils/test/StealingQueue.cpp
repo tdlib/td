@@ -6,8 +6,11 @@
 //
 #include "td/utils/AtomicRead.h"
 #include "td/utils/benchmark.h"
+#include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/MpmcQueue.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/Random.h"
 #include "td/utils/StealingQueue.h"
 #include "td/utils/tests.h"
 
@@ -84,7 +87,7 @@ TEST(AtomicRead, simple2) {
           auto x = value.lock();
           x->value = round;
           auto str = to_str(round);
-          memcpy(x->str, str.c_str(), str.size() + 1);
+          std::memcpy(x->str, str.c_str(), str.size() + 1);
         } else {
           Value x;
           value.read(x);
@@ -101,8 +104,8 @@ TEST(AtomicRead, simple2) {
 }
 
 TEST(StealingQueue, simple) {
-  td::uint64 sum;
-  std::atomic<td::uint64> got_sum;
+  td::uint64 sum = 0;
+  std::atomic<td::uint64> got_sum{0};
 
   td::Stage run;
   td::Stage check;
@@ -126,9 +129,9 @@ TEST(StealingQueue, simple) {
       for (td::uint64 round = 1; round < 10000; round++) {
         if (id == 0) {
           sum = 0;
-          int n = rnd() % 5;
+          int n = static_cast<int>(rnd() % 5);
           for (int j = 0; j < n; j++) {
-            int x = rand() % XN;
+            int x = static_cast<int>(rnd() % XN);
             sum += x_sum[x];
             gq.push(x, id);
           }
@@ -144,7 +147,7 @@ TEST(StealingQueue, simple) {
             if (gq.try_pop(res, id)) {
               return res;
             }
-            if (lq[id].steal(res, lq[rand() % threads_n])) {
+            if (lq[id].steal(res, lq[static_cast<size_t>(rnd()) % threads_n])) {
               //LOG(ERROR) << "STEAL";
               return res;
             }
