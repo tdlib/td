@@ -14,6 +14,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/common.h"
@@ -232,20 +233,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                    std::move(status), 0);
     });
 
-    send_lambda(file_manager, [file_manager, dest, result = std::move(result), file_source_id,
-                               new_promise = std::move(new_promise)]() mutable {
-      auto view = file_manager.get_actor_unsafe()->get_file_view(dest.node_id);
-      CHECK(!view.empty());
-      if (result.is_ok() &&
-          (!view.has_active_upload_remote_location() || !view.has_active_download_remote_location())) {
-        result = Status::Error("No active remote location");
-      }
-      if (result.is_error() && result.error().code() != 429 && result.error().code() < 500) {
-        VLOG(file_references) << "Invalid " << file_source_id << " " << result.error();
-        file_manager.get_actor_unsafe()->remove_file_source(dest.node_id, file_source_id);
-      }
-      new_promise.set_result(std::move(result));
-    });
+    send_closure(file_manager, &FileManager::on_file_reference_repaired, dest.node_id, file_source_id,
+                 std::move(result), std::move(new_promise));
   });
   auto index = static_cast<size_t>(file_source_id.get()) - 1;
   CHECK(index < file_sources_.size());
@@ -325,7 +314,7 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
 }
 
 void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promise) {
-  auto main_file_id = G()->file_manager().get_actor_unsafe()->get_file_view(node_id).file_id();
+  auto main_file_id = G()->td().get_actor_unsafe()->file_manager_->get_file_view(node_id).file_id();
   VLOG(file_references) << "Repair file reference for file " << node_id << "/" << main_file_id;
   node_id = main_file_id;
   auto &node = nodes_[node_id];

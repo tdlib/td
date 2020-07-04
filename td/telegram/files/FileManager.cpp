@@ -1670,6 +1670,21 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
   }
 }
 
+void FileManager::on_file_reference_repaired(FileId file_id, FileSourceId file_source_id, Result<Unit> &&result,
+                                             Promise<Unit> &&promise) {
+  auto file_view = get_file_view(file_id);
+  CHECK(!file_view.empty());
+  if (result.is_ok() &&
+      (!file_view.has_active_upload_remote_location() || !file_view.has_active_download_remote_location())) {
+    result = Status::Error("No active remote location");
+  }
+  if (result.is_error() && result.error().code() != 429 && result.error().code() < 500) {
+    VLOG(file_references) << "Invalid " << file_source_id << " " << result.error();
+    remove_file_source(file_id, file_source_id);
+  }
+  promise.set_result(std::move(result));
+}
+
 std::unordered_set<FileId, FileIdHash> FileManager::get_main_file_ids(const vector<FileId> &file_ids) {
   std::unordered_set<FileId, FileIdHash> result;
   for (auto file_id : file_ids) {

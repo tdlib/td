@@ -419,6 +419,9 @@ class FileManager : public FileLoadManager::Callback {
   void change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
                            const vector<FileId> &new_file_ids);
 
+  void on_file_reference_repaired(FileId file_id, FileSourceId file_source_id, Result<Unit> &&result,
+                                  Promise<Unit> &&promise);
+
   bool set_encryption_key(FileId file_id, FileEncryptionKey key);
   bool set_content(FileId file_id, BufferSlice bytes);
 
