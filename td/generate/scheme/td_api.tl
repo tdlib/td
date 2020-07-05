@@ -777,7 +777,7 @@ chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby
 chatInviteLink invite_link:string = ChatInviteLink;
 
 //@description Contains information about a chat invite link
-//@chat_id Chat identifier of the invite link; 0 if the user is not a member of this chat
+//@chat_id Chat identifier of the invite link; 0 if the user is not a member of this chat and if the chat is not public
 //@type Contains information about the type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
