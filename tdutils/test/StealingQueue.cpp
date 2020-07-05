@@ -126,7 +126,7 @@ TEST(StealingQueue, simple) {
   td::Random::Xorshift128plus rnd(123);
   for (std::size_t i = 0; i < threads_n; i++) {
     threads.emplace_back([&, id = static_cast<td::uint32>(i)] {
-      for (td::uint64 round = 1; round < 10000; round++) {
+      for (td::uint64 round = 1; round < 1000; round++) {
         if (id == 0) {
           sum = 0;
           int n = static_cast<int>(rnd() % 5);
