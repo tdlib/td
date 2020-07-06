@@ -1048,7 +1048,7 @@ class WebPageBlockPhoto : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
-    return make_tl_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), &photo),
+    return make_tl_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), photo),
                                                   caption.get_page_block_caption_object(context), url);
   }
 
@@ -1211,7 +1211,7 @@ class WebPageBlockEmbedded : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockEmbedded>(
-        url, html, get_photo_object(context->td_->file_manager_.get(), &poster_photo), dimensions.width,
+        url, html, get_photo_object(context->td_->file_manager_.get(), poster_photo), dimensions.width,
         dimensions.height, caption.get_page_block_caption_object(context), is_full_width, allow_scrolling);
   }
 
@@ -1280,7 +1280,7 @@ class WebPageBlockEmbeddedPost : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockEmbeddedPost>(
-        url, author, get_photo_object(context->td_->file_manager_.get(), &author_photo), date,
+        url, author, get_photo_object(context->td_->file_manager_.get(), author_photo), date,
         get_page_block_objects(page_blocks, context), caption.get_page_block_caption_object(context));
   }
 
@@ -1632,7 +1632,7 @@ class WebPageBlockRelatedArticles : public WebPageBlock {
     auto related_article_objects = transform(related_articles, [context](const RelatedArticle &article) {
       return td_api::make_object<td_api::pageBlockRelatedArticle>(
           article.url, article.title, article.description,
-          get_photo_object(context->td_->file_manager_.get(), &article.photo), article.author, article.published_date);
+          get_photo_object(context->td_->file_manager_.get(), article.photo), article.author, article.published_date);
     });
     return make_tl_object<td_api::pageBlockRelatedArticles>(header.get_rich_text_object(context),
                                                             std::move(related_article_objects));

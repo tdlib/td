@@ -124,9 +124,9 @@ Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id);
 Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_api::WebDocument> web_document,
                              DialogId owner_dialog_id);
-tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo);
-tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo);
-tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager, const Photo *photo);
+tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo);
+tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo &photo);
+tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager, const Photo &photo);
 
 void photo_delete_thumbnail(Photo &photo);
 

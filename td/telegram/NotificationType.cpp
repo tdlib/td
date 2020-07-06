@@ -255,8 +255,8 @@ class NotificationTypePushMessage : public NotificationType {
       case 'P':
         if (key == "MESSAGE_PHOTO") {
           auto file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-          return td_api::make_object<td_api::pushMessageContentPhoto>(get_photo_object(file_manager, &photo), arg,
-                                                                      false, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentPhoto>(get_photo_object(file_manager, photo), arg, false,
+                                                                      is_pinned);
         }
         if (key == "MESSAGE_PHOTOS") {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false);

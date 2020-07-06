@@ -13599,7 +13599,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
   return make_tl_object<td_api::userFullInfo>(
-      get_user_profile_photo_object(td_->file_manager_.get(), &user_full->photo), user_full->is_blocked,
+      get_user_profile_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->has_private_calls, user_full->need_phone_number_privacy_exception,
       is_bot ? string() : user_full->about, is_bot ? user_full->about : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
@@ -13644,7 +13644,7 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   return make_tl_object<td_api::basicGroupFullInfo>(
-      get_chat_photo_full_info_object(td_->file_manager_.get(), &chat_full->photo), chat_full->description,
+      get_chat_photo_full_info_object(td_->file_manager_.get(), chat_full->photo), chat_full->description,
       get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
@@ -13689,7 +13689,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
     slow_mode_delay_expires_in = max(channel_full->slow_mode_next_send_date - G()->server_time(), 1e-3);
   }
   return td_api::make_object<td_api::supergroupFullInfo>(
-      get_chat_photo_full_info_object(td_->file_manager_.get(), &channel_full->photo), channel_full->description,
+      get_chat_photo_full_info_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,

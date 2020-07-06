@@ -1306,7 +1306,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             LOG(ERROR) << "Receive empty cached photo in the result of inline query";
             break;
           }
-          photo->photo_ = get_photo_object(td_->file_manager_.get(), &p);
+          photo->photo_ = get_photo_object(td_->file_manager_.get(), p);
           photo->title_ = std::move(result->title_);
           photo->description_ = std::move(result->description_);
 
@@ -1431,7 +1431,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           }
           new_photo.photos.push_back(std::move(photo_size));
 
-          photo->photo_ = get_photo_object(td_->file_manager_.get(), &new_photo);
+          photo->photo_ = get_photo_object(td_->file_manager_.get(), new_photo);
           photo->title_ = std::move(result->title_);
           photo->description_ = std::move(result->description_);
 

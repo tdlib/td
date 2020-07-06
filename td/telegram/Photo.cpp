@@ -644,32 +644,31 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
   return photo;
 }
 
-tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo) {
-  if (photo == nullptr || photo->is_empty()) {
+tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo) {
+  if (photo.is_empty()) {
     return nullptr;
   }
 
-  return td_api::make_object<td_api::photo>(photo->has_stickers, get_minithumbnail_object(photo->minithumbnail),
-                                            get_photo_sizes_object(file_manager, photo->photos));
+  return td_api::make_object<td_api::photo>(photo.has_stickers, get_minithumbnail_object(photo.minithumbnail),
+                                            get_photo_sizes_object(file_manager, photo.photos));
 }
 
-tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo) {
-  if (photo == nullptr || photo->is_empty()) {
+tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo &photo) {
+  if (photo.is_empty()) {
     return nullptr;
   }
 
-  return td_api::make_object<td_api::userProfilePhoto>(photo->id.get(), photo->date,
-                                                       get_photo_sizes_object(file_manager, photo->photos));
+  return td_api::make_object<td_api::userProfilePhoto>(photo.id.get(), photo.date,
+                                                       get_photo_sizes_object(file_manager, photo.photos));
 }
 
 tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager,
-                                                                         const Photo *photo) {
-  if (photo == nullptr || photo->is_empty()) {
+                                                                         const Photo &photo) {
+  if (photo.is_empty()) {
     return nullptr;
   }
 
-  return td_api::make_object<td_api::chatPhotoFullInfo>(photo->date,
-                                                        get_photo_sizes_object(file_manager, photo->photos));
+  return td_api::make_object<td_api::chatPhotoFullInfo>(photo.date, get_photo_sizes_object(file_manager, photo.photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

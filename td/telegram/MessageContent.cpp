@@ -4379,7 +4379,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Invoice: {
       const MessageInvoice *m = static_cast<const MessageInvoice *>(content);
       return make_tl_object<td_api::messageInvoice>(
-          m->title, m->description, get_photo_object(td->file_manager_.get(), &m->photo), m->invoice.currency,
+          m->title, m->description, get_photo_object(td->file_manager_.get(), m->photo), m->invoice.currency,
           m->total_amount, m->start_parameter, m->invoice.is_test, m->invoice.need_shipping_address,
           m->receipt_message_id.get());
     }
@@ -4395,7 +4395,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Photo: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
-      return make_tl_object<td_api::messagePhoto>(get_photo_object(td->file_manager_.get(), &m->photo),
+      return make_tl_object<td_api::messagePhoto>(get_photo_object(td->file_manager_.get(), m->photo),
                                                   get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageContentType::Sticker: {
@@ -4440,7 +4440,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChatChangePhoto: {
       const MessageChatChangePhoto *m = static_cast<const MessageChatChangePhoto *>(content);
       return make_tl_object<td_api::messageChatChangePhoto>(
-          get_chat_photo_full_info_object(td->file_manager_.get(), &m->photo));
+          get_chat_photo_full_info_object(td->file_manager_.get(), m->photo));
     }
     case MessageContentType::ChatDeletePhoto:
       return make_tl_object<td_api::messageChatDeletePhoto>();
