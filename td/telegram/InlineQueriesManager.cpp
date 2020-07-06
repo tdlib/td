@@ -1167,6 +1167,10 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
         bool has_photo = (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_PHOTO) != 0;
         bool is_photo = result->type_ == "photo";
         if (result->type_ == "game") {
+          if (!has_photo) {
+            LOG(ERROR) << "Receive game without photo in the result of inline query: " << to_string(result);
+            break;
+          }
           auto game = make_tl_object<td_api::inlineQueryResultGame>();
           Game inline_game(td_, std::move(result->title_), std::move(result->description_), std::move(result->photo_),
                            std::move(result->document_), DialogId());
