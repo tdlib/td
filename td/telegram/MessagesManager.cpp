@@ -27864,8 +27864,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto file_manager = td_->file_manager_.get();
       auto old_photo = get_photo(file_manager, std::move(action->prev_photo_), DialogId(channel_id));
       auto new_photo = get_photo(file_manager, std::move(action->new_photo_), DialogId(channel_id));
-      return make_tl_object<td_api::chatEventPhotoChanged>(get_photo_object(file_manager, &old_photo),
-                                                           get_photo_object(file_manager, &new_photo));
+      return make_tl_object<td_api::chatEventPhotoChanged>(get_chat_photo_full_info_object(file_manager, &old_photo),
+                                                           get_chat_photo_full_info_object(file_manager, &new_photo));
     }
     case telegram_api::channelAdminLogEventActionDefaultBannedRights::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);

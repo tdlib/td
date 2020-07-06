@@ -1510,7 +1510,7 @@ messageSupergroupChatCreate title:string = MessageContent;
 messageChatChangeTitle title:string = MessageContent;
 
 //@description An updated chat photo @photo New chat photo
-messageChatChangePhoto photo:photo = MessageContent;
+messageChatChangePhoto photo:chatPhotoFullInfo = MessageContent;
 
 //@description A deleted chat photo
 messageChatDeletePhoto = MessageContent;
@@ -2131,7 +2131,7 @@ chatEventDescriptionChanged old_description:string new_description:string = Chat
 chatEventUsernameChanged old_username:string new_username:string = ChatEventAction;
 
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
-chatEventPhotoChanged old_photo:photo new_photo:photo = ChatEventAction;
+chatEventPhotoChanged old_photo:chatPhotoFullInfo new_photo:chatPhotoFullInfo = ChatEventAction;
 
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
 chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;

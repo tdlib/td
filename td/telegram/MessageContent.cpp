@@ -4439,7 +4439,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::ChatChangePhoto: {
       const MessageChatChangePhoto *m = static_cast<const MessageChatChangePhoto *>(content);
-      return make_tl_object<td_api::messageChatChangePhoto>(get_photo_object(td->file_manager_.get(), &m->photo));
+      return make_tl_object<td_api::messageChatChangePhoto>(
+          get_chat_photo_full_info_object(td->file_manager_.get(), &m->photo));
     }
     case MessageContentType::ChatDeletePhoto:
       return make_tl_object<td_api::messageChatDeletePhoto>();
