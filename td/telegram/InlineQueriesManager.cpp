@@ -102,6 +102,8 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (status.code() == NetQuery::Cancelled) {
       status = Status::Error(406, "Request cancelled");
+    } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
+      status = Status::Error(502, "The bot is not responding");
     }
     LOG(INFO) << "Inline query returned error " << status;
 

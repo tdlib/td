@@ -80,6 +80,8 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (status.message() == "DATA_INVALID") {
       td->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Auto());
+    } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
+      status = Status::Error(502, "The bot is not responding");
     }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBotCallbackAnswerQuery");
     td->callback_queries_manager_->on_get_callback_query_answer(result_id_, nullptr);
