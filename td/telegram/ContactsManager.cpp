@@ -8349,6 +8349,15 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     get_bot_info_force(participant.user_id);
   }
 
+  Chat *c = get_chat(chat_id);
+  CHECK(c != nullptr);
+  if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
+      td_->file_manager_->get_file_view(as_dialog_photo(chat_full->photo).small_file_id).get_unique_file_id()) {
+    chat_full->photo = Photo();
+    if (c->photo.small_file_id.is_valid()) {
+      reload_chat_full(chat_id, Auto());
+    }
+  }
   on_update_chat_full_photo(chat_full, chat_id, std::move(chat_full->photo));
 
   update_chat_full(chat_full, chat_id, true);
@@ -8427,6 +8436,15 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     get_bot_info_force(user_id);
   }
 
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
+      td_->file_manager_->get_file_view(as_dialog_photo(channel_full->photo).small_file_id).get_unique_file_id()) {
+    channel_full->photo = Photo();
+    if (c->photo.small_file_id.is_valid()) {
+      channel_full->expires_at = 0.0;
+    }
+  }
   on_update_channel_full_photo(channel_full, channel_id, std::move(channel_full->photo));
 
   update_channel_full(channel_full, channel_id, true);

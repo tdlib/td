@@ -756,23 +756,27 @@ string FileView::get_persistent_id(const FullRemoteFileLocation &location) {
 }
 
 string FileView::get_persistent_file_id() const {
-  if (has_alive_remote_location()) {
-    return get_persistent_id(remote_location());
-  } else if (has_url()) {
-    return url();
-  } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
-    return get_persistent_id(generate_location());
+  if (!empty()) {
+    if (has_alive_remote_location()) {
+      return get_persistent_id(remote_location());
+    } else if (has_url()) {
+      return url();
+    } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
+      return get_persistent_id(generate_location());
+    }
   }
   return string();
 }
 
 string FileView::get_unique_file_id() const {
-  if (has_alive_remote_location()) {
-    if (!remote_location().is_web()) {
-      return get_unique_id(remote_location());
+  if (!empty()) {
+    if (has_alive_remote_location()) {
+      if (!remote_location().is_web()) {
+        return get_unique_id(remote_location());
+      }
+    } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
+      return get_unique_id(generate_location());
     }
-  } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
-    return get_unique_id(generate_location());
   }
   return string();
 }
