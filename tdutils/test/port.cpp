@@ -100,7 +100,6 @@ TEST(Port, SparseFiles) {
   unlink(path).ignore();
   auto fd = FileFd::open(path, FileFd::Write | FileFd::CreateNew).move_as_ok();
   ASSERT_EQ(0, fd.get_size().move_as_ok());
-  ASSERT_EQ(0, fd.get_real_size().move_as_ok());
   int64 offset = 100000000;
   fd.pwrite("a", offset).ensure();
   ASSERT_EQ(offset + 1, fd.get_size().move_as_ok());
