@@ -446,6 +446,8 @@ class ContactsManager : public Actor {
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
   void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
   bool get_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise);
+  FileSourceId get_chat_full_file_source_id(ChatId chat_id);
+  void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise);
 
   bool get_chat_is_active(ChatId chat_id) const;
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
@@ -458,6 +460,8 @@ class ContactsManager : public Actor {
   bool get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise);
   void reload_channel(ChannelId chnanel_id, Promise<Unit> &&promise);
   bool get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise);
+  FileSourceId get_channel_full_file_source_id(ChannelId channel_id);
+  void reload_channel_full(ChannelId channel_id, Promise<Unit> &&promise, const char *source);
 
   bool is_channel_public(ChannelId channel_id) const;
 
@@ -714,10 +718,15 @@ class ContactsManager : public Actor {
     void parse(ParserT &parser);
   };
 
+  // do not forget to update drop_chat_full and on_get_chat_full
   struct ChatFull {
     int32 version = -1;
     UserId creator_user_id;
     vector<DialogParticipant> participants;
+
+    Photo photo;
+    vector<FileId> registered_photo_file_ids;
+    FileSourceId file_source_id;
 
     string description;
 
@@ -785,7 +794,12 @@ class ContactsManager : public Actor {
     void parse(ParserT &parser);
   };
 
+  // do not forget to update invalidate_channel_full and on_get_chat_full
   struct ChannelFull {
+    Photo photo;
+    vector<FileId> registered_photo_file_ids;
+    FileSourceId file_source_id;
+
     string description;
     int32 participant_count = 0;
     int32 administrator_count = 0;
@@ -1061,8 +1075,7 @@ class ContactsManager : public Actor {
 
   ChannelFull *add_channel_full(ChannelId channel_id);
 
-  void send_get_channel_full_query(ChannelFull *channel_full, ChannelId channel_id,
-                                   tl_object_ptr<telegram_api::InputChannel> &&input_channel, Promise<Unit> &&promise,
+  void send_get_channel_full_query(ChannelFull *channel_full, ChannelId channel_id, Promise<Unit> &&promise,
                                    const char *source);
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;
@@ -1117,6 +1130,7 @@ class ContactsManager : public Actor {
   void on_update_chat_active(Chat *c, ChatId chat_id, bool is_active);
   void on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id);
 
+  void on_update_chat_full_photo(ChatFull *chat_full, ChatId chat_id, Photo photo);
   bool on_update_chat_full_participants_short(ChatFull *chat_full, ChatId chat_id, int32 version);
   void on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id, vector<DialogParticipant> participants,
                                         int32 version, bool from_update);
@@ -1132,6 +1146,7 @@ class ContactsManager : public Actor {
 
   void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
 
+  void on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo);
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
@@ -1153,7 +1168,10 @@ class ContactsManager : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus new_status,
                                     DialogParticipantStatus old_status);
 
+  void drop_chat_photos(ChatId chat_id, bool is_empty, bool drop_chat_full_photo, const char *source);
   void drop_chat_full(ChatId chat_id);
+
+  void drop_channel_photos(ChannelId channel_id, bool is_empty, bool drop_channel_full_photo, const char *source);
 
   void update_user_online_member_count(User *u);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
@@ -1406,11 +1424,13 @@ class ContactsManager : public Actor {
   std::unordered_map<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
   std::unordered_map<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
   mutable std::unordered_set<ChatId, ChatIdHash> unknown_chats_;
+  std::unordered_map<ChatId, FileSourceId, ChatIdHash> chat_full_file_source_ids_;
 
   std::unordered_set<ChannelId, ChannelIdHash> min_channels_;
   std::unordered_map<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
   std::unordered_map<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
   mutable std::unordered_set<ChannelId, ChannelIdHash> unknown_channels_;
+  std::unordered_map<ChannelId, FileSourceId, ChannelIdHash> channel_full_file_source_ids_;
 
   std::unordered_map<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable std::unordered_set<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

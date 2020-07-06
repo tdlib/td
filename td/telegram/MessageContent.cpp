@@ -2831,7 +2831,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_photo->date != new_photo->date) {
         is_content_changed = true;
       }
-      if (old_photo->id != new_photo->id || old_->caption != new_->caption) {
+      if (old_photo->id.get() != new_photo->id.get() || old_->caption != new_->caption) {
         need_update = true;
       }
       if (old_photo->minithumbnail != new_photo->minithumbnail) {

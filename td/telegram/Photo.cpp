@@ -610,7 +610,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
   if (res.is_empty()) {
-    LOG(ERROR) << "Receive photo with id " << res.id;
+    LOG(ERROR) << "Receive photo with id " << res.id.get();
     res.id = -3;
   }
 
@@ -658,8 +658,18 @@ tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManage
     return nullptr;
   }
 
-  return td_api::make_object<td_api::userProfilePhoto>(photo->id, photo->date,
+  return td_api::make_object<td_api::userProfilePhoto>(photo->id.get(), photo->date,
                                                        get_photo_sizes_object(file_manager, photo->photos));
+}
+
+tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager,
+                                                                         const Photo *photo) {
+  if (photo == nullptr || photo->is_empty()) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::chatPhotoFullInfo>(photo->date,
+                                                        get_photo_sizes_object(file_manager, photo->photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
@@ -801,7 +811,7 @@ vector<FileId> photo_get_file_ids(const Photo &photo) {
 }
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
-  return lhs.id == rhs.id && lhs.photos == rhs.photos;
+  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos;
 }
 
 bool operator!=(const Photo &lhs, const Photo &rhs) {
@@ -809,7 +819,7 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
-  return string_builder << "[id = " << photo.id << ", photos = " << format::as_array(photo.photos) << "]";
+  return string_builder << "[id = " << photo.id.get() << ", photos = " << format::as_array(photo.photos) << "]";
 }
 
 static tl_object_ptr<telegram_api::fileLocationToBeDeprecated> copy_location(

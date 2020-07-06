@@ -1391,15 +1391,15 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   std::unordered_map<int64, Photo> photos;
   for (auto &photo_ptr : page->photos_) {
     Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
-    if (photo.is_empty() || photo.id == 0) {
+    if (photo.is_empty() || photo.id.get() == 0) {
       LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
     } else {
-      auto photo_id = photo.id;
+      auto photo_id = photo.id.get();
       photos.emplace(photo_id, std::move(photo));
     }
   }
-  if (!web_page->photo.is_empty() && web_page->photo.id != 0) {
-    photos.emplace(web_page->photo.id, web_page->photo);
+  if (!web_page->photo.is_empty() && web_page->photo.id.get() != 0) {
+    photos.emplace(web_page->photo.id.get(), web_page->photo);
   }
 
   std::unordered_map<int64, FileId> animations;

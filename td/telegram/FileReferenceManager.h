@@ -49,6 +49,8 @@ class FileReferenceManager : public Actor {
   FileSourceId create_recent_stickers_file_source(bool is_attached);
   FileSourceId create_favorite_stickers_file_source();
   FileSourceId create_background_file_source(BackgroundId background_id, int64 access_hash);
+  FileSourceId create_chat_full_file_source(ChatId chat_id);
+  FileSourceId create_channel_full_file_source(ChannelId channel_id);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -123,11 +125,18 @@ class FileReferenceManager : public Actor {
     BackgroundId background_id;
     int64 access_hash;
   };
+  struct FileSourceChatFull {
+    ChatId chat_id;
+  };
+  struct FileSourceChannelFull {
+    ChannelId channel_id;
+  };
 
   // append only
-  using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
-                             FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations,
-                             FileSourceRecentStickers, FileSourceFavoriteStickers, FileSourceBackground>;
+  using FileSource =
+      Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
+              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers,
+              FileSourceBackground, FileSourceChatFull, FileSourceChannelFull>;
   vector<FileSource> file_sources_;
 
   int64 query_generation_{0};

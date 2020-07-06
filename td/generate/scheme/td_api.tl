@@ -351,6 +351,10 @@ userProfilePhoto id:int64 added_date:int32 sizes:vector<photoSize> = UserProfile
 userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfilePhotos;
 
 
+//@description Contains full information about a chat photo @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the chat photo, in different size
+chatPhotoFullInfo added_date:int32 sizes:vector<photoSize> = ChatPhotoFullInfo;
+
+
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
 //@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
 //@is_contact The user is a contact of the current user
@@ -490,8 +494,13 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@upgraded_to_supergroup_id Identifier of the supergroup to which this group was upgraded; 0 if none
 basicGroup id:int32 member_count:int32 status:ChatMemberStatus is_active:Bool upgraded_to_supergroup_id:int32 = BasicGroup;
 
-//@description Contains full information about a basic group @param_description Group description @creator_user_id User identifier of the creator of the group; 0 if unknown @members Group members @invite_link Invite link for this group; available only after it has been generated at least once and only for the group creator
-basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatMember> invite_link:string = BasicGroupFullInfo;
+//@description Contains full information about a basic group
+//@photo Chat photo; may be null
+//@param_description Group description
+//@creator_user_id User identifier of the creator of the group; 0 if unknown
+//@members Group members
+//@invite_link Invite link for this group; available only after it has been generated at least once and only for the group creator
+basicGroupFullInfo photo:chatPhotoFullInfo description:string creator_user_id:int32 members:vector<chatMember> invite_link:string = BasicGroupFullInfo;
 
 
 //@description Represents a supergroup or channel with zero or more members (subscribers in the case of channels). From the point of view of the system, a channel is a special kind of a supergroup: only administrators can post and see the list of members, and posts from all administrators use the name and photo of the channel instead of individual names and profile photos. Unlike supergroups, channels can have an unlimited number of subscribers
@@ -511,6 +520,7 @@ basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatM
 supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
+//@photo Chat photo; may be null
 //@param_description Supergroup or channel description
 //@member_count Number of members in the supergroup or channel; 0 if unknown
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
@@ -530,7 +540,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhotoFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state

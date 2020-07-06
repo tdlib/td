@@ -3407,10 +3407,12 @@ void ContactsManager::ChatFull::store(StorerT &storer) const {
   using td::store;
   bool has_description = !description.empty();
   bool has_invite_link = !invite_link.empty();
+  bool has_photo = !photo.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_invite_link);
   STORE_FLAG(can_set_username);
+  STORE_FLAG(has_photo);
   END_STORE_FLAGS();
   store(version, storer);
   store(creator_user_id, storer);
@@ -3421,6 +3423,9 @@ void ContactsManager::ChatFull::store(StorerT &storer) const {
   if (has_invite_link) {
     store(invite_link, storer);
   }
+  if (has_photo) {
+    store(photo, storer);
+  }
 }
 
 template <class ParserT>
@@ -3428,10 +3433,12 @@ void ContactsManager::ChatFull::parse(ParserT &parser) {
   using td::parse;
   bool has_description;
   bool has_invite_link;
+  bool has_photo;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_invite_link);
   PARSE_FLAG(can_set_username);
+  PARSE_FLAG(has_photo);
   END_PARSE_FLAGS();
   parse(version, parser);
   parse(creator_user_id, parser);
@@ -3441,6 +3448,9 @@ void ContactsManager::ChatFull::parse(ParserT &parser) {
   }
   if (has_invite_link) {
     parse(invite_link, parser);
+  }
+  if (has_photo) {
+    parse(photo, parser);
   }
 }
 
@@ -3607,6 +3617,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool is_slow_mode_enabled = slow_mode_delay != 0;
   bool is_slow_mode_delay_active = slow_mode_next_send_date != 0;
   bool has_stats_dc_id = stats_dc_id.is_exact();
+  bool has_photo = !photo.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3628,6 +3639,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(is_slow_mode_delay_active);
   STORE_FLAG(has_stats_dc_id);
+  STORE_FLAG(has_photo);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3673,6 +3685,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_stats_dc_id) {
     store(stats_dc_id.get_raw_id(), storer);
   }
+  if (has_photo) {
+    store(photo, storer);
+  }
 }
 
 template <class ParserT>
@@ -3693,6 +3708,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool is_slow_mode_enabled;
   bool is_slow_mode_delay_active;
   bool has_stats_dc_id;
+  bool has_photo;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3714,6 +3730,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(is_slow_mode_enabled);
   PARSE_FLAG(is_slow_mode_delay_active);
   PARSE_FLAG(has_stats_dc_id);
+  PARSE_FLAG(has_photo);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3759,6 +3776,10 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   if (has_stats_dc_id) {
     stats_dc_id = DcId::create(parser.fetch_int());
   }
+  if (has_photo) {
+    parse(photo, parser);
+  }
+
   if (legacy_can_view_statistics) {
     LOG(DEBUG) << "Ignore legacy can view statistics flag";
   }
@@ -5791,15 +5812,11 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
 
   auto channel_full = get_channel_full_force(channel_id, "get_channel_statistics_dc_id");
   if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact()) {
-    auto input_channel = get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
           send_closure(actor_id, &ContactsManager::get_channel_statistics_dc_id_impl, channel_id, std::move(promise));
         });
-
-    send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), std::move(query_promise),
-                                "get_channel_statistics_dc_id");
+    send_get_channel_full_query(channel_full, channel_id, std::move(query_promise), "get_channel_statistics_dc_id");
     return;
   }
 
@@ -8149,9 +8166,15 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
   get_bot_info_force(user_id, false);
 
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
+  if (u->photo.id != user_full->photo.id.get()) {
+    user_full->photo = Photo();
+    if (u->photo.id > 0) {
+      user_full->expires_at = 0.0;
+    }
+  }
   if (!user_full->photo.is_empty()) {
-    User *u = get_user(user_id);
-    CHECK(u != nullptr);
     register_user_photo(u, user_id, user_full->photo);
   }
 
@@ -8159,6 +8182,8 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   if (is_user_deleted(user_id)) {
     drop_user_full(user_id);
+  } else if (user_full->expires_at == 0.0) {
+    get_user_full(user_id, true, Auto());
   }
 }
 
@@ -8324,6 +8349,8 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     get_bot_info_force(participant.user_id);
   }
 
+  on_update_chat_full_photo(chat_full, chat_id, std::move(chat_full->photo));
+
   update_chat_full(chat_full, chat_id, true);
 }
 
@@ -8400,7 +8427,13 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     get_bot_info_force(user_id);
   }
 
+  on_update_channel_full_photo(channel_full, channel_id, std::move(channel_full->photo));
+
   update_channel_full(channel_full, channel_id, true);
+
+  if (channel_full->expires_at == 0.0) {
+    get_channel_full(channel_id, true, Auto());
+  }
 }
 
 ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId channel_id, const char *source) {
@@ -8550,6 +8583,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
+    drop_chat_photos(chat_id, !c->photo.small_file_id.is_valid(), true, "update_chat");
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(chat_id));
@@ -8597,6 +8631,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
+    drop_channel_photos(channel_id, !c->photo.small_file_id.is_valid(), true, "update_channel");
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
@@ -9118,9 +9153,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     ChatFull *chat = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
-
-    // Ignoring chat_full->photo
-    // If not ignored, file reference needs to be repaired with getChatFull
+    on_update_chat_full_photo(
+        chat, chat_id, get_photo(td_->file_manager_.get(), std::move(chat_full->chat_photo_), DialogId(chat_id)));
 
     for (auto &bot_info : chat_full->bot_info_) {
       if (on_update_bot_info(std::move(bot_info))) {
@@ -9171,9 +9205,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_notify_settings(
         DialogId(channel_id), std::move(channel_full->notify_settings_), "on_get_channel_full");
-
-    // Ignoring channel_full->photo
-    // If not ignored, file reference needs to be repaired with getChannelFull
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
@@ -9234,6 +9265,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         update_channel(c, channel_id);
       }
     }
+
+    on_update_channel_full_photo(
+        channel, channel_id,
+        get_photo(td_->file_manager_.get(), std::move(channel_full->chat_photo_), DialogId(channel_id)));
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
                                                    MessageId(ServerMessageId(channel_full->read_outbox_max_id_)));
@@ -9448,7 +9483,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id,
 
 void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &photo) {
   auto photo_file_ids = photo_get_file_ids(photo);
-  if (photo.id <= 0 || photo_file_ids.empty()) {
+  if (photo.is_empty() || photo_file_ids.empty()) {
     return;
   }
   auto first_file_id = photo_file_ids[0];
@@ -9457,19 +9492,20 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
     return;
   }
   CHECK(file_type == FileType::Photo);
-  if (u->photo_ids.emplace(photo.id).second) {
+  auto photo_id = photo.id.get();
+  if (u->photo_ids.emplace(photo_id).second) {
     if (user_id == get_my_id()) {
-      my_photo_file_id_[photo.id] = first_file_id;
+      my_photo_file_id_[photo_id] = first_file_id;
     }
     FileSourceId file_source_id;
-    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo.id));
+    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo_id));
     if (it != user_profile_photo_file_source_ids_.end()) {
       VLOG(file_references) << "Move " << it->second << " inside of " << user_id;
       file_source_id = it->second;
       user_profile_photo_file_source_ids_.erase(it);
     } else {
-      VLOG(file_references) << "Need to create new file source for photo " << photo.id << " of " << user_id;
-      file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo.id);
+      VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
+      file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
     }
     for (auto &file_id : photo_file_ids) {
       td_->file_manager_->add_file_source(file_id, file_source_id);
@@ -9751,29 +9787,29 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
   }
 
   if (drop_user_full_photo) {
-    auto user_full = get_user_full_force(user_id);
+    auto user_full = get_user_full(user_id);  // must not load UserFull
     if (user_full == nullptr) {
       return;
     }
 
-    if (is_empty) {
-      if (!user_full->photo.is_empty()) {
-        user_full->photo = Photo();
-        user_full->is_changed = true;
-      }
-    } else {
+    if (!user_full->photo.is_empty()) {
+      user_full->photo = Photo();
+      user_full->is_changed = true;
+    }
+    if (!is_empty) {
       if (user_full->expires_at > 0.0) {
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
-
-        get_user_full(user_id, true, Auto());
       }
+      get_user_full(user_id, true, Auto());
     }
     update_user_full(user_full, user_id);
   }
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
+  auto user_full = get_user_full_force(user_id);
+
   drop_user_photos(user_id, false, false, "drop_user_full");
 
   bot_infos_.erase(user_id);
@@ -9781,7 +9817,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
     G()->td_db()->get_sqlite_pmc()->erase(get_bot_info_database_key(user_id), Auto());
   }
 
-  auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
     return;
   }
@@ -10431,6 +10466,26 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
   update_channel_full(channel_full, channel_id);
 }
 
+void ContactsManager::drop_channel_photos(ChannelId channel_id, bool is_empty, bool drop_channel_full_photo,
+                                          const char *source) {
+  if (drop_channel_full_photo) {
+    auto channel_full = get_channel_full(channel_id, "drop_channel_photos");  // must not load ChannelFull
+    if (channel_full == nullptr) {
+      return;
+    }
+
+    on_update_channel_full_photo(channel_full, channel_id, Photo());
+    if (!is_empty) {
+      if (channel_full->expires_at > 0.0) {
+        channel_full->expires_at = 0.0;
+        channel_full->need_save_to_database = true;
+      }
+      send_get_channel_full_query(channel_full, channel_id, Auto(), "drop_channel_photos");
+    }
+    update_channel_full(channel_full, channel_id);
+  }
+}
+
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   // drop channel full cache
@@ -10455,6 +10510,80 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
     if (it != dialog_invite_links_.end()) {
       invalidate_invite_link_info(it->second);
     }
+  }
+}
+
+void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat_id, Photo photo) {
+  CHECK(chat_full != nullptr);
+  if (photo != chat_full->photo) {
+    chat_full->photo = std::move(photo);
+    chat_full->is_changed = true;
+  }
+  if (chat_full->photo.is_empty()) {
+    drop_chat_photos(chat_id, true, false, "on_update_chat_full_photo");
+  }
+
+  auto photo_file_ids = photo_get_file_ids(photo);
+  if (chat_full->registered_photo_file_ids == photo_file_ids) {
+    return;
+  }
+
+  auto &file_source_id = chat_full->file_source_id;
+  if (!file_source_id.is_valid()) {
+    auto it = chat_full_file_source_ids_.find(chat_id);
+    if (it != chat_full_file_source_ids_.end()) {
+      VLOG(file_references) << "Move " << it->second << " inside of " << chat_id;
+      file_source_id = it->second;
+      chat_full_file_source_ids_.erase(it);
+    } else {
+      VLOG(file_references) << "Need to create new file source for full " << chat_id;
+      file_source_id = td_->file_reference_manager_->create_chat_full_file_source(chat_id);
+    }
+  }
+
+  for (auto &file_id : chat_full->registered_photo_file_ids) {
+    td_->file_manager_->remove_file_source(file_id, file_source_id);
+  }
+  chat_full->registered_photo_file_ids = std::move(photo_file_ids);
+  for (auto &file_id : chat_full->registered_photo_file_ids) {
+    td_->file_manager_->add_file_source(file_id, file_source_id);
+  }
+}
+
+void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo) {
+  CHECK(channel_full != nullptr);
+  if (photo != channel_full->photo) {
+    channel_full->photo = std::move(photo);
+    channel_full->is_changed = true;
+  }
+  if (channel_full->photo.is_empty()) {
+    drop_channel_photos(channel_id, true, false, "on_update_channel_full_photo");
+  }
+
+  auto photo_file_ids = photo_get_file_ids(photo);
+  if (channel_full->registered_photo_file_ids == photo_file_ids) {
+    return;
+  }
+
+  auto &file_source_id = channel_full->file_source_id;
+  if (!file_source_id.is_valid()) {
+    auto it = channel_full_file_source_ids_.find(channel_id);
+    if (it != channel_full_file_source_ids_.end()) {
+      VLOG(file_references) << "Move " << it->second << " inside of " << channel_id;
+      file_source_id = it->second;
+      channel_full_file_source_ids_.erase(it);
+    } else {
+      VLOG(file_references) << "Need to create new file source for full " << channel_id;
+      file_source_id = td_->file_reference_manager_->create_channel_full_file_source(channel_id);
+    }
+  }
+
+  for (auto &file_id : channel_full->registered_photo_file_ids) {
+    td_->file_manager_->remove_file_source(file_id, file_source_id);
+  }
+  channel_full->registered_photo_file_ids = std::move(photo_file_ids);
+  for (auto &file_id : channel_full->registered_photo_file_ids) {
+    td_->file_manager_->add_file_source(file_id, file_source_id);
   }
 }
 
@@ -11322,9 +11451,26 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
   update_chat_online_member_count(chat_full, chat_id, true);
 }
 
+void ContactsManager::drop_chat_photos(ChatId chat_id, bool is_empty, bool drop_chat_full_photo, const char *source) {
+  if (drop_chat_full_photo) {
+    auto chat_full = get_chat_full(chat_id);  // must not load ChatFull
+    if (chat_full == nullptr) {
+      return;
+    }
+
+    on_update_chat_full_photo(chat_full, chat_id, Photo());
+    if (!is_empty) {
+      reload_chat_full(chat_id, Auto());
+    }
+    update_chat_full(chat_full, chat_id);
+  }
+}
+
 void ContactsManager::drop_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
+    drop_chat_photos(chat_id, false, false, "drop_chat_full");
+
     auto it = dialog_invite_links_.find(DialogId(chat_id));
     if (it != dialog_invite_links_.end()) {
       invalidate_invite_link_info(it->second);
@@ -11333,7 +11479,8 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
   }
 
   LOG(INFO) << "Drop basicGroupFullInfo of " << chat_id;
-  //chat_full->creator_user_id = UserId();
+  on_update_chat_full_photo(chat_full, chat_id, Photo());
+  // chat_full->creator_user_id = UserId();
   chat_full->participants.clear();
   chat_full->version = -1;
   update_invite_link(chat_full->invite_link, nullptr);
@@ -11378,11 +11525,7 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
         created_public_channels_[i].clear();
       }
 
-      auto input_channel = get_input_channel(channel_id);
-      if (input_channel != nullptr) {
-        send_get_channel_full_query(nullptr, channel_id, std::move(input_channel), Auto(), "update channel owner");
-      }
-
+      send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
       reload_dialog_administrators(DialogId(channel_id), 0, Auto());
     }
   }
@@ -11696,7 +11839,7 @@ void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&pro
     case DialogType::Channel:
       return reload_channel(dialog_id.get_channel_id(), std::move(promise));
     default:
-      promise.set_error(Status::Error("Invalid dialog id to reload"));
+      promise.set_error(Status::Error("Invalid dialog ID to reload"));
   }
 }
 
@@ -11985,6 +12128,36 @@ FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_
   return source_id;
 }
 
+FileSourceId ContactsManager::get_chat_full_file_source_id(ChatId chat_id) {
+  if (get_chat_full(chat_id) != nullptr) {
+    VLOG(file_references) << "Don't need to create file source for full " << chat_id;
+    // chat full was already added, source ID was registered and shouldn't be needed
+    return FileSourceId();
+  }
+
+  auto &source_id = chat_full_file_source_ids_[chat_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_chat_full_file_source(chat_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for full " << chat_id;
+  return source_id;
+}
+
+FileSourceId ContactsManager::get_channel_full_file_source_id(ChannelId channel_id) {
+  if (get_channel_full(channel_id) != nullptr) {
+    VLOG(file_references) << "Don't need to create file source for full " << channel_id;
+    // channel full was already added, source ID was registered and shouldn't be needed
+    return FileSourceId();
+  }
+
+  auto &source_id = channel_full_file_source_ids_[channel_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_channel_full_file_source(channel_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for full " << channel_id;
+  return source_id;
+}
+
 bool ContactsManager::have_chat(ChatId chat_id) const {
   return chats_.count(chat_id) > 0;
 }
@@ -12129,6 +12302,10 @@ bool ContactsManager::get_chat_full(ChatId chat_id, bool force, Promise<Unit> &&
 
   promise.set_value(Unit());
   return true;
+}
+
+void ContactsManager::reload_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
+  send_get_chat_full_query(chat_id, std::move(promise), "reload_chat_full");
 }
 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source) {
@@ -12371,9 +12548,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channe
 
   auto channel_full = p->second.get();
   if (channel_full->is_expired() && !td_->auth_manager_->is_bot()) {
-    auto input_channel = get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
-    send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), Auto(), source);
+    send_get_channel_full_query(channel_full, channel_id, Auto(), source);
   }
 
   return channel_full;
@@ -12391,25 +12566,16 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
 bool ContactsManager::get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
   auto channel_full = get_channel_full_force(channel_id, "get_channel_full");
   if (channel_full == nullptr) {
-    auto input_channel = get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      promise.set_error(Status::Error(6, "Supergroup not found"));
-      return false;
-    }
-
-    send_get_channel_full_query(nullptr, channel_id, std::move(input_channel), std::move(promise), "get channel_full");
+    send_get_channel_full_query(channel_full, channel_id, std::move(promise), "get_channel_full");
     return false;
   }
   if (channel_full->is_expired()) {
     if (td_->auth_manager_->is_bot() && !force) {
-      auto input_channel = get_input_channel(channel_id);
-      CHECK(input_channel != nullptr);
-      send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), std::move(promise),
-                                  "get expired channel_full");
+      send_get_channel_full_query(channel_full, channel_id, std::move(promise), "get expired channel_full");
       return false;
     } else {
       // request has already been sent in get_channel_full_force
-      // send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), Auto(), "get expired channel_full");
+      // send_get_channel_full_query(channel_full, channel_id, Auto(), "get expired channel_full");
     }
   }
 
@@ -12417,9 +12583,18 @@ bool ContactsManager::get_channel_full(ChannelId channel_id, bool force, Promise
   return true;
 }
 
+void ContactsManager::reload_channel_full(ChannelId channel_id, Promise<Unit> &&promise, const char *source) {
+  send_get_channel_full_query(get_channel_full(channel_id, "reload_channel_full"), channel_id, std::move(promise),
+                              source);
+}
+
 void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, ChannelId channel_id,
-                                                  tl_object_ptr<telegram_api::InputChannel> &&input_channel,
                                                   Promise<Unit> &&promise, const char *source) {
+  auto input_channel = get_input_channel(channel_id);
+  if (input_channel == nullptr) {
+    return promise.set_error(Status::Error(6, "Supergroup not found"));
+  }
+
   if (channel_full != nullptr) {
     if (!promise) {
       if (channel_full->repair_request_version != 0) {
@@ -12743,13 +12918,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
     if (force) {
       LOG(ERROR) << "Can't find cached ChannelFull";
     } else {
-      auto input_channel = get_input_channel(channel_id);
-      if (input_channel == nullptr) {
-        promise.set_error(Status::Error(6, "Supergroup not found"));
-      } else {
-        send_get_channel_full_query(channel_full, channel_id, std::move(input_channel), std::move(promise),
-                                    "get_channel_participants");
-      }
+      send_get_channel_full_query(channel_full, channel_id, std::move(promise), "get_channel_participants");
       return result;
     }
   }
@@ -13457,7 +13626,8 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   return make_tl_object<td_api::basicGroupFullInfo>(
-      chat_full->description, get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
+      get_chat_photo_full_info_object(td_->file_manager_.get(), &chat_full->photo), chat_full->description,
+      get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
       chat_full->invite_link);
@@ -13501,11 +13671,12 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
     slow_mode_delay_expires_in = max(channel_full->slow_mode_next_send_date - G()->server_time(), 1e-3);
   }
   return td_api::make_object<td_api::supergroupFullInfo>(
-      channel_full->description, channel_full->participant_count, channel_full->administrator_count,
-      channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
-      channel_full->slow_mode_delay, slow_mode_delay_expires_in, channel_full->can_get_participants,
-      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
-      channel_full->stats_dc_id.is_exact(), channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
+      get_chat_photo_full_info_object(td_->file_manager_.get(), &channel_full->photo), channel_full->description,
+      channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
+      channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
+      slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
+      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->stats_dc_id.is_exact(),
+      channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());

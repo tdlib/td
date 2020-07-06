@@ -47,7 +47,9 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceBackground &source) {
                             td::store(source.background_id, storer);
                             td::store(source.access_hash, storer);
-                          }));
+                          },
+                          [&](const FileSourceChatFull &source) { td::store(source.chat_id, storer); },
+                          [&](const FileSourceChannelFull &source) { td::store(source.channel_id, storer); }));
 }
 
 template <class ParserT>
@@ -98,6 +100,16 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(background_id, parser);
       td::parse(access_hash, parser);
       return td->background_manager_->get_background_file_source_id(background_id, access_hash);
+    }
+    case 10: {
+      ChatId chat_id;
+      td::parse(chat_id, parser);
+      return td->contacts_manager_->get_chat_full_file_source_id(chat_id);
+    }
+    case 11: {
+      ChannelId channel_id;
+      td::parse(channel_id, parser);
+      return td->contacts_manager_->get_channel_full_file_source_id(channel_id);
     }
     default:
       parser.set_error("Invalid type in FileSource");

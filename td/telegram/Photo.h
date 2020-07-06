@@ -20,6 +20,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/MovableValue.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Variant.h"
 
@@ -49,7 +50,7 @@ struct PhotoSize {
 };
 
 struct Photo {
-  int64 id = -2;
+  MovableValue<int64, -2> id;
   int32 date = 0;
   string minithumbnail;
   vector<PhotoSize> photos;
@@ -58,7 +59,7 @@ struct Photo {
   vector<FileId> sticker_file_ids;
 
   bool is_empty() const {
-    return id == -2;
+    return id.get() == -2;
   }
 };
 
@@ -125,6 +126,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
                              DialogId owner_dialog_id);
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo);
 tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo);
+tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager, const Photo *photo);
 
 void photo_delete_thumbnail(Photo &photo);
 

@@ -77,7 +77,7 @@ void store(const Photo &photo, StorerT &storer) {
   STORE_FLAG(photo.has_stickers);
   STORE_FLAG(has_minithumbnail);
   END_STORE_FLAGS();
-  store(photo.id, storer);
+  store(photo.id.get(), storer);
   store(photo.date, storer);
   store(photo.photos, storer);
   if (photo.has_stickers) {
@@ -95,7 +95,9 @@ void parse(Photo &photo, ParserT &parser) {
   PARSE_FLAG(photo.has_stickers);
   PARSE_FLAG(has_minithumbnail);
   END_PARSE_FLAGS();
-  parse(photo.id, parser);
+  int64 id;
+  parse(id, parser);
+  photo.id = id;
   parse(photo.date, parser);
   parse(photo.photos, parser);
   if (photo.has_stickers) {
