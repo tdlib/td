@@ -11635,11 +11635,7 @@ void ContactsManager::on_channel_username_changed(Channel *c, ChannelId channel_
 }
 
 void ContactsManager::on_update_channel_description(ChannelId channel_id, string &&description) {
-  if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id;
-    return;
-  }
-
+  CHECK(channel_id.is_valid());
   auto channel_full = get_channel_full_force(channel_id, "on_update_channel_description");
   if (channel_full == nullptr) {
     return;
@@ -11652,11 +11648,7 @@ void ContactsManager::on_update_channel_description(ChannelId channel_id, string
 }
 
 void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id) {
-  if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id;
-    return;
-  }
-
+  CHECK(channel_id.is_valid());
   auto channel_full = get_channel_full_force(channel_id, "on_update_channel_sticker_set");
   if (channel_full == nullptr) {
     return;
@@ -11736,11 +11728,7 @@ void ContactsManager::on_update_channel_full_bot_user_ids(ChannelFull *channel_f
 }
 
 void ContactsManager::on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available) {
-  if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id;
-    return;
-  }
-
+  CHECK(channel_id.is_valid());
   auto channel_full = get_channel_full_force(channel_id, "on_update_channel_is_all_history_available");
   if (channel_full == nullptr) {
     return;
@@ -12510,7 +12498,7 @@ bool ContactsManager::get_channel_sign_messages(const Channel *c) {
 }
 
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
-  auto channel_full = get_channel_full_force(channel_id, ":get_channel_slow_mode_delay");
+  auto channel_full = get_channel_full_force(channel_id, "get_channel_slow_mode_delay");
   if (channel_full == nullptr) {
     return 0;
   }
