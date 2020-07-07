@@ -3847,8 +3847,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setProfilePhoto>(
           td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args))));
     } else if (op == "sppa" || op == "sppv") {
-      send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(args))));
+      string animation;
+      string main_frame_timestamp;
+      std::tie(animation, main_frame_timestamp) = split(args);
+
+      send_request(td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
+          as_input_file(animation), to_double(main_frame_timestamp))));
     } else if (op == "sh") {
       auto prefix = std::move(args);
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));

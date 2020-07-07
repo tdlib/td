@@ -809,7 +809,8 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
   explicit UploadProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, bool is_animation) {
+  void send(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, bool is_animation,
+            double main_frame_timestamp) {
     CHECK(input_file != nullptr);
     CHECK(file_id.is_valid());
 
@@ -821,12 +822,16 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
     if (is_animation) {
       flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_MASK;
       video_input_file = std::move(input_file);
+
+      if (main_frame_timestamp != 0.0) {
+        flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK;
+      }
     } else {
       flags |= telegram_api::photos_uploadProfilePhoto::FILE_MASK;
       photo_input_file = std::move(input_file);
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::photos_uploadProfilePhoto(flags, std::move(photo_input_file), std::move(video_input_file), 0)));
+    send_query(G()->net_query_creator().create(telegram_api::photos_uploadProfilePhoto(
+        flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -5491,6 +5496,7 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
   }
 
   const td_api::object_ptr<td_api::InputFile> *input_file = nullptr;
+  double main_frame_timestamp = 0.0;
   bool is_animation = false;
   switch (input_photo->get_id()) {
     case td_api::inputChatPhotoPrevious::ID: {
@@ -5517,12 +5523,18 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
     case td_api::inputChatPhotoAnimation::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoAnimation *>(input_photo.get());
       input_file = &photo->animation_;
+      main_frame_timestamp = photo->main_frame_timestamp_;
       is_animation = true;
       break;
     }
     default:
       UNREACHABLE();
       break;
+  }
+
+  const double MAX_ANIMATION_DURATION = 10.0;
+  if (main_frame_timestamp < 0.0 || main_frame_timestamp > MAX_ANIMATION_DURATION) {
+    return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
@@ -5534,7 +5546,8 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
   FileId file_id = r_file_id.ok();
   CHECK(file_id.is_valid());
 
-  upload_profile_photo(td_->file_manager_->dup_file_id(file_id), is_animation, std::move(promise));
+  upload_profile_photo(td_->file_manager_->dup_file_id(file_id), is_animation, main_frame_timestamp,
+                       std::move(promise));
 }
 
 void ContactsManager::send_update_profile_photo_query(FileId file_id, Promise<Unit> &&promise) {
@@ -5543,11 +5556,12 @@ void ContactsManager::send_update_profile_photo_query(FileId file_id, Promise<Un
       ->send(file_id, file_view.main_remote_location().as_input_photo());
 }
 
-void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, Promise<Unit> &&promise,
-                                           vector<int> bad_parts) {
+void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp,
+                                           Promise<Unit> &&promise, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
-  uploaded_profile_photos_.emplace(file_id, UploadedProfilePhoto{is_animation, !bad_parts.empty(), std::move(promise)});
+  uploaded_profile_photos_.emplace(
+      file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, !bad_parts.empty(), std::move(promise)});
   LOG(INFO) << "Ask to upload profile photo " << file_id;
   // TODO use force_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
@@ -13695,6 +13709,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
   auto it = uploaded_profile_photos_.find(file_id);
   CHECK(it != uploaded_profile_photos_.end());
 
+  double main_frame_timestamp = it->second.main_frame_timestamp;
   bool is_animation = it->second.is_animation;
   bool is_reupload = it->second.is_reupload;
   auto promise = std::move(it->second.promise);
@@ -13713,12 +13728,13 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
     // delete file reference and forcely reupload the file
     auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_profile_photo(file_id, is_animation, std::move(promise), {-1});
+    upload_profile_photo(file_id, is_animation, main_frame_timestamp, std::move(promise), {-1});
     return;
   }
   CHECK(input_file != nullptr);
 
-  td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))->send(file_id, std::move(input_file), is_animation);
+  td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))
+      ->send(file_id, std::move(input_file), is_animation, main_frame_timestamp);
 }
 
 void ContactsManager::on_upload_profile_photo_error(FileId file_id, Status status) {
