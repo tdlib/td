@@ -663,13 +663,12 @@ tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManage
                                                        get_photo_sizes_object(file_manager, photo.photos));
 }
 
-tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager,
-                                                                         const Photo &photo) {
+tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo) {
   if (photo.is_empty()) {
     return nullptr;
   }
 
-  return td_api::make_object<td_api::chatPhotoFullInfo>(photo.date, get_photo_sizes_object(file_manager, photo.photos));
+  return td_api::make_object<td_api::chatPhoto>(photo.date, get_photo_sizes_object(file_manager, photo.photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

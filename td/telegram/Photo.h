@@ -127,7 +127,7 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
                              DialogId owner_dialog_id);
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo);
 tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo &photo);
-tl_object_ptr<td_api::chatPhotoFullInfo> get_chat_photo_full_info_object(FileManager *file_manager, const Photo &photo);
+tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo);
 
 void photo_delete_thumbnail(Photo &photo);
 
