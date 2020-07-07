@@ -308,7 +308,7 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int32> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
-//@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
+//@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of user profile photos
 //@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed @big A big (640x640) user profile photo. The file can be downloaded only before the photo is changed
 profilePhoto id:int64 small:file big:file = ProfilePhoto;
 
@@ -344,15 +344,11 @@ botInfo description:string commands:vector<botCommand> = BotInfo;
 chatLocation location:location address:string = ChatLocation;
 
 
-//@description Contains full information about a user profile photo @id Unique user profile photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the user photo, in different sizes
-userProfilePhoto id:int64 added_date:int32 sizes:vector<photoSize> = UserProfilePhoto;
+//@description Describes a chat or user profile photo @id Unique photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the photo, in different size
+chatPhoto id:int64 added_date:int32 sizes:vector<photoSize> = ChatPhoto;
 
-//@description Contains part of the list of user photos @total_count Total number of user profile photos @photos A list of photos
-userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfilePhotos;
-
-
-//@description Describes a chat photo @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the chat photo, in different size
-chatPhoto added_date:int32 sizes:vector<photoSize> = ChatPhoto;
+//@description Contains a list of chat or user profile photos @total_count Total number of photos @photos List of photos
+chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;
 
 
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
@@ -371,7 +367,7 @@ user id:int32 first_name:string last_name:string username:string phone_number:st
 //@can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null
-userFullInfo photo:userProfilePhoto is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total count of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int32> = Users;
@@ -4011,7 +4007,7 @@ sharePhoneNumber user_id:int32 = Ok;
 
 
 //@description Returns the profile photos of a user. The result of this query may be outdated: some photos might have been deleted already @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
-getUserProfilePhotos user_id:int32 offset:int32 limit:int32 = UserProfilePhotos;
+getUserProfilePhotos user_id:int32 offset:int32 limit:int32 = ChatPhotos;
 
 
 //@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is not empty, favorite and recently used stickers may also be returned @emoji String representation of emoji. If empty, returns all known installed stickers @limit The maximum number of stickers to be returned

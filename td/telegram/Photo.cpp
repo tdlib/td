@@ -654,21 +654,13 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
                                             get_photo_sizes_object(file_manager, photo.photos));
 }
 
-tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo &photo) {
-  if (photo.is_empty()) {
-    return nullptr;
-  }
-
-  return td_api::make_object<td_api::userProfilePhoto>(photo.id.get(), photo.date,
-                                                       get_photo_sizes_object(file_manager, photo.photos));
-}
-
 tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo) {
   if (photo.is_empty()) {
     return nullptr;
   }
 
-  return td_api::make_object<td_api::chatPhoto>(photo.date, get_photo_sizes_object(file_manager, photo.photos));
+  return td_api::make_object<td_api::chatPhoto>(photo.id.get(), photo.date,
+                                                get_photo_sizes_object(file_manager, photo.photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

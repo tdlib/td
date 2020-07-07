@@ -2247,10 +2247,11 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
     // TODO create function get_user_profile_photos_object
     auto result = transform(photos.second, [file_manager = td->file_manager_.get()](const Photo *photo) {
       CHECK(photo != nullptr);
-      return get_user_profile_photo_object(file_manager, *photo);
+      CHECK(!photo->is_empty());
+      return get_chat_photo_object(file_manager, *photo);
     });
 
-    send_result(make_tl_object<td_api::userProfilePhotos>(photos.first, std::move(result)));
+    send_result(make_tl_object<td_api::chatPhotos>(photos.first, std::move(result)));
   }
 
  public:
