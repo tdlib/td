@@ -13557,7 +13557,7 @@ void ContactsManager::on_upload_profile_photo_error(FileId file_id, Status statu
   promise.set_error(std::move(status));  // TODO check that status has valid error code
 }
 
-tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId user_id, const User *u) const {
+td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId user_id, const User *u) const {
   if (u->is_bot) {
     return make_tl_object<td_api::userStatusOnline>(std::numeric_limits<int32>::max());
   }
@@ -13583,15 +13583,18 @@ tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId
   }
 }
 
+td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
+  return td_api::make_object<td_api::updateUser>(
+      td_api::make_object<td_api::user>(user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
+                                        get_profile_photo_object(nullptr, nullptr), false, false, false, false, "",
+                                        false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
+}
+
 int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
   if (user_id.is_valid() && get_user(user_id) == nullptr && unknown_users_.count(user_id) == 0) {
     LOG(ERROR) << "Have no info about " << user_id << " from " << source;
     unknown_users_.insert(user_id);
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
-                     user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
-                     get_profile_photo_object(td_->file_manager_.get(), nullptr), false, false, false, false, "", false,
-                     false, td_api::make_object<td_api::userTypeUnknown>(), "")));
+    send_closure(G()->td(), &Td::send_update, get_update_unknown_user_object(user_id));
   }
   return user_id.get();
 }
@@ -13648,13 +13651,16 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       is_bot ? get_bot_info_object(user_id) : nullptr);
 }
 
+td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
+  return td_api::make_object<td_api::updateBasicGroup>(td_api::make_object<td_api::basicGroup>(
+      chat_id.get(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), true, 0));
+}
+
 int32 ContactsManager::get_basic_group_id_object(ChatId chat_id, const char *source) const {
   if (chat_id.is_valid() && get_chat(chat_id) == nullptr && unknown_chats_.count(chat_id) == 0) {
     LOG(ERROR) << "Have no info about " << chat_id << " from " << source;
     unknown_chats_.insert(chat_id);
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateBasicGroup>(td_api::make_object<td_api::basicGroup>(
-                     chat_id.get(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), true, 0)));
+    send_closure(G()->td(), &Td::send_update, get_update_unknown_basic_group_object(chat_id));
   }
   return chat_id.get();
 }
@@ -13694,14 +13700,18 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
       chat_full->invite_link);
 }
 
+td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown_supergroup_object(
+    ChannelId channel_id) {
+  return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
+      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
+      false, false, false, true, false, "", false));
+}
+
 int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
   if (channel_id.is_valid() && get_channel(channel_id) == nullptr && unknown_channels_.count(channel_id) == 0) {
     LOG(ERROR) << "Have no info about " << channel_id << " received from " << source;
     unknown_channels_.insert(channel_id);
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
-                     channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, false, false, false, true, false, "", false)));
+    send_closure(G()->td(), &Td::send_update, get_update_unknown_supergroup_object(channel_id));
   }
   return channel_id.get();
 }
@@ -13758,15 +13768,18 @@ tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_ob
   }
 }
 
+td_api::object_ptr<td_api::updateSecretChat> ContactsManager::get_update_unknown_secret_chat_object(
+    SecretChatId secret_chat_id) {
+  return td_api::make_object<td_api::updateSecretChat>(td_api::make_object<td_api::secretChat>(
+      secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown), false, 0, string(), 0));
+}
+
 int32 ContactsManager::get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const {
   if (secret_chat_id.is_valid() && get_secret_chat(secret_chat_id) == nullptr &&
       unknown_secret_chats_.count(secret_chat_id) == 0) {
     LOG(ERROR) << "Have no info about " << secret_chat_id << " from " << source;
     unknown_secret_chats_.insert(secret_chat_id);
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateSecretChat>(td_api::make_object<td_api::secretChat>(
-            secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown), false, 0, string(), 0)));
+    send_closure(G()->td(), &Td::send_update, get_update_unknown_secret_chat_object(secret_chat_id));
   }
   return secret_chat_id.get();
 }
@@ -13913,6 +13926,27 @@ void ContactsManager::after_get_difference() {
 }
 
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  for (auto user_id : unknown_users_) {
+    if (!have_min_user(user_id)) {
+      updates.push_back(get_update_unknown_user_object(user_id));
+    }
+  }
+  for (auto chat_id : unknown_chats_) {
+    if (!have_chat(chat_id)) {
+      updates.push_back(get_update_unknown_basic_group_object(chat_id));
+    }
+  }
+  for (auto channel_id : unknown_channels_) {
+    if (!have_channel(channel_id)) {
+      updates.push_back(get_update_unknown_supergroup_object(channel_id));
+    }
+  }
+  for (auto secret_chat_id : unknown_secret_chats_) {
+    if (!have_secret_chat(secret_chat_id)) {
+      updates.push_back(get_update_unknown_secret_chat_object(secret_chat_id));
+    }
+  }
+
   for (auto &it : users_) {
     updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, it.second.get())));
   }
@@ -13930,15 +13964,15 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
 
   for (auto &it : users_full_) {
     updates.push_back(td_api::make_object<td_api::updateUserFullInfo>(
-        get_user_id_object(it.first, "get_current_state"), get_user_full_info_object(it.first, it.second.get())));
+        it.first.get(), get_user_full_info_object(it.first, it.second.get())));
   }
   for (auto &it : channels_full_) {
     updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
-        get_supergroup_id_object(it.first, "get_current_state"), get_supergroup_full_info_object(it.second.get())));
+        it.first.get(), get_supergroup_full_info_object(it.second.get())));
   }
   for (auto &it : chats_full_) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
-        get_basic_group_id_object(it.first, "get_current_state"), get_basic_group_full_info_object(it.second.get())));
+        it.first.get(), get_basic_group_full_info_object(it.second.get())));
   }
 }
 
