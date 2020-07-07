@@ -199,8 +199,6 @@ void update_message_content_file_id_remote(MessageContent *content, FileId file_
 
 FileId get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td);
 
-FileId get_message_content_animated_thumbnail_file_id(const MessageContent *content, const Td *td);
-
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td);
 
 string get_message_content_search_text(const Td *td, const MessageContent *content);

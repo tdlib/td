@@ -50,13 +50,17 @@ struct PhotoSize {
   FileId file_id;
 };
 
+struct AnimationSize : public PhotoSize {
+  double main_frame_timestamp = 0.0;
+};
+
 struct Photo {
   MovableValue<int64, -2> id;
   int32 date = 0;
   string minithumbnail;
   vector<PhotoSize> photos;
 
-  vector<PhotoSize> animated_photos;
+  vector<AnimationSize> animations;
 
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
@@ -107,9 +111,9 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
                                           int64 access_hash, string file_reference, DcId dc_id,
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
                                           PhotoFormat format);
-PhotoSize get_video_photo_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
-                               string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                               tl_object_ptr<telegram_api::videoSize> &&size);
+AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
+                                 string file_reference, DcId dc_id, DialogId owner_dialog_id,
+                                 tl_object_ptr<telegram_api::videoSize> &&size);
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
@@ -121,6 +125,11 @@ bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs);
 bool operator<(const PhotoSize &lhs, const PhotoSize &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size);
+
+bool operator==(const AnimationSize &lhs, const AnimationSize &rhs);
+bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size);
 
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id);
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id);

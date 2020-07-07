@@ -214,7 +214,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string file_reference;
   string minithumbnail;
   PhotoSize thumbnail;
-  PhotoSize animated_thumbnail;
+  AnimationSize animated_thumbnail;
   FileEncryptionKey encryption_key;
   bool is_animated_sticker = false;
   bool is_web = false;
@@ -273,9 +273,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
     for (auto &thumb : document->video_thumbs_) {
       if (thumb->type_ == "v") {
-        animated_thumbnail =
-            get_video_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash, file_reference,
-                                 DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+        animated_thumbnail = get_animation_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash,
+                                                file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
         if (animated_thumbnail.file_id.is_valid()) {
           break;
         }
@@ -310,7 +309,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     dc_id = 0;
     access_hash = 0;
     if (remote_document.thumbnail.type == 'v') {
-      animated_thumbnail = std::move(remote_document.thumbnail);
+      static_cast<PhotoSize &>(animated_thumbnail) = std::move(remote_document.thumbnail);
     } else {
       thumbnail = std::move(remote_document.thumbnail);
       if (remote_document.thumbnail.type == 'g') {

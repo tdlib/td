@@ -71,13 +71,25 @@ void parse(PhotoSize &photo_size, ParserT &parser) {
 }
 
 template <class StorerT>
+void store(const AnimationSize &animation_size, StorerT &storer) {
+  store(static_cast<const PhotoSize &>(animation_size), storer);
+  store(animation_size.main_frame_timestamp, storer);
+}
+
+template <class ParserT>
+void parse(AnimationSize &animation_size, ParserT &parser) {
+  parse(static_cast<PhotoSize &>(animation_size), parser);
+  parse(animation_size.main_frame_timestamp, parser);
+}
+
+template <class StorerT>
 void store(const Photo &photo, StorerT &storer) {
   bool has_minithumbnail = !photo.minithumbnail.empty();
-  bool has_animated_photos = !photo.animated_photos.empty();
+  bool has_animations = !photo.animations.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(photo.has_stickers);
   STORE_FLAG(has_minithumbnail);
-  STORE_FLAG(has_animated_photos);
+  STORE_FLAG(has_animations);
   END_STORE_FLAGS();
   store(photo.id.get(), storer);
   store(photo.date, storer);
@@ -88,19 +100,19 @@ void store(const Photo &photo, StorerT &storer) {
   if (has_minithumbnail) {
     store(photo.minithumbnail, storer);
   }
-  if (has_animated_photos) {
-    store(photo.animated_photos, storer);
+  if (has_animations) {
+    store(photo.animations, storer);
   }
 }
 
 template <class ParserT>
 void parse(Photo &photo, ParserT &parser) {
   bool has_minithumbnail;
-  bool has_animated_photos;
+  bool has_animations;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(photo.has_stickers);
   PARSE_FLAG(has_minithumbnail);
-  PARSE_FLAG(has_animated_photos);
+  PARSE_FLAG(has_animations);
   END_PARSE_FLAGS();
   int64 id;
   parse(id, parser);
@@ -113,8 +125,8 @@ void parse(Photo &photo, ParserT &parser) {
   if (has_minithumbnail) {
     parse(photo.minithumbnail, parser);
   }
-  if (has_animated_photos) {
-    parse(photo.animated_photos, parser);
+  if (has_animations) {
+    parse(photo.animations, parser);
   }
 }
 

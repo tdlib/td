@@ -135,7 +135,7 @@ void VideosManager::delete_video_thumbnail(FileId file_id) {
   auto &video = videos_[file_id];
   CHECK(video != nullptr);
   video->thumbnail = PhotoSize();
-  video->animated_thumbnail = PhotoSize();
+  video->animated_thumbnail = AnimationSize();
 }
 
 FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
@@ -194,7 +194,7 @@ bool VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_o
 }
 
 void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail,
-                                 PhotoSize animated_thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
+                                 AnimationSize animated_thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
                                  string file_name, string mime_type, int32 duration, Dimensions dimensions,
                                  bool supports_streaming, bool replace) {
   auto v = make_unique<Video>();

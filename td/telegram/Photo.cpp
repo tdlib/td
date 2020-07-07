@@ -23,6 +23,7 @@
 #include "td/utils/Random.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace td {
@@ -279,7 +280,7 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
         result.big_file_id = size.file_id;
       }
     }
-    result.is_animated = !photo.animated_photos.empty();
+    result.is_animated = !photo.animations.empty();
     if (!result.small_file_id.is_valid() || !result.big_file_id.is_valid()) {
       LOG(ERROR) << "Failed to convert " << photo << " to chat photo";
       return DialogPhoto();
@@ -393,17 +394,20 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
-PhotoSize get_video_photo_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
-                               std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                               tl_object_ptr<telegram_api::videoSize> &&size) {
+AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
+                                 std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
+                                 tl_object_ptr<telegram_api::videoSize> &&size) {
   CHECK(size != nullptr);
-  PhotoSize res;
+  AnimationSize res;
   if (size->type_ != "v" && size->type_ != "u") {
     LOG(ERROR) << "Wrong videoSize \"" << size->type_ << "\" in " << to_string(size);
   }
   res.type = static_cast<uint8>(size->type_[0]);
   res.dimensions = get_dimensions(size->w_, size->h_);
   res.size = size->size_;
+  if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
+    res.main_frame_timestamp = size->video_start_ts_;
+  }
 
   if (source.get_type() == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;
@@ -572,6 +576,31 @@ StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_
                         << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id << "}";
 }
 
+static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(FileManager *file_manager,
+                                                                               const AnimationSize *animation_size) {
+  if (animation_size == nullptr || !animation_size->file_id.is_valid()) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::animatedChatPhoto>(animation_size->dimensions.width,
+                                                        file_manager->get_file_object(animation_size->file_id),
+                                                        animation_size->main_frame_timestamp);
+}
+
+bool operator==(const AnimationSize &lhs, const AnimationSize &rhs) {
+  return static_cast<const PhotoSize &>(lhs) == static_cast<const PhotoSize &>(rhs) &&
+         fabs(lhs.main_frame_timestamp - rhs.main_frame_timestamp) < 1e-3;
+}
+
+bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size) {
+  return string_builder << static_cast<const PhotoSize &>(animation_size) << " from "
+                        << animation_size.main_frame_timestamp;
+}
+
 Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo,
                                DialogId owner_dialog_id) {
@@ -639,9 +668,12 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   }
 
   for (auto &size_ptr : photo->video_sizes_) {
-    res.animated_photos.push_back(get_video_photo_size(file_manager, {FileType::Photo, 0}, photo->id_,
-                                                       photo->access_hash_, photo->file_reference_.as_slice().str(),
-                                                       dc_id, owner_dialog_id, std::move(size_ptr)));
+    auto animation =
+        get_animation_size(file_manager, {FileType::Photo, 0}, photo->id_, photo->access_hash_,
+                           photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id, std::move(size_ptr));
+    if (animation.type != 0 && animation.dimensions.width == animation.dimensions.height) {
+      res.animations.push_back(std::move(animation));
+    }
   }
 
   return res;
@@ -672,10 +704,10 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
     return nullptr;
   }
 
-  const PhotoSize *animation = photo.animated_photos.empty() ? nullptr : &photo.animated_photos.back();
+  const AnimationSize *animation = photo.animations.empty() ? nullptr : &photo.animations.back();
   return td_api::make_object<td_api::chatPhoto>(
       photo.id.get(), photo.date, get_minithumbnail_object(photo.minithumbnail),
-      get_photo_sizes_object(file_manager, photo.photos), get_photo_size_object(file_manager, animation));
+      get_photo_sizes_object(file_manager, photo.photos), get_animated_chat_photo_object(file_manager, animation));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
@@ -814,15 +846,15 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
 
 vector<FileId> photo_get_file_ids(const Photo &photo) {
   auto result = transform(photo.photos, [](auto &size) { return size.file_id; });
-  if (!photo.animated_photos.empty()) {
+  if (!photo.animations.empty()) {
     // photo file IDs must be first
-    append(result, transform(photo.animated_photos, [](auto &size) { return size.file_id; }));
+    append(result, transform(photo.animations, [](auto &size) { return size.file_id; }));
   }
   return result;
 }
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
-  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animated_photos == rhs.animated_photos;
+  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animations == rhs.animations;
 }
 
 bool operator!=(const Photo &lhs, const Photo &rhs) {
@@ -831,8 +863,8 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   string_builder << "[id = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
-  if (!photo.animated_photos.empty()) {
-    string_builder << ", animated photos = " << format::as_array(photo.animated_photos);
+  if (!photo.animations.empty()) {
+    string_builder << ", animations = " << format::as_array(photo.animations);
   }
   return string_builder << "]";
 }

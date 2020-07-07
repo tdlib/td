@@ -1475,8 +1475,8 @@ static Result<InputMessageContent> create_input_message_content(
 
       bool has_stickers = !sticker_file_ids.empty();
       td->animations_manager_->create_animation(
-          file_id, string(), thumbnail, PhotoSize(), has_stickers, std::move(sticker_file_ids), std::move(file_name),
-          std::move(mime_type), input_animation->duration_,
+          file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
+          std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_), false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption));
@@ -1579,9 +1579,9 @@ static Result<InputMessageContent> create_input_message_content(
 
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(
-          file_id, string(), thumbnail, PhotoSize(), has_stickers, std::move(sticker_file_ids), std::move(file_name),
-          std::move(mime_type), input_video->duration_, get_dimensions(input_video->width_, input_video->height_),
-          input_video->supports_streaming_, false);
+          file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
+          std::move(file_name), std::move(mime_type), input_video->duration_,
+          get_dimensions(input_video->width_, input_video->height_), input_video->supports_streaming_, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
@@ -4707,7 +4707,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
   return FileId();
 }
 
-FileId get_message_content_animated_thumbnail_file_id(const MessageContent *content, const Td *td) {
+static FileId get_message_content_animated_thumbnail_file_id(const MessageContent *content, const Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return td->animations_manager_->get_animation_animated_thumbnail_file_id(

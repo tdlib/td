@@ -30,7 +30,7 @@ class VideosManager {
 
   tl_object_ptr<td_api::video> get_video_object(FileId file_id);
 
-  void create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, PhotoSize animated_thumbnail,
+  void create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, AnimationSize animated_thumbnail,
                     bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
                     int32 duration, Dimensions dimensions, bool supports_streaming, bool replace);
 
@@ -70,7 +70,7 @@ class VideosManager {
     Dimensions dimensions;
     string minithumbnail;
     PhotoSize thumbnail;
-    PhotoSize animated_thumbnail;
+    AnimationSize animated_thumbnail;
 
     bool supports_streaming = false;
 
