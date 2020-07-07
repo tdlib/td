@@ -246,12 +246,13 @@ DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int6
   return result;
 }
 
-tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const DialogPhoto *dialog_photo) {
+tl_object_ptr<td_api::chatPhotoInfo> get_chat_photo_info_object(FileManager *file_manager,
+                                                                const DialogPhoto *dialog_photo) {
   if (dialog_photo == nullptr || !dialog_photo->small_file_id.is_valid()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::chatPhoto>(file_manager->get_file_object(dialog_photo->small_file_id),
-                                                file_manager->get_file_object(dialog_photo->big_file_id));
+  return td_api::make_object<td_api::chatPhotoInfo>(file_manager->get_file_object(dialog_photo->small_file_id),
+                                                    file_manager->get_file_object(dialog_photo->big_file_id));
 }
 
 vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo) {

@@ -17462,7 +17462,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
 
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
-      get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
+      get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_chat_positions_object(d),
       d->is_marked_as_unread, get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
@@ -26139,9 +26139,10 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatPhoto>(
-                     dialog_id.get(), get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateChatPhoto>(
+            dialog_id.get(), get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
   }
 }
 

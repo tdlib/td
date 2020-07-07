@@ -13848,7 +13848,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   }
 
   return make_tl_object<td_api::chatInviteLinkInfo>(dialog_id.get(), accessible_for, std::move(chat_type), title,
-                                                    get_chat_photo_object(td_->file_manager_.get(), photo),
+                                                    get_chat_photo_info_object(td_->file_manager_.get(), photo),
                                                     participant_count, std::move(member_user_ids), is_public);
 }
 

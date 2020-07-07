@@ -1410,7 +1410,7 @@ class WebPageBlockChatLink : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const override {
     return make_tl_object<td_api::pageBlockChatLink>(
-        title, get_chat_photo_object(context->td_->file_manager_.get(), &photo), username);
+        title, get_chat_photo_info_object(context->td_->file_manager_.get(), &photo), username);
   }
 
   template <class StorerT>
