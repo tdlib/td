@@ -610,6 +610,7 @@ class ContactsManager : public Actor {
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
     bool is_status_changed = true;
     bool is_online_status_changed = true;  // whether online/offline has changed
+    bool is_update_user_sent = false;
 
     bool is_saved = false;         // is current user version being saved/is saved to the database
     bool is_being_saved = false;   // is current user being saved to the database
@@ -701,6 +702,7 @@ class ContactsManager : public Actor {
     bool is_is_active_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+    bool is_update_basic_group_sent = false;
 
     bool is_repaired = false;  // whether cached value is rechecked
 
@@ -777,6 +779,7 @@ class ContactsManager : public Actor {
     bool was_member = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+    bool is_update_supergroup_sent = false;
 
     bool is_repaired = false;  // whether cached value is rechecked
 

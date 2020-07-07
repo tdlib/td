@@ -2933,6 +2933,7 @@ void ContactsManager::on_user_online_timeout(UserId user_id) {
 
   auto u = get_user(user_id);
   CHECK(u != nullptr);
+  CHECK(u->is_update_user_sent);
 
   LOG(INFO) << "Update " << user_id << " online status to offline";
   send_closure(G()->td(), &Td::send_update,
@@ -7833,6 +7834,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
       log_event_parse(temp_c, value).ensure();
       if (temp_c.participant_count != 0) {
         c->participant_count = temp_c.participant_count;
+        CHECK(c->is_update_supergroup_sent);
         send_closure(G()->td(), &Td::send_update,
                      make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
       }
@@ -8570,11 +8572,13 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateUser>(get_user_object(user_id, u)));
     u->is_changed = false;
     u->is_status_changed = false;
+    u->is_update_user_sent = true;
   }
   if (u->is_status_changed) {
     if (!from_database) {
       u->is_status_saved = false;
     }
+    CHECK(u->is_update_user_sent);
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(user_id, u)));
     u->is_status_changed = false;
@@ -8630,6 +8634,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateBasicGroup>(get_basic_group_object(chat_id, c)));
     c->is_changed = false;
+    c->is_update_basic_group_sent = true;
   }
 
   if (!from_database) {
@@ -8716,6 +8721,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
     c->is_changed = false;
+    c->is_update_supergroup_sent = true;
   }
 
   if (!from_database) {
@@ -8791,6 +8797,10 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
   user_full->need_save_to_database |= user_full->is_changed;
   user_full->is_changed = false;
   if (user_full->need_send_update) {
+    {
+      auto u = get_user(user_id);
+      CHECK(u == nullptr || u->is_update_user_sent);
+    }
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                             get_user_full_info_object(user_id, user_full)));
@@ -8826,6 +8836,10 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
     on_update_dialog_administrators(DialogId(chat_id), std::move(administrators), chat_full->version != -1);
     td_->messages_manager_->on_dialog_bots_updated(DialogId(chat_id), std::move(bot_user_ids));
 
+    {
+      Chat *c = get_chat(chat_id);
+      CHECK(c == nullptr || c->is_update_basic_group_sent);
+    }
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id, "update_chat_full"),
@@ -8873,6 +8887,10 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
                                                   true);
     }
 
+    {
+      Channel *c = get_channel(channel_id);
+      CHECK(c == nullptr || c->is_update_supergroup_sent);
+    }
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
