@@ -1163,6 +1163,8 @@ class ContactsManager : public Actor {
 
   void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                  const DialogParticipantStatus &new_status);
+  void on_channel_username_changed(Channel *c, ChannelId channel_id, const string &old_username,
+                                   const string &new_username);
 
   void remove_linked_channel_id(ChannelId channel_id);
   ChannelId get_linked_channel_id(ChannelId channel_id) const;

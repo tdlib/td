@@ -7844,6 +7844,10 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
       if (temp_c.status != c->status) {
         on_channel_status_changed(c, channel_id, temp_c.status, c->status);
       }
+
+      if (temp_c.username != c->username) {
+        on_channel_username_changed(c, channel_id, temp_c.username, c->username);
+      }
     }
     auto new_value = get_channel_database_value(c);
     if (value != new_value) {
@@ -11612,14 +11616,21 @@ void ContactsManager::on_update_channel_username(ChannelId channel_id, string &&
 void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_id, string &&username) {
   td_->messages_manager_->on_dialog_username_updated(DialogId(channel_id), c->username, username);
   if (c->username != username) {
-    if (c->username.empty() || username.empty()) {
-      // moving channel from private to public can change availability of chat members
-      invalidate_channel_full(channel_id, true, !c->is_slow_mode_enabled);
+    if (c->is_update_supergroup_sent) {
+      on_channel_username_changed(c, channel_id, c->username, username);
     }
 
     c->username = std::move(username);
     c->is_username_changed = true;
     c->is_changed = true;
+  }
+}
+
+void ContactsManager::on_channel_username_changed(Channel *c, ChannelId channel_id, const string &old_username,
+                                                  const string &new_username) {
+  if (old_username.empty() || new_username.empty()) {
+    // moving channel from private to public can change availability of chat members
+    invalidate_channel_full(channel_id, true, !c->is_slow_mode_enabled);
   }
 }
 
@@ -13400,6 +13411,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->is_changed = true;
   }
 
+  bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
       c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
       c->restriction_reasons != restriction_reasons || c->is_scam != is_scam) {
@@ -13413,7 +13425,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->is_scam = is_scam;
 
     c->is_changed = true;
-    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+    need_invalidate_channel_full = true;
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -13422,6 +13434,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
   c->is_received_from_server = true;
   update_channel(c, channel_id);
+
+  if (need_invalidate_channel_full) {
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+  }
 }
 
 void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, const char *source) {
@@ -13483,6 +13499,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_changed = true;
   }
 
+  bool need_invalidate_channel_full = false;
   if (c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->is_verified != is_verified || !c->restriction_reasons.empty() ||
       c->is_scam != is_scam) {
@@ -13496,7 +13513,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_scam = is_scam;
 
     c->is_changed = true;
-    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+    need_invalidate_channel_full = true;
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -13505,6 +13522,10 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
   c->is_received_from_server = true;
   update_channel(c, channel_id);
+
+  if (need_invalidate_channel_full) {
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+  }
 }
 
 void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
