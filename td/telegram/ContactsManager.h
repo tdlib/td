@@ -1161,6 +1161,9 @@ class ContactsManager : public Actor {
   void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                            vector<UserId> &&bot_user_ids);
 
+  void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
+                                 const DialogParticipantStatus &new_status);
+
   void remove_linked_channel_id(ChannelId channel_id);
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
 

@@ -7829,14 +7829,20 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
   } else {
     CHECK(!c->is_saved);  // channel can't be saved before load completes
     CHECK(!c->is_being_saved);
-    if (c->participant_count == 0 && !value.empty()) {
+    if (!value.empty()) {
       Channel temp_c;
       log_event_parse(temp_c, value).ensure();
-      if (temp_c.participant_count != 0) {
+      if (c->participant_count == 0 && temp_c.participant_count != 0) {
         c->participant_count = temp_c.participant_count;
         CHECK(c->is_update_supergroup_sent);
         send_closure(G()->td(), &Td::send_update,
                      make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
+      }
+
+      c->status.update_restrictions();
+      temp_c.status.update_restrictions();
+      if (temp_c.status != c->status) {
+        on_channel_status_changed(c, channel_id, temp_c.status, c->status);
       }
     }
     auto new_value = get_channel_database_value(c);
@@ -11548,22 +11554,32 @@ void ContactsManager::on_update_channel_title(Channel *c, ChannelId channel_id, 
 void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
   if (c->status != status) {
     LOG(INFO) << "Update " << channel_id << " status from " << c->status << " to " << status;
-    bool is_ownership_transferred = c->status.is_creator() != status.is_creator();
-    bool drop_invite_link =
-        c->status.is_administrator() != status.is_administrator() || c->status.is_member() != status.is_member();
+    if (c->is_update_supergroup_sent) {
+      on_channel_status_changed(c, channel_id, c->status, status);
+    }
     c->status = status;
     c->is_status_changed = true;
     c->is_changed = true;
-    invalidate_channel_full(channel_id, drop_invite_link, !c->is_slow_mode_enabled);
-    if (is_ownership_transferred) {
-      for (size_t i = 0; i < 2; i++) {
-        created_public_channels_inited_[i] = false;
-        created_public_channels_[i].clear();
-      }
+  }
+}
 
-      send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
-      reload_dialog_administrators(DialogId(channel_id), 0, Auto());
+void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id,
+                                                const DialogParticipantStatus &old_status,
+                                                const DialogParticipantStatus &new_status) {
+  CHECK(c->is_update_supergroup_sent);
+
+  bool drop_invite_link = old_status.is_administrator() != new_status.is_administrator() ||
+                          old_status.is_member() != new_status.is_member();
+  invalidate_channel_full(channel_id, drop_invite_link, !c->is_slow_mode_enabled);
+
+  if (old_status.is_creator() != new_status.is_creator()) {
+    for (size_t i = 0; i < 2; i++) {
+      created_public_channels_inited_[i] = false;
+      created_public_channels_[i].clear();
     }
+
+    send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
+    reload_dialog_administrators(DialogId(channel_id), 0, Auto());
   }
 }
 
