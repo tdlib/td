@@ -38,6 +38,7 @@ enum class Version : int32 {
   SupportPolls2_0,
   AddDiceEmoji,
   AddAnimationStickers,
+  AddDialogPhotoHasAnimation,
   Next
 };
 

@@ -36,7 +36,7 @@ struct Dimensions {
 struct DialogPhoto {
   FileId small_file_id;
   FileId big_file_id;
-  bool is_animated = false;
+  bool has_animation = false;
 };
 
 struct ProfilePhoto : public DialogPhoto {
@@ -82,7 +82,7 @@ td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string 
 ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash,
                                tl_object_ptr<telegram_api::UserProfilePhoto> &&profile_photo_ptr);
 tl_object_ptr<td_api::profilePhoto> get_profile_photo_object(FileManager *file_manager,
-                                                             const ProfilePhoto *profile_photo);
+                                                             const ProfilePhoto &profile_photo);
 
 bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs);
 bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs);

@@ -309,11 +309,16 @@ poll id:int64 question:string options:vector<pollOption> total_voter_count:int32
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of user profile photos
-//@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed @big A big (640x640) user profile photo. The file can be downloaded only before the photo is changed
-profilePhoto id:int64 small:file big:file = ProfilePhoto;
+//@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed
+//@big A big (640x640) user profile photo. The file can be downloaded only before the photo is changed
+//@has_animation True, if the photo has animated variant
+profilePhoto id:int64 small:file big:file has_animation:Bool = ProfilePhoto;
 
-//@description Contains basic information about the photo of a chat @small A small (160x160) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed @big A big (640x640) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed
-chatPhotoInfo small:file big:file = ChatPhotoInfo;
+//@description Contains basic information about the photo of a chat
+//@small A small (160x160) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed
+//@big A big (640x640) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed
+//@has_animation True, if the photo has animated variant
+chatPhotoInfo small:file big:file has_animation:Bool = ChatPhotoInfo;
 
 
 //@class UserType @description Represents the type of a user. The following types are possible: regular users, deleted users and bots
@@ -377,22 +382,34 @@ inputChatPhotoStatic photo:InputFile = InputChatPhoto;
 inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputChatPhoto;
 
 
-//@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
-//@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
+//@description Represents a user
+//@id User identifier
+//@first_name First name of the user
+//@last_name Last name of the user
+//@username Username of the user
+//@phone_number Phone number of the user
+//@status Current online status of the user
+//@profile_photo Profile photo of the user; may be null
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
-//@is_verified True, if the user is verified @is_support True, if the user is Telegram support account
+//@is_verified True, if the user is verified
+//@is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
 //@is_scam True, if many users reported this user as a scam
-//@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser @type Type of the user @language_code IETF language tag of the user's language; only available to bots
+//@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser
+//@type Type of the user
+//@language_code IETF language tag of the user's language; only available to bots
 user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool have_access:Bool type:UserType language_code:string = User;
 
 //@description Contains full information about a user
 //@photo User profile photo; may be null
 //@is_blocked True, if the user is blocked by the current user
-//@can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
+//@can_be_called True, if the user can be called
+//@has_private_calls True, if the user can't be called due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
-//@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null
+//@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot
+//@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
+//@bot_info If the user is a bot, information about the bot; may be null
 userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total count of users found @user_ids A list of user identifiers
@@ -455,8 +472,11 @@ chatMemberStatusLeft = ChatMemberStatus;
 chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 
 
-//@description A user with information about joining/leaving a chat @user_id User identifier of the chat member @inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
-//@joined_chat_date Point in time (Unix timestamp) when the user joined a chat @status Status of the member in the chat @bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not a chat member
+//@description A user with information about joining/leaving a chat @user_id User identifier of the chat member
+//@inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
+//@joined_chat_date Point in time (Unix timestamp) when the user joined a chat
+//@status Status of the member in the chat
+//@bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not a chat member
 chatMember user_id:int32 inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus bot_info:botInfo = ChatMember;
 
 //@description Contains a list of chat members @total_count Approximate total count of chat members found @members A list of chat members

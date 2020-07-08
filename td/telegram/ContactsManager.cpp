@@ -13791,10 +13791,9 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 }
 
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
-  return td_api::make_object<td_api::updateUser>(
-      td_api::make_object<td_api::user>(user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
-                                        get_profile_photo_object(nullptr, nullptr), false, false, false, false, "",
-                                        false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
+  return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
+      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, false, false, false,
+      false, "", false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
 }
 
 int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -13826,9 +13825,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
 
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), &u->photo), u->is_contact, u->is_mutual_contact,
-      u->is_verified, u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam,
-      u->is_received, std::move(type), u->language_code);
+      get_profile_photo_object(td_->file_manager_.get(), u->photo), u->is_contact, u->is_mutual_contact, u->is_verified,
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_received,
+      std::move(type), u->language_code);
 }
 
 vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

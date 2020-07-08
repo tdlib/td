@@ -6,9 +6,9 @@
 //
 #pragma once
 
-#include "td/telegram/Photo.h"
-
 #include "td/telegram/files/FileId.hpp"
+#include "td/telegram/Photo.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
@@ -30,14 +30,30 @@ void parse(Dimensions &dimensions, ParserT &parser) {
 
 template <class StorerT>
 void store(const DialogPhoto &dialog_photo, StorerT &storer) {
-  store(dialog_photo.small_file_id, storer);
-  store(dialog_photo.big_file_id, storer);
+  bool has_file_ids = dialog_photo.small_file_id.is_valid() || dialog_photo.big_file_id.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_file_ids);
+  STORE_FLAG(dialog_photo.has_animation);
+  END_STORE_FLAGS();
+  if (has_file_ids) {
+    store(dialog_photo.small_file_id, storer);
+    store(dialog_photo.big_file_id, storer);
+  }
 }
 
 template <class ParserT>
 void parse(DialogPhoto &dialog_photo, ParserT &parser) {
-  parse(dialog_photo.small_file_id, parser);
-  parse(dialog_photo.big_file_id, parser);
+  bool has_file_ids = true;
+  if (parser.version() >= static_cast<int32>(Version::AddDialogPhotoHasAnimation)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_file_ids);
+    PARSE_FLAG(dialog_photo.has_animation);
+    END_PARSE_FLAGS();
+  }
+  if (has_file_ids) {
+    parse(dialog_photo.small_file_id, parser);
+    parse(dialog_photo.big_file_id, parser);
+  }
 }
 
 template <class StorerT>
