@@ -894,7 +894,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
       if (file_id_.is_valid() && !was_uploaded_) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
-        td->messages_manager_->upload_dialog_photo(dialog_id_, file_id_, std::move(promise_));
+        td->messages_manager_->upload_dialog_photo(dialog_id_, file_id_, false, 0.0, false, std::move(promise_), {-1});
         return;
       } else {
         LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
@@ -7823,27 +7823,57 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
     return;
   }
 
-  Promise<Unit> promise = std::move(it->second.promise);
   DialogId dialog_id = it->second.dialog_id;
+  double main_frame_timestamp = it->second.main_frame_timestamp;
+  bool is_animation = it->second.is_animation;
+  bool is_reupload = it->second.is_reupload;
+  Promise<Unit> promise = std::move(it->second.promise);
 
   being_uploaded_dialog_photos_.erase(it);
 
-  tl_object_ptr<telegram_api::InputChatPhoto> input_chat_photo;
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
   if (input_file == nullptr && file_view.has_remote_location()) {
     if (file_view.main_remote_location().is_web()) {
-      // TODO reupload
-      promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
-      return;
+      return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
     }
-    auto input_photo = file_view.main_remote_location().as_input_photo();
-    input_chat_photo = make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo));
+    if (is_reupload) {
+      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+    }
+
+    if (is_animation) {
+      CHECK(file_view.get_type() == FileType::Animation);
+      // delete file reference and forcely reupload the file
+      auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+      td_->file_manager_->delete_file_reference(file_id, file_reference);
+      upload_dialog_photo(dialog_id, file_id, is_animation, main_frame_timestamp, true, std::move(promise), {-1});
+    } else {
+      CHECK(file_view.get_type() == FileType::Photo);
+      auto input_photo = file_view.main_remote_location().as_input_photo();
+      auto input_chat_photo = make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo));
+      send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
+    }
+    return;
+  }
+  CHECK(input_file != nullptr);
+
+  int32 flags = 0;
+  tl_object_ptr<telegram_api::InputFile> photo_input_file;
+  tl_object_ptr<telegram_api::InputFile> video_input_file;
+  if (is_animation) {
+    flags |= telegram_api::inputChatUploadedPhoto::VIDEO_MASK;
+    video_input_file = std::move(input_file);
+
+    if (main_frame_timestamp != 0.0) {
+      flags |= telegram_api::inputChatUploadedPhoto::VIDEO_START_TS_MASK;
+    }
   } else {
-    int32 flags = telegram_api::inputChatUploadedPhoto::FILE_MASK;
-    input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(flags, std::move(input_file), nullptr, 0.0);
+    flags |= telegram_api::inputChatUploadedPhoto::FILE_MASK;
+    photo_input_file = std::move(input_file);
   }
 
+  auto input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(
+      flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp);
   send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
 }
 
@@ -27127,7 +27157,7 @@ void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 gen
   }
 }
 
-void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo,
+void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
                                        Promise<Unit> &&promise) {
   LOG(INFO) << "Receive setChatPhoto request to change photo of " << dialog_id;
 
@@ -27161,30 +27191,62 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
       UNREACHABLE();
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Photo, photo, dialog_id, true, false);
+  const td_api::object_ptr<td_api::InputFile> *input_file = nullptr;
+  double main_frame_timestamp = 0.0;
+  bool is_animation = false;
+  if (input_photo != nullptr) {
+    switch (input_photo->get_id()) {
+      case td_api::inputChatPhotoPrevious::ID: {
+        auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
+        auto file_id = td_->contacts_manager_->get_profile_photo_file_id(photo->chat_photo_id_);
+        if (!file_id.is_valid()) {
+          return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
+        }
+
+        auto file_view = td_->file_manager_->get_file_view(file_id);
+        auto input_chat_photo =
+            make_tl_object<telegram_api::inputChatPhoto>(file_view.main_remote_location().as_input_photo());
+        send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
+        return;
+      }
+      case td_api::inputChatPhotoStatic::ID: {
+        auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
+        input_file = &photo->photo_;
+        break;
+      }
+      case td_api::inputChatPhotoAnimation::ID: {
+        auto photo = static_cast<const td_api::inputChatPhotoAnimation *>(input_photo.get());
+        input_file = &photo->animation_;
+        main_frame_timestamp = photo->main_frame_timestamp_;
+        is_animation = true;
+        break;
+      }
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
+
+  const double MAX_ANIMATION_DURATION = 10.0;
+  if (main_frame_timestamp < 0.0 || main_frame_timestamp > MAX_ANIMATION_DURATION) {
+    return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
+  }
+
+  auto file_type = is_animation ? FileType::Animation : FileType::Photo;
+  auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));
+    // TODO promise.set_error(std::move(status));
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));
   }
   FileId file_id = r_file_id.ok();
-
   if (!file_id.is_valid()) {
     send_edit_dialog_photo_query(dialog_id, FileId(), make_tl_object<telegram_api::inputChatPhotoEmpty>(),
                                  std::move(promise));
     return;
   }
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(!file_view.is_encrypted());
-  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web()) {
-    // file has already been uploaded, just send change photo request
-    auto input_photo = file_view.main_remote_location().as_input_photo();
-    send_edit_dialog_photo_query(
-        dialog_id, file_id, make_tl_object<telegram_api::inputChatPhoto>(std::move(input_photo)), std::move(promise));
-    return;
-  }
-
-  // need to upload file first
-  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id), std::move(promise));
+  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id), is_animation, main_frame_timestamp, false,
+                      std::move(promise));
 }
 
 void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
@@ -27194,12 +27256,16 @@ void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId fi
   td_->create_handler<EditDialogPhotoQuery>(std::move(promise))->send(dialog_id, file_id, std::move(input_chat_photo));
 }
 
-void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, Promise<Unit> &&promise) {
+void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation,
+                                          double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
+                                          vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload chat photo " << file_id;
   CHECK(being_uploaded_dialog_photos_.find(file_id) == being_uploaded_dialog_photos_.end());
-  being_uploaded_dialog_photos_[file_id] = {std::move(promise), dialog_id};
-  td_->file_manager_->upload(file_id, upload_dialog_photo_callback_, 32, 0);
+  being_uploaded_dialog_photos_.emplace(
+      file_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation, is_reupload, std::move(promise)});
+  // TODO use force_reupload if is_reupload
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
 }
 
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {

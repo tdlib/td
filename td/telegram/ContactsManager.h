@@ -324,6 +324,8 @@ class ContactsManager : public Actor {
 
   void set_location_visibility();
 
+  FileId get_profile_photo_file_id(int64 photo_id) const;
+
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
 
   void send_update_profile_photo_query(FileId file_id, Promise<Unit> &&promise);

@@ -5489,6 +5489,14 @@ void ContactsManager::update_is_location_visible() {
   G()->shared_config().set_option_boolean("is_location_visible", expire_date != 0);
 }
 
+FileId ContactsManager::get_profile_photo_file_id(int64 photo_id) const {
+  auto it = my_photo_file_id_.find(photo_id);
+  if (it == my_photo_file_id_.end()) {
+    return FileId();
+  }
+  return it->second;
+}
+
 void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                                         Promise<Unit> &&promise) {
   if (input_photo == nullptr) {
@@ -5502,18 +5510,16 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
     case td_api::inputChatPhotoPrevious::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
       auto photo_id = photo->chat_photo_id_;
-      if (photo_id <= 0) {
-        return promise.set_error(Status::Error(400, "Wrong profile photo ID specified"));
-      }
       auto *u = get_user(get_my_id());
-      if (u != nullptr && photo_id == u->photo.id) {
+      if (u != nullptr && u->photo.id > 0 && photo_id == u->photo.id) {
         return promise.set_value(Unit());
       }
-      auto it = my_photo_file_id_.find(photo_id);
-      if (it == my_photo_file_id_.end()) {
-        return promise.set_error(Status::Error(400, "Profile photo ID not found"));
+
+      auto file_id = get_profile_photo_file_id(photo_id);
+      if (!file_id.is_valid()) {
+        return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
       }
-      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(it->second), std::move(promise));
+      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id), std::move(promise));
     }
     case td_api::inputChatPhotoStatic::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
@@ -13722,11 +13728,18 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
       return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
     }
     if (is_reupload) {
-      return promise.set_error(Status::Error(400, "Failed to reuplaod the file"));
+      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
     }
 
     // delete file reference and forcely reupload the file
-    auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
+    if (is_animation) {
+      CHECK(file_view.get_type() == FileType::Animation);
+    } else {
+      CHECK(file_view.get_type() == FileType::Photo);
+    }
+    auto file_reference =
+        is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo())
+                     : FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
     upload_profile_photo(file_id, is_animation, main_frame_timestamp, std::move(promise), {-1});
     return;

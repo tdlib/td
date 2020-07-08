@@ -455,7 +455,8 @@ class MessagesManager : public Actor {
 
   void add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise);
 
-  void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo, Promise<Unit> &&promise);
+  void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
+                        Promise<Unit> &&promise);
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
 
@@ -832,7 +833,8 @@ class MessagesManager : public Actor {
   void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
                                     NotificationId max_notification_id, MessageId max_message_id);
 
-  void upload_dialog_photo(DialogId dialog_id, FileId file_id, Promise<Unit> &&promise);
+  void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
+                           bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -2817,8 +2819,20 @@ class MessagesManager : public Actor {
   const char *debug_add_message_to_dialog_fail_reason_ = "";
 
   struct UploadedDialogPhotoInfo {
-    Promise<Unit> promise;
     DialogId dialog_id;
+    double main_frame_timestamp;
+    bool is_animation;
+    bool is_reupload;
+    Promise<Unit> promise;
+
+    UploadedDialogPhotoInfo(DialogId dialog_id, double main_frame_timestamp, bool is_animation, bool is_reupload,
+                            Promise<Unit> promise)
+        : dialog_id(dialog_id)
+        , main_frame_timestamp(main_frame_timestamp)
+        , is_animation(is_animation)
+        , is_reupload(is_reupload)
+        , promise(std::move(promise)) {
+    }
   };
   std::unordered_map<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;  // file_id -> ...
 

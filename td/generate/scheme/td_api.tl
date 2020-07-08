@@ -3847,13 +3847,13 @@ getRecommendedChatFilters = RecommendedChatFilters;
 getChatFilterDefaultIconName filter:chatFilter = Text;
 
 
-//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The title will not be changed until the request to the server has been completed
+//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info rights
 //@chat_id Chat identifier @title New title of the chat; 1-128 characters
 setChatTitle chat_id:int53 title:string = Ok;
 
-//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info rights. The photo will not be changed before request to the server has been completed
-//@chat_id Chat identifier @photo New chat photo. You can use a zero InputFileId to delete the chat photo. Files that are accessible only by HTTP URL are not acceptable
-setChatPhoto chat_id:int53 photo:InputFile = Ok;
+//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info rights
+//@chat_id Chat identifier @photo New chat photo. You can pass null to delete the chat photo
+setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat

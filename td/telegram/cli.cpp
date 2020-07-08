@@ -3549,12 +3549,30 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, title) = split(args);
       send_request(td_api::make_object<td_api::setChatTitle>(as_chat_id(chat_id), title));
+    } else if (op == "scpp") {
+      string chat_id;
+      string photo_id;
+
+      std::tie(chat_id, photo_id) = split(args);
+      send_request(td_api::make_object<td_api::setChatPhoto>(
+          as_chat_id(chat_id), td_api::make_object<td_api::inputChatPhotoPrevious>(to_integer<int64>(photo_id))));
     } else if (op == "scp") {
       string chat_id;
       string photo_path;
 
       std::tie(chat_id, photo_path) = split(args);
-      send_request(td_api::make_object<td_api::setChatPhoto>(as_chat_id(chat_id), as_input_file(photo_path)));
+      send_request(td_api::make_object<td_api::setChatPhoto>(
+          as_chat_id(chat_id), td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo_path))));
+    } else if (op == "scpa" || op == "scpv") {
+      string chat_id;
+      string animation;
+      string main_frame_timestamp;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(animation, main_frame_timestamp) = split(args);
+      send_request(td_api::make_object<td_api::setChatPhoto>(
+          as_chat_id(chat_id), td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
+                                                                                    to_double(main_frame_timestamp))));
     } else if (op == "scperm") {
       string chat_id;
       string permissions;
@@ -3569,12 +3587,6 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Wrong permissions size, expected 8";
       }
-    } else if (op == "scpid") {
-      string chat_id;
-      string file_id;
-
-      std::tie(chat_id, file_id) = split(args);
-      send_request(td_api::make_object<td_api::setChatPhoto>(as_chat_id(chat_id), as_input_file_id(file_id)));
     } else if (op == "sccd") {
       string chat_id;
       string client_data;
