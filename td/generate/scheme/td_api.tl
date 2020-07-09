@@ -855,13 +855,15 @@ publicChatTypeIsLocationBased = PublicChatType;
 //@class ChatActionBar @description Describes actions which should be possible to do through a chat action bar
 
 //@description The chat can be reported as spam using the method reportChat with the reason chatReportReasonSpam
-chatActionBarReportSpam = ChatActionBar;
+//@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
+chatActionBarReportSpam can_unarchive:Bool = ChatActionBar;
 
 //@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
-//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be added to the contact list using the method addContact, or the other user can be blocked using the method blockUser
-chatActionBarReportAddBlock = ChatActionBar;
+//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method blockUser, or the other user can be added to the contact list using the method addContact
+//@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
+chatActionBarReportAddBlock can_unarchive:Bool = ChatActionBar;
 
 //@description The chat is a private or secret chat and the other user can be added to the contact list using the method addContact
 chatActionBarAddContact = ChatActionBar;

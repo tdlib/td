@@ -1117,6 +1117,8 @@ class MessagesManager : public Actor {
     NotificationId new_secret_chat_notification_id;  // secret chats only
     MessageId pinned_message_notification_message_id;
 
+    int32 distance = -1;  // distance to the peer
+
     bool has_contact_registered_message = false;
 
     bool is_last_message_deleted_locally = false;
@@ -1128,6 +1130,7 @@ class MessagesManager : public Actor {
     bool can_block_user = false;
     bool can_share_phone_number = false;
     bool can_report_location = false;
+    bool can_unarchive = false;
 
     bool is_opened = false;
 
@@ -2152,6 +2155,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
+  void do_set_dialog_folder_id(Dialog *d, FolderId folder_id);
+
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
 
   void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 logevent_id);
@@ -2226,7 +2231,8 @@ class MessagesManager : public Actor {
 
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
-  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d,
+                                                                       bool hide_unarchive = false) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d, int64 real_order = DEFAULT_ORDER) const;
 
