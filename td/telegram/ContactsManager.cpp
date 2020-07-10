@@ -7091,6 +7091,16 @@ void ContactsManager::on_update_phone_number_privacy() {
   }
 }
 
+void ContactsManager::invalidate_user_full(UserId user_id) {
+  auto user_full = get_user_full_force(user_id);
+  if (user_full != nullptr && !user_full->is_expired()) {
+    user_full->expires_at = 0.0;
+    user_full->need_save_to_database = true;
+
+    update_user_full(user_full, user_id);
+  }
+}
+
 UserId ContactsManager::get_user_id(const tl_object_ptr<telegram_api::User> &user) {
   CHECK(user != nullptr);
   switch (user->get_id()) {

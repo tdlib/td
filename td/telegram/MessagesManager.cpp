@@ -29038,6 +29038,30 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_top_dialogs(dialog_id, m);
     cancel_user_dialog_action(dialog_id, m);
     try_hide_distance(dialog_id, m);
+
+    if (d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
+      switch (dialog_id.get_type()) {
+        case DialogType::User:
+          td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
+          td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
+          break;
+        case DialogType::Chat:
+        case DialogType::Channel:
+          // nothing to do
+          break;
+        case DialogType::SecretChat: {
+          auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+          if (user_id.is_valid()) {
+            td_->contacts_manager_->invalidate_user_full(user_id);
+            td_->contacts_manager_->reload_user_full(user_id);
+          }
+          break;
+        }
+        case DialogType::None:
+        default:
+          UNREACHABLE();
+      }
+    }
   }
 
   Message *result_message = treap_insert_message(&d->messages, std::move(message));

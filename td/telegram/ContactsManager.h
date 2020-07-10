@@ -261,6 +261,8 @@ class ContactsManager : public Actor {
 
   void on_update_phone_number_privacy();
 
+  void invalidate_user_full(UserId user_id);
+
   void on_channel_unban_timeout(ChannelId channel_id);
 
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
