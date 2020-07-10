@@ -6842,6 +6842,17 @@ void Td::on_request(uint64 id, td_api::getOption &request) {
   bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
   switch (request.name_[0]) {
     // all these options should be added to getCurrentState
+    case 'a':
+      if (!is_bot && request.name_ == "archive_and_mute_new_chats_from_unknown_users") {
+        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
+          // the option is already updated on success, ignore errors
+          send_closure(actor_id, &Td::send_result, id,
+                       G()->shared_config().get_option_value("archive_and_mute_new_chats_from_unknown_users"));
+        });
+        send_closure_later(config_manager_, &ConfigManager::get_global_privacy_settings, std::move(promise));
+        return;
+      }
+      break;
     case 'c':
       if (!is_bot && request.name_ == "can_ignore_sensitive_content_restrictions") {
         auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
@@ -6979,6 +6990,19 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   switch (request.name_[0]) {
     case 'a':
       if (set_boolean_option("always_parse_markdown")) {
+        return;
+      }
+      if (!is_bot && request.name_ == "archive_and_mute_new_chats_from_unknown_users") {
+        if (value_constructor_id != td_api::optionValueBoolean::ID &&
+            value_constructor_id != td_api::optionValueEmpty::ID) {
+          return send_error_raw(id, 3,
+                                "Option \"archive_and_mute_new_chats_from_unknown_users\" must have boolean value");
+        }
+
+        auto archive_and_mute = value_constructor_id == td_api::optionValueBoolean::ID &&
+                                static_cast<td_api::optionValueBoolean *>(request.value_.get())->value_;
+        CREATE_OK_REQUEST_PROMISE();
+        send_closure_later(config_manager_, &ConfigManager::set_archive_and_mute, archive_and_mute, std::move(promise));
         return;
       }
       break;

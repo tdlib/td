@@ -90,6 +90,10 @@ class ConfigManager : public NetQueryCallback {
 
   void set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise);
 
+  void get_global_privacy_settings(Promise<Unit> &&promise);
+
+  void set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise);
+
   void on_dc_options_update(DcOptions dc_options);
 
  private:
@@ -100,10 +104,16 @@ class ConfigManager : public NetQueryCallback {
   Timestamp expire_time_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
+
   vector<Promise<Unit>> get_content_settings_queries_;
   vector<Promise<Unit>> set_content_settings_queries_[2];
   bool is_set_content_settings_request_sent_ = false;
   bool last_set_content_settings_ = false;
+
+  vector<Promise<Unit>> get_global_privacy_settings_queries_;
+  vector<Promise<Unit>> set_archive_and_mute_queries_[2];
+  bool is_set_archive_and_mute_request_sent_ = false;
+  bool last_set_archive_and_mute_ = false;
 
   void start_up() override;
   void hangup_shared() override;
@@ -115,8 +125,12 @@ class ConfigManager : public NetQueryCallback {
 
   void request_config_from_dc_impl(DcId dc_id);
   void process_config(tl_object_ptr<telegram_api::config> config);
+
   void process_app_config(tl_object_ptr<telegram_api::JSONValue> &config);
-  void set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
+
+  void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
+
+  void do_set_archive_and_mute(bool archive_and_mute);
 
   Timestamp load_config_expire_time();
   void save_config_expire(Timestamp timestamp);

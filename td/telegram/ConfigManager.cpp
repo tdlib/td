@@ -981,6 +981,41 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
   }
 }
 
+void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
+    return promise.set_value(Unit());
+  }
+
+  get_global_privacy_settings_queries_.push_back(std::move(promise));
+  if (get_global_privacy_settings_queries_.size() == 1) {
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(telegram_api::account_getGlobalPrivacySettings()), actor_shared(this, 5));
+  }
+}
+
+void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  last_set_archive_and_mute_ = archive_and_mute;
+  auto &queries = set_archive_and_mute_queries_[archive_and_mute];
+  queries.push_back(std::move(promise));
+  if (!is_set_archive_and_mute_request_sent_) {
+    is_set_archive_and_mute_request_sent_ = true;
+    int32 flags = telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
+    auto settings = make_tl_object<telegram_api::globalPrivacySettings>(flags, archive_and_mute);
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(telegram_api::account_setGlobalPrivacySettings(std::move(settings))),
+        actor_shared(this, 6 + static_cast<uint64>(archive_and_mute)));
+  }
+}
+
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   save_dc_options_update(dc_options);
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
@@ -999,7 +1034,7 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));
 }
 
-void ConfigManager::set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
+void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
   G()->shared_config().set_option_boolean("ignore_sensitive_content_restrictions",
                                           ignore_sensitive_content_restrictions);
   bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
@@ -1008,8 +1043,70 @@ void ConfigManager::set_ignore_sensitive_content_restrictions(bool ignore_sensit
   }
 }
 
+void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
+  G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
+}
+
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
+  if (token == 6 || token == 7) {
+    is_set_archive_and_mute_request_sent_ = false;
+    bool archive_and_mute = (token == 7);
+    auto promises = std::move(set_archive_and_mute_queries_[archive_and_mute]);
+    set_archive_and_mute_queries_[archive_and_mute].clear();
+    CHECK(!promises.empty());
+    auto result_ptr = fetch_result<telegram_api::account_setGlobalPrivacySettings>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+    } else {
+      if (last_set_archive_and_mute_ == archive_and_mute) {
+        do_set_archive_and_mute(archive_and_mute);
+      }
+
+      for (auto &promise : promises) {
+        promise.set_value(Unit());
+      }
+    }
+
+    if (!set_archive_and_mute_queries_[!archive_and_mute].empty()) {
+      if (archive_and_mute == last_set_archive_and_mute_) {
+        promises = std::move(set_archive_and_mute_queries_[!archive_and_mute]);
+        set_archive_and_mute_queries_[!archive_and_mute].clear();
+        for (auto &promise : promises) {
+          promise.set_value(Unit());
+        }
+      } else {
+        set_archive_and_mute(!archive_and_mute, Auto());
+      }
+    }
+    return;
+  }
+  if (token == 5) {
+    auto promises = std::move(get_global_privacy_settings_queries_);
+    get_global_privacy_settings_queries_.clear();
+    CHECK(!promises.empty());
+    auto result_ptr = fetch_result<telegram_api::account_getGlobalPrivacySettings>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+      return;
+    }
+
+    auto result = result_ptr.move_as_ok();
+    if ((result->flags_ & telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK) != 0) {
+      do_set_archive_and_mute(result->archive_and_mute_new_noncontact_peers_);
+    } else {
+      LOG(ERROR) << "Receive wrong response: " << to_string(result);
+    }
+
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
+    return;
+  }
   if (token == 3 || token == 4) {
     is_set_content_settings_request_sent_ = false;
     bool ignore_sensitive_content_restrictions = (token == 4);
@@ -1024,7 +1121,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     } else {
       if (G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions") &&
           last_set_content_settings_ == ignore_sensitive_content_restrictions) {
-        set_ignore_sensitive_content_restrictions(ignore_sensitive_content_restrictions);
+        do_set_ignore_sensitive_content_restrictions(ignore_sensitive_content_restrictions);
       }
 
       for (auto &promise : promises) {
@@ -1058,7 +1155,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     }
 
     auto result = result_ptr.move_as_ok();
-    set_ignore_sensitive_content_restrictions(result->sensitive_enabled_);
+    do_set_ignore_sensitive_content_restrictions(result->sensitive_enabled_);
     G()->shared_config().set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
 
     for (auto &promise : promises) {
@@ -1280,6 +1377,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     if (!shared_config.have_option("can_ignore_sensitive_content_restrictions") ||
         !shared_config.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
+    }
+    if (!shared_config.have_option("archive_and_mute_new_chats_from_unknown_users")) {
+      get_global_privacy_settings(Auto());
     }
   }
 }
