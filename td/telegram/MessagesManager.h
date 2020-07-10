@@ -1131,6 +1131,7 @@ class MessagesManager : public Actor {
     bool can_share_phone_number = false;
     bool can_report_location = false;
     bool can_unarchive = false;
+    bool hide_distance = false;
 
     bool is_opened = false;
 
@@ -2680,6 +2681,8 @@ class MessagesManager : public Actor {
   void update_used_hashtags(DialogId dialog_id, const Message *m);
 
   void update_top_dialogs(DialogId dialog_id, const Message *m);
+
+  void try_hide_distance(DialogId dialog_id, const Message *m);
 
   string get_search_text(const Message *m) const;
 

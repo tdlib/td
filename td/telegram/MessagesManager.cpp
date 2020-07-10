@@ -4526,6 +4526,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_channel_server_unread_count);
     STORE_FLAG(can_unarchive);
     STORE_FLAG(has_distance);
+    STORE_FLAG(hide_distance);
     END_STORE_FLAGS();
   }
 
@@ -4690,6 +4691,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_channel_server_unread_count);
     PARSE_FLAG(can_unarchive);
     PARSE_FLAG(has_distance);
+    PARSE_FLAG(hide_distance);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -4702,6 +4704,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     has_scheduled_database_messages = false;
     need_repair_channel_server_unread_count = false;
     can_unarchive = false;
+    hide_distance = false;
   }
 
   parse(last_new_message_id, parser);
@@ -7397,7 +7400,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   d->can_share_phone_number = can_share_phone_number;
   d->can_report_location = can_report_location;
   d->can_unarchive = can_unarchive;
-  d->distance = distance;
+  d->distance = distance < 0 ? -1 : distance;
 
   fix_dialog_action_bar(d);
 
@@ -17469,7 +17472,8 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   if (d->can_block_user) {
     CHECK(d->dialog_id.get_type() == DialogType::User);
     CHECK(d->can_report_spam && d->can_add_contact);
-    return td_api::make_object<td_api::chatActionBarReportAddBlock>(d->can_unarchive);
+    auto distance = d->hide_distance ? -1 : d->distance;
+    return td_api::make_object<td_api::chatActionBarReportAddBlock>(d->can_unarchive, distance);
   }
   if (d->can_add_contact) {
     CHECK(d->dialog_id.get_type() == DialogType::User);
@@ -29033,6 +29037,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
     cancel_user_dialog_action(dialog_id, m);
+    try_hide_distance(dialog_id, m);
   }
 
   Message *result_message = treap_insert_message(&d->messages, std::move(message));
@@ -29194,6 +29199,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   if (from_update) {
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
+    try_hide_distance(dialog_id, m);
   }
 
   if (m->message_id.is_scheduled_server()) {
@@ -32274,6 +32280,42 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
   }
   if (category != TopDialogCategory::Size) {
     on_dialog_used(category, dialog_id, m->date);
+  }
+}
+
+void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
+  if (!m->is_outgoing && dialog_id != get_my_dialog_id()) {
+    return;
+  }
+
+  Dialog *d = nullptr;
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      d = get_dialog(dialog_id);
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+      break;
+    case DialogType::SecretChat: {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (user_id.is_valid()) {
+        d = get_dialog_force(DialogId(user_id));
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (d == nullptr || d->hide_distance) {
+    return;
+  }
+
+  d->hide_distance = true;
+  on_dialog_updated(dialog_id, "try_hide_distance");
+
+  if (d->distance != -1) {
+    send_update_chat_action_bar(d);
   }
 }
 
