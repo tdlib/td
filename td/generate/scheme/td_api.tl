@@ -2860,6 +2860,15 @@ tMeUrl url:string type:TMeUrlType = TMeUrl;
 tMeUrls urls:vector<tMeUrl> = TMeUrls;
 
 
+//@class SuggestedAction @description Describes an action suggested to the current user
+
+//@description Suggests the user to enable "archive_and_mute_new_chats_from_unknown_users" option
+suggestedActionEnableArchiveAndMuteNewChats = SuggestedAction;
+
+//@description Suggests the user to check authorization phone number and change the phone number if it is inaccessible
+suggestedActionCheckPhoneNumber = SuggestedAction;
+
+
 //@description Contains a counter @count Count
 count count:int32 = Count;
 
@@ -3230,6 +3239,9 @@ updateDiceEmojis emojis:vector<string> = Update;
 
 //@description The parameters of animation search through GetOption("animation_search_bot_username") bot has changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
 updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
+
+//@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
+updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location; may be null
 //@query Text of the query @offset Offset of the first entry to return

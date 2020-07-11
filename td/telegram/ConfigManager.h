@@ -9,6 +9,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/SuggestedAction.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -96,6 +97,8 @@ class ConfigManager : public NetQueryCallback {
 
   void on_dc_options_update(DcOptions dc_options);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   ActorShared<> parent_;
   int32 config_sent_cnt_{0};
@@ -115,6 +118,8 @@ class ConfigManager : public NetQueryCallback {
   bool is_set_archive_and_mute_request_sent_ = false;
   bool last_set_archive_and_mute_ = false;
 
+  vector<SuggestedAction> suggested_actions_;
+
   void start_up() override;
   void hangup_shared() override;
   void hangup() override;
@@ -131,6 +136,11 @@ class ConfigManager : public NetQueryCallback {
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
 
   void do_set_archive_and_mute(bool archive_and_mute);
+
+  static td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions(
+      const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions);
+
+  void do_dismiss_suggested_action(SuggestedAction suggested_action);
 
   Timestamp load_config_expire_time();
   void save_config_expire(Timestamp timestamp);

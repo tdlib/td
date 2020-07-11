@@ -55,6 +55,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -1002,6 +1003,9 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
+  if (archive_and_mute) {
+    do_dismiss_suggested_action(SuggestedAction::EnableArchiveAndMuteNewChats);
+  }
 
   last_set_archive_and_mute_ = archive_and_mute;
   auto &queries = set_archive_and_mute_queries_[archive_and_mute];
@@ -1044,7 +1048,22 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
 }
 
 void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
+  if (archive_and_mute) {
+    do_dismiss_suggested_action(SuggestedAction::EnableArchiveAndMuteNewChats);
+  }
   G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
+}
+
+td_api::object_ptr<td_api::updateSuggestedActions> ConfigManager::get_update_suggested_actions(
+    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions) {
+  return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_suggested_action_object),
+                                                             transform(removed_actions, get_suggested_action_object));
+}
+
+void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action) {
+  if (td::remove(suggested_actions_, suggested_action)) {
+    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions({}, {suggested_action}));
+  }
 }
 
 void ConfigManager::on_result(NetQueryPtr res) {
@@ -1388,6 +1407,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   CHECK(config != nullptr);
   LOG(INFO) << "Receive app config " << to_string(config);
 
+  const bool archive_and_mute =
+      G()->shared_config().get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
+
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
   vector<string> dice_emojis;
@@ -1395,6 +1417,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   std::unordered_map<string, string> dice_emoji_success_value;
   string animation_search_provider;
   string animation_search_emojis;
+  vector<SuggestedAction> suggested_actions;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1516,6 +1539,32 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "pending_suggestions") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto actions = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &action : actions) {
+            CHECK(action != nullptr);
+            if (action->get_id() == telegram_api::jsonString::ID) {
+              Slice action_str = static_cast<telegram_api::jsonString *>(action.get())->value_;
+              auto suggested_action = get_suggested_action(action_str);
+              if (suggested_action != SuggestedAction::Empty) {
+                if (archive_and_mute && suggested_action == SuggestedAction::EnableArchiveAndMuteNewChats) {
+                  LOG(INFO) << "Skip SuggestedAction::EnableArchiveAndMuteNewChats";
+                } else {
+                  suggested_actions.push_back(suggested_action);
+                }
+              } else {
+                LOG(ERROR) << "Receive unsupported suggested action " << action_str;
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected suggested action " << to_string(action);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected pending_suggestions " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1566,6 +1615,37 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");
+
+  if (!is_set_content_settings_request_sent_) {  // do not update suggested actions while changing content settings
+    std::sort(suggested_actions.begin(), suggested_actions.end());
+    suggested_actions.erase(std::unique(suggested_actions.begin(), suggested_actions.end()), suggested_actions.end());
+    if (suggested_actions != suggested_actions_) {
+      vector<SuggestedAction> added_actions;
+      vector<SuggestedAction> removed_actions;
+      auto old_it = suggested_actions_.begin();
+      auto new_it = suggested_actions.begin();
+      while (old_it != suggested_actions_.end() || new_it != suggested_actions.end()) {
+        if (new_it == suggested_actions.end() || std::less<SuggestedAction>()(*old_it, *new_it)) {
+          removed_actions.push_back(*old_it++);
+        } else if (old_it == suggested_actions_.end() || std::less<SuggestedAction>()(*new_it, *old_it)) {
+          added_actions.push_back(*new_it++);
+        } else {
+          old_it++;
+          new_it++;
+        }
+      }
+      CHECK(!added_actions.empty() || !removed_actions.empty());
+      suggested_actions_ = std::move(suggested_actions);
+      send_closure(G()->td(), &Td::send_update,
+                   get_update_suggested_actions(std::move(added_actions), std::move(removed_actions)));
+    }
+  }
+}
+
+void ConfigManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!suggested_actions_.empty()) {
+    updates.push_back(get_update_suggested_actions(suggested_actions_, {}));
+  }
 }
 
 }  // namespace td
