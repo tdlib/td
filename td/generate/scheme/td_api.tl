@@ -3751,6 +3751,10 @@ getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 limit:
 stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 
 
+//@description Hides a suggested action @action Suggested action to hide
+hideSuggestedAction action:SuggestedAction = Ok;
+
+
 //@description Returns information about a button of type inlineKeyboardButtonTypeLoginUrl. The method needs to be called when the user presses the button
 //@chat_id Chat identifier of the message with the button @message_id Message identifier of the message with the button @button_id Button identifier
 getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int32 = LoginUrlInfo;

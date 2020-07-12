@@ -1060,6 +1060,29 @@ td_api::object_ptr<td_api::updateSuggestedActions> ConfigManager::get_update_sug
                                                              transform(removed_actions, get_suggested_action_object));
 }
 
+void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
+  if (suggested_action == SuggestedAction::Empty) {
+    return promise.set_error(Status::Error(400, "Action must be non-empty"));
+  }
+  auto action_str = get_suggested_action_str(suggested_action);
+  if (action_str.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  if (!td::contains(suggested_actions_, suggested_action)) {
+    return promise.set_value(Unit());
+  }
+
+  dismiss_suggested_action_request_count_++;
+  auto &queries = dismiss_suggested_action_queries_[suggested_action];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1) {
+    G()->net_query_dispatcher().dispatch_with_callback(
+        G()->net_query_creator().create(telegram_api::help_dismissSuggestion(action_str)),
+        actor_shared(this, 100 + static_cast<int32>(suggested_action)));
+  }
+}
+
 void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action) {
   if (td::remove(suggested_actions_, suggested_action)) {
     send_closure(G()->td(), &Td::send_update, get_update_suggested_actions({}, {suggested_action}));
@@ -1068,6 +1091,29 @@ void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action
 
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
+  if (token >= 100 && token <= 200) {
+    SuggestedAction suggested_action = static_cast<SuggestedAction>(static_cast<int32>(token - 100));
+    auto promises = std::move(dismiss_suggested_action_queries_[suggested_action]);
+    dismiss_suggested_action_queries_.erase(suggested_action);
+    CHECK(!promises.empty());
+    CHECK(dismiss_suggested_action_request_count_ >= promises.size());
+    dismiss_suggested_action_request_count_ -= promises.size();
+
+    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(std::move(res));
+    if (result_ptr.is_error()) {
+      for (auto &promise : promises) {
+        promise.set_error(result_ptr.error().clone());
+      }
+      return;
+    }
+    do_dismiss_suggested_action(suggested_action);
+    get_app_config(Auto());
+
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
+    return;
+  }
   if (token == 6 || token == 7) {
     is_set_archive_and_mute_request_sent_ = false;
     bool archive_and_mute = (token == 7);
@@ -1616,7 +1662,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");
 
-  if (!is_set_content_settings_request_sent_) {  // do not update suggested actions while changing content settings
+  // do not update suggested actions while changing content settings or dismissing an action
+  if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
     std::sort(suggested_actions.begin(), suggested_actions.end());
     suggested_actions.erase(std::unique(suggested_actions.begin(), suggested_actions.end()), suggested_actions.end());
     if (suggested_actions != suggested_actions_) {
@@ -1625,7 +1672,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       auto old_it = suggested_actions_.begin();
       auto new_it = suggested_actions.begin();
       while (old_it != suggested_actions_.end() || new_it != suggested_actions.end()) {
-        if (new_it == suggested_actions.end() || std::less<SuggestedAction>()(*old_it, *new_it)) {
+        if (old_it != suggested_actions_.end() &&
+            (new_it == suggested_actions.end() || std::less<SuggestedAction>()(*old_it, *new_it))) {
           removed_actions.push_back(*old_it++);
         } else if (old_it == suggested_actions_.end() || std::less<SuggestedAction>()(*new_it, *old_it)) {
           added_actions.push_back(*new_it++);

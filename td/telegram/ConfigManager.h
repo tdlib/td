@@ -24,6 +24,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
+#include <map>
+
 namespace td {
 
 extern int VERBOSITY_NAME(config_recoverer);
@@ -95,6 +97,8 @@ class ConfigManager : public NetQueryCallback {
 
   void set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise);
 
+  void dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise);
+
   void on_dc_options_update(DcOptions dc_options);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -119,6 +123,8 @@ class ConfigManager : public NetQueryCallback {
   bool last_set_archive_and_mute_ = false;
 
   vector<SuggestedAction> suggested_actions_;
+  size_t dismiss_suggested_action_request_count_ = 0;
+  std::map<SuggestedAction, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
 
   void start_up() override;
   void hangup_shared() override;

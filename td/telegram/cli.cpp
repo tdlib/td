@@ -1194,6 +1194,16 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  static td_api::object_ptr<td_api::SuggestedAction> as_suggested_action(Slice action) {
+    if (action == "unarchive") {
+      return td_api::make_object<td_api::suggestedActionEnableArchiveAndMuteNewChats>();
+    }
+    if (action == "number") {
+      return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
+    }
+    return nullptr;
+  }
+
   static td_api::object_ptr<td_api::PassportElementType> as_passport_element_type(Slice passport_element_type) {
     if (passport_element_type == "address" || passport_element_type == "a") {
       return td_api::make_object<td_api::passportElementTypeAddress>();
@@ -3996,6 +4006,8 @@ class CliClient final : public Actor {
 
       send_request(
           td_api::make_object<td_api::getChatStatisticsGraph>(as_chat_id(chat_id), token, to_integer<int64>(x)));
+    } else if (op == "hsa" || op == "glu" || op == "glua") {
+      send_request(td_api::make_object<td_api::hideSuggestedAction>(as_suggested_action(args)));
     } else if (op == "glui" || op == "glu" || op == "glua") {
       string chat_id;
       string message_id;

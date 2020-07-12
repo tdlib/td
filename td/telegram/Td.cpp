@@ -83,6 +83,7 @@
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
@@ -7224,6 +7225,13 @@ void Td::on_request(uint64 id, td_api::stopPoll &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                std::move(request.reply_markup_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure_later(config_manager_, &ConfigManager::dismiss_suggested_action, get_suggested_action(request.action_),
+                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getLoginUrlInfo &request) {
