@@ -732,7 +732,7 @@ set(MEMPROF_SOURCE
 
 file(MAKE_DIRECTORY auto)
 
-if (WIN32)
+if (CMAKE_HOST_WIN32)
   set(GIT_COMMIT_CMD powershell -ExecutionPolicy ByPass ./gen_git_commit_h.ps1)
 else()
   set(GIT_COMMIT_CMD ./gen_git_commit_h.sh)
