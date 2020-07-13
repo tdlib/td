@@ -10,10 +10,9 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
-
-#include "td/utils/port/IPAddress.h"
 
 #include <utility>
 
