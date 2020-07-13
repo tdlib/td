@@ -65,7 +65,7 @@ FixNamespaceComments: true
 ForEachMacros:
   - Q_FOREACH_THIS_LIST_MUST_BE_NON_EMPTY
 IncludeBlocks:   Preserve
-IndentCaseBlocks: false
+#IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentGotoLabels: true
 IndentPPDirectives: None

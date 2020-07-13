@@ -38,6 +38,7 @@ class HttpConnectionBase : public Actor {
   State state_;
 
   BufferedFd<SocketFd> fd_;
+  IPAddress peer_address_;
   SslStream ssl_stream_;
 
   ByteFlowSource read_source_{&fd_.input_buffer()};

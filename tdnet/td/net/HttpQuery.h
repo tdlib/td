@@ -13,6 +13,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 
+#include "td/utils/port/IPAddress.h"
+
 #include <utility>
 
 namespace td {
@@ -32,6 +34,8 @@ class HttpQuery {
   vector<std::pair<MutableSlice, MutableSlice>> headers_;
   vector<HttpFile> files_;
   MutableSlice content_;
+
+  IPAddress peer_address_;
 
   Slice get_header(Slice key) const;
 

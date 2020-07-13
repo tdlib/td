@@ -33,6 +33,7 @@ HttpConnectionBase::HttpConnectionBase(State state, SocketFd fd, SslStream ssl_s
     read_source_ >> read_sink_;
     write_source_ >> write_sink_;
   }
+  peer_address_.init_peer_address(fd_).ignore();
 }
 
 void HttpConnectionBase::live_event() {
@@ -123,6 +124,7 @@ void HttpConnectionBase::loop() {
       state_ = State::Write;
       LOG(DEBUG) << "Send query to handler";
       live_event();
+      current_query_->peer_address_ = peer_address_;
       on_query(std::move(current_query_));
     } else {
       want_read = true;
