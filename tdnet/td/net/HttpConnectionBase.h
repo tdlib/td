@@ -24,6 +24,7 @@ namespace detail {
 
 class HttpConnectionBase : public Actor {
  public:
+  void write_next_noflush(BufferSlice buffer);
   void write_next(BufferSlice buffer);
   void write_ok();
   void write_error(Status error);

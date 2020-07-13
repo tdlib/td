@@ -55,9 +55,12 @@ void HttpConnectionBase::tear_down() {
   fd_.close();
 }
 
-void HttpConnectionBase::write_next(BufferSlice buffer) {
+void HttpConnectionBase::write_next_noflush(BufferSlice buffer) {
   CHECK(state_ == State::Write);
   write_buffer_.append(std::move(buffer));
+}
+void HttpConnectionBase::write_next(BufferSlice buffer) {
+  write_next_noflush(std::move(buffer));
   loop();
 }
 

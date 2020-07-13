@@ -34,6 +34,10 @@ class HttpEchoConnection : public Actor {
     Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
     reader_.init(&fd_.input_buffer(), 1024 * 1024, 0);
   }
+  void tear_down() override {
+    Scheduler::unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
+    fd_.close();
+  }
 
   void handle_query() {
     query_ = HttpQuery();
@@ -80,7 +84,7 @@ class HttpEchoConnection : public Actor {
   }
 };
 
-const int N = 4;
+const int N = 8;
 class Server : public TcpListener::Callback {
  public:
   void start_up() override {
