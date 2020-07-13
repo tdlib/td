@@ -35,7 +35,7 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
 
   bool use_quick_ack = false;
   if (quick_ack_token != 0 && transport_->support_quick_ack()) {
-    auto tmp = quick_ack_to_token_.insert(std::make_pair(info.message_ack, quick_ack_token));
+    auto tmp = quick_ack_to_token_.emplace(info.message_ack, quick_ack_token);
     if (tmp.second) {
       use_quick_ack = true;
     } else {

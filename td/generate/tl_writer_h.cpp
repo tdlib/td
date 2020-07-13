@@ -158,7 +158,7 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t) co
       for (auto &c : name) {
         c = to_upper(c);
       }
-      flags.push_back(std::make_pair(name, a.exist_var_bit));
+      flags.emplace_back(name, a.exist_var_bit);
     }
   }
   std::string res;

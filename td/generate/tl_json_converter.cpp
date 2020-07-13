@@ -164,7 +164,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
     }
     Vec vec;
     for (auto *constructor : custom_type->constructors) {
-      vec.push_back(std::make_pair(constructor->id, constructor->name));
+      vec.emplace_back(constructor->id, constructor->name);
       vec_for_nullary.push_back(vec.back());
     }
 
@@ -179,7 +179,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
   }
   Vec vec_for_function;
   for (auto *function : schema.functions) {
-    vec_for_function.push_back(std::make_pair(function->id, function->name));
+    vec_for_function.emplace_back(function->id, function->name);
   }
   gen_tl_constructor_from_string(sb, "Function", vec_for_function, is_header);
 }

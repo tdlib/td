@@ -991,7 +991,7 @@ void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtp
     VLOG(connections) << "Add ready connection " << r_raw_connection.ok().get() << " for "
                       << tag("client", format::as_hex(hash));
     client.backoff.clear();
-    client.ready_connections.push_back(std::make_pair(r_raw_connection.move_as_ok(), Time::now_cached()));
+    client.ready_connections.emplace_back(r_raw_connection.move_as_ok(), Time::now_cached());
   } else {
     if (r_raw_connection.error().code() == -404 && client.auth_data &&
         client.auth_data_generation == auth_data_generation) {

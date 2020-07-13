@@ -176,7 +176,7 @@ DcOptionsSet::DcOptionInfo *DcOptionsSet::register_dc_option(DcOption &&option) 
 
 void DcOptionsSet::init_option_stat(DcOptionInfo *option_info) {
   const auto &ip_address = option_info->option.get_ip_address();
-  auto it_ok = option_to_stat_id_.insert(std::make_pair(ip_address, 0));
+  auto it_ok = option_to_stat_id_.emplace(ip_address, 0);
   if (it_ok.second) {
     it_ok.first->second = option_stats_.create(make_unique<OptionStat>());
   }

@@ -140,7 +140,7 @@ class QueryActor final : public Actor {
       } else {
         future.set_event(EventCreator::raw(actor_id(), query.query_id));
         auto query_id = query.query_id;
-        pending_.insert(std::make_pair(query_id, std::make_pair(std::move(future), std::move(query))));
+        pending_.emplace(query_id, std::make_pair(std::move(future), std::move(query)));
       }
     }
     if (threads_n_ > 1 && Random::fast(0, 9) == 0) {

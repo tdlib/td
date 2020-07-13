@@ -95,7 +95,7 @@ void FileStats::apply_dialog_limit(int32 limit) {
     for (auto &it : dialog.second) {
       size += it.size;
     }
-    dialogs.push_back(std::make_pair(size, dialog.first));
+    dialogs.emplace_back(size, dialog.first);
   }
   size_t prefix = dialogs.size();
   if (prefix > static_cast<size_t>(limit)) {
