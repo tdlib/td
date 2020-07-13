@@ -11,7 +11,9 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/tl_parsers.h"
 
 #include <map>
@@ -58,15 +60,26 @@ struct Trie {
   }
 
   void do_dump(td::string path, int v) {
-    bool flag = !path.empty() && path.back() == '\0';
-    if (flag || nodes_[v].sum * 20 < nodes_[0].sum) {
-      if (flag) {
+    bool is_word_end = !path.empty() && path.back() == '\0';
+
+    bool need_stop = false;
+    int next_count = 0;
+    for (int c = 0; c < 256; c++) {
+      if (nodes_[v].next[c] != 0) {
+        need_stop |= c >= 128 || !(td::is_alpha(static_cast<char>(c)) || c == '.' || c == '_');
+        next_count++;
+      }
+    }
+    need_stop |= next_count == 0 || (next_count >= 2 && nodes_[v].sum <= nodes_[0].sum / 100);
+
+    if (is_word_end || need_stop) {
+      if (is_word_end) {
         path.pop_back();
-      } else {
+      } else if (next_count != 1 || nodes_[v].next[0] == 0) {
         path.push_back('*');
       }
-      LOG(PLAIN) << nodes_[v].sum << " " << nodes_[v].sum * 100 / nodes_[0].sum << "% [" << td::format::escaped(path)
-                 << "]";
+      LOG(PLAIN) << nodes_[v].sum << " " << td::StringBuilder::FixedDouble(nodes_[v].sum * 100.0 / nodes_[0].sum, 2)
+                 << "% [" << td::format::escaped(path) << "]";
       return;
     }
     for (int c = 0; c < 256; c++) {
