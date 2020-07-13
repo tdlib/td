@@ -5200,6 +5200,9 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
   CREATE_REQUEST_PROMISE();
+  if (!request.only_current_ && G()->shared_config().get_option_boolean("disable_persistent_network_statistics")) {
+    return send_error_raw(id, 400, "Persistent network statistics is disabled");
+  }
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<NetworkStats> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
@@ -6999,6 +7002,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (!is_bot && set_boolean_option("disable_top_chats")) {
+        return;
+      }
+      if (set_boolean_option("disable_persistent_network_statistics")) {
         return;
       }
       if (request.name_ == "drop_notification_ids") {

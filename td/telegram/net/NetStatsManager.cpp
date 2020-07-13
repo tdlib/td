@@ -291,6 +291,10 @@ void NetStatsManager::update(NetStatsInfo &info, bool force_save) {
 }
 
 void NetStatsManager::save_stats(NetStatsInfo &info, NetType net_type) {
+  if (G()->shared_config().get_option_boolean("disable_persistent_network_statistics")) {
+    return;
+  }
+
   auto net_type_i = static_cast<size_t>(net_type);
   auto &type_stats = info.stats_by_type[net_type_i];
 
