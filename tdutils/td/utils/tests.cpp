@@ -202,10 +202,10 @@ bool TestsRunner::run_all_step() {
 
     auto passed = Time::now() - state_.start;
     auto real_passed = Time::now_unadjusted() - state_.start_unadjusted;
-    if (real_passed + 1e-6 > passed) {
+    if (real_passed + 1e-1 > passed) {
       LOG(ERROR) << format::as_time(passed);
     } else {
-      LOG(ERROR) << format::as_time(passed) << " real[" << format::as_time(real_passed) << "]";
+      LOG(ERROR) << format::as_time(real_passed) << " adjusted [" << format::as_time(real_passed) << "]";
     }
     if (regression_tester_) {
       regression_tester_->save_db();
