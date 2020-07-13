@@ -240,7 +240,7 @@ void Binlog::add_event(BinlogEvent &&event) {
     auto need_reindex = [&](int64 min_size, int rate) {
       return fd_size > min_size && fd_size / rate > processor_->total_raw_events_size();
     };
-    if (need_reindex(100000, 5) || need_reindex(500000, 2)) {
+    if (need_reindex(50000, 5) || need_reindex(100000, 4) || need_reindex(300000, 3) || need_reindex(500000, 2)) {
       LOG(INFO) << tag("fd_size", format::as_size(fd_size))
                 << tag("total events size", format::as_size(processor_->total_raw_events_size()));
       do_reindex();
