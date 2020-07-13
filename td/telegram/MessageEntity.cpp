@@ -3513,11 +3513,9 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   int32 last_space_utf16_offset = -1;
   int32 last_non_whitespace_utf16_offset = -1;
 
+  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+
   for (size_t pos = 0; pos <= text.size(); pos++) {
-    while (current_entity < entities.size() && utf16_offset >= entities[current_entity].offset &&
-           entities[current_entity].length == 0) {
-      nested_entities_stack.push_back(&entities[current_entity++]);
-    }
     while (!nested_entities_stack.empty()) {
       auto *entity = nested_entities_stack.back();
       auto entity_end = entity->offset + entity->length;

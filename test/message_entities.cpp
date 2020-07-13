@@ -813,6 +813,15 @@ TEST(MessageEntities, fix_formatted_text) {
       check_fix_formatted_text(text, {{type, 0, 1, "http://telegram.org/"}}, "", {}, true, false, false, true);
     }
   }
+  check_fix_formatted_text("\r ", {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Underline, 0, 1}},
+                           "", {}, true, false, false, true);
+  check_fix_formatted_text("a \r", {{td::MessageEntity::Type::Bold, 0, 3}, {td::MessageEntity::Type::Underline, 2, 1}},
+                           "a ", {{td::MessageEntity::Type::Bold, 0, 2}}, true, false, false, true);
+  check_fix_formatted_text("a \r ", {{td::MessageEntity::Type::Bold, 0, 4}, {td::MessageEntity::Type::Underline, 2, 1}},
+                           "a  ", {{td::MessageEntity::Type::Bold, 0, 2}}, true, false, false, true);
+  check_fix_formatted_text(
+      "a \r b", {{td::MessageEntity::Type::Bold, 0, 5}, {td::MessageEntity::Type::Underline, 2, 1}}, "a  b",
+      {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Bold, 3, 1}}, true, false, false, true);
 
   check_fix_formatted_text("a\rbc\r",
                            {{td::MessageEntity::Type::Italic, 0, 1},
