@@ -12,6 +12,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_parsers.h"
@@ -99,6 +100,13 @@ int main(int argc, char *argv[]) {
     LOG(PLAIN) << "Usage: binlog_dump <binlog_file_name>";
     return 1;
   }
+  td::string binlog_file_name = argv[1];
+  auto r_stat = td::stat(binlog_file_name);
+  if (r_stat.is_error() || r_stat.ok().size_ == 0 || !r_stat.ok().is_reg_) {
+    LOG(PLAIN) << "Wrong binlog file name specified";
+    LOG(PLAIN) << "Usage: binlog_dump <binlog_file_name>";
+    return 1;
+  }
 
   struct Info {
     std::size_t full_size = 0;
@@ -112,7 +120,7 @@ int main(int argc, char *argv[]) {
   td::Binlog binlog;
   binlog
       .init(
-          argv[1],
+          binlog_file_name,
           [&](auto &event) {
             info[0].compressed_size += event.raw_event_.size();
             info[event.type_].compressed_size += event.raw_event_.size();
