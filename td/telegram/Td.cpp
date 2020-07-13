@@ -7007,6 +7007,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (set_boolean_option("disable_persistent_network_statistics")) {
         return;
       }
+      if (set_boolean_option("disable_time_adjustment_protection")) {
+        return;
+      }
       if (request.name_ == "drop_notification_ids") {
         G()->td_db()->get_binlog_pmc()->erase("notification_id_current");
         G()->td_db()->get_binlog_pmc()->erase("notification_group_id_current");

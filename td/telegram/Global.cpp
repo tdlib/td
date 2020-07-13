@@ -161,6 +161,10 @@ void Global::save_server_time() {
 }
 
 void Global::do_save_server_time_difference() {
+  if (shared_config_ != nullptr && shared_config_->get_option_boolean("disable_time_adjustment_protection")) {
+    return;
+  }
+
   // diff = server_time - Time::now
   // fixed_diff = server_time - Clocks::system
   double system_time = Clocks::system();
