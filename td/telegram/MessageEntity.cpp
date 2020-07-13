@@ -1600,7 +1600,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     }
     if (c != '_' && c != '*' && c != '`' && c != '[') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -1642,7 +1642,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     while (i < size && (text[i] != end_character || (is_pre && !(text[i + 1] == '`' && text[i + 2] == '`')))) {
       auto cur_ch = static_cast<unsigned char>(text[i]);
       if (is_utf8_character_first_code_unit(cur_ch)) {
-        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i++]);
     }
@@ -1750,7 +1750,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
 
     if (reserved_characters.find(text[i]) == Slice::npos) {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -2174,7 +2174,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
   for (size_t i = 0; i + 1 < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (is_utf8_character_first_code_unit(c)) {
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
     if ((c == '_' || c == '*' || c == '~') && text[i] == text[i + 1] && unallowed_boundaries.count(utf16_offset) == 0) {
       auto j = i + 2;
@@ -2244,7 +2244,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (is_utf8_character_first_code_unit(c)) {
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
     if (j < removed_pos.size() && utf16_offset == removed_pos[j]) {
       i++;
@@ -2284,7 +2284,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c != '`') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -2323,7 +2323,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
             end_tag_begin = end_tag_end - 1;
           }
         } else if (is_utf8_character_first_code_unit(cur_c)) {
-          entity_length += 1 + (cur_c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+          entity_length += 1 + (cur_c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         }
       }
       if (is_found) {
@@ -2587,7 +2587,7 @@ FormattedText get_markdown_v3(FormattedText text) {
         }
         nested_entities_stack.emplace_back(&text.entities[current_entity++], utf16_added);
       }
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
     if (pos == text.text.size()) {
       break;
@@ -2688,7 +2688,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
     }
     if (c != '<') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -3455,7 +3455,7 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
         break;
       default:
         if (is_utf8_character_begin) {
-          utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+          utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         }
         if (c == 0xe2 && pos + 2 < text_size) {
           unsigned char next = static_cast<unsigned char>(text[pos + 1]);
@@ -3573,7 +3573,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
         while (!is_utf8_character_first_code_unit(static_cast<unsigned char>(text[pos + 1]))) {
           pos++;
         }
-        utf16_offset += (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         last_non_whitespace_pos = pos;
         last_non_whitespace_utf16_offset = utf16_offset;
         break;

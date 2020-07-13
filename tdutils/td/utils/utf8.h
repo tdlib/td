@@ -78,7 +78,7 @@ T utf8_utf16_truncate(T str, size_t length) {
         return str.substr(0, i);
       } else {
         length--;
-        if (c >= 0xf0) {  // >= 4 bytes in symbol => surrogaite pair
+        if (c >= 0xf0) {  // >= 4 bytes in symbol => surrogate pair
           length--;
         }
       }
