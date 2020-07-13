@@ -11,9 +11,9 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tl_parsers.h"
 
-#include <cstdio>
 #include <map>
 
 struct Trie {
@@ -30,8 +30,8 @@ struct Trie {
     if (nodes_[0].sum == 0) {  // division by zero
       return;
     }
-    LOG(ERROR) << "TOTAL: " << nodes_[0].sum;
-    do_dump(0);
+    LOG(PLAIN) << "TOTAL: " << nodes_[0].sum;
+    do_dump("", 0);
   }
 
  private:
@@ -39,36 +39,34 @@ struct Trie {
     int next[256] = {};
     int sum = 0;
   };
-  std::vector<FullNode> nodes_;
-  std::string path_;
+  td::vector<FullNode> nodes_;
+
   void do_add(int id, td::Slice value) {
     nodes_[id].sum++;
     if (value.empty()) {
       return;
     }
-    td::uint8 c = value[0];
-    if (nodes_[id].next[c] == 0) {
-      int next_id = static_cast<int>(nodes_.size());
+
+    auto c = static_cast<td::uint8>(value[0]);
+    auto next_id = nodes_[id].next[c];
+    if (next_id == 0) {
+      next_id = static_cast<int>(nodes_.size());
       nodes_.emplace_back();
       nodes_[id].next[c] = next_id;
     }
-    do_add(nodes_[id].next[c], value.substr(1));
+    do_add(next_id, value.substr(1));
   }
-  void do_dump(int v) {
-    bool flag = !path_.empty() && path_.back() == '\0';
+
+  void do_dump(td::string path, int v) {
+    bool flag = !path.empty() && path.back() == '\0';
     if (flag || nodes_[v].sum * 20 < nodes_[0].sum) {
       if (flag) {
-        path_.pop_back();
+        path.pop_back();
       } else {
-        path_.push_back('*');
+        path.push_back('*');
       }
-      LOG(ERROR) << nodes_[v].sum << " " << nodes_[v].sum * 100 / nodes_[0].sum << "% [" << td::format::escaped(path_)
+      LOG(PLAIN) << nodes_[v].sum << " " << nodes_[v].sum * 100 / nodes_[0].sum << "% [" << td::format::escaped(path)
                  << "]";
-      if (flag) {
-        path_.push_back('\0');
-      } else {
-        path_.pop_back();
-      }
       return;
     }
     for (int c = 0; c < 256; c++) {
@@ -76,49 +74,16 @@ struct Trie {
       if (next_id == 0) {
         continue;
       }
-      path_.append(1, (char)c);
-      do_dump(next_id);
-      path_.pop_back();
+      do_dump(path + static_cast<char>(c), next_id);
     }
   }
 };
 
-namespace td {
-struct Event : public Storer {
-  Event() = default;
-  Event(Slice key, Slice value) : key(key), value(value) {
-  }
-  Slice key;
-  Slice value;
-  template <class StorerT>
-  void store(StorerT &&storer) const {
-    storer.store_string(key);
-    storer.store_string(value);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &&parser) {
-    key = parser.template fetch_string<Slice>();
-    value = parser.template fetch_string<Slice>();
-  }
-
-  size_t size() const override {
-    TlStorerCalcLength storer;
-    store(storer);
-    return storer.get_length();
-  }
-  size_t store(uint8 *ptr) const override {
-    TlStorerUnsafe storer(ptr);
-    store(storer);
-    return static_cast<size_t>(storer.get_buf() - ptr);
-  }
-};
-}  // namespace td
 enum Magic { ConfigPmcMagic = 0x1f18, BinlogPmcMagic = 0x4327 };
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    std::fprintf(stderr, "Usage: binlog_dump <binlog_file_name>\n");
+    LOG(PLAIN) << "Usage: binlog_dump <binlog_file_name>";
     return 1;
   }
 
@@ -139,9 +104,8 @@ int main(int argc, char *argv[]) {
             info[0].compressed_size += event.raw_event_.size();
             info[event.type_].compressed_size += event.raw_event_.size();
             if (event.type_ == ConfigPmcMagic || event.type_ == BinlogPmcMagic) {
-              td::Event kv_event;
-              kv_event.parse(td::TlParser(event.data_));
-              info[event.type_].compressed_trie.add(kv_event.key);
+              auto key = td::TlParser(event.data_).fetch_string<td::Slice>();
+              info[event.type_].compressed_trie.add(key);
             }
           },
           td::DbKey::raw_key("cucumber"), td::DbKey::empty(), -1,
@@ -149,9 +113,8 @@ int main(int argc, char *argv[]) {
             info[0].full_size += event.raw_event_.size();
             info[event.type_].full_size += event.raw_event_.size();
             if (event.type_ == ConfigPmcMagic || event.type_ == BinlogPmcMagic) {
-              td::Event kv_event;
-              kv_event.parse(td::TlParser(event.data_));
-              info[event.type_].trie.add(kv_event.key);
+              auto key = td::TlParser(event.data_).fetch_string<td::Slice>();
+              info[event.type_].trie.add(key);
             }
             LOG(PLAIN) << "LogEvent[" << td::tag("id", td::format::as_hex(event.id_)) << td::tag("type", event.type_)
                        << td::tag("flags", event.flags_) << td::tag("size", event.data_.size())
@@ -160,11 +123,13 @@ int main(int argc, char *argv[]) {
       .ensure();
 
   for (auto &it : info) {
-    LOG(ERROR) << td::tag("handler", td::format::as_hex(it.first))
+    LOG(PLAIN) << td::tag("handler", td::format::as_hex(it.first))
                << td::tag("full_size", td::format::as_size(it.second.full_size))
                << td::tag("compressed_size", td::format::as_size(it.second.compressed_size));
     it.second.trie.dump();
-    it.second.compressed_trie.dump();
+    if (it.second.full_size != it.second.compressed_size) {
+      it.second.compressed_trie.dump();
+    }
   }
 
   return 0;
