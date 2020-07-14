@@ -229,7 +229,7 @@ Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_
     if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
       auto error = create_openssl_error(-8, "Failed to load default verify paths");
       if (verify_peer == SslStream::VerifyPeer::On) {
-        return error;
+        return std::move(error);
       } else {
         LOG(ERROR) << error;
       }
