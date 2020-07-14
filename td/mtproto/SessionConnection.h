@@ -14,6 +14,7 @@
 #include "td/utils/format.h"
 #include "td/utils/Named.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"

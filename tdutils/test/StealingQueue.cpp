@@ -15,6 +15,7 @@
 #include "td/utils/tests.h"
 
 #include <atomic>
+#include <cstring>
 
 TEST(StealingQueue, very_simple) {
   td::StealingQueue<int, 8> q;

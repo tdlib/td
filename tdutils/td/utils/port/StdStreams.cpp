@@ -12,6 +12,7 @@
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 
 #include <atomic>

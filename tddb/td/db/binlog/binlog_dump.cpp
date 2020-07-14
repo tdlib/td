@@ -20,7 +20,6 @@
 #include <map>
 
 struct Trie {
- public:
   Trie() {
     nodes_.resize(1);
   }
