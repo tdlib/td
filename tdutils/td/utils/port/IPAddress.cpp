@@ -529,7 +529,7 @@ void IPAddress::clear_ipv6_interface() {
   auto *begin = ipv6_addr_.sin6_addr.s6_addr;
   static_assert(sizeof(ipv6_addr_.sin6_addr.s6_addr) == 16, "expected 16 bytes buffer for ipv6");
   static_assert(sizeof(*begin) == 1, "expected array of bytes");
-  std::fill(begin + 8, begin + 16, 0);
+  std::memset(begin + 8, 0, 8 * sizeof(*begin));
 }
 
 string IPAddress::ipv4_to_str(uint32 ipv4) {

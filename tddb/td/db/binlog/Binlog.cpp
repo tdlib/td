@@ -293,7 +293,7 @@ Status Binlog::close(bool need_sync) {
   return Status::OK();
 }
 
-void Binlog::close(td::Promise<> promise) {
+void Binlog::close(Promise<> promise) {
   TRY_STATUS_PROMISE(promise, close());
   promise.set_value({});
 }

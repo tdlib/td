@@ -234,7 +234,7 @@ class TQueueImpl : public TQueue {
     return do_get(queue_id, q, q.events.front().event_id, true, Time::now(), span);
   }
 
-  void close(td::Promise<> promise) override {
+  void close(Promise<> promise) override {
     callback_->close(std::move(promise));
     callback_ = nullptr;
   }
@@ -442,7 +442,7 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
 }
 
 template <class BinlogT>
-void TQueueBinlog<BinlogT>::close(td::Promise<> promise) {
+void TQueueBinlog<BinlogT>::close(Promise<> promise) {
   binlog_->close(std::move(promise));
 }
 
@@ -467,7 +467,7 @@ void TQueueMemoryStorage::replay(TQueue &q) const {
     CHECK(is_added);
   }
 }
-void TQueueMemoryStorage::close(td::Promise<> promise) {
+void TQueueMemoryStorage::close(Promise<> promise) {
   promise.set_value({});
 }
 

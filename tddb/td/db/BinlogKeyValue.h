@@ -114,7 +114,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   void close() {
     *this = BinlogKeyValue();
   }
-  void close(td::Promise<> promise) override {
+  void close(Promise<> promise) override {
     binlog_->close(std::move(promise));
   }
 
