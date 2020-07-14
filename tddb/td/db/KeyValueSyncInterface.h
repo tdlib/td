@@ -43,6 +43,8 @@ class KeyValueSyncInterface {
   virtual void erase_by_prefix(Slice prefix) = 0;
 
   virtual void force_sync(Promise<> &&promise) = 0;
+
+  virtual void close(Promise<> promise) = 0;
 };
 
 }  // namespace td

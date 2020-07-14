@@ -293,6 +293,11 @@ Status Binlog::close(bool need_sync) {
   return Status::OK();
 }
 
+void Binlog::close(td::Promise<> promise) {
+  TRY_STATUS_PROMISE(promise, close());
+  promise.set_value({});
+}
+
 void Binlog::change_key(DbKey new_db_key) {
   db_key_ = std::move(new_db_key);
   aes_ctr_key_salt_ = BufferSlice();

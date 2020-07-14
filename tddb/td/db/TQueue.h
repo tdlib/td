@@ -12,6 +12,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include <map>
 #include <memory>
 #include <utility>
@@ -81,6 +83,7 @@ class TQueue {
 
     virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
     virtual void pop(uint64 logevent_id) = 0;
+    virtual void close(td::Promise<> promise) = 0;
   };
 
   static unique_ptr<TQueue> create();
@@ -111,6 +114,7 @@ class TQueue {
   virtual size_t get_size(QueueId queue_id) = 0;
 
   virtual void run_gc(double now) = 0;
+  virtual void close(td::Promise<> promise) = 0;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const TQueue::EventId id);
@@ -129,6 +133,7 @@ class TQueueBinlog : public TQueue::StorageCallback {
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
     binlog_ = std::move(binlog);
   }
+  virtual void close(td::Promise<> promise) override;
 
  private:
   std::shared_ptr<BinlogT> binlog_;
@@ -141,6 +146,7 @@ class TQueueMemoryStorage : public TQueue::StorageCallback {
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
   void replay(TQueue &q) const;
+  virtual void close(td::Promise<> promise) override;
 
  private:
   uint64 next_logevent_id_{1};

@@ -114,6 +114,9 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   void close() {
     *this = BinlogKeyValue();
   }
+  void close(td::Promise<> promise) override {
+    binlog_->close(std::move(promise));
+  }
 
   SeqNo set(string key, string value) override {
     auto lock = rw_mutex_.lock_write().move_as_ok();

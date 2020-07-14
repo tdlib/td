@@ -21,6 +21,8 @@
 #include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include <functional>
 
 namespace td {
@@ -103,6 +105,7 @@ class Binlog {
   void change_key(DbKey new_db_key);
 
   Status close(bool need_sync = true) TD_WARN_UNUSED_RESULT;
+  void close(td::Promise<>);
   Status close_and_destroy() TD_WARN_UNUSED_RESULT;
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
