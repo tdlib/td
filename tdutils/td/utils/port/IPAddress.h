@@ -65,6 +65,8 @@ class IPAddress {
   Status init_socket_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;
   Status init_peer_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;
 
+  void clear_ipv6_interface();
+
   friend bool operator==(const IPAddress &a, const IPAddress &b);
   friend bool operator<(const IPAddress &a, const IPAddress &b);
 

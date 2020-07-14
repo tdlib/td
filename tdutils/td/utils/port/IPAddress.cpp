@@ -521,6 +521,17 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   return Status::OK();
 }
 
+void IPAddress::clear_ipv6_interface() {
+  if (!is_valid() || get_address_family() != AF_INET6) {
+    return;
+  }
+
+  auto *begin = ipv6_addr_.sin6_addr.s6_addr;
+  static_assert(sizeof(ipv6_addr_.sin6_addr.s6_addr) == 16, "expected 16 bytes buffer for ipv6");
+  static_assert(sizeof(*begin) == 1, "expected array of bytes");
+  std::fill(begin + 8, begin + 16, 0);
+}
+
 string IPAddress::ipv4_to_str(uint32 ipv4) {
   ipv4 = ntohl(ipv4);
   return ::td::get_ip_str(AF_INET, &ipv4).str();

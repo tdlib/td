@@ -719,6 +719,14 @@ TEST(Misc, IPAddress_is_reserved) {
   test_is_reserved("255.255.255.255", true);
 }
 
+TEST(Misc, ipv6_clear) {
+  IPAddress ip_address;
+  ip_address.init_host_port("2001:0db8:85a3:0000:0000:8a2e:0370:7334", 123).ensure();
+  ASSERT_EQ("2001:db8:85a3::8a2e:370:7334", ip_address.get_ip_str());
+  ip_address.clear_ipv6_interface();
+  ASSERT_EQ("2001:db8:85a3::", ip_address.get_ip_str());
+}
+
 static void test_split(Slice str, std::pair<Slice, Slice> expected) {
   ASSERT_EQ(expected, td::split(str));
 }
