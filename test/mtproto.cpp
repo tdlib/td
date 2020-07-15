@@ -670,8 +670,10 @@ TEST(Mtproto, TlsTransport) {
         class Callback : public TransparentProxy::Callback {
          public:
           void set_result(Result<SocketFd> result) override {
-            if (!result.is_error() || result.error().message() != "Response hash mismatch") {
-              LOG(ERROR) << "Receive unexpected result";
+            if (result.is_ok()) {
+              LOG(ERROR) << "Unexpectedly succeeded to connect to MTProto proxy";
+            } else if (result.error().message() != "Response hash mismatch") {
+              LOG(ERROR) << "Receive unexpected result " << result.error();
             }
             Scheduler::instance()->finish();
           }
