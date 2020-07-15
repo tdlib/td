@@ -21,13 +21,13 @@ class BinlogActor : public Actor {
   void close(Promise<> promise) {
     binlog_->close().ensure();
     promise.set_value(Unit());
-    LOG(INFO) << "Finished closing binlog";
+    LOG(INFO) << "Finished to close binlog";
     stop();
   }
   void close_and_destroy(Promise<> promise) {
     binlog_->close_and_destroy().ensure();
     promise.set_value(Unit());
-    LOG(INFO) << "Finished closing and destroying binlog";
+    LOG(INFO) << "Finished to destroy binlog";
     stop();
   }
 
