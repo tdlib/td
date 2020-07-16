@@ -876,6 +876,7 @@ class ConfigRecoverer : public Actor {
 };
 
 ConfigManager::ConfigManager(ActorShared<> parent) : parent_(std::move(parent)) {
+  lazy_request_flood_countrol_.add_limit(20, 1);
 }
 
 void ConfigManager::start_up() {
@@ -925,6 +926,19 @@ void ConfigManager::request_config() {
     return;
   }
   request_config_from_dc_impl(DcId::main());
+}
+
+void ConfigManager::lazy_request_config() {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  if (config_sent_cnt_ != 0) {
+    return;
+  }
+
+  expire_time_.relax(Timestamp::at(lazy_request_flood_countrol_.get_wakeup_at()));
+  set_timeout_at(expire_time_.at());
 }
 
 void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
@@ -1033,6 +1047,7 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   config_sent_cnt_++;
+  lazy_request_flood_countrol_.add_event(static_cast<int32>(Timestamp::now().at()));
   auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), dc_id);
   query->total_timeout_limit_ = 60 * 60 * 24;
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));

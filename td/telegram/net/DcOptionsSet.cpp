@@ -6,6 +6,9 @@
 //
 #include "td/telegram/net/DcOptionsSet.h"
 
+#include "td/telegram/Global.h"
+#include "td/telegram/ConfigManager.h"
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -130,6 +133,7 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
   auto options = find_all_connections(dc_id, allow_media_only, use_static, prefer_ipv6, only_http);
 
   if (options.empty()) {
+    send_closure(G()->config_manager(), &ConfigManager::lazy_request_config);
     return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)
                                   << tag("allow_media_only", allow_media_only) << tag("use_static", use_static)
                                   << tag("prefer_ipv6", prefer_ipv6));

@@ -18,6 +18,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FloodControlStrict.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Slice.h"
@@ -87,6 +88,8 @@ class ConfigManager : public NetQueryCallback {
 
   void request_config();
 
+  void lazy_request_config();
+
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
   void get_content_settings(Promise<Unit> &&promise);
@@ -109,6 +112,8 @@ class ConfigManager : public NetQueryCallback {
   ActorOwn<ConfigRecoverer> config_recoverer_;
   int ref_cnt_{1};
   Timestamp expire_time_;
+
+  FloodControlStrict lazy_request_flood_countrol_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
 
