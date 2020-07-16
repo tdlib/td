@@ -6,8 +6,8 @@
 //
 #include "td/telegram/net/DcOptionsSet.h"
 
-#include "td/telegram/Global.h"
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/Global.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

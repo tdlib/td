@@ -925,6 +925,8 @@ void ConfigManager::request_config() {
   if (config_sent_cnt_ != 0) {
     return;
   }
+
+  lazy_request_flood_countrol_.add_event(static_cast<int32>(Timestamp::now().at()));
   request_config_from_dc_impl(DcId::main());
 }
 
@@ -1047,7 +1049,6 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   config_sent_cnt_++;
-  lazy_request_flood_countrol_.add_event(static_cast<int32>(Timestamp::now().at()));
   auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), dc_id);
   query->total_timeout_limit_ = 60 * 60 * 24;
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));

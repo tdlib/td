@@ -13,16 +13,16 @@ namespace td {
 
 class FloodControlFast {
  public:
-  uint32 add_event(int32 now) {
+  void add_event(int32 now) {
     for (auto &limit : limits_) {
       limit.stat_.add_event(CounterStat::Event(), now);
       if (limit.stat_.get_stat(now).count_ > limit.count_) {
         wakeup_at_ = max(wakeup_at_, now + limit.duration_ * 2);
       }
     }
-    return wakeup_at_;
   }
-  uint32 get_wakeup_at() {
+
+  uint32 get_wakeup_at() const {
     return wakeup_at_;
   }
 
