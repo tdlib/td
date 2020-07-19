@@ -159,7 +159,6 @@ class Scheduler {
   };
   friend class ServiceActor;
 
-  void do_custom_event(ActorInfo *actor, CustomEvent &event);
   void do_event(ActorInfo *actor, Event &&event);
 
   void enter_actor(ActorInfo *actor_info);

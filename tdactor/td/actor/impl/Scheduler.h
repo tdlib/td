@@ -151,10 +151,6 @@ inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
   CHECK(actor_count_ >= 0);
 }
 
-inline void Scheduler::do_custom_event(ActorInfo *actor_info, CustomEvent &event) {
-  event.run(actor_info->get_actor_unsafe());
-}
-
 template <class RunFuncT, class EventFuncT>
 void Scheduler::flush_mailbox(ActorInfo *actor_info, const RunFuncT &run_func, const EventFuncT &event_func) {
   auto &mailbox = actor_info->mailbox_;

@@ -278,7 +278,7 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
       actor->raw_event(event.data);
       break;
     case Event::Type::Custom:
-      do_custom_event(actor_info, *event.data.custom_event);
+      event.data.custom_event->run(actor);
       break;
     case Event::Type::NoType:
     default:
