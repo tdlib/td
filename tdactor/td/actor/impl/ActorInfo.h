@@ -175,7 +175,9 @@ inline void ActorInfo::start_run() {
 }
 inline void ActorInfo::finish_run() {
   is_running_ = false;
-  VLOG(actor) << "Stop run actor: " << *this;
+  if (!empty()) {
+    VLOG(actor) << "Stop run actor: " << *this;
+  }
 }
 
 inline bool ActorInfo::is_running() const {
