@@ -108,7 +108,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         if (content_encoding_.empty()) {
         } else if (content_encoding_ == "gzip" || content_encoding_ == "deflate") {
           gzip_flow_ = GzipByteFlow(Gzip::Mode::Decode);
-          gzip_flow_.set_max_output_size(MAX_FILE_SIZE);
+          gzip_flow_.set_max_output_size(MAX_CONTENT_SIZE);
           *source >> gzip_flow_;
           source = &gzip_flow_;
         } else {
@@ -229,9 +229,11 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         return need_size;
       }
       case State::ReadMultipartFormData: {
-        TRY_RESULT(result, parse_multipart_form_data());
-        if (result) {
-          break;
+        if (!content_->empty()) {
+          TRY_RESULT(result, parse_multipart_form_data());
+          if (result) {
+            break;
+          }
         }
         return need_size;
       }
@@ -250,7 +252,8 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
 // returns false if need more data
 Result<bool> HttpReader::parse_multipart_form_data() {
   while (true) {
-    LOG(DEBUG) << "Parsing multipart form data in state " << static_cast<int32>(form_data_parse_state_);
+    LOG(DEBUG) << "Parsing multipart form data in state " << static_cast<int32>(form_data_parse_state_)
+               << " with already read length " << form_data_read_length_;
     switch (form_data_parse_state_) {
       case FormDataParseState::SkipPrologue:
         if (find_boundary(content_->clone(), {boundary_.c_str() + 2, boundary_.size() - 2}, form_data_read_length_)) {
