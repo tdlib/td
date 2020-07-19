@@ -177,6 +177,7 @@ class ContactsManager : public Actor {
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
+  void on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo);
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
   void on_ignored_restriction_reasons_changed();

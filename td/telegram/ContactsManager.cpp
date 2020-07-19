@@ -840,10 +840,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for uploadProfilePhoto: " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_), "UploadProfilePhotoQuery");
-    // ignore ptr->photo_
+    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok());
 
     td->file_manager_->delete_partial_remote_location(file_id_);
 
@@ -879,8 +876,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for updateProfilePhoto " << to_string(result_ptr.ok());
-    td->contacts_manager_->on_update_user_photo(td->contacts_manager_->get_my_id(), result_ptr.move_as_ok());
+    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok());
 
     promise_.set_value(Unit());
   }
@@ -10000,6 +9996,13 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
         G()->td(), &Td::send_update,
         td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, get_channel(channel_id))));
   }
+}
+
+void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo) {
+  LOG(INFO) << "Changed profile photo to " << to_string(photo);
+
+  // ignore photo->photo_
+  on_get_users(std::move(photo->users_), "UploadProfilePhotoQuery");
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
