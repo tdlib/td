@@ -881,6 +881,8 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
         return td_api::make_object<td_api::thumbnailFormatTgs>();
       case td_api::thumbnailFormatMpeg4::ID:
         return td_api::make_object<td_api::thumbnailFormatMpeg4>();
+      case td_api::thumbnailFormatGif::ID:
+        return td_api::make_object<td_api::thumbnailFormatGif>();
       default:
         UNREACHABLE();
         return nullptr;
