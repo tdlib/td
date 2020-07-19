@@ -840,7 +840,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok());
+    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok(), 0);
 
     td->file_manager_->delete_partial_remote_location(file_id_);
 
@@ -857,15 +857,17 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
 class UpdateProfilePhotoQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
+  int64 old_photo_id_;
   string file_reference_;
 
  public:
   explicit UpdateProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo) {
+  void send(FileId file_id, int64 old_photo_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo) {
     CHECK(input_photo != nullptr);
     file_id_ = file_id;
+    old_photo_id_ = old_photo_id;
     file_reference_ = FileManager::extract_file_reference(input_photo);
     send_query(G()->net_query_creator().create(telegram_api::photos_updateProfilePhoto(std::move(input_photo))));
   }
@@ -876,7 +878,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok());
+    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok(), old_photo_id_);
 
     promise_.set_value(Unit());
   }
@@ -887,14 +889,14 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
         td->file_reference_manager_->repair_file_reference(
-            file_id_,
-            PromiseCreator::lambda([file_id = file_id_, promise = std::move(promise_)](Result<Unit> result) mutable {
+            file_id_, PromiseCreator::lambda([file_id = file_id_, old_photo_id = old_photo_id_,
+                                              promise = std::move(promise_)](Result<Unit> result) mutable {
               if (result.is_error()) {
                 return promise.set_error(Status::Error(400, "Can't find the photo"));
               }
 
               send_closure(G()->contacts_manager(), &ContactsManager::send_update_profile_photo_query, file_id,
-                           std::move(promise));
+                           old_photo_id, std::move(promise));
             }));
         return;
       } else {
@@ -5515,7 +5517,7 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
       if (!file_id.is_valid()) {
         return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
       }
-      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id), std::move(promise));
+      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id), photo_id, std::move(promise));
     }
     case td_api::inputChatPhotoStatic::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
@@ -5552,10 +5554,10 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
                        std::move(promise));
 }
 
-void ContactsManager::send_update_profile_photo_query(FileId file_id, Promise<Unit> &&promise) {
+void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_photo_id, Promise<Unit> &&promise) {
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-      ->send(file_id, file_view.main_remote_location().as_input_photo());
+      ->send(file_id, old_photo_id, file_view.main_remote_location().as_input_photo());
 }
 
 void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp,
@@ -5573,7 +5575,7 @@ void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit>
   const User *u = get_user(get_my_id());
   if (u != nullptr && u->photo.id == profile_photo_id) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(FileId(), make_tl_object<telegram_api::inputPhotoEmpty>());
+        ->send(FileId(), profile_photo_id, make_tl_object<telegram_api::inputPhotoEmpty>());
     return;
   }
 
@@ -9998,7 +10000,7 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
   }
 }
 
-void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo) {
+void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
   // ignore photo->photo_
