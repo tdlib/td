@@ -47,7 +47,7 @@
 #define STRIP_LOG VERBOSITY_NAME(DEBUG)
 #endif
 #define LOG_IS_STRIPPED(strip_level) \
-  (std::integral_constant<int, VERBOSITY_NAME(strip_level)>() > std::integral_constant<int, STRIP_LOG>())
+  (::std::integral_constant<int, VERBOSITY_NAME(strip_level)>() > ::std::integral_constant<int, STRIP_LOG>())
 
 #define LOGGER(interface, options, level, comment) ::td::Logger(interface, options, level, __FILE__, __LINE__, comment)
 
