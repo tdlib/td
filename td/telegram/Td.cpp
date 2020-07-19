@@ -3971,6 +3971,8 @@ void Td::clear() {
 
   G()->set_connection_creator(ActorOwn<ConnectionCreator>());
   LOG(DEBUG) << "ConnectionCreator was cleared " << timer;
+  G()->set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog>());
+  LOG(DEBUG) << "TempAuthKeyWatchdog was cleared " << timer;
 
   // clear actors which are unique pointers
   animations_manager_actor_.reset();
