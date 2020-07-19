@@ -4276,7 +4276,7 @@ void Td::init_options_and_network() {
   init_connection_creator();
 
   VLOG(td_init) << "Create TempAuthKeyWatchdog";
-  auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog");
+  auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog", create_reference());
   G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
 
   VLOG(td_init) << "Create ConfigManager";

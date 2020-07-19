@@ -43,6 +43,9 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   };
 
  public:
+  TempAuthKeyWatchdog(ActorShared<> parent) : parent_(std::move(parent)) {
+  }
+
   using RegisteredAuthKey = unique_ptr<RegisteredAuthKeyImpl>;
 
   static RegisteredAuthKey register_auth_key_id(int64 id) {
@@ -54,6 +57,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   static constexpr double SYNC_WAIT = 0.1;
   static constexpr double SYNC_WAIT_MAX = 1.0;
 
+  ActorShared<> parent_;
   std::map<uint64, uint32> id_count_;
   double sync_at_ = 0;
   bool need_sync_ = false;
