@@ -253,52 +253,37 @@ void Scheduler::clear() {
 void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
   event_context_ptr_->link_token = event.link_token;
   auto actor = actor_info->get_actor_unsafe();
+  VLOG(actor) << *actor_info << ' ' << event;
   switch (event.type) {
-    case Event::Type::Start: {
-      VLOG(actor) << *actor_info << " Event::Start";
+    case Event::Type::Start:
       actor->start_up();
       break;
-    }
-    case Event::Type::Stop: {
-      VLOG(actor) << *actor_info << " Event::Stop";
+    case Event::Type::Stop:
       actor->tear_down();
       break;
-    }
-    case Event::Type::Yield: {
-      VLOG(actor) << *actor_info << " Event::Yield";
+    case Event::Type::Yield:
       actor->wakeup();
       break;
-    }
-    case Event::Type::Hangup: {
-      auto token = get_link_token(actor);
-      VLOG(actor) << *actor_info << " Event::Hangup " << tag("token", format::as_hex(token));
-      if (token != 0) {
+    case Event::Type::Hangup:
+      if (get_link_token(actor) != 0) {
         actor->hangup_shared();
       } else {
         actor->hangup();
       }
       break;
-    }
-    case Event::Type::Timeout: {
-      VLOG(actor) << *actor_info << " Event::Timeout";
+    case Event::Type::Timeout:
       actor->timeout_expired();
       break;
-    }
-    case Event::Type::Raw: {
-      VLOG(actor) << *actor_info << " Event::Raw";
+    case Event::Type::Raw:
       actor->raw_event(event.data);
       break;
-    }
-    case Event::Type::Custom: {
+    case Event::Type::Custom:
       do_custom_event(actor_info, *event.data.custom_event);
       break;
-    }
-    case Event::Type::NoType: {
-      UNREACHABLE();
-      break;
-    }
+    case Event::Type::NoType:
     default:
       UNREACHABLE();
+      break;
   }
   // can't clear event here. It may be already destroyed during destory_actor
 }

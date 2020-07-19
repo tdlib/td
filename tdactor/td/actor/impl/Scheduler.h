@@ -152,7 +152,6 @@ inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
 }
 
 inline void Scheduler::do_custom_event(ActorInfo *actor_info, CustomEvent &event) {
-  VLOG(actor) << *actor_info << " Event::Custom";
   event.run(actor_info->get_actor_unsafe());
 }
 
