@@ -4244,7 +4244,7 @@ void Td::init_options_and_network() {
    private:
     ActorShared<Td> td_;
   };
-  state_manager_ = create_actor<StateManager>("State manager");
+  state_manager_ = create_actor<StateManager>("State manager", create_reference());
   send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
   G()->set_state_manager(state_manager_.get());
   connection_state_ = StateManager::State::Empty;

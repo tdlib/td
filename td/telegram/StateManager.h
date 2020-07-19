@@ -36,6 +36,9 @@ class StateManager final : public Actor {
     }
   };
 
+  StateManager(ActorShared<> parent) : parent_(std::move(parent)) {
+  }
+
   void on_synchronized(bool is_synchronized);
 
   void on_network_updated();
@@ -92,6 +95,7 @@ class StateManager final : public Actor {
   }
 
  private:
+  ActorShared<> parent_;
   uint32 connect_cnt_ = 0;
   uint32 connect_proxy_cnt_ = 0;
   bool sync_flag_ = true;
