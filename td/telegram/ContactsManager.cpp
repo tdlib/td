@@ -10013,7 +10013,7 @@ void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   UserId my_user_id = get_my_id();
 
-  bool need_reget_user = delete_profile_photo_from_cache(my_user_id, profile_photo_id);
+  bool need_reget_user = delete_profile_photo_from_cache(my_user_id, profile_photo_id, true);
   if (need_reget_user && !G()->close_flag()) {
     return reload_user(my_user_id, std::move(promise));
   }
@@ -10021,7 +10021,7 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   promise.set_value(Unit());
 }
 
-bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id) {
+bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates) {
   CHECK(profile_photo_id != 0);
 
   // we have subsequence of user photos in user_photos_
@@ -10070,22 +10070,26 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       user_full->is_changed = true;
 
       get_user_full(user_id, true, Auto());
+    }
+    if (send_updates) {
       update_user_full(user_full, user_id);
     }
   }
 
   // update Photo in User
   if (is_main_photo_deleted) {
-    // if main photo is deleted
+    bool need_reget_user = false;
     if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
       // found exact new photo
       do_update_user_photo(u, user_id, as_profile_photo(it->second.photos[0]), "delete_profile_photo_from_cache");
-      return false;
+    } else {
+      do_update_user_photo(u, user_id, ProfilePhoto(), "delete_profile_photo_from_cache 2");
+      need_reget_user = it == user_photos_.end() || it->second.count != 0;
     }
-
-    do_update_user_photo(u, user_id, ProfilePhoto(), "delete_profile_photo_from_cache 2");
-
-    return it == user_photos_.end() || it->second.count != 0;
+    if (send_updates) {
+      update_user(u, user_id);
+    }
+    return need_reget_user;
   }
 
   return false;

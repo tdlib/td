@@ -1138,7 +1138,7 @@ class ContactsManager : public Actor {
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
 
-  bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id);
+  bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);
 
