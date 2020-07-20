@@ -1123,7 +1123,8 @@ class ContactsManager : public Actor {
 
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
-  void do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, const char *source);
+  void do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, bool invalidate_photo_cache,
+                            const char *source);
 
   void upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
                             vector<int> bad_parts = {});
@@ -1138,6 +1139,7 @@ class ContactsManager : public Actor {
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
 
+  void add_profile_photo_to_cache(UserId user_id, Photo &&photo);
   bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);

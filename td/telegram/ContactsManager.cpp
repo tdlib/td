@@ -8729,7 +8729,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
                                    [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
                                      messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
                                    });
-    drop_user_photos(user_id, u->photo.id <= 0, true, "update_user");
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
@@ -9709,11 +9708,12 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
-  do_update_user_photo(u, user_id,
-                       get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo)), source);
+  do_update_user_photo(
+      u, user_id, get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo)), true, source);
 }
 
-void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, const char *source) {
+void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, bool invalidate_photo_cache,
+                                           const char *source) {
   u->is_photo_inited = true;
   if (new_photo != u->photo) {
     LOG_IF(ERROR, u->access_hash == -1 && new_photo.small_file_id.is_valid())
@@ -9722,6 +9722,10 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     u->is_photo_changed = true;
     LOG(DEBUG) << "Photo has changed for " << user_id;
     u->is_changed = true;
+
+    if (invalidate_photo_cache) {
+      drop_user_photos(user_id, u->photo.id <= 0, true, "do_update_user_photo");
+    }
   }
 }
 
@@ -10006,8 +10010,17 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
 void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
-  // ignore photo->photo_
-  on_get_users(std::move(photo->users_), "UploadProfilePhotoQuery");
+  UserId my_user_id = get_my_id();
+
+  if (old_photo_id != 0) {
+    delete_profile_photo_from_cache(my_user_id, old_photo_id, false);
+  }
+
+  add_profile_photo_to_cache(my_user_id,
+                             get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(my_user_id)));
+
+  // if cache was correctly updated, this should produce no updates
+  on_get_users(std::move(photo->users_), "on_change_profile_photo");
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
@@ -10021,11 +10034,55 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   promise.set_value(Unit());
 }
 
+void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) {
+  if (photo.is_empty()) {
+    return;
+  }
+
+  // we have subsequence of user photos in user_photos_
+  // ProfilePhoto in User and Photo in UserFull
+
+  User *u = get_user_force(user_id);
+  if (u == nullptr) {
+    return;
+  }
+
+  // update photo list
+  auto it = user_photos_.find(user_id);
+  if (it != user_photos_.end() && it->second.count != -1) {
+    auto user_photos = &it->second;
+    if (user_photos->offset == 0) {
+      if (user_photos->photos.empty() || user_photos->photos[0].id.get() != photo.id.get()) {
+        user_photos->photos.insert(user_photos->photos.begin(), photo);
+        user_photos->count++;
+      }
+    } else {
+      user_photos->count++;
+      user_photos->offset++;
+    }
+  }
+
+  // update Photo in UserFull
+  auto user_full = get_user_full_force(user_id);
+  if (user_full != nullptr) {
+    if (user_full->photo != photo) {
+      user_full->photo = photo;
+      user_full->is_changed = true;
+    }
+    update_user_full(user_full, user_id);
+  }
+
+  // update ProfilePhoto in User
+  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
+                       "add_profile_photo_to_cache");
+  update_user(u, user_id);
+}
+
 bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates) {
   CHECK(profile_photo_id != 0);
 
   // we have subsequence of user photos in user_photos_
-  // UserProfilePhoto in User and Photo in UserFull
+  // ProfilePhoto in User and Photo in UserFull
 
   User *u = get_user_force(user_id);
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
@@ -10076,16 +10133,16 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     }
   }
 
-  // update Photo in User
+  // update ProfilePhoto in User
   if (is_main_photo_deleted) {
     bool need_reget_user = false;
     if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
       // found exact new photo
       do_update_user_photo(u, user_id,
                            as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, it->second.photos[0]),
-                           "delete_profile_photo_from_cache");
+                           false, "delete_profile_photo_from_cache");
     } else {
-      do_update_user_photo(u, user_id, ProfilePhoto(), "delete_profile_photo_from_cache 2");
+      do_update_user_photo(u, user_id, ProfilePhoto(), false, "delete_profile_photo_from_cache 2");
       need_reget_user = it == user_photos_.end() || it->second.count != 0;
     }
     if (send_updates) {
