@@ -1096,13 +1096,13 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
 }
 
 FileId FileManager::register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
-                                    DialogId owner_dialog_id, int64 size, int64 expected_size, string name) {
+                                    DialogId owner_dialog_id, int64 size, int64 expected_size, string remote_name) {
   FileData data;
   data.remote_ = RemoteFileLocation(location);
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   data.expected_size_ = expected_size;
-  data.remote_name_ = std::move(name);
+  data.remote_name_ = std::move(remote_name);
 
   auto file_id = register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
   auto url = location.get_url();

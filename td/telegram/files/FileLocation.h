@@ -332,6 +332,12 @@ class FullRemoteFileLocation {
     }
   }
 
+  void set_source(PhotoSizeSource source) {
+    CHECK(is_photo());
+    file_type_ = source.get_file_type();
+    photo().source_ = std::move(source);
+  }
+
   bool delete_file_reference(Slice bad_file_reference) {
     if (file_reference_ != FileReferenceView::invalid_file_reference() && file_reference_ == bad_file_reference) {
       file_reference_ = FileReferenceView::invalid_file_reference().str();

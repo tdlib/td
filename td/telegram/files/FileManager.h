@@ -419,7 +419,8 @@ class FileManager : public FileLoadManager::Callback {
                                 bool get_by_hash = false, bool force = false,
                                 bool skip_file_size_checks = false) TD_WARN_UNUSED_RESULT;
   FileId register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
-                         DialogId owner_dialog_id, int64 size, int64 expected_size, string name) TD_WARN_UNUSED_RESULT;
+                         DialogId owner_dialog_id, int64 size, int64 expected_size,
+                         string remote_name) TD_WARN_UNUSED_RESULT;
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;

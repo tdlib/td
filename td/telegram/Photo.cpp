@@ -271,7 +271,7 @@ vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo) {
   return result;
 }
 
-DialogPhoto as_dialog_photo(const Photo &photo) {
+DialogPhoto as_fake_dialog_photo(const Photo &photo) {
   DialogPhoto result;
   if (!photo.is_empty()) {
     for (auto &size : photo.photos) {
@@ -290,10 +290,28 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
   return result;
 }
 
-ProfilePhoto as_profile_photo(const Photo &photo) {
+ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash, const Photo &photo) {
   ProfilePhoto result;
-  static_cast<DialogPhoto &>(result) = as_dialog_photo(photo);
+  static_cast<DialogPhoto &>(result) = as_fake_dialog_photo(photo);
+  if (!result.small_file_id.is_valid()) {
+    return result;
+  }
+
+  auto reregister_photo = [&](bool is_big, FileId file_id) {
+    auto file_view = file_manager->get_file_view(file_id);
+    CHECK(file_view.has_remote_location());
+    auto remote = file_view.remote_location();
+    CHECK(remote.is_photo());
+    CHECK(!remote.is_web());
+    remote.set_source({DialogId(user_id), user_access_hash, is_big});
+    return file_manager->register_remote(std::move(remote), FileLocationSource::FromServer, DialogId(),
+                                         file_view.size(), file_view.expected_size(), file_view.remote_name());
+  };
+
   result.id = photo.id.get();
+  result.small_file_id = reregister_photo(false, result.small_file_id);
+  result.big_file_id = reregister_photo(true, result.big_file_id);
+
   return result;
 }
 

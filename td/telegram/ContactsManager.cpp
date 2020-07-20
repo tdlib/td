@@ -8559,7 +8559,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   Chat *c = get_chat(chat_id);
   CHECK(c != nullptr);
   if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
-      td_->file_manager_->get_file_view(as_dialog_photo(chat_full->photo).small_file_id).get_unique_file_id()) {
+      td_->file_manager_->get_file_view(as_fake_dialog_photo(chat_full->photo).small_file_id).get_unique_file_id()) {
     chat_full->photo = Photo();
     if (c->photo.small_file_id.is_valid()) {
       reload_chat_full(chat_id, Auto());
@@ -8646,7 +8646,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
   if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
-      td_->file_manager_->get_file_view(as_dialog_photo(channel_full->photo).small_file_id).get_unique_file_id()) {
+      td_->file_manager_->get_file_view(as_fake_dialog_photo(channel_full->photo).small_file_id).get_unique_file_id()) {
     channel_full->photo = Photo();
     if (c->photo.small_file_id.is_valid()) {
       channel_full->expires_at = 0.0;
@@ -10081,7 +10081,9 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     bool need_reget_user = false;
     if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
       // found exact new photo
-      do_update_user_photo(u, user_id, as_profile_photo(it->second.photos[0]), "delete_profile_photo_from_cache");
+      do_update_user_photo(u, user_id,
+                           as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, it->second.photos[0]),
+                           "delete_profile_photo_from_cache");
     } else {
       do_update_user_photo(u, user_id, ProfilePhoto(), "delete_profile_photo_from_cache 2");
       need_reget_user = it == user_photos_.end() || it->second.count != 0;
@@ -14176,7 +14178,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     }
   } else {
     title = invite_link_info->title;
-    invite_link_photo = as_dialog_photo(invite_link_info->photo);
+    invite_link_photo = as_fake_dialog_photo(invite_link_info->photo);
     photo = &invite_link_photo;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
