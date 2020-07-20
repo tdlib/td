@@ -652,7 +652,8 @@ class MessageDice : public MessageContent {
 
   MessageDice() = default;
   MessageDice(string emoji, int32 dice_value)
-      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : std::move(emoji)), dice_value(dice_value) {
+      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(std::move(emoji)))
+      , dice_value(dice_value) {
   }
 
   MessageContentType get_type() const override {
@@ -1280,7 +1281,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Dice: {
       auto m = make_unique<MessageDice>();
       if (parser.version() >= static_cast<int32>(Version::AddDiceEmoji)) {
-        parse(m->emoji, parser);
+        string emoji;
+        parse(emoji, parser);
+        m->emoji = remove_emoji_modifiers(std::move(emoji));
       } else {
         m->emoji = MessageDice::DEFAULT_EMOJI;
       }

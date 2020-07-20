@@ -3479,7 +3479,8 @@ void StickersManager::on_update_dice_success_values() {
     return;
   }
 
-  auto dice_success_values_str = G()->shared_config().get_option_string("dice_success_values", "0,6:62,5:110,0,0");
+  auto dice_success_values_str =
+      G()->shared_config().get_option_string("dice_success_values", "0,6:62,5:110,5:110,5:110");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
   }
