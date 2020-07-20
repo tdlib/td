@@ -96,6 +96,8 @@ tl_object_ptr<td_api::chatPhotoInfo> get_chat_photo_info_object(FileManager *fil
 
 DialogPhoto as_dialog_photo(const Photo &photo);
 
+ProfilePhoto as_profile_photo(const Photo &photo);
+
 vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo);
 
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs);

@@ -85,13 +85,13 @@ auto transform(V &&v, const Func &f) {
 }
 
 template <class V, class Func>
-void remove_if(V &v, const Func &f) {
+bool remove_if(V &v, const Func &f) {
   size_t i = 0;
   while (i != v.size() && !f(v[i])) {
     i++;
   }
   if (i == v.size()) {
-    return;
+    return false;
   }
 
   size_t j = i;
@@ -101,6 +101,7 @@ void remove_if(V &v, const Func &f) {
     }
   }
   v.erase(v.begin() + j, v.end());
+  return true;
 }
 
 template <class V, class T>

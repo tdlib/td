@@ -9709,9 +9709,12 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
-  u->is_photo_inited = true;
-  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
+  do_update_user_photo(u, user_id,
+                       get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo)), source);
+}
 
+void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, const char *source) {
+  u->is_photo_inited = true;
   if (new_photo != u->photo) {
     LOG_IF(ERROR, u->access_hash == -1 && new_photo.small_file_id.is_valid())
         << "Update profile photo of " << user_id << " without access hash from " << source;
@@ -10008,15 +10011,84 @@ void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
-  UserId my_id = get_my_id();
+  UserId my_user_id = get_my_id();
 
-  drop_user_photos(my_id, false, true, "on_delete_profile_photo");
-
-  if (G()->close_flag()) {
-    return promise.set_value(Unit());
+  bool need_reget_user = delete_profile_photo_from_cache(my_user_id, profile_photo_id);
+  if (need_reget_user && !G()->close_flag()) {
+    return reload_user(my_user_id, std::move(promise));
   }
 
-  reload_user(my_id, std::move(promise));
+  promise.set_value(Unit());
+}
+
+bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id) {
+  CHECK(profile_photo_id != 0);
+
+  // we have subsequence of user photos in user_photos_
+  // UserProfilePhoto in User and Photo in UserFull
+
+  User *u = get_user_force(user_id);
+  bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
+
+  // update photo list
+  auto it = user_photos_.find(user_id);
+  if (it != user_photos_.end() && it->second.count > 0) {
+    auto user_photos = &it->second;
+    auto old_size = user_photos->photos.size();
+    if (td::remove_if(user_photos->photos,
+                      [profile_photo_id](const auto &photo) { return photo.id.get() == profile_photo_id; })) {
+      auto removed_photos = old_size - user_photos->photos.size();
+      CHECK(removed_photos > 0);
+      LOG_IF(ERROR, removed_photos != 1) << "Had " << removed_photos << " photos with ID " << profile_photo_id;
+      user_photos->count -= narrow_cast<int32>(removed_photos);
+      // offset was not changed
+      CHECK(user_photos->count >= 0);
+    } else {
+      // failed to find photo to remove from cache
+      // don't know how to adjust user_photos->offset, so drop photos cache
+      LOG(INFO) << "Drop photos of " << user_id;
+      user_photos->photos.clear();
+      user_photos->count = -1;
+      user_photos->offset = -1;
+    }
+  }
+
+  // update Photo in UserFull
+  auto user_full = get_user_full_force(user_id);
+  if (user_full != nullptr && !user_full->photo.is_empty() &&
+      (is_main_photo_deleted || user_full->photo.id.get() == profile_photo_id)) {
+    if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
+      // found exact new photo
+      if (it->second.photos[0] != user_full->photo) {
+        user_full->photo = it->second.photos[0];
+        user_full->is_changed = true;
+      }
+    } else {
+      // repair UserFull photo
+      user_full->expires_at = 0.0;
+      user_full->photo = Photo();
+      user_full->is_changed = true;
+
+      get_user_full(user_id, true, Auto());
+      update_user_full(user_full, user_id);
+    }
+  }
+
+  // update Photo in User
+  if (is_main_photo_deleted) {
+    // if main photo is deleted
+    if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
+      // found exact new photo
+      do_update_user_photo(u, user_id, as_profile_photo(it->second.photos[0]), "delete_profile_photo_from_cache");
+      return false;
+    }
+
+    do_update_user_photo(u, user_id, ProfilePhoto(), "delete_profile_photo_from_cache 2");
+
+    return it == user_photos_.end() || it->second.count != 0;
+  }
+
+  return false;
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {

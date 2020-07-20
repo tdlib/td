@@ -290,6 +290,13 @@ DialogPhoto as_dialog_photo(const Photo &photo) {
   return result;
 }
 
+ProfilePhoto as_profile_photo(const Photo &photo) {
+  ProfilePhoto result;
+  static_cast<DialogPhoto &>(result) = as_dialog_photo(photo);
+  result.id = photo.id.get();
+  return result;
+}
+
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
   return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
          lhs.has_animation == rhs.has_animation;
