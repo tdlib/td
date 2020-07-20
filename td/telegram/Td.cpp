@@ -3735,6 +3735,10 @@ void Td::start_up() {
     LOG_IF(FATAL, symbol != c) << "TDLib requires little-endian platform";
   }
 
+  {
+    TsList<NetQueryDebug>::lock();  // initialize mutex before any NetQuery
+  }
+
   VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
   inc_request_actor_refcnt();  // guard

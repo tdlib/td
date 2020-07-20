@@ -166,11 +166,19 @@ class TsList : public TsListNode<DataT> {
   TsList(TsList &&) = delete;
   TsList &operator=(TsList &&) = delete;
   ~TsList() {
-    CHECK(ListNode::empty());
+    auto guard = lock();
+    while (true) {
+      auto res = static_cast<TsListNode<DataT> *>(ListNode::get());
+      if (!res) {
+        break;
+      }
+      res->parent = nullptr;
+    }
     this->parent = nullptr;
   }
-  std::unique_lock<std::mutex> lock() TD_WARN_UNUSED_RESULT {
-    return std::unique_lock<std::mutex>(mutex_);
+  static std::unique_lock<std::mutex> lock() TD_WARN_UNUSED_RESULT {
+    static std::mutex mutex;
+    return std::unique_lock<std::mutex>(mutex);
   }
   TsListNode<DataT> *begin() {
     return this->get_next();
@@ -186,9 +194,6 @@ class TsList : public TsListNode<DataT> {
     }
     return res;
   }
-
- private:
-  std::mutex mutex_;
 };
 
 template <class DataT>
