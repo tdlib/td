@@ -139,6 +139,14 @@ class ParserImpl {
     return false;
   }
 
+  bool try_skip(Slice prefix) {
+    if (prefix.size() > static_cast<size_t>(end_ - ptr_) || prefix != Slice(ptr_, prefix.size())) {
+      return false;
+    }
+    advance(prefix.size());
+    return true;
+  }
+
   void skip_till_not(Slice str) {
     while (ptr_ != end_) {
       if (std::memchr(str.data(), *ptr_, str.size()) == nullptr) {
@@ -161,21 +169,6 @@ class ParserImpl {
 
   Status &status() {
     return status_;
-  }
-
-  bool start_with(Slice prefix) const {
-    if (prefix.size() > static_cast<size_t>(end_ - ptr_)) {
-      return false;
-    }
-    return prefix == Slice(ptr_, prefix.size());
-  }
-
-  bool skip_start_with(Slice prefix) {
-    if (start_with(prefix)) {
-      advance(prefix.size());
-      return true;
-    }
-    return false;
   }
 
   void advance(size_t diff) {

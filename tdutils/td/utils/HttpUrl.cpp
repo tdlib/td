@@ -46,8 +46,7 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   string protocol_str = to_lower(parser.read_till_nofail(":/?#@[]"));
 
   HttpUrl::Protocol protocol;
-  if (parser.start_with("://")) {
-    parser.advance(3);
+  if (parser.try_skip("://")) {
     if (protocol_str == "http") {
       protocol = HttpUrl::Protocol::Http;
     } else if (protocol_str == "https") {

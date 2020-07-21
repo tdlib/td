@@ -376,7 +376,7 @@ static Status check_mtime(std::string &conversion, CSlice original_path) {
     return Status::OK();
   }
   ConstParser parser(conversion);
-  if (!parser.skip_start_with("#mtime#")) {
+  if (!parser.try_skip("#mtime#")) {
     return Status::OK();
   }
   auto mtime_str = parser.read_till('#');
