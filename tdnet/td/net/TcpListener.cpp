@@ -40,7 +40,8 @@ void TcpListener::loop() {
   if (server_fd_.empty()) {
     start_up();
   }
-  while (can_read(server_fd_)) {
+  sync_with_poll(server_fd_);
+  while (can_read_local(server_fd_)) {
     auto r_socket_fd = server_fd_.accept();
     if (r_socket_fd.is_error()) {
       if (r_socket_fd.error().code() != -1) {
@@ -51,7 +52,7 @@ void TcpListener::loop() {
     send_closure(callback_, &Callback::accept, r_socket_fd.move_as_ok());
   }
 
-  if (can_close(server_fd_)) {
+  if (can_close_local(server_fd_)) {
     stop();
   }
 }

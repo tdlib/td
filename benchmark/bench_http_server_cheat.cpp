@@ -61,15 +61,16 @@ class HelloWorld : public Actor {
     }
   }
   Status do_loop() {
+    sync_with_poll(socket_fd_);
     TRY_STATUS(read_loop());
     TRY_STATUS(write_loop());
-    if (can_close(socket_fd_)) {
+    if (can_close_local(socket_fd_)) {
       return Status::Error("CLOSE");
     }
     return Status::OK();
   }
   Status write_loop() {
-    while (can_write(socket_fd_) && write_pos_ < write_buf_.size()) {
+    while (can_write_local(socket_fd_) && write_pos_ < write_buf_.size()) {
       TRY_RESULT(written, socket_fd_.write(Slice(write_buf_).substr(write_pos_)));
       write_pos_ += written;
       if (write_pos_ == write_buf_.size()) {
@@ -80,7 +81,7 @@ class HelloWorld : public Actor {
     return Status::OK();
   }
   Status read_loop() {
-    while (can_read(socket_fd_)) {
+    while (can_read_local(socket_fd_)) {
       TRY_RESULT(read_size, socket_fd_.read(MutableSlice(read_buf.data(), read_buf.size())));
       for (size_t i = 0; i < read_size; i++) {
         if (read_buf[i] == '\n') {

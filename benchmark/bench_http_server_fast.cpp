@@ -55,19 +55,18 @@ class HttpEchoConnection : public Actor {
   }
 
   void loop() override {
+    sync_with_poll(fd_);
     auto status = [&] {
       TRY_STATUS(loop_read());
       TRY_STATUS(loop_write());
       return Status::OK();
     }();
-    if (status.is_error() || can_close(fd_)) {
+    if (status.is_error() || can_close_local(fd_)) {
       stop();
     }
   }
   Status loop_read() {
-    if (can_read(fd_)) {
-      TRY_STATUS(fd_.flush_read());
-    }
+    TRY_STATUS(fd_.flush_read());
     while (true) {
       TRY_RESULT(need, reader_.read_next(&query_));
       if (need == 0) {

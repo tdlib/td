@@ -114,8 +114,11 @@ class BufferedUdp : public UdpSocketFd {
   }
 
 #if TD_PORT_POSIX
+  void sync_with_poll() {
+    ::td::sync_with_poll(*this);
+  }
   Result<optional<UdpMessage>> receive() {
-    if (input_.empty() && can_read(*this)) {
+    if (input_.empty() && can_read_local(*this)) {
       TRY_STATUS(flush_read_once());
     }
     if (input_.empty()) {
@@ -130,7 +133,7 @@ class BufferedUdp : public UdpSocketFd {
 
   Status flush_send() {
     Status status;
-    while (status.is_ok() && can_write(*this) && !output_.empty()) {
+    while (status.is_ok() && can_write_local(*this) && !output_.empty()) {
       status = flush_send_once();
     }
     return status;

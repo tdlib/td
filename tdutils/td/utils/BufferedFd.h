@@ -31,14 +31,15 @@ class BufferedFdBase : public FdT {
   Result<size_t> flush_write() TD_WARN_UNUSED_RESULT;
 
   bool need_flush_write(size_t at_least = 0) {
-    CHECK(write_);
-    write_->sync_with_writer();
-    return write_->size() > at_least;
+    return ready_for_flush_write() > at_least;
   }
   size_t ready_for_flush_write() {
     CHECK(write_);
     write_->sync_with_writer();
     return write_->size();
+  }
+  void sync_with_poll() {
+    ::td::sync_with_poll(*this);
   }
   void set_input_writer(ChainBufferWriter *read) {
     read_ = read;
@@ -99,7 +100,7 @@ template <class FdT>
 Result<size_t> BufferedFdBase<FdT>::flush_read(size_t max_read) {
   CHECK(read_);
   size_t result = 0;
-  while (::td::can_read(*this) && max_read) {
+  while (::td::can_read_local(*this) && max_read) {
     MutableSlice slice = read_->prepare_append().truncate(max_read);
     TRY_RESULT(x, FdT::read(slice));
     slice.truncate(x);
@@ -115,7 +116,7 @@ Result<size_t> BufferedFdBase<FdT>::flush_write() {
   // TODO: sync on demand
   write_->sync_with_writer();
   size_t result = 0;
-  while (!write_->empty() && ::td::can_write(*this)) {
+  while (!write_->empty() && ::td::can_write_local(*this)) {
     constexpr size_t BUF_SIZE = 20;
     IoSlice buf[BUF_SIZE];
 

@@ -92,7 +92,8 @@ void HttpConnectionBase::timeout_expired() {
   stop();
 }
 void HttpConnectionBase::loop() {
-  if (can_read(fd_)) {
+  sync_with_poll(fd_);
+  if (can_read_local(fd_)) {
     LOG(DEBUG) << "Can read from the connection";
     auto r = fd_.flush_read();
     if (r.is_error()) {
@@ -133,7 +134,7 @@ void HttpConnectionBase::loop() {
 
   write_source_.wakeup();
 
-  if (can_write(fd_)) {
+  if (can_write_local(fd_)) {
     LOG(DEBUG) << "Can write to the connection";
     auto r = fd_.flush_write();
     if (r.is_error()) {
@@ -146,7 +147,7 @@ void HttpConnectionBase::loop() {
   }
 
   Status pending_error;
-  if (fd_.get_poll_info().get_flags().has_pending_error()) {
+  if (fd_.get_poll_info().get_flags_local().has_pending_error()) {
     pending_error = fd_.get_pending_error();
   }
   if (pending_error.is_ok() && write_sink_.status().is_error()) {
@@ -163,7 +164,7 @@ void HttpConnectionBase::loop() {
     state_ = State::Close;
   }
 
-  if (can_close(fd_)) {
+  if (can_close_local(fd_)) {
     LOG(DEBUG) << "Can close the connection";
     state_ = State::Close;
   }

@@ -122,7 +122,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   Result<size_t> read(MutableSlice slice) {
-    if (get_poll_info().get_flags().has_pending_error()) {
+    if (get_poll_info().get_flags_local().has_pending_error()) {
       TRY_STATUS(get_pending_error());
     }
     input_reader_.sync_with_writer();
@@ -435,7 +435,7 @@ class SocketFdImpl {
     }
   }
   Result<size_t> read(MutableSlice slice) {
-    if (get_poll_info().get_flags().has_pending_error()) {
+    if (get_poll_info().get_flags_local().has_pending_error()) {
       TRY_STATUS(get_pending_error());
     }
     int native_fd = get_native_fd().socket();
@@ -482,7 +482,7 @@ class SocketFdImpl {
     }
   }
   Status get_pending_error() {
-    if (!get_poll_info().get_flags().has_pending_error()) {
+    if (!get_poll_info().get_flags_local().has_pending_error()) {
       return Status::OK();
     }
     TRY_STATUS(detail::get_socket_pending_error(get_native_fd()));

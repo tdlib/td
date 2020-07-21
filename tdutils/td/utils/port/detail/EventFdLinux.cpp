@@ -85,7 +85,7 @@ void EventFdLinux::release() {
 }
 
 void EventFdLinux::acquire() {
-  impl_->info.get_flags();
+  impl_->info.sync_with_poll();
   SCOPE_EXIT {
     // Clear flags without EAGAIN and EWOULDBLOCK
     // Looks like it is safe thing to do with eventfd

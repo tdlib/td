@@ -130,6 +130,7 @@ class RawConnection {
     if (has_error_) {
       return Status::Error("Connection has already failed");
     }
+    sync_with_poll(socket_fd_);
 
     // read/write
     // EINVAL may be returned in linux kernel < 2.6.28. And on some new kernels too.
@@ -139,7 +140,7 @@ class RawConnection {
     TRY_STATUS(flush_read(auth_key, callback));
     TRY_STATUS(callback.before_write());
     TRY_STATUS(flush_write());
-    if (can_close(socket_fd_)) {
+    if (can_close_local(socket_fd_)) {
       return Status::Error("Connection closed");
     }
     return Status::OK();

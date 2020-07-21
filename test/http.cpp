@@ -287,7 +287,7 @@ TEST(Http, aes_file_encryption) {
     fd.set_input_writer(&input_writer);
 
     fd.get_poll_info().add_flags(PollFlags::Read());
-    while (can_read(fd)) {
+    while (can_read_local(fd)) {
       fd.flush_read(4096).ensure();
       source.wakeup();
     }

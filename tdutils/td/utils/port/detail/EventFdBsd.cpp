@@ -81,8 +81,9 @@ void EventFdBsd::release() {
 }
 
 void EventFdBsd::acquire() {
+  sync_with_poll(out_);
   out_.get_poll_info().add_flags(PollFlags::Read());
-  while (can_read(out_)) {
+  while (can_read_local(out_)) {
     uint8 value[1024];
     auto result = out_.read(MutableSlice(value, sizeof(value)));
     if (result.is_error()) {
