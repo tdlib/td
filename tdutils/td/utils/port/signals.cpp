@@ -113,10 +113,23 @@ static vector<int> get_native_signals(SignalType type) {
       return {};
   }
 }
-#endif
-#if TD_PORT_WINDOWS
+#elif TD_PORT_WINDOWS
+using signal_handler = void (*)(int sig);
+static signal_handler signal_handlers[NSIG] = {};
+
+static void signal_handler_func(int sig) {
+  std::signal(sig, signal_handler_func);
+  auto handler = signal_handlers[sig];
+  handler(sig);
+}
+
 static Status set_signal_handler_impl(vector<int> signals, void (*func)(int sig)) {
   for (auto signal : signals) {
+    CHECK(0 <= signal && signal < NSIG);
+    if (func != SIG_IGN && func != SIG_DFL) {
+      signal_handlers[signal] = func;
+      func = signal_handler_func;
+    }
     if (std::signal(signal, func) == SIG_ERR) {
       return Status::Error("Failed to set signal handler");
     }
@@ -146,7 +159,7 @@ static vector<int> get_native_signals(SignalType type) {
 }
 #endif
 
-Status set_signal_handler(SignalType type, void (*func)(int)) {
+Status set_signal_handler(SignalType type, void (*func)(int sig)) {
   return set_signal_handler_impl(get_native_signals(type), func == nullptr ? SIG_DFL : func);
 }
 
