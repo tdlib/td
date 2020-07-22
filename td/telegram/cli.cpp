@@ -378,7 +378,7 @@ class CliClient final : public Actor {
     auto r_stat = stat(file_generation.source);
     if (r_stat.is_ok()) {
       auto size = r_stat.ok().size_;
-      if (size <= 0 || size > 1500000000) {
+      if (size <= 0 || size > (2000 << 20)) {
         r_stat = Status::Error(400, size == 0 ? Slice("File is empty") : Slice("File is too big"));
       }
     }
