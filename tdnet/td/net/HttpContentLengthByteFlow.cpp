@@ -10,7 +10,7 @@
 
 namespace td {
 
-void HttpContentLengthByteFlow::loop() {
+bool HttpContentLengthByteFlow::loop() {
   auto ready_size = input_->size();
   if (ready_size > len_) {
     ready_size = len_;
@@ -18,17 +18,19 @@ void HttpContentLengthByteFlow::loop() {
   auto need_size = min(MIN_UPDATE_SIZE, len_);
   if (ready_size < need_size) {
     set_need_size(need_size);
-    return;
+    return false;
   }
   output_.append(input_->cut_head(ready_size));
   len_ -= ready_size;
   if (len_ == 0) {
-    return finish(Status::OK());
+    finish(Status::OK());
+    return false;
   }
   if (!is_input_active_) {
-    return finish(Status::Error("Unexpected end of stream"));
+    finish(Status::Error("Unexpected end of stream"));
+    return false;
   }
-  on_output_updated();
+  return true;
 }
 
 }  // namespace td

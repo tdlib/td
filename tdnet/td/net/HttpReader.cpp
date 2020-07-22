@@ -68,6 +68,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
   size_t need_size = input_->size() + 1;
   while (true) {
     if (state_ != State::ReadHeaders) {
+      gzip_flow_.wakeup();
       flow_source_.wakeup();
       if (flow_sink_.is_ready() && flow_sink_.status().is_error()) {
         if (!temp_file_.empty()) {
@@ -108,7 +109,11 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         if (content_encoding_.empty()) {
         } else if (content_encoding_ == "gzip" || content_encoding_ == "deflate") {
           gzip_flow_ = GzipByteFlow(Gzip::Mode::Decode);
-          gzip_flow_.set_max_output_size(MAX_CONTENT_SIZE);
+          GzipByteFlow::Options options;
+          options.write_watermark.low = 0;
+          options.write_watermark.hight = max_post_size_ + 10;
+          gzip_flow_.set_options(options);
+          //gzip_flow_.set_max_output_size(MAX_CONTENT_SIZE);
           *source >> gzip_flow_;
           source = &gzip_flow_;
         } else {
@@ -170,6 +175,10 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
       case State::ReadContent: {
         if (content_->size() > max_post_size_) {
           state_ = State::ReadContentToFile;
+          GzipByteFlow::Options options;
+          options.write_watermark.low = 4 << 20;
+          options.write_watermark.hight = 8 << 20;
+          gzip_flow_.set_options(options);
           continue;
         }
         if (flow_sink_.is_ready()) {
@@ -191,13 +200,18 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         }
 
         auto size = content_->size();
-        if (size) {
+        bool restart = false;
+        if (size > (1 << 20) || flow_sink_.is_ready()) {
           TRY_STATUS(save_file_part(content_->cut_head(size).move_as_buffer_slice()));
+          restart = true;
         }
         if (flow_sink_.is_ready()) {
           query_->files_.emplace_back("file", "", content_type_.str(), file_size_, temp_file_name_);
           close_temp_file();
           break;
+        }
+        if (restart) {
+          continue;
         }
 
         return need_size;

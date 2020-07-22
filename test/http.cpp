@@ -372,3 +372,48 @@ TEST(Http, gzip_chunked_flow) {
   ASSERT_TRUE(sink.status().is_ok());
   ASSERT_EQ(str, sink.result()->move_as_buffer_slice().as_slice().str());
 }
+
+TEST(Http, gzip_bomb_with_limit) {
+  std::string gzip_bomb_str;
+  {
+    ChainBufferWriter input_writer;
+    auto input = input_writer.extract_reader();
+    GzipByteFlow gzip_flow(Gzip::Mode::Encode);
+    ByteFlowSource source(&input);
+    ByteFlowSink sink;
+    source >> gzip_flow >> sink;
+
+    std::string s(1 << 20, 'a');
+    for (int i = 0; i < 2000; i++) {
+      input_writer.append(s);
+      source.wakeup();
+    }
+    source.close_input(Status::OK());
+    ASSERT_TRUE(sink.is_ready());
+    LOG_IF(ERROR, sink.status().is_error()) << sink.status();
+    ASSERT_TRUE(sink.status().is_ok());
+    gzip_bomb_str = sink.result()->move_as_buffer_slice().as_slice().str();
+  }
+
+  auto query = make_http_query("", false, true, 0.01, gzip_bomb_str);
+  auto parts = rand_split(query);
+  td::ChainBufferWriter input_writer;
+  auto input = input_writer.extract_reader();
+  HttpReader reader;
+  HttpQuery q;
+  reader.init(&input, 1000000);
+  bool ok = false;
+  for (auto &part : parts) {
+    input_writer.append(part);
+    input.sync_with_writer();
+    auto r_state = reader.read_next(&q);
+    if (r_state.is_error()) {
+      LOG(FATAL) << r_state.error();
+      return;
+    } else if (r_state.ok() == 0) {
+      LOG(ERROR) << q;
+      ok = true;
+    }
+  }
+  ASSERT_TRUE(ok);
+}

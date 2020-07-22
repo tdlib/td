@@ -43,6 +43,7 @@ ActorContext *&Scheduler::context() {
 
 void Scheduler::on_context_updated() {
   LOG_TAG = context_->tag_;
+  LOG(ERROR) << "on context updated " << context_;
 }
 
 void Scheduler::set_scheduler(Scheduler *scheduler) {

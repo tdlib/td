@@ -387,24 +387,19 @@ class SslStreamImpl {
    public:
     explicit SslReadByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
-    void loop() override {
-      bool was_append = false;
-      while (true) {
-        auto to_read = output_.prepare_append();
-        auto r_size = stream_->read(to_read);
-        if (r_size.is_error()) {
-          return finish(r_size.move_as_error());
-        }
-        auto size = r_size.move_as_ok();
-        if (size == 0) {
-          break;
-        }
-        output_.confirm_append(size);
-        was_append = true;
+    bool loop() override {
+      auto to_read = output_.prepare_append();
+      auto r_size = stream_->read(to_read);
+      if (r_size.is_error()) {
+        finish(r_size.move_as_error());
+        return false;
       }
-      if (was_append) {
-        on_output_updated();
+      auto size = r_size.move_as_ok();
+      if (size == 0) {
+        return false;
       }
+      output_.confirm_append(size);
+      return true;
     }
 
     size_t read(MutableSlice data) {
@@ -419,34 +414,28 @@ class SslStreamImpl {
    public:
     explicit SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
-    void loop() override {
-      while (!input_->empty()) {
-        auto to_write = input_->prepare_read();
-        auto r_size = stream_->write(to_write);
-        if (r_size.is_error()) {
-          return finish(r_size.move_as_error());
-        }
-        auto size = r_size.move_as_ok();
-        if (size == 0) {
-          break;
-        }
-        input_->confirm_read(size);
+    bool loop() override {
+      auto to_write = input_->prepare_read();
+      auto r_size = stream_->write(to_write);
+      if (r_size.is_error()) {
+        finish(r_size.move_as_error());
+        return false;
       }
-      if (output_updated_) {
-        output_updated_ = false;
-        on_output_updated();
+      auto size = r_size.move_as_ok();
+      if (size == 0) {
+        return false;
       }
+      input_->confirm_read(size);
+      return true;
     }
 
     size_t write(Slice data) {
       output_.append(data);
-      output_updated_ = true;
       return data.size();
     }
 
    private:
     SslStreamImpl *stream_;
-    bool output_updated_{false};
   };
 
   SslReadByteFlow read_flow_{this};

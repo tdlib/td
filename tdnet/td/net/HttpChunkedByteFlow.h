@@ -12,7 +12,7 @@ namespace td {
 
 class HttpChunkedByteFlow final : public ByteFlowBase {
  public:
-  void loop() override;
+  bool loop() override;
 
  private:
   static constexpr int MAX_CHUNK_SIZE = 15 << 20;  // some reasonable limit

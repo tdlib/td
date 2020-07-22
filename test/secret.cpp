@@ -897,7 +897,7 @@ class Master : public Actor {
                                         ActorShared<NetQueryCallback> callback) {
     BufferSlice answer(8);
     answer.as_slice().fill(0);
-    as<int32>(answer.as_slice().begin()) = my_api::messages_sentEncryptedMessage::ID;
+    as<int32>(answer.as_slice().begin()) = static_cast<int32>(my_api::messages_sentEncryptedMessage::ID);
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
 

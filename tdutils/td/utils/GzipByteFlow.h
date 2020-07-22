@@ -34,14 +34,13 @@ class GzipByteFlow final : public ByteFlowBase {
     max_output_size_ = max_output_size;
   }
 
-  void loop() override;
+  bool loop() override;
 
  private:
   Gzip gzip_;
   size_t uncommited_size_ = 0;
   size_t total_output_size_ = 0;
   size_t max_output_size_ = std::numeric_limits<size_t>::max();
-  static constexpr size_t MIN_UPDATE_SIZE = 1 << 14;
 };
 #endif
 

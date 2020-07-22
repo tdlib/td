@@ -27,25 +27,20 @@ class AesCtrByteFlow : public ByteFlowInplaceBase {
   AesCtrState move_aes_ctr_state() {
     return std::move(state_);
   }
-  void loop() override {
-    bool was_updated = false;
-    while (true) {
-      auto ready = input_->prepare_read();
-      if (ready.empty()) {
-        break;
-      }
+  bool loop() override {
+    bool result = false;
+    auto ready = input_->prepare_read();
+    if (!ready.empty()) {
       state_.encrypt(ready, MutableSlice(const_cast<char *>(ready.data()), ready.size()));
       input_->confirm_read(ready.size());
       output_.advance_end(ready.size());
-      was_updated = true;
+      result = true;
     }
-    if (was_updated) {
-      on_output_updated();
-    }
+
     if (!is_input_active_) {
       finish(Status::OK());  // End of input stream.
     }
-    set_need_size(1);
+    return result;
   }
 
  private:
