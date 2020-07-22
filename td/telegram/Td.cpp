@@ -4776,7 +4776,7 @@ void Td::on_request(uint64 id, td_api::recoverAuthenticationPassword &request) {
 
 void Td::on_request(uint64 id, const td_api::logOut &request) {
   // will call Td::destroy later
-  send_closure(auth_manager_actor_, &AuthManager::logout, id);
+  send_closure(auth_manager_actor_, &AuthManager::log_out, id);
 }
 
 void Td::on_request(uint64 id, const td_api::close &request) {

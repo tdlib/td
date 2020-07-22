@@ -43,7 +43,7 @@ class AuthManager : public NetActor {
   void check_password(uint64 query_id, string password);
   void request_password_recovery(uint64 query_id);
   void recover_password(uint64 query_id, string code);
-  void logout(uint64 query_id);
+  void log_out(uint64 query_id);
   void delete_account(uint64 query_id, const string &reason);
 
   void on_update_login_token();
