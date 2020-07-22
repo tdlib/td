@@ -30,6 +30,7 @@ class AuthManager : public NetActor {
   bool is_bot() const;
 
   bool is_authorized() const;
+  bool was_authorized() const;
   void get_state(uint64 query_id);
 
   void set_phone_number(uint64 query_id, string phone_number,
