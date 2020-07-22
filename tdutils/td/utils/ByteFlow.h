@@ -9,6 +9,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+
 #include <limits>
 
 namespace td {
@@ -66,19 +67,19 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
         if (read_size < min(need_size_, options_.read_watermark.low)) {
           can_read = false;
         }
-        if (read_size >= max(need_size_, options_.read_watermark.hight)) {
+        if (read_size >= max(need_size_, options_.read_watermark.high)) {
           can_read = true;
         }
 
       } else {
-        //Alway can read when input is closed
+        // always can read when input is closed
         can_read = true;
       }
 
       // update can_write
       {
         auto write_size = get_write_size();
-        if (write_size > options_.write_watermark.hight) {
+        if (write_size > options_.write_watermark.high) {
           can_write = false;
         }
         if (write_size <= options_.write_watermark.low) {
@@ -114,7 +115,7 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
 
   struct Watermark {
     size_t low{std::numeric_limits<size_t>::max()};
-    size_t hight{0};
+    size_t high{0};
   };
   struct Options {
     Watermark write_watermark;
