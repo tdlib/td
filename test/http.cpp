@@ -383,8 +383,8 @@ TEST(Http, gzip_bomb_with_limit) {
     ByteFlowSink sink;
     source >> gzip_flow >> sink;
 
-    std::string s(1 << 20, 'a');
-    for (int i = 0; i < 2000; i++) {
+    std::string s(1 << 16, 'a');
+    for (int i = 0; i < 1000; i++) {
       input_writer.append(s);
       source.wakeup();
     }
@@ -411,7 +411,6 @@ TEST(Http, gzip_bomb_with_limit) {
       LOG(FATAL) << r_state.error();
       return;
     } else if (r_state.ok() == 0) {
-      LOG(ERROR) << q;
       ok = true;
     }
   }
