@@ -28,7 +28,7 @@ class HttpInboundConnection final : public detail::HttpConnectionBase {
   // void write_error(Status error);
 
   HttpInboundConnection(SocketFd fd, size_t max_post_size, size_t max_files, int32 idle_timeout,
-                        ActorShared<Callback> callback);
+                        ActorShared<Callback> callback, int32 slow_scheduler_id = -1);
 
  private:
   void on_query(unique_ptr<HttpQuery> query) override;

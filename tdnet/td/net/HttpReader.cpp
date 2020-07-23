@@ -60,7 +60,7 @@ void HttpReader::init(ChainBufferReader *input, size_t max_post_size, size_t max
   total_headers_length_ = 0;
 }
 
-Result<size_t> HttpReader::read_next(HttpQuery *query) {
+Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
   if (query_ != query) {
     CHECK(query_ == nullptr);
     query_ = query;
@@ -191,6 +191,9 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         return need_size;
       }
       case State::ReadContentToFile: {
+        if (!can_be_slow) {
+          return Status::Error("SLOW");
+        }
         // save content to a file
         if (temp_file_.empty()) {
           auto file = open_temp_file("file");

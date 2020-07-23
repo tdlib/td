@@ -17,13 +17,14 @@ namespace td {
 namespace detail {
 
 HttpConnectionBase::HttpConnectionBase(State state, SocketFd fd, SslStream ssl_stream, size_t max_post_size,
-                                       size_t max_files, int32 idle_timeout)
+                                       size_t max_files, int32 idle_timeout, int32 slow_scheduler_id)
     : state_(state)
     , fd_(std::move(fd))
     , ssl_stream_(std::move(ssl_stream))
     , max_post_size_(max_post_size)
     , max_files_(max_files)
-    , idle_timeout_(idle_timeout) {
+    , idle_timeout_(idle_timeout)
+    , slow_scheduler_id_(slow_scheduler_id) {
   CHECK(state_ != State::Close);
 
   if (ssl_stream_) {
@@ -109,9 +110,18 @@ void HttpConnectionBase::loop() {
   // TODO: read_next even when state_ == State::Write
 
   bool want_read = false;
+  bool can_be_slow = slow_scheduler_id_ == -1;
   if (state_ == State::Read) {
-    auto res = reader_.read_next(current_query_.get());
+    auto res = reader_.read_next(current_query_.get(), can_be_slow);
     if (res.is_error()) {
+      if (res.error().message() == "SLOW") {
+        LOG(INFO) << "Slow HTTP connection: migrate to " << slow_scheduler_id_;
+        CHECK(!can_be_slow);
+        yield();
+        migrate(slow_scheduler_id_);
+        slow_scheduler_id_ = -1;
+        return;
+      }
       live_event();
       state_ = State::Write;
       LOG(INFO) << res.error();

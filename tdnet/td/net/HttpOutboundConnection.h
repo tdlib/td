@@ -25,9 +25,9 @@ class HttpOutboundConnection final : public detail::HttpConnectionBase {
     virtual void on_connection_error(Status error) = 0;  // TODO rename to on_error
   };
   HttpOutboundConnection(SocketFd fd, SslStream ssl_stream, size_t max_post_size, size_t max_files, int32 idle_timeout,
-                         ActorShared<Callback> callback)
+                         ActorShared<Callback> callback, int32 slow_scheduler_id = -1)
       : HttpConnectionBase(HttpConnectionBase::State::Write, std::move(fd), std::move(ssl_stream), max_post_size,
-                           max_files, idle_timeout)
+                           max_files, idle_timeout, slow_scheduler_id)
       , callback_(std::move(callback)) {
   }
   // Inherited interface

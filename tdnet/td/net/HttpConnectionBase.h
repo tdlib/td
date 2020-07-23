@@ -33,7 +33,7 @@ class HttpConnectionBase : public Actor {
  protected:
   enum class State { Read, Write, Close };
   HttpConnectionBase(State state, SocketFd fd, SslStream ssl_stream, size_t max_post_size, size_t max_files,
-                     int32 idle_timeout);
+                     int32 idle_timeout, int32 slow_scheduler_id);
 
  private:
   State state_;
@@ -56,6 +56,8 @@ class HttpConnectionBase : public Actor {
   HttpReader reader_;
   unique_ptr<HttpQuery> current_query_;
   bool close_after_write_ = false;
+
+  int32 slow_scheduler_id_{-1};
 
   void live_event();
 

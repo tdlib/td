@@ -13,8 +13,9 @@
 namespace td {
 
 HttpInboundConnection::HttpInboundConnection(SocketFd fd, size_t max_post_size, size_t max_files, int32 idle_timeout,
-                                             ActorShared<Callback> callback)
-    : HttpConnectionBase(State::Read, std::move(fd), SslStream(), max_post_size, max_files, idle_timeout)
+                                             ActorShared<Callback> callback, int32 slow_scheduler_id)
+    : HttpConnectionBase(State::Read, std::move(fd), SslStream(), max_post_size, max_files, idle_timeout,
+                         slow_scheduler_id)
     , callback_(std::move(callback)) {
 }
 
