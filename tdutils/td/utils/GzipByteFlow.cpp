@@ -15,14 +15,13 @@ char disable_linker_warning_about_empty_file_gzipbyteflow_cpp TD_UNUSED;
 namespace td {
 
 bool GzipByteFlow::loop() {
-  bool result = false;
   if (gzip_.need_input()) {
     auto slice = input_->prepare_read();
     if (slice.empty()) {
       if (!is_input_active_) {
         gzip_.close_input();
       } else {
-        return result;
+        return false;
       }
     } else {
       gzip_.set_input(input_->prepare_read());
@@ -40,10 +39,9 @@ bool GzipByteFlow::loop() {
     total_output_size_ += output_size;
     if (total_output_size_ > max_output_size_) {
       finish(Status::Error("Max output size limit exceeded"));
-      return result;
+      return false;
     }
     output_.confirm_append(output_size);
-    result = true;
   }
 
   auto input_size = gzip_.flush_input();
@@ -59,7 +57,7 @@ bool GzipByteFlow::loop() {
     consume_input();
     return false;
   }
-  return result;
+  return true;
 }
 
 }  // namespace td
