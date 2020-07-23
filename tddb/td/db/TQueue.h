@@ -113,7 +113,7 @@ class TQueue {
 
   virtual size_t get_size(QueueId queue_id) = 0;
 
-  virtual void run_gc(double now) = 0;
+  virtual std::pair<uint64, uint64> run_gc(double now) = 0;
   virtual void close(Promise<> promise) = 0;
 };
 

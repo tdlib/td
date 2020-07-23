@@ -212,12 +212,26 @@ class TQueueImpl : public TQueue {
     return do_get(queue_id, q, from_id, forget_previous, now, result_events);
   }
 
-  void run_gc(double now) override {
-    for (auto &it : queues_) {
-      for (auto &e : it.second.events.as_mutable_span()) {
-        try_pop(it.second, it.first, e, EventId(), now);
+  std::pair<uint64, uint64> run_gc(double now) override {
+    uint64 total_deleted_events = 0;
+    uint64 deleted_queues = 0;
+    for (auto it = queues_.begin(); it != queues_.end();) {
+      size_t deleted_events = 0;
+      for (auto &e : it->second.events.as_mutable_span()) {
+        if (e.expires_at < now) {
+          pop(it->second, it->first, e, EventId());
+          deleted_events++;
+        }
       }
+      if (deleted_events == it->second.events.size()) {
+        deleted_queues++;
+        it = queues_.erase(it);
+      } else {
+        ++it;
+      }
+      total_deleted_events += deleted_events;
     }
+    return {deleted_queues, total_deleted_events};
   }
 
   size_t get_size(QueueId queue_id) override {
