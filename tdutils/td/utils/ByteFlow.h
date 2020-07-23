@@ -45,7 +45,7 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
   }
 
   void wakeup() final {
-    if (stop_flag_) {
+    if (stop_flag_ || !input_) {
       return;
     }
     input_->sync_with_writer();

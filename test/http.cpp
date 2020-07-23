@@ -133,14 +133,14 @@ TEST(Http, reader) {
   clear_thread_locals();
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
-  {
+  for (int i = 0; i < 20; i++) {
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
     HttpReader reader;
     int max_post_size = 10000;
     reader.init(&input, max_post_size, 0);
 
-    std::vector<string> contents(1000);
+    std::vector<string> contents(100);
     std::generate(contents.begin(), contents.end(), gen_http_content);
     auto v = td::transform(contents, rand_http_query);
     auto vec_str = rand_split(join(v));
