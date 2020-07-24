@@ -35,7 +35,7 @@ TEST(TQueue, hands) {
   ASSERT_EQ(head.next().ok(), tail);
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
-  ASSERT_EQ(0u, tqueue->get(qid, tail, false, 0, events_span).move_as_ok());
+  ASSERT_EQ(1u, tqueue->get(qid, tail, false, 0, events_span).move_as_ok());
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
   ASSERT_EQ(0u, tqueue->get(qid, tail, true, 0, events_span).move_as_ok());
   ASSERT_EQ(0u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
