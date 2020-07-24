@@ -23,6 +23,8 @@ class ByteFlowInterface {
   virtual size_t get_need_size() = 0;
   virtual size_t get_read_size() = 0;
   virtual size_t get_write_size() = 0;
+  virtual void reset_need_size() {
+  }
   ByteFlowInterface() = default;
   ByteFlowInterface(const ByteFlowInterface &) = delete;
   ByteFlowInterface &operator=(const ByteFlowInterface &) = delete;
@@ -103,6 +105,9 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
 
   size_t get_need_size() final {
     return need_size_;
+  }
+  void reset_need_size() override {
+    need_size_ = 0;
   }
   size_t get_read_size() override {
     input_->sync_with_writer();

@@ -93,6 +93,10 @@ void HttpConnectionBase::timeout_expired() {
   stop();
 }
 void HttpConnectionBase::loop() {
+  if (ssl_stream_) {
+    //ssl_stream_.read_byte_flow().set_need_size(0);
+    ssl_stream_.write_byte_flow().reset_need_size();
+  }
   sync_with_poll(fd_);
   if (can_read_local(fd_)) {
     LOG(DEBUG) << "Can read from the connection";
