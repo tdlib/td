@@ -219,7 +219,7 @@ class TQueueImpl : public TQueue {
       size_t deleted_events = 0;
       for (auto &e : it->second.events.as_mutable_span()) {
         if (e.expires_at < now) {
-          pop(it->second, it->first, e, EventId());
+          pop(it->second, it->first, e, e.expires_at < now - 7 * 86400 ? EventId() : it->second.tail_id);
           deleted_events++;
         }
       }
