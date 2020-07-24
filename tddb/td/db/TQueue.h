@@ -128,7 +128,7 @@ class TQueueBinlog : public TQueue::StorageCallback {
 
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
-  Status replay(const BinlogEvent &binlog_event, TQueue &q) const;
+  Status replay(const BinlogEvent &binlog_event, TQueue &q) const TD_WARN_UNUSED_RESULT;
 
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
     binlog_ = std::move(binlog);

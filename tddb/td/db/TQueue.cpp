@@ -98,9 +98,12 @@ class TQueueImpl : public TQueue {
 
   bool do_push(QueueId queue_id, RawEvent &&raw_event) override {
     CHECK(raw_event.event_id.is_valid());
+    // raw_event.data can be empty when replaying binlog
+    if (raw_event.data.size() > MAX_EVENT_LENGTH) {
+      return false;
+    }
     auto &q = queues_[queue_id];
-    if (q.events.size() >= MAX_QUEUE_EVENTS || raw_event.data.empty() || raw_event.data.size() > MAX_EVENT_LENGTH ||
-        q.total_event_length > MAX_TOTAL_EVENT_LENGTH - raw_event.data.size()) {
+    if (q.events.size() >= MAX_QUEUE_EVENTS || q.total_event_length > MAX_TOTAL_EVENT_LENGTH - raw_event.data.size()) {
       return false;
     }
     if (q.events.empty() || q.events.back().event_id < raw_event.event_id) {
@@ -116,15 +119,16 @@ class TQueueImpl : public TQueue {
   }
 
   Result<EventId> push(QueueId queue_id, string data, double expires_at, int64 extra, EventId hint_new_id) override {
-    auto &q = queues_[queue_id];
-    if (q.events.size() >= MAX_QUEUE_EVENTS) {
-      return Status::Error("Queue is full");
-    }
     if (data.empty()) {
       return Status::Error("Data is empty");
     }
     if (data.size() > MAX_EVENT_LENGTH) {
       return Status::Error("Data is too big");
+    }
+
+    auto &q = queues_[queue_id];
+    if (q.events.size() >= MAX_QUEUE_EVENTS) {
+      return Status::Error("Queue is full");
     }
     if (q.total_event_length > MAX_TOTAL_EVENT_LENGTH - data.size()) {
       return Status::Error("Queue size is too big");
