@@ -247,7 +247,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
       }
       case State::ReadMultipartFormData: {
         if (!content_->empty()) {
-          TRY_RESULT(result, parse_multipart_form_data());
+          TRY_RESULT(result, parse_multipart_form_data(can_be_slow));
           if (result) {
             break;
           }
@@ -267,7 +267,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
 // returns Status on wrong request
 // returns true if parsing has finished
 // returns false if need more data
-Result<bool> HttpReader::parse_multipart_form_data() {
+Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
   while (true) {
     LOG(DEBUG) << "Parsing multipart form data in state " << static_cast<int32>(form_data_parse_state_)
                << " with already read length " << form_data_read_length_;
@@ -452,6 +452,9 @@ Result<bool> HttpReader::parse_multipart_form_data() {
         }
         return false;
       case FormDataParseState::ReadFile: {
+        if (!can_be_slow) {
+          return Status::Error("SLOW");
+        }
         if (find_boundary(content_->clone(), boundary_, form_data_read_length_)) {
           auto file_part = content_->cut_head(form_data_read_length_).move_as_buffer_slice();
           content_->advance(boundary_.size());
