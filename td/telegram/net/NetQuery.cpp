@@ -66,7 +66,8 @@ TsList<NetQueryDebug> &NetQuery::get_net_query_list() {
   static auto init_mutex = [] {
     TsList<NetQueryDebug>::lock().unlock();  // initialize mutex before any NetQuery
     return true;
-  };
+  }();
+  CHECK(init_mutex);
   static TsList<NetQueryDebug> net_query_list;
   return net_query_list;
 }
