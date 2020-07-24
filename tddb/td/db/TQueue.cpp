@@ -99,6 +99,10 @@ class TQueueImpl : public TQueue {
   bool do_push(QueueId queue_id, RawEvent &&raw_event) override {
     CHECK(raw_event.event_id.is_valid());
     auto &q = queues_[queue_id];
+    if (q.events.size() >= MAX_QUEUE_EVENTS || raw_event.data.empty() || raw_event.data.size() > MAX_EVENT_LENGTH ||
+        q.total_event_length > MAX_TOTAL_EVENT_LENGTH - raw_event.data.size()) {
+      return false;
+    }
     if (q.events.empty() || q.events.back().event_id < raw_event.event_id) {
       if (raw_event.logevent_id == 0 && callback_ != nullptr) {
         raw_event.logevent_id = callback_->push(queue_id, raw_event);
