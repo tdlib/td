@@ -233,7 +233,7 @@ class TQueueImpl : public TQueue {
           }
         }
       }
-      if (deleted_events == it->second.events.size()) {
+      if (callback_ != nullptr && deleted_events == it->second.events.size()) {
         deleted_queues++;
         it = queues_.erase(it);
       } else {
