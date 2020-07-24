@@ -69,8 +69,12 @@ class TsListNode : protected ListNode {
   }
 
   void validate() {
-    CHECK(empty() || !ListNode::empty() || is_root);
-    CHECK(!empty() || ListNode::empty());
+    if (empty()) {
+      CHECK(ListNode::empty());
+    } else {
+      auto guard = lock();
+      CHECK(!ListNode::empty() || is_root);
+    }
   }
 
   void remove() {
