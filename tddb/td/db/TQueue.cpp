@@ -228,7 +228,9 @@ class TQueueImpl : public TQueue {
       for (auto &e : it->second.events.as_mutable_span()) {
         if (e.expires_at < now) {
           pop(it->second, it->first, e, e.expires_at < now - 7 * 86400 ? EventId() : it->second.tail_id);
-          deleted_events++;
+          if (e.logevent_id == 0 && e.data.empty()) {
+            deleted_events++;
+          }
         }
       }
       if (deleted_events == it->second.events.size()) {
