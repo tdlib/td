@@ -110,6 +110,17 @@ class TQueueImpl : public TQueue {
       return false;
     }
 
+    if (!q.events.empty()) {
+      auto it = q.events.end();
+      --it;
+      if (it->second.data.empty()) {
+        if (callback_ != nullptr && it->second.logevent_id != 0) {
+          callback_->pop(it->second.logevent_id);
+        }
+        q.events.erase(it);
+      }
+    }
+
     if (raw_event.logevent_id == 0 && callback_ != nullptr) {
       raw_event.logevent_id = callback_->push(queue_id, raw_event);
     }
@@ -279,7 +290,6 @@ class TQueueImpl : public TQueue {
   void pop(Queue &q, QueueId queue_id, std::map<EventId, RawEvent>::iterator &it, EventId tail_id) {
     auto &event = it->second;
     if (callback_ == nullptr || event.logevent_id == 0) {
-      event.logevent_id = 0;
       remove_event(q, it);
       return;
     }
@@ -292,7 +302,6 @@ class TQueueImpl : public TQueue {
       ++it;
     } else {
       callback_->pop(event.logevent_id);
-      event.logevent_id = 0;
       remove_event(q, it);
     }
   }
