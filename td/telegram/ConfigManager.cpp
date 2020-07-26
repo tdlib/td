@@ -885,7 +885,7 @@ void ConfigManager::start_up() {
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, load_dc_options_update());
 
   auto expire_time = load_config_expire_time();
-  if (expire_time.is_in_past()) {
+  if (expire_time.is_in_past() || true) {
     request_config();
   } else {
     expire_time_ = expire_time;
@@ -1316,8 +1316,7 @@ Timestamp ConfigManager::load_config_expire_time() {
 }
 
 void ConfigManager::save_config_expire(Timestamp timestamp) {
-  G()->td_db()->get_binlog_pmc()->set("config_expire",
-                                      to_string(static_cast<int>(Clocks::system() + expire_time_.in())));
+  G()->td_db()->get_binlog_pmc()->set("config_expire", to_string(static_cast<int>(Clocks::system() + timestamp.in())));
 }
 
 void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {

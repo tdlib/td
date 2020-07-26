@@ -153,10 +153,10 @@ class ConfigManager : public NetQueryCallback {
 
   void do_dismiss_suggested_action(SuggestedAction suggested_action);
 
-  Timestamp load_config_expire_time();
-  void save_config_expire(Timestamp timestamp);
-  void save_dc_options_update(DcOptions dc_options);
-  DcOptions load_dc_options_update();
+  static Timestamp load_config_expire_time();
+  static void save_config_expire(Timestamp timestamp);
+  static void save_dc_options_update(DcOptions dc_options);
+  static DcOptions load_dc_options_update();
 };
 
 }  // namespace td
