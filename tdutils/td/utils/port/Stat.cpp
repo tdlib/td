@@ -45,7 +45,11 @@
 #ifndef PSAPI_VERSION
 #define PSAPI_VERSION 1
 #endif
+#ifdef __MINGW32__
+#include <psapi.h>
+#else
 #include <Psapi.h>
+#endif
 
 #endif
 
