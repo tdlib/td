@@ -8,6 +8,8 @@
 
 #include "td/utils/ByteFlow.h"
 
+#include <limits>
+
 namespace td {
 
 class HttpChunkedByteFlow final : public ByteFlowBase {

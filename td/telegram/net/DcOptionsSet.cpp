@@ -9,6 +9,8 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

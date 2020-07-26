@@ -36,7 +36,7 @@ class StateManager final : public Actor {
     }
   };
 
-  StateManager(ActorShared<> parent) : parent_(std::move(parent)) {
+  explicit StateManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
   void on_synchronized(bool is_synchronized);

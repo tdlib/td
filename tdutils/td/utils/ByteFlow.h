@@ -72,7 +72,6 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
         if (read_size >= max(need_size_, options_.read_watermark.high)) {
           can_read = true;
         }
-
       } else {
         // always can read when input is closed
         can_read = true;

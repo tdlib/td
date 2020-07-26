@@ -43,7 +43,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   };
 
  public:
-  TempAuthKeyWatchdog(ActorShared<> parent) : parent_(std::move(parent)) {
+  explicit TempAuthKeyWatchdog(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
   using RegisteredAuthKey = unique_ptr<RegisteredAuthKeyImpl>;

@@ -10,6 +10,8 @@
 #include "td/utils/Gzip.h"
 #include "td/utils/GzipByteFlow.h"
 #include "td/utils/logging.h"
+#include "td/utils/port/thread_local.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
