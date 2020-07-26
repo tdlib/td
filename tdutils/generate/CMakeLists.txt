@@ -42,7 +42,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS generate_mime_types_gperf mime_types.txt
   )
 
-  if (WIN32)
+  if (CMAKE_HOST_WIN32)
     set(MIME_TYPE_TO_EXTENSION_CMD ${GPERF_EXECUTABLE} -m100 --output-file=auto/mime_type_to_extension.cpp auto/mime_type_to_extension.gperf)
   else()
     set(MIME_TYPE_TO_EXTENSION_CMD ${GPERF_EXECUTABLE} -m100 auto/mime_type_to_extension.gperf | grep -v __gnu_inline__ > auto/mime_type_to_extension.cpp)
@@ -54,7 +54,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS auto/mime_type_to_extension.gperf
   )
 
-  if (WIN32)
+  if (CMAKE_HOST_WIN32)
     set(EXTENSION_TO_MIME_TYPE_CMD ${GPERF_EXECUTABLE} -m100 --output-file=auto/extension_to_mime_type.cpp auto/extension_to_mime_type.gperf)
   else()
     set(EXTENSION_TO_MIME_TYPE_CMD ${GPERF_EXECUTABLE} -m100 auto/extension_to_mime_type.gperf | grep -v __gnu_inline__ > auto/extension_to_mime_type.cpp)
