@@ -59,7 +59,11 @@ endif()
 target_link_libraries(tdnet PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 
 if (WIN32)
-  target_link_libraries(tdnet PRIVATE Crypt32)
+  if (MINGW)
+    target_link_libraries(tdnet PRIVATE crypt32)
+  else()
+    target_link_libraries(tdnet PRIVATE Crypt32)
+  endif()
 endif()
 
 install(TARGETS tdnet EXPORT TdTargets
