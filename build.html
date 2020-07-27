@@ -318,11 +318,12 @@ function onOsChanged() {
 
   if (target === 'WebAssembly') {
     text = 'TDLib is available in a prebuilt form as an <a href="https://www.npmjs.com/">NPM</a> package <a href="https://www.npmjs.com/package/tdweb">tdweb</a>.<br>' +
-           'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/web">example</a>';
+           'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/web">example</a>.';
     target = '';
   }
   if (target === 'Android') {
-    text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.';
+    text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.<br>' +
+           'See <a href="https://github.com/tdlib/td/issues/77#issuecomment-640719893">build instructions</a> if you want to build the latest TDLib version or want to build TDLib with different interface.';
     target = '';
   }
   if (target === 'iOS') {
