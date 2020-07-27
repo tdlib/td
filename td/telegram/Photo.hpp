@@ -95,7 +95,11 @@ void store(const AnimationSize &animation_size, StorerT &storer) {
 template <class ParserT>
 void parse(AnimationSize &animation_size, ParserT &parser) {
   parse(static_cast<PhotoSize &>(animation_size), parser);
-  parse(animation_size.main_frame_timestamp, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddDialogPhotoHasAnimation)) {
+    parse(animation_size.main_frame_timestamp, parser);
+  } else {
+    animation_size.main_frame_timestamp = 0;
+  }
 }
 
 template <class StorerT>
