@@ -23779,6 +23779,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
       d = get_dialog_force(r_value.ok().dialog_id);
     } else {
+      CHECK(r_value.error().message() == "Not found");
       VLOG(notifications) << "Failed to load " << group_id << " from database";
     }
     G()->td_db()->get_dialog_db_sync()->commit_transaction().ensure();

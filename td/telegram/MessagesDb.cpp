@@ -1035,6 +1035,8 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
       });
     }
     void on_write_result(Promise<> promise, Status status) {
+      // We are inside a transaction and don't know how to handle the error
+      status.ensure();
       pending_write_results_.emplace_back(std::move(promise), std::move(status));
     }
     void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) {

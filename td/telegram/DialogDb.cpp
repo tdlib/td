@@ -386,6 +386,8 @@ class DialogDbAsync : public DialogDbAsyncInterface {
     }
 
     void on_write_result(Promise<> promise, Status status) {
+      // We are inside a transaction and don't know how to handle the error
+      status.ensure();
       pending_write_results_.emplace_back(std::move(promise), std::move(status));
     }
 
