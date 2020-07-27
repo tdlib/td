@@ -8,6 +8,13 @@ endif()
 #TODO: all benchmarks in one file
 add_executable(bench_crypto bench_crypto.cpp)
 target_link_libraries(bench_crypto PRIVATE tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+if (WIN32)
+  if (MINGW)
+    target_link_libraries(bench_crypto PRIVATE ws2_32 mswsock)
+  else()
+    target_link_libraries(bench_crypto PRIVATE ws2_32 Mswsock)
+  endif()
+endif()
 target_include_directories(bench_crypto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 
 add_executable(bench_actor bench_actor.cpp)

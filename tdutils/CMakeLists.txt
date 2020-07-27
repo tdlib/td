@@ -300,17 +300,7 @@ set(TDUTILS_TEST_SOURCE
 #RULES
 #LIBRARIES
 add_library(tdutils STATIC ${TDUTILS_SOURCE})
-if (WIN32)
-  # find_library for system libraries doesn't work for UWP builds
-  # find_library(WS2_32_LIBRARY ws2_32)
-  # find_library(MSWSOCK_LIBRARY Mswsock)
-  # target_link_libraries(tdutils PRIVATE ${WS2_32_LIBRARY} ${MSWSOCK_LIBRARY})
-  if (MINGW)
-    target_link_libraries(tdutils PRIVATE ws2_32 mswsock normaliz psapi)
-  else()
-    target_link_libraries(tdutils PRIVATE ws2_32 Mswsock Normaliz psapi)
-  endif()
-endif()
+
 if (NOT CMAKE_CROSSCOMPILING AND TDUTILS_MIME_TYPE)
   add_dependencies(tdutils tdmime_auto)
 endif()
@@ -335,6 +325,18 @@ if (CRC32C_FOUND)
 endif()
 if (ABSL_FOUND)
   target_link_libraries(tdutils SYSTEM PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
+endif()
+
+if (WIN32)
+  # find_library for system libraries doesn't work for UWP builds
+  # find_library(WS2_32_LIBRARY ws2_32)
+  # find_library(MSWSOCK_LIBRARY Mswsock)
+  # target_link_libraries(tdutils PRIVATE ${WS2_32_LIBRARY} ${MSWSOCK_LIBRARY})
+  if (MINGW)
+    target_link_libraries(tdutils PRIVATE ws2_32 mswsock normaliz psapi)
+  else()
+    target_link_libraries(tdutils PRIVATE ws2_32 Mswsock Normaliz psapi)
+  endif()
 endif()
 
 if (ANDROID)

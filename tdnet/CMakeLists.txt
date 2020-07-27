@@ -60,9 +60,9 @@ target_link_libraries(tdnet PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 
 if (WIN32)
   if (MINGW)
-    target_link_libraries(tdnet PRIVATE crypt32)
+    target_link_libraries(tdnet PRIVATE ws2_32 mswsock crypt32)
   else()
-    target_link_libraries(tdnet PRIVATE Crypt32)
+    target_link_libraries(tdnet PRIVATE ws2_32 Mswsock Crypt32)
   endif()
 endif()
 
