@@ -3220,6 +3220,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_contact);
   STORE_FLAG(is_mutual_contact);
   STORE_FLAG(has_restriction_reasons);
+  STORE_FLAG(need_apply_min_photo);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -3288,6 +3289,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_contact);
   PARSE_FLAG(is_mutual_contact);
   PARSE_FLAG(has_restriction_reasons);
+  PARSE_FLAG(need_apply_min_photo);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -3750,6 +3752,8 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(is_slow_mode_delay_active);
   STORE_FLAG(has_stats_dc_id);
   STORE_FLAG(has_photo);
+  STORE_FLAG(is_can_view_statistics_inited);
+  STORE_FLAG(can_view_statistics);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3841,6 +3845,8 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(is_slow_mode_delay_active);
   PARSE_FLAG(has_stats_dc_id);
   PARSE_FLAG(has_photo);
+  PARSE_FLAG(is_can_view_statistics_inited);
+  PARSE_FLAG(can_view_statistics);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3892,6 +3898,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
 
   if (legacy_can_view_statistics) {
     LOG(DEBUG) << "Ignore legacy can view statistics flag";
+  }
+  if (!is_can_view_statistics_inited) {
+    can_view_statistics = stats_dc_id.is_exact();
   }
 }
 
@@ -5972,7 +5981,8 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
 }
 
-void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<DcId> &&promise) {
+void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics,
+                                                   Promise<DcId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
@@ -5991,11 +6001,13 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
   }
 
   auto channel_full = get_channel_full_force(channel_id, "get_channel_statistics_dc_id");
-  if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact()) {
-    auto query_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
-          send_closure(actor_id, &ContactsManager::get_channel_statistics_dc_id_impl, channel_id, std::move(promise));
-        });
+  if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact() ||
+      (for_full_statistics && !channel_full->can_view_statistics)) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, for_full_statistics,
+                                                 promise = std::move(promise)](Result<Unit> result) mutable {
+      send_closure(actor_id, &ContactsManager::get_channel_statistics_dc_id_impl, channel_id, for_full_statistics,
+                   std::move(promise));
+    });
     send_get_channel_full_query(channel_full, channel_id, std::move(query_promise), "get_channel_statistics_dc_id");
     return;
   }
@@ -6003,7 +6015,8 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, Promise<D
   promise.set_value(DcId(channel_full->stats_dc_id));
 }
 
-void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, Promise<DcId> &&promise) {
+void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics,
+                                                        Promise<DcId> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
@@ -6013,7 +6026,7 @@ void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, Pr
     return promise.set_error(Status::Error(400, "Chat full info not found"));
   }
 
-  if (!channel_full->stats_dc_id.is_exact()) {
+  if (!channel_full->stats_dc_id.is_exact() || (for_full_statistics && !channel_full->can_view_statistics)) {
     return promise.set_error(Status::Error(400, "Chat statistics is not available"));
   }
 
@@ -6030,7 +6043,7 @@ void ContactsManager::get_channel_statistics(DialogId dialog_id, bool is_dark,
         send_closure(actor_id, &ContactsManager::send_get_channel_stats_query, r_dc_id.move_as_ok(),
                      dialog_id.get_channel_id(), is_dark, std::move(promise));
       });
-  get_channel_statistics_dc_id(dialog_id, std::move(dc_id_promise));
+  get_channel_statistics_dc_id(dialog_id, true, std::move(dc_id_promise));
 }
 
 void ContactsManager::send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
@@ -6057,7 +6070,7 @@ void ContactsManager::load_statistics_graph(DialogId dialog_id, const string &to
         send_closure(actor_id, &ContactsManager::send_load_async_graph_query, r_dc_id.move_as_ok(), std::move(token), x,
                      std::move(promise));
       });
-  get_channel_statistics_dc_id(dialog_id, std::move(dc_id_promise));
+  get_channel_statistics_dc_id(dialog_id, false, std::move(dc_id_promise));
 }
 
 void ContactsManager::send_load_async_graph_query(DcId dc_id, string token, int64 x,
@@ -7209,7 +7222,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_received || !user->phone_.empty()) {
     on_update_user_phone_number(u, user_id, std::move(user->phone_));
   }
-  on_update_user_photo(u, user_id, std::move(user->photo_), source);
+  if (is_received || u->need_apply_min_photo) {
+    on_update_user_photo(u, user_id, std::move(user->photo_), source);
+  }
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
 
@@ -7234,6 +7249,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   string inline_query_placeholder = user->bot_inline_placeholder_;
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
+  bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
 
   LOG_IF(ERROR, !is_support && expect_support) << "Receive non-support " << user_id << ", but expected a support user";
   LOG_IF(ERROR, !can_join_groups && !is_bot)
@@ -7255,6 +7271,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     inline_query_placeholder = string();
     need_location_bot = false;
     has_bot_info_version = false;
+    need_apply_min_photo = false;
   }
 
   LOG_IF(ERROR, has_bot_info_version && !is_bot)
@@ -7286,6 +7303,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (u->bot_info_version != bot_info_version) {
     u->bot_info_version = bot_info_version;
     LOG(DEBUG) << "Bot info version has changed for " << user_id;
+    u->need_save_to_database = true;
+  }
+  if (u->need_apply_min_photo != need_apply_min_photo) {
+    u->need_apply_min_photo = need_apply_min_photo;
     u->need_save_to_database = true;
   }
 
@@ -7555,7 +7576,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   if (user_id == UserId(777000) && (u == nullptr || !u->is_received)) {
     int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
-                  telegram_api::user::SUPPORT_MASK;
+                  telegram_api::user::SUPPORT_MASK | telegram_api::user::APPLY_MIN_PHOTO_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
         0, false /*ignored*/, 3337190045231023,
         telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13226),
@@ -7568,8 +7589,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", string(), string(), "42777",
-        std::move(profile_photo), nullptr, 0, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", string(),
+        string(), "42777", std::move(profile_photo), nullptr, 0, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -9465,14 +9486,19 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
     auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
+    auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id =
           td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true, "on_get_channel_full");
     }
     DcId stats_dc_id;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0) {
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID) != 0) {
       stats_dc_id = DcId::create(channel_full->stats_dc_);
+    }
+    if (!stats_dc_id.is_exact() && can_view_statistics) {
+      LOG(ERROR) << "Receive can_view_statistics == true, but invalid statistics DC ID in " << channel_id;
+      can_view_statistics = false;
     }
 
     ChannelFull *channel = add_channel_full(channel_id);
@@ -9482,8 +9508,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->administrator_count != administrator_count || channel->restricted_count != restricted_count ||
         channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
-        channel->can_set_location != can_set_location || channel->stats_dc_id != stats_dc_id ||
-        channel->sticker_set_id != sticker_set_id || channel->is_all_history_available != is_all_history_available) {
+        channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
+        channel->stats_dc_id != stats_dc_id || channel->sticker_set_id != sticker_set_id ||
+        channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -9493,6 +9520,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->can_set_username = can_set_username;
       channel->can_set_sticker_set = can_set_sticker_set;
       channel->can_set_location = can_set_location;
+      channel->can_view_statistics = can_view_statistics;
       channel->stats_dc_id = stats_dc_id;
       channel->is_all_history_available = is_all_history_available;
       channel->sticker_set_id = sticker_set_id;
@@ -9504,6 +9532,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         c->is_changed = true;
         update_channel(c, channel_id);
       }
+    }
+    if (!channel->is_can_view_statistics_inited) {
+      channel->is_can_view_statistics_inited = true;
+      channel->need_save_to_database = true;
     }
 
     on_update_channel_full_photo(
@@ -14102,7 +14134,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->stats_dc_id.is_exact(),
+      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
       channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),

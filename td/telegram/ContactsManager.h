@@ -589,7 +589,7 @@ class ContactsManager : public Actor {
 
     std::unordered_map<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
 
-    static constexpr uint32 CACHE_VERSION = 2;
+    static constexpr uint32 CACHE_VERSION = 3;
     uint32 cache_version = 0;
 
     bool is_min_access_hash = true;
@@ -605,6 +605,7 @@ class ContactsManager : public Actor {
     bool is_scam = false;
     bool is_contact = false;
     bool is_mutual_contact = false;
+    bool need_apply_min_photo = false;
 
     bool is_photo_inited = false;
 
@@ -843,6 +844,8 @@ class ContactsManager : public Actor {
     bool can_set_username = false;
     bool can_set_sticker_set = false;
     bool can_set_location = false;
+    bool can_view_statistics = false;
+    bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
 
     bool is_slow_mode_next_send_date_changed = true;
@@ -957,6 +960,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FLAG_HAS_LANGUAGE_CODE = 1 << 22;
   static constexpr int32 USER_FLAG_IS_SUPPORT = 1 << 23;
   static constexpr int32 USER_FLAG_IS_SCAM = 1 << 24;
+  static constexpr int32 USER_FLAG_NEED_APPLY_MIN_PHOTO = 1 << 25;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
@@ -1011,7 +1015,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID = 1 << 9;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN = 1 << 10;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 12;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID = 1 << 12;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT = 1 << 13;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 14;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_LOCATION = 1 << 15;
@@ -1019,6 +1023,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY = 1 << 17;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 19;
+  static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 20;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
@@ -1409,9 +1414,9 @@ class ContactsManager : public Actor {
                                   tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
                                   Promise<Unit> &&promise);
 
-  void get_channel_statistics_dc_id(DialogId dialog_id, Promise<DcId> &&promise);
+  void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 
-  void get_channel_statistics_dc_id_impl(ChannelId channel_id, Promise<DcId> &&promise);
+  void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 
   void send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
                                     Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
