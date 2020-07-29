@@ -895,6 +895,31 @@ TEST(Client, Multi) {
     thread.join();
   }
 }
+TEST(Client, MultiNew) {
+  std::vector<td::thread> threads;
+  td::MultiClient client;
+  int threads_n = 4;
+  int clients_n = 1000;
+  for (int i = 0; i < threads_n; i++) {
+    threads.emplace_back([&] {
+      for (int i = 0; i < clients_n; i++) {
+        auto id = client.create_client();
+        client.send(id, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
+      }
+    });
+  }
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  std::set<std::int32_t> ids;
+  while (ids.size() * threads_n * clients_n) {
+    auto event = client.receive(10);
+    if (event.client_id != 0 && event.id == 3) {
+      ids.insert(event.client_id);
+    }
+  }
+}
 #endif
 
 TEST(PartsManager, hands) {

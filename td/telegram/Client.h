@@ -127,6 +127,37 @@ class Client final {
   Client &operator=(Client &&other);
 
  private:
+  friend class MultiClient;
+  class Impl;
+  std::unique_ptr<Impl> impl_;
+};
+
+// --- EXPERIMENTAL ---
+class MultiClient final {
+ public:
+  MultiClient();
+
+  using ClientId = std::int32_t;
+  using RequestId = std::uint64_t;
+  using Function = td_api::object_ptr<td_api::Function>;
+  using Object = td_api::object_ptr<td_api::Object>;
+  struct Response {
+    ClientId client_id;
+    RequestId id;
+    Object object;
+  };
+
+  ClientId create_client();
+  void send(ClientId client_id, RequestId request_id, Function function);
+  Response receive(double timeout);
+  static Object execute(Function &&function);
+
+  ~MultiClient();
+  MultiClient(MultiClient &&other);
+  MultiClient &operator=(MultiClient &&other);
+
+ private:
+  friend class Client;
   class Impl;
   std::unique_ptr<Impl> impl_;
 };
