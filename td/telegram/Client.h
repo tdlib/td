@@ -127,7 +127,6 @@ class Client final {
   Client &operator=(Client &&other);
 
  private:
-  friend class MultiClient;
   class Impl;
   std::unique_ptr<Impl> impl_;
 };
@@ -148,16 +147,20 @@ class MultiClient final {
   };
 
   ClientId create_client();
-  void send(ClientId client_id, RequestId request_id, Function function);
+
+  void send(ClientId client_id, RequestId request_id, Function &&function);
+
   Response receive(double timeout);
+
   static Object execute(Function &&function);
 
   ~MultiClient();
+
   MultiClient(MultiClient &&other);
+
   MultiClient &operator=(MultiClient &&other);
 
  private:
-  friend class Client;
   class Impl;
   std::unique_ptr<Impl> impl_;
 };

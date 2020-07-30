@@ -34,6 +34,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <set>
 #include <utility>
 
 REGISTER_TESTS(tdclient);
@@ -875,7 +876,7 @@ TEST(Client, SimpleMulti) {
 
 #if !TD_THREAD_UNSUPPORTED
 TEST(Client, Multi) {
-  std::vector<td::thread> threads;
+  td::vector<td::thread> threads;
   for (int i = 0; i < 4; i++) {
     threads.emplace_back([] {
       for (int i = 0; i < 1000; i++) {
@@ -895,8 +896,9 @@ TEST(Client, Multi) {
     thread.join();
   }
 }
+
 TEST(Client, MultiNew) {
-  std::vector<td::thread> threads;
+  td::vector<td::thread> threads;
   td::MultiClient client;
   int threads_n = 4;
   int clients_n = 1000;
@@ -912,7 +914,7 @@ TEST(Client, MultiNew) {
     thread.join();
   }
 
-  std::set<std::int32_t> ids;
+  std::set<int32> ids;
   while (ids.size() * threads_n * clients_n) {
     auto event = client.receive(10);
     if (event.client_id != 0 && event.id == 3) {
