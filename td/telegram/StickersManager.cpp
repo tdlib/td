@@ -2301,8 +2301,8 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   CHECK(s != nullptr);
   CHECK(s->is_inited);
 
-  s->expires_at = G()->unix_time() + (td_->auth_manager_->is_bot() ? Random::fast(10 * 60, 15 * 60)
-                                                                   : Random::fast(20 * 60 * 60, 28 * 60 * 60));
+  s->expires_at = G()->unix_time() +
+                  (td_->auth_manager_->is_bot() ? Random::fast(10 * 60, 15 * 60) : Random::fast(30 * 60, 50 * 60));
 
   if (s->is_loaded) {
     update_sticker_set(s);
