@@ -21,7 +21,8 @@ class Function;
 
 class NetQueryCreator {
  public:
-  NetQueryCreator() {
+  explicit NetQueryCreator(std::shared_ptr<NetQueryStats> net_query_stats = {}) {
+    net_query_stats_ = std::move(net_query_stats);
     object_pool_.set_check_empty(true);
   }
 
@@ -31,7 +32,8 @@ class NetQueryCreator {
 
   NetQueryPtr create_update(BufferSlice &&buffer) {
     return object_pool_.create(NetQuery::State::OK, 0, BufferSlice(), std::move(buffer), DcId::main(),
-                               NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0, 0);
+                               NetQuery::Type::Common, NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off, 0, 0,
+                               net_query_stats_.get());
   }
 
   NetQueryPtr create(const telegram_api::Function &function, DcId dc_id = DcId::main(),
@@ -45,6 +47,7 @@ class NetQueryCreator {
                      NetQuery::AuthFlag auth_flag);
 
  private:
+  std::shared_ptr<NetQueryStats> net_query_stats_;
   ObjectPool<NetQuery> object_pool_;
 };
 

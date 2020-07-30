@@ -14,6 +14,7 @@
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/TermsOfService.h"
 
+#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -93,7 +94,11 @@ class Td final : public NetQueryCallback {
   Td &operator=(Td &&) = delete;
   ~Td() override;
 
-  explicit Td(unique_ptr<TdCallback> callback);
+  struct Options {
+    std::shared_ptr<td::NetQueryStats> net_query_stats;
+  };
+
+  Td(unique_ptr<TdCallback> callback, Options options);
 
   void request(uint64 id, tl_object_ptr<td_api::Function> function);
 
@@ -260,6 +265,7 @@ class Td final : public NetQueryCallback {
   TdParameters parameters_;
 
   unique_ptr<TdCallback> callback_;
+  Options td_options_;
 
   StateManager::State connection_state_;
 

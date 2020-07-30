@@ -30,6 +30,8 @@ namespace td {
 
 class MultiTd : public Actor {
  public:
+  explicit MultiTd(Td::Options options) : options_(std::move(options)) {
+  }
   void create(int32 td_id, unique_ptr<TdCallback> callback) {
     auto &td = tds_[td_id];
     CHECK(td.empty());
@@ -47,7 +49,7 @@ class MultiTd : public Actor {
     auto context = std::make_shared<TdActorContext>(to_string(td_id));
     auto old_context = set_context(context);
     auto old_tag = set_tag(context->tag_);
-    td = create_actor<Td>("Td", std::move(callback));
+    td = create_actor<Td>("Td", std::move(callback), options_);
     set_context(old_context);
     set_tag(old_tag);
   }
@@ -64,6 +66,7 @@ class MultiTd : public Actor {
   }
 
  private:
+  Td::Options options_;
   std::unordered_map<int32, ActorOwn<Td>> tds_;
 };
 
@@ -112,6 +115,7 @@ class TdReceiver {
 class MultiClient::Impl final {
  public:
   Impl() {
+    options_.net_query_stats = std::make_shared<NetQueryStats>();
     concurrent_scheduler_ = make_unique<ConcurrentScheduler>();
     concurrent_scheduler_->init(0);
     receiver_ = make_unique<TdReceiver>();
@@ -120,7 +124,8 @@ class MultiClient::Impl final {
 
   ClientId create_client() {
     auto client_id = ++client_id_;
-    tds_[client_id] = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", receiver_->create_callback(client_id));
+    tds_[client_id] =
+        concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", receiver_->create_callback(client_id), options_);
     return client_id;
   }
 
@@ -185,6 +190,7 @@ class MultiClient::Impl final {
   std::vector<Request> requests_;
   unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ClientId client_id_{0};
+  Td::Options options_;
   std::unordered_map<int32, ActorOwn<Td>> tds_;
 };
 
@@ -270,14 +276,16 @@ class TdReceiver {
 
 class MultiImpl {
  public:
-  MultiImpl() {
+  MultiImpl(std::shared_ptr<NetQueryStats> net_query_stats) {
     concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
     concurrent_scheduler_->init(3);
     concurrent_scheduler_->start();
 
     {
       auto guard = concurrent_scheduler_->get_main_guard();
-      multi_td_ = create_actor<MultiTd>("MultiTd");
+      Td::Options options;
+      options.net_query_stats = std::move(net_query_stats);
+      multi_td_ = create_actor<MultiTd>("MultiTd", std::move(options));
     }
 
     scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
@@ -343,15 +351,20 @@ class MultiImplPool {
                                    [](auto &a, auto &b) { return a.lock().use_count() < b.lock().use_count(); });
     auto res = impl.lock();
     if (!res) {
-      res = std::make_shared<MultiImpl>();
+      res = std::make_shared<MultiImpl>(net_query_stats_);
       impl = res;
     }
     return res;
   }
 
+  std::shared_ptr<NetQueryStats> get_net_query_stats() const {
+    return net_query_stats_;
+  }
+
  private:
   std::mutex mutex_;
   std::vector<std::weak_ptr<MultiImpl>> impls_;
+  std::shared_ptr<NetQueryStats> net_query_stats_ = std::make_shared<NetQueryStats>();
 };
 
 class MultiClient::Impl final {

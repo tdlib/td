@@ -102,9 +102,10 @@ class Global : public ActorContext {
   bool ignore_backgrond_updates() const;
 
   NetQueryCreator &net_query_creator() {
-    return net_query_creator_.get();
+    return *net_query_creator_.get();
   }
 
+  void set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats);
   void set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher);
 
   NetQueryDispatcher &net_query_dispatcher() {
@@ -422,7 +423,7 @@ class Global : public ActorContext {
 
   ActorId<StateManager> state_manager_;
 
-  SchedulerLocalStorage<NetQueryCreator> net_query_creator_;
+  LazySchedulerLocalStorage<td::unique_ptr<NetQueryCreator>> net_query_creator_;
   unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
 
   unique_ptr<ConfigShared> shared_config_;

@@ -219,6 +219,10 @@ bool Global::ignore_backgrond_updates() const {
          shared_config_->get_option_boolean("ignore_background_updates");
 }
 
+void Global::set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats) {
+  net_query_creator_.set_create_func([=] { return td::make_unique<NetQueryCreator>(net_query_stats); });
+}
+
 void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
   net_query_dispatcher_ = std::move(net_query_dispatcher);
 }

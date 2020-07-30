@@ -46,6 +46,10 @@ class LazySchedulerLocalStorage {
   LazySchedulerLocalStorage() = default;
   explicit LazySchedulerLocalStorage(std::function<T()> create_func) : create_func_(std::move(create_func)) {
   }
+  void set_create_func(std::function<T()> create_func) {
+    CHECK(!create_func_);
+    create_func_ = create_func;
+  }
 
   T &get() {
     auto &optional_value_ = sls_optional_value_.get();

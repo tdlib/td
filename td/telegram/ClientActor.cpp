@@ -9,12 +9,15 @@
 #include "td/telegram/td_api.h"
 
 #include "td/telegram/net/NetQueryCounter.h"
+#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/Td.h"
 
 namespace td {
 
-ClientActor::ClientActor(unique_ptr<TdCallback> callback) {
-  td_ = create_actor<Td>("Td", std::move(callback));
+ClientActor::ClientActor(unique_ptr<TdCallback> callback, Options options) {
+  Td::Options td_options;
+  td_options.net_query_stats = options.net_query_stats;
+  td_ = create_actor<Td>("Td", std::move(callback), std::move(td_options));
 }
 
 void ClientActor::request(uint64 id, td_api::object_ptr<td_api::Function> request) {
@@ -31,8 +34,16 @@ td_api::object_ptr<td_api::Object> ClientActor::execute(td_api::object_ptr<td_ap
   return Td::static_request(std::move(request));
 }
 
-uint64 get_pending_network_query_count() {
-  return NetQueryCounter::get_count();
+std::shared_ptr<NetQueryStats> create_net_query_stats() {
+  return std::make_shared<NetQueryStats>();
+}
+
+void dump_pending_network_queries(NetQueryStats &stats) {
+  stats.dump_pending_network_queries();
+}
+
+uint64 get_pending_network_query_count(NetQueryStats &stats) {
+  return stats.get_count();
 }
 
 }  // namespace td

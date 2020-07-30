@@ -3005,7 +3005,8 @@ class SetBackgroundRequest : public RequestActor<> {
   }
 };
 
-Td::Td(unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
+Td::Td(unique_ptr<TdCallback> callback, Options options)
+    : callback_(std::move(callback)), td_options_(std::move(options)) {
 }
 
 Td::~Td() = default;
@@ -3740,6 +3741,7 @@ void Td::start_up() {
 
   VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
+  G()->set_net_query_stats(td_options_.net_query_stats);
   inc_request_actor_refcnt();  // guard
   inc_actor_refcnt();          // guard
 

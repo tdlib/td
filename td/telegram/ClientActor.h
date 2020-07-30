@@ -20,6 +20,7 @@
 namespace td {
 
 class Td;
+class NetQueryStats;
 
 /**
  * This is a low-level Actor interface for interaction with TDLib. The interface is a lot more flexible than
@@ -27,11 +28,15 @@ class Td;
  */
 class ClientActor : public Actor {
  public:
+  struct Options {
+    std::shared_ptr<NetQueryStats> net_query_stats;
+  };
+
   /**
    * Creates a ClientActor using the specified callback.
    * \param[in] callback Callback for outgoing notifications from TDLib.
    */
-  explicit ClientActor(unique_ptr<TdCallback> callback);
+  explicit ClientActor(unique_ptr<TdCallback> callback, Options options = {});
 
   /**
    * Sends one request to TDLib. The answer will be received via callback.
@@ -70,16 +75,18 @@ class ClientActor : public Actor {
   ActorOwn<Td> td_;
 };
 
+std::shared_ptr<NetQueryStats> create_net_query_stats();
+
 /**
  * Dumps information about all pending network queries to the internal TDLib log.
  * This is useful for library debugging.
  */
-void dump_pending_network_queries();
+void dump_pending_network_queries(NetQueryStats &stats);
 
 /**
  * Returns the current number of pending network queries. Useful for library debugging.
  * \return Number of currently pending network queries.
  */
-uint64 get_pending_network_query_count();
+uint64 get_pending_network_query_count(NetQueryStats &stats);
 
 }  // namespace td
