@@ -915,7 +915,7 @@ TEST(Client, MultiNew) {
   }
 
   std::set<int32> ids;
-  while (ids.size() * threads_n * clients_n) {
+  while (ids.size() != static_cast<size_t>(threads_n) * clients_n) {
     auto event = client.receive(10);
     if (event.client_id != 0 && event.id == 3) {
       ids.insert(event.client_id);

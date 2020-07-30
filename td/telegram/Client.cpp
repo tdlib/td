@@ -280,7 +280,7 @@ class TdReceiver {
     }
     if (timeout != 0) {
       output_queue_->reader_get_event_fd().wait(static_cast<int>(timeout * 1000));
-      return receive(0);
+      return receive_unlocked(0);
     }
     return {0, 0, nullptr};
   }
@@ -357,6 +357,8 @@ class MultiImplPool {
   std::shared_ptr<MultiImpl> get() {
     std::unique_lock<std::mutex> lock(mutex_);
     if (impls_.empty()) {
+      init_openssl_threads();
+
       impls_.resize(clamp(thread::hardware_concurrency(), 8u, 1000u) * 5 / 4);
     }
     auto &impl = *std::min_element(impls_.begin(), impls_.end(),
@@ -476,8 +478,6 @@ class Client::Impl final {
 #endif
 
 Client::Client() : impl_(std::make_unique<Impl>()) {
-  // At least it should be enough for everybody who uses TDLib
-  init_openssl_threads();
 }
 
 void Client::send(Request &&request) {
