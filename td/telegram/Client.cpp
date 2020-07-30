@@ -288,7 +288,7 @@ class TdReceiver {
 
 class MultiImpl {
  public:
-  MultiImpl(std::shared_ptr<NetQueryStats> net_query_stats) {
+  explicit MultiImpl(std::shared_ptr<NetQueryStats> net_query_stats) {
     concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
     concurrent_scheduler_->init(3);
     concurrent_scheduler_->start();
@@ -367,10 +367,6 @@ class MultiImplPool {
       impl = res;
     }
     return res;
-  }
-
-  std::shared_ptr<NetQueryStats> get_net_query_stats() const {
-    return net_query_stats_;
   }
 
  private:

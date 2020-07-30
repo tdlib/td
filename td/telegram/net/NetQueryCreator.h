@@ -8,6 +8,7 @@
 
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/utils/buffer.h"

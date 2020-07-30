@@ -8,12 +8,13 @@
 
 #include "td/telegram/net/NetQuery.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
 
 namespace td {
+
 uint64 NetQueryStats::get_count() const {
-  return count_;
+  return count_.load(std::memory_order_relaxed);
 }
 
 void NetQueryStats::dump_pending_network_queries() {

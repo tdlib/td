@@ -9,38 +9,31 @@
 #include "td/utils/common.h"
 
 #include <atomic>
+#include <memory>
 
 namespace td {
 
 class NetQueryCounter {
  public:
   using Counter = std::atomic<uint64>;
-  // deprecated
-  NetQueryCounter(bool is_alive = false) {
-    if (is_alive) {
-      *this = NetQueryCounter(&counter_);
-    }
-  }
 
-  static uint64 get_count() {
-    return counter_.load();
-  }
+  NetQueryCounter() = default;
 
-  NetQueryCounter(Counter *counter) : ptr_(counter) {
-    counter->fetch_add(1);
+  explicit NetQueryCounter(Counter *counter) : ptr_(counter) {
+    CHECK(counter != nullptr);
+    counter->fetch_add(1, std::memory_order_relaxed);
   }
 
   explicit operator bool() const {
-    return (bool)ptr_;
+    return static_cast<bool>(ptr_);
   }
 
  private:
   struct Deleter {
     void operator()(Counter *ptr) {
-      ptr->fetch_sub(1);
+      ptr->fetch_sub(1, std::memory_order_relaxed);
     }
   };
-  static Counter counter_;
   std::unique_ptr<Counter, Deleter> ptr_;
 };
 

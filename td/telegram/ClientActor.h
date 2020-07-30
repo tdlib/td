@@ -8,19 +8,19 @@
 
 ///\file
 
-#include "td/actor/actor.h"
+#include "td/telegram/TdCallback.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
 
-#include "td/telegram/TdCallback.h"
+#include "td/actor/actor.h"
 
 #include "td/utils/common.h"
 
 namespace td {
 
-class Td;
 class NetQueryStats;
+class Td;
 
 /**
  * This is a low-level Actor interface for interaction with TDLib. The interface is a lot more flexible than
@@ -30,6 +30,9 @@ class ClientActor : public Actor {
  public:
   struct Options {
     std::shared_ptr<NetQueryStats> net_query_stats;
+
+    Options() {
+    }
   };
 
   /**

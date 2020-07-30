@@ -452,7 +452,6 @@ set(TDLIB_SOURCE
   td/telegram/net/MtprotoHeader.cpp
   td/telegram/net/NetActor.cpp
   td/telegram/net/NetQuery.cpp
-  td/telegram/net/NetQueryCounter.cpp
   td/telegram/net/NetQueryCreator.cpp
   td/telegram/net/NetQueryDelayer.cpp
   td/telegram/net/NetQueryDispatcher.cpp

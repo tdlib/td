@@ -9,12 +9,12 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdCallback.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/TermsOfService.h"
 
-#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 

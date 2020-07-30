@@ -5,14 +5,16 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/telegram/net/NetQueryCounter.h"
 
-#include "td/utils/int_types.h"
+#include "td/utils/common.h"
 #include "td/utils/TsList.h"
 
 #include <atomic>
 
 namespace td {
+
 struct NetQueryDebug {
   double start_timestamp_ = 0;
   int32 my_id_ = 0;
@@ -27,11 +29,6 @@ struct NetQueryDebug {
 
 class NetQueryStats {
  public:
-  [[deprecated]] static NetQueryStats &get_default_stats() {
-    static NetQueryStats res;
-    return res;
-  }
-
   NetQueryCounter register_query(TsListNode<NetQueryDebug> *query) {
     if (use_list_.load(std::memory_order_relaxed)) {
       list_.put(query);
@@ -40,6 +37,7 @@ class NetQueryStats {
   }
 
   uint64 get_count() const;
+
   void dump_pending_network_queries();
 
  private:
@@ -47,4 +45,5 @@ class NetQueryStats {
   std::atomic<bool> use_list_{true};
   TsList<NetQueryDebug> list_;
 };
+
 }  // namespace td

@@ -423,7 +423,7 @@ class Global : public ActorContext {
 
   ActorId<StateManager> state_manager_;
 
-  LazySchedulerLocalStorage<td::unique_ptr<NetQueryCreator>> net_query_creator_;
+  LazySchedulerLocalStorage<unique_ptr<NetQueryCreator>> net_query_creator_;
   unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
 
   unique_ptr<ConfigShared> shared_config_;
