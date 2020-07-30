@@ -8,6 +8,6 @@
 
 namespace td {
 
-std::atomic<uint64> NetQueryCounter::net_query_cnt_{0};
+std::atomic<uint64> NetQueryCounter::counter_{0};
 
 }  // namespace td

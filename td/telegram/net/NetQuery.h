@@ -235,7 +235,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     *this = NetQuery();
   }
   bool empty() const {
-    return state_ == State::Empty || nq_counter_.empty() || may_be_lost_;
+    return state_ == State::Empty || !nq_counter_ || may_be_lost_;
   }
 
   void stop_track() {

@@ -13,44 +13,35 @@
 namespace td {
 
 class NetQueryCounter {
-  static std::atomic<uint64> net_query_cnt_;
-
  public:
-  static uint64 get_count() {
-    return net_query_cnt_.load();
-  }
-
-  bool empty() const {
-    return !is_alive_;
-  }
-
-  explicit NetQueryCounter(bool is_alive = false) : is_alive_(is_alive) {
+  using Counter = std::atomic<uint64>;
+  // deprecated
+  NetQueryCounter(bool is_alive = false) {
     if (is_alive) {
-      net_query_cnt_++;
+      *this = NetQueryCounter(&counter_);
     }
   }
 
-  NetQueryCounter(const NetQueryCounter &other) = delete;
-  NetQueryCounter &operator=(const NetQueryCounter &other) = delete;
-  NetQueryCounter(NetQueryCounter &&other) : is_alive_(other.is_alive_) {
-    other.is_alive_ = false;
+  static uint64 get_count() {
+    return counter_.load();
   }
-  NetQueryCounter &operator=(NetQueryCounter &&other) {
-    if (is_alive_) {
-      net_query_cnt_--;
-    }
-    is_alive_ = other.is_alive_;
-    other.is_alive_ = false;
-    return *this;
+
+  NetQueryCounter(Counter *counter) : ptr_(counter) {
+    counter->fetch_add(1);
   }
-  ~NetQueryCounter() {
-    if (is_alive_) {
-      net_query_cnt_--;
-    }
+
+  explicit operator bool() const {
+    return (bool)ptr_;
   }
 
  private:
-  bool is_alive_;
+  struct Deleter {
+    void operator()(Counter *ptr) {
+      ptr->fetch_sub(1);
+    }
+  };
+  static Counter counter_;
+  std::unique_ptr<Counter, Deleter> ptr_;
 };
 
 }  // namespace td
