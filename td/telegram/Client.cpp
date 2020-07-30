@@ -356,7 +356,7 @@ class MultiImplPool {
  public:
   std::shared_ptr<MultiImpl> get() {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (impls_.size() == 0) {
+    if (impls_.empty()) {
       impls_.resize(clamp(thread::hardware_concurrency(), 8u, 1000u) * 5 / 4);
     }
     auto &impl = *std::min_element(impls_.begin(), impls_.end(),
