@@ -227,18 +227,14 @@ class TdReceiver {
   }
 
   MultiClient::Response receive(double timeout) {
-    if (output_queue_ready_cnt_ == 0) {
-      output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
-    }
-    if (output_queue_ready_cnt_ > 0) {
-      output_queue_ready_cnt_--;
-      return output_queue_->reader_get_unsafe();
-    }
-    if (timeout != 0) {
-      output_queue_->reader_get_event_fd().wait(static_cast<int>(timeout * 1000));
-      return receive(0);
-    }
-    return {0, 0, nullptr};
+    VLOG(td_requests) << "Begin to wait for updates with timeout " << timeout;
+    auto is_locked = receive_lock_.exchange(true);
+    CHECK(!is_locked);
+    auto response = receive_unlocked(timeout);
+    is_locked = receive_lock_.exchange(false);
+    CHECK(is_locked);
+    VLOG(td_requests) << "End to wait for updates, returning object " << response.id << ' ' << response.object.get();
+    return response;
   }
 
   unique_ptr<TdCallback> create_callback(MultiClient::ClientId client_id) {
@@ -272,6 +268,22 @@ class TdReceiver {
   using OutputQueue = MpscPollableQueue<MultiClient::Response>;
   std::shared_ptr<OutputQueue> output_queue_;
   int output_queue_ready_cnt_{0};
+  std::atomic<bool> receive_lock_{false};
+
+  MultiClient::Response receive_unlocked(double timeout) {
+    if (output_queue_ready_cnt_ == 0) {
+      output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
+    }
+    if (output_queue_ready_cnt_ > 0) {
+      output_queue_ready_cnt_--;
+      return output_queue_->reader_get_unsafe();
+    }
+    if (timeout != 0) {
+      output_queue_->reader_get_event_fd().wait(static_cast<int>(timeout * 1000));
+      return receive(0);
+    }
+    return {0, 0, nullptr};
+  }
 };
 
 class MultiImpl {
@@ -435,7 +447,7 @@ class Client::Impl final {
   }
 
   Client::Response receive(double timeout) {
-    auto res = receiver_->receive(0);
+    auto res = receiver_->receive(timeout);
 
     if (res.client_id != 0 && !res.object) {
       is_closed_ = true;
