@@ -564,9 +564,10 @@ class ContactsManager : public Actor {
   static tl_object_ptr<td_api::statisticsValue> convert_stats_absolute_value(
       const tl_object_ptr<telegram_api::statsAbsValueAndPrev> &obj);
 
-  tl_object_ptr<td_api::ChatStatistics> convert_megagroup_stats(tl_object_ptr<telegram_api::stats_megagroupStats> obj);
+  tl_object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
+      tl_object_ptr<telegram_api::stats_megagroupStats> obj);
 
-  static tl_object_ptr<td_api::ChatStatistics> convert_broadcast_stats(
+  static tl_object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
       tl_object_ptr<telegram_api::stats_broadcastStats> obj);
 
  private:

@@ -2742,7 +2742,7 @@ tl_object_ptr<td_api::statisticsValue> ContactsManager::convert_stats_absolute_v
                                                  get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
 }
 
-tl_object_ptr<td_api::ChatStatistics> ContactsManager::convert_megagroup_stats(
+tl_object_ptr<td_api::chatStatisticsSupergroup> ContactsManager::convert_megagroup_stats(
     tl_object_ptr<telegram_api::stats_megagroupStats> obj) {
   CHECK(obj != nullptr);
 
@@ -2785,7 +2785,7 @@ tl_object_ptr<td_api::ChatStatistics> ContactsManager::convert_megagroup_stats(
       std::move(top_inviters));
 }
 
-tl_object_ptr<td_api::ChatStatistics> ContactsManager::convert_broadcast_stats(
+tl_object_ptr<td_api::chatStatisticsChannel> ContactsManager::convert_broadcast_stats(
     tl_object_ptr<telegram_api::stats_broadcastStats> obj) {
   CHECK(obj != nullptr);
 
@@ -2874,8 +2874,12 @@ class GetBroadcastStatsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(ContactsManager::convert_broadcast_stats(std::move(result)));
+    auto result = ContactsManager::convert_broadcast_stats(result_ptr.move_as_ok());
+    for (auto &info : result->recent_message_interactions_) {
+      td->messages_manager_->on_update_message_interaction_info({DialogId(channel_id_), MessageId(info->message_id_)},
+                                                                info->view_count_, info->forward_count_);
+    }
+    promise_.set_value(std::move(result));
   }
 
   void on_error(uint64 id, Status status) override {
