@@ -618,7 +618,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
     case InlineKeyboardButton::Type::Url:
       return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
     case InlineKeyboardButton::Type::Callback:
-      return make_tl_object<telegram_api::keyboardButtonCallback>(keyboard_button.text,
+      return make_tl_object<telegram_api::keyboardButtonCallback>(0, false /*ignored*/, keyboard_button.text,
                                                                   BufferSlice(keyboard_button.data));
     case InlineKeyboardButton::Type::CallbackGame:
       return make_tl_object<telegram_api::keyboardButtonGame>(keyboard_button.text);

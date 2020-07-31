@@ -62,7 +62,8 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
     }
 
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data)));
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
+        nullptr));
     net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));
   }

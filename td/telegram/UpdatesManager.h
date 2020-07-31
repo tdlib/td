@@ -243,6 +243,7 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool force_apply);
+  void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/);

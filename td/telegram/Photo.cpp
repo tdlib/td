@@ -395,6 +395,22 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       auto size = move_tl_object_as<telegram_api::photoStrippedSize>(size_ptr);
       return size->bytes_.as_slice().str();
     }
+    case telegram_api::photoSizeProgressive::ID: {
+      auto size = move_tl_object_as<telegram_api::photoSizeProgressive>(size_ptr);
+
+      if (size->sizes_.empty()) {
+        LOG(ERROR) << "Receive " << to_string(size);
+        return std::move(res);
+      }
+      std::sort(size->sizes_.begin(), size->sizes_.end());
+
+      type = std::move(size->type_);
+      location = std::move(size->location_);
+      res.dimensions = get_dimensions(size->w_, size->h_);
+      res.size = size->sizes_.back();
+
+      break;
+    }
     default:
       UNREACHABLE();
       break;

@@ -696,7 +696,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
                   false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_, from_id,
                   make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_),
                   update->via_bot_id_, update->reply_to_msg_id_, update->date_, update->message_, nullptr, nullptr,
-                  std::move(update->entities_), 0, 0, "", 0, Auto()),
+                  std::move(update->entities_), 0, 0, 0, "", 0, Auto()),
               update->pts_, update->pts_count_),
           0, "telegram_api::updatesShortMessage");
       break;
@@ -720,7 +720,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
                   false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
                   update->from_id_, make_tl_object<telegram_api::peerChat>(update->chat_id_),
                   std::move(update->fwd_from_), update->via_bot_id_, update->reply_to_msg_id_, update->date_,
-                  update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, "", 0, Auto()),
+                  update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, 0, "", 0, Auto()),
               update->pts_, update->pts_count_),
           0, "telegram_api::updatesShortChatMessage");
       break;
@@ -1684,7 +1684,19 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageV
     return;
   }
   DialogId dialog_id(channel_id);
-  td_->messages_manager_->on_update_message_views({dialog_id, MessageId(ServerMessageId(update->id_))}, update->views_);
+  td_->messages_manager_->on_update_message_view_count({dialog_id, MessageId(ServerMessageId(update->id_))},
+                                                       update->views_);
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, bool /*force_apply*/) {
+  ChannelId channel_id(update->channel_id_);
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+  DialogId dialog_id(channel_id);
+  td_->messages_manager_->on_update_message_forward_count({dialog_id, MessageId(ServerMessageId(update->id_))},
+                                                          update->forwards_);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update,

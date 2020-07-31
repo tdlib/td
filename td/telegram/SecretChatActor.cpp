@@ -1468,13 +1468,13 @@ NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMess
                                                                          message.encrypted_message.clone()));
   } else if (message.file.empty()) {
     query = create_net_query(
-        QueryType::Message,
-        telegram_api::messages_sendEncrypted(get_input_chat(), message.random_id, message.encrypted_message.clone()));
+        QueryType::Message, telegram_api::messages_sendEncrypted(0, false /*ignored*/, get_input_chat(),
+                                                                 message.random_id, message.encrypted_message.clone()));
   } else {
-    query = create_net_query(
-        QueryType::Message,
-        telegram_api::messages_sendEncryptedFile(get_input_chat(), message.random_id, message.encrypted_message.clone(),
-                                                 message.file.as_input_encrypted_file()));
+    query = create_net_query(QueryType::Message,
+                             telegram_api::messages_sendEncryptedFile(
+                                 0, false /*ignored*/, get_input_chat(), message.random_id,
+                                 message.encrypted_message.clone(), message.file.as_input_encrypted_file()));
   }
   if (!message.is_rewritable) {
     query->total_timeout_limit_ = 1000000000;  // inf. We will re-sent it immediately anyway

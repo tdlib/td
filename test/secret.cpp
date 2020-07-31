@@ -177,6 +177,7 @@ class messages_sendEncryptedService final {
 
 class messages_sendEncrypted final {
  public:
+  int32 flags_;
   tl_object_ptr<inputEncryptedChat> peer_;
   int64 random_id_{};
   BufferSlice data_;
@@ -185,7 +186,8 @@ class messages_sendEncrypted final {
   static const int32 ID = -1451792525;
 
   explicit messages_sendEncrypted(TlBufferParser &p)
-      : peer_(TlFetchBoxed<TlFetchObject<inputEncryptedChat>, -247351839>::parse(p))
+      : flags_(TlFetchInt::parse(p))
+      , peer_(TlFetchBoxed<TlFetchObject<inputEncryptedChat>, -247351839>::parse(p))
       , random_id_(TlFetchLong::parse(p))
       , data_(TlFetchBytes<BufferSlice>::parse(p)) {
   }

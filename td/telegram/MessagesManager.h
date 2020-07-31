@@ -151,7 +151,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_ENTITIES = 1 << 7;
   static constexpr int32 MESSAGE_FLAG_HAS_FROM_ID = 1 << 8;
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA = 1 << 9;
-  static constexpr int32 MESSAGE_FLAG_HAS_VIEWS = 1 << 10;
+  static constexpr int32 MESSAGE_FLAG_HAS_INTERACTION_INFO = 1 << 10;
   static constexpr int32 MESSAGE_FLAG_IS_SENT_VIA_BOT = 1 << 11;
   static constexpr int32 MESSAGE_FLAG_IS_SILENT = 1 << 13;
   static constexpr int32 MESSAGE_FLAG_IS_POST = 1 << 14;
@@ -323,7 +323,11 @@ class MessagesManager : public Actor {
 
   void on_update_channel_too_long(tl_object_ptr<telegram_api::updateChannelTooLong> &&update, bool force_apply);
 
-  void on_update_message_views(FullMessageId full_message_id, int32 views);
+  void on_update_message_view_count(FullMessageId full_message_id, int32 view_count);
+
+  void on_update_message_forward_count(FullMessageId full_message_id, int32 forward_count);
+
+  void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count);
 
   void on_update_live_location_viewed(FullMessageId full_message_id);
 
@@ -887,7 +891,8 @@ class MessagesManager : public Actor {
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageId reply_to_message_id;
     UserId via_bot_user_id;
-    int32 views = 0;
+    int32 view_count = 0;
+    int32 forward_count = 0;
     int32 flags = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
@@ -999,7 +1004,8 @@ class MessagesManager : public Actor {
     NotificationId notification_id;
     NotificationId removed_notification_id;
 
-    int32 views = 0;
+    int32 view_count = 0;
+    int32 forward_count = 0;
     int32 legacy_layer = 0;
 
     int32 send_error_code = 0;
@@ -1820,7 +1826,12 @@ class MessagesManager : public Actor {
 
   void on_pending_message_views_timeout(DialogId dialog_id);
 
-  bool update_message_views(DialogId dialog_id, Message *m, int32 views);
+  void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count);
+
+  td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
+                                                                                         const Message *m) const;
+
+  bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
