@@ -157,6 +157,7 @@ class Session final
   bool close_flag_ = false;
 
   static constexpr double ACTIVITY_TIMEOUT = 60 * 5;
+  static constexpr size_t MAX_INFLIGHT_QUERIES = 1024;
 
   struct ContainerInfo {
     size_t ref_cnt;

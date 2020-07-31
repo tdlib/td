@@ -1070,7 +1070,8 @@ void Session::connection_open_finish(ConnectionInfo *info,
   info->state = ConnectionInfo::State::Ready;
   info->created_at = Time::now_cached();
   info->wakeup_at = Time::now_cached() + 10;
-  if (unknown_queries_.size() > 1024) {
+  if (unknown_queries_.size() > MAX_INFLIGHT_QUERIES) {
+    LOG(ERROR) << "With current limits `Too much queries with unknown state` error must be impossible";
     on_session_failed(Status::Error("Too much queries with unknown state"));
     return;
   }
@@ -1311,12 +1312,12 @@ void Session::loop() {
     while (main_connection_.state == ConnectionInfo::State::Ready) {
       if (auth_data_.is_ready(Time::now_cached())) {
         if (need_send_query()) {
-          while (!pending_queries_.empty()) {
+          while (!pending_queries_.empty() && sent_queries_.size() < MAX_INFLIGHT_QUERIES) {
             auto &query = pending_queries_.front();
             connection_send_query(&main_connection_, std::move(query));
             pending_queries_.pop_front();
+            need_flush = true;
           }
-          need_flush = true;
         }
         if (need_send_bind_key()) {
           // send auth.bindTempAuthKey
