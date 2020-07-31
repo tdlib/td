@@ -3737,8 +3737,6 @@ void Td::start_up() {
     LOG_IF(FATAL, symbol != c) << "TDLib requires little-endian platform";
   }
 
-  TsList<NetQueryDebug>::lock().unlock();  // initialize mutex before any NetQuery
-
   VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
   G()->set_net_query_stats(td_options_.net_query_stats);
