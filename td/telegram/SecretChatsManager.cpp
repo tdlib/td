@@ -261,7 +261,7 @@ void SecretChatsManager::on_update_message(tl_object_ptr<telegram_api::updateNew
   }
 
   auto event = make_unique<logevent::InboundSecretMessage>();
-  event->qts = qts;
+  event->qts_ack = add_qts(qts);
   downcast_call(*update->message_, [&](auto &x) {
     event->chat_id = x.chat_id_;
     event->date = x.date_;
@@ -324,14 +324,13 @@ void SecretChatsManager::binlog_replay_finish() {
 }
 
 void SecretChatsManager::replay_inbound_message(unique_ptr<logevent::InboundSecretMessage> message) {
-  LOG(INFO) << "Replay inbound secret message in chat " << message->chat_id << " with qts " << message->qts;
+  LOG(INFO) << "Replay inbound secret message in chat " << message->chat_id;
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_inbound_message, std::move(message));
 }
 
 void SecretChatsManager::add_inbound_message(unique_ptr<logevent::InboundSecretMessage> message) {
-  LOG(INFO) << "Process inbound secret message in chat " << message->chat_id << " with qts " << message->qts;
-  message->qts_ack = add_qts(message->qts);
+  LOG(INFO) << "Process inbound secret message in chat " << message->chat_id;
 
   auto actor = get_chat_actor(message->chat_id);
   send_closure(actor, &SecretChatActor::add_inbound_message, std::move(message));

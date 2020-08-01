@@ -206,7 +206,6 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedFileLocation 
 class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::InboundSecretMessage;
-  int32 qts = 0;
 
   int32 chat_id = 0;
   int32 date = 0;
@@ -240,9 +239,9 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encrypted_file);
     STORE_FLAG(is_pending);
+    STORE_FLAG(true);
     END_STORE_FLAGS();
 
-    store(qts, storer);
     store(chat_id, storer);
     store(date, storer);
     // skip encrypted_message
@@ -265,12 +264,17 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   void parse(ParserT &parser) {
     using td::parse;
 
+    bool no_qts;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_encrypted_file);
     PARSE_FLAG(is_pending);
+    PARSE_FLAG(no_qts);
     END_PARSE_FLAGS();
 
-    parse(qts, parser);
+    if (!no_qts) {
+      int32 legacy_qts;
+      parse(legacy_qts, parser);
+    }
     parse(chat_id, parser);
     parse(date, parser);
     // skip encrypted_message
@@ -292,12 +296,11 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id()) << tag("qts", qts)
-              << tag("chat_id", chat_id) << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id))
-              << tag("message_id", message_id) << tag("my_in_seq_no", my_in_seq_no)
-              << tag("my_out_seq_no", my_out_seq_no) << tag("his_in_seq_no", his_in_seq_no)
-              << tag("message", to_string(decrypted_message_layer)) << tag("is_pending", is_pending)
-              << format::cond(has_encrypted_file, tag("file", file)) << "]";
+    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
+              << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
+              << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
+              << tag("his_in_seq_no", his_in_seq_no) << tag("message", to_string(decrypted_message_layer))
+              << tag("is_pending", is_pending) << format::cond(has_encrypted_file, tag("file", file)) << "]";
   }
 };
 

@@ -588,7 +588,6 @@ class Master : public Actor {
     void add_inbound_message(int32 chat_id, BufferSlice data, uint64 crc) {
       CHECK(crc64(data.as_slice()) == crc);
       auto event = make_unique<logevent::InboundSecretMessage>();
-      event->qts = 0;
       event->chat_id = chat_id;
       event->date = 0;
       event->encrypted_message = std::move(data);
