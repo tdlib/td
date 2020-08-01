@@ -14,6 +14,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/ObjectPool.h"
 
+#include <memory>
+
 namespace td {
 
 namespace telegram_api {
