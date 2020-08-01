@@ -183,7 +183,7 @@ TEST(Post, SignalsAndThread) {
     }
     CHECK(ptrs == ans);
 
-    LOG(ERROR) << ptrs;
+    //LOG(ERROR) << ptrs;
     //LOG(ERROR) << std::set<int *>(addrs.begin(), addrs.end()).size();
     //LOG(ERROR) << addrs;
   }

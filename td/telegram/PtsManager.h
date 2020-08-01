@@ -26,8 +26,7 @@ class PtsManager {
 
   // 0 if not a checkpoint
   PtsId add_pts(int32 pts) {
-    CHECK(pts >= 0);
-    if (pts != 0) {
+    if (pts > 0) {
       mem_pts_ = pts;
     }
     return state_helper_.add(pts);

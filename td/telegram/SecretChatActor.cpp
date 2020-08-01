@@ -919,7 +919,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::Inboun
   }
 
   // support for older layer
-  LOG(WARNING) << "Failed to Fetch update: " << status;
+  LOG(WARNING) << "Failed to fetch update: " << status;
   send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(MY_LAYER), SendFlag::None,
               Promise<>());
 
@@ -969,7 +969,7 @@ Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no, int32 his_la
 
 Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
-    LOG_IF(FATAL, message && message->qts_ack) << "Lost qts_promise";
+    CHECK(message == nullptr || !message->qts_ack);
   };
   auto in_seq_no = message->decrypted_message_layer->in_seq_no_;
   auto out_seq_no = message->decrypted_message_layer->out_seq_no_;
