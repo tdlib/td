@@ -532,6 +532,8 @@ class MessagesManager : public Actor {
   vector<DialogId> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
                                       Promise<Unit> &&promise);
 
+  bool can_get_message_statistics(FullMessageId full_message_id);
+
   bool have_message_force(FullMessageId full_message_id, const char *source);
 
   void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
@@ -1764,6 +1766,8 @@ class MessagesManager : public Actor {
   int64 generate_new_media_album_id();
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
+
+  bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
 

@@ -20,6 +20,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
@@ -373,6 +374,11 @@ class ContactsManager : public Actor {
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
                               Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
 
+  bool can_get_channel_message_statistics(DialogId dialog_id);
+
+  void get_channel_message_statistics(FullMessageId full_message_id, bool is_dark,
+                                      Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
+
   void load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);
 
@@ -569,6 +575,9 @@ class ContactsManager : public Actor {
 
   static tl_object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
       tl_object_ptr<telegram_api::stats_broadcastStats> obj);
+
+  static tl_object_ptr<td_api::messageStatistics> convert_message_stats(
+      tl_object_ptr<telegram_api::stats_messageStats> obj);
 
  private:
   struct User {
@@ -1425,6 +1434,9 @@ class ContactsManager : public Actor {
 
   void send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
                                     Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
+
+  void send_get_channel_message_stats_query(DcId dc_id, FullMessageId full_message_id, bool is_dark,
+                                            Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
 
   void send_load_async_graph_query(DcId dc_id, string token, int64 x,
                                    Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);

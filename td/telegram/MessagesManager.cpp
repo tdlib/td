@@ -8935,6 +8935,22 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   return can_forward_message_content(m->content.get());
 }
 
+bool MessagesManager::can_get_message_statistics(FullMessageId full_message_id) {
+  return can_get_message_statistics(full_message_id.get_dialog_id(),
+                                    get_message_force(full_message_id, "can_get_message_statistics"));
+}
+
+bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (m == nullptr || m->message_id.is_scheduled() || !m->message_id.is_server() || m->view_count == 0 ||
+      m->had_forward_info || (m->forward_info != nullptr && m->forward_info->dialog_id.is_valid())) {
+    return false;
+  }
+  return td_->contacts_manager_->can_get_channel_message_statistics(dialog_id);
+}
+
 bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot) {
   if (m == nullptr) {
     return true;
@@ -20027,6 +20043,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
+  bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
+  auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
   bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
@@ -20036,11 +20054,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
-      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, m->is_channel_post, contains_unread_mention,
-      date, edit_date, get_message_forward_info_object(m->forward_info),
-      get_message_interaction_info_object(dialog_id, m), reply_to_message_id, ttl, ttl_expires_in,
-      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->author_signature,
-      media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, m->is_channel_post,
+      contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
+      get_message_interaction_info_object(dialog_id, m), reply_to_message_id, ttl, ttl_expires_in, via_bot_user_id,
+      m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
 }

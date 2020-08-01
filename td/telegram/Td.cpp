@@ -6728,7 +6728,14 @@ void Td::on_request(uint64 id, const td_api::getChatStatistics &request) {
   contacts_manager_->get_channel_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getChatStatisticsGraph &request) {
+void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_channel_message_statistics({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                    request.is_dark_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::getStatisticsGraph &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.token_);

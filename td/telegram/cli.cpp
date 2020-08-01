@@ -4017,15 +4017,23 @@ class CliClient final : public Actor {
       std::tie(chat_id, is_dark) = split(args);
 
       send_request(td_api::make_object<td_api::getChatStatistics>(as_chat_id(chat_id), as_bool(is_dark)));
-    } else if (op == "gcstg") {
+    } else if (op == "gmst") {
+      string chat_id;
+      string message_id;
+      string is_dark;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, is_dark) = split(args);
+
+      send_request(td_api::make_object<td_api::getMessageStatistics>(as_chat_id(chat_id), as_message_id(message_id),
+                                                                     as_bool(is_dark)));
+    } else if (op == "gstg") {
       string chat_id;
       string token;
       string x;
       std::tie(chat_id, args) = split(args);
       std::tie(token, x) = split(args);
 
-      send_request(
-          td_api::make_object<td_api::getChatStatisticsGraph>(as_chat_id(chat_id), token, to_integer<int64>(x)));
+      send_request(td_api::make_object<td_api::getStatisticsGraph>(as_chat_id(chat_id), token, to_integer<int64>(x)));
     } else if (op == "hsa" || op == "glu" || op == "glua") {
       send_request(td_api::make_object<td_api::hideSuggestedAction>(as_suggested_action(args)));
     } else if (op == "glui" || op == "glu" || op == "glua") {

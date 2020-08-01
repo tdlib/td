@@ -576,7 +576,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@can_set_username True, if the chat username can be changed
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
-//@can_view_statistics True, if the channel statistics is available
+//@can_view_statistics True, if the supergroup or channel statistics is available
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
@@ -660,6 +660,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@can_be_forwarded True, if the message can be forwarded
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
+//@can_view_statistics True, if the message statistics is available
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent
@@ -675,7 +676,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_view_statistics:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -1993,7 +1994,7 @@ call id:int32 user_id:int32 is_outgoing:Bool is_video:Bool state:CallState = Cal
 //@description Contains settings for the authentication of the user's phone number
 //@allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
-//@allow_sms_retriever_api For official applications only. True, if the app can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
+//@allow_sms_retriever_api For official applications only. True, if the application can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
 phoneNumberAuthenticationSettings allow_flash_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool = PhoneNumberAuthenticationSettings;
 
 
@@ -2796,7 +2797,7 @@ networkStatisticsEntryFile file_type:FileType network_type:NetworkType sent_byte
 //@sent_bytes Total number of bytes sent @received_bytes Total number of bytes received @duration Total call duration, in seconds
 networkStatisticsEntryCall network_type:NetworkType sent_bytes:int53 received_bytes:int53 duration:double = NetworkStatisticsEntry;
 
-//@description A full list of available network statistic entries @since_date Point in time (Unix timestamp) when the app began collecting statistics @entries Network statistics entries
+//@description A full list of available network statistic entries @since_date Point in time (Unix timestamp) from which the statistics is collected @entries Network statistics entries
 networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = NetworkStatistics;
 
 
@@ -2960,7 +2961,7 @@ statisticsValue value:double previous_value:double growth_rate_percentage:double
 //@description A graph data @json_data Graph data in JSON format @zoom_token If non-empty, a token which can be used to receive a zoomed in graph
 statisticsGraphData json_data:string zoom_token:string = StatisticsGraph;
 
-//@description The graph data to be asynchronously loaded through getChatStatisticsGraph @token The token to use for data loading
+//@description The graph data to be asynchronously loaded through getStatisticsGraph @token The token to use for data loading
 statisticsGraphAsync token:string = StatisticsGraph;
 
 //@description An error message to be shown to the user instead of the graph @error_message The error message
@@ -3030,6 +3031,10 @@ chatStatisticsSupergroup period:dateRange member_count:statisticsValue message_c
 //@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
 //@recent_message_interactions Detailed statistics about number of views and shares of recently sent messages
 chatStatisticsChannel period:dateRange member_count:statisticsValue mean_view_count:statisticsValue mean_share_count:statisticsValue enabled_notifications_percentage:double member_count_graph:StatisticsGraph join_graph:StatisticsGraph mute_graph:StatisticsGraph view_count_by_hour_graph:StatisticsGraph view_count_by_source_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_interaction_graph:StatisticsGraph instant_view_interaction_graph:StatisticsGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
+
+
+//@description A detailed statistics about a message @message_interaction_graph A graph containing number of message views and shares
+messageStatistics message_interaction_graph:StatisticsGraph = MessageStatistics;
 
 
 //@class Update @description Contains notifications about data changes
@@ -4457,11 +4462,14 @@ reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics is disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
-//@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Requires administrator rights in the channel @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the app
+//@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if SupergroupFullInfo.can_view_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Loads asynchronous or zoomed in chat statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
-getChatStatisticsGraph chat_id:int53 token:string x:int53 = StatisticsGraph;
+//@description Returns detailed statistics about a message. Can be used only if Message.can_view_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
+getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatistics;
+
+//@description Loads asynchronous or zoomed in chat or message statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
+getStatisticsGraph chat_id:int53 token:string x:int53 = StatisticsGraph;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
