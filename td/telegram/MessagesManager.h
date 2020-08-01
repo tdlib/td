@@ -2705,6 +2705,8 @@ class MessagesManager : public Actor {
 
   void update_top_dialogs(DialogId dialog_id, const Message *m);
 
+  void update_forward_count(DialogId dialog_id, MessageId message_id);
+
   void try_hide_distance(DialogId dialog_id, const Message *m);
 
   string get_message_search_text(const Message *m) const;

@@ -29270,6 +29270,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info != nullptr &&
+      m->forward_info->dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
+    update_forward_count(m->forward_info->dialog_id, m->forward_info->message_id);
+  }
 
   return result_message;
 }
@@ -32465,6 +32469,21 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
   }
   if (category != TopDialogCategory::Size) {
     on_dialog_used(category, dialog_id, m->date);
+  }
+}
+
+void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message_id) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  Message *m = get_message_force(d, message_id, "update_forward_count");
+  if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0) {
+    if (m->forward_count == 0 && update_message_interaction_info(dialog_id, m, m->view_count, 1)) {
+      on_message_changed(d, m, true, "update_forward_count");
+    }
+
+    if (d->pending_viewed_message_ids.insert(m->message_id).second) {
+      pending_message_views_timeout_.add_timeout_in(dialog_id.get(), 0.0);
+    }
   }
 }
 
