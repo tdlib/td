@@ -3520,14 +3520,6 @@ void Td::send(NetQueryPtr &&query) {
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
 
-void Td::force_get_difference() {
-  if (close_flag_) {
-    return;
-  }
-
-  updates_manager_->get_difference("force_get_difference");
-}
-
 void Td::on_result(NetQueryPtr query) {
   query->debug("Td: received from DcManager");
   VLOG(net_query) << "Receive result of " << query;
