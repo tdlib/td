@@ -40,9 +40,6 @@ class TsFileLog : public LogInterface {
     return res;
   }
 
-  void append(CSlice cslice) override {
-    return append(cslice, -1);
-  }
   void append(CSlice cslice, int log_level) override {
     get_current_logger()->append(cslice, log_level);
   }

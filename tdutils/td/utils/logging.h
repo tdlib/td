@@ -182,14 +182,12 @@ class LogInterface {
   LogInterface(LogInterface &&) = delete;
   LogInterface &operator=(LogInterface &&) = delete;
   virtual ~LogInterface() = default;
-  virtual void append(CSlice slice) {
-    append(slice, -1);
-  }
-  virtual void append(CSlice slice, int /*log_level*/) {
-    append(slice);
-  }
+
+  virtual void append(CSlice slice, int log_level) = 0;
+
   virtual void rotate() {
   }
+
   virtual vector<string> get_file_paths() {
     return {};
   }
