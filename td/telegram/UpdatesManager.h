@@ -63,7 +63,7 @@ class UpdatesManager : public Actor {
     return pts_manager_.mem_pts();
   }
   int32 get_qts() const {
-    return qts_;
+    return qts_manager_.mem_pts();
   }
   int32 get_date() const {
     return date_;
@@ -71,7 +71,7 @@ class UpdatesManager : public Actor {
 
   Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
 
-  void set_qts(int32 qts);
+  Promise<> set_qts(int32 qts) TD_WARN_UNUSED_RESULT;
 
   static const double MAX_UNFILLED_GAP_TIME;
 
@@ -102,7 +102,7 @@ class UpdatesManager : public Actor {
   ActorShared<> parent_;
 
   PtsManager pts_manager_;
-  int32 qts_ = 0;
+  PtsManager qts_manager_;
   int32 date_ = 0;
   int32 seq_ = 0;
   string date_source_ = "nowhere";
@@ -125,6 +125,10 @@ class UpdatesManager : public Actor {
   Promise<> add_pts(int32 pts);
   void on_pts_ack(PtsManager::PtsId ack_token);
   void save_pts(int32 pts);
+
+  Promise<> add_qts(int32 qts);
+  void on_qts_ack(PtsManager::PtsId ack_token);
+  void save_qts(int32 qts);
 
   void set_date(int32 date, bool from_update, string date_source);
 
@@ -260,7 +264,7 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updatePrivacy> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateEncryption> update, bool /*force_apply*/);
-  void on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateEncryptedMessagesRead> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, bool /*force_apply*/);

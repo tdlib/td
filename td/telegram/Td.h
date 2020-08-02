@@ -105,8 +105,6 @@ class Td final : public NetQueryCallback {
   void destroy();
   void close();
 
-  void update_qts(int32 qts);
-
   void force_get_difference();
 
   void schedule_get_terms_of_service(int32 expires_in);

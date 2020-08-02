@@ -153,7 +153,7 @@ void SecretChatActor::replay_create_chat(unique_ptr<logevent::CreateSecretChat> 
 void SecretChatActor::add_inbound_message(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     if (message) {
-      message->qts_ack.set_value(Unit());
+      message->promise.set_value(Unit());
     }
   };
   if (close_flag_) {
@@ -877,7 +877,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
 Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     if (message) {
-      message->qts_ack.set_value(Unit());
+      message->promise.set_value(Unit());
     }
   };
   TRY_RESULT(decrypted, decrypt(message->encrypted_message));
@@ -969,13 +969,13 @@ Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no, int32 his_la
 
 Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
-    CHECK(message == nullptr || !message->qts_ack);
+    CHECK(message == nullptr || !message->promise);
   };
   auto in_seq_no = message->decrypted_message_layer->in_seq_no_;
   auto out_seq_no = message->decrypted_message_layer->out_seq_no_;
   auto status = check_seq_no(in_seq_no, out_seq_no, message->his_layer());
   if (status.is_error() && status.code() != 2 /* not gap found */) {
-    message->qts_ack.set_value(Unit());
+    message->promise.set_value(Unit());
     if (message->logevent_id()) {
       LOG(INFO) << "Erase binlog event: " << tag("logevent_id", message->logevent_id());
       binlog_erase(context_->binlog(), message->logevent_id());
@@ -1010,14 +1010,14 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<logeve
       uint32 start_seq_no = static_cast<uint32>(action_resend->start_seq_no_ / 2);
       uint32 finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
       if (start_seq_no + MAX_RESEND_COUNT < finish_seq_no) {
-        message->qts_ack.set_value(Unit());
+        message->promise.set_value(Unit());
         return Status::Error(PSLICE() << "Won't resend more than " << MAX_RESEND_COUNT << " messages");
       }
       LOG(INFO) << "ActionResend: " << tag("start", start_seq_no) << tag("finish_seq_no", finish_seq_no);
       for (auto seq_no = start_seq_no; seq_no <= finish_seq_no; seq_no++) {
         auto it = out_seq_no_to_outbound_message_state_token_.find(seq_no);
         if (it == out_seq_no_to_outbound_message_state_token_.end()) {
-          message->qts_ack.set_value(Unit());
+          message->promise.set_value(Unit());
           return Status::Error(PSLICE() << "Can't resend query " << tag("seq_no", seq_no));
         }
         auto state_id = it->second;
@@ -1198,7 +1198,7 @@ void SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<logevent::
   auto logevent_id = message->logevent_id();
 
   // qts
-  auto qts_promise = std::move(message->qts_ack);
+  auto qts_promise = std::move(message->promise);
 
   if (logevent_id == 0) {
     message->is_pending = true;
@@ -1276,7 +1276,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
   }
 
   // qts
-  auto qts_promise = std::move(message->qts_ack);
+  auto qts_promise = std::move(message->promise);
 
   // process message
   tl_object_ptr<telegram_api::encryptedFile> file;

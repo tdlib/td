@@ -3520,14 +3520,6 @@ void Td::send(NetQueryPtr &&query) {
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
 
-void Td::update_qts(int32 qts) {
-  if (close_flag_ > 1) {
-    return;
-  }
-
-  updates_manager_->set_qts(qts);
-}
-
 void Td::force_get_difference() {
   if (close_flag_) {
     return;

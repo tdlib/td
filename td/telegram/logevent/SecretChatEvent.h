@@ -211,7 +211,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   int32 date = 0;
 
   BufferSlice encrypted_message;  // empty when we store event to binlog
-  Promise<Unit> qts_ack;
+  Promise<Unit> promise;
 
   bool is_checked = false;
   // after decrypted and checked
@@ -245,7 +245,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     store(chat_id, storer);
     store(date, storer);
     // skip encrypted_message
-    // skip qts_ack
+    // skip promise
 
     // TODO
     decrypted_message_layer->store(storer);
@@ -278,7 +278,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     parse(chat_id, parser);
     parse(date, parser);
     // skip encrypted_message
-    // skip qts_ack
+    // skip promise
 
     // TODO
     decrypted_message_layer = secret_api::decryptedMessageLayer::fetch(parser);

@@ -227,15 +227,18 @@ void UpdatesManager::before_get_difference(bool is_initial) {
   send_closure(G()->state_manager(), &StateManager::on_synchronized, false);
 
   td_->messages_manager_->before_get_difference();
-  if (!is_initial) {
-    send_closure(td_->secret_chats_manager_, &SecretChatsManager::before_get_difference, get_qts());
-  }
+
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_difference);
 }
 
 Promise<> UpdatesManager::add_pts(int32 pts) {
   auto id = pts_manager_.add_pts(pts);
   return PromiseCreator::event(self_closure(this, &UpdatesManager::on_pts_ack, id));
+}
+
+Promise<> UpdatesManager::add_qts(int32 qts) {
+  auto id = qts_manager_.add_pts(qts);
+  return PromiseCreator::event(self_closure(this, &UpdatesManager::on_qts_ack, id));
 }
 
 void UpdatesManager::on_pts_ack(PtsManager::PtsId ack_token) {
@@ -246,11 +249,25 @@ void UpdatesManager::on_pts_ack(PtsManager::PtsId ack_token) {
   }
 }
 
+void UpdatesManager::on_qts_ack(PtsManager::PtsId ack_token) {
+  auto old_qts = qts_manager_.db_pts();
+  auto new_qts = qts_manager_.finish(ack_token);
+  if (old_qts != new_qts) {
+    save_qts(new_qts);
+  }
+}
+
 void UpdatesManager::save_pts(int32 pts) {
   if (pts == std::numeric_limits<int32>::max()) {
     G()->td_db()->get_binlog_pmc()->erase("updates.pts");
   } else if (!G()->ignore_backgrond_updates()) {
     G()->td_db()->get_binlog_pmc()->set("updates.pts", to_string(pts));
+  }
+}
+
+void UpdatesManager::save_qts(int32 qts) {
+  if (!G()->ignore_backgrond_updates()) {
+    G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
   }
 }
 
@@ -281,17 +298,20 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
   return result;
 }
 
-void UpdatesManager::set_qts(int32 qts) {
-  if (qts > qts_) {
-    LOG(INFO) << "Update qts to " << qts;
-
-    qts_ = qts;
-    if (!G()->ignore_backgrond_updates()) {
-      G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
+Promise<> UpdatesManager::set_qts(int32 qts) {
+  Promise<> result;
+  if (qts > get_qts() || (0 < qts && qts < get_qts() - 399999)) {  // qts can only go up or drop cardinally
+    if (qts < get_qts() - 399999) {
+      LOG(WARNING) << "Qts decreases from " << get_qts() << " to " << qts;
+    } else {
+      LOG(INFO) << "Update qts from " << get_qts() << " to " << qts;
     }
-  } else if (qts < qts_) {
-    LOG(ERROR) << "Receive wrong qts = " << qts << ". Current qts = " << qts_;
+
+    result = add_qts(qts);
+  } else if (qts < get_qts()) {
+    LOG(ERROR) << "Receive wrong qts = " << qts << " less than current qts = " << get_qts();
   }
+  return result;
 }
 
 void UpdatesManager::set_date(int32 date, bool from_update, string date_source) {
@@ -791,7 +811,7 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
     string full_source = "on_get_updates_state " + oneline(to_string(state)) + " from " + source;
     set_pts(state->pts_, full_source.c_str()).set_value(Unit());
     set_date(state->date_, false, std::move(full_source));
-    // set_qts(state->qts_);
+    // set_qts(state->qts_).set_value(Unit());
 
     seq_ = state->seq_;
   }
@@ -952,11 +972,10 @@ void UpdatesManager::init_state() {
   }
   pts_manager_.init(to_integer<int32>(pts_str));
   last_get_difference_pts_ = get_pts();
-  qts_ = to_integer<int32>(pmc->get("updates.qts"));
+  qts_manager_.init(to_integer<int32>(pmc->get("updates.qts")));
   date_ = to_integer<int32>(pmc->get("updates.date"));
   date_source_ = "database";
-  LOG(DEBUG) << "Init: " << get_pts() << " " << qts_ << " " << date_;
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::init_qts, qts_);
+  LOG(DEBUG) << "Init: " << get_pts() << " " << get_qts() << " " << date_;
 
   get_difference("init_state");
 }
@@ -1014,11 +1033,13 @@ void UpdatesManager::process_get_difference_updates(
   }
 
   for (auto &encrypted_message : new_encrypted_messages) {
-    on_update(make_tl_object<telegram_api::updateNewEncryptedMessage>(std::move(encrypted_message), 0), true);
+    send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(encrypted_message),
+                 Promise<Unit>());
   }
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::update_qts, qts);
 
   process_updates(std::move(other_updates), true);
+
+  set_qts(qts).set_value(Unit());
 }
 
 void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr) {
@@ -1060,7 +1081,7 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
     case telegram_api::updates_differenceSlice::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_differenceSlice>(difference_ptr);
       if (difference->intermediate_state_->pts_ >= get_pts() && get_pts() != std::numeric_limits<int32>::max() &&
-          difference->intermediate_state_->date_ >= date_ && difference->intermediate_state_->qts_ == qts_) {
+          difference->intermediate_state_->date_ >= date_ && difference->intermediate_state_->qts_ == get_qts()) {
         // TODO send new getDifference request and apply difference slice only after that
       }
 
@@ -1915,7 +1936,19 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryption> upd
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, bool force_apply) {
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_update_message, std::move(update), force_apply);
+  if (!force_apply) {
+    if (update->qts_ <= get_qts()) {
+      LOG(INFO) << "Ignore already processed update with qts " << update->qts_;
+      return;
+    }
+    if (update->qts_ != get_qts() + 1) {
+      // TODO fill gap
+      return;
+    }
+  }
+
+  send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(update->message_),
+               add_qts(update->qts_));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedMessagesRead> update, bool /*force_apply*/) {

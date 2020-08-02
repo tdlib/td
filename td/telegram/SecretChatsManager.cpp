@@ -43,18 +43,6 @@
 
 namespace td {
 
-// qts and seq_no
-// Each EncryptedMessage (update_message) has qts.
-// Such updates must be handled in order of qts
-//
-// Qts should be handled on level of SecretChatsManager
-// 1. Each update can be received by SecretChatsManager multiple times.
-// 2. Each update should be sent to SecretChatActor only once. (Though SecretChatActor mustn't rely it)
-// 3. Updates must be send in order of qts, without gaps.
-// 4. SecretChatActor must notify SecretChatManager when update is processed (saved in database)
-// 5. Only after all updates <= qts are processed by SecretChatActor, UpdatesManager should be
-// notified about new qts.
-//
 // seq_no
 // 1.
 // x_in = 0 if we initiated secret chat.
@@ -94,12 +82,6 @@ void SecretChatsManager::start_up() {
     dummy_mode_ = true;
     return;
   }
-  // TODO: use database wrapper
-  auto pmc = G()->td_db()->get_binlog_pmc();
-  auto qts_str = pmc->get("updates.qts");
-  if (!qts_str.empty()) {
-    init_qts(to_integer<int32>(qts_str));
-  }
 
   class StateCallback : public StateManager::Callback {
    public:
@@ -114,25 +96,6 @@ void SecretChatsManager::start_up() {
     ActorId<SecretChatsManager> parent_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
-}
-
-void SecretChatsManager::init_qts(int qts) {
-  if (dummy_mode_ || close_flag_) {
-    return;
-  }
-  has_qts_ = true;
-  qts_manager_.init(qts);
-  LOG(INFO) << "Init secret chats qts " << tag("qts", qts);
-}
-
-void SecretChatsManager::update_qts(int qts) {
-  if (dummy_mode_ || close_flag_ || qts < 0) {
-    return;
-  }
-  LOG(INFO) << "Update qts to " << qts;
-  add_qts(qts).set_value(Unit());
-  has_qts_ = true;
-  LOG(INFO) << "Update secret chats qts " << tag("qts", qts);
 }
 
 void SecretChatsManager::create_chat(int32 user_id, int64 user_access_hash, Promise<SecretChatId> promise) {
@@ -202,14 +165,6 @@ void SecretChatsManager::send_set_ttl_message(SecretChatId secret_chat_id, int32
   send_closure(actor, &SecretChatActor::send_set_ttl_message, ttl, random_id, std::move(safe_promise));
 }
 
-void SecretChatsManager::before_get_difference(int32 qts) {
-  if (dummy_mode_ || close_flag_) {
-    return;
-  }
-  last_get_difference_qts_ = qts;
-  // We will receive all updates later than qts anyway.
-}
-
 void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update) {
   if (dummy_mode_ || close_flag_) {
     return;
@@ -228,47 +183,22 @@ void SecretChatsManager::do_update_chat(tl_object_ptr<telegram_api::updateEncryp
       &SecretChatActor::update_chat, std::move(update->chat_));
 }
 
-void SecretChatsManager::on_update_message(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update,
-                                           bool force_apply) {
+void SecretChatsManager::on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr,
+                                        Promise<Unit> &&promise) {
   if (dummy_mode_ || close_flag_) {
     return;
   }
-  // UpdatesManager MUST postpone updates during GetDifference
-  auto qts = update->qts_;
-  if (!force_apply) {
-    if (!has_qts_) {
-      LOG(INFO) << "Got update, don't know current qts. Force get_difference";
-      force_get_difference();
-      return;
-    }
-    if (qts <= last_get_difference_qts_) {
-      LOG(WARNING) << "Got updates with " << tag("qts", qts) << " lower or equal than "
-                   << tag("last get difference qts", last_get_difference_qts_);
-      force_get_difference();
-      return;
-    }
-    auto mem_qts = qts_manager_.mem_pts();
-    if (qts <= mem_qts) {
-      LOG(WARNING) << "Duplicated update " << tag("qts", qts) << tag("mem_qts", mem_qts);
-      return;
-    }
-    if (qts != mem_qts + 1) {
-      LOG(WARNING) << "Got gap in qts " << mem_qts << " ... " << qts;
-      force_get_difference();
-      // TODO wait 1 second?
-      return;
-    }
-  }
+  CHECK(message_ptr != nullptr);
 
   auto event = make_unique<logevent::InboundSecretMessage>();
-  event->qts_ack = add_qts(qts);
-  downcast_call(*update->message_, [&](auto &x) {
+  event->promise = std::move(promise);
+  downcast_call(*message_ptr, [&](auto &x) {
     event->chat_id = x.chat_id_;
     event->date = x.date_;
     event->encrypted_message = std::move(x.bytes_);
   });
-  if (update->message_->get_id() == telegram_api::encryptedMessage::ID) {
-    auto message = move_tl_object_as<telegram_api::encryptedMessage>(update->message_);
+  if (message_ptr->get_id() == telegram_api::encryptedMessage::ID) {
+    auto message = move_tl_object_as<telegram_api::encryptedMessage>(message_ptr);
     if (message->file_->get_id() == telegram_api::encryptedFile::ID) {
       auto file = move_tl_object_as<telegram_api::encryptedFile>(message->file_);
 
@@ -282,11 +212,6 @@ void SecretChatsManager::on_update_message(tl_object_ptr<telegram_api::updateNew
     }
   }
   add_inbound_message(std::move(event));
-}
-
-Promise<> SecretChatsManager::add_qts(int32 qts) {
-  auto id = qts_manager_.add_pts(qts);
-  return PromiseCreator::event(self_closure(this, &SecretChatsManager::on_qts_ack, id));
 }
 
 void SecretChatsManager::replay_binlog_event(BinlogEvent &&binlog_event) {
@@ -355,11 +280,6 @@ void SecretChatsManager::replay_outbound_message(unique_ptr<logevent::OutboundSe
 
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_outbound_message, std::move(message));
-}
-
-void SecretChatsManager::force_get_difference() {
-  LOG(INFO) << "Force get difference";
-  send_closure(G()->td(), &Td::force_get_difference);
 }
 
 ActorId<SecretChatActor> SecretChatsManager::get_chat_actor(int32 id) {
@@ -499,19 +419,6 @@ ActorId<SecretChatActor> SecretChatsManager::create_chat_actor_impl(int32 id, bo
   } else {
     return it_flag.first->second.get();
   }
-}
-
-void SecretChatsManager::on_qts_ack(PtsManager::PtsId qts_ack_token) {
-  auto old_qts = qts_manager_.db_pts();
-  auto new_qts = qts_manager_.finish(qts_ack_token);
-  if (old_qts != new_qts) {
-    save_qts();
-  }
-}
-
-void SecretChatsManager::save_qts() {
-  LOG(INFO) << "Save " << tag("qts", qts_manager_.db_pts());
-  send_closure(G()->td(), &Td::update_qts, qts_manager_.db_pts());
 }
 
 void SecretChatsManager::hangup() {

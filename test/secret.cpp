@@ -591,7 +591,7 @@ class Master : public Actor {
       event->chat_id = chat_id;
       event->date = 0;
       event->encrypted_message = std::move(data);
-      event->qts_ack = PromiseCreator::lambda(
+      event->promise = PromiseCreator::lambda(
           [actor_id = actor_id(this), chat_id, data = event->encrypted_message.copy(), crc](Result<> result) mutable {
             if (result.is_ok()) {
               LOG(INFO) << "FINISH add_inbound_message " << tag("crc", crc);
