@@ -1125,8 +1125,8 @@ void UpdatesManager::after_get_difference() {
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
 
-  process_pending_seq_updates();  // cancels seq_gap_timeout_, may apply some updates coming before getDifference, but
-                                  // not returned in getDifference
+  process_pending_seq_updates();  // cancels seq_gap_timeout_, may apply some updates received before getDifference,
+                                  // but not returned in getDifference
   if (running_get_difference_) {
     return;
   }
@@ -1297,6 +1297,11 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       }
       if (id == telegram_api::updateFolderPeers::ID) {
         on_update(move_tl_object_as<telegram_api::updateFolderPeers>(update), false);
+        processed_updates++;
+        update = nullptr;
+      }
+      if (id == telegram_api::updateEncryption::ID) {
+        on_update(move_tl_object_as<telegram_api::updateEncryption>(update), false);
         processed_updates++;
         update = nullptr;
       }
