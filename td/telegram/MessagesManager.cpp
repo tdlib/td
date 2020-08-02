@@ -12429,14 +12429,14 @@ int64 MessagesManager::get_dialog_pinned_order(const DialogList *list, DialogId 
   return DEFAULT_ORDER;
 }
 
-void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
+bool MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
   if (td_->auth_manager_->is_bot()) {
-    return;
+    return false;
   }
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
+  return set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
 }
 
 bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *d, bool is_pinned,
@@ -13080,6 +13080,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     auto *folder_list = get_dialog_list(DialogListId(folder_id));
     CHECK(folder_list != nullptr);
     auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
+    bool are_pinned_dialogs_saved = folder_list->are_pinned_dialogs_inited_;
     folder_list->are_pinned_dialogs_inited_ = true;
     if (pinned_dialog_ids != added_dialog_ids) {
       LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
@@ -13103,15 +13104,24 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           ++old_it;
           continue;
         }
-        set_dialog_is_pinned(dialog_id, true);
+        if (set_dialog_is_pinned(dialog_id, true)) {
+          are_pinned_dialogs_saved = true;
+        }
       }
       for (auto dialog_id : old_pinned_dialog_ids) {
-        set_dialog_is_pinned(dialog_id, false);
+        if (set_dialog_is_pinned(dialog_id, false)) {
+          are_pinned_dialogs_saved = true;
+        }
       }
     } else {
       LOG(INFO) << "Pinned chats are not changed";
     }
     update_list_last_pinned_dialog_date(*folder_list);
+
+    if (!are_pinned_dialogs_saved && G()->parameters().use_message_db) {
+      LOG(INFO) << "Save empty pinned chat list in " << folder_id;
+      G()->td_db()->get_binlog_pmc()->set(PSTRING() << "pinned_dialog_ids" << folder_id.get(), "");
+    }
   }
   promise.set_value(Unit());
 
