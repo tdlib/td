@@ -68,17 +68,21 @@ class LogBenchmark : public td::Benchmark {
 };
 
 template <class F>
-static void bench_log(std::string name, int threads_n, F &&f) {
-  bench(LogBenchmark<typename decltype(f())::element_type>(std::move(name), threads_n, std::move(f)));
+static void bench_log(std::string name, F &&f) {
+  for (auto threads_n : {1, 4, 8}) {
+    bench(LogBenchmark<typename decltype(f())::element_type>(name, threads_n, f));
+  }
 };
 
 TEST(Log, Bench) {
-  bench_log("MemoryLog", 4, [] { return td::make_unique<td::MemoryLog<1 << 20>>(); });
+  bench_log("NullLog", [] { return td::make_unique<td::NullLog>(); });
 
-  bench_log("TsFileLog", 4,
+  bench_log("MemoryLog", [] { return td::make_unique<td::MemoryLog<1 << 20>>(); });
+
+  bench_log("TsFileLog",
             [] { return td::TsFileLog::create("tmplog", std::numeric_limits<td::int64>::max(), false).move_as_ok(); });
 
-  bench_log("FileLog + TsLog", 8, [] {
+  bench_log("FileLog + TsLog", [] {
     class FileLog : public td::LogInterface {
      public:
       FileLog() {
@@ -101,16 +105,7 @@ TEST(Log, Bench) {
     return td::make_unique<FileLog>();
   });
 
-  bench_log("noop", 4, [] {
-    class NoopLog : public td::LogInterface {
-     public:
-      void append(td::CSlice slice, int log_level) override {
-      }
-    };
-    return td::make_unique<NoopLog>();
-  });
-
-  bench_log("FileLog", 4, [] {
+  bench_log("FileLog", [] {
     class FileLog : public td::LogInterface {
      public:
       FileLog() {
