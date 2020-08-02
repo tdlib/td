@@ -103,7 +103,6 @@ class Td final : public NetQueryCallback {
   void request(uint64 id, tl_object_ptr<td_api::Function> function);
 
   void destroy();
-  void close();
 
   void schedule_get_terms_of_service(int32 expires_in);
 
@@ -226,8 +225,6 @@ class Td final : public NetQueryCallback {
 
   void send_update(tl_object_ptr<td_api::Update> &&object);
 
-  ActorShared<Td> create_reference();
-
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
@@ -246,12 +243,15 @@ class Td final : public NetQueryCallback {
   void send_error_raw(uint64 id, int32 code, CSlice error);
   void answer_ok_query(uint64 id, Status status);
 
+  ActorShared<Td> create_reference();
+
   void inc_actor_refcnt();
   void dec_actor_refcnt();
 
   void inc_request_actor_refcnt();
   void dec_request_actor_refcnt();
 
+  void close();
   void on_closed();
 
   void dec_stop_cnt();

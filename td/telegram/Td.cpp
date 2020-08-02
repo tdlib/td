@@ -3764,6 +3764,7 @@ ActorShared<Td> Td::create_reference() {
   inc_actor_refcnt();
   return actor_shared(this, ActorIdType);
 }
+
 void Td::inc_actor_refcnt() {
   actor_refcnt_++;
 }
