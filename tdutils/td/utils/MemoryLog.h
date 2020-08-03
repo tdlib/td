@@ -19,6 +19,7 @@ namespace td {
 template <int buffer_size = 32 * (1 << 10)>
 class MemoryLog : public LogInterface {
   static constexpr size_t MAX_OUTPUT_SIZE = buffer_size / 16 < (8 << 10) ? buffer_size / 16 : (8 << 10);
+  static_assert((buffer_size & 15) == 0 && buffer_size >= (8 << 10), "Invalid buffer size");
 
  public:
   MemoryLog() {
@@ -43,13 +44,13 @@ class MemoryLog : public LogInterface {
     uint32 end_pos = start_pos + total_size;
     if (likely(end_pos <= buffer_size)) {
       std::memcpy(&buffer_[start_pos + MAGIC_SIZE], slice.data(), slice_size);
-      std::memcpy(&buffer_[start_pos + MAGIC_SIZE + slice_size], "                     ", pad_size);
+      std::memcpy(&buffer_[start_pos + MAGIC_SIZE + slice_size], "               ", pad_size);
     } else {
       size_t first = buffer_size - start_pos - MAGIC_SIZE;
       size_t second = slice_size - first;
       std::memcpy(&buffer_[start_pos + MAGIC_SIZE], slice.data(), first);
       std::memcpy(&buffer_[0], slice.data() + first, second);
-      std::memcpy(&buffer_[second], "                            ", pad_size);
+      std::memcpy(&buffer_[second], "               ", pad_size);
     }
 
     CHECK((start_pos & 15) == 0);
