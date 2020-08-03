@@ -370,6 +370,10 @@ struct DialogParticipant {
   DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
                     DialogParticipantStatus my_status);
 
+  static DialogParticipant left(UserId user_id) {
+    return {user_id, UserId(), 0, DialogParticipantStatus::Left()};
+  }
+
   bool is_valid() const;
 
   template <class StorerT>

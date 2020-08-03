@@ -2525,7 +2525,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (status.message() == "USER_NOT_PARTICIPANT") {
-      promise_.set_value({user_id_, UserId(), 0, DialogParticipantStatus::Left()});
+      promise_.set_value(DialogParticipant::left(user_id_));
       return;
     }
 
@@ -13172,7 +13172,7 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
 
   auto result = get_chat_participant(chat_id, user_id);
   if (result == nullptr) {
-    return {user_id, UserId(), 0, DialogParticipantStatus::Left()};
+    return DialogParticipant::left(user_id);
   }
 
   return *result;
