@@ -32,7 +32,7 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
                                        << format::as_hex_dump<4>(Slice(slice.as_slice()));
 
-  int32 tl_constructor = NetQuery::tl_magic(slice);
+  int32 tl_constructor = function.get_id();
 
   size_t MIN_GZIPPED_SIZE = 128;
   auto gzip_flag = slice.size() < MIN_GZIPPED_SIZE ? NetQuery::GzipFlag::Off : NetQuery::GzipFlag::On;

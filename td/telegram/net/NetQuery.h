@@ -266,8 +266,6 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     finish_migrate(cancel_slot_);
   }
 
-  static int32 tl_magic(const BufferSlice &buffer_slice);
-
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
@@ -318,6 +316,8 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   }
 
   static int32 get_my_id();
+
+  static int32 tl_magic(const BufferSlice &buffer_slice);
 
  public:
   double next_timeout_ = 1;          // for NetQueryDelayer
