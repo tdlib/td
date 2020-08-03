@@ -239,14 +239,14 @@ class NetQuery : public TsListNode<NetQueryDebug> {
 
   void debug(string state, bool may_be_lost = false) {
     may_be_lost_ = may_be_lost;
+    VLOG(net_query) << *this << " " << tag("state", state);
     {
       auto guard = lock();
       auto &data = get_data_unsafe();
-      data.state_ = state;
+      data.state_ = std::move(state);
       data.state_timestamp_ = Time::now();
       data.state_change_count_++;
     }
-    VLOG(net_query) << *this << " " << tag("state", state);
   }
 
   void set_callback(ActorShared<NetQueryCallback> callback) {
