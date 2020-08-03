@@ -70,7 +70,16 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
   sb_ << thread_id << ']';
 
   // timestamp
-  sb_ << '[' << StringBuilder::FixedDouble(Clocks::system(), 9) << ']';
+  auto time = Clocks::system();
+  auto unix_time = static_cast<int32>(time);
+  auto nanoseconds = static_cast<int32>((time - unix_time) * 1e9);
+  sb_ << '[' << unix_time << '.';
+  auto limit = 100000000;
+  while (nanoseconds < limit && limit > 1) {
+    sb_ << '0';
+    limit /= 10;
+  }
+  sb_ << nanoseconds << ']';
 
   // file : line
   if (!file_name.empty()) {
@@ -79,7 +88,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
       last_slash_--;
     }
     file_name = file_name.substr(last_slash_ + 1);
-    sb_ << "[" << file_name << ':' << line_num << ']';
+    sb_ << '[' << file_name << ':' << line_num << ']';
   }
 
   // context from tag_
