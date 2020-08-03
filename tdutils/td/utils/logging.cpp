@@ -56,18 +56,22 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
 
   // log level
   sb_ << '[';
-  if (log_level < 10) {
-    sb_ << ' ';
+  if (static_cast<unsigned int>(log_level) < 10) {
+    sb_ << ' ' << static_cast<char>('0' + log_level);
+  } else {
+    sb_ << log_level;
   }
-  sb_ << log_level << ']';
+  sb_ << ']';
 
   // thread id
   auto thread_id = get_thread_id();
   sb_ << "[t";
-  if (thread_id < 10) {
-    sb_ << ' ';
+  if (static_cast<unsigned int>(thread_id) < 10) {
+    sb_ << ' ' << static_cast<char>('0' + thread_id);
+  } else {
+    sb_ << thread_id;
   }
-  sb_ << thread_id << ']';
+  sb_ << ']';
 
   // timestamp
   auto time = Clocks::system();
