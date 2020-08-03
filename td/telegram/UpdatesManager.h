@@ -154,7 +154,7 @@ class UpdatesManager : public Actor {
 
   void process_seq_updates(int32 seq_end, int32 date, vector<tl_object_ptr<telegram_api::Update>> &&updates);
 
-  void process_qts_update(tl_object_ptr<telegram_api::Update> &&update, int32 qts);
+  void process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts);
 
   void process_pending_seq_updates();
 
@@ -309,11 +309,11 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/);
 
+  void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool /*force_apply*/);
+
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/);
-
-  void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool /*force_apply*/);
 };
 
 }  // namespace td

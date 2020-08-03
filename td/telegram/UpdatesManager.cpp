@@ -1464,17 +1464,22 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
   }
 }
 
-void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update, int32 qts) {
-  LOG(DEBUG) << "Process " << to_string(update);
-  switch (update->get_id()) {
+void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts) {
+  LOG(DEBUG) << "Process " << to_string(update_ptr);
+  switch (update_ptr->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
-      auto message = std::move(move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update)->message_);
-      send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(message), add_qts(qts));
+      auto update = move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update_ptr);
+      send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(update->message_),
+                   add_qts(qts));
       break;
     }
-    case telegram_api::updateChannelParticipant::ID:
-      // TODO
+    case telegram_api::updateChannelParticipant::ID: {
+      auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
+      td_->contacts_manager_->on_update_channel_participant(ChannelId(update->channel_id_), UserId(update->user_id_),
+                                                            update->date_, std::move(update->prev_participant_),
+                                                            std::move(update->new_participant_));
       break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -2152,15 +2157,21 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/) {
-  LOG(INFO) << "Receive updateLoginToken after authorization";
+  LOG(INFO) << "Ignore updateLoginToken after authorization";
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool force_apply) {
+  if (force_apply) {
+    return process_qts_update(std::move(update), 0);
+  }
+
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts);
 }
 
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool /*force_apply*/) {
 }
 
 }  // namespace td

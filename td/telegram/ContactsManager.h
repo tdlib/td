@@ -200,6 +200,9 @@ class ContactsManager : public Actor {
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
+  void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
+                                     tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
+                                     tl_object_ptr<telegram_api::ChannelParticipant> new_participant);
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 

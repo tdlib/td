@@ -12127,6 +12127,43 @@ void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id
   }
 }
 
+void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
+                                                    tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
+                                                    tl_object_ptr<telegram_api::ChannelParticipant> new_participant) {
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive updateChannelParticipant by non-bot";
+    return;
+  }
+  if (!channel_id.is_valid() || !user_id.is_valid() || date <= 0 ||
+      (old_participant == nullptr && new_participant == nullptr)) {
+    LOG(ERROR) << "Receive invalid updateChannelParticipant in " << channel_id << " for " << user_id << " at " << date
+               << ": " << to_string(old_participant) << " -> " << to_string(new_participant);
+    return;
+  }
+
+  DialogParticipant old_dialog_participant;
+  DialogParticipant new_dialog_participant;
+  if (old_participant != nullptr) {
+    old_dialog_participant = get_dialog_participant(channel_id, std::move(old_participant));
+    if (new_participant == nullptr) {
+      new_dialog_participant = DialogParticipant::left(old_dialog_participant.user_id);
+    } else {
+      new_dialog_participant = get_dialog_participant(channel_id, std::move(new_participant));
+    }
+  } else {
+    new_dialog_participant = get_dialog_participant(channel_id, std::move(new_participant));
+    old_dialog_participant = DialogParticipant::left(new_dialog_participant.user_id);
+  }
+  if (old_dialog_participant.user_id != new_dialog_participant.user_id || !old_dialog_participant.is_valid() ||
+      !new_dialog_participant.is_valid()) {
+    LOG(ERROR) << "Receive wrong updateChannelParticipant: " << old_dialog_participant << " -> "
+               << new_dialog_participant;
+    return;
+  }
+
+  // TODO send update
+}
+
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
   bool is_contact = is_user_contact(u, user_id);
   if (td_->auth_manager_->is_bot()) {
