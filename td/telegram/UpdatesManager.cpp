@@ -1111,6 +1111,8 @@ void UpdatesManager::after_get_difference() {
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
 
+  process_pending_qts_updates();
+
   process_pending_seq_updates();  // cancels seq_gap_timeout_, may apply some updates received before getDifference,
                                   // but not returned in getDifference
   if (running_get_difference_) {
@@ -1365,6 +1367,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
   }
 
   int32 old_qts = get_qts();
+  LOG(INFO) << "Process update with qts = " << qts << ", current qts = " << old_qts;
   if (qts < old_qts - 1000001) {
     LOG(WARNING) << "Restore qts after qts overflow from " << old_qts << " to " << qts << " by "
                  << oneline(to_string(update));
@@ -1381,6 +1384,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
   CHECK(!running_get_difference_);
 
   if (qts > old_qts + 1) {
+    LOG(INFO) << "Postpone update with qts = " << qts;
     if (pending_qts_updates_.empty()) {
       set_qts_gap_timeout(MAX_UNFILLED_GAP_TIME);
     }
@@ -1461,6 +1465,7 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
 }
 
 void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update, int32 qts) {
+  LOG(DEBUG) << "Process " << to_string(update);
   switch (update->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
       auto message = std::move(move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update)->message_);
@@ -1496,6 +1501,9 @@ void UpdatesManager::process_pending_seq_updates() {
   }
   if (pending_seq_updates_.empty()) {
     seq_gap_timeout_.cancel_timeout();
+  } else {
+    // if after getDifference still have a gap
+    set_seq_gap_timeout(MAX_UNFILLED_GAP_TIME);
   }
 }
 
@@ -1503,12 +1511,13 @@ void UpdatesManager::process_pending_qts_updates() {
   if (pending_qts_updates_.empty()) {
     return;
   }
+  LOG(DEBUG) << "Process " << pending_qts_updates_.size() << " pending qts updates";
   while (!pending_qts_updates_.empty()) {
     CHECK(!running_get_difference_);
     auto update_it = pending_qts_updates_.begin();
     auto qts = update_it->first;
     if (qts > get_qts() + 1) {
-      return;
+      break;
     }
     if (qts == get_qts() + 1) {
       process_qts_update(std::move(update_it->second), qts);
@@ -1517,6 +1526,9 @@ void UpdatesManager::process_pending_qts_updates() {
   }
   if (pending_qts_updates_.empty()) {
     qts_gap_timeout_.cancel_timeout();
+  } else {
+    // if after getDifference still have a gap
+    set_qts_gap_timeout(MAX_UNFILLED_GAP_TIME);
   }
 }
 
@@ -1529,10 +1541,11 @@ void UpdatesManager::set_seq_gap_timeout(double timeout) {
 }
 
 void UpdatesManager::set_qts_gap_timeout(double timeout) {
-  CHECK(!qts_gap_timeout_.has_timeout());
-  qts_gap_timeout_.set_callback(std::move(fill_qts_gap));
-  qts_gap_timeout_.set_callback_data(static_cast<void *>(td_));
-  qts_gap_timeout_.set_timeout_in(timeout);
+  if (!qts_gap_timeout_.has_timeout()) {
+    qts_gap_timeout_.set_callback(std::move(fill_qts_gap));
+    qts_gap_timeout_.set_callback_data(static_cast<void *>(td_));
+    qts_gap_timeout_.set_timeout_in(timeout);
+  }
 }
 
 void UpdatesManager::on_pending_update(tl_object_ptr<telegram_api::Update> update, int32 seq, const char *source) {
