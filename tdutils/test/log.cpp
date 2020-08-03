@@ -24,11 +24,15 @@ char disable_linker_warning_about_empty_file_tdutils_test_log_cpp TD_UNUSED;
 template <class Log>
 class LogBenchmark : public td::Benchmark {
  public:
-  LogBenchmark(std::string name, int threads_n, std::function<td::unique_ptr<Log>()> creator)
-      : name_(std::move(name)), threads_n_(threads_n), creator_(std::move(creator)) {
+  LogBenchmark(std::string name, int threads_n, bool test_full_logging, std::function<td::unique_ptr<Log>()> creator)
+      : name_(std::move(name))
+      , threads_n_(threads_n)
+      , test_full_logging_(test_full_logging)
+      , creator_(std::move(creator)) {
   }
   std::string get_description() const override {
-    return PSTRING() << name_ << " " << td::tag("threads_n", threads_n_);
+    return PSTRING() << name_ << " " << (test_full_logging_ ? "ERROR" : "PLAIN") << " "
+                     << td::tag("threads_n", threads_n_);
   }
   void start_up() override {
     log_ = creator_();
@@ -41,12 +45,17 @@ class LogBenchmark : public td::Benchmark {
     log_.reset();
   }
   void run(int n) override {
+    auto old_log_interface = td::log_interface;
+    td::log_interface = log_.get();
+
     for (auto &thread : threads_) {
       thread = td::thread([this, n] { this->run_thread(n); });
     }
     for (auto &thread : threads_) {
       thread.join();
     }
+
+    td::log_interface = old_log_interface;
   }
 
   void run_thread(int n) {
@@ -55,7 +64,11 @@ class LogBenchmark : public td::Benchmark {
       if (i % 10000 == 0) {
         log_->rotate();
       }
-      log_->append(str, 1);
+      if (test_full_logging_) {
+        LOG(ERROR) << str;
+      } else {
+        LOG(PLAIN) << str;
+      }
     }
   }
 
@@ -63,14 +76,17 @@ class LogBenchmark : public td::Benchmark {
   std::string name_;
   td::unique_ptr<td::LogInterface> log_;
   int threads_n_{0};
+  bool test_full_logging_{false};
   std::function<td::unique_ptr<Log>()> creator_;
   std::vector<td::thread> threads_;
 };
 
 template <class F>
 static void bench_log(std::string name, F &&f) {
-  for (auto threads_n : {1, 4, 8}) {
-    bench(LogBenchmark<typename decltype(f())::element_type>(name, threads_n, f));
+  for (auto test_full_logging : {false, true}) {
+    for (auto threads_n : {1, 4, 8}) {
+      bench(LogBenchmark<typename decltype(f())::element_type>(name, threads_n, test_full_logging, f));
+    }
   }
 };
 
