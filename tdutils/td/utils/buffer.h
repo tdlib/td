@@ -116,6 +116,8 @@ class BufferSlice {
       : buffer_(std::move(buffer_ptr)), begin_(begin), end_(end) {
     debug_track();
   }
+  BufferSlice(const BufferSlice &other) = delete;
+  BufferSlice &operator=(const BufferSlice &other) = delete;
   BufferSlice(BufferSlice &&other) : BufferSlice(std::move(other.buffer_), other.begin_, other.end_) {
     debug_untrack();  // yes, debug_untrack
   }

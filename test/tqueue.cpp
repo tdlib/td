@@ -9,11 +9,11 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/TQueue.h"
 
-#include "td/utils/Random.h"
 #include "td/utils/buffer.h"
 #include "td/utils/int_types.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/path.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
 #include "td/utils/Status.h"
@@ -196,7 +196,7 @@ TEST(TQueue, random) {
 }
 
 TEST(TQueue, memory_leak) {
-  //return;
+  return;
   auto tqueue = td::TQueue::create();
   auto tqueue_binlog = td::make_unique<td::TQueueBinlog<td::Binlog>>();
   std::string binlog_path = "test_tqueue.binlog";
@@ -213,8 +213,8 @@ TEST(TQueue, memory_leak) {
   while (true) {
     auto id = tqueue->push(1, "a", now + 600000, 0, {}).move_as_ok();
     ids.push_back(id);
-    if (ids.size() > rnd() % 100000) {
-      auto it = rnd() % ids.size();
+    if (ids.size() > static_cast<std::size_t>(rnd()) % 100000) {
+      auto it = static_cast<std::size_t>(rnd()) % ids.size();
       std::swap(ids.back(), ids[it]);
       tqueue->forget(1, ids.back());
       ids.pop_back();

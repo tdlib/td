@@ -667,9 +667,9 @@ void Binlog::do_reindex() {
       << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
-  LOG(ERROR) << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
-             << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
-             << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events);
+  LOG(INFO) << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
+            << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
+            << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events);
 
   buffer_writer_ = ChainBufferWriter();
   buffer_reader_ = buffer_writer_.extract_reader();
