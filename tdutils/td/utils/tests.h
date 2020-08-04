@@ -96,7 +96,7 @@ class TestsRunner : public TestContext {
  public:
   static TestsRunner &get_default();
 
-  void add_test(string name, unique_ptr<Test> test);
+  void add_test(string name, std::function<unique_ptr<Test>()> test);
   void add_substr_filter(string str);
   void set_stress_flag(bool flag);
   void run_all();
@@ -113,7 +113,11 @@ class TestsRunner : public TestContext {
   };
   bool stress_flag_{false};
   vector<string> substr_filters_;
-  vector<std::pair<string, unique_ptr<Test>>> tests_;
+  struct TestInfo {
+    std::function<unique_ptr<Test>()> creator;
+    unique_ptr<Test> test;
+  };
+  vector<std::pair<string, TestInfo>> tests_;
   State state_;
   unique_ptr<RegressionTester> regression_tester_;
 
@@ -125,7 +129,7 @@ template <class T>
 class RegisterTest {
  public:
   explicit RegisterTest(string name, TestsRunner &runner = TestsRunner::get_default()) {
-    runner.add_test(name, make_unique<T>());
+    runner.add_test(name, [] { return make_unique<T>(); });
   }
 };
 

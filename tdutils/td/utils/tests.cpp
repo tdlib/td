@@ -138,13 +138,13 @@ TestsRunner &TestsRunner::get_default() {
   return default_runner;
 }
 
-void TestsRunner::add_test(string name, unique_ptr<Test> test) {
+void TestsRunner::add_test(string name, std::function<unique_ptr<Test>()> test) {
   for (auto &it : tests_) {
     if (it.first == name) {
       LOG(FATAL) << "Test name collision " << name;
     }
   }
-  tests_.emplace_back(name, std::move(test));
+  tests_.emplace_back(name, TestInfo{std::move(test), nullptr});
 }
 
 void TestsRunner::add_substr_filter(string str) {
@@ -176,7 +176,7 @@ bool TestsRunner::run_all_step() {
 
   while (state_.it != state_.end) {
     auto &name = tests_[state_.it].first;
-    auto test = tests_[state_.it].second.get();
+    auto &test = tests_[state_.it].second.test;
     if (!state_.is_running) {
       bool ok = true;
       for (const auto &filter : substr_filters_) {
@@ -194,11 +194,16 @@ bool TestsRunner::run_all_step() {
       state_.start = Time::now();
       state_.start_unadjusted = Time::now_unadjusted();
       state_.is_running = true;
+
+      CHECK(!test);
+      test = tests_[state_.it].second.creator();
     }
 
     if (test->step()) {
       break;
     }
+
+    test = {};
 
     auto passed = Time::now() - state_.start;
     auto real_passed = Time::now_unadjusted() - state_.start_unadjusted;
