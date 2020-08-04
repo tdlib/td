@@ -6391,7 +6391,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       auto channel_id = dialog_id.get_channel_id();
       if (!td_->contacts_manager_->have_channel(channel_id)) {
         // do not create dialog if there is no info about the channel
-        LOG(WARNING) << "There is no info about " << channel_id << ", so ignore " << to_string(update);
+        LOG(WARNING) << "There is no info about " << channel_id << ", so ignore " << oneline(to_string(update));
         return;
       }
 
