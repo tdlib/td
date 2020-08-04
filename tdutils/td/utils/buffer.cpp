@@ -8,6 +8,8 @@
 
 #include "td/utils/port/thread_local.h"
 
+#include "td/utils/ThreadSafeCounter.h"
+
 #include <cstddef>
 #include <new>
 
@@ -23,6 +25,16 @@ namespace td {
 TD_THREAD_LOCAL BufferAllocator::BufferRawTls *BufferAllocator::buffer_raw_tls;  // static zero-initialized
 
 std::atomic<size_t> BufferAllocator::buffer_mem;
+
+static td::ThreadSafeCounter buffer_slice_size_;
+
+int64 BufferAllocator::get_buffer_slice_size() {
+  return buffer_slice_size_.sum();
+}
+
+void BufferAllocator::track_buffer_slice(int64 size) {
+  buffer_slice_size_.add(size);
+}
 
 size_t BufferAllocator::get_buffer_mem() {
   return buffer_mem;

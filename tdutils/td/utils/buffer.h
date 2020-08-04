@@ -67,10 +67,15 @@ class BufferAllocator {
   static ReaderPtr create_reader(const ReaderPtr &raw);
 
   static size_t get_buffer_mem();
+  static int64 get_buffer_slice_size();
 
   static void clear_thread_local();
 
  private:
+  friend class BufferSlice;
+
+  static void track_buffer_slice(int64 size);
+
   static ReaderPtr create_reader_fast(size_t size);
 
   static WriterPtr create_writer_exact(size_t size);
@@ -104,16 +109,29 @@ class BufferSlice {
       return;
     }
     begin_ = buffer_->begin_;
+    end_ = begin_;
     sync_with_writer();
   }
   BufferSlice(BufferReaderPtr buffer_ptr, size_t begin, size_t end)
       : buffer_(std::move(buffer_ptr)), begin_(begin), end_(end) {
+    debug_track();
+  }
+  BufferSlice(BufferSlice &&other) : BufferSlice(std::move(other.buffer_), other.begin_, other.end_) {
+    debug_untrack();  // yes, debug_untrack
+  }
+  BufferSlice &operator=(BufferSlice &&other) {
+    debug_untrack();
+    buffer_ = std::move(other.buffer_);
+    begin_ = other.begin_;
+    end_ = other.end_;
+    return *this;
   }
 
   explicit BufferSlice(size_t size) : buffer_(BufferAllocator::create_reader(size)) {
     end_ = buffer_->end_.load(std::memory_order_relaxed);
     begin_ = end_ - ((size + 7) & -8);
     end_ = begin_ + size;
+    debug_track();
   }
 
   explicit BufferSlice(Slice slice) : BufferSlice(slice.size()) {
@@ -121,6 +139,17 @@ class BufferSlice {
   }
 
   BufferSlice(const char *ptr, size_t size) : BufferSlice(Slice(ptr, size)) {
+  }
+
+  ~BufferSlice() {
+    debug_untrack();
+  }
+
+  void debug_track() {
+    BufferAllocator::track_buffer_slice(static_cast<int64>(size()));
+  }
+  void debug_untrack() {
+    BufferAllocator::track_buffer_slice(-static_cast<int64>(size()));
   }
 
   BufferSlice clone() const {
@@ -166,14 +195,18 @@ class BufferSlice {
   }
 
   bool confirm_read(size_t size) {
+    debug_untrack();
     begin_ += size;
     CHECK(begin_ <= end_);
+    debug_track();
     return begin_ == end_;
   }
 
   void truncate(size_t limit) {
     if (size() > limit) {
+      debug_untrack();
       end_ = begin_ + limit;
+      debug_track();
     }
   }
 
@@ -181,6 +214,7 @@ class BufferSlice {
     auto res = BufferSlice(BufferAllocator::create_reader(buffer_));
     res.begin_ = static_cast<size_t>(slice.ubegin() - buffer_->data_);
     res.end_ = static_cast<size_t>(slice.uend() - buffer_->data_);
+    res.debug_track();
     CHECK(buffer_->begin_ <= res.begin_);
     CHECK(res.begin_ <= res.end_);
     CHECK(res.end_ <= buffer_->end_.load(std::memory_order_relaxed));
@@ -220,9 +254,11 @@ class BufferSlice {
 
   // set end_ into writer's end_
   size_t sync_with_writer() {
+    debug_untrack();
     CHECK(!is_null());
     auto old_end = end_;
     end_ = buffer_->end_.load(std::memory_order_acquire);
+    debug_track();
     return end_ - old_end;
   }
   bool is_writer_alive() const {
@@ -230,6 +266,7 @@ class BufferSlice {
     return buffer_->has_writer_.load(std::memory_order_acquire);
   }
   void clear() {
+    debug_untrack();
     begin_ = 0;
     end_ = 0;
     buffer_ = nullptr;

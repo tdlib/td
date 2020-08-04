@@ -133,6 +133,7 @@ TEST(Http, reader) {
   clear_thread_locals();
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
+  auto start_size = BufferAllocator::get_buffer_slice_size();
   for (int i = 0; i < 20; i++) {
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
@@ -184,6 +185,7 @@ TEST(Http, reader) {
   }
   clear_thread_locals();
   ASSERT_EQ(start_mem, BufferAllocator::get_buffer_mem());
+  ASSERT_EQ(start_size, BufferAllocator::get_buffer_slice_size());
 }
 
 TEST(Http, gzip_bomb) {

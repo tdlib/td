@@ -28,7 +28,7 @@ class ThreadSafeMultiCounter {
   int64 sum(size_t index) const {
     CHECK(index < N);
     int64 res = 0;
-    tls_.for_each([&res](auto &value) { res += value[index].load(std::memory_order_relaxed); });
+    tls_.for_each([&res, &index](auto &value) { res += value[index].load(std::memory_order_relaxed); });
     return res;
   }
   void clear() {

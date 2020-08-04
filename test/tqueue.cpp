@@ -9,6 +9,8 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/TQueue.h"
 
+#include "td/utils/Random.h"
+#include "td/utils/buffer.h"
 #include "td/utils/int_types.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/path.h"
@@ -190,5 +192,37 @@ TEST(TQueue, random) {
   td::RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
   for (int i = 0; i < 100000; i++) {
     steps.step(rnd);
+  }
+}
+
+TEST(TQueue, memory_leak) {
+  //return;
+  auto tqueue = td::TQueue::create();
+  auto tqueue_binlog = td::make_unique<td::TQueueBinlog<td::Binlog>>();
+  std::string binlog_path = "test_tqueue.binlog";
+  td::Binlog::destroy(binlog_path).ensure();
+  auto binlog = std::make_shared<td::Binlog>();
+  binlog->init(binlog_path, [&](const td::BinlogEvent &event) { UNREACHABLE(); }).ensure();
+  tqueue_binlog->set_binlog(std::move(binlog));
+  tqueue->set_callback(std::move(tqueue_binlog));
+
+  double now = 0;
+  std::vector<td::TQueue::EventId> ids;
+  td::Random::Xorshift128plus rnd(123);
+  int i = 0;
+  while (true) {
+    auto id = tqueue->push(1, "a", now + 600000, 0, {}).move_as_ok();
+    ids.push_back(id);
+    if (ids.size() > rnd() % 100000) {
+      auto it = rnd() % ids.size();
+      std::swap(ids.back(), ids[it]);
+      tqueue->forget(1, ids.back());
+      ids.pop_back();
+    }
+    now += 1;
+    if (i++ % 100000 == 0) {
+      LOG(ERROR) << td::BufferAllocator::get_buffer_mem() << " " << tqueue->get_size(1) << " "
+                 << td::BufferAllocator::get_buffer_slice_size();
+    }
   }
 }
