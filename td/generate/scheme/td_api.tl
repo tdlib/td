@@ -1543,8 +1543,8 @@ messagePoll poll:poll = MessageContent;
 //@need_shipping_address True, if the shipping address should be specified @receipt_message_id The identifier of the message with the receipt, after the product has been purchased
 messageInvoice title:string description:string photo:photo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 = MessageContent;
 
-//@description A message with information about an ended call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
-messageCall discard_reason:CallDiscardReason duration:int32 = MessageContent;
+//@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
+messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int32> = MessageContent;
@@ -1966,8 +1966,8 @@ callProblemSilentRemote = CallProblem;
 callProblemDropped = CallProblem;
 
 
-//@description Describes a call @id Call identifier, not persistent @user_id Peer user identifier @is_outgoing True, if the call is outgoing @state Call state
-call id:int32 user_id:int32 is_outgoing:Bool state:CallState = Call;
+//@description Describes a call @id Call identifier, not persistent @user_id Peer user identifier @is_outgoing True, if the call is outgoing @is_video True, if the call is a video call @state Call state
+call id:int32 user_id:int32 is_outgoing:Bool is_video:Bool state:CallState = Call;
 
 
 //@description Contains settings for the authentication of the user's phone number
@@ -4053,14 +4053,14 @@ checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 joinChatByInviteLink invite_link:string = Chat;
 
 
-//@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the application
-createCall user_id:int32 protocol:callProtocol = CallId;
+//@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the application @is_video True, if a video call needs to be created
+createCall user_id:int32 protocol:callProtocol is_video:Bool = CallId;
 
 //@description Accepts an incoming call @call_id Call identifier @protocol Description of the call protocols supported by the application
 acceptCall call_id:int32 protocol:callProtocol = Ok;
 
-//@description Discards a call @call_id Call identifier @is_disconnected True, if the user was disconnected @duration The call duration, in seconds @connection_id Identifier of the connection used during the call
-discardCall call_id:int32 is_disconnected:Bool duration:int32 connection_id:int64 = Ok;
+//@description Discards a call @call_id Call identifier @is_disconnected True, if the user was disconnected @duration The call duration, in seconds @is_video True, if the call was a video call @connection_id Identifier of the connection used during the call
+discardCall call_id:int32 is_disconnected:Bool duration:int32 is_video:Bool connection_id:int64 = Ok;
 
 //@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of the exact types of problems with the call, specified by the user
 sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallProblem> = Ok;

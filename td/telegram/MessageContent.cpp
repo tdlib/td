@@ -4491,7 +4491,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Call: {
       const MessageCall *m = static_cast<const MessageCall *>(content);
-      return make_tl_object<td_api::messageCall>(get_call_discard_reason_object(m->discard_reason), m->duration);
+      return make_tl_object<td_api::messageCall>(m->is_video, get_call_discard_reason_object(m->discard_reason),
+                                                 m->duration);
     }
     case MessageContentType::PaymentSuccessful: {
       const MessagePaymentSuccessful *m = static_cast<const MessagePaymentSuccessful *>(content);

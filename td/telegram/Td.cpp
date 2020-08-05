@@ -5838,14 +5838,14 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
   }
 
   send_closure(G()->call_manager(), &CallManager::create_call, user_id, std::move(input_user),
-               CallProtocol(*request.protocol_), false, std::move(query_promise));
+               CallProtocol(*request.protocol_), request.is_video_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::discardCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
-               request.duration_, false, request.connection_id_, std::move(promise));
+               request.duration_, request.is_video_, request.connection_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptCall &request) {

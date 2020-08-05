@@ -703,7 +703,7 @@ void CallActor::flush_call_state() {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateCall>(
                      make_tl_object<td_api::call>(local_call_id_.get(), is_outgoing_ ? user_id_.get() : call_admin_id_,
-                                                  is_outgoing_, call_state_.get_call_state_object())));
+                                                  is_outgoing_, is_video_, call_state_.get_call_state_object())));
   }
 }
 
