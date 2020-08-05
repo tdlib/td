@@ -671,6 +671,7 @@ class ContactsManager : public Actor {
 
     bool is_blocked = false;
     bool can_be_called = false;
+    bool supports_video_calls = false;
     bool has_private_calls = false;
     bool can_pin_messages = false;
     bool need_phone_number_privacy_exception = false;

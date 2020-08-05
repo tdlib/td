@@ -3365,6 +3365,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(can_pin_messages);
   STORE_FLAG(need_phone_number_privacy_exception);
   STORE_FLAG(has_photo);
+  STORE_FLAG(supports_video_calls);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3389,6 +3390,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(can_pin_messages);
   PARSE_FLAG(need_phone_number_privacy_exception);
   PARSE_FLAG(has_photo);
+  PARSE_FLAG(supports_video_calls);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -9184,10 +9186,12 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   bool can_be_called = user_full->phone_calls_available_ && !user_full->phone_calls_private_;
+  bool supports_video_calls = user_full->video_calls_available_ && !user_full->phone_calls_private_;
   bool has_private_calls = user_full->phone_calls_private_;
-  if (user->can_be_called != can_be_called || user->has_private_calls != has_private_calls ||
-      user->about != user_full->about_) {
+  if (user->can_be_called != can_be_called || user->supports_video_calls != supports_video_calls ||
+      user->has_private_calls != has_private_calls || user->about != user_full->about_) {
     user->can_be_called = can_be_called;
+    user->supports_video_calls = supports_video_calls;
     user->has_private_calls = has_private_calls;
     user->about = std::move(user_full->about_);
 
@@ -10243,6 +10247,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->photo = Photo();
   user_full->is_blocked = false;
   user_full->can_be_called = false;
+  user_full->supports_video_calls = false;
   user_full->has_private_calls = false;
   user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
@@ -14071,8 +14076,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   bool is_bot = is_user_bot(user_id);
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
-      user_full->can_be_called, user_full->has_private_calls, user_full->need_phone_number_privacy_exception,
-      is_bot ? string() : user_full->about, is_bot ? user_full->about : string(), user_full->common_chat_count,
+      user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
+      user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
+      is_bot ? user_full->about : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
 }
 

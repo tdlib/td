@@ -407,6 +407,8 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   }
   cancel_timeout();
 
+  is_video_ |= (call.flags_ & telegram_api::phoneCall::VIDEO_MASK) != 0;
+
   LOG(DEBUG) << "Do update call to Ready from state " << static_cast<int32>(state_);
   if (state_ == State::WaitAcceptResult) {
     dh_handshake_.set_g_a(call.g_a_or_b_.as_slice());
