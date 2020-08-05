@@ -572,6 +572,15 @@ void ConnectionCreator::on_online(bool online_flag) {
     }
   }
 }
+void ConnectionCreator::on_logging_out(bool is_logging_out) {
+  VLOG(connections) << "Receive logging out flag " << is_logging_out;
+  is_logging_out_ = is_logging_out;
+  for (auto &client : clients_) {
+    client.second.backoff.clear();
+    client.second.flood_control_online.clear_events();
+    client_loop(client.second);
+  }
+}
 
 void ConnectionCreator::on_pong(size_t hash) {
   G()->save_server_time();
@@ -852,17 +861,18 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       }
     }
 
+    bool act_as_if_online = online_flag_ || is_logging_out_;
     // Check flood
-    auto &flood_control = online_flag_ ? client.flood_control_online : client.flood_control;
+    auto &flood_control = act_as_if_online ? client.flood_control_online : client.flood_control;
     auto wakeup_at = max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
-    if (!online_flag_) {
+    if (!act_as_if_online) {
       wakeup_at = max(wakeup_at, client.backoff.get_wakeup_at());
     }
     if (wakeup_at > Time::now()) {
       return client_set_timeout_at(client, wakeup_at);
     }
     flood_control.add_event(static_cast<int32>(Time::now()));
-    if (!online_flag_) {
+    if (!act_as_if_online) {
       client.backoff.add_event(static_cast<int32>(Time::now()));
     }
 
@@ -1055,6 +1065,10 @@ void ConnectionCreator::start_up() {
     }
     bool on_online(bool online_flag) override {
       send_closure(connection_creator_, &ConnectionCreator::on_online, online_flag);
+      return connection_creator_.is_alive();
+    }
+    bool on_logging_out(bool is_logging_out) override {
+      send_closure(connection_creator_, &ConnectionCreator::on_logging_out, is_logging_out);
       return connection_creator_.is_alive();
     }
 

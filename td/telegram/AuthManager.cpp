@@ -837,6 +837,9 @@ void AuthManager::update_state(State new_state, bool force, bool should_save_sta
   if (should_save_state) {
     save_state();
   }
+  if (new_state == State::LoggingOut || new_state == State::DestroyingKeys || new_state == State::Closing) {
+    send_closure(G()->state_manager(), &StateManager::on_logging_out, true);
+  }
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateAuthorizationState>(get_authorization_state_object(state_)));
 

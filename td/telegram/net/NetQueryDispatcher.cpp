@@ -227,7 +227,7 @@ void NetQueryDispatcher::update_session_count() {
 }
 void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-  LOG(INFO) << "Destory auth keys";
+  LOG(INFO) << "Destroy auth keys";
   need_destroy_auth_key_ = true;
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i)) && dcs_[i - 1].id_.is_internal()) {

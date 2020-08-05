@@ -78,6 +78,11 @@ void StateManager::on_proxy(bool use_proxy) {
   loop();
 }
 
+void StateManager::on_logging_out(bool is_logging_out) {
+  is_logging_out_ = is_logging_out;
+  notify_flag(Flag::LoggingOut);
+}
+
 void StateManager::add_callback(unique_ptr<Callback> callback) {
   if (callback->on_network(network_type_, network_generation_) && callback->on_online(online_flag_) &&
       callback->on_state(get_real_state())) {
@@ -121,6 +126,8 @@ void StateManager::notify_flag(Flag flag) {
           return (*it)->on_state(flush_state_);
         case Flag::Network:
           return (*it)->on_network(network_type_, network_generation_);
+        case Flag::LoggingOut:
+          return (*it)->on_logging_out(is_logging_out_);
         default:
           UNREACHABLE();
           return true;
