@@ -134,6 +134,16 @@ TEST(Http, reader) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
   auto start_size = BufferAllocator::get_buffer_slice_size();
+  {
+    BufferSlice a("test test");
+    BufferSlice b = std::move(a);
+    a = std::move(b);
+    BufferSlice c = a.from_slice(a);
+    CHECK(c.size() == a.size());
+  }
+  clear_thread_locals();
+  ASSERT_EQ(start_mem, BufferAllocator::get_buffer_mem());
+  ASSERT_EQ(start_size, BufferAllocator::get_buffer_slice_size());
   for (int i = 0; i < 20; i++) {
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();

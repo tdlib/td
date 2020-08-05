@@ -147,10 +147,10 @@ class BufferSlice {
     debug_untrack();
   }
 
-  void debug_track() {
+  void debug_track() const {
     BufferAllocator::track_buffer_slice(static_cast<int64>(size()));
   }
-  void debug_untrack() {
+  void debug_untrack() const {
     BufferAllocator::track_buffer_slice(-static_cast<int64>(size()));
   }
 
@@ -214,6 +214,7 @@ class BufferSlice {
 
   BufferSlice from_slice(Slice slice) const {
     auto res = BufferSlice(BufferAllocator::create_reader(buffer_));
+    res.debug_untrack();
     res.begin_ = static_cast<size_t>(slice.ubegin() - buffer_->data_);
     res.end_ = static_cast<size_t>(slice.uend() - buffer_->data_);
     res.debug_track();
