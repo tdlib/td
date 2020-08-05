@@ -147,6 +147,7 @@ class ConnectionCreator : public NetQueryCallback {
     void add_session_id(int64 session_id);
 
     Backoff backoff;
+    FloodControlStrict sanity_flood_control;
     FloodControlStrict flood_control;
     FloodControlStrict flood_control_online;
     FloodControlStrict mtproto_error_flood_control;
