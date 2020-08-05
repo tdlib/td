@@ -109,7 +109,7 @@ class StateManager final : public Actor {
   uint32 network_generation_ = 1;
   bool online_flag_ = false;
   bool use_proxy_ = false;
-  bool is_logging_out_ = true;
+  bool is_logging_out_ = false;
 
   static constexpr double UP_DELAY = 0.05;
   static constexpr double DOWN_DELAY = 0.3;

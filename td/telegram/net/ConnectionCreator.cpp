@@ -569,19 +569,23 @@ void ConnectionCreator::on_online(bool online_flag) {
   online_flag_ = online_flag;
   if (need_drop_flood_control) {
     for (auto &client : clients_) {
-      client.second.sanity_flood_control.clear_events();
       client.second.backoff.clear();
+      client.second.sanity_flood_control.clear_events();
       client.second.flood_control_online.clear_events();
       client_loop(client.second);
     }
   }
 }
 void ConnectionCreator::on_logging_out(bool is_logging_out) {
+  if (is_logging_out_ == is_logging_out) {
+    return;
+  }
+
   VLOG(connections) << "Receive logging out flag " << is_logging_out;
   is_logging_out_ = is_logging_out;
   for (auto &client : clients_) {
-    client.second.sanity_flood_control.clear_events();
     client.second.backoff.clear();
+    client.second.sanity_flood_control.clear_events();
     client.second.flood_control_online.clear_events();
     client_loop(client.second);
   }
@@ -879,6 +883,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       return client_set_timeout_at(client, wakeup_at);
     }
     client.sanity_flood_control.add_event(static_cast<int32>(Time::now()));
+    if (!act_as_if_online) {
+      client.backoff.add_event(static_cast<int32>(Time::now()));
+    }
 
     // Create new RawConnection
     // sync part
@@ -895,9 +902,6 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // Events with failed socket creation are ignored
     flood_control.add_event(static_cast<int32>(Time::now()));
-    if (!act_as_if_online) {
-      client.backoff.add_event(static_cast<int32>(Time::now()));
-    }
 
     auto socket_fd = r_socket_fd.move_as_ok();
     IPAddress debug_ip;

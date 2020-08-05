@@ -85,7 +85,7 @@ void StateManager::on_logging_out(bool is_logging_out) {
 
 void StateManager::add_callback(unique_ptr<Callback> callback) {
   if (callback->on_network(network_type_, network_generation_) && callback->on_online(online_flag_) &&
-      callback->on_state(get_real_state())) {
+      callback->on_state(get_real_state()) && callback->on_logging_out(is_logging_out_)) {
     callbacks_.push_back(std::move(callback));
   }
 }

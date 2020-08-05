@@ -285,7 +285,7 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
       UNREACHABLE();
       break;
   }
-  // can't clear event here. It may be already destroyed during destory_actor
+  // can't clear event here. It may be already destroyed during destroy_actor
 }
 
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
