@@ -60,7 +60,7 @@ class MultiTd : public Actor {
     send_closure(td, &Td::request, request_id, std::move(function));
   }
 
-  void destroy(int32 td_id) {
+  void close(int32 td_id) {
     auto size = tds_.erase(td_id);
     CHECK(size == 1);
   }
@@ -321,9 +321,9 @@ class MultiImpl {
     send_closure(multi_td_, &MultiTd::send, client_id, request_id, std::move(function));
   }
 
-  void destroy(int32 td_id) {
+  void close(int32 td_id) {
     auto guard = concurrent_scheduler_->get_send_guard();
-    send_closure(multi_td_, &MultiTd::destroy, td_id);
+    send_closure(multi_td_, &MultiTd::close, td_id);
   }
 
   ~MultiImpl() {
@@ -412,7 +412,7 @@ class MultiClient::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     for (auto &it : impls_) {
-      it.second->destroy(it.first);
+      it.second->close(it.first);
     }
     while (!impls_.empty()) {
       receive(10);
@@ -462,7 +462,7 @@ class Client::Impl final {
   Impl(Impl &&) = delete;
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
-    multi_impl_->destroy(td_id_);
+    multi_impl_->close(td_id_);
     while (!is_closed_) {
       receive(10);
     }
