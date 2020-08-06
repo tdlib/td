@@ -3180,8 +3180,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "New secret chat notification is not supported");
   }
 
-  if (begins_with(loc_key, "PHONE_CALL_")) {
-    // TODO PHONE_CALL_REQUEST/PHONE_CALL_DECLINE/PHONE_CALL_MISSED notification
+  if (begins_with(loc_key, "PHONE_CALL_") || begins_with(loc_key, "VIDEO_CALL_")) {
+    // TODO PHONE_CALL_REQUEST/PHONE_CALL_DECLINE/PHONE_CALL_MISSED/VIDEO_CALL_REQUEST/VIDEO_CALL_MISSED notifications
     return Status::Error(406, "Phone call notification is not supported");
   }
 
