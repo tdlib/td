@@ -858,14 +858,18 @@ TEST(Client, SimpleMulti) {
   //client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("td_requests", 1)});
   //}
 
-  for (auto &client : clients) {
-    client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
+  for (size_t i = 0; i < clients.size(); i++) {
+    clients[i].send({i + 2, td::make_tl_object<td::td_api::testSquareInt>(3)});
+    if (Random::fast(0, 1) == 1) {
+      clients[i].send({1, td::make_tl_object<td::td_api::close>()});
+    }
   }
 
-  for (auto &client : clients) {
+  for (size_t i = 0; i < clients.size(); i++) {
     while (true) {
-      auto result = client.receive(10);
-      if (result.id == 3) {
+      auto result = clients[i].receive(10);
+      if (result.id == i + 2) {
+        CHECK(result.object->get_id() == td::td_api::testInt::ID);
         auto test_int = td::td_api::move_object_as<td::td_api::testInt>(result.object);
         ASSERT_EQ(test_int->value_, 9);
         break;
@@ -877,14 +881,29 @@ TEST(Client, SimpleMulti) {
 #if !TD_THREAD_UNSUPPORTED
 TEST(Client, Multi) {
   td::vector<td::thread> threads;
+  std::atomic<int> ok_count{0};
   for (int i = 0; i < 4; i++) {
-    threads.emplace_back([] {
-      for (int i = 0; i < 1000; i++) {
+    threads.emplace_back([i, &ok_count] {
+      for (int j = 0; j < 1000; j++) {
         td::Client client;
-        client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
+        auto request_id = static_cast<td::uint64>(j + 2 + 1000 * i);
+        client.send({request_id, td::make_tl_object<td::td_api::testSquareInt>(3)});
+        if (j & 1) {
+          client.send({1, td::make_tl_object<td::td_api::close>()});
+        }
         while (true) {
           auto result = client.receive(10);
-          if (result.id == 3) {
+          if (result.id == request_id) {
+            ok_count++;
+            if ((j & 1) == 0) {
+              client.send({1, td::make_tl_object<td::td_api::close>()});
+            }
+          }
+          if (result.id == 0 && result.object != nullptr &&
+              result.object->get_id() == td::td_api::updateAuthorizationState::ID &&
+              static_cast<const td::td_api::updateAuthorizationState *>(result.object.get())
+                      ->authorization_state_->get_id() == td::td_api::authorizationStateClosed::ID) {
+            ok_count++;
             break;
           }
         }
@@ -895,6 +914,7 @@ TEST(Client, Multi) {
   for (auto &thread : threads) {
     thread.join();
   }
+  ASSERT_EQ(8 * 1000, ok_count.load());
 }
 
 TEST(Client, MultiNew) {
