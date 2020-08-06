@@ -56,7 +56,7 @@ class TQueue {
     EventId id;
     Slice data;
     int64 extra{0};
-    double expires_at{0};
+    int32 expires_at{0};
   };
 
   struct RawEvent {
@@ -64,7 +64,7 @@ class TQueue {
     EventId event_id;
     string data;
     int64 extra{0};
-    double expires_at{0};
+    int32 expires_at{0};
   };
 
   using QueueId = int64;
@@ -101,19 +101,19 @@ class TQueue {
 
   virtual bool do_push(QueueId queue_id, RawEvent &&raw_event) = 0;
 
-  virtual Result<EventId> push(QueueId queue_id, string data, double expires_at, int64 extra, EventId hint_new_id) = 0;
+  virtual Result<EventId> push(QueueId queue_id, string data, int32 expires_at, int64 extra, EventId hint_new_id) = 0;
 
   virtual void forget(QueueId queue_id, EventId event_id) = 0;
 
   virtual EventId get_head(QueueId queue_id) const = 0;
   virtual EventId get_tail(QueueId queue_id) const = 0;
 
-  virtual Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
+  virtual Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
                              MutableSpan<Event> &result_events) = 0;
 
   virtual size_t get_size(QueueId queue_id) = 0;
 
-  virtual std::pair<uint64, uint64> run_gc(double now) = 0;
+  virtual std::pair<uint64, uint64> run_gc(int32 unix_time_now) = 0;
   virtual void close(Promise<> promise) = 0;
 };
 
@@ -124,8 +124,6 @@ struct BinlogEvent;
 template <class BinlogT>
 class TQueueBinlog : public TQueue::StorageCallback {
  public:
-  TQueueBinlog();
-
   uint64 push(QueueId queue_id, const RawEvent &event) override;
   void pop(uint64 logevent_id) override;
   Status replay(const BinlogEvent &binlog_event, TQueue &q) const TD_WARN_UNUSED_RESULT;
@@ -137,8 +135,7 @@ class TQueueBinlog : public TQueue::StorageCallback {
 
  private:
   std::shared_ptr<BinlogT> binlog_;
-  int32 magic_{2314};
-  double diff_{0};
+  static constexpr int32 BINLOG_EVENT_TYPE = 2314;
 };
 
 class TQueueMemoryStorage : public TQueue::StorageCallback {

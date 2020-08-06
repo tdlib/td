@@ -68,7 +68,7 @@ class TestTQueue {
     binlog_->set_callback(std::move(tqueue_binlog));
   }
 
-  void restart(td::Random::Xorshift128plus &rnd, double now) {
+  void restart(td::Random::Xorshift128plus &rnd, td::int32 now) {
     if (rnd.fast(0, 10) == 0) {
       baseline_->run_gc(now);
     }
@@ -101,7 +101,7 @@ class TestTQueue {
     }
   }
 
-  EventId push(td::TQueue::QueueId queue_id, td::string data, double expires_at, EventId new_id = EventId()) {
+  EventId push(td::TQueue::QueueId queue_id, td::string data, td::int32 expires_at, EventId new_id = EventId()) {
     auto a_id = baseline_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto b_id = memory_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto c_id = binlog_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
@@ -110,14 +110,14 @@ class TestTQueue {
     return a_id;
   }
 
-  void check_head_tail(td::TQueue::QueueId qid, double now) {
+  void check_head_tail(td::TQueue::QueueId qid) {
     //ASSERT_EQ(baseline_->get_head(qid), memory_->get_head(qid));
     //ASSERT_EQ(baseline_->get_head(qid), binlog_->get_head(qid));
     ASSERT_EQ(baseline_->get_tail(qid), memory_->get_tail(qid));
     ASSERT_EQ(baseline_->get_tail(qid), binlog_->get_tail(qid));
   }
 
-  void check_get(td::TQueue::QueueId qid, td::Random::Xorshift128plus &rnd, double now) {
+  void check_get(td::TQueue::QueueId qid, td::Random::Xorshift128plus &rnd, td::int32 now) {
     td::TQueue::Event a[10];
     td::MutableSpan<td::TQueue::Event> a_span(a, 10);
     td::TQueue::Event b[10];
@@ -169,7 +169,7 @@ TEST(TQueue, random) {
   };
 
   TestTQueue q;
-  double now = 0;
+  td::int32 now = 0;
   auto push_event = [&] {
     auto data = PSTRING() << rnd();
     if (rnd.fast(0, 10000) == 0) {
@@ -181,7 +181,7 @@ TEST(TQueue, random) {
     now += 10;
   };
   auto check_head_tail = [&] {
-    q.check_head_tail(next_queue_id(), now);
+    q.check_head_tail(next_queue_id());
   };
   auto restart = [&] {
     q.restart(rnd, now);
@@ -206,7 +206,7 @@ TEST(TQueue, memory_leak) {
   tqueue_binlog->set_binlog(std::move(binlog));
   tqueue->set_callback(std::move(tqueue_binlog));
 
-  double now = 0;
+  td::int32 now = 0;
   std::vector<td::TQueue::EventId> ids;
   td::Random::Xorshift128plus rnd(123);
   int i = 0;
@@ -219,7 +219,7 @@ TEST(TQueue, memory_leak) {
       tqueue->forget(1, ids.back());
       ids.pop_back();
     }
-    now += 1;
+    now++;
     if (i++ % 100000 == 0) {
       LOG(ERROR) << td::BufferAllocator::get_buffer_mem() << " " << tqueue->get_size(1) << " "
                  << td::BufferAllocator::get_buffer_slice_size();

@@ -130,7 +130,7 @@ class TQueueImpl : public TQueue {
     return true;
   }
 
-  Result<EventId> push(QueueId queue_id, string data, double expires_at, int64 extra, EventId hint_new_id) override {
+  Result<EventId> push(QueueId queue_id, string data, int32 expires_at, int64 extra, EventId hint_new_id) override {
     if (data.empty()) {
       return Status::Error("Data is empty");
     }
@@ -210,7 +210,7 @@ class TQueueImpl : public TQueue {
     pop(q, queue_id, it, q.tail_id);
   }
 
-  Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, double now,
+  Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
                      MutableSpan<Event> &result_events) override {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
@@ -226,22 +226,22 @@ class TQueueImpl : public TQueue {
       return Status::Error("Specified from_id is in the past");
     }
 
-    return do_get(queue_id, q, from_id, forget_previous, now, result_events);
+    return do_get(queue_id, q, from_id, forget_previous, unix_time_now, result_events);
   }
 
-  std::pair<uint64, uint64> run_gc(double now) override {
+  std::pair<uint64, uint64> run_gc(int32 unix_time_now) override {
     uint64 total_deleted_events = 0;
     uint64 deleted_queues = 0;
     for (auto queue_it = queues_.begin(); queue_it != queues_.end();) {
       size_t deleted_events = 0;
       for (auto it = queue_it->second.events.begin(); it != queue_it->second.events.end();) {
         auto &e = it->second;
-        if (e.expires_at < now) {
+        if (e.expires_at < unix_time_now) {
           if (!it->second.data.empty()) {
             deleted_events++;
           }
           pop(queue_it->second, queue_it->first, it,
-              e.expires_at < now - 7 * 86400 ? EventId() : queue_it->second.tail_id);
+              e.expires_at < unix_time_now - 7 * 86400 ? EventId() : queue_it->second.tail_id);
         } else {
           ++it;
         }
@@ -316,7 +316,7 @@ class TQueueImpl : public TQueue {
     event.data = {};
   }
 
-  size_t do_get(QueueId queue_id, Queue &q, EventId from_id, bool forget_previous, double now,
+  size_t do_get(QueueId queue_id, Queue &q, EventId from_id, bool forget_previous, int32 unix_time_now,
                 MutableSpan<Event> &result_events) {
     if (forget_previous) {
       for (auto it = q.events.begin(); it != q.events.end() && it->first < from_id;) {
@@ -327,7 +327,7 @@ class TQueueImpl : public TQueue {
     size_t ready_n = 0;
     for (auto it = q.events.lower_bound(from_id); it != q.events.end();) {
       auto &event = it->second;
-      if (event.expires_at < now || event.data.empty()) {
+      if (event.expires_at < unix_time_now || event.data.empty()) {
         pop(q, queue_id, it, q.tail_id);
       } else {
         CHECK(!(event.event_id < from_id));
@@ -401,19 +401,14 @@ struct TQueueLogEvent : public Storer {
 };
 
 template <class BinlogT>
-TQueueBinlog<BinlogT>::TQueueBinlog() {
-  diff_ = Clocks::system() - Time::now();
-}
-
-template <class BinlogT>
 uint64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   TQueueLogEvent log_event;
   log_event.queue_id = queue_id;
   log_event.event_id = event.event_id.value();
-  log_event.expires_at = static_cast<int32>(event.expires_at + diff_ + 1);
+  log_event.expires_at = event.expires_at;
   log_event.data = event.data;
   log_event.extra = event.extra;
-  auto magic = magic_ + (log_event.extra != 0);
+  auto magic = BINLOG_EVENT_TYPE + (log_event.extra != 0);
   if (event.logevent_id == 0) {
     return binlog_->add(magic, log_event);
   }
@@ -430,7 +425,7 @@ template <class BinlogT>
 Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q) const {
   TQueueLogEvent event;
   TlParser parser(binlog_event.data_);
-  int32 has_extra = binlog_event.type_ - magic_;
+  int32 has_extra = binlog_event.type_ - BINLOG_EVENT_TYPE;
   if (has_extra != 0 && has_extra != 1) {
     return Status::Error("Wrong magic");
   }
@@ -441,7 +436,7 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
   RawEvent raw_event;
   raw_event.logevent_id = binlog_event.id_;
   raw_event.event_id = event_id;
-  raw_event.expires_at = event.expires_at - diff_;
+  raw_event.expires_at = event.expires_at;
   raw_event.data = event.data.str();
   raw_event.extra = event.extra;
   if (!q.do_push(event.queue_id, std::move(raw_event))) {
@@ -477,6 +472,7 @@ void TQueueMemoryStorage::replay(TQueue &q) const {
   }
 }
 void TQueueMemoryStorage::close(Promise<> promise) {
+  events_.clear();
   promise.set_value({});
 }
 
