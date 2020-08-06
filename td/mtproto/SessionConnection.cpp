@@ -673,7 +673,7 @@ Status SessionConnection::on_raw_packet(const PacketInfo &info, BufferSlice pack
   }
   if (status.is_error()) {
     if (status.code() == 1) {
-      LOG(WARNING) << "Packet ignored " << status;
+      LOG(INFO) << "Packet ignored: " << status;
       send_ack(info.message_id);
       return Status::OK();
     } else if (status.code() == 2) {
