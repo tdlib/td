@@ -561,6 +561,19 @@ function onOptionsChanged() {
     install_dir = '../example/java/td';
   }
 
+  function getClangVersionSuffix() {
+    switch (linux_distro) {
+      case 'Ubuntu 14':
+        return '-3.9';
+      case 'Ubuntu 18':
+        return '-6.0';
+      case 'Ubuntu 20':
+        return '-10';
+      default:
+        return ''; // use default version
+    }
+  }
+
   var commands = [];
 
   var php = "php";
@@ -612,18 +625,9 @@ function onOptionsChanged() {
           packages += ' default-jdk';
         }
         if (use_clang) {
-          if (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
-            packages += ' clang-6.0 libc++-dev libc++abi-dev';
-          } else {
-            if (linux_distro === 'Ubuntu 14') {
-              packages += ' clang-3.9';
-            } else {
-              packages += ' clang';
-            }
-            packages += ' libc++-dev';
-            if (linux_distro === 'Debian 10') {
-              packages += ' libc++abi-dev';
-            }
+          packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
+          if (linux_distro === 'Debian 10' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
+            packages += ' libc++abi-dev';
           }
         } else {
           packages += ' g++';
@@ -672,7 +676,7 @@ function onOptionsChanged() {
   commands.push('git clone https://github.com/tdlib/td.git');
 
   commands.push('cd td');
-  commands.push('git checkout v1.6.0');
+  // commands.push('git checkout v1.6.0');
 
   if (use_vcpkg) {
     commands.push('git clone https://github.com/Microsoft/vcpkg.git');
@@ -786,14 +790,13 @@ function onOptionsChanged() {
       var prefix = '';
       if (os_linux) {
         if (use_clang) {
-          if (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
-            prefix = 'CC=/usr/bin/clang-6.0 CXX=/usr/bin/clang++-6.0 ';
-            options.push('-DCMAKE_AR=/usr/bin/llvm-ar-6.0');
-            options.push('-DCMAKE_NM=/usr/bin/llvm-nm-6.0');
-            options.push('-DCMAKE_OBJDUMP=/usr/bin/llvm-objdump-6.0');
-            options.push('-DCMAKE_RANLIB=/usr/bin/llvm-ranlib-6.0');
-          } else {
-            prefix = 'CC=/usr/bin/clang CXX=/usr/bin/clang++ ';
+          var clang_version_suffix = getClangVersionSuffix();
+          prefix = 'CC=/usr/bin/clang' + clang_version_suffix + ' CXX=/usr/bin/clang++' + clang_version_suffix + ' ';
+          if (use_lto) {
+            options.push('-DCMAKE_AR=/usr/bin/llvm-ar' + clang_version_suffix);
+            options.push('-DCMAKE_NM=/usr/bin/llvm-nm' + clang_version_suffix);
+            options.push('-DCMAKE_OBJDUMP=/usr/bin/llvm-objdump' + clang_version_suffix);
+            options.push('-DCMAKE_RANLIB=/usr/bin/llvm-ranlib' + clang_version_suffix);
           }
         } else if (linux_distro === 'Ubuntu 14') {
           prefix = 'CC=/usr/bin/gcc-4.9 CXX=/usr/bin/g++-4.9 ';
