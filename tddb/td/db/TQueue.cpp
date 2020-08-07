@@ -234,7 +234,8 @@ class TQueueImpl : public TQueue {
     return get_size(queue_id);
   }
 
-  void run_gc(int32 unix_time_now) override {
+  int64 run_gc(int32 unix_time_now) override {
+    int64 deleted_events = 0;
     while (!queue_gc_at_.empty()) {
       auto it = queue_gc_at_.begin();
       if (it->first >= unix_time_now) {
@@ -249,7 +250,11 @@ class TQueueImpl : public TQueue {
         auto head_id = q.events.begin()->first;
         Event event;
         MutableSpan<Event> span{&event, 1};
+        size_t size_before = get_size(q);
         do_get(queue_id, q, head_id, false, unix_time_now, span);
+        size_t size_after = get_size(q);
+        CHECK(size_after <= size_before);
+        deleted_events += size_before - size_after;
         if (!span.empty()) {
           CHECK(!event.data.empty());
           new_gc_at = event.expires_at;
@@ -258,6 +263,7 @@ class TQueueImpl : public TQueue {
       }
       schedule_queue_gc(queue_id, q, new_gc_at);
     }
+    return deleted_events;
   }
 
   size_t get_size(QueueId queue_id) override {
@@ -265,12 +271,7 @@ class TQueueImpl : public TQueue {
     if (it == queues_.end()) {
       return 0;
     }
-    auto &q = it->second;
-    if (q.events.empty()) {
-      return 0;
-    }
-
-    return q.events.size() - (q.events.rbegin()->second.data.empty() ? 1 : 0);
+    return get_size(it->second);
   }
 
   void close(Promise<> promise) override {
@@ -291,6 +292,14 @@ class TQueueImpl : public TQueue {
   std::unordered_map<QueueId, Queue> queues_;
   std::set<std::pair<int32, QueueId>> queue_gc_at_;
   unique_ptr<StorageCallback> callback_;
+
+  size_t get_size(Queue &q) {
+    if (q.events.empty()) {
+      return 0;
+    }
+
+    return q.events.size() - (q.events.rbegin()->second.data.empty() ? 1 : 0);
+  }
 
   void pop(Queue &q, QueueId queue_id, std::map<EventId, RawEvent>::iterator &it, EventId tail_id) {
     auto &event = it->second;

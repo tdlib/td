@@ -113,7 +113,7 @@ class TQueue {
 
   virtual size_t get_size(QueueId queue_id) = 0;
 
-  virtual void run_gc(int32 unix_time_now) = 0;
+  virtual int64 run_gc(int32 unix_time_now) = 0;
   virtual void close(Promise<> promise) = 0;
 };
 
