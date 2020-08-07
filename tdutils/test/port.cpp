@@ -7,15 +7,19 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/EventFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/IoSlice.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/signals.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
+#include "td/utils/Time.h"
 
+#include <atomic>
 #include <set>
 
 using namespace td;
@@ -155,9 +159,12 @@ static void on_user_signal(int sig) {
   ptrs.push_back(std::string(ptr));
 }
 
-TEST(Post, SignalsAndThread) {
+TEST(Port, SignalsAndThread) {
   setup_signals_alt_stack().ensure();
   set_signal_handler(SignalType::User, on_user_signal).ensure();
+  SCOPE_EXIT {
+    set_signal_handler(SignalType::User, nullptr).ensure();
+  };
   std::vector<std::string> ans = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
   {
     std::vector<td::thread> threads;
@@ -211,5 +218,43 @@ TEST(Post, SignalsAndThread) {
     ASSERT_TRUE(std::unique(addrs.begin(), addrs.end()) == addrs.end());
     //LOG(ERROR) << addrs;
   }
+}
+TEST(Port, EventFdAndSignals) {
+  set_signal_handler(SignalType::User, [](int signal) {}).ensure();
+  SCOPE_EXIT {
+    set_signal_handler(SignalType::User, nullptr).ensure();
+  };
+
+  std::atomic_flag flag;
+  flag.test_and_set();
+  auto main_thread = pthread_self();
+  td::thread interrupt_thread{[&flag, &main_thread] {
+    setup_signals_alt_stack().ensure();
+    while (flag.test_and_set()) {
+      pthread_kill(main_thread, SIGUSR1);
+      td::usleep_for(1000 * td::Random::fast(1, 10));  // 0.001s - 0.01s
+    }
+  }};
+
+  for (int timeout_ms : {0, 1, 2, 10, 100, 500}) {
+    double min_diff = 10000000;
+    double max_diff = 0;
+    for (int t = 0; t < max(5, 1000 / max(timeout_ms, 1)); t++) {
+      td::EventFd event_fd;
+      event_fd.init();
+      auto start = td::Timestamp::now();
+      event_fd.wait(timeout_ms);
+      auto end = td::Timestamp::now();
+      auto passed = end.at() - start.at();
+      auto diff = passed * 1000 - timeout_ms;
+      min_diff = min(min_diff, diff);
+      max_diff = max(max_diff, diff);
+    }
+
+    LOG_CHECK(min_diff >= 0) << min_diff;
+    LOG_CHECK(max_diff < 10) << max_diff;
+    LOG(ERROR) << min_diff << " " << max_diff;
+  }
+  flag.clear();
 }
 #endif
