@@ -122,10 +122,6 @@ class TQueueImpl : public TQueue {
       }
     }
     if (q.events.empty() && !raw_event.data.empty()) {
-      if (q.gc_at != 0) {
-        bool is_deleted = queue_gc_at_.erase({q.gc_at, queue_id});
-        CHECK(is_deleted);
-      }
       schedule_queue_gc(queue_id, q, raw_event.expires_at);
     }
 
@@ -247,8 +243,7 @@ class TQueueImpl : public TQueue {
       auto queue_id = it->second;
       auto &q = queues_[queue_id];
       CHECK(q.gc_at == it->first);
-      q.gc_at = 0;
-      queue_gc_at_.erase(it);
+      int32 new_gc_at = 0;
 
       if (!q.events.empty()) {
         auto head_id = q.events.begin()->first;
@@ -257,10 +252,11 @@ class TQueueImpl : public TQueue {
         do_get(queue_id, q, head_id, false, unix_time_now, span);
         if (!span.empty()) {
           CHECK(!event.data.empty());
-          CHECK(event.expires_at >= unix_time_now);
-          schedule_queue_gc(queue_id, q, event.expires_at);
+          new_gc_at = event.expires_at;
+          CHECK(new_gc_at >= unix_time_now);
         }
       }
+      schedule_queue_gc(queue_id, q, new_gc_at);
     }
   }
 
@@ -358,9 +354,15 @@ class TQueueImpl : public TQueue {
   }
 
   void schedule_queue_gc(QueueId queue_id, Queue &q, int32 gc_at) {
+    if (q.gc_at != 0) {
+      bool is_deleted = queue_gc_at_.erase({q.gc_at, queue_id});
+      CHECK(is_deleted);
+    }
     q.gc_at = gc_at;
-    bool is_inserted = queue_gc_at_.emplace(gc_at, queue_id).second;
-    CHECK(is_inserted);
+    if (q.gc_at != 0) {
+      bool is_inserted = queue_gc_at_.emplace(gc_at, queue_id).second;
+      CHECK(is_inserted);
+    }
   }
 };
 
