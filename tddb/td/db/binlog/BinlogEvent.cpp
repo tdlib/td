@@ -70,4 +70,11 @@ BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const St
   return raw_event;
 }
 
+void BinlogEvent::realloc() {
+  auto data_offset = data_.begin() - raw_event_.as_slice().begin();
+  auto data_size = data_.size();
+  raw_event_ = raw_event_.copy();
+  data_ = raw_event_.as_slice().substr(data_offset, data_size);
+}
+
 }  // namespace td

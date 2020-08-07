@@ -647,6 +647,7 @@ void Binlog::do_reindex() {
   fd_events_ = 0;
   reset_encryption();
   processor_->for_each([&](BinlogEvent &event) {
+    event.realloc();
     do_event(std::move(event));  // NB: no move is actually happens
   });
   need_sync_ = true;  // must sync creation of the file
@@ -667,9 +668,16 @@ void Binlog::do_reindex() {
       << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
-  LOG(INFO) << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
-            << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
-            << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events);
+
+  [&](Slice msg) {
+    if (start_size > (10 << 20) || finish_time - start_time > 1) {
+      LOG(WARNING) << "Slow " << msg;
+    } else {
+      LOG(INFO) << msg;
+    }
+  }(PSLICE() << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
+             << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
+             << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events));
 
   buffer_writer_ = ChainBufferWriter();
   buffer_reader_ = buffer_writer_.extract_reader();

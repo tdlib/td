@@ -108,6 +108,8 @@ struct BinlogEvent {
   }
 
   Status validate() const;
+
+  void realloc();
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const BinlogEvent &event) {
