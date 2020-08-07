@@ -7,9 +7,11 @@
 #pragma once
 
 #if TD_PORT_POSIX
+#include "td/utils/common.h"
+#include "td/utils/Time.h"
+
 #include <cerrno>
 #include <type_traits>
-#include "td/utils/Time.h"
 #endif
 
 namespace td {
@@ -50,7 +52,8 @@ auto skip_eintr_timeout(F &&f, int32 timeout_ms) {
     if (res >= 0 || errno != EINTR) {
       break;
     }
-    left_timeout_ms = max(static_cast<int32>((start.at() - Timestamp::now().at()) * 1000 + timeout_ms + 1 - 1e-9), 0);
+    left_timeout_ms =
+        td::max(static_cast<int32>((start.at() - Timestamp::now().at()) * 1000 + timeout_ms + 1 - 1e-9), 0);
   }
   return res;
 }

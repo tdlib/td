@@ -231,7 +231,7 @@ class TQueueImpl : public TQueue {
     }
 
     do_get(queue_id, q, from_id, forget_previous, unix_time_now, result_events);
-    return get_size(queue_id);
+    return get_size(q);
   }
 
   int64 run_gc(int32 unix_time_now) override {
@@ -293,7 +293,7 @@ class TQueueImpl : public TQueue {
   std::set<std::pair<int32, QueueId>> queue_gc_at_;
   unique_ptr<StorageCallback> callback_;
 
-  size_t get_size(Queue &q) {
+  static size_t get_size(Queue &q) {
     if (q.events.empty()) {
       return 0;
     }
