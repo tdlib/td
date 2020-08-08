@@ -18,6 +18,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
@@ -4333,8 +4334,9 @@ void main(int argc, char **argv) {
   set_signal_handler(SignalType::Error, fail_signal).ensure();
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
   Log::set_fatal_error_callback(on_fatal_error);
+  init_openssl_threads();
 
-  const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "" : "fr-FR");
+  const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
   std::locale new_locale(locale_name);
   std::locale::global(new_locale);
   SCOPE_EXIT {
