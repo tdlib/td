@@ -112,5 +112,4 @@ class MessagesDbBench : public Benchmark {
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
   bench(td::MessagesDbBench());
-  return 0;
 }

@@ -391,5 +391,4 @@ int main() {
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
   td::bench(td::SemBench());
 #endif
-  return 0;
 }

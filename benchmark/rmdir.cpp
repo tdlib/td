@@ -26,5 +26,4 @@ int main(int argc, char *argv[]) {
     //}
   });
   LOG(INFO) << status << ": " << cnt;
-  return 0;
 }

@@ -974,6 +974,4 @@ int main() {
   // BENCH_Q(BufferQueue, 100);
   // BENCH_Q(BufferQueue, 10);
   // BENCH_Q(BufferQueue, 1);
-
-  return 0;
 }

@@ -160,5 +160,4 @@ int main() {
 #endif
   td::bench(IostreamWriteBench());
   td::bench(FILEWriteBench());
-  return 0;
 }

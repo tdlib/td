@@ -10,6 +10,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 
 #if TD_MSVC
@@ -266,6 +267,8 @@ class QueryBench : public td::Benchmark {
 };
 
 int main() {
+  td::init_openssl_threads();
+
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   bench(RingBench<4>(504, 0));
   bench(RingBench<3>(504, 0));
@@ -285,5 +288,4 @@ int main() {
   bench(RingBench<0>(504, 2));
   bench(RingBench<1>(504, 2));
   bench(RingBench<2>(504, 2));
-  return 0;
 }

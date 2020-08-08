@@ -366,5 +366,4 @@ int main() {
   td::bench(SHA1Bench());
   td::bench(Crc32Bench());
   td::bench(Crc64Bench());
-  return 0;
 }

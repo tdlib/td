@@ -74,5 +74,4 @@ class HandshakeBench : public Benchmark {
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   td::bench(td::HandshakeBench());
-  return 0;
 }

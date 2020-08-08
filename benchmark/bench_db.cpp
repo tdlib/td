@@ -238,5 +238,4 @@ int main() {
   bench(TdKvBench<td::BinlogKeyValue<td::Binlog>>("BinlogKeyValue<Binlog>"));
   bench(TdKvBench<td::BinlogKeyValue<td::ConcurrentBinlog>>("BinlogKeyValue<ConcurrentBinlog>"));
   bench(SeqKvBench());
-  return 0;
 }

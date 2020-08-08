@@ -40,5 +40,4 @@ int main(int argc, char *argv[]) {
     // empty
   }
   scheduler->finish();
-  return 0;
 }
