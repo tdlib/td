@@ -1153,6 +1153,7 @@ class MessagesManager : public Actor {
     bool is_has_scheduled_database_messages_checked = false;
     bool has_loaded_scheduled_messages_from_database = false;
     bool sent_scheduled_messages = false;
+    bool had_last_yet_unsent_message = false;  // whether the dialog was stored to database without last message
 
     bool increment_view_counter = false;
 

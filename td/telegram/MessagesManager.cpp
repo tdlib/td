@@ -4475,6 +4475,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   bool has_distance = distance >= 0;
+  bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -4527,6 +4528,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(can_unarchive);
     STORE_FLAG(has_distance);
     STORE_FLAG(hide_distance);
+    STORE_FLAG(has_last_yet_unsent_message);
     END_STORE_FLAGS();
   }
 
@@ -4692,6 +4694,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(can_unarchive);
     PARSE_FLAG(has_distance);
     PARSE_FLAG(hide_distance);
+    PARSE_FLAG(had_last_yet_unsent_message);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -4705,6 +4708,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     need_repair_channel_server_unread_count = false;
     can_unarchive = false;
     hide_distance = false;
+    had_last_yet_unsent_message = false;
   }
 
   parse(last_new_message_id, parser);
@@ -30539,7 +30543,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
   }
   if (is_loaded_from_database && d->order != order && order < MAX_ORDINARY_DIALOG_ORDER &&
-      !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id)) {
+      !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id) && !d->had_last_yet_unsent_message) {
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
   }
 
@@ -32448,6 +32452,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         if (result_message != nullptr) {
           do_send_message(dialog_id, result_message);
         }
+
         break;
       }
       case LogEvent::HandlerType::SendBotStartMessage: {
