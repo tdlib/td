@@ -20536,10 +20536,10 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
 
   LOG(INFO) << "Begin to send message to " << dialog_id << " in reply to " << reply_to_message_id;
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
-    auto input_message = static_cast<const td_api::inputMessageForwarded *>(input_message_content.get());
+    auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
+    TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
     return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
-                           std::move(options), input_message->in_game_share_, input_message->send_copy_,
-                           input_message->remove_caption_);
+                           std::move(options), input_message->in_game_share_, std::move(copy_options));
   }
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -20556,10 +20556,10 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   // there must be no errors after get_message_to_send call
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(
-      d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
-      dup_message_content(td_, dialog_id, message_content.content.get(), MessageContentDupType::Send),
-      &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
+  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+                                   dup_message_content(td_, dialog_id, message_content.content.get(),
+                                                       MessageContentDupType::Send, MessageCopyOptions()),
+                                   &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -20591,8 +20591,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   }
 
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
-    auto input_message = static_cast<const td_api::inputMessageForwarded *>(input_message_content.get());
-    if (!input_message->send_copy_) {
+    auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
+    TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
+    if (!copy_options.send_copy) {
       return Status::Error(400, "Can't use forwarded message");
     }
 
@@ -20617,9 +20618,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
       return Status::Error(400, "Can't copy message");
     }
 
-    unique_ptr<MessageContent> content = dup_message_content(
-        td_, dialog_id, copied_message->content.get(),
-        input_message->remove_caption_ ? MessageContentDupType::CopyWithoutCaption : MessageContentDupType::Copy);
+    unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, copied_message->content.get(),
+                                                             MessageContentDupType::Copy, std::move(copy_options));
     if (content == nullptr) {
       return Status::Error(400, "Can't copy message content");
     }
@@ -20642,6 +20642,17 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   }
 
   return std::move(content);
+}
+
+Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
+    DialogId dialog_id, tl_object_ptr<td_api::messageCopyOptions> &&options) const {
+  if (options == nullptr || !options->send_copy_) {
+    return MessageCopyOptions();
+  }
+  MessageCopyOptions result;
+  result.send_copy = true;
+  result.remove_caption = options->remove_caption_;
+  return std::move(result);
 }
 
 Result<MessagesManager::SendMessageOptions> MessagesManager::process_send_message_options(
@@ -20746,10 +20757,10 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<MessageId> result;
   bool need_update_dialog_pos = false;
   for (auto &message_content : message_contents) {
-    Message *m = get_message_to_send(
-        d, reply_to_message_id, send_message_options,
-        dup_message_content(td_, dialog_id, message_content.first.get(), MessageContentDupType::Send),
-        &need_update_dialog_pos);
+    Message *m = get_message_to_send(d, reply_to_message_id, send_message_options,
+                                     dup_message_content(td_, dialog_id, message_content.first.get(),
+                                                         MessageContentDupType::Send, MessageCopyOptions()),
+                                     &need_update_dialog_pos);
     result.push_back(m->message_id);
     auto ttl = message_content.second;
     if (ttl > 0) {
@@ -21504,10 +21515,10 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(
-      d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
-      dup_message_content(td_, dialog_id, content->message_content.get(), MessageContentDupType::SendViaBot),
-      &need_update_dialog_pos, nullptr, true);
+  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+                                   dup_message_content(td_, dialog_id, content->message_content.get(),
+                                                       MessageContentDupType::SendViaBot, MessageCopyOptions()),
+                                   &need_update_dialog_pos, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -22076,7 +22087,8 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
 
   cancel_edit_message_media(dialog_id, m, "Cancelled by new editMessageMedia request");
 
-  m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send);
+  m->edited_content =
+      dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send, MessageCopyOptions());
   CHECK(m->edited_content != nullptr);
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
   m->edit_generation = ++current_message_edit_generation_;
@@ -22914,9 +22926,11 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
 Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
                                                    tl_object_ptr<td_api::sendMessageOptions> &&options,
-                                                   bool in_game_share, bool send_copy, bool remove_caption) {
+                                                   bool in_game_share, MessageCopyOptions &&copy_options) {
+  vector<MessageCopyOptions> all_copy_options;
+  all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
-                                      false, send_copy, remove_caption));
+                                      false, std::move(all_copy_options)));
   CHECK(result.size() == 1);
   auto sent_message_id = result[0];
   if (sent_message_id == MessageId()) {
@@ -22928,8 +22942,9 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                                             vector<MessageId> message_ids,
                                                             tl_object_ptr<td_api::sendMessageOptions> &&options,
-                                                            bool in_game_share, bool as_album, bool send_copy,
-                                                            bool remove_caption) {
+                                                            bool in_game_share, bool as_album,
+                                                            vector<MessageCopyOptions> &&copy_options) {
+  CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
     return Status::Error(4, "Too much messages to forward");
   }
@@ -22997,10 +23012,10 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    bool need_copy = !message_id.is_server() || to_secret || send_copy;
-    auto type = need_copy ? (remove_caption ? MessageContentDupType::CopyWithoutCaption : MessageContentDupType::Copy)
-                          : MessageContentDupType::Forward;
-    unique_ptr<MessageContent> content = dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type);
+    bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
+    auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
+    unique_ptr<MessageContent> content =
+        dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type, std::move(copy_options[i]));
     if (content == nullptr) {
       LOG(INFO) << "Can't forward " << message_id;
       continue;
@@ -23227,7 +23242,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     CHECK(m != nullptr);
 
     unique_ptr<MessageContent> content =
-        dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
+        dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send, MessageCopyOptions());
     if (content == nullptr) {
       LOG(INFO) << "Can't resend " << m->message_id;
       continue;
@@ -32446,7 +32461,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(td_, dependencies);
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send);
+        m->content =
+            dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send, MessageCopyOptions());
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -32512,7 +32528,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(td_, dependencies);
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot,
+                                         MessageCopyOptions());
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -32601,7 +32618,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
             set_message_id(m, get_next_yet_unsent_message_id(to_dialog));
             m->date = now;
           }
-          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), MessageContentDupType::Forward);
+          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), MessageContentDupType::Forward,
+                                           MessageCopyOptions());
           CHECK(m->content != nullptr);
           m->have_previous = true;
           m->have_next = true;

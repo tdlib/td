@@ -610,6 +610,7 @@ set(TDLIB_SOURCE
   td/telegram/Logging.h
   td/telegram/MessageContent.h
   td/telegram/MessageContentType.h
+  td/telegram/MessageCopyOptions.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
   td/telegram/MessagesDb.h

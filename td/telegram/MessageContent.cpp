@@ -3937,8 +3937,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 }
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               MessageContentDupType type) {
+                                               MessageContentDupType type, MessageCopyOptions &&copy_options) {
   CHECK(content != nullptr);
+  if (copy_options.send_copy) {
+    CHECK(type == MessageContentDupType::Copy);
+  }
   if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
       !can_have_input_media(td, content)) {
     return nullptr;
@@ -3961,7 +3964,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
   if (to_secret) {
     thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
   }
-  auto remove_caption = type == MessageContentDupType::CopyWithoutCaption;
+  auto remove_caption = type == MessageContentDupType::Copy && copy_options.remove_caption;
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));

@@ -12,6 +12,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
+#include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
@@ -174,10 +175,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl);
 
-enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, CopyWithoutCaption };
+enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy };
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               MessageContentDupType type);
+                                               MessageContentDupType type, MessageCopyOptions &&copy_options);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action,
                                                       DialogId owner_dialog_id, MessageId reply_to_message_id);

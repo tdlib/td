@@ -3196,9 +3196,14 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(from_chat_id, from_message_id) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(as_chat_id(from_chat_id),
-                                                                               as_message_id(from_message_id), true,
-                                                                               op == "scopy", Random::fast(0, 1) == 0));
+      td_api::object_ptr<td_api::messageCopyOptions> copy_options;
+      if (op == "scopy") {
+        copy_options = td_api::make_object<td_api::messageCopyOptions>(true, Random::fast(0, 1) == 0);
+      }
+
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageForwarded>(
+                       as_chat_id(from_chat_id), as_message_id(from_message_id), true, std::move(copy_options)));
     } else if (op == "sdice" || op == "sdicecd") {
       string chat_id;
       string emoji;

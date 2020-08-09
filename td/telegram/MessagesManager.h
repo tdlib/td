@@ -29,6 +29,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageContentType.h"
+#include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/net/NetQuery.h"
@@ -386,7 +387,8 @@ class MessagesManager : public Actor {
   Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                              vector<MessageId> message_ids,
                                              tl_object_ptr<td_api::sendMessageOptions> &&options, bool in_game_share,
-                                             bool as_album, bool send_copy, bool remove_caption) TD_WARN_UNUSED_RESULT;
+                                             bool as_album,
+                                             vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;
 
@@ -1649,6 +1651,9 @@ class MessagesManager : public Actor {
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content);
 
+  Result<MessageCopyOptions> process_message_copy_options(DialogId dialog_id,
+                                                          tl_object_ptr<td_api::messageCopyOptions> &&options) const;
+
   Result<SendMessageOptions> process_send_message_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::sendMessageOptions> &&options) const;
 
@@ -1704,7 +1709,7 @@ class MessagesManager : public Actor {
 
   Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
                                     tl_object_ptr<td_api::sendMessageOptions> &&options, bool in_game_share,
-                                    bool send_copy, bool remove_caption) TD_WARN_UNUSED_RESULT;
+                                    MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,

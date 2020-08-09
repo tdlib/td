@@ -274,6 +274,7 @@ function split_file($file, $chunks, $undo) {
                 'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',
                 'language_pack_manager[_(-][^.]|LanguagePackManager' => 'LanguagePackManager',
                 'get_erase_logevent_promise|parse_time|store_time' => 'logevent/LogEventHelper',
+                'MessageCopyOptions' => 'MessageCopyOptions',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
                 'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
                 'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',

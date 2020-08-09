@@ -47,6 +47,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/Logging.h"
+#include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -5745,9 +5746,13 @@ void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &requ
 
 void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_message_ids = messages_manager_->forward_messages(
-      dialog_id, DialogId(request.from_chat_id_), MessagesManager::get_message_ids(request.message_ids_),
-      std::move(request.options_), false, request.as_album_, request.send_copy_, request.remove_caption_);
+  auto input_message_ids = MessagesManager::get_message_ids(request.message_ids_);
+  auto message_copy_options =
+      transform(input_message_ids, [copy_options = MessageCopyOptions(request.send_copy_, request.remove_caption_)](
+                                       MessageId) { return copy_options; });
+  auto r_message_ids = messages_manager_->forward_messages(dialog_id, DialogId(request.from_chat_id_),
+                                                           std::move(input_message_ids), std::move(request.options_),
+                                                           false, request.as_album_, std::move(message_copy_options));
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }

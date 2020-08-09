@@ -1141,6 +1141,7 @@ void SecretChatActor::on_pfs_state_changed() {
   LOG(INFO) << "In on_pfs_state_changed: " << pfs_state_;
   pfs_state_changed_ = true;
 }
+
 Promise<> SecretChatActor::add_changes(Promise<> save_changes_finish) {
   StateChange change;
   if (seq_no_state_changed_) {
