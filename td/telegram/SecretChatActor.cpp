@@ -327,7 +327,7 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
   LOG(INFO) << "Send message: " << to_string(*message) << to_string(file);
 
   auto it = random_id_to_outbound_message_state_token_.find(random_id);
-  if (it != end(random_id_to_outbound_message_state_token_)) {
+  if (it != random_id_to_outbound_message_state_token_.end()) {
     return on_outbound_outer_send_message_promise(it->second, std::move(promise));
   }
 
@@ -1126,8 +1126,8 @@ void SecretChatActor::do_outbound_message_impl(unique_ptr<logevent::OutboundSecr
 }
 
 void SecretChatActor::on_his_in_seq_no_updated() {
-  auto it = begin(out_seq_no_to_outbound_message_state_token_);
-  while (it != end(out_seq_no_to_outbound_message_state_token_) && it->first < seq_no_state_.his_in_seq_no) {
+  auto it = out_seq_no_to_outbound_message_state_token_.begin();
+  while (it != out_seq_no_to_outbound_message_state_token_.end() && it->first < seq_no_state_.his_in_seq_no) {
     auto token = it->second;
     it = out_seq_no_to_outbound_message_state_token_.erase(it);
     on_outbound_ack(token);

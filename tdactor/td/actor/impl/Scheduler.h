@@ -165,10 +165,10 @@ void Scheduler::flush_mailbox(ActorInfo *actor_info, const RunFuncT &run_func, c
     if (guard.can_run()) {
       (*run_func)(actor_info);
     } else {
-      mailbox.insert(begin(mailbox) + i, (*event_func)());
+      mailbox.insert(mailbox.begin() + i, (*event_func)());
     }
   }
-  mailbox.erase(begin(mailbox), begin(mailbox) + i);
+  mailbox.erase(mailbox.begin(), mailbox.begin() + i);
 }
 
 inline void Scheduler::send_to_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event) {
