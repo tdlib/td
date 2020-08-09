@@ -19998,7 +19998,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
 }
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
-    Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options, unique_ptr<MessageContent> &&content,
+    Dialog *d, MessageId reply_to_message_id, const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
     bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
@@ -20527,7 +20527,7 @@ class MessagesManager::SendMessageLogEvent {
 };
 
 Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId reply_to_message_id,
-                                                tl_object_ptr<td_api::sendMessageOptions> &&options,
+                                                tl_object_ptr<td_api::messageSendOptions> &&options,
                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
@@ -20550,13 +20550,13 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
-  TRY_RESULT(send_message_options, process_send_message_options(dialog_id, std::move(options)));
-  TRY_STATUS(can_use_send_message_options(send_message_options, message_content));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
+  TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
 
   // there must be no errors after get_message_to_send call
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), message_send_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(),
                                                        MessageContentDupType::Send, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
@@ -20655,9 +20655,9 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
   return std::move(result);
 }
 
-Result<MessagesManager::SendMessageOptions> MessagesManager::process_send_message_options(
-    DialogId dialog_id, tl_object_ptr<td_api::sendMessageOptions> &&options) const {
-  SendMessageOptions result;
+Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
+    DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options) const {
+  MessageSendOptions result;
   if (options != nullptr) {
     result.disable_notification = options->disable_notification_;
     result.from_background = options->from_background_;
@@ -20689,7 +20689,7 @@ Result<MessagesManager::SendMessageOptions> MessagesManager::process_send_messag
   return result;
 }
 
-Status MessagesManager::can_use_send_message_options(const SendMessageOptions &options,
+Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
                                                      const unique_ptr<MessageContent> &content, int32 ttl) {
   if (options.schedule_date != 0) {
     if (ttl > 0) {
@@ -20703,9 +20703,9 @@ Status MessagesManager::can_use_send_message_options(const SendMessageOptions &o
   return Status::OK();
 }
 
-Status MessagesManager::can_use_send_message_options(const SendMessageOptions &options,
+Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
                                                      const InputMessageContent &content) {
-  return can_use_send_message_options(options, content.content, content.ttl);
+  return can_use_message_send_options(options, content.content, content.ttl);
 }
 
 int64 MessagesManager::generate_new_media_album_id() {
@@ -20717,7 +20717,7 @@ int64 MessagesManager::generate_new_media_album_id() {
 }
 
 Result<vector<MessageId>> MessagesManager::send_message_group(
-    DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::sendMessageOptions> &&options,
+    DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
     return Status::Error(4, "Too much messages to send as an album");
@@ -20732,12 +20732,12 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(send_message_options, process_send_message_options(dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
 
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
-    TRY_STATUS(can_use_send_message_options(send_message_options, message_content));
+    TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
     if (!is_allowed_media_group_content(message_content.content->get_type())) {
       return Status::Error(5, "Wrong message content type");
     }
@@ -20757,7 +20757,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<MessageId> result;
   bool need_update_dialog_pos = false;
   for (auto &message_content : message_contents) {
-    Message *m = get_message_to_send(d, reply_to_message_id, send_message_options,
+    Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
                                      dup_message_content(td_, dialog_id, message_content.first.get(),
                                                          MessageContentDupType::Send, MessageCopyOptions()),
                                      &need_update_dialog_pos);
@@ -21387,7 +21387,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   vector<MessageEntity> text_entities;
   text_entities.emplace_back(MessageEntity::Type::BotCommand, 0, narrow_cast<int32>(text.size()));
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, MessageId(), SendMessageOptions(),
+  Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(),
                                    create_text_message_content(text, std::move(text_entities), WebPageId()),
                                    &need_update_dialog_pos);
   m->is_bot_start_message = true;
@@ -21472,7 +21472,7 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
 }
 
 Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
-                                                                    tl_object_ptr<td_api::sendMessageOptions> &&options,
+                                                                    tl_object_ptr<td_api::messageSendOptions> &&options,
                                                                     int64 query_id, const string &result_id,
                                                                     bool hide_via_bot) {
   LOG(INFO) << "Begin to send inline query result message to " << dialog_id << " in reply to " << reply_to_message_id;
@@ -21483,7 +21483,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(send_message_options, process_send_message_options(dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
   bool to_secret = false;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -21511,11 +21511,11 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
     return Status::Error(5, "Inline query result not found");
   }
 
-  TRY_STATUS(can_use_send_message_options(send_message_options, content->message_content, 0));
+  TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, 0));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), send_message_options,
+  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), message_send_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(),
                                                        MessageContentDupType::SendViaBot, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, true);
@@ -22925,7 +22925,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 }
 
 Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                                   tl_object_ptr<td_api::sendMessageOptions> &&options,
+                                                   tl_object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, MessageCopyOptions &&copy_options) {
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
@@ -22941,7 +22941,7 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
 
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                                             vector<MessageId> message_ids,
-                                                            tl_object_ptr<td_api::sendMessageOptions> &&options,
+                                                            tl_object_ptr<td_api::messageSendOptions> &&options,
                                                             bool in_game_share, bool as_album,
                                                             vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
@@ -22969,7 +22969,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(send_message_options, process_send_message_options(to_dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options)));
 
   for (auto message_id : message_ids) {
     if (message_id.is_valid_scheduled()) {
@@ -23027,7 +23027,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    auto can_use_options_status = can_use_send_message_options(send_message_options, content, 0);
+    auto can_use_options_status = can_use_message_send_options(message_send_options, content, 0);
     if (can_use_options_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
@@ -23077,7 +23077,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       }
     }
 
-    Message *m = get_message_to_send(to_dialog, MessageId(), send_message_options, std::move(content),
+    Message *m = get_message_to_send(to_dialog, MessageId(), message_send_options, std::move(content),
                                      &need_update_dialog_pos, std::move(forward_info));
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
@@ -23175,7 +23175,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     for (auto &copied_message : copied_messages) {
-      Message *m = get_message_to_send(to_dialog, MessageId(), send_message_options, std::move(copied_message.content),
+      Message *m = get_message_to_send(to_dialog, MessageId(), message_send_options, std::move(copied_message.content),
                                        &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       m->media_album_id = media_album_id;
@@ -23282,7 +23282,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
 
-    SendMessageOptions options(message->disable_notification, message->from_background,
+    MessageSendOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(d, get_reply_to_message_id(d, message->reply_to_message_id), options,
                                      std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
@@ -23328,7 +23328,7 @@ Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_i
 
   TRY_STATUS(can_send_message(dialog_id));
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, MessageId(), SendMessageOptions(), create_chat_set_ttl_message_content(ttl),
+  Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(), create_chat_set_ttl_message_content(ttl),
                                    &need_update_dialog_pos);
 
   send_update_new_message(d, m);
@@ -23361,7 +23361,7 @@ Status MessagesManager::send_screenshot_taken_notification_message(DialogId dial
 
   if (dialog_type == DialogType::User) {
     bool need_update_dialog_pos = false;
-    const Message *m = get_message_to_send(d, MessageId(), SendMessageOptions(),
+    const Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(),
                                            create_screenshot_taken_message_content(), &need_update_dialog_pos);
 
     do_send_screenshot_taken_notification_message(dialog_id, m, 0);

@@ -1391,14 +1391,14 @@ class CliClient final : public Actor {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat, reply_to_message_id,
-        td_api::make_object<td_api::sendMessageOptions>(disable_notification, from_background,
+        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background,
                                                         as_message_scheduling_state(schedule_date_)),
         nullptr, std::move(input_message_content)));
     query_id_to_send_message_info_[id].start_time = Time::now();
   }
 
-  td_api::object_ptr<td_api::sendMessageOptions> default_send_message_options() const {
-    return td_api::make_object<td_api::sendMessageOptions>(false, false, as_message_scheduling_state(schedule_date_));
+  td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
+    return td_api::make_object<td_api::messageSendOptions>(false, false, as_message_scheduling_state(schedule_date_));
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
@@ -2706,7 +2706,7 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::forwardMessages>(
-          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_send_message_options(), op[2] == 'g',
+          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_message_send_options(), op[2] == 'g',
           op[0] == 'c', Random::fast(0, 1) == 1));
     } else if (op == "resend") {
       string chat_id;
@@ -2967,7 +2967,7 @@ class CliClient final : public Actor {
       photos = full_split(args);
 
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          as_chat_id(chat_id), as_message_id(reply_to_message_id), default_send_message_options(),
+          as_chat_id(chat_id), as_message_id(reply_to_message_id), default_message_send_options(),
           transform(photos, [](const string &photo_path) {
             td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
                 as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
@@ -3096,7 +3096,7 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-          chat, 0, default_send_message_options(), to_integer<int64>(query_id), result_id, op == "siqrh"));
+          chat, 0, default_message_send_options(), to_integer<int64>(query_id), result_id, op == "siqrh"));
     } else if (op == "gcqr") {
       string chat_id;
       string message_id;

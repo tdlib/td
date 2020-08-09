@@ -368,25 +368,25 @@ class MessagesManager : public Actor {
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
   Result<MessageId> send_message(
-      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::sendMessageOptions> &&options,
+      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
       tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> send_message_group(
-      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::sendMessageOptions> &&options,
+      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
       vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
-                                                     tl_object_ptr<td_api::sendMessageOptions> &&options,
+                                                     tl_object_ptr<td_api::messageSendOptions> &&options,
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                              vector<MessageId> message_ids,
-                                             tl_object_ptr<td_api::sendMessageOptions> &&options, bool in_game_share,
+                                             tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
                                              bool as_album,
                                              vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
@@ -1507,13 +1507,13 @@ class MessagesManager : public Actor {
     Promise<> success_promise;
   };
 
-  struct SendMessageOptions {
+  struct MessageSendOptions {
     bool disable_notification = false;
     bool from_background = false;
     int32 schedule_date = 0;
 
-    SendMessageOptions() = default;
-    SendMessageOptions(bool disable_notification, bool from_background, int32 schedule_date)
+    MessageSendOptions() = default;
+    MessageSendOptions(bool disable_notification, bool from_background, int32 schedule_date)
         : disable_notification(disable_notification), from_background(from_background), schedule_date(schedule_date) {
     }
   };
@@ -1654,14 +1654,14 @@ class MessagesManager : public Actor {
   Result<MessageCopyOptions> process_message_copy_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageCopyOptions> &&options) const;
 
-  Result<SendMessageOptions> process_send_message_options(DialogId dialog_id,
-                                                          tl_object_ptr<td_api::sendMessageOptions> &&options) const;
+  Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
+                                                          tl_object_ptr<td_api::messageSendOptions> &&options) const;
 
-  static Status can_use_send_message_options(const SendMessageOptions &options,
+  static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, int32 ttl);
-  static Status can_use_send_message_options(const SendMessageOptions &options, const InputMessageContent &content);
+  static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
-  Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const SendMessageOptions &options,
+  Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const MessageSendOptions &options,
                                unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
                                unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false);
 
@@ -1708,7 +1708,7 @@ class MessagesManager : public Actor {
                            const vector<MessageId> &message_ids, uint64 logevent_id);
 
   Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                    tl_object_ptr<td_api::sendMessageOptions> &&options, bool in_game_share,
+                                    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
                                     MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
