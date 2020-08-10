@@ -10589,7 +10589,7 @@ void ContactsManager::on_get_channel_participants_success(
                << channel_id;
     total_count = static_cast<int32>(result.size());
   } else if (is_full && total_count > static_cast<int32>(result.size())) {
-    LOG(ERROR) << "Fix total member count from " << total_count << " to " << result.size();
+    LOG(ERROR) << "Fix total number of members from " << total_count << " to " << result.size() << " in " << channel_id;
     total_count = static_cast<int32>(result.size());
   }
 
@@ -11469,7 +11469,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
     // Chat is already updated
     if (chat_full->version == c->version &&
         narrow_cast<int32>(chat_full->participants.size()) != c->participant_count) {
-      LOG(ERROR) << "Number of members of " << chat_id << " with version " << c->version << " is "
+      LOG(ERROR) << "Number of members in " << chat_id << " with version " << c->version << " is "
                  << c->participant_count << " but there are " << chat_full->participants.size()
                  << " members in the ChatFull";
       repair_chat_participants(chat_id);
@@ -11743,7 +11743,7 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
 
   if (version < c->version) {
     // some outdated data
-    LOG(INFO) << "Receive member count of " << chat_id << " with version " << version << debug_str
+    LOG(INFO) << "Receive number of members in " << chat_id << " with version " << version << debug_str
               << ", but current version is " << c->version;
     return;
   }
@@ -11752,7 +11752,7 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
     if (version == c->version && participant_count != 0) {
       // version is not changed when deleted user is removed from the chat
       LOG_IF(ERROR, c->participant_count != participant_count + 1)
-          << "Member count of " << chat_id << " has changed from " << c->participant_count << " to "
+          << "Number of members in " << chat_id << " has changed from " << c->participant_count << " to "
           << participant_count << ", but version " << c->version << " remains unchanged" << debug_str;
       repair_chat_participants(chat_id);
     }
@@ -11839,7 +11839,7 @@ bool ContactsManager::on_update_chat_full_participants_short(ChatFull *chat_full
     return true;
   }
 
-  LOG(INFO) << "Member count of " << chat_id << " with version " << chat_full->version
+  LOG(INFO) << "Number of members in " << chat_id << " with version " << chat_full->version
             << " has changed, but new version is " << version;
   repair_chat_participants(chat_id);
   return false;

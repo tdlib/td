@@ -6145,18 +6145,18 @@ void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, i
   }
 
   if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive online member count in invalid " << dialog_id;
+    LOG(ERROR) << "Receive number of online members in invalid " << dialog_id;
     return;
   }
 
   if (is_broadcast_channel(dialog_id)) {
     LOG_IF(ERROR, online_member_count != 0)
-        << "Receive online member count " << online_member_count << " in a broadcast " << dialog_id;
+        << "Receive " << online_member_count << " as a number of online members in a channel " << dialog_id;
     return;
   }
 
   if (online_member_count < 0) {
-    LOG(ERROR) << "Receive online member count " << online_member_count << " in a " << dialog_id;
+    LOG(ERROR) << "Receive " << online_member_count << " as a number of online members in a " << dialog_id;
     return;
   }
 
@@ -10500,8 +10500,8 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
   }
 
   auto &info = dialog_online_member_counts_[dialog_id];
-  LOG(INFO) << "Change online member count from " << info.online_member_count << " to " << online_member_count << " in "
-            << dialog_id << " from " << source;
+  LOG(INFO) << "Change number of online members from " << info.online_member_count << " to " << online_member_count
+            << " in " << dialog_id << " from " << source;
   bool need_update = d->is_opened && (!info.is_update_sent || info.online_member_count != online_member_count);
   info.online_member_count = online_member_count;
   info.updated_time = Time::now();
@@ -10524,7 +10524,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
     return;
   }
 
-  LOG(INFO) << "Expired timeout for online member count for " << dialog_id;
+  LOG(INFO) << "Expired timeout for number of online members in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (!d->is_opened) {
