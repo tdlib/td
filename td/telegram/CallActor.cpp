@@ -132,7 +132,14 @@ void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUse
 }
 
 void CallActor::update_call_signaling_data(string data) {
-  // nothing to do
+  if (call_state_.type != CallState::Type::Ready) {
+    return;
+  }
+
+  auto update = td_api::make_object<td_api::updateNewCallSignalingData>();
+  update->call_id_ = local_call_id_.get();
+  update->data_ = std::move(data);
+  send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
 void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id,

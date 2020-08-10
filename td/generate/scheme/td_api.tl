@@ -3189,6 +3189,9 @@ updateFileGenerationStop generation_id:int64 = Update;
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
 
+//@description New call signaling data arrived @call_id The call identifier @data The data
+updateNewCallSignalingData call_id:int32 data:bytes = Update;
+
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
 updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRules = Update;
 
