@@ -5222,15 +5222,15 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
     return 0;
   }
-  int32 mentions_mask = get_message_content_index_mask(m->content.get(), td_, is_secret, m->is_outgoing);
+  int32 index_mask = get_message_content_index_mask(m->content.get(), td_, is_secret, m->is_outgoing);
   if (m->contains_mention) {
-    mentions_mask |= search_messages_filter_index_mask(SearchMessagesFilter::Mention);
+    index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::Mention);
     if (m->contains_unread_mention) {
-      mentions_mask |= search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+      index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
     }
   }
-  LOG(INFO) << "Have index mask " << mentions_mask << " for " << m->message_id << " in " << dialog_id;
-  return mentions_mask;
+  LOG(INFO) << "Have index mask " << index_mask << " for " << m->message_id << " in " << dialog_id;
+  return index_mask;
 }
 
 vector<MessageId> MessagesManager::get_message_ids(const vector<int64> &input_message_ids) {
@@ -6053,9 +6053,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
         LOG(ERROR) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
       }
     } else {
-      d->unread_mention_count--;
-      d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-          d->unread_mention_count;
+      set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
       on_dialog_updated(d->dialog_id, "update_message_contains_unread_mention");
     }
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count
@@ -9602,8 +9600,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
 
   if (d->unread_mention_count > 0) {
-    d->unread_mention_count = 0;
-    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = 0;
+    set_dialog_unread_mention_count(d, 0);
     send_update_chat_unread_mention_count(d);
   }
 
@@ -9727,8 +9724,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
   }
 
   if (d->unread_mention_count != 0) {
-    d->unread_mention_count = 0;
-    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = 0;
+    set_dialog_unread_mention_count(d, 0);
     if (!is_update_sent) {
       send_update_chat_unread_mention_count(d);
     } else {
@@ -12371,6 +12367,15 @@ void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, 
   }
 }
 
+void MessagesManager::set_dialog_unread_mention_count(Dialog *d, int32 unread_mention_count) {
+  CHECK(d->unread_mention_count != unread_mention_count);
+  CHECK(unread_mention_count >= 0);
+
+  d->unread_mention_count = unread_mention_count;
+  d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
+      d->unread_mention_count;
+}
+
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
   d->is_empty = true;
@@ -12386,8 +12391,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
     }
   }
   if (d->unread_mention_count > 0) {
-    d->unread_mention_count = 0;
-    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = 0;
+    set_dialog_unread_mention_count(d, 0);
     send_update_chat_unread_mention_count(d);
   }
   if (d->reply_markup_message_id != MessageId()) {
@@ -13010,10 +13014,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
     if (!G()->parameters().use_message_db || is_new) {
       if (d->unread_mention_count != dialog->unread_mentions_count_) {
-        d->unread_mention_count = dialog->unread_mentions_count_;
+        set_dialog_unread_mention_count(d, dialog->unread_mentions_count_);
         update_dialog_mention_notification_count(d);
-        d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-            d->unread_mention_count;
         send_update_chat_unread_mention_count(d);
       }
     }
@@ -13626,9 +13628,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] != -1)
             << "Unread mention count became negative in " << d->dialog_id << " after deletion of " << message_id;
       } else {
-        d->unread_mention_count--;
-        d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-            d->unread_mention_count;
+        set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
         send_update_chat_unread_mention_count(d);
       }
     }
@@ -28719,6 +28719,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (message->contains_unread_mention && message_id <= d->last_read_all_mentions_message_id) {
+    LOG(INFO) << "Ignore unread mention in " << message_id;
     message->contains_unread_mention = false;
     if (message->from_database) {
       on_message_changed(d, message.get(), false, "add already read mention message to dialog");
@@ -28964,9 +28965,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if (*need_update && message->contains_unread_mention) {
-    d->unread_mention_count++;
-    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-        d->unread_mention_count;
+    set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
     send_update_chat_unread_mention_count(d);
   }
   if (*need_update) {
@@ -31940,9 +31939,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
                                           false, "on_get_channel_dialog 50");
   }
   if (d->unread_mention_count != unread_mention_count) {
-    d->unread_mention_count = unread_mention_count;
-    d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-        d->unread_mention_count;
+    set_dialog_unread_mention_count(d, unread_mention_count);
     update_dialog_mention_notification_count(d);
     send_update_chat_unread_mention_count(d);
   }

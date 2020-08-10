@@ -2137,6 +2137,8 @@ class MessagesManager : public Actor {
   void set_dialog_last_clear_history_date(Dialog *d, int32 date, MessageId last_clear_history_message_id,
                                           const char *source, bool is_loaded_from_database = false);
 
+  static void set_dialog_unread_mention_count(Dialog *d, int32 unread_mention_count);
+
   void set_dialog_is_empty(Dialog *d, const char *source);
 
   static int32 get_pinned_dialogs_limit(DialogListId dialog_list_id);
