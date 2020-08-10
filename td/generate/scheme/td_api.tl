@@ -1918,8 +1918,18 @@ callDiscardReasonHungUp = CallDiscardReason;
 //@library_versions List of supported libtgvoip versions
 callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 library_versions:vector<string> = CallProtocol;
 
-//@description Describes the address of UDP reflectors @id Reflector identifier @ip IPv4 reflector address @ipv6 IPv6 reflector address @port Reflector port number @peer_tag Connection peer tag
-callConnection id:int64 ip:string ipv6:string port:int32 peer_tag:bytes = CallConnection;
+
+//@class CallServerType @description Describes the type of a call server
+
+//@description A Telegram call reflector @peer_tag A peer tag to be used with the reflector
+callServerTypeTelegramReflector peer_tag:bytes = CallServerType;
+
+//@description A WebRTC server @username Username to be used for authentification @password Authentication password @supports_turn True, if the server supports TURN @supports_stun True, if the server supports STUN
+callServerTypeWebrtc username:string password:string supports_turn:Bool supports_stun:Bool = CallServerType;
+
+
+//@description Describes a server for relaying call data @id Server identifier @ip_address Server IPv4 address @ipv6_address Server IPv6 address @port Server port number @type Server type
+callServer id:int64 ip_address:string ipv6_address:string port:int32 type:CallServerType = CallServer;
 
 
 //@description Contains the call identifier @id Call identifier
@@ -1934,8 +1944,8 @@ callStatePending is_created:Bool is_received:Bool = CallState;
 //@description The call has been answered and encryption keys are being exchanged
 callStateExchangingKeys = CallState;
 
-//@description The call is ready to use @protocol Call protocols supported by the peer @connections Available UDP reflectors @config A JSON-encoded call config @encryption_key Call encryption key @emojis Encryption key emojis fingerprint @allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
-callStateReady protocol:callProtocol connections:vector<callConnection> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool = CallState;
+//@description The call is ready to use @protocol Call protocols supported by the peer @servers List of available call servers @config A JSON-encoded call config @encryption_key Call encryption key @emojis Encryption key emojis fingerprint @allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
+callStateReady protocol:callProtocol servers:vector<callServer> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool = CallState;
 
 //@description The call is hanging up after discardCall has been called
 callStateHangingUp = CallState;

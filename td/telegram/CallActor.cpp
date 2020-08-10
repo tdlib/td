@@ -64,12 +64,34 @@ CallProtocol::CallProtocol(const td_api::callProtocol &protocol)
     , library_versions(protocol.library_versions_) {
 }
 
-CallConnection::CallConnection(const telegram_api::phoneConnection &connection)
-    : id(connection.id_)
-    , ip(connection.ip_)
-    , ipv6(connection.ipv6_)
-    , port(connection.port_)
-    , peer_tag(connection.peer_tag_.as_slice().str()) {
+CallConnection::CallConnection(const telegram_api::PhoneConnection &connection) {
+  switch (connection.get_id()) {
+    case telegram_api::phoneConnection::ID: {
+      auto &conn = static_cast<const telegram_api::phoneConnection &>(connection);
+      type = Type::Telegram;
+      id = conn.id_;
+      ip = conn.ip_;
+      ipv6 = conn.ipv6_;
+      port = conn.port_;
+      peer_tag = conn.peer_tag_.as_slice().str();
+      break;
+    }
+    case telegram_api::phoneConnectionWebrtc::ID: {
+      auto &conn = static_cast<const telegram_api::phoneConnectionWebrtc &>(connection);
+      type = Type::Webrtc;
+      id = conn.id_;
+      ip = conn.ip_;
+      ipv6 = conn.ipv6_;
+      port = conn.port_;
+      username = conn.username_;
+      password = conn.password_;
+      supports_turn = conn.turn_;
+      supports_stun = conn.stun_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
 }
 
 tl_object_ptr<td_api::callProtocol> CallProtocol::get_call_protocol_object() const {
@@ -77,12 +99,19 @@ tl_object_ptr<td_api::callProtocol> CallProtocol::get_call_protocol_object() con
                                               vector<string>(library_versions));
 }
 
-tl_object_ptr<telegram_api::phoneConnection> CallConnection::get_input_phone_connection() const {
-  return make_tl_object<telegram_api::phoneConnection>(id, ip, ipv6, port, BufferSlice(peer_tag));
-}
-
-tl_object_ptr<td_api::callConnection> CallConnection::get_call_connection_object() const {
-  return make_tl_object<td_api::callConnection>(id, ip, ipv6, port, peer_tag);
+tl_object_ptr<td_api::callServer> CallConnection::get_call_server_object() const {
+  auto server_type = [&]() -> tl_object_ptr<td_api::CallServerType> {
+    switch (type) {
+      case Type::Telegram:
+        return make_tl_object<td_api::callServerTypeTelegramReflector>(peer_tag);
+      case Type::Webrtc:
+        return make_tl_object<td_api::callServerTypeWebrtc>(username, password, supports_turn, supports_stun);
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
+  return make_tl_object<td_api::callServer>(id, ip, ipv6, port, std::move(server_type));
 }
 
 tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
@@ -92,7 +121,7 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
     case Type::ExchangingKey:
       return make_tl_object<td_api::callStateExchangingKeys>();
     case Type::Ready: {
-      auto call_connections = transform(connections, [](auto &c) { return c.get_call_connection_object(); });
+      auto call_connections = transform(connections, [](auto &c) { return c.get_call_server_object(); });
       return make_tl_object<td_api::callStateReady>(protocol.get_call_protocol_object(), std::move(call_connections),
                                                     config, key, vector<string>(emojis_fingerprint), allow_p2p);
     }

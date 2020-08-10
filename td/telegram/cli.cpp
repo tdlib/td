@@ -2730,11 +2730,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::closeSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cc" || op == "CreateCall") {
       send_request(td_api::make_object<td_api::createCall>(
-          as_user_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6"}),
+          as_user_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"}),
           Random::fast(0, 1) == 1));
     } else if (op == "ac" || op == "AcceptCall") {
       send_request(td_api::make_object<td_api::acceptCall>(
-          as_call_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6"})));
+          as_call_id(args),
+          td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"})));
     } else if (op == "scsd") {
       send_request(td_api::make_object<td_api::sendCallSignalingData>(as_call_id(args), "abacaba"));
     } else if (op == "dc" || op == "DiscardCall") {

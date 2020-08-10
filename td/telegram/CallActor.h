@@ -46,17 +46,25 @@ struct CallProtocol {
 };
 
 struct CallConnection {
+  enum class Type : int32 { Telegram, Webrtc };
+  Type type;
   int64 id;
   string ip;
   string ipv6;
   int32 port;
+
+  // Telegram
   string peer_tag;
 
-  explicit CallConnection(const telegram_api::phoneConnection &connection);
+  // WebRTC
+  string username;
+  string password;
+  bool supports_turn = false;
+  bool supports_stun = false;
 
-  tl_object_ptr<telegram_api::phoneConnection> get_input_phone_connection() const;
+  explicit CallConnection(const telegram_api::PhoneConnection &connection);
 
-  tl_object_ptr<td_api::callConnection> get_call_connection_object() const;
+  tl_object_ptr<td_api::callServer> get_call_server_object() const;
 };
 
 struct CallState {
