@@ -6049,7 +6049,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 
     m->contains_unread_mention = false;
     if (d->unread_mention_count == 0) {
-      if (d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] != -1) {
+      if (is_dialog_inited(d)) {
         LOG(ERROR) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
       }
     } else {
@@ -12372,8 +12372,7 @@ void MessagesManager::set_dialog_unread_mention_count(Dialog *d, int32 unread_me
   CHECK(unread_mention_count >= 0);
 
   d->unread_mention_count = unread_mention_count;
-  d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
-      d->unread_mention_count;
+  d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = unread_mention_count;
 }
 
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
@@ -13624,9 +13623,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
     if (result->contains_unread_mention) {
       if (d->unread_mention_count == 0) {
-        LOG_IF(ERROR,
-               d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] != -1)
-            << "Unread mention count became negative in " << d->dialog_id << " after deletion of " << message_id;
+        if (is_dialog_inited(d)) {
+          LOG(ERROR) << "Unread mention count became negative in " << d->dialog_id << " after deletion of "
+                     << message_id;
+        }
       } else {
         set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
         send_update_chat_unread_mention_count(d);
