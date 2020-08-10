@@ -190,5 +190,13 @@ void HttpConnectionBase::loop() {
   }
 }
 
+void HttpConnectionBase::on_start_migrate(int32 sched_id) {
+  Scheduler::unsubscribe(fd_.get_poll_info().get_pollable_fd_ref());
+}
+
+void HttpConnectionBase::on_finish_migrate() {
+  Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
+}
+
 }  // namespace detail
 }  // namespace td

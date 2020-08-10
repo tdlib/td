@@ -66,6 +66,9 @@ class HttpConnectionBase : public Actor {
   void timeout_expired() override;
   void loop() override;
 
+  void on_start_migrate(int32 sched_id) override;
+  void on_finish_migrate() override;
+
   virtual void on_query(unique_ptr<HttpQuery> query) = 0;
   virtual void on_error(Status error) = 0;
 };
