@@ -5817,7 +5817,7 @@ void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
   CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
 }
 
-void Td::on_request(uint64 id, td_api::createCall &request) {
+void Td::on_request(uint64 id, const td_api::createCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<CallId> result) mutable {
@@ -5846,14 +5846,7 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
                CallProtocol(*request.protocol_), request.is_video_, std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, td_api::discardCall &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
-               request.duration_, request.is_video_, request.connection_id_, std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::acceptCall &request) {
+void Td::on_request(uint64 id, const td_api::acceptCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   if (!request.protocol_) {
@@ -5861,6 +5854,20 @@ void Td::on_request(uint64 id, td_api::acceptCall &request) {
   }
   send_closure(G()->call_manager(), &CallManager::accept_call, CallId(request.call_id_),
                CallProtocol(*request.protocol_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::sendCallSignalingData &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->call_manager(), &CallManager::send_call_signaling_data, CallId(request.call_id_),
+               std::move(request.data_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::discardCall &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
+               request.duration_, request.is_video_, request.connection_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendCallRating &request) {

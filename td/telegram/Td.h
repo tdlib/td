@@ -663,11 +663,13 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::createNewSecretChat &request);
 
-  void on_request(uint64 id, td_api::createCall &request);
+  void on_request(uint64 id, const td_api::createCall &request);
 
-  void on_request(uint64 id, td_api::discardCall &request);
+  void on_request(uint64 id, const td_api::acceptCall &request);
 
-  void on_request(uint64 id, td_api::acceptCall &request);
+  void on_request(uint64 id, td_api::sendCallSignalingData &request);
+
+  void on_request(uint64 id, const td_api::discardCall &request);
 
   void on_request(uint64 id, td_api::sendCallRating &request);
 

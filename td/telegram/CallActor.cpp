@@ -131,6 +131,16 @@ void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUse
   promise.set_value(CallId(local_call_id_));
 }
 
+void CallActor::accept_call(CallProtocol &&protocol, Promise<> promise) {
+  if (state_ != State::SendAcceptQuery) {
+    return promise.set_error(Status::Error(400, "Unexpected acceptCall"));
+  }
+  is_accepted_ = true;
+  call_state_.protocol = std::move(protocol);
+  promise.set_value(Unit());
+  loop();
+}
+
 void CallActor::update_call_signaling_data(string data) {
   if (call_state_.type != CallState::Type::Ready) {
     return;
@@ -140,6 +150,24 @@ void CallActor::update_call_signaling_data(string data) {
   update->call_id_ = local_call_id_.get();
   update->data_ = std::move(data);
   send_closure(G()->td(), &Td::send_update, std::move(update));
+}
+
+void CallActor::send_call_signaling_data(string &&data, Promise<> promise) {
+  if (call_state_.type != CallState::Type::Ready) {
+    return promise.set_error(Status::Error(400, "Call is not active"));
+  }
+
+  auto query = G()->net_query_creator().create(
+      telegram_api::phone_sendSignalingData(get_input_phone_call("send_call_signaling_data"), BufferSlice(data)));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](NetQueryPtr net_query) mutable {
+                      auto res = fetch_result<telegram_api::phone_sendSignalingData>(std::move(net_query));
+                      if (res.is_error()) {
+                        promise.set_error(res.move_as_error());
+                      } else {
+                        promise.set_value(Unit());
+                      }
+                    }));
 }
 
 void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
@@ -184,16 +212,6 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video
   call_state_need_flush_ = true;
 
   state_ = State::SendDiscardQuery;
-  loop();
-}
-
-void CallActor::accept_call(CallProtocol &&protocol, Promise<> promise) {
-  if (state_ != State::SendAcceptQuery) {
-    return promise.set_error(Status::Error(400, "Unexpected acceptCall"));
-  }
-  is_accepted_ = true;
-  call_state_.protocol = std::move(protocol);
-  promise.set_value(Unit());
   loop();
 }
 

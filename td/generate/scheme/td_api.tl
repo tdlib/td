@@ -4066,6 +4066,9 @@ createCall user_id:int32 protocol:callProtocol is_video:Bool = CallId;
 //@description Accepts an incoming call @call_id Call identifier @protocol Description of the call protocols supported by the application
 acceptCall call_id:int32 protocol:callProtocol = Ok;
 
+//@description Sends call signaling data @call_id Call identifier @data The data
+sendCallSignalingData call_id:int32 data:bytes = Ok;
+
 //@description Discards a call @call_id Call identifier @is_disconnected True, if the user was disconnected @duration The call duration, in seconds @is_video True, if the call was a video call @connection_id Identifier of the connection used during the call
 discardCall call_id:int32 is_disconnected:Bool duration:int32 is_video:Bool connection_id:int64 = Ok;
 
