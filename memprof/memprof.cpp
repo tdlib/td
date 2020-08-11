@@ -11,7 +11,6 @@
 #if (TD_DARWIN || TD_LINUX) && defined(USE_MEMPROF)
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -33,6 +32,11 @@ double get_fast_backtrace_success_rate() {
   return 0;
 }
 #else
+
+#define my_assert(f) \
+  if (!(f)) {        \
+    std::abort();    \
+  }
 
 #if TD_LINUX
 extern void *__libc_stack_end;
@@ -156,7 +160,7 @@ std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
     if (pos_hash == 0) {
       if (ht_size > HT_MAX_SIZE / 2) {
         if (force) {
-          assert(ht_size * 10 < HT_MAX_SIZE * 7);
+          my_assert(ht_size * 10 < HT_MAX_SIZE * 7);
         } else {
           Backtrace unknown_bt{{nullptr}};
           unknown_bt[0] = reinterpret_cast<void *>(1);
@@ -188,18 +192,21 @@ std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
 
 void dump_alloc(const std::function<void(const AllocInfo &)> &func) {
   for (auto &node : ht) {
-    if (node.size == 0) {
+    auto size = node.size.load(std::memory_order_relaxed);
+    if (size == 0) {
       continue;
     }
-    func(AllocInfo{node.backtrace, node.size.load()});
+    func(AllocInfo{node.backtrace, size});
   }
 }
 
 void register_xalloc(malloc_info *info, std::int32_t diff) {
+  my_assert(info->size >= 0);
   if (diff > 0) {
-    ht[info->ht_pos].size += info->size;
+    ht[info->ht_pos].size.fetch_add(info->size, std::memory_order_relaxed);
   } else {
-    ht[info->ht_pos].size -= info->size;
+    auto old_value = ht[info->ht_pos].size.fetch_sub(info->size, std::memory_order_relaxed);
+    my_assert(old_value >= static_cast<std::size_t>(info->size));
   }
 }
 
@@ -234,7 +241,7 @@ static malloc_info *get_info(void *data_void) {
   auto *buf = data - RESERVED_SIZE;
 
   auto *info = reinterpret_cast<malloc_info *>(buf);
-  assert(info->magic == MALLOC_INFO_MAGIC);
+  my_assert(info->magic == MALLOC_INFO_MAGIC);
   return info;
 }
 
@@ -276,7 +283,7 @@ void *realloc(void *ptr, std::size_t size) {
   return new_ptr;
 }
 void *memalign(std::size_t aligment, std::size_t size) {
-  assert(false && "Memalign is unsupported");
+  my_assert(false && "Memalign is unsupported");
   return nullptr;
 }
 }
