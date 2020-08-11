@@ -32,6 +32,10 @@ int64 BufferAllocator::get_buffer_slice_size() {
 }
 
 void BufferAllocator::track_buffer_slice(int64 size) {
+  if (size == 0) {
+    return;
+  }
+
   buffer_slice_size_.add(size);
 }
 
