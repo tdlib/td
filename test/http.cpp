@@ -137,6 +137,8 @@ TEST(Http, reader) {
   {
     BufferSlice a("test test");
     BufferSlice b = std::move(a);
+    a = std::move(a);
+    b = std::move(b);
     a = std::move(b);
     BufferSlice c = a.from_slice(a);
     CHECK(c.size() == a.size());

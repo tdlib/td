@@ -122,6 +122,9 @@ class BufferSlice {
     debug_untrack();  // yes, debug_untrack
   }
   BufferSlice &operator=(BufferSlice &&other) {
+    if (this == &other) {
+      return *this;
+    }
     debug_untrack();
     buffer_ = std::move(other.buffer_);
     begin_ = other.begin_;
