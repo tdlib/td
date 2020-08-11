@@ -20538,6 +20538,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
+    TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
     return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
                            std::move(options), input_message->in_game_share_, std::move(copy_options));
   }
@@ -22994,6 +22995,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   struct CopiedMessage {
     unique_ptr<MessageContent> content;
+    unique_ptr<ReplyMarkup> reply_markup;
     bool disable_web_page_preview;
     size_t index;
   };
@@ -23019,6 +23021,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
     auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
+    auto reply_markup = std::move(copy_options[i].reply_markup);
     unique_ptr<MessageContent> content =
         dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type, std::move(copy_options[i]));
     if (content == nullptr) {
@@ -23039,7 +23042,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     if (need_copy) {
-      copied_messages.push_back({std::move(content), get_message_disable_web_page_preview(forwarded_message), i});
+      copied_messages.push_back(
+          {std::move(content), std::move(reply_markup), get_message_disable_web_page_preview(forwarded_message), i});
       continue;
     }
 
@@ -23184,6 +23188,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                        &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       m->media_album_id = media_album_id;
+      m->reply_markup = std::move(copied_message.reply_markup);
 
       save_send_message_logevent(to_dialog_id, m);
       do_send_message(to_dialog_id, m);

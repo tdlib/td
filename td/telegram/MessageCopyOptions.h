@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/ReplyMarkup.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -17,6 +18,7 @@ struct MessageCopyOptions {
   bool send_copy = false;
   bool replace_caption = false;
   FormattedText new_caption;
+  unique_ptr<ReplyMarkup> reply_markup;
 
   MessageCopyOptions() = default;
   MessageCopyOptions(bool send_copy, bool remove_caption) : send_copy(send_copy), replace_caption(remove_caption) {
