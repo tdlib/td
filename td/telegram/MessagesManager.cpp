@@ -20651,7 +20651,12 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
   }
   MessageCopyOptions result;
   result.send_copy = true;
-  result.remove_caption = options->remove_caption_;
+  result.replace_caption = options->replace_caption_;
+  if (result.replace_caption) {
+    TRY_RESULT_ASSIGN(result.new_caption,
+                      process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(options->new_caption_),
+                                            td_->auth_manager_->is_bot()));
+  }
   return std::move(result);
 }
 

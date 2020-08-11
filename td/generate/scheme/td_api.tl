@@ -1691,8 +1691,9 @@ messageSendOptions disable_notification:Bool from_background:Bool scheduling_sta
 
 //@description Options to be used when a message content is copied without a link to the original message
 //@send_copy True, if content of the message needs to be copied without a link to the original message. Always true if the message is forwarded to a secret chat
-//@remove_caption True, if media caption of the message copy needs to be removed. Ignored if send_copy is false
-messageCopyOptions send_copy:Bool remove_caption:Bool = MessageCopyOptions;
+//@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
+//@new_caption New message caption. Ignored if replace_caption is false
+messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText = MessageCopyOptions;
 
 
 //@class InputMessageContent @description The content of a message to send

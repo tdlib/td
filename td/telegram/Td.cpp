@@ -5748,8 +5748,8 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   DialogId dialog_id(request.chat_id_);
   auto input_message_ids = MessagesManager::get_message_ids(request.message_ids_);
   auto message_copy_options =
-      transform(input_message_ids, [copy_options = MessageCopyOptions(request.send_copy_, request.remove_caption_)](
-                                       MessageId) { return copy_options; });
+      transform(input_message_ids, [send_copy = request.send_copy_, remove_caption = request.remove_caption_](
+                                       MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
   auto r_message_ids = messages_manager_->forward_messages(dialog_id, DialogId(request.from_chat_id_),
                                                            std::move(input_message_ids), std::move(request.options_),
                                                            false, request.as_album_, std::move(message_copy_options));

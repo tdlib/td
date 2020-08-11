@@ -3200,7 +3200,8 @@ class CliClient final : public Actor {
 
       td_api::object_ptr<td_api::messageCopyOptions> copy_options;
       if (op == "scopy") {
-        copy_options = td_api::make_object<td_api::messageCopyOptions>(true, Random::fast(0, 1) == 0);
+        copy_options =
+            td_api::make_object<td_api::messageCopyOptions>(true, Random::fast(0, 1) == 0, as_caption("_as_d"));
       }
 
       send_message(chat_id,

@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/MessageEntity.h"
+
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
@@ -13,16 +15,23 @@ namespace td {
 
 struct MessageCopyOptions {
   bool send_copy = false;
-  bool remove_caption = false;
+  bool replace_caption = false;
+  FormattedText new_caption;
 
   MessageCopyOptions() = default;
-  MessageCopyOptions(bool send_copy, bool remove_caption): send_copy(send_copy), remove_caption(remove_caption) {
+  MessageCopyOptions(bool send_copy, bool remove_caption) : send_copy(send_copy), replace_caption(remove_caption) {
   }
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, MessageCopyOptions copy_options) {
   if (copy_options.send_copy) {
-    string_builder << "CopyOptions[remove_caption = " << copy_options.remove_caption << "]";
+    string_builder << "CopyOptions[replace_caption = " << copy_options.replace_caption;
+  }
+  if (copy_options.replace_caption) {
+    string_builder << ", new_caption = " << copy_options.new_caption;
+  }
+  if (copy_options.send_copy) {
+    string_builder << "]";
   }
   return string_builder;
 }
