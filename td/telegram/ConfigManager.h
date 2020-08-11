@@ -131,6 +131,8 @@ class ConfigManager : public NetQueryCallback {
   size_t dismiss_suggested_action_request_count_ = 0;
   std::map<SuggestedAction, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
 
+  static constexpr uint64 REFCNT_TOKEN = std::numeric_limits<uint64>::max() - 2;
+
   void start_up() override;
   void hangup_shared() override;
   void hangup() override;
@@ -157,6 +159,8 @@ class ConfigManager : public NetQueryCallback {
   static void save_config_expire(Timestamp timestamp);
   static void save_dc_options_update(DcOptions dc_options);
   static DcOptions load_dc_options_update();
+
+  ActorShared<> create_reference();
 };
 
 }  // namespace td

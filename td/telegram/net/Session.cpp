@@ -684,8 +684,6 @@ void Session::mark_as_unknown(uint64 id, Query *query) {
 }
 
 Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) {
-  // Steal authorization information.
-  // It is a dirty hack, yep.
   if (id == 0) {
     if (is_cdn_) {
       return Status::Error("Got update from CDN connection");
@@ -718,6 +716,8 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
   VLOG(net_query) << "Return query result " << query_ptr->query;
 
   if (!parser.get_error()) {
+    // Steal authorization information.
+    // It is a dirty hack, yep.
     if (ID == telegram_api::auth_authorization::ID || ID == telegram_api::auth_loginTokenSuccess::ID) {
       if (query_ptr->query->tl_constructor() != telegram_api::auth_importAuthorization::ID) {
         G()->net_query_dispatcher().set_main_dc_id(raw_dc_id_);
