@@ -766,8 +766,13 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
     return;
   }
 
-  LOG(DEBUG) << "Session::on_message_result_error " << tag("id", id) << tag("error_code", error_code)
-             << tag("msg", message.as_slice());
+  if (error_code < 0) {
+    LOG(WARNING) << "Session::on_message_result_error from mtproto " << tag("id", id) << tag("error_code", error_code)
+                 << tag("msg", message.as_slice());
+  } else {
+    LOG(DEBUG) << "Session::on_message_result_error " << tag("id", id) << tag("error_code", error_code)
+               << tag("msg", message.as_slice());
+  }
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
     return;
