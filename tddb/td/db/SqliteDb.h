@@ -50,6 +50,7 @@ class SqliteDb {
   Status exec(CSlice cmd) TD_WARN_UNUSED_RESULT;
   Result<bool> has_table(Slice table);
   Result<string> get_pragma(Slice name);
+  Result<string> get_pragma_string(Slice name);
   Status begin_transaction() TD_WARN_UNUSED_RESULT;
   Status commit_transaction() TD_WARN_UNUSED_RESULT;
 
@@ -83,6 +84,7 @@ class SqliteDb {
   bool enable_logging_ = false;
 
   Status check_encryption();
+  static Result<SqliteDb> do_open_with_key(CSlice path, const DbKey &db_key, bool with_cipher_migrate);
 };
 
 }  // namespace td

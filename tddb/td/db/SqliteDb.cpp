@@ -125,6 +125,15 @@ Result<string> SqliteDb::get_pragma(Slice name) {
   CHECK(!stmt.can_step());
   return std::move(res);
 }
+Result<string> SqliteDb::get_pragma_string(Slice name) {
+  TRY_RESULT(stmt, get_statement(PSLICE() << "PRAGMA " << name));
+  TRY_STATUS(stmt.step());
+  CHECK(stmt.has_row());
+  auto res = stmt.view_string(0).str();
+  TRY_STATUS(stmt.step());
+  CHECK(!stmt.can_step());
+  return std::move(res);
+}
 
 Result<int32> SqliteDb::user_version() {
   TRY_RESULT(get_version_stmt, get_statement("PRAGMA user_version"));
@@ -163,6 +172,14 @@ Status SqliteDb::check_encryption() {
 }
 
 Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key) {
+  auto res = do_open_with_key(path, db_key, false);
+  if (res.is_error()) {
+    return do_open_with_key(path, db_key, true);
+  }
+  return res;
+}
+
+Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, bool with_cipher_migrate) {
   SqliteDb db;
   TRY_STATUS(db.init(path));
   if (!db_key.is_empty()) {
@@ -171,6 +188,12 @@ Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key) {
     }
     auto key = db_key_to_sqlcipher_key(db_key);
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA key = " << key));
+    if (with_cipher_migrate) {
+      TRY_RESULT(code, db.get_pragma_string("cipher_migrate"));
+      if (code != "0") {
+        return Status::Error(PSLICE() << "'PRAGMA cipher_migrate' failed - " << code);
+      }
+    }
   }
   TRY_STATUS_PREFIX(db.check_encryption(), "Can't open database: ");
   return std::move(db);
