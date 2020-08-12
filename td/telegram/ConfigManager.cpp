@@ -515,7 +515,6 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
     }
     void on_result(NetQueryPtr query) override {
       promise_.set_result(fetch_result<telegram_api::help_getConfig>(std::move(query)));
-      stop();
     }
     void hangup_shared() override {
       if (get_link_token() == 1) {
