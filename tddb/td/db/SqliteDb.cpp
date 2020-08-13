@@ -189,7 +189,10 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, bo
     auto key = db_key_to_sqlcipher_key(db_key);
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA key = " << key));
     if (with_cipher_migrate) {
+      LOG(INFO) << "Start 'PRAGMA cipher_migrate' for " << path;
+      PerfWarningTimer timer("PRAGMA cipher_migrate", 0.5);
       TRY_RESULT(code, db.get_pragma_string("cipher_migrate"));
+      LOG(INFO) << "Finish 'PRAGMA cipher_migrate' for " << path;
       if (code != "0") {
         return Status::Error(PSLICE() << "'PRAGMA cipher_migrate' failed - " << code);
       }
