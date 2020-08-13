@@ -2330,19 +2330,25 @@ class FileManager::ForceUploadActor : public Actor {
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
     void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
-      send_closure(callback_, &ForceUploadActor::on_upload_ok, std::move(input_file));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_ok, std::move(input_file));
     }
 
     void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
-      send_closure(callback_, &ForceUploadActor::on_upload_encrypted_ok, std::move(input_file));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_encrypted_ok, std::move(input_file));
     }
 
     void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
-      send_closure(callback_, &ForceUploadActor::on_upload_secure_ok, std::move(input_file));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_secure_ok, std::move(input_file));
     }
 
     void on_upload_error(FileId file_id, Status error) override {
-      send_closure(callback_, &ForceUploadActor::on_upload_error, std::move(error));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, std::move(error));
+    }
+    ~UploadCallback() {
+      if (callback_.empty()) {
+        return;
+      }
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, td::Status::Error("Cancelled"));
     }
 
    private:
@@ -2407,6 +2413,9 @@ class FileManager::ForceUploadActor : public Actor {
   void loop() override {
     if (is_active_) {
       return;
+    }
+    if (G()->close_flag()) {
+      return stop();
     }
 
     is_active_ = true;
