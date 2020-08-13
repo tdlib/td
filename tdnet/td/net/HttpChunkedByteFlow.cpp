@@ -74,7 +74,7 @@ bool HttpChunkedByteFlow::loop() {
       state_ = State::ReadChunkLength;
       len_ = 0;
     }
-  } while (0);
+  } while (false);
   if (!is_input_active_ && !result) {
     finish(Status::Error("Unexpected end of stream"));
   }

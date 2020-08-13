@@ -596,6 +596,7 @@ void Session::on_container_sent(uint64 container_id, vector<uint64> msg_ids) {
 void Session::on_message_ack(uint64 id) {
   on_message_ack_impl(id, 1);
 }
+
 void Session::on_message_ack_impl(uint64 id, int32 type) {
   auto cit = sent_containers_.find(id);
   if (cit != sent_containers_.end()) {
@@ -643,6 +644,7 @@ void Session::dec_container(uint64 message_id, Query *query) {
     sent_containers_.erase(it);
   }
 }
+
 void Session::cleanup_container(uint64 message_id, Query *query) {
   if (query->container_id == message_id) {
     // message was sent without any container
@@ -879,6 +881,7 @@ void Session::on_message_info(uint64 id, int32 state, uint64 answer_id, int32 an
     current_info_->connection->resend_answer(answer_id);
   }
 }
+
 Status Session::on_destroy_auth_key() {
   auth_data_.drop_main_auth_key();
   on_auth_key_updated();
@@ -1106,6 +1109,7 @@ void Session::connection_close(ConnectionInfo *info) {
   info->connection->force_close(static_cast<mtproto::SessionConnection::Callback *>(this));
   CHECK(info->state == ConnectionInfo::State::Empty);
 }
+
 bool Session::need_send_check_main_key() const {
   return need_check_main_key_ && auth_data_.get_main_auth_key().id() != being_checked_main_auth_key_id_;
 }
@@ -1135,6 +1139,7 @@ bool Session::need_send_bind_key() const {
   return auth_data_.use_pfs() && !auth_data_.get_bind_flag() &&
          auth_data_.get_tmp_auth_key().id() != being_binded_tmp_auth_key_id_;
 }
+
 bool Session::need_send_query() const {
   return !close_flag_ && !need_check_main_key_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) &&
          !pending_queries_.empty() && !can_destroy_auth_key();

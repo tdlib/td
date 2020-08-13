@@ -5,7 +5,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "data.h"
+
 namespace td {
+
 static const char thumbnail_arr[] =
     "_9j_4AAQSkZJRgABAQEASABIAAD_2wBDAAICAgICAQICAgIDAgIDAwYEAwMDAwcFBQQGCAcJCAgHCAgJCg0LCQoMCggICw8LDA0ODg8OCQsQERAOEQ"
     "0ODg7_2wBDAQIDAwMDAwcEBAcOCQgJDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg7_wAARCAAyADIDASIA"
@@ -152,6 +154,8 @@ static const char sqlite_sample_db_arr[] =
     "Wk6mXCxM++OZxA8K3MGlQuG7Gmodcz6FHh9mqoIZZh6OrObpBUrJfdoZeWXR+"
     "GVt8zi3m0oPlAhNUyi3a6zeZcvqfwI3M7zoXxGU2q0ETZgfCE26H9E+PNxes7mw4SwEl78lclmnNhUlZ5C4Y8v2YJnmFn8+a6WdrgjTU2awQ/"
     "osSJFtKuNgOw9n72uyhPOkEB4qcVZ1A=";
+
 const char *sqlite_sample_db = sqlite_sample_db_arr;
 const size_t sqlite_sample_db_size = sizeof(sqlite_sample_db_arr) - 1;
+
 }  // namespace td
