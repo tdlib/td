@@ -29,6 +29,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
+#include <atomic>
 #include <cstdio>
 #include <functional>
 #include <map>

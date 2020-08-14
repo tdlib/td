@@ -6,16 +6,24 @@
 //
 #include "td/utils/port/Clocks.h"
 
+#include "td/utils/port/platform.h"
+
 #include <chrono>
 #include <ctime>
+
+#if TD_PORT_POSIX
+#include <time.h>
+#endif
 
 namespace td {
 
 double Clocks::monotonic() {
-  // TODO write system specific functions, because std::chrono::steady_clock is steady only under Windows
+#if TD_PORT_POSIX
+  // use system specific functions, because std::chrono::steady_clock is steady only under Windows
+
 #ifdef CLOCK_BOOTTIME
   {
-    static bool skip = []() {
+    static bool skip = [] {
       struct timespec spec;
       return clock_gettime(CLOCK_BOOTTIME, &spec) != 0;
     }();
@@ -27,7 +35,7 @@ double Clocks::monotonic() {
 #endif
 #ifdef CLOCK_MONOTONIC_RAW
   {
-    static bool skip = []() {
+    static bool skip = [] {
       struct timespec spec;
       return clock_gettime(CLOCK_MONOTONIC_RAW, &spec) != 0;
     }();
@@ -37,6 +45,9 @@ double Clocks::monotonic() {
     }
   }
 #endif
+
+#endif
+
   auto duration = std::chrono::steady_clock::now().time_since_epoch();
   return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count()) * 1e-9;
 }

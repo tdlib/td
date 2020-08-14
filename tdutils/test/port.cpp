@@ -15,6 +15,8 @@
 #include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
@@ -219,6 +221,7 @@ TEST(Port, SignalsAndThread) {
     //LOG(ERROR) << addrs;
   }
 }
+
 TEST(Port, EventFdAndSignals) {
   set_signal_handler(SignalType::User, [](int signal) {}).ensure();
   SCOPE_EXIT {
@@ -239,7 +242,7 @@ TEST(Port, EventFdAndSignals) {
   for (int timeout_ms : {0, 1, 2, 10, 100, 500}) {
     double min_diff = 10000000;
     double max_diff = 0;
-    for (int t = 0; t < max(5, 1000 / max(timeout_ms, 1)); t++) {
+    for (int t = 0; t < max(5, 1000 / td::max(timeout_ms, 1)); t++) {
       td::EventFd event_fd;
       event_fd.init();
       auto start = td::Timestamp::now();
@@ -247,13 +250,13 @@ TEST(Port, EventFdAndSignals) {
       auto end = td::Timestamp::now();
       auto passed = end.at() - start.at();
       auto diff = passed * 1000 - timeout_ms;
-      min_diff = min(min_diff, diff);
-      max_diff = max(max_diff, diff);
+      min_diff = td::min(min_diff, diff);
+      max_diff = td::max(max_diff, diff);
     }
 
     LOG_CHECK(min_diff >= 0) << min_diff;
     LOG_CHECK(max_diff < 10) << max_diff;
-    LOG(ERROR) << min_diff << " " << max_diff;
+    LOG(INFO) << min_diff << " " << max_diff;
   }
   flag.clear();
 }

@@ -17,7 +17,6 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
-#include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/telegram/secret_api.h"
@@ -34,7 +33,6 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"

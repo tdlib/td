@@ -25,6 +25,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
+#include <limits>
 #include <map>
 
 namespace td {

@@ -22,6 +22,7 @@
 #include "td/utils/Time.h"
 
 #include <functional>
+#include <iterator>
 #include <utility>
 
 namespace td {

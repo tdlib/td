@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/logevent/SecretChatEvent.h"
-#include "td/telegram/PtsManager.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatId.h"
 
@@ -17,6 +16,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Time.h"
 
 #include <map>
