@@ -25,26 +25,14 @@ double Clocks::monotonic() {
     }
   }
 #endif
-#ifdef CLOCK_UPTIME_RAW
+#ifdef CLOCK_MONOTONIC_RAW
   {
     static bool skip = []() {
       struct timespec spec;
-      return clock_gettime(CLOCK_UPTIME_RAW, &spec) != 0;
+      return clock_gettime(CLOCK_MONOTONIC_RAW, &spec) != 0;
     }();
     struct timespec spec;
-    if (!skip && clock_gettime(CLOCK_UPTIME_RAW, &spec) == 0) {
-      return static_cast<double>(spec.tv_nsec) * 1e-9 + static_cast<double>(spec.tv_sec);
-    }
-  }
-#endif
-#ifdef CLOCK_UPTIME
-  {
-    static bool skip = []() {
-      struct timespec spec;
-      return clock_gettime(CLOCK_UPTIME, &spec) != 0;
-    }();
-    struct timespec spec;
-    if (!skip && clock_gettime(CLOCK_UPTIME, &spec) == 0) {
+    if (!skip && clock_gettime(CLOCK_MONOTONIC_RAW, &spec) == 0) {
       return static_cast<double>(spec.tv_nsec) * 1e-9 + static_cast<double>(spec.tv_sec);
     }
   }
