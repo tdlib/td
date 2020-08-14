@@ -13,6 +13,42 @@ namespace td {
 
 double Clocks::monotonic() {
   // TODO write system specific functions, because std::chrono::steady_clock is steady only under Windows
+#ifdef CLOCK_BOOTTIME
+  {
+    static bool skip = []() {
+      struct timespec spec;
+      return clock_gettime(CLOCK_BOOTTIME, &spec) != 0;
+    }();
+    struct timespec spec;
+    if (!skip && clock_gettime(CLOCK_BOOTTIME, &spec) == 0) {
+      return static_cast<double>(spec.tv_nsec) * 1e-9 + static_cast<double>(spec.tv_sec);
+    }
+  }
+#endif
+#ifdef CLOCK_UPTIME_RAW
+  {
+    static bool skip = []() {
+      struct timespec spec;
+      return clock_gettime(CLOCK_UPTIME_RAW, &spec) != 0;
+    }();
+    struct timespec spec;
+    if (!skip && clock_gettime(CLOCK_UPTIME_RAW, &spec) == 0) {
+      return static_cast<double>(spec.tv_nsec) * 1e-9 + static_cast<double>(spec.tv_sec);
+    }
+  }
+#endif
+#ifdef CLOCK_UPTIME
+  {
+    static bool skip = []() {
+      struct timespec spec;
+      return clock_gettime(CLOCK_UPTIME, &spec) != 0;
+    }();
+    struct timespec spec;
+    if (!skip && clock_gettime(CLOCK_UPTIME, &spec) == 0) {
+      return static_cast<double>(spec.tv_nsec) * 1e-9 + static_cast<double>(spec.tv_sec);
+    }
+  }
+#endif
   auto duration = std::chrono::steady_clock::now().time_since_epoch();
   return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count()) * 1e-9;
 }
