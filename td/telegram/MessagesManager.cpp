@@ -23093,7 +23093,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
     if (forwarded_message->views > 0 && m->forward_info != nullptr) {
-      m->views = forwarded_message->views;
+      m->views = 1;
     }
 
     if (is_game) {
