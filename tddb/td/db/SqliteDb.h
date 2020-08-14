@@ -78,7 +78,7 @@ class SqliteDb {
     detail::RawSqliteDb::with_db_path(main_path, f);
   }
 
-  optional<int32> get_cipher_version();
+  optional<int32> get_cipher_version() const;
 
  private:
   explicit SqliteDb(std::shared_ptr<detail::RawSqliteDb> raw) : raw_(std::move(raw)) {

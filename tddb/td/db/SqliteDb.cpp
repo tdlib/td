@@ -192,9 +192,9 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, in
       LOG(INFO) << "Try Sqlcipher compatibility mode with version=" << cipher_version;
       TRY_STATUS(db.exec(PSLICE() << "PRAGMA cipher_compatibility = " << cipher_version));
     }
-    db.set_cipher_version(cipher_version);
   }
   TRY_STATUS_PREFIX(db.check_encryption(), "Can't open database: ");
+  db.set_cipher_version(cipher_version);
   return std::move(db);
 }
 
@@ -202,7 +202,7 @@ void SqliteDb::set_cipher_version(int32 cipher_version) {
   raw_->set_cipher_version(cipher_version);
 }
 
-optional<int32> SqliteDb::get_cipher_version() {
+optional<int32> SqliteDb::get_cipher_version() const {
   return raw_->get_cipher_version();
 }
 
