@@ -12,13 +12,14 @@
 #include "td/db/SqliteDb.h"
 
 #include "td/utils/common.h"
+#include "td/utils/optional.h"
 
 namespace td {
 
 class SqliteConnectionSafe {
  public:
   SqliteConnectionSafe() = default;
-  explicit SqliteConnectionSafe(string path, DbKey key = DbKey::empty());
+  explicit SqliteConnectionSafe(string path, DbKey key = DbKey::empty(), optional<int32> cipher_version = {});
 
   SqliteDb &get();
   void set(SqliteDb &&db);

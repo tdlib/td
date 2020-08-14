@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/logging.h"
+#include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -56,10 +57,19 @@ class RawSqliteDb {
     return begin_cnt_ == 0;
   }
 
+  void set_cipher_version(int32 cipher_version) {
+    cipher_version_ = cipher_version;
+  }
+
+  optional<int32> get_cipher_version() const {
+    return cipher_version_.copy();
+  }
+
  private:
   sqlite3 *db_;
   std::string path_;
   size_t begin_cnt_{0};
+  optional<int32> cipher_version_;
 };
 
 }  // namespace detail

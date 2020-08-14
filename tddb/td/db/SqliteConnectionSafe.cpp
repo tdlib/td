@@ -13,9 +13,10 @@
 
 namespace td {
 
-SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key)
-    : path_(std::move(path)), lsls_connection_([path = path_, key = std::move(key)] {
-      auto r_db = SqliteDb::open_with_key(path, key);
+SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key, optional<int32> cipher_version)
+    : path_(std::move(path))
+    , lsls_connection_([path = path_, key = std::move(key), cipher_version = std::move(cipher_version)] {
+      auto r_db = SqliteDb::open_with_key(path, key, cipher_version.copy());
       if (r_db.is_error()) {
         auto r_stat = stat(path);
         if (r_stat.is_error()) {

@@ -171,15 +171,15 @@ Status SqliteDb::check_encryption() {
   return status;
 }
 
-Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key) {
-  auto res = do_open_with_key(path, db_key, false);
-  if (res.is_error()) {
-    return do_open_with_key(path, db_key, true);
+Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key, optional<int32> cipher_version) {
+  auto res = do_open_with_key(path, db_key, cipher_version ? cipher_version.value() : 0);
+  if (res.is_error() && !cipher_version) {
+    return do_open_with_key(path, db_key, 3);
   }
   return res;
 }
 
-Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, bool with_cipher_migrate) {
+Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, int32 cipher_version) {
   SqliteDb db;
   TRY_STATUS(db.init(path));
   if (!db_key.is_empty()) {
@@ -188,13 +188,22 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, bo
     }
     auto key = db_key_to_sqlcipher_key(db_key);
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA key = " << key));
-    if (with_cipher_migrate) {
-      LOG(INFO) << "Try Sqlcipher compatibility mode";
-      TRY_STATUS(db.exec("PRAGMA cipher_compatibility = 3"));
+    if (cipher_version != 0) {
+      LOG(INFO) << "Try Sqlcipher compatibility mode with version=" << cipher_version;
+      TRY_STATUS(db.exec(PSLICE() << "PRAGMA cipher_compatibility = " << cipher_version));
     }
+    db.set_cipher_version(cipher_version);
   }
   TRY_STATUS_PREFIX(db.check_encryption(), "Can't open database: ");
   return std::move(db);
+}
+
+void SqliteDb::set_cipher_version(int32 cipher_version) {
+  raw_->set_cipher_version(cipher_version);
+}
+
+optional<int32> SqliteDb::get_cipher_version() {
+  return raw_->get_cipher_version();
 }
 
 Result<SqliteDb> SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key) {
