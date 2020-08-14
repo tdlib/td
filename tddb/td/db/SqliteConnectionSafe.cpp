@@ -33,6 +33,10 @@ SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key)
     }) {
 }
 
+void SqliteConnectionSafe::set(SqliteDb &&db) {
+  lsls_connection_.set(std::move(db));
+}
+
 SqliteDb &SqliteConnectionSafe::get() {
   return lsls_connection_.get();
 }

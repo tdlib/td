@@ -197,12 +197,14 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, bo
   return std::move(db);
 }
 
-Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key) {
+Result<SqliteDb> SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key) {
+  PerfWarningTimer perf("change key", 0.001);
+
   // fast path
   {
     auto r_db = open_with_key(path, new_db_key);
     if (r_db.is_ok()) {
-      return Status::OK();
+      return r_db;
     }
   }
 
@@ -245,7 +247,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
 
   TRY_RESULT(new_db, open_with_key(path, new_db_key));
   LOG_CHECK(new_db.user_version().ok() == user_version) << new_db.user_version().ok() << " " << user_version;
-  return Status::OK();
+  return std::move(new_db);
 }
 Status SqliteDb::destroy(Slice path) {
   return detail::RawSqliteDb::destroy(path);

@@ -62,7 +62,7 @@ class SqliteDb {
 
   // Anyway we can't change the key on the fly, so having static functions is more than enough
   static Result<SqliteDb> open_with_key(CSlice path, const DbKey &db_key);
-  static Status change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key);
+  static Result<SqliteDb> change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key);
 
   Status last_error();
 

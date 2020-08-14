@@ -21,6 +21,7 @@ class SqliteConnectionSafe {
   explicit SqliteConnectionSafe(string path, DbKey key = DbKey::empty());
 
   SqliteDb &get();
+  void set(SqliteDb &&db);
 
   void close();
 
