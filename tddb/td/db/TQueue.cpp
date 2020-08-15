@@ -147,6 +147,9 @@ class TQueueImpl : public TQueue {
     if (q.total_event_length > MAX_TOTAL_EVENT_LENGTH - data.size()) {
       return Status::Error("Queue size is too big");
     }
+    if (expires_at <= 0) {
+      return Status::Error("Failed to add already expired event");
+    }
     EventId event_id;
     while (true) {
       if (q.tail_id.empty()) {
