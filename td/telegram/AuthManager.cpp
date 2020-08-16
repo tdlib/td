@@ -56,8 +56,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     } else {
       LOG(ERROR) << "Restore unknown my_id";
       ContactsManager::send_get_me_query(
-          G()->td().get_actor_unsafe(),
-          PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+          td, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
   } else if (auth_str == "logout") {
     update_state(State::LoggingOut);
@@ -221,7 +220,7 @@ void AuthManager::set_login_token_expires_at(double login_token_expires_at) {
   login_token_expires_at_ = login_token_expires_at;
   poll_export_login_code_timeout_.cancel_timeout();
   poll_export_login_code_timeout_.set_callback(std::move(on_update_login_token_static));
-  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(G()->td().get_actor_unsafe()));
+  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(td));
   poll_export_login_code_timeout_.set_timeout_at(login_token_expires_at_);
 }
 
