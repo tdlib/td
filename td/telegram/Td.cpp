@@ -3190,7 +3190,7 @@ void Td::schedule_get_promo_data(int32 expires_in) {
   if (expires_in > 86400) {
     expires_in = 86400;
   }
-  if (!close_flag_ && !auth_manager_->is_bot()) {
+  if (!close_flag_ && auth_manager_->is_authorized() && !auth_manager_->is_bot()) {
     LOG(INFO) << "Schedule getPromoData in " << expires_in;
     alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
   }
