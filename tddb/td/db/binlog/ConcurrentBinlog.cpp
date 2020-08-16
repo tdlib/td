@@ -20,15 +20,17 @@ class BinlogActor : public Actor {
   }
   void close(Promise<> promise) {
     binlog_->close().ensure();
-    promise.set_value(Unit());
     LOG(INFO) << "Finished to close binlog";
     stop();
+
+    promise.set_value(Unit());  // setting promise can complete closing and destroy the current actor context
   }
   void close_and_destroy(Promise<> promise) {
     binlog_->close_and_destroy().ensure();
-    promise.set_value(Unit());
     LOG(INFO) << "Finished to destroy binlog";
     stop();
+
+    promise.set_value(Unit());  // setting promise can complete closing and destroy the current actor context
   }
 
   struct Event {
