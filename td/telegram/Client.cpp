@@ -6,7 +6,6 @@
 //
 #include "td/telegram/Client.h"
 
-#include "td/actor/impl/ActorInfo-decl.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdCallback.h"
 
