@@ -146,7 +146,9 @@ inline const Actor *ActorInfo::get_actor_unsafe() const {
 inline std::shared_ptr<ActorContext> ActorInfo::set_context(std::shared_ptr<ActorContext> context) {
   CHECK(is_running());
   context->this_ptr_ = context;
-  context->tag_ = Scheduler::context()->tag_;
+  if (Scheduler::context()->tag_) {
+    context->set_tag(Scheduler::context()->tag_);
+  }
   std::swap(context_, context);
   Scheduler::context() = context_.get();
   Scheduler::on_context_updated();
