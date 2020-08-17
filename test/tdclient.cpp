@@ -840,7 +840,7 @@ class Tdclient_login : public Test {
 
 TEST(Client, Simple) {
   td::Client client;
-  //client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("actor", 1)});
+  client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("actor", 1)});
   client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
   while (true) {
     auto result = client.receive(10);

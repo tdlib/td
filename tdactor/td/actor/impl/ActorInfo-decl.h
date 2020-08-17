@@ -37,7 +37,13 @@ class ActorContext {
     return 0;
   }
 
+  void set_tag(string tag) {
+    tag_storage_ = std::move(tag);
+    tag_ = tag_storage_.c_str();
+  }
+
   const char *tag_ = nullptr;
+  string tag_storage_;  // sometimes tag_ == tag_storage_.c_str()
   std::weak_ptr<ActorContext> this_ptr_;
 };
 

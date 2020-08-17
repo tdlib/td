@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Client.h"
 
+#include "td/actor/impl/ActorInfo-decl.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdCallback.h"
 
@@ -37,18 +38,9 @@ class MultiTd : public Actor {
     CHECK(td.empty());
 
     string name = "Td";
-    class TdActorContext : public ActorContext {
-     public:
-      explicit TdActorContext(string tag) : tag_(std::move(tag)) {
-      }
-      int32 get_id() const override {
-        return 0x172ae58d;
-      }
-      string tag_;
-    };
-    auto context = std::make_shared<TdActorContext>(to_string(td_id));
+    auto context = std::make_shared<td::ActorContext>();
     auto old_context = set_context(context);
-    auto old_tag = set_tag(context->tag_);
+    auto old_tag = set_tag(to_string(td_id));
     td = create_actor<Td>("Td", std::move(callback), options_);
     set_context(old_context);
     set_tag(old_tag);

@@ -75,7 +75,7 @@ class Actor : public ObserverBase {
 
   uint64 get_link_token();
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
-  CSlice set_tag(CSlice tag);
+  string set_tag(string tag);
 
   void always_wait_for_mailbox();
 
