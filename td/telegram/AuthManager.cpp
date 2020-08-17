@@ -837,6 +837,8 @@ void AuthManager::update_state(State new_state, bool force, bool should_save_sta
   if (state_ == new_state && !force) {
     return;
   }
+  bool skip_update = (state_ == State::LoggingOut || state_ == State::DestroyingKeys) &&
+                     (new_state == State::LoggingOut || new_state == State::DestroyingKeys);
   state_ = new_state;
   if (should_save_state) {
     save_state();
@@ -844,8 +846,10 @@ void AuthManager::update_state(State new_state, bool force, bool should_save_sta
   if (new_state == State::LoggingOut || new_state == State::DestroyingKeys) {
     send_closure(G()->state_manager(), &StateManager::on_logging_out, true);
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateAuthorizationState>(get_authorization_state_object(state_)));
+  if (!skip_update) {
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateAuthorizationState>(get_authorization_state_object(state_)));
+  }
 
   if (!pending_get_authorization_state_requests_.empty()) {
     auto query_ids = std::move(pending_get_authorization_state_requests_);
