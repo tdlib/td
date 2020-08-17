@@ -117,6 +117,23 @@ class GenAuthKeyActor : public Actor {
 
 }  // namespace detail
 
+void Session::PriorityQueue::push(NetQueryPtr query) {
+  queries_[query->priority()].push(std::move(query));
+}
+
+NetQueryPtr Session::PriorityQueue::pop() {
+  auto it = prev(end(queries_));
+  auto res = it->second.pop();
+  if (it->second.empty()) {
+    queries_.erase(it);
+  }
+  return res;
+}
+
+bool Session::PriorityQueue::empty() const {
+  return queries_.empty();
+}
+
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
                  int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
                  const mtproto::AuthKey &tmp_auth_key, std::vector<mtproto::ServerSalt> server_salts)
@@ -344,7 +361,7 @@ void Session::return_query(NetQueryPtr &&query) {
 void Session::flush_pending_invoke_after_queries() {
   while (!pending_invoke_after_queries_.empty()) {
     auto &query = pending_invoke_after_queries_.front();
-    pending_queries_.push_back(std::move(query));
+    pending_queries_.push(std::move(query));
     pending_invoke_after_queries_.pop_front();
   }
 }
@@ -359,7 +376,7 @@ void Session::close() {
     auto &query = it.second.query;
     query->set_message_id(0);
     query->cancel_slot_.clear_event();
-    pending_queries_.push_back(std::move(query));
+    pending_queries_.push(std::move(query));
   }
   sent_queries_.clear();
   sent_containers_.clear();
@@ -367,10 +384,9 @@ void Session::close() {
   flush_pending_invoke_after_queries();
   CHECK(sent_queries_.empty());
   while (!pending_queries_.empty()) {
-    auto &query = pending_queries_.front();
+    auto query = pending_queries_.pop();
     query->set_error_resend();
     return_query(std::move(query));
-    pending_queries_.pop_front();
   }
 
   callback_->on_closed();
@@ -905,7 +921,7 @@ void Session::add_query(NetQueryPtr &&net_query) {
   net_query->debug("Session: pending");
   LOG_IF(FATAL, UniqueId::extract_type(net_query->id()) == UniqueId::BindKey)
       << "Add BindKey query inpo pending_queries_";
-  pending_queries_.emplace_back(std::move(net_query));
+  pending_queries_.push(std::move(net_query));
 }
 
 void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id) {
@@ -1323,9 +1339,8 @@ void Session::loop() {
       if (auth_data_.is_ready(Time::now_cached())) {
         if (need_send_query()) {
           while (!pending_queries_.empty() && sent_queries_.size() < MAX_INFLIGHT_QUERIES) {
-            auto &query = pending_queries_.front();
+            auto query = pending_queries_.pop();
             connection_send_query(&main_connection_, std::move(query));
-            pending_queries_.pop_front();
             need_flush = true;
           }
         }

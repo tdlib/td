@@ -266,6 +266,13 @@ class NetQuery : public TsListNode<NetQueryDebug> {
     finish_migrate(cancel_slot_);
   }
 
+  int8 priority() const {
+    return priority_;
+  }
+  void set_priority(int8 priority) {
+    priority_ = priority;
+  }
+
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
@@ -284,6 +291,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   uint32 session_rand_ = 0;
 
   bool may_be_lost_ = false;
+  int8 priority_{0};
 
   template <class T>
   struct movable_atomic : public std::atomic<T> {
