@@ -118,14 +118,16 @@ class GenAuthKeyActor : public Actor {
 }  // namespace detail
 
 void Session::PriorityQueue::push(NetQueryPtr query) {
-  queries_[query->priority()].push(std::move(query));
+  auto priority = query->priority();
+  queries_[priority].push(std::move(query));
 }
 
 NetQueryPtr Session::PriorityQueue::pop() {
-  auto it = prev(end(queries_));
+  auto it = queries_.rbegin();
+  CHECK(it != queries_.rend());
   auto res = it->second.pop();
   if (it->second.empty()) {
-    queries_.erase(it);
+    queries_.erase(it->first);
   }
   return res;
 }
