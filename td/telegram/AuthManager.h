@@ -217,6 +217,8 @@ class AuthManager : public NetActor {
   static void on_update_login_token_static(void *td);
   void send_export_login_token_query();
   void set_login_token_expires_at(double login_token_expires_at);
+
+  void send_log_out_query();
   void destroy_auth_keys();
 
   void on_send_code_result(NetQueryPtr &result);

@@ -71,9 +71,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
 
 void AuthManager::start_up() {
   if (state_ == State::LoggingOut) {
-    auto query = G()->net_query_creator().create(telegram_api::auth_logOut());
-    query->set_priority(1);
-    start_net_query(NetQueryType::LogOut, std::move(query));
+    send_log_out_query();
   } else if (state_ == State::DestroyingKeys) {
     destroy_auth_keys();
   }
@@ -370,6 +368,12 @@ void AuthManager::log_out(uint64 query_id) {
     query->set_priority(1);
     start_net_query(NetQueryType::LogOut, std::move(query));
   }
+}
+
+void AuthManager::send_log_out_query() {
+  auto query = G()->net_query_creator().create(telegram_api::auth_logOut());
+  query->set_priority(1);
+  start_net_query(NetQueryType::LogOut, std::move(query));
 }
 
 void AuthManager::delete_account(uint64 query_id, const string &reason) {
