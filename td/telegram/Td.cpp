@@ -1465,19 +1465,19 @@ class SearchChatMessagesRequest : public RequestActor<> {
   }
 };
 
-class OfflineSearchMessagesRequest : public RequestActor<> {
+class SearchSecretMessagesRequest : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
-  int64 from_search_id_;
+  string offset_;
   int32 limit_;
   tl_object_ptr<td_api::SearchMessagesFilter> filter_;
   int64 random_id_;
 
-  std::pair<int64, vector<FullMessageId>> messages_;
+  std::pair<string, vector<FullMessageId>> messages_;
 
   void do_run(Promise<Unit> &&promise) override {
-    messages_ = td->messages_manager_->offline_search_messages(dialog_id_, query_, from_search_id_, limit_, filter_,
-                                                               random_id_, std::move(promise));
+    messages_ = td->messages_manager_->offline_search_messages(dialog_id_, query_, offset_, limit_, filter_, random_id_,
+                                                               std::move(promise));
   }
 
   void do_send_result() override {
@@ -1487,16 +1487,16 @@ class OfflineSearchMessagesRequest : public RequestActor<> {
       result.push_back(td->messages_manager_->get_message_object(full_message_id));
     }
 
-    send_result(make_tl_object<td_api::foundMessages>(std::move(result), messages_.first));
+    send_result(make_tl_object<td_api::foundMessages>(std::move(result), std::move(messages_.first)));
   }
 
  public:
-  OfflineSearchMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query,
-                               int64 from_search_id, int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter)
+  SearchSecretMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query, string offset,
+                              int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
       , query_(std::move(query))
-      , from_search_id_(from_search_id)
+      , offset_(std::move(offset))
       , limit_(limit)
       , filter_(std::move(filter))
       , random_id_(0) {
@@ -5463,7 +5463,7 @@ void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
 void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(OfflineSearchMessagesRequest, request.chat_id_, std::move(request.query_), request.from_search_id_,
+  CREATE_REQUEST(SearchSecretMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.offset_),
                  request.limit_, std::move(request.filter_));
 }
 

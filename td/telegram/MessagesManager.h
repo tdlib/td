@@ -653,8 +653,8 @@ class MessagesManager : public Actor {
                                                              const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
                                                              int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
-  std::pair<int64, vector<FullMessageId>> offline_search_messages(
-      DialogId dialog_id, const string &query, int64 from_search_id, int32 limit,
+  std::pair<string, vector<FullMessageId>> offline_search_messages(
+      DialogId dialog_id, const string &query, const string &offset, int32 limit,
       const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
@@ -2931,8 +2931,8 @@ class MessagesManager : public Actor {
   std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
       found_dialog_recent_location_messages_;  // random_id -> [total_count, [message_id]...]
 
-  std::unordered_map<int64, std::pair<int64, vector<FullMessageId>>>
-      found_fts_messages_;  // random_id -> [from_search_id, [full_message_id]...]
+  std::unordered_map<int64, std::pair<string, vector<FullMessageId>>>
+      found_fts_messages_;  // random_id -> [next_offset, [full_message_id]...]
 
   std::unordered_map<FullMessageId, std::pair<string, string>, FullMessageIdHash> public_message_links_[2];
 

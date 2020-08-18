@@ -681,8 +681,8 @@ message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSending
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
 
-//@description Contains a list of messages found by a search @messages List of messages @next_from_search_id Value to pass as from_search_id to get more results
-foundMessages messages:vector<message> next_from_search_id:int64 = FoundMessages;
+//@description Contains a list of messages found by a search @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
+foundMessages messages:vector<message> next_offset:string = FoundMessages;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are applied
@@ -3595,10 +3595,10 @@ searchMessages chat_list:ChatList query:string offset_date:int32 offset_chat_id:
 
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
-//@from_search_id The identifier from the result of a previous request, use 0 to get results from the last message
+//@offset Offset of the first entry to return; use empty string to get results from the last message
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter A filter for the content of messages in the search results
-searchSecretMessages chat_id:int53 query:string from_search_id:int64 limit:int32 filter:SearchMessagesFilter = FoundMessages;
+searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
 //@description Searches for call messages. Returns the results in reverse chronological order (i. e., in order of decreasing message_id). For optimal performance the number of returned messages is chosen by the library
 //@from_message_id Identifier of the message from which to search; use 0 to get results from the last message

@@ -18994,8 +18994,8 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   promise.set_value(Unit());
 }
 
-std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages(
-    DialogId dialog_id, const string &query, int64 from_search_id, int32 limit,
+std::pair<string, vector<FullMessageId>> MessagesManager::offline_search_messages(
+    DialogId dialog_id, const string &query, const string &offset, int32 limit,
     const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise) {
   if (!G()->parameters().use_message_db) {
     promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
@@ -19032,7 +19032,14 @@ std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages
   fts_query.query = query;
   fts_query.dialog_id = dialog_id;
   fts_query.index_mask = search_messages_filter_index_mask(get_search_messages_filter(filter));
-  fts_query.from_search_id = from_search_id;
+  if (!offset.empty()) {
+    auto r_from_search_id = to_integer_safe<int64>(offset);
+    if (r_from_search_id.is_error()) {
+      promise.set_error(Status::Error(400, "Wrong offset specified"));
+      return {};
+    }
+    fts_query.from_search_id = r_from_search_id.ok();
+  }
   fts_query.limit = limit;
 
   do {
@@ -19074,7 +19081,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
     }
   }
 
-  it->second.first = fts_result.next_search_id;
+  it->second.first = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
 
   promise.set_value(Unit());
 }

@@ -2913,19 +2913,18 @@ class CliClient final : public Actor {
       }
     } else if (op == "ssm") {
       string chat_id;
-      string from_search_id;
+      string offset;
       string limit;
       string filter;
       string query;
 
       std::tie(chat_id, args) = split(args);
-      std::tie(from_search_id, args) = split(args);
+      std::tie(offset, args) = split(args);
       std::tie(limit, args) = split(args);
       std::tie(filter, query) = split(args);
 
       send_request(td_api::make_object<td_api::searchSecretMessages>(
-          as_chat_id(chat_id), query, to_integer<int64>(from_search_id), to_integer<int32>(limit),
-          get_search_messages_filter(filter)));
+          as_chat_id(chat_id), query, offset, to_integer<int32>(limit), get_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = args;
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
