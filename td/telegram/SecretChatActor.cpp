@@ -1786,7 +1786,7 @@ void SecretChatActor::on_outbound_outer_send_message_promise(uint64 state_id, Pr
   promise.set_value(Unit());  // Seems like this message is at least stored to binlog already
   if (state->send_result_) {
     state->send_result_({});
-  } else {
+  } else if (state->message->is_sent) {
     context_->on_send_message_error(state->message->random_id, Status::Error(400, "Message has already been sent"),
                                     Auto());
   }
