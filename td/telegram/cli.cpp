@@ -3575,6 +3575,10 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, title) = split(args);
       send_request(td_api::make_object<td_api::setChatTitle>(as_chat_id(chat_id), title));
+    } else if (op == "scpe") {
+      string chat_id = args;
+
+      send_request(td_api::make_object<td_api::setChatPhoto>(as_chat_id(chat_id), nullptr));
     } else if (op == "scpp") {
       string chat_id;
       string photo_id;

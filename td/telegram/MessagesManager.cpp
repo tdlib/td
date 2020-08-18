@@ -27357,6 +27357,11 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
         break;
     }
   }
+  if (input_file == nullptr) {
+    send_edit_dialog_photo_query(dialog_id, FileId(), make_tl_object<telegram_api::inputChatPhotoEmpty>(),
+                                 std::move(promise));
+    return;
+  }
 
   const double MAX_ANIMATION_DURATION = 10.0;
   if (main_frame_timestamp < 0.0 || main_frame_timestamp > MAX_ANIMATION_DURATION) {
