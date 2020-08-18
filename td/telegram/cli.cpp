@@ -3100,7 +3100,7 @@ class CliClient final : public Actor {
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
           chat, 0, default_message_send_options(), to_integer<int64>(query_id), result_id, op == "siqrh"));
-    } else if (op == "gcqr") {
+    } else if (op == "gcqa") {
       string chat_id;
       string message_id;
       string data;
@@ -3108,7 +3108,18 @@ class CliClient final : public Actor {
       std::tie(message_id, data) = split(args);
       send_request(td_api::make_object<td_api::getCallbackQueryAnswer>(
           as_chat_id(chat_id), as_message_id(message_id), td_api::make_object<td_api::callbackQueryPayloadData>(data)));
-    } else if (op == "gcgqr") {
+    } else if (op == "gcpqa") {
+      string chat_id;
+      string message_id;
+      string password;
+      string data;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, args) = split(args);
+      std::tie(password, data) = split(args);
+      send_request(td_api::make_object<td_api::getCallbackQueryAnswer>(
+          as_chat_id(chat_id), as_message_id(message_id),
+          td_api::make_object<td_api::callbackQueryPayloadDataWithPassword>(password, data)));
+    } else if (op == "gcgqa") {
       string chat_id;
       string message_id;
       std::tie(chat_id, message_id) = split(args);

@@ -2901,7 +2901,8 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
   int64 result_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    result_id_ = td->callback_queries_manager_->send_callback_query(full_message_id_, payload_, std::move(promise));
+    result_id_ =
+        td->callback_queries_manager_->send_callback_query(full_message_id_, std::move(payload_), std::move(promise));
   }
 
   void do_send_result() override {

@@ -84,6 +84,9 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
     case InlineKeyboardButton::Type::UrlAuth:
       string_builder << "UrlAuth, id = " << keyboard_button.id;
       break;
+    case InlineKeyboardButton::Type::CallbackWithPassword:
+      string_builder << "CallbackWithPassword";
+      break;
     default:
       UNREACHABLE();
   }
@@ -219,7 +222,8 @@ static InlineKeyboardButton get_inline_keyboard_button(
     }
     case telegram_api::keyboardButtonCallback::ID: {
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonCallback>(keyboard_button_ptr);
-      button.type = InlineKeyboardButton::Type::Callback;
+      button.type = keyboard_button->requires_password_ ? InlineKeyboardButton::Type::CallbackWithPassword
+                                                        : InlineKeyboardButton::Type::Callback;
       button.text = std::move(keyboard_button->text_);
       button.data = keyboard_button->data_.as_slice().str();
       break;
@@ -435,6 +439,8 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
     case td_api::inlineKeyboardButtonTypeCallbackGame::ID:
       current_button.type = InlineKeyboardButton::Type::CallbackGame;
       break;
+    case td_api::inlineKeyboardButtonTypeCallbackWithPassword::ID:
+      return Status::Error(400, "Can't use CallbackWithPassword inline button");
     case td_api::inlineKeyboardButtonTypeSwitchInline::ID: {
       auto switch_inline_button = move_tl_object_as<td_api::inlineKeyboardButtonTypeSwitchInline>(button->type_);
       if (!switch_inline_buttons_allowed) {
@@ -653,6 +659,9 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
                                                                       keyboard_button.forward_text,
                                                                       keyboard_button.data, std::move(input_user));
     }
+    case InlineKeyboardButton::Type::CallbackWithPassword:
+      UNREACHABLE();
+      break;
     default:
       UNREACHABLE();
       return nullptr;
@@ -761,6 +770,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
     case InlineKeyboardButton::Type::UrlAuth:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeLoginUrl>(keyboard_button.data, keyboard_button.id,
                                                                       keyboard_button.forward_text);
+      break;
+    case InlineKeyboardButton::Type::CallbackWithPassword:
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackWithPassword>(keyboard_button.data);
       break;
     default:
       UNREACHABLE();

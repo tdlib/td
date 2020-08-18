@@ -907,10 +907,13 @@ inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 //@description A button that opens a specified URL and automatically logs in in current user if they allowed to do that @url An HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int32 forward_text:string = InlineKeyboardButtonType;
 
-//@description A button that sends a special callback query to a bot @data Data to be sent to the bot via a callback query
+//@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
 inlineKeyboardButtonTypeCallback data:bytes = InlineKeyboardButtonType;
 
-//@description A button with a game that sends a special callback query to a bot. This button must be in the first column and row of the keyboard and can be attached only to a message with content of the type messageGame
+//@description A button that asks for password of the current user and then sends a callback query to a bot @data Data to be sent to the bot via a callback query
+inlineKeyboardButtonTypeCallbackWithPassword data:bytes = InlineKeyboardButtonType;
+
+//@description A button with a game that sends a callback query to a bot. This button must be in the first column and row of the keyboard and can be attached only to a message with content of the type messageGame
 inlineKeyboardButtonTypeCallbackGame = InlineKeyboardButtonType;
 
 //@description A button that forces an inline query to the bot to be inserted in the input field @query Inline query to be sent to the bot @in_current_chat True, if the inline query should be sent from the current chat
@@ -2131,10 +2134,13 @@ inlineQueryResults inline_query_id:int64 next_offset:string results:vector<Inlin
 
 //@class CallbackQueryPayload @description Represents a payload of a callback query
 
-//@description The payload from a general callback button @data Data that was attached to the callback button
+//@description The payload for a general callback button @data Data that was attached to the callback button
 callbackQueryPayloadData data:bytes = CallbackQueryPayload;
 
-//@description The payload from a game callback button @game_short_name A short name of the game that was attached to the callback button
+//@description The payload for a callback button requiring password @password The password for the current user@data Data that was attached to the callback button
+callbackQueryPayloadDataWithPassword password:string data:bytes = CallbackQueryPayload;
+
+//@description The payload for a game callback button @game_short_name A short name of the game that was attached to the callback button
 callbackQueryPayloadGame game_short_name:string = CallbackQueryPayload;
 
 
