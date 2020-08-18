@@ -3,7 +3,7 @@
 To run this example, you will need installed JDK >= 1.6.
 For Javadoc documentation generation PHP is needed.
 
-TDLib should be prebuilt for using with Java and installed to local subdirectory `td/` as follows:
+TDLib should be prebuilt with JNI bindings and installed to local subdirectory `td/` as follows:
 ```
 cd <path to TDLib sources>
 mkdir jnibuild

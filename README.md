@@ -126,7 +126,7 @@ To build `TDLib` in Release mode using MSVC, you will need to additionally speci
 
 <a name="using-cxx"></a>
 ## Using in CMake C++ projects
-For C++ projects that use CMake, the best approach is to build `TDLib` as part of your project or to use a prebuilt installation.
+For C++ projects that use CMake, the best approach is to build `TDLib` as part of your project or to install it system-wide.
 
 There are several libraries that you could use in your CMake project:
 

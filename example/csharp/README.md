@@ -7,7 +7,7 @@ This is an example of building TDLib with `C++/CLI` support and an example of TD
 * Download and install Microsoft Visual Studio 2015 or later.
 * Download and install [CMake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start) or update it to the latest version using `vcpkg update` and following received instructions.
-* Install `zlib` and `openssl` for using `vcpkg`:
+* Install `zlib` and `openssl` using `vcpkg`:
 ```
 cd <path to vcpkg>
 .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
