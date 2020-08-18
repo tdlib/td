@@ -29,6 +29,7 @@
 
 #include <array>
 #include <deque>
+#include <functional>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -132,7 +133,7 @@ class Session final
     bool empty() const;
 
    private:
-    std::map<int8, VectorQueue<NetQueryPtr>> queries_;
+    std::map<int8, VectorQueue<NetQueryPtr>, std::greater<>> queries_;
   };
   PriorityQueue pending_queries_;
   std::map<uint64, Query> sent_queries_;

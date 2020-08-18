@@ -123,11 +123,11 @@ void Session::PriorityQueue::push(NetQueryPtr query) {
 }
 
 NetQueryPtr Session::PriorityQueue::pop() {
-  auto it = queries_.rbegin();
-  CHECK(it != queries_.rend());
+  CHECK(!empty());
+  auto it = queries_.begin();
   auto res = it->second.pop();
   if (it->second.empty()) {
-    queries_.erase(it->first);
+    queries_.erase(it);
   }
   return res;
 }
