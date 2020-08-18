@@ -364,9 +364,7 @@ void AuthManager::log_out(uint64 query_id) {
     LOG(INFO) << "Logging out";
     G()->td_db()->get_binlog_pmc()->set("auth", "logout");
     update_state(State::LoggingOut);
-    auto query = G()->net_query_creator().create(telegram_api::auth_logOut());
-    query->set_priority(1);
-    start_net_query(NetQueryType::LogOut, std::move(query));
+    send_log_out_query();
   }
 }
 
