@@ -3169,9 +3169,13 @@ class DeleteMessagesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!G()->is_expected_error(status) &&
-        (dialog_id_.get_type() == DialogType::User || status.message() != "MESSAGE_DELETE_FORBIDDEN")) {
-      LOG(ERROR) << "Receive error for delete messages: " << status;
+    if (!G()->is_expected_error(status)) {
+      // MESSAGE_DELETE_FORBIDDEN can be returned in group chats when administrator rights was removed
+      // MESSAGE_DELETE_FORBIDDEN can be returned in private chats for bots when revoke time limit exceeded
+      if (status.message() != "MESSAGE_DELETE_FORBIDDEN" ||
+          (dialog_id_.get_type() == DialogType::User && !td->auth_manager_->is_bot())) {
+        LOG(ERROR) << "Receive error for delete messages: " << status;
+      }
     }
     promise_.set_error(std::move(status));
   }
