@@ -1289,7 +1289,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
     auto old = move_tl_object_as<secret_api::decryptedMessage46>(message->decrypted_message_layer->message_);
     old->flags_ &= ~secret_api::decryptedMessage::GROUPED_ID_MASK;  // just in case
     message->decrypted_message_layer->message_ = secret_api::make_object<secret_api::decryptedMessage>(
-        old->flags_, old->random_id_, old->ttl_, std::move(old->message_), std::move(old->media_),
+        old->flags_, false /*ignored*/, old->random_id_, old->ttl_, std::move(old->message_), std::move(old->media_),
         std::move(old->entities_), std::move(old->via_bot_name_), old->reply_to_random_id_, 0);
   }
   if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService8::ID) {

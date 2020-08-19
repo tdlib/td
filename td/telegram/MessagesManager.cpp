@@ -2046,7 +2046,7 @@ class SendSecretMessageActor : public NetActor {
  public:
   void send(DialogId dialog_id, int64 reply_to_random_id, int32 ttl, const string &text, SecretInputMedia media,
             vector<tl_object_ptr<secret_api::MessageEntity>> &&entities, UserId via_bot_user_id, int64 media_album_id,
-            int64 random_id) {
+            bool disable_notification, int64 random_id) {
     if (false && !media.empty()) {
       td->messages_manager_->on_send_secret_message_error(random_id, Status::Error(400, "FILE_PART_1_MISSING"), Auto());
       stop();
@@ -2073,13 +2073,16 @@ class SendSecretMessageActor : public NetActor {
       CHECK(media_album_id < 0);
       flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;
     }
+    if (disable_notification) {
+      flags |= secret_api::decryptedMessage::SILENT_MASK;
+    }
 
-    send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
-                 make_tl_object<secret_api::decryptedMessage>(
-                     flags, random_id, ttl, text, std::move(media.decrypted_media_), std::move(entities),
-                     td->contacts_manager_->get_user_username(via_bot_user_id), reply_to_random_id, -media_album_id),
-                 std::move(media.input_file_),
-                 PromiseCreator::event(self_closure(this, &SendSecretMessageActor::done)));
+    send_closure(
+        G()->secret_chats_manager(), &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
+        make_tl_object<secret_api::decryptedMessage>(
+            flags, false /*ignored*/, random_id, ttl, text, std::move(media.decrypted_media_), std::move(entities),
+            td->contacts_manager_->get_user_username(via_bot_user_id), reply_to_random_id, -media_album_id),
+        std::move(media.input_file_), PromiseCreator::event(self_closure(this, &SendSecretMessageActor::done)));
   }
 
   void done() {
@@ -11606,6 +11609,9 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   if ((message->flags_ & secret_api::decryptedMessage::MEDIA_MASK) != 0) {
     flags |= MESSAGE_FLAG_HAS_MEDIA;
   }
+  if ((message->flags_ & secret_api::decryptedMessage::SILENT_MASK) != 0) {
+    flags |= MESSAGE_FLAG_IS_SILENT;
+  }
 
   if (!clean_input_string(message->via_bot_name_)) {
     LOG(WARNING) << "Receive invalid bot username " << message->via_bot_name_;
@@ -11884,16 +11890,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   int32 flags = message_info.flags;
-  if (flags &
-      ~(MESSAGE_FLAG_IS_OUT | MESSAGE_FLAG_IS_FORWARDED | MESSAGE_FLAG_IS_REPLY | MESSAGE_FLAG_HAS_MENTION |
-        MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_ENTITIES |
-        MESSAGE_FLAG_HAS_FROM_ID | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_VIEWS | MESSAGE_FLAG_IS_SENT_VIA_BOT |
-        MESSAGE_FLAG_IS_SILENT | MESSAGE_FLAG_IS_POST | MESSAGE_FLAG_HAS_EDIT_DATE | MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE |
-        MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID | MESSAGE_FLAG_IS_FROM_SCHEDULED | MESSAGE_FLAG_IS_LEGACY |
-        MESSAGE_FLAG_HIDE_EDIT_DATE | MESSAGE_FLAG_IS_RESTRICTED)) {
-    LOG(ERROR) << "Unsupported message flags = " << flags << " received";
-  }
-
   bool is_outgoing = (flags & MESSAGE_FLAG_IS_OUT) != 0;
   bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
@@ -20841,7 +20837,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
                    m->reply_to_random_id, m->ttl, message_text->text,
                    get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
                    get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
-                   m->media_album_id, random_id);
+                   m->media_album_id, m->disable_notification, random_id);
     } else {
       send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
                    m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
@@ -21021,7 +21017,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
             }
             send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
                          m->reply_to_random_id, m->ttl, "", std::move(secret_input_media), std::move(entities),
-                         m->via_bot_user_id, m->media_album_id, random_id);
+                         m->via_bot_user_id, m->media_album_id, m->disable_notification, random_id);
           }));
 }
 
