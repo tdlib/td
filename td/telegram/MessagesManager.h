@@ -2692,7 +2692,7 @@ class MessagesManager : public Actor {
 
   void try_hide_distance(DialogId dialog_id, const Message *m);
 
-  string get_search_text(const Message *m) const;
+  string get_message_search_text(const Message *m) const;
 
   unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value, bool is_scheduled);
 

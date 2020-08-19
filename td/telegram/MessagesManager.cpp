@@ -8843,7 +8843,7 @@ void MessagesManager::delete_dialog_messages_from_updates(DialogId dialog_id, co
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 }
 
-string MessagesManager::get_search_text(const Message *m) const {
+string MessagesManager::get_message_search_text(const Message *m) const {
   if (m->is_content_secret) {
     return string();
   }
@@ -23098,8 +23098,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
-    if (forwarded_message->views > 0 && m->forward_info != nullptr) {
-      m->views = 1;
+    if (forwarded_message->views > 0 && m->forward_info != nullptr && !m->message_id.is_scheduled() && m->views == 0) {
+      m->views = forwarded_message->views;
     }
 
     if (is_game) {
@@ -29335,7 +29335,7 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
         unique_message_id = message_id.get_server_message_id();
       }
       // FOR DEBUG
-      // text = get_search_text(m);
+      // text = get_message_search_text(m);
       // if (!text.empty()) {
       //   search_id = (static_cast<int64>(m->date) << 32) | static_cast<uint32>(Random::secure_int32());
       // }
@@ -29344,7 +29344,7 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
       break;
     case DialogType::SecretChat:
       random_id = m->random_id;
-      text = get_search_text(m);
+      text = get_message_search_text(m);
       if (!text.empty()) {
         search_id = (static_cast<int64>(m->date) << 32) | static_cast<uint32>(m->random_id);
       }
