@@ -8016,7 +8016,9 @@ void MessagesManager::after_get_difference() {
 
   vector<FullMessageId> update_message_ids_to_delete;
   for (auto &it : update_message_ids_) {
-    // this is impossible for ordinary chats because updates coming during getDifference have already been applied
+    // there can be unhandled updateMessageId updates after getDifference even for ordinary chats,
+    // because despite updates coming during getDifference have already been applied,
+    // some of them could be postponed because of pts gap
     auto full_message_id = it.first;
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -8045,9 +8047,13 @@ void MessagesManager::after_get_difference() {
 
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
-        LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << full_message_id
-                   << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
-        if (dialog_id.get_type() != DialogType::Channel) {
+        if (dialog_id.get_type() == DialogType::Channel || pending_updates_.empty() || message_id.is_scheduled() ||
+            message_id <= d->last_new_message_id) {
+          LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << full_message_id
+                     << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
+        }
+        if (dialog_id.get_type() != DialogType::Channel &&
+            (pending_updates_.empty() || message_id.is_scheduled() || message_id <= d->last_new_message_id)) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
         if (message_id.is_scheduled() || message_id <= d->last_new_message_id) {
