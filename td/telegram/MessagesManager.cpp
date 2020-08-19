@@ -19966,7 +19966,14 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
-  auto views = m->message_id.is_scheduled() || (m->message_id.is_local() && m->forward_info == nullptr) ? 0 : m->views;
+  auto views = m->views;
+  if (m->message_id.is_scheduled()) {
+    if (m->forward_info == nullptr || is_broadcast_channel(dialog_id)) {
+      views = 0;
+    }
+  } else if (m->message_id.is_local() && m->forward_info == nullptr) {
+    views = 0;
+  }
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
@@ -23098,7 +23105,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
-    if (forwarded_message->views > 0 && m->forward_info != nullptr && !m->message_id.is_scheduled() && m->views == 0) {
+    if (forwarded_message->views > 0 && m->forward_info != nullptr && m->views == 0 &&
+        !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
       m->views = forwarded_message->views;
     }
 
