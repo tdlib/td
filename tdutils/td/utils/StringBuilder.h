@@ -39,8 +39,21 @@ class StringBuilder {
     return error_flag_;
   }
 
-  StringBuilder &operator<<(const char *str) {
+  template <class T>
+  std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, StringBuilder> &operator<<(T str) {
     return *this << Slice(str);
+  }
+  template <class T>
+  std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, StringBuilder> &operator<<(T str) {
+    return *this << Slice(str);
+  }
+
+  template <size_t N>
+  StringBuilder &operator<<(char (&str)[N]) = delete;
+
+  template <size_t N>
+  StringBuilder &operator<<(const char (&str)[N]) {
+    return *this << Slice(str, N - 1);
   }
 
   StringBuilder &operator<<(const wchar_t *str) = delete;
@@ -93,11 +106,6 @@ class StringBuilder {
   }
 
   StringBuilder &operator<<(const void *ptr);
-
-  template <class T>
-  StringBuilder &operator<<(const T *ptr) {
-    return *this << static_cast<const void *>(ptr);
-  }
 
  private:
   char *begin_ptr_;
