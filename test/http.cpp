@@ -136,8 +136,17 @@ TEST(Http, reader) {
   {
     BufferSlice a("test test");
     BufferSlice b = std::move(a);
+#if TD_CLANG
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wself-move"
+#endif
     a = std::move(a);
     b = std::move(b);
+#if TD_CLANG
+#pragma clang diagnostic pop
+#endif
     a = std::move(b);
     BufferSlice c = a.from_slice(a);
     CHECK(c.size() == a.size());
