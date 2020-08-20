@@ -24929,6 +24929,11 @@ void MessagesManager::send_update_new_chat(Dialog *d, int64 real_order) {
 }
 
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
@@ -24945,6 +24950,10 @@ void MessagesManager::send_update_chat_last_message(Dialog *d, const char *sourc
 }
 
 void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const char *source) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_last_message from "
                                         << source;
