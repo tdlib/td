@@ -3590,12 +3590,13 @@ searchChatMessages chat_id:int53 query:string sender_user_id:int32 from_message_
 //@offset_date The date of the message starting from which the results should be fetched. Use 0 or any date in the future to get results from the last message
 //@offset_chat_id The chat identifier of the last found message, or 0 for the first request
 //@offset_message_id The message identifier of the last found message, or 0 for the first request
-//@limit The maximum number of messages to be returned, up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
+//@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 searchMessages chat_list:ChatList query:string offset_date:int32 offset_chat_id:int53 offset_message_id:int53 limit:int32 = Messages;
 
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance the number of returned messages is chosen by the library
-//@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
-//@offset Offset of the first entry to return; use empty string to get results from the last message
+//@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats
+//@query Query to search for. If empty, searchChatMessages should be used instead
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter A filter for the content of messages in the search results
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
@@ -3619,6 +3620,13 @@ getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool 
 
 //@description Returns all scheduled messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
 getChatScheduledMessages chat_id:int53 = Messages;
+
+//@description Returns forwarded copies of a channel message to another public channels. For optimal performance the number of returned messages is chosen by the library
+//@chat_id Chat identifier of the message
+//@message_id Message identifier
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. Fewer messages may be returned than specified by the limit, even if the end of the list has not been reached
+getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

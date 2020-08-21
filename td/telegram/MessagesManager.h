@@ -246,6 +246,10 @@ class MessagesManager : public Actor {
                                vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_get_recent_locations_failed(int64 random_id);
 
+  void on_get_message_public_forwards_result(int64 random_id, int32 total_count,
+                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
+  void on_failed_get_message_public_forwards(int64 random_id);
+
   // if message is from_update, flags have_previous and have_next are ignored and should be both true
   FullMessageId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                bool is_channel_message, bool is_scheduled, bool have_previous, bool have_next,
@@ -653,9 +657,16 @@ class MessagesManager : public Actor {
                                                              const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
                                                              int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
-  std::pair<string, vector<FullMessageId>> offline_search_messages(
-      DialogId dialog_id, const string &query, const string &offset, int32 limit,
-      const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise);
+  struct FoundMessages {
+    vector<FullMessageId> full_message_ids;
+    string next_offset;
+  };
+
+  td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages);
+
+  FoundMessages offline_search_messages(DialogId dialog_id, const string &query, const string &offset, int32 limit,
+                                        const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id,
+                                        Promise<> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
                                                           const string &query, int32 offset_date,
@@ -682,6 +693,9 @@ class MessagesManager : public Actor {
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
+
+  FoundMessages get_message_public_forwards(FullMessageId full_message_id, const string &offset, int32 limit,
+                                            int64 &random_id, Promise<Unit> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
@@ -2931,8 +2945,8 @@ class MessagesManager : public Actor {
   std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
       found_dialog_recent_location_messages_;  // random_id -> [total_count, [message_id]...]
 
-  std::unordered_map<int64, std::pair<string, vector<FullMessageId>>>
-      found_fts_messages_;  // random_id -> [next_offset, [full_message_id]...]
+  std::unordered_map<int64, FoundMessages> found_fts_messages_;             // random_id -> FoundMessages
+  std::unordered_map<int64, FoundMessages> found_message_public_forwards_;  // random_id -> FoundMessages
 
   std::unordered_map<FullMessageId, std::pair<string, string>, FullMessageIdHash> public_message_links_[2];
 

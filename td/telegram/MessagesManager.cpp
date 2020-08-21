@@ -1782,6 +1782,52 @@ class GetRecentLocationsQuery : public Td::ResultHandler {
   }
 };
 
+class GetMessagePublicForwardsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  int32 limit_;
+  int64 random_id_;
+
+ public:
+  explicit GetMessagePublicForwardsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, int32 offset_date, DialogId offset_dialog_id,
+            ServerMessageId offset_message_id, int32 limit, int64 random_id) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    limit_ = limit;
+    random_id_ = random_id;
+
+    auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::stats_getMessagePublicForwards(
+        td->contacts_manager_->get_input_channel(dialog_id_.get_channel_id()),
+        full_message_id.get_message_id().get_server_message_id().get(), offset_date, std::move(input_peer),
+        offset_message_id.get(), limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stats_getMessagePublicForwards>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
+    LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetMessagePublicForwardsQuery";
+    td->messages_manager_->on_get_message_public_forwards_result(random_id_, info.total_count,
+                                                                 std::move(info.messages));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagePublicForwardsQuery");
+    td->messages_manager_->on_failed_get_message_public_forwards(random_id_);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class HidePromoDataQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -8836,6 +8882,48 @@ void MessagesManager::on_get_recent_locations_failed(int64 random_id) {
   auto it = found_dialog_recent_location_messages_.find(random_id);
   CHECK(it != found_dialog_recent_location_messages_.end());
   found_dialog_recent_location_messages_.erase(it);
+}
+
+void MessagesManager::on_get_message_public_forwards_result(int64 random_id, int32 total_count,
+                                                            vector<tl_object_ptr<telegram_api::Message>> &&messages) {
+  LOG(INFO) << "Receive " << messages.size() << " forwarded messages";
+  auto it = found_message_public_forwards_.find(random_id);
+  CHECK(it != found_message_public_forwards_.end());
+
+  auto &result = it->second.full_message_ids;
+  CHECK(result.empty());
+  FullMessageId last_full_message_id;
+  for (auto &message : messages) {
+    auto dialog_id = get_message_dialog_id(message);
+    auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
+                                              false, false, false, "get message public forwards");
+    if (new_full_message_id != FullMessageId()) {
+      CHECK(dialog_id == new_full_message_id.get_dialog_id());
+      result.push_back(new_full_message_id);
+      last_full_message_id = new_full_message_id;
+    } else {
+      total_count--;
+    }
+  }
+  if (total_count < static_cast<int32>(result.size())) {
+    LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
+               << " messages";
+    total_count = static_cast<int32>(result.size());
+  }
+  if (!result.empty()) {
+    auto m = get_message(last_full_message_id);
+    CHECK(m != nullptr);
+    it->second.next_offset = PSTRING() << m->date << "," << last_full_message_id.get_dialog_id().get() << ","
+                                       << m->message_id.get_server_message_id().get();
+  }
+
+  // it->second.total_count = total_count;
+}
+
+void MessagesManager::on_failed_get_message_public_forwards(int64 random_id) {
+  auto it = found_message_public_forwards_.find(random_id);
+  CHECK(it != found_message_public_forwards_.end());
+  found_message_public_forwards_.erase(it);
 }
 
 void MessagesManager::delete_messages_from_updates(const vector<MessageId> &message_ids) {
@@ -18994,7 +19082,21 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   promise.set_value(Unit());
 }
 
-std::pair<string, vector<FullMessageId>> MessagesManager::offline_search_messages(
+td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_object(
+    const FoundMessages &found_messages) {
+  vector<tl_object_ptr<td_api::message>> result;
+  result.reserve(found_messages.full_message_ids.size());
+  for (auto full_message_id : found_messages.full_message_ids) {
+    auto message = get_message_object(full_message_id);
+    if (message != nullptr) {
+      result.push_back(std::move(message));
+    }
+  }
+
+  return td_api::make_object<td_api::foundMessages>(std::move(result), found_messages.next_offset);
+}
+
+MessagesManager::FoundMessages MessagesManager::offline_search_messages(
     DialogId dialog_id, const string &query, const string &offset, int32 limit,
     const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise) {
   if (!G()->parameters().use_message_db) {
@@ -19070,7 +19172,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 
   auto it = found_fts_messages_.find(random_id);
   CHECK(it != found_fts_messages_.end());
-  auto &res = it->second.second;
+  auto &res = it->second.full_message_ids;
 
   res.reserve(fts_result.messages.size());
   for (auto &message : fts_result.messages) {
@@ -19081,7 +19183,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
     }
   }
 
-  it->second.first = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
+  it->second.next_offset = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
 
   promise.set_value(Unit());
 }
@@ -19928,6 +20030,83 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   for (auto &promise : promises) {
     promise.set_value(Unit());
   }
+}
+
+MessagesManager::FoundMessages MessagesManager::get_message_public_forwards(FullMessageId full_message_id,
+                                                                            const string &offset, int32 limit,
+                                                                            int64 &random_id, Promise<Unit> &&promise) {
+  if (random_id != 0) {
+    // request has already been sent before
+    auto it = found_message_public_forwards_.find(random_id);
+    CHECK(it != found_message_public_forwards_.end());
+    auto result = std::move(it->second);
+    found_message_public_forwards_.erase(it);
+    promise.set_value(Unit());
+    return result;
+  }
+
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(5, "Chat not found"));
+    return {};
+  }
+
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "get_message_public_forwards");
+  if (m == nullptr) {
+    promise.set_error(Status::Error(5, "Message not found"));
+    return {};
+  }
+
+  if (m->view_count == 0 || m->forward_info != nullptr || m->had_forward_info || m->message_id.is_scheduled() ||
+      !m->message_id.is_server()) {
+    promise.set_error(Status::Error(5, "Message forwards are inaccessible"));
+    return {};
+  }
+
+  FoundMessages result;
+  if (limit <= 0) {
+    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    return {};
+  }
+  if (limit > MAX_SEARCH_MESSAGES) {
+    limit = MAX_SEARCH_MESSAGES;
+  }
+
+  int32 offset_date = std::numeric_limits<int32>::max();
+  DialogId offset_dialog_id;
+  ServerMessageId offset_message_id;
+
+  if (!offset.empty()) {
+    auto parts = full_split(offset, ',');
+    if (parts.size() != 3) {
+      promise.set_error(Status::Error(3, "Wrong offset specified"));
+      return {};
+    }
+    auto r_offset_date = to_integer_safe<int32>(parts[0]);
+    auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
+    auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
+    if (r_offset_date.is_error() || r_offset_dialog_id.is_error() || r_offset_message_id.is_error()) {
+      promise.set_error(Status::Error(3, "Wrong offset specified"));
+      return {};
+    }
+
+    offset_date = r_offset_date.ok();
+    offset_dialog_id = DialogId(r_offset_dialog_id.ok());
+    offset_message_id = ServerMessageId(r_offset_message_id.ok());
+  }
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_message_public_forwards_.find(random_id) != found_message_public_forwards_.end());
+  found_message_public_forwards_[random_id];  // reserve place for result
+
+  LOG(DEBUG) << "Get public message forwards from date " << offset_date << ", " << offset_dialog_id
+             << ", server message " << offset_message_id.get() << " and with limit " << limit;
+
+  td_->create_handler<GetMessagePublicForwardsQuery>(std::move(promise))
+      ->send(full_message_id, offset_date, offset_dialog_id, offset_message_id, limit, random_id);
+  return {};
 }
 
 Result<int32> MessagesManager::get_message_schedule_date(

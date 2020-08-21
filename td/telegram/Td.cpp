@@ -1473,21 +1473,15 @@ class SearchSecretMessagesRequest : public RequestActor<> {
   tl_object_ptr<td_api::SearchMessagesFilter> filter_;
   int64 random_id_;
 
-  std::pair<string, vector<FullMessageId>> messages_;
+  MessagesManager::FoundMessages found_messages_;
 
   void do_run(Promise<Unit> &&promise) override {
-    messages_ = td->messages_manager_->offline_search_messages(dialog_id_, query_, offset_, limit_, filter_, random_id_,
-                                                               std::move(promise));
+    found_messages_ = td->messages_manager_->offline_search_messages(dialog_id_, query_, offset_, limit_, filter_,
+                                                                     random_id_, std::move(promise));
   }
 
   void do_send_result() override {
-    vector<tl_object_ptr<td_api::message>> result;
-    result.reserve(messages_.second.size());
-    for (auto full_message_id : messages_.second) {
-      result.push_back(td->messages_manager_->get_message_object(full_message_id));
-    }
-
-    send_result(make_tl_object<td_api::foundMessages>(std::move(result), std::move(messages_.first)));
+    send_result(td->messages_manager_->get_found_messages_object(found_messages_));
   }
 
  public:
@@ -1685,6 +1679,34 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
   }
 };
 
+class GetMessagePublicForwardsRequest : public RequestActor<> {
+  FullMessageId full_message_id_;
+  string offset_;
+  int32 limit_;
+  int64 random_id_;
+
+  MessagesManager::FoundMessages messages_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    messages_ = td->messages_manager_->get_message_public_forwards(full_message_id_, offset_, limit_, random_id_,
+                                                                   std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_found_messages_object(messages_));
+  }
+
+ public:
+  GetMessagePublicForwardsRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                                  string offset, int32 limit)
+      : RequestActor(std::move(td), request_id)
+      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , offset_(std::move(offset))
+      , limit_(limit)
+      , random_id_(0) {
+  }
+};
+
 class GetWebPagePreviewRequest : public RequestOnceActor {
   td_api::object_ptr<td_api::formattedText> text_;
 
@@ -1873,10 +1895,6 @@ class GetChatMemberRequest : public RequestActor<> {
       return send_error(Status::Error(3, "User not found"));
     }
     send_result(td->contacts_manager_->get_chat_member_object(dialog_participant_));
-  }
-
-  void do_send_error(Status &&status) override {
-    send_error(std::move(status));
   }
 
  public:
@@ -5463,6 +5481,7 @@ void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
 void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
+  CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST(SearchSecretMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.offset_),
                  request.limit_, std::move(request.filter_));
 }
@@ -5506,6 +5525,13 @@ void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
 void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
+}
+
+void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST(GetMessagePublicForwardsRequest, request.chat_id_, request.message_id_, request.offset_,
+                 request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
