@@ -19270,16 +19270,16 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     return {};
   }
 
-  if (query.empty()) {
-    promise.set_value(Unit());
-    return {};
-  }
-
   auto filter_type = get_search_messages_filter(filter);
   if (filter_type == SearchMessagesFilter::Call || filter_type == SearchMessagesFilter::MissedCall ||
       filter_type == SearchMessagesFilter::Mention || filter_type == SearchMessagesFilter::UnreadMention ||
       filter_type == SearchMessagesFilter::FailedToSend) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
+    return {};
+  }
+
+  if (query.empty() && filter_type == SearchMessagesFilter::Empty) {
+    promise.set_value(Unit());
     return {};
   }
 
