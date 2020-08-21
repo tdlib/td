@@ -1008,7 +1008,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::SearchMessagesFilter> get_search_messages_filter(MutableSlice filter) {
+  static td_api::object_ptr<td_api::SearchMessagesFilter> as_search_messages_filter(MutableSlice filter) {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (filter == "an" || filter == "animation") {
@@ -1869,9 +1869,11 @@ class CliClient final : public Actor {
       string from_date;
       string limit;
       string query;
+      string filter;
 
       std::tie(query, args) = split(args);
-      std::tie(limit, from_date) = split(args);
+      std::tie(limit, args) = split(args);
+      std::tie(filter, from_date) = split(args);
       if (from_date.empty()) {
         from_date = "0";
       }
@@ -1883,7 +1885,8 @@ class CliClient final : public Actor {
         chat_list = td_api::make_object<td_api::chatListMain>();
       }
       send_request(td_api::make_object<td_api::searchMessages>(
-          std::move(chat_list), query, to_integer<int32>(from_date), 2147482647, 0, to_integer<int32>(limit)));
+          std::move(chat_list), query, to_integer<int32>(from_date), 2147482647, 0, to_integer<int32>(limit),
+          as_search_messages_filter(filter)));
     } else if (op == "SCM") {
       string chat_id;
       string limit;
@@ -1944,7 +1947,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::searchChatMessages>(
           as_chat_id(chat_id), "", 0, as_message_id(offset_message_id), to_integer<int32>(offset),
-          to_integer<int32>(limit), get_search_messages_filter(filter)));
+          to_integer<int32>(limit), as_search_messages_filter(filter)));
     } else if (op == "SC") {
       string limit;
       string offset_message_id;
@@ -2053,7 +2056,7 @@ class CliClient final : public Actor {
       std::tie(filter, return_local) = split(args);
 
       send_request(td_api::make_object<td_api::getChatMessageCount>(
-          as_chat_id(chat_id), get_search_messages_filter(filter), as_bool(return_local)));
+          as_chat_id(chat_id), as_search_messages_filter(filter), as_bool(return_local)));
     } else if (op == "gup" || op == "gupp") {
       string user_id;
       string offset;
@@ -2936,7 +2939,7 @@ class CliClient final : public Actor {
       std::tie(filter, query) = split(args);
 
       send_request(td_api::make_object<td_api::searchSecretMessages>(
-          as_chat_id(chat_id), query, offset, to_integer<int32>(limit), get_search_messages_filter(filter)));
+          as_chat_id(chat_id), query, offset, to_integer<int32>(limit), as_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = args;
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {

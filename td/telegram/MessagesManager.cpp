@@ -1648,6 +1648,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
   DialogId offset_dialog_id_;
   MessageId offset_message_id_;
   int32 limit_;
+  SearchMessagesFilter filter_;
   int64 random_id_;
 
  public:
@@ -1655,13 +1656,15 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
   }
 
   void send(FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date,
-            DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, int64 random_id) {
+            DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, SearchMessagesFilter filter,
+            int64 random_id) {
     query_ = query;
     offset_date_ = offset_date;
     offset_dialog_id_ = offset_dialog_id;
     offset_message_id_ = offset_message_id;
     limit_ = limit;
     random_id_ = random_id;
+    filter_ = filter;
 
     auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
@@ -1671,7 +1674,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, folder_id.get(), query, make_tl_object<telegram_api::inputMessagesFilterEmpty>(), offset_date_,
+        flags, folder_id.get(), query, MessagesManager::get_input_messages_filter(filter), offset_date_,
         std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
   }
 
@@ -1683,7 +1686,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
     td->messages_manager_->on_get_messages_search_result(query_, offset_date_, offset_dialog_id_, offset_message_id_,
-                                                         limit_, random_id_, info.total_count,
+                                                         limit_, filter_, random_id_, info.total_count,
                                                          std::move(info.messages));
 
     promise_.set_value(Unit());
@@ -8745,8 +8748,8 @@ void MessagesManager::on_failed_dialog_messages_search(DialogId dialog_id, int64
 }
 
 void MessagesManager::on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
-                                                    MessageId offset_message_id, int32 limit, int64 random_id,
-                                                    int32 total_count,
+                                                    MessageId offset_message_id, int32 limit,
+                                                    SearchMessagesFilter filter, int64 random_id, int32 total_count,
                                                     vector<tl_object_ptr<telegram_api::Message>> &&messages) {
   LOG(INFO) << "Receive " << messages.size() << " found messages";
   auto it = found_messages_.find(random_id);
@@ -19229,11 +19232,10 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
   promise.set_value(Unit());
 }
 
-std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id,
-                                                                         const string &query, int32 offset_date,
-                                                                         DialogId offset_dialog_id,
-                                                                         MessageId offset_message_id, int32 limit,
-                                                                         int64 &random_id, Promise<Unit> &&promise) {
+std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
+    FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date, DialogId offset_dialog_id,
+    MessageId offset_message_id, int32 limit, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
+    int64 &random_id, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_messages_.find(random_id);
@@ -19244,10 +19246,9 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(FolderI
     return result;
   }
 
-  std::pair<int32, vector<FullMessageId>> result;
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit must be positive"));
-    return result;
+    return {};
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -19259,19 +19260,27 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(FolderI
   if (!offset_message_id.is_valid()) {
     if (offset_message_id.is_valid_scheduled()) {
       promise.set_error(Status::Error(3, "Parameter offset_message_id can't be a scheduled message identifier"));
-      return result;
+      return {};
     }
     offset_message_id = MessageId();
   }
   if (offset_message_id != MessageId() && !offset_message_id.is_server()) {
     promise.set_error(
         Status::Error(3, "Parameter offset_message_id must be identifier of the last found message or 0"));
-    return result;
+    return {};
   }
 
   if (query.empty()) {
     promise.set_value(Unit());
-    return result;
+    return {};
+  }
+
+  auto filter_type = get_search_messages_filter(filter);
+  if (filter_type == SearchMessagesFilter::Call || filter_type == SearchMessagesFilter::MissedCall ||
+      filter_type == SearchMessagesFilter::Mention || filter_type == SearchMessagesFilter::UnreadMention ||
+      filter_type == SearchMessagesFilter::FailedToSend) {
+    promise.set_error(Status::Error(400, "The filter is not supported"));
+    return {};
   }
 
   do {
@@ -19280,11 +19289,12 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(FolderI
   found_messages_[random_id];  // reserve place for result
 
   LOG(DEBUG) << "Search messages globally with query = \"" << query << "\" from date " << offset_date << ", "
-             << offset_dialog_id << ", " << offset_message_id << " and with limit " << limit;
+             << offset_dialog_id << ", " << offset_message_id << " and limit " << limit;
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
-      ->send(folder_id, ignore_folder_id, query, offset_date, offset_dialog_id, offset_message_id, limit, random_id);
-  return result;
+      ->send(folder_id, ignore_folder_id, query, offset_date, offset_dialog_id, offset_message_id, limit, filter_type,
+             random_id);
+  return {};
 }
 
 int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise) {
