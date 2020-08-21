@@ -681,8 +681,8 @@ message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSending
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
 
-//@description Contains a list of messages found by a search @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
-foundMessages messages:vector<message> next_offset:string = FoundMessages;
+//@description Contains a list of messages found by a search @total_count Approximate total count of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
+foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are applied

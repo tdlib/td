@@ -8917,7 +8917,7 @@ void MessagesManager::on_get_message_public_forwards_result(int64 random_id, int
                                        << m->message_id.get_server_message_id().get();
   }
 
-  // it->second.total_count = total_count;
+  it->second.total_count = total_count;
 }
 
 void MessagesManager::on_failed_get_message_public_forwards(int64 random_id) {
@@ -19093,7 +19093,8 @@ td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_ob
     }
   }
 
-  return td_api::make_object<td_api::foundMessages>(std::move(result), found_messages.next_offset);
+  return td_api::make_object<td_api::foundMessages>(found_messages.total_count, std::move(result),
+                                                    found_messages.next_offset);
 }
 
 MessagesManager::FoundMessages MessagesManager::offline_search_messages(
@@ -19151,16 +19152,17 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(
 
   G()->td_db()->get_messages_db_async()->get_messages_fts(
       std::move(fts_query),
-      PromiseCreator::lambda([random_id, promise = std::move(promise)](Result<MessagesDbFtsResult> fts_result) mutable {
+      PromiseCreator::lambda([random_id, offset = std::move(offset), limit,
+                              promise = std::move(promise)](Result<MessagesDbFtsResult> fts_result) mutable {
         send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_fts_result, std::move(fts_result),
-                     random_id, std::move(promise));
+                     std::move(offset), limit, random_id, std::move(promise));
       }));
 
   return {};
 }
 
-void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id,
-                                                Promise<Unit> &&promise) {
+void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit,
+                                                int64 random_id, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     result = Status::Error(500, "Request aborted");
   }
@@ -19184,6 +19186,9 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
   }
 
   it->second.next_offset = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
+  it->second.total_count = offset.empty() && fts_result.messages.size() < static_cast<size_t>(limit)
+                               ? static_cast<int32>(fts_result.messages.size())
+                               : -1;
 
   promise.set_value(Unit());
 }

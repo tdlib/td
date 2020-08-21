@@ -660,6 +660,7 @@ class MessagesManager : public Actor {
   struct FoundMessages {
     vector<FullMessageId> full_message_ids;
     string next_offset;
+    int32 total_count = 0;
   };
 
   td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages);
@@ -2495,7 +2496,8 @@ class MessagesManager : public Actor {
                                            int32 offset, int32 limit, Result<std::vector<BufferSlice>> r_messages,
                                            Promise<> promise);
 
-  void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id, Promise<> &&promise);
+  void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit, int64 random_id,
+                                 Promise<> &&promise);
 
   void on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
                                    SearchMessagesFilter filter, Promise<Unit> &&promise);
