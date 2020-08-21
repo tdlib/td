@@ -67,11 +67,12 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
 
 void FileLoader::update_download_offset(int64 offset) {
   if (parts_manager_.get_streaming_offset() != offset) {
-    uint64 begin_part_id = parts_manager_.set_streaming_offset(offset);
-    uint64 end_part_id = begin_part_id + part_map_.size();
-    //TODO: cancel only some queries
+    auto begin_part_id = parts_manager_.set_streaming_offset(offset);
+    auto end_part_id = begin_part_id + static_cast<int32>(part_map_.size()) * 2;
+    VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id;
     for (auto &it : part_map_) {
-      if (!(begin_part_id <= it.first && it.first < end_part_id)) {
+      if (!(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
+        VLOG(files) << "Cancel part " << it.second.first.id;
         it.second.second.reset();  // cancel_query(it.second.second);
       }
     }

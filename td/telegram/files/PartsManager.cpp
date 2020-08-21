@@ -32,8 +32,8 @@ Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, con
 int32 PartsManager::set_streaming_offset(int64 offset) {
   auto finish = [&] {
     set_streaming_limit(streaming_limit_);
-    update_first_empty_part();
-    return first_streaming_empty_part_;
+    update_first_not_ready_part();
+    return first_streaming_not_ready_part_;
   };
 
   if (offset < 0 || need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
