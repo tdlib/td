@@ -20953,12 +20953,8 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   }
 
   auto dialog_type = dialog_id.get_type();
-  bool is_secret = dialog_type == DialogType::SecretChat;
-  if (result.disable_notification && is_secret) {
-    return Status::Error(400, "Can't send messages with silent notifications to secret chats");
-  }
   if (result.schedule_date != 0) {
-    if (is_secret) {
+    if (dialog_type == DialogType::SecretChat) {
       return Status::Error(400, "Can't schedule messages in secret chats");
     }
     if (td_->auth_manager_->is_bot()) {

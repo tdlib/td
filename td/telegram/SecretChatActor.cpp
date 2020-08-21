@@ -324,7 +324,7 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
   int64 random_id = 0;
   downcast_call(*message, [&](auto &x) { random_id = x.random_id_; });
 
-  LOG(INFO) << "Send message: " << to_string(*message) << to_string(file);
+  LOG(INFO) << "Send message: " << to_string(message) << to_string(file);
 
   auto it = random_id_to_outbound_message_state_token_.find(random_id);
   if (it != random_id_to_outbound_message_state_token_.end()) {
@@ -344,6 +344,9 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
           .move_as_ok();
   binlog_event->need_notify_user = (flags & SendFlag::Push) == 0;
   binlog_event->is_external = (flags & SendFlag::External) != 0;
+  binlog_event->is_silent = (message->get_id() == secret_api::decryptedMessage::ID &&
+                             (static_cast<const secret_api::decryptedMessage *>(message.get())->flags_ &
+                              secret_api::decryptedMessage::SILENT_MASK) != 0);
   if (message->get_id() == secret_api::decryptedMessageService::ID) {
     binlog_event->is_rewritable = false;
     auto service_message = move_tl_object_as<secret_api::decryptedMessageService>(message);
@@ -1467,13 +1470,21 @@ NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMess
                              telegram_api::messages_sendEncryptedService(get_input_chat(), message.random_id,
                                                                          message.encrypted_message.clone()));
   } else if (message.file.empty()) {
+    int32 flags = 0;
+    if (message.is_silent) {
+      flags |= telegram_api::messages_sendEncrypted::SILENT_MASK;
+    }
     query = create_net_query(
-        QueryType::Message, telegram_api::messages_sendEncrypted(0, false /*ignored*/, get_input_chat(),
+        QueryType::Message, telegram_api::messages_sendEncrypted(flags, false /*ignored*/, get_input_chat(),
                                                                  message.random_id, message.encrypted_message.clone()));
   } else {
+    int32 flags = 0;
+    if (message.is_silent) {
+      flags |= telegram_api::messages_sendEncryptedFile::SILENT_MASK;
+    }
     query = create_net_query(QueryType::Message,
                              telegram_api::messages_sendEncryptedFile(
-                                 0, false /*ignored*/, get_input_chat(), message.random_id,
+                                 flags, false /*ignored*/, get_input_chat(), message.random_id,
                                  message.encrypted_message.clone(), message.file.as_input_encrypted_file()));
   }
   if (!message.is_rewritable) {
@@ -1562,6 +1573,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   state->message->is_rewritable = false;
   state->message->is_external = false;
   state->message->need_notify_user = false;
+  state->message->is_silent = true;
   state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(nullptr);
   binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
                  create_storer(*state->message));

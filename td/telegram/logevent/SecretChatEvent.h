@@ -330,6 +330,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   bool is_rewritable = false;
   // should notify our parent about state of this message (using context and random_id)
   bool is_external = false;
+  bool is_silent = false;
 
   tl_object_ptr<secret_api::DecryptedMessageAction> action;
   uint64 crc = 0;  // DEBUG;
@@ -360,6 +361,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     STORE_FLAG(has_action);
     STORE_FLAG(is_rewritable);
     STORE_FLAG(is_external);
+    STORE_FLAG(is_silent);
     END_STORE_FLAGS();
 
     if (has_action) {
@@ -390,6 +392,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     PARSE_FLAG(has_action);
     PARSE_FLAG(is_rewritable);
     PARSE_FLAG(is_external);
+    PARSE_FLAG(is_silent);
     END_PARSE_FLAGS();
 
     if (has_action) {
