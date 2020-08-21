@@ -67,10 +67,13 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
 
 void FileLoader::update_download_offset(int64 offset) {
   if (parts_manager_.get_streaming_offset() != offset) {
-    parts_manager_.set_streaming_offset(offset);
+    uint64 begin_part_id = parts_manager_.set_streaming_offset(offset);
+    uint64 end_part_id = begin_part_id + part_map_.size();
     //TODO: cancel only some queries
     for (auto &it : part_map_) {
-      it.second.second.reset();  // cancel_query(it.second.second);
+      if (!(begin_part_id <= it.first && it.first < end_part_id)) {
+        it.second.second.reset();  // cancel_query(it.second.second);
+      }
     }
   }
   update_estimated_limit();
@@ -259,6 +262,7 @@ void FileLoader::on_result(NetQueryPtr query) {
   Part part = it->second.first;
   it->second.second.release();
   CHECK(query->is_ready());
+  part_map_.erase(it);
 
   bool next = false;
   auto status = [&] {

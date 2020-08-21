@@ -35,7 +35,7 @@ class PartsManager {
   Status set_known_prefix(size_t size, bool is_ready);
   void set_need_check();
   void set_checked_prefix_size(int64 size);
-  void set_streaming_offset(int64 offset);
+  int32 set_streaming_offset(int64 offset);
   void set_streaming_limit(int64 limit);
 
   int64 get_checked_prefix_size() const;
@@ -51,6 +51,7 @@ class PartsManager {
   int32 get_ready_prefix_count();
   int64 get_streaming_offset() const;
   string get_bitmask();
+  int32 get_pending_count();
 
  private:
   static constexpr int MAX_PART_COUNT = 4000;

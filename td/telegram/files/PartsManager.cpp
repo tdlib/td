@@ -29,22 +29,27 @@ Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, con
   return init_no_size(part_size, ready_parts);
 }
 
-void PartsManager::set_streaming_offset(int64 offset) {
-  SCOPE_EXIT {
+int32 PartsManager::set_streaming_offset(int64 offset) {
+  auto finish = [&] {
     set_streaming_limit(streaming_limit_);
+    update_first_empty_part();
+    return first_streaming_empty_part_;
   };
+
   if (offset < 0 || need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
     streaming_offset_ = 0;
     LOG_IF(ERROR, offset != 0) << "Ignore streaming_offset " << offset << ", need_check_ = " << need_check_
                                << ", unknown_size_flag_ = " << unknown_size_flag_ << ", size = " << get_size();
-    return;
+
+    return finish();
   }
 
   auto part_i = offset / part_size_;
   if (use_part_count_limit_ && part_i >= MAX_PART_COUNT) {
     streaming_offset_ = 0;
     LOG(ERROR) << "Ignore streaming_offset " << offset << " in part " << part_i;
-    return;
+
+    return finish();
   }
 
   streaming_offset_ = offset;
@@ -54,6 +59,12 @@ void PartsManager::set_streaming_offset(int64 offset) {
     part_count_ = first_streaming_empty_part_;
     part_status_.resize(part_count_, PartStatus::Empty);
   }
+
+  return finish();
+}
+
+int32 PartsManager::get_pending_count() {
+  return pending_count_;
 }
 
 void PartsManager::set_streaming_limit(int64 limit) {
