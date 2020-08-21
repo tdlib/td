@@ -226,6 +226,7 @@ string PartsManager::get_bitmask() {
 }
 
 bool PartsManager::is_part_in_streaming_limit(int part_i) const {
+  CHECK(part_i < part_count_);
   auto offset_begin = static_cast<int64>(part_i) * static_cast<int64>(get_part_size());
   auto offset_end = offset_begin + static_cast<int64>(get_part(part_i).size);
 
@@ -263,6 +264,9 @@ bool PartsManager::is_streaming_limit_reached() {
   // wrap
   if (!unknown_size_flag_ && part_i == part_count_) {
     part_i = first_not_ready_part_;
+  }
+  if (part_i == part_count_) {
+    return false;
   }
   return !is_part_in_streaming_limit(part_i);
 }
