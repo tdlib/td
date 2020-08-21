@@ -2768,9 +2768,11 @@ class CliClient final : public Actor {
       vector<td_api::object_ptr<td_api::CallProblem>> problems;
       problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
       problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemDistortedVideo>());
       problems.emplace_back(nullptr);
       problems.emplace_back(td_api::make_object<td_api::callProblemNoise>());
       problems.emplace_back(td_api::make_object<td_api::callProblemEcho>());
+      problems.emplace_back(td_api::make_object<td_api::callProblemPixelatedVideo>());
       problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
       send_request(td_api::make_object<td_api::sendCallRating>(
           as_call_id(call_id), to_integer<int32>(rating), "Wow, such good call! (TDLib test)", std::move(problems)));

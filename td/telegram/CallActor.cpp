@@ -277,6 +277,10 @@ void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_pt
           return "silent_remote";
         case td_api::callProblemDropped::ID:
           return "dropped";
+        case td_api::callProblemDistortedVideo::ID:
+          return "distorted_video";
+        case td_api::callProblemPixelatedVideo::ID:
+          return "pixelated_video";
         default:
           UNREACHABLE();
           return "";

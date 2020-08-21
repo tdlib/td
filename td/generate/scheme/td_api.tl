@@ -1989,6 +1989,12 @@ callProblemSilentRemote = CallProblem;
 //@description The call ended unexpectedly
 callProblemDropped = CallProblem;
 
+//@description The video was distorted
+callProblemDistortedVideo = CallProblem;
+
+//@description The video was pixelated
+callProblemPixelatedVideo = CallProblem;
+
 
 //@description Describes a call @id Call identifier, not persistent @user_id Peer user identifier @is_outgoing True, if the call is outgoing @is_video True, if the call is a video call @state Call state
 call id:int32 user_id:int32 is_outgoing:Bool is_video:Bool state:CallState = Call;
