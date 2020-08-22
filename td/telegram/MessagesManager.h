@@ -655,8 +655,7 @@ class MessagesManager : public Actor {
 
   std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
                                                              UserId sender_user_id, MessageId from_message_id,
-                                                             int32 offset, int32 limit,
-                                                             const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
+                                                             int32 offset, int32 limit, MessageSearchFilter filter,
                                                              int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
   struct FoundMessages {
@@ -668,15 +667,13 @@ class MessagesManager : public Actor {
   td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages);
 
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, const string &offset, int32 limit,
-                                        const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id,
-                                        Promise<> &&promise);
+                                        MessageSearchFilter filter, int64 &random_id, Promise<> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
                                                           const string &query, int32 offset_date,
                                                           DialogId offset_dialog_id, MessageId offset_message_id,
-                                                          int32 limit,
-                                                          const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
-                                                          int64 &random_id, Promise<Unit> &&promise);
+                                                          int32 limit, MessageSearchFilter filter, int64 &random_id,
+                                                          Promise<Unit> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_call_messages(MessageId from_message_id, int32 limit, bool only_missed,
                                                                int64 &random_id, bool use_db, Promise<Unit> &&promise);
@@ -693,8 +690,8 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_message_by_date_fail(int64 random_id);
 
-  int32 get_dialog_message_count(DialogId dialog_id, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
-                                 bool return_local, int64 &random_id, Promise<Unit> &&promise);
+  int32 get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local, int64 &random_id,
+                                 Promise<Unit> &&promise);
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
@@ -2492,7 +2489,7 @@ class MessagesManager : public Actor {
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 
   void on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
-                                           MessageId first_db_message_id, MessageSearchFilter filter_type, int32 offset,
+                                           MessageId first_db_message_id, MessageSearchFilter filter, int32 offset,
                                            int32 limit, Result<std::vector<BufferSlice>> r_messages, Promise<> promise);
 
   void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit, int64 random_id,

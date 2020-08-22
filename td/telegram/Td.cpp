@@ -50,6 +50,7 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
@@ -1424,7 +1425,7 @@ class SearchChatMessagesRequest : public RequestActor<> {
   MessageId from_message_id_;
   int32 offset_;
   int32 limit_;
-  tl_object_ptr<td_api::SearchMessagesFilter> filter_;
+  MessageSearchFilter filter_;
   int64 random_id_;
 
   std::pair<int32, vector<MessageId>> messages_;
@@ -1459,7 +1460,7 @@ class SearchChatMessagesRequest : public RequestActor<> {
       , from_message_id_(from_message_id)
       , offset_(offset)
       , limit_(limit)
-      , filter_(std::move(filter))
+      , filter_(get_message_search_filter(filter))
       , random_id_(0) {
     set_tries(3);
   }
@@ -1470,7 +1471,7 @@ class SearchSecretMessagesRequest : public RequestActor<> {
   string query_;
   string offset_;
   int32 limit_;
-  tl_object_ptr<td_api::SearchMessagesFilter> filter_;
+  MessageSearchFilter filter_;
   int64 random_id_;
 
   MessagesManager::FoundMessages found_messages_;
@@ -1492,7 +1493,7 @@ class SearchSecretMessagesRequest : public RequestActor<> {
       , query_(std::move(query))
       , offset_(std::move(offset))
       , limit_(limit)
-      , filter_(std::move(filter))
+      , filter_(get_message_search_filter(filter))
       , random_id_(0) {
   }
 };
@@ -1505,7 +1506,7 @@ class SearchMessagesRequest : public RequestActor<> {
   DialogId offset_dialog_id_;
   MessageId offset_message_id_;
   int32 limit_;
-  tl_object_ptr<td_api::SearchMessagesFilter> filter_;
+  MessageSearchFilter filter_;
   int64 random_id_;
 
   std::pair<int32, vector<FullMessageId>> messages_;
@@ -1541,7 +1542,7 @@ class SearchMessagesRequest : public RequestActor<> {
       , offset_dialog_id_(offset_dialog_id)
       , offset_message_id_(offset_message_id)
       , limit_(limit)
-      , filter_(std::move(filter))
+      , filter_(get_message_search_filter(filter))
       , random_id_(0) {
   }
 };
@@ -1635,7 +1636,7 @@ class GetChatMessageByDateRequest : public RequestOnceActor {
 
 class GetChatMessageCountRequest : public RequestActor<> {
   DialogId dialog_id_;
-  tl_object_ptr<td_api::SearchMessagesFilter> filter_;
+  MessageSearchFilter filter_;
   bool return_local_;
   int64 random_id_;
 
@@ -1655,7 +1656,7 @@ class GetChatMessageCountRequest : public RequestActor<> {
                              tl_object_ptr<td_api::SearchMessagesFilter> filter, bool return_local)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
-      , filter_(std::move(filter))
+      , filter_(get_message_search_filter(filter))
       , return_local_(return_local)
       , random_id_(0) {
   }

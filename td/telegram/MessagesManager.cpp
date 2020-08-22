@@ -18414,8 +18414,7 @@ void MessagesManager::on_read_history_finished(DialogId dialog_id, uint64 genera
 
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     DialogId dialog_id, const string &query, UserId sender_user_id, MessageId from_message_id, int32 offset,
-    int32 limit, const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, bool use_db,
-    Promise<Unit> &&promise) {
+    int32 limit, MessageSearchFilter filter, int64 &random_id, bool use_db, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
@@ -18428,8 +18427,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     random_id = 0;
   }
   LOG(INFO) << "Search messages with query \"" << query << "\" in " << dialog_id << " sent by " << sender_user_id
-            << " filtered by " << to_string(filter) << " from " << from_message_id << " with offset " << offset
-            << " and limit " << limit;
+            << " filtered by " << filter << " from " << from_message_id << " with offset " << offset << " and limit "
+            << limit;
 
   std::pair<int32, vector<MessageId>> result;
   if (limit <= 0) {
@@ -18464,8 +18463,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
 
-  auto filter_type = get_message_search_filter(filter);
-  if (filter_type == MessageSearchFilter::FailedToSend && sender_user_id.is_valid()) {
+  if (filter == MessageSearchFilter::FailedToSend && sender_user_id.is_valid()) {
     if (sender_user_id != td_->contacts_manager_->get_my_id()) {
       promise.set_value(Unit());
       return result;
@@ -18484,7 +18482,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
   found_dialog_messages_[random_id];  // reserve place for result
 
-  if (filter_type == MessageSearchFilter::UnreadMention) {
+  if (filter == MessageSearchFilter::UnreadMention) {
     if (!query.empty()) {
       promise.set_error(Status::Error(6, "Non-empty query is unsupported with the specified filter"));
       return result;
@@ -18496,10 +18494,10 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   }
 
   // Trying to use database
-  if (use_db && query.empty() && G()->parameters().use_message_db && filter_type != MessageSearchFilter::Empty &&
+  if (use_db && query.empty() && G()->parameters().use_message_db && filter != MessageSearchFilter::Empty &&
       input_user == nullptr) {  // TODO support filter by users in the database
-    MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter_type);
-    int32 message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
+    MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter);
+    int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
     auto fixed_from_message_id = from_message_id;
     if (fixed_from_message_id == MessageId()) {
       fixed_from_message_id = MessageId::max();
@@ -18511,15 +18509,15 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       LOG(INFO) << "Search messages in database in " << dialog_id << " from " << fixed_from_message_id
                 << " and with limit " << limit;
       auto new_promise = PromiseCreator::lambda(
-          [random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter_type, offset, limit,
+          [random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter, offset, limit,
            promise = std::move(promise)](Result<std::vector<BufferSlice>> r_messages) mutable {
             send_closure(G()->messages_manager(), &MessagesManager::on_search_dialog_messages_db_result, random_id,
-                         dialog_id, fixed_from_message_id, first_db_message_id, filter_type, offset, limit,
+                         dialog_id, fixed_from_message_id, first_db_message_id, filter, offset, limit,
                          std::move(r_messages), std::move(promise));
           });
       MessagesDbMessagesQuery db_query;
       db_query.dialog_id = dialog_id;
-      db_query.index_mask = message_search_filter_index_mask(filter_type);
+      db_query.index_mask = message_search_filter_index_mask(filter);
       db_query.from_message_id = fixed_from_message_id;
       db_query.offset = offset;
       db_query.limit = limit;
@@ -18527,7 +18525,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       return result;
     }
   }
-  if (filter_type == MessageSearchFilter::FailedToSend) {
+  if (filter == MessageSearchFilter::FailedToSend) {
     promise.set_value(Unit());
     return result;
   }
@@ -18541,11 +18539,11 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, query, sender_user_id, std::move(input_user), from_message_id, offset, limit, filter_type,
+          ->send(dialog_id, query, sender_user_id, std::move(input_user), from_message_id, offset, limit, filter,
                  random_id);
       break;
     case DialogType::SecretChat:
-      if (filter_type == MessageSearchFilter::UnreadMention) {
+      if (filter == MessageSearchFilter::UnreadMention) {
         promise.set_value(Unit());
       } else {
         promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
@@ -18598,13 +18596,13 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   } while (random_id == 0 || found_call_messages_.find(random_id) != found_call_messages_.end());
   found_call_messages_[random_id];  // reserve place for result
 
-  auto filter_type = only_missed ? MessageSearchFilter::MissedCall : MessageSearchFilter::Call;
+  auto filter = only_missed ? MessageSearchFilter::MissedCall : MessageSearchFilter::Call;
 
   if (use_db && G()->parameters().use_message_db) {
     // try to use database
     MessageId first_db_message_id =
-        calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter_type)];
-    int32 message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter_type)];
+        calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter)];
+    int32 message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
     auto fixed_from_message_id = from_message_id;
     if (fixed_from_message_id == MessageId()) {
       fixed_from_message_id = MessageId::max();
@@ -18616,14 +18614,14 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
       LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
       MessagesDbCallsQuery db_query;
-      db_query.index_mask = message_search_filter_index_mask(filter_type);
+      db_query.index_mask = message_search_filter_index_mask(filter);
       db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
       db_query.limit = limit;
       G()->td_db()->get_messages_db_async()->get_calls(
-          db_query, PromiseCreator::lambda([random_id, first_db_message_id, filter_type, promise = std::move(promise)](
+          db_query, PromiseCreator::lambda([random_id, first_db_message_id, filter, promise = std::move(promise)](
                                                Result<MessagesDbCallsResult> calls_result) mutable {
             send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_calls_result,
-                         std::move(calls_result), random_id, first_db_message_id, filter_type, std::move(promise));
+                         std::move(calls_result), random_id, first_db_message_id, filter, std::move(promise));
           }));
       return result;
     }
@@ -18631,7 +18629,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
 
   LOG(DEBUG) << "Search call messages on server from " << from_message_id << " and with limit " << limit;
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(DialogId(), "", UserId(), nullptr, from_message_id, 0, limit, filter_type, random_id);
+      ->send(DialogId(), "", UserId(), nullptr, from_message_id, 0, limit, filter, random_id);
   return result;
 }
 
@@ -19020,7 +19018,7 @@ MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *
 
 void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id,
                                                           MessageId from_message_id, MessageId first_db_message_id,
-                                                          MessageSearchFilter filter_type, int32 offset, int32 limit,
+                                                          MessageSearchFilter filter, int32 offset, int32 limit,
                                                           Result<std::vector<BufferSlice>> r_messages,
                                                           Promise<> promise) {
   if (G()->close_flag()) {
@@ -19029,7 +19027,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   if (r_messages.is_error()) {
     LOG(ERROR) << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
-        filter_type != MessageSearchFilter::FailedToSend) {
+        filter != MessageSearchFilter::FailedToSend) {
       found_dialog_messages_.erase(random_id);
     }
     return promise.set_value(Unit());
@@ -19050,7 +19048,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, message, false, "on_search_dialog_messages_db_result");
     if (m != nullptr && first_db_message_id <= m->message_id) {
-      if (filter_type == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
+      if (filter == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
         // skip already read by d->last_read_all_mentions_message_id mentions
       } else {
         CHECK(!m->message_id.is_scheduled());
@@ -19059,7 +19057,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     }
   }
 
-  auto &message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
+  auto &message_count = d->message_count_by_index[message_search_filter_index(filter)];
   int32 result_size = narrow_cast<int32>(res.size());
   bool from_the_end =
       from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0] < from_message_id));
@@ -19068,7 +19066,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
        result_size < limit + offset)) {
     LOG(INFO) << "Fix found message count in " << dialog_id << " from " << message_count << " to " << result_size;
     message_count = result_size;
-    if (filter_type == MessageSearchFilter::UnreadMention) {
+    if (filter == MessageSearchFilter::UnreadMention) {
       d->unread_mention_count = message_count;
       update_dialog_mention_notification_count(d);
       send_update_chat_unread_mention_count(d);
@@ -19100,9 +19098,10 @@ td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_ob
                                                     found_messages.next_offset);
 }
 
-MessagesManager::FoundMessages MessagesManager::offline_search_messages(
-    DialogId dialog_id, const string &query, const string &offset, int32 limit,
-    const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise) {
+MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId dialog_id, const string &query,
+                                                                        const string &offset, int32 limit,
+                                                                        MessageSearchFilter filter, int64 &random_id,
+                                                                        Promise<> &&promise) {
   if (!G()->parameters().use_message_db) {
     promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
     return {};
@@ -19137,7 +19136,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(
   MessagesDbFtsQuery fts_query;
   fts_query.query = query;
   fts_query.dialog_id = dialog_id;
-  fts_query.index_mask = message_search_filter_index_mask(get_message_search_filter(filter));
+  fts_query.index_mask = message_search_filter_index_mask(filter);
   if (!offset.empty()) {
     auto r_from_search_id = to_integer_safe<int64>(offset);
     if (r_from_search_id.is_error()) {
@@ -19234,8 +19233,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
 
 std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date, DialogId offset_dialog_id,
-    MessageId offset_message_id, int32 limit, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
-    int64 &random_id, Promise<Unit> &&promise) {
+    MessageId offset_message_id, int32 limit, MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_messages_.find(random_id);
@@ -19270,15 +19268,14 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     return {};
   }
 
-  auto filter_type = get_message_search_filter(filter);
-  if (filter_type == MessageSearchFilter::Call || filter_type == MessageSearchFilter::MissedCall ||
-      filter_type == MessageSearchFilter::Mention || filter_type == MessageSearchFilter::UnreadMention ||
-      filter_type == MessageSearchFilter::FailedToSend) {
+  if (filter == MessageSearchFilter::Call || filter == MessageSearchFilter::MissedCall ||
+      filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
+      filter == MessageSearchFilter::FailedToSend) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
   }
 
-  if (query.empty() && filter_type == MessageSearchFilter::Empty) {
+  if (query.empty() && filter == MessageSearchFilter::Empty) {
     promise.set_value(Unit());
     return {};
   }
@@ -19288,11 +19285,11 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
   } while (random_id == 0 || found_messages_.find(random_id) != found_messages_.end());
   found_messages_[random_id];  // reserve place for result
 
-  LOG(DEBUG) << "Search messages globally with query = \"" << query << "\" from date " << offset_date << ", "
-             << offset_dialog_id << ", " << offset_message_id << " and limit " << limit;
+  LOG(DEBUG) << "Search all messages filtered by " << filter << " with query = \"" << query << "\" from date "
+             << offset_date << ", " << offset_dialog_id << ", " << offset_message_id << " and limit " << limit;
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
-      ->send(folder_id, ignore_folder_id, query, offset_date, offset_dialog_id, offset_message_id, limit, filter_type,
+      ->send(folder_id, ignore_folder_id, query, offset_date, offset_dialog_id, offset_message_id, limit, filter,
              random_id);
   return {};
 }
@@ -19455,9 +19452,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_objec
   return get_message_object(full_message_id);
 }
 
-int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
-                                                const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
-                                                bool return_local, int64 &random_id, Promise<Unit> &&promise) {
+int32 MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
+                                                int64 &random_id, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
@@ -19469,7 +19465,7 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
   }
 
   LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
-            << to_string(filter);
+            << filter;
 
   const Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -19477,26 +19473,25 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
     return -1;
   }
 
-  auto filter_type = get_message_search_filter(filter);
-  if (filter_type == MessageSearchFilter::Empty) {
+  if (filter == MessageSearchFilter::Empty) {
     promise.set_error(Status::Error(6, "SearchMessagesFilterEmpty is not supported"));
     return -1;
   }
 
   auto dialog_type = dialog_id.get_type();
-  int32 message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
+  int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
   if (message_count == -1) {
-    if (filter_type == MessageSearchFilter::UnreadMention) {
+    if (filter == MessageSearchFilter::UnreadMention) {
       message_count = d->unread_mention_count;
     }
   }
   if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
-      filter_type == MessageSearchFilter::FailedToSend) {
+      filter == MessageSearchFilter::FailedToSend) {
     promise.set_value(Unit());
     return message_count;
   }
 
-  LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << to_string(filter) << " from the server";
+  LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << filter << " from the server";
 
   do {
     random_id = Random::secure_int64();
@@ -19508,7 +19503,7 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, "", UserId(), nullptr, MessageId(), 0, 1, filter_type, random_id);
+          ->send(dialog_id, "", UserId(), nullptr, MessageId(), 0, 1, filter, random_id);
       break;
     case DialogType::None:
     case DialogType::SecretChat:

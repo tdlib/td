@@ -9,6 +9,9 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+
 namespace td {
 
 // append only before Size
@@ -58,4 +61,6 @@ tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSea
 
 MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter);
 
-} // namespace td
+StringBuilder &operator<<(StringBuilder &string_builder, MessageSearchFilter filter);
+
+}  // namespace td

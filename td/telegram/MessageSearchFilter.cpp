@@ -51,8 +51,7 @@ tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSea
   }
 }
 
-MessageSearchFilter get_message_search_filter(
-    const tl_object_ptr<td_api::SearchMessagesFilter> &filter) {
+MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter) {
   if (filter == nullptr) {
     return MessageSearchFilter::Empty;
   }
@@ -97,4 +96,46 @@ MessageSearchFilter get_message_search_filter(
   }
 }
 
-} // namespace td
+StringBuilder &operator<<(StringBuilder &string_builder, MessageSearchFilter filter) {
+  switch (filter) {
+    case MessageSearchFilter::Empty:
+      return string_builder << "Empty";
+    case MessageSearchFilter::Animation:
+      return string_builder << "Animation";
+    case MessageSearchFilter::Audio:
+      return string_builder << "Audio";
+    case MessageSearchFilter::Document:
+      return string_builder << "Document";
+    case MessageSearchFilter::Photo:
+      return string_builder << "Photo";
+    case MessageSearchFilter::Video:
+      return string_builder << "Video";
+    case MessageSearchFilter::VoiceNote:
+      return string_builder << "VoiceNote";
+    case MessageSearchFilter::PhotoAndVideo:
+      return string_builder << "PhotoAndVideo";
+    case MessageSearchFilter::Url:
+      return string_builder << "Url";
+    case MessageSearchFilter::ChatPhoto:
+      return string_builder << "ChatPhoto";
+    case MessageSearchFilter::Call:
+      return string_builder << "Call";
+    case MessageSearchFilter::MissedCall:
+      return string_builder << "MissedCall";
+    case MessageSearchFilter::VideoNote:
+      return string_builder << "VideoNote";
+    case MessageSearchFilter::VoiceAndVideoNote:
+      return string_builder << "VoiceAndVideoNote";
+    case MessageSearchFilter::Mention:
+      return string_builder << "Mention";
+    case MessageSearchFilter::UnreadMention:
+      return string_builder << "UnreadMention";
+    case MessageSearchFilter::FailedToSend:
+      return string_builder << "FailedToSend";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
+}  // namespace td
