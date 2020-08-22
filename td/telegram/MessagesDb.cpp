@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesDb.h"
 
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/SqliteConnectionSafe.h"
@@ -755,7 +756,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     } else if (index_i + 1 == static_cast<int>(MessageSearchFilter::MissedCall)) {
       pos = 1;
     } else {
-      return Status::Error(PSLICE() << "Index_mask is not Call or MissedCall " << query.index_mask);
+      return Status::Error(PSLICE() << "Index mask is not Call or MissedCall " << query.index_mask);
     }
 
     auto &stmt = get_calls_stmts_[pos];

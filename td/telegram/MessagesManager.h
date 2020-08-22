@@ -6,10 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/secret_api.h"
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
@@ -32,6 +28,7 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
@@ -46,6 +43,10 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
+
+#include "td/telegram/secret_api.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
@@ -733,10 +734,6 @@ class MessagesManager : public Actor {
 
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
-
-  static tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSearchFilter filter);
-
-  static MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter);
 
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialogId) const;
 

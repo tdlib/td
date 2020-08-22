@@ -26,28 +26,6 @@ namespace td {
 class SqliteConnectionSafe;
 class SqliteDb;
 
-// append only before Size
-enum class MessageSearchFilter : int32 {
-  Empty,
-  Animation,
-  Audio,
-  Document,
-  Photo,
-  Video,
-  VoiceNote,
-  PhotoAndVideo,
-  Url,
-  ChatPhoto,
-  Call,
-  MissedCall,
-  VideoNote,
-  VoiceAndVideoNote,
-  Mention,
-  UnreadMention,
-  FailedToSend,
-  Size
-};
-
 struct MessagesDbMessagesQuery {
   DialogId dialog_id;
   int32 index_mask{0};
@@ -177,26 +155,5 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
 
 std::shared_ptr<MessagesDbAsyncInterface> create_messages_db_async(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db,
                                                                    int32 scheduler_id);
-
-inline constexpr size_t message_search_filter_count() {
-  return static_cast<int32>(MessageSearchFilter::Size) - 1;
-}
-
-inline int32 message_search_filter_index(MessageSearchFilter filter) {
-  CHECK(filter != MessageSearchFilter::Empty);
-  return static_cast<int32>(filter) - 1;
-}
-
-inline int32 message_search_filter_index_mask(MessageSearchFilter filter) {
-  if (filter == MessageSearchFilter::Empty) {
-    return 0;
-  }
-  return 1 << message_search_filter_index(filter);
-}
-
-inline int32 search_calls_filter_index(MessageSearchFilter filter) {
-  CHECK(filter == MessageSearchFilter::Call || filter == MessageSearchFilter::MissedCall);
-  return static_cast<int32>(filter) - static_cast<int32>(MessageSearchFilter::Call);
-}
 
 }  // namespace td

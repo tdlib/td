@@ -1611,9 +1611,9 @@ class SearchMessagesQuery : public Td::ResultHandler {
       }
 
       send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), query, std::move(sender_input_user),
-          MessagesManager::get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
-          from_message_id.get_server_message_id().get(), offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
+          flags, std::move(input_peer), query, std::move(sender_input_user), get_input_messages_filter(filter), 0,
+          std::numeric_limits<int32>::max(), from_message_id.get_server_message_id().get(), offset, limit,
+          std::numeric_limits<int32>::max(), 0, 0)));
     }
   }
 
@@ -1674,8 +1674,8 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, folder_id.get(), query, MessagesManager::get_input_messages_filter(filter), offset_date_,
-        std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
+        flags, folder_id.get(), query, get_input_messages_filter(filter), offset_date_, std::move(input_peer),
+        offset_message_id.get_server_message_id().get(), limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -8633,7 +8633,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     if (G()->parameters().use_message_db) {
       bool update_state = false;
 
-      auto &old_message_count = calls_db_state_.message_count_by_index[search_calls_filter_index(filter)];
+      auto &old_message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
       if (old_message_count != total_count) {
         LOG(INFO) << "Update calls database message count to " << total_count;
         old_message_count = total_count;
@@ -8641,7 +8641,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
       }
 
       auto &old_first_db_message_id =
-          calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter)];
+          calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter)];
       bool from_the_end = !from_message_id.is_valid() || from_message_id >= MessageId::max();
       LOG(INFO) << "Have from_the_end = " << from_the_end << ", old_first_db_message_id = " << old_first_db_message_id
                 << ", first_added_message_id = " << first_added_message_id << ", from_message_id = " << from_message_id;
@@ -18603,8 +18603,8 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   if (use_db && G()->parameters().use_message_db) {
     // try to use database
     MessageId first_db_message_id =
-        calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter_type)];
-    int32 message_count = calls_db_state_.message_count_by_index[search_calls_filter_index(filter_type)];
+        calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter_type)];
+    int32 message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter_type)];
     auto fixed_from_message_id = from_message_id;
     if (fixed_from_message_id == MessageId()) {
       fixed_from_message_id = MessageId::max();
@@ -19222,7 +19222,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
       res.push_back(FullMessageId(message.dialog_id, m->message_id));
     }
   }
-  it->second.first = calls_db_state_.message_count_by_index[search_calls_filter_index(filter)];
+  it->second.first = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
 
   if (res.empty() && first_db_message_id != MessageId::min()) {
     LOG(INFO) << "No messages in database found";
@@ -27330,93 +27330,6 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
     CHECK(!actions_it->second.empty());
     on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr, 0);
     actions_it = active_dialog_actions_.find(dialog_id);
-  }
-}
-
-tl_object_ptr<telegram_api::MessagesFilter> MessagesManager::get_input_messages_filter(MessageSearchFilter filter) {
-  switch (filter) {
-    case MessageSearchFilter::Empty:
-      return make_tl_object<telegram_api::inputMessagesFilterEmpty>();
-    case MessageSearchFilter::Animation:
-      return make_tl_object<telegram_api::inputMessagesFilterGif>();
-    case MessageSearchFilter::Audio:
-      return make_tl_object<telegram_api::inputMessagesFilterMusic>();
-    case MessageSearchFilter::Document:
-      return make_tl_object<telegram_api::inputMessagesFilterDocument>();
-    case MessageSearchFilter::Photo:
-      return make_tl_object<telegram_api::inputMessagesFilterPhotos>();
-    case MessageSearchFilter::Video:
-      return make_tl_object<telegram_api::inputMessagesFilterVideo>();
-    case MessageSearchFilter::VoiceNote:
-      return make_tl_object<telegram_api::inputMessagesFilterVoice>();
-    case MessageSearchFilter::PhotoAndVideo:
-      return make_tl_object<telegram_api::inputMessagesFilterPhotoVideo>();
-    case MessageSearchFilter::Url:
-      return make_tl_object<telegram_api::inputMessagesFilterUrl>();
-    case MessageSearchFilter::ChatPhoto:
-      return make_tl_object<telegram_api::inputMessagesFilterChatPhotos>();
-    case MessageSearchFilter::Call:
-      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(0, false /*ignored*/);
-    case MessageSearchFilter::MissedCall:
-      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(
-          telegram_api::inputMessagesFilterPhoneCalls::MISSED_MASK, false /*ignored*/);
-    case MessageSearchFilter::VideoNote:
-      return make_tl_object<telegram_api::inputMessagesFilterRoundVideo>();
-    case MessageSearchFilter::VoiceAndVideoNote:
-      return make_tl_object<telegram_api::inputMessagesFilterRoundVoice>();
-    case MessageSearchFilter::Mention:
-      return make_tl_object<telegram_api::inputMessagesFilterMyMentions>();
-    case MessageSearchFilter::UnreadMention:
-    case MessageSearchFilter::FailedToSend:
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-MessageSearchFilter MessagesManager::get_message_search_filter(
-    const tl_object_ptr<td_api::SearchMessagesFilter> &filter) {
-  if (filter == nullptr) {
-    return MessageSearchFilter::Empty;
-  }
-  switch (filter->get_id()) {
-    case td_api::searchMessagesFilterEmpty::ID:
-      return MessageSearchFilter::Empty;
-    case td_api::searchMessagesFilterAnimation::ID:
-      return MessageSearchFilter::Animation;
-    case td_api::searchMessagesFilterAudio::ID:
-      return MessageSearchFilter::Audio;
-    case td_api::searchMessagesFilterDocument::ID:
-      return MessageSearchFilter::Document;
-    case td_api::searchMessagesFilterPhoto::ID:
-      return MessageSearchFilter::Photo;
-    case td_api::searchMessagesFilterVideo::ID:
-      return MessageSearchFilter::Video;
-    case td_api::searchMessagesFilterVoiceNote::ID:
-      return MessageSearchFilter::VoiceNote;
-    case td_api::searchMessagesFilterPhotoAndVideo::ID:
-      return MessageSearchFilter::PhotoAndVideo;
-    case td_api::searchMessagesFilterUrl::ID:
-      return MessageSearchFilter::Url;
-    case td_api::searchMessagesFilterChatPhoto::ID:
-      return MessageSearchFilter::ChatPhoto;
-    case td_api::searchMessagesFilterCall::ID:
-      return MessageSearchFilter::Call;
-    case td_api::searchMessagesFilterMissedCall::ID:
-      return MessageSearchFilter::MissedCall;
-    case td_api::searchMessagesFilterVideoNote::ID:
-      return MessageSearchFilter::VideoNote;
-    case td_api::searchMessagesFilterVoiceAndVideoNote::ID:
-      return MessageSearchFilter::VoiceAndVideoNote;
-    case td_api::searchMessagesFilterMention::ID:
-      return MessageSearchFilter::Mention;
-    case td_api::searchMessagesFilterUnreadMention::ID:
-      return MessageSearchFilter::UnreadMention;
-    case td_api::searchMessagesFilterFailedToSend::ID:
-      return MessageSearchFilter::FailedToSend;
-    default:
-      UNREACHABLE();
-      return MessageSearchFilter::Empty;
   }
 }
 
