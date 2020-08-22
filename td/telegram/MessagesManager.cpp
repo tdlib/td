@@ -1574,7 +1574,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
   MessageId from_message_id_;
   int32 offset_;
   int32 limit_;
-  SearchMessagesFilter filter_;
+  MessageSearchFilter filter_;
   int64 random_id_;
 
  public:
@@ -1583,7 +1583,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &query, UserId sender_user_id,
             telegram_api::object_ptr<telegram_api::InputUser> &&sender_input_user, MessageId from_message_id,
-            int32 offset, int32 limit, SearchMessagesFilter filter, int64 random_id) {
+            int32 offset, int32 limit, MessageSearchFilter filter, int64 random_id) {
     auto input_peer = dialog_id.is_valid() ? td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read)
                                            : make_tl_object<telegram_api::inputPeerEmpty>();
     if (input_peer == nullptr) {
@@ -1600,7 +1600,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
     filter_ = filter;
     random_id_ = random_id;
 
-    if (filter == SearchMessagesFilter::UnreadMention) {
+    if (filter == MessageSearchFilter::UnreadMention) {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
@@ -1648,7 +1648,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
   DialogId offset_dialog_id_;
   MessageId offset_message_id_;
   int32 limit_;
-  SearchMessagesFilter filter_;
+  MessageSearchFilter filter_;
   int64 random_id_;
 
  public:
@@ -1656,7 +1656,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
   }
 
   void send(FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date,
-            DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, SearchMessagesFilter filter,
+            DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
             int64 random_id) {
     query_ = query;
     offset_date_ = offset_date;
@@ -4844,7 +4844,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
       parse(message_count_by_index[i], parser);
     }
   }
-  unread_mention_count = message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)];
+  unread_mention_count = message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadMention)];
   LOG(INFO) << "Set unread mention message count in " << dialog_id << " to " << unread_mention_count;
   if (unread_mention_count < 0) {
     unread_mention_count = 0;
@@ -5211,7 +5211,7 @@ void MessagesManager::invalidate_message_indexes(Dialog *d) {
   CHECK(d != nullptr);
   bool is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
   for (size_t i = 0; i < d->message_count_by_index.size(); i++) {
-    if (is_secret || i == static_cast<size_t>(search_messages_filter_index(SearchMessagesFilter::FailedToSend))) {
+    if (is_secret || i == static_cast<size_t>(message_search_filter_index(MessageSearchFilter::FailedToSend))) {
       // always know all messages
       d->first_database_message_id_by_index[i] = MessageId::min();
       // keep the count
@@ -5225,8 +5225,8 @@ void MessagesManager::invalidate_message_indexes(Dialog *d) {
 
 void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const Message *m) {
   auto index_mask = get_message_index_mask(d->dialog_id, m);
-  index_mask &= ~search_messages_filter_index_mask(
-      SearchMessagesFilter::UnreadMention);  // unread mention count has been already manually updated
+  index_mask &= ~message_search_filter_index_mask(
+      MessageSearchFilter::UnreadMention);  // unread mention count has been already manually updated
 
   update_message_count_by_index(d, diff, index_mask);
 }
@@ -5243,7 +5243,7 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
       message_count += diff;
       if (message_count < 0) {
         if (d->dialog_id.get_type() == DialogType::SecretChat ||
-            i == search_messages_filter_index(SearchMessagesFilter::FailedToSend)) {
+            i == message_search_filter_index(MessageSearchFilter::FailedToSend)) {
           message_count = 0;
         } else {
           message_count = -1;
@@ -5254,7 +5254,7 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
     i++;
   }
 
-  i = static_cast<int>(SearchMessagesFilter::Call) - 1;
+  i = static_cast<int>(MessageSearchFilter::Call) - 1;
   for (auto &message_count : calls_db_state_.message_count_by_index) {
     if (((index_mask >> i) & 1) != 0 && message_count != -1) {
       message_count += diff;
@@ -5277,7 +5277,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
     return 0;
   }
   if (m->is_failed_to_send) {
-    return search_messages_filter_index_mask(SearchMessagesFilter::FailedToSend);
+    return message_search_filter_index_mask(MessageSearchFilter::FailedToSend);
   }
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   if (!m->message_id.is_server() && !is_secret) {
@@ -5289,9 +5289,9 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   }
   int32 index_mask = get_message_content_index_mask(m->content.get(), td_, is_secret, m->is_outgoing);
   if (m->contains_mention) {
-    index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::Mention);
+    index_mask |= message_search_filter_index_mask(MessageSearchFilter::Mention);
     if (m->contains_unread_mention) {
-      index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+      index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
     }
   }
   LOG(INFO) << "Have index mask " << index_mask << " for " << m->message_id << " in " << dialog_id;
@@ -8592,7 +8592,7 @@ void MessagesManager::on_failed_public_dialogs_search(const string &query, Statu
 
 void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, const string &query,
                                                            UserId sender_user_id, MessageId from_message_id,
-                                                           int32 offset, int32 limit, SearchMessagesFilter filter,
+                                                           int32 offset, int32 limit, MessageSearchFilter filter,
                                                            int64 random_id, int32 total_count,
                                                            vector<tl_object_ptr<telegram_api::Message>> &&messages) {
   LOG(INFO) << "Receive " << messages.size() << " found messages in " << dialog_id;
@@ -8687,7 +8687,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     }
 
     auto message_id = new_full_message_id.get_message_id();
-    if (filter == SearchMessagesFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id) {
+    if (filter == MessageSearchFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id) {
       total_count--;
       continue;
     }
@@ -8703,14 +8703,14 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
                << " messages";
     total_count = static_cast<int32>(result.size());
   }
-  if (query.empty() && !sender_user_id.is_valid() && filter != SearchMessagesFilter::Empty &&
+  if (query.empty() && !sender_user_id.is_valid() && filter != MessageSearchFilter::Empty &&
       G()->parameters().use_message_db) {
     bool update_dialog = false;
 
-    auto &old_message_count = d->message_count_by_index[search_messages_filter_index(filter)];
+    auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
     if (old_message_count != total_count) {
       old_message_count = total_count;
-      if (filter == SearchMessagesFilter::UnreadMention) {
+      if (filter == MessageSearchFilter::UnreadMention) {
         d->unread_mention_count = old_message_count;
         update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
@@ -8718,7 +8718,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
       update_dialog = true;
     }
 
-    auto &old_first_db_message_id = d->first_database_message_id_by_index[search_messages_filter_index(filter)];
+    auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
     bool from_the_end = !from_message_id.is_valid() ||
                         (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
                         from_message_id >= MessageId::max();
@@ -8749,7 +8749,7 @@ void MessagesManager::on_failed_dialog_messages_search(DialogId dialog_id, int64
 
 void MessagesManager::on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                                     MessageId offset_message_id, int32 limit,
-                                                    SearchMessagesFilter filter, int64 random_id, int32 total_count,
+                                                    MessageSearchFilter filter, int64 random_id, int32 total_count,
                                                     vector<tl_object_ptr<telegram_api::Message>> &&messages) {
   LOG(INFO) << "Receive " << messages.size() << " found messages";
   auto it = found_messages_.find(random_id);
@@ -12552,7 +12552,7 @@ void MessagesManager::set_dialog_unread_mention_count(Dialog *d, int32 unread_me
   CHECK(unread_mention_count >= 0);
 
   d->unread_mention_count = unread_mention_count;
-  d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] = unread_mention_count;
+  d->message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadMention)] = unread_mention_count;
 }
 
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
@@ -18464,8 +18464,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
 
-  auto filter_type = get_search_messages_filter(filter);
-  if (filter_type == SearchMessagesFilter::FailedToSend && sender_user_id.is_valid()) {
+  auto filter_type = get_message_search_filter(filter);
+  if (filter_type == MessageSearchFilter::FailedToSend && sender_user_id.is_valid()) {
     if (sender_user_id != td_->contacts_manager_->get_my_id()) {
       promise.set_value(Unit());
       return result;
@@ -18484,7 +18484,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
   found_dialog_messages_[random_id];  // reserve place for result
 
-  if (filter_type == SearchMessagesFilter::UnreadMention) {
+  if (filter_type == MessageSearchFilter::UnreadMention) {
     if (!query.empty()) {
       promise.set_error(Status::Error(6, "Non-empty query is unsupported with the specified filter"));
       return result;
@@ -18496,10 +18496,10 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   }
 
   // Trying to use database
-  if (use_db && query.empty() && G()->parameters().use_message_db && filter_type != SearchMessagesFilter::Empty &&
+  if (use_db && query.empty() && G()->parameters().use_message_db && filter_type != MessageSearchFilter::Empty &&
       input_user == nullptr) {  // TODO support filter by users in the database
     MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter_type);
-    int32 message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
+    int32 message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
     auto fixed_from_message_id = from_message_id;
     if (fixed_from_message_id == MessageId()) {
       fixed_from_message_id = MessageId::max();
@@ -18519,7 +18519,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
           });
       MessagesDbMessagesQuery db_query;
       db_query.dialog_id = dialog_id;
-      db_query.index_mask = search_messages_filter_index_mask(filter_type);
+      db_query.index_mask = message_search_filter_index_mask(filter_type);
       db_query.from_message_id = fixed_from_message_id;
       db_query.offset = offset;
       db_query.limit = limit;
@@ -18527,7 +18527,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       return result;
     }
   }
-  if (filter_type == SearchMessagesFilter::FailedToSend) {
+  if (filter_type == MessageSearchFilter::FailedToSend) {
     promise.set_value(Unit());
     return result;
   }
@@ -18545,7 +18545,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
                  random_id);
       break;
     case DialogType::SecretChat:
-      if (filter_type == SearchMessagesFilter::UnreadMention) {
+      if (filter_type == MessageSearchFilter::UnreadMention) {
         promise.set_value(Unit());
       } else {
         promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
@@ -18598,7 +18598,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   } while (random_id == 0 || found_call_messages_.find(random_id) != found_call_messages_.end());
   found_call_messages_[random_id];  // reserve place for result
 
-  auto filter_type = only_missed ? SearchMessagesFilter::MissedCall : SearchMessagesFilter::Call;
+  auto filter_type = only_missed ? MessageSearchFilter::MissedCall : MessageSearchFilter::Call;
 
   if (use_db && G()->parameters().use_message_db) {
     // try to use database
@@ -18616,7 +18616,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
       LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
       MessagesDbCallsQuery db_query;
-      db_query.index_mask = search_messages_filter_index_mask(filter_type);
+      db_query.index_mask = message_search_filter_index_mask(filter_type);
       db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
       db_query.limit = limit;
       G()->td_db()->get_messages_db_async()->get_calls(
@@ -19002,11 +19002,11 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
   }
 }
 
-MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *d, SearchMessagesFilter filter) {
+MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter) {
   CHECK(d != nullptr);
-  auto message_id = filter == SearchMessagesFilter::Empty
+  auto message_id = filter == MessageSearchFilter::Empty
                         ? d->first_database_message_id
-                        : d->first_database_message_id_by_index[search_messages_filter_index(filter)];
+                        : d->first_database_message_id_by_index[message_search_filter_index(filter)];
   CHECK(!message_id.is_scheduled());
   if (!message_id.is_valid()) {
     if (d->dialog_id.get_type() == DialogType::SecretChat) {
@@ -19020,7 +19020,7 @@ MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *
 
 void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id,
                                                           MessageId from_message_id, MessageId first_db_message_id,
-                                                          SearchMessagesFilter filter_type, int32 offset, int32 limit,
+                                                          MessageSearchFilter filter_type, int32 offset, int32 limit,
                                                           Result<std::vector<BufferSlice>> r_messages,
                                                           Promise<> promise) {
   if (G()->close_flag()) {
@@ -19029,7 +19029,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   if (r_messages.is_error()) {
     LOG(ERROR) << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
-        filter_type != SearchMessagesFilter::FailedToSend) {
+        filter_type != MessageSearchFilter::FailedToSend) {
       found_dialog_messages_.erase(random_id);
     }
     return promise.set_value(Unit());
@@ -19050,7 +19050,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, message, false, "on_search_dialog_messages_db_result");
     if (m != nullptr && first_db_message_id <= m->message_id) {
-      if (filter_type == SearchMessagesFilter::UnreadMention && !m->contains_unread_mention) {
+      if (filter_type == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
         // skip already read by d->last_read_all_mentions_message_id mentions
       } else {
         CHECK(!m->message_id.is_scheduled());
@@ -19059,7 +19059,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     }
   }
 
-  auto &message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
+  auto &message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
   int32 result_size = narrow_cast<int32>(res.size());
   bool from_the_end =
       from_message_id == MessageId::max() || (offset < 0 && (result_size == 0 || res[0] < from_message_id));
@@ -19068,7 +19068,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
        result_size < limit + offset)) {
     LOG(INFO) << "Fix found message count in " << dialog_id << " from " << message_count << " to " << result_size;
     message_count = result_size;
-    if (filter_type == SearchMessagesFilter::UnreadMention) {
+    if (filter_type == MessageSearchFilter::UnreadMention) {
       d->unread_mention_count = message_count;
       update_dialog_mention_notification_count(d);
       send_update_chat_unread_mention_count(d);
@@ -19137,7 +19137,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(
   MessagesDbFtsQuery fts_query;
   fts_query.query = query;
   fts_query.dialog_id = dialog_id;
-  fts_query.index_mask = search_messages_filter_index_mask(get_search_messages_filter(filter));
+  fts_query.index_mask = message_search_filter_index_mask(get_message_search_filter(filter));
   if (!offset.empty()) {
     auto r_from_search_id = to_integer_safe<int64>(offset);
     if (r_from_search_id.is_error()) {
@@ -19197,7 +19197,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 }
 
 void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id,
-                                                  MessageId first_db_message_id, SearchMessagesFilter filter,
+                                                  MessageId first_db_message_id, MessageSearchFilter filter,
                                                   Promise<> &&promise) {
   CHECK(!first_db_message_id.is_scheduled());
   if (G()->close_flag()) {
@@ -19270,15 +19270,15 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     return {};
   }
 
-  auto filter_type = get_search_messages_filter(filter);
-  if (filter_type == SearchMessagesFilter::Call || filter_type == SearchMessagesFilter::MissedCall ||
-      filter_type == SearchMessagesFilter::Mention || filter_type == SearchMessagesFilter::UnreadMention ||
-      filter_type == SearchMessagesFilter::FailedToSend) {
+  auto filter_type = get_message_search_filter(filter);
+  if (filter_type == MessageSearchFilter::Call || filter_type == MessageSearchFilter::MissedCall ||
+      filter_type == MessageSearchFilter::Mention || filter_type == MessageSearchFilter::UnreadMention ||
+      filter_type == MessageSearchFilter::FailedToSend) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
   }
 
-  if (query.empty() && filter_type == SearchMessagesFilter::Empty) {
+  if (query.empty() && filter_type == MessageSearchFilter::Empty) {
     promise.set_value(Unit());
     return {};
   }
@@ -19477,21 +19477,21 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
     return -1;
   }
 
-  auto filter_type = get_search_messages_filter(filter);
-  if (filter_type == SearchMessagesFilter::Empty) {
+  auto filter_type = get_message_search_filter(filter);
+  if (filter_type == MessageSearchFilter::Empty) {
     promise.set_error(Status::Error(6, "SearchMessagesFilterEmpty is not supported"));
     return -1;
   }
 
   auto dialog_type = dialog_id.get_type();
-  int32 message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
+  int32 message_count = d->message_count_by_index[message_search_filter_index(filter_type)];
   if (message_count == -1) {
-    if (filter_type == SearchMessagesFilter::UnreadMention) {
+    if (filter_type == MessageSearchFilter::UnreadMention) {
       message_count = d->unread_mention_count;
     }
   }
   if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
-      filter_type == SearchMessagesFilter::FailedToSend) {
+      filter_type == MessageSearchFilter::FailedToSend) {
     promise.set_value(Unit());
     return message_count;
   }
@@ -24385,7 +24385,7 @@ Result<vector<BufferSlice>> MessagesManager::do_get_message_notifications_from_d
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = d->dialog_id;
-    db_query.index_mask = search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+    db_query.index_mask = message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
     db_query.from_message_id = from_message_id;
     db_query.offset = 0;
     db_query.limit = limit;
@@ -24504,7 +24504,7 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
-    db_query.index_mask = search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+    db_query.index_mask = message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
     db_query.from_message_id = from_message_id;
     db_query.offset = 0;
     db_query.limit = limit;
@@ -27333,90 +27333,90 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   }
 }
 
-tl_object_ptr<telegram_api::MessagesFilter> MessagesManager::get_input_messages_filter(SearchMessagesFilter filter) {
+tl_object_ptr<telegram_api::MessagesFilter> MessagesManager::get_input_messages_filter(MessageSearchFilter filter) {
   switch (filter) {
-    case SearchMessagesFilter::Empty:
+    case MessageSearchFilter::Empty:
       return make_tl_object<telegram_api::inputMessagesFilterEmpty>();
-    case SearchMessagesFilter::Animation:
+    case MessageSearchFilter::Animation:
       return make_tl_object<telegram_api::inputMessagesFilterGif>();
-    case SearchMessagesFilter::Audio:
+    case MessageSearchFilter::Audio:
       return make_tl_object<telegram_api::inputMessagesFilterMusic>();
-    case SearchMessagesFilter::Document:
+    case MessageSearchFilter::Document:
       return make_tl_object<telegram_api::inputMessagesFilterDocument>();
-    case SearchMessagesFilter::Photo:
+    case MessageSearchFilter::Photo:
       return make_tl_object<telegram_api::inputMessagesFilterPhotos>();
-    case SearchMessagesFilter::Video:
+    case MessageSearchFilter::Video:
       return make_tl_object<telegram_api::inputMessagesFilterVideo>();
-    case SearchMessagesFilter::VoiceNote:
+    case MessageSearchFilter::VoiceNote:
       return make_tl_object<telegram_api::inputMessagesFilterVoice>();
-    case SearchMessagesFilter::PhotoAndVideo:
+    case MessageSearchFilter::PhotoAndVideo:
       return make_tl_object<telegram_api::inputMessagesFilterPhotoVideo>();
-    case SearchMessagesFilter::Url:
+    case MessageSearchFilter::Url:
       return make_tl_object<telegram_api::inputMessagesFilterUrl>();
-    case SearchMessagesFilter::ChatPhoto:
+    case MessageSearchFilter::ChatPhoto:
       return make_tl_object<telegram_api::inputMessagesFilterChatPhotos>();
-    case SearchMessagesFilter::Call:
+    case MessageSearchFilter::Call:
       return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(0, false /*ignored*/);
-    case SearchMessagesFilter::MissedCall:
+    case MessageSearchFilter::MissedCall:
       return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(
           telegram_api::inputMessagesFilterPhoneCalls::MISSED_MASK, false /*ignored*/);
-    case SearchMessagesFilter::VideoNote:
+    case MessageSearchFilter::VideoNote:
       return make_tl_object<telegram_api::inputMessagesFilterRoundVideo>();
-    case SearchMessagesFilter::VoiceAndVideoNote:
+    case MessageSearchFilter::VoiceAndVideoNote:
       return make_tl_object<telegram_api::inputMessagesFilterRoundVoice>();
-    case SearchMessagesFilter::Mention:
+    case MessageSearchFilter::Mention:
       return make_tl_object<telegram_api::inputMessagesFilterMyMentions>();
-    case SearchMessagesFilter::UnreadMention:
-    case SearchMessagesFilter::FailedToSend:
+    case MessageSearchFilter::UnreadMention:
+    case MessageSearchFilter::FailedToSend:
     default:
       UNREACHABLE();
       return nullptr;
   }
 }
 
-SearchMessagesFilter MessagesManager::get_search_messages_filter(
+MessageSearchFilter MessagesManager::get_message_search_filter(
     const tl_object_ptr<td_api::SearchMessagesFilter> &filter) {
   if (filter == nullptr) {
-    return SearchMessagesFilter::Empty;
+    return MessageSearchFilter::Empty;
   }
   switch (filter->get_id()) {
     case td_api::searchMessagesFilterEmpty::ID:
-      return SearchMessagesFilter::Empty;
+      return MessageSearchFilter::Empty;
     case td_api::searchMessagesFilterAnimation::ID:
-      return SearchMessagesFilter::Animation;
+      return MessageSearchFilter::Animation;
     case td_api::searchMessagesFilterAudio::ID:
-      return SearchMessagesFilter::Audio;
+      return MessageSearchFilter::Audio;
     case td_api::searchMessagesFilterDocument::ID:
-      return SearchMessagesFilter::Document;
+      return MessageSearchFilter::Document;
     case td_api::searchMessagesFilterPhoto::ID:
-      return SearchMessagesFilter::Photo;
+      return MessageSearchFilter::Photo;
     case td_api::searchMessagesFilterVideo::ID:
-      return SearchMessagesFilter::Video;
+      return MessageSearchFilter::Video;
     case td_api::searchMessagesFilterVoiceNote::ID:
-      return SearchMessagesFilter::VoiceNote;
+      return MessageSearchFilter::VoiceNote;
     case td_api::searchMessagesFilterPhotoAndVideo::ID:
-      return SearchMessagesFilter::PhotoAndVideo;
+      return MessageSearchFilter::PhotoAndVideo;
     case td_api::searchMessagesFilterUrl::ID:
-      return SearchMessagesFilter::Url;
+      return MessageSearchFilter::Url;
     case td_api::searchMessagesFilterChatPhoto::ID:
-      return SearchMessagesFilter::ChatPhoto;
+      return MessageSearchFilter::ChatPhoto;
     case td_api::searchMessagesFilterCall::ID:
-      return SearchMessagesFilter::Call;
+      return MessageSearchFilter::Call;
     case td_api::searchMessagesFilterMissedCall::ID:
-      return SearchMessagesFilter::MissedCall;
+      return MessageSearchFilter::MissedCall;
     case td_api::searchMessagesFilterVideoNote::ID:
-      return SearchMessagesFilter::VideoNote;
+      return MessageSearchFilter::VideoNote;
     case td_api::searchMessagesFilterVoiceAndVideoNote::ID:
-      return SearchMessagesFilter::VoiceAndVideoNote;
+      return MessageSearchFilter::VoiceAndVideoNote;
     case td_api::searchMessagesFilterMention::ID:
-      return SearchMessagesFilter::Mention;
+      return MessageSearchFilter::Mention;
     case td_api::searchMessagesFilterUnreadMention::ID:
-      return SearchMessagesFilter::UnreadMention;
+      return MessageSearchFilter::UnreadMention;
     case td_api::searchMessagesFilterFailedToSend::ID:
-      return SearchMessagesFilter::FailedToSend;
+      return MessageSearchFilter::FailedToSend;
     default:
       UNREACHABLE();
-      return SearchMessagesFilter::Empty;
+      return MessageSearchFilter::Empty;
   }
 }
 
@@ -28989,7 +28989,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         message->have_next = false;
       }
       if (!message->from_database) {
-        const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+        const int32 INDEX_MASK_MASK = ~message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);

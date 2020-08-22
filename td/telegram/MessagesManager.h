@@ -230,12 +230,12 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, UserId sender_user_id,
                                             MessageId from_message_id, int32 offset, int32 limit,
-                                            SearchMessagesFilter filter, int64 random_id, int32 total_count,
+                                            MessageSearchFilter filter, int64 random_id, int32 total_count,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
-                                     MessageId offset_message_id, int32 limit, SearchMessagesFilter filter,
+                                     MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                      int64 random_id, int32 total_count,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_messages_search(int64 random_id);
@@ -734,9 +734,9 @@ class MessagesManager : public Actor {
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
 
-  static tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(SearchMessagesFilter filter);
+  static tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSearchFilter filter);
 
-  static SearchMessagesFilter get_search_messages_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter);
+  static MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter);
 
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialogId) const;
 
@@ -1091,9 +1091,9 @@ class MessagesManager : public Actor {
                                           // is known and last_message_id is known, then last_database_message_id <=
                                           // last_message_id
 
-    std::array<MessageId, search_messages_filter_size()> first_database_message_id_by_index;
+    std::array<MessageId, message_search_filter_count()> first_database_message_id_by_index;
     // use struct Count?
-    std::array<int32, search_messages_filter_size()> message_count_by_index{{0}};
+    std::array<int32, message_search_filter_count()> message_count_by_index{{0}};
 
     int32 server_unread_count = 0;
     int32 local_unread_count = 0;
@@ -2492,18 +2492,17 @@ class MessagesManager : public Actor {
 
   void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
 
-  static MessageId get_first_database_message_id_by_index(const Dialog *d, SearchMessagesFilter filter);
+  static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 
   void on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
-                                           MessageId first_db_message_id, SearchMessagesFilter filter_type,
-                                           int32 offset, int32 limit, Result<std::vector<BufferSlice>> r_messages,
-                                           Promise<> promise);
+                                           MessageId first_db_message_id, MessageSearchFilter filter_type, int32 offset,
+                                           int32 limit, Result<std::vector<BufferSlice>> r_messages, Promise<> promise);
 
   void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit, int64 random_id,
                                  Promise<> &&promise);
 
   void on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
-                                   SearchMessagesFilter filter, Promise<Unit> &&promise);
+                                   MessageSearchFilter filter, Promise<Unit> &&promise);
 
   void on_load_active_live_location_full_message_ids_from_database(string value);
 

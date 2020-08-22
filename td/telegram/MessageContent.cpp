@@ -2447,7 +2447,7 @@ static int32 get_message_content_text_index_mask(const MessageContent *content) 
   for (auto &entity : text->entities) {
     if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress ||
         entity.type == MessageEntity::Type::TextUrl) {
-      return search_messages_filter_index_mask(SearchMessagesFilter::Url);
+      return message_search_filter_index_mask(MessageSearchFilter::Url);
     }
   }
   return 0;
@@ -2457,43 +2457,43 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
                                                   bool is_outgoing) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Animation);
+      return message_search_filter_index_mask(MessageSearchFilter::Animation);
     case MessageContentType::Audio: {
       auto message_audio = static_cast<const MessageAudio *>(content);
       auto duration = td->audios_manager_->get_audio_duration(message_audio->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Audio)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Audio)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::Document:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return message_search_filter_index_mask(MessageSearchFilter::Document);
     case MessageContentType::Photo:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Photo) |
-             search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo);
+      return message_search_filter_index_mask(MessageSearchFilter::Photo) |
+             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
     case MessageContentType::Video: {
       auto message_video = static_cast<const MessageVideo *>(content);
       auto duration = td->videos_manager_->get_video_duration(message_video->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Video) |
-                                             search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Video) |
+                                             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::VideoNote: {
       auto message_video_note = static_cast<const MessageVideoNote *>(content);
       auto duration = td->video_notes_manager_->get_video_note_duration(message_video_note->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::VideoNote) |
-                                             search_messages_filter_index_mask(SearchMessagesFilter::VoiceAndVideoNote)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::VideoNote) |
+                                             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::VoiceNote:
-      return search_messages_filter_index_mask(SearchMessagesFilter::VoiceNote) |
-             search_messages_filter_index_mask(SearchMessagesFilter::VoiceAndVideoNote);
+      return message_search_filter_index_mask(MessageSearchFilter::VoiceNote) |
+             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote);
     case MessageContentType::ChatChangePhoto:
-      return search_messages_filter_index_mask(SearchMessagesFilter::ChatPhoto);
+      return message_search_filter_index_mask(MessageSearchFilter::ChatPhoto);
     case MessageContentType::Call: {
-      int32 index_mask = search_messages_filter_index_mask(SearchMessagesFilter::Call);
+      int32 index_mask = message_search_filter_index_mask(MessageSearchFilter::Call);
       auto message_call = static_cast<const MessageCall *>(content);
       if (!is_outgoing && (message_call->discard_reason == CallDiscardReason::Declined ||
                            message_call->discard_reason == CallDiscardReason::Missed)) {
-        index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::MissedCall);
+        index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
       }
       return index_mask;
     }
