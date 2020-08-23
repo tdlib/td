@@ -47,7 +47,8 @@ class MessageEntity {
     Underline,
     Strikethrough,
     BlockQuote,
-    BankCardNumber
+    BankCardNumber,
+    Size
   };
   Type type;
   int32 offset;
