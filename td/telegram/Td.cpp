@@ -7453,7 +7453,7 @@ void Td::on_request(uint64 id, td_api::getPreferredCountryLanguage &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.country_code_);
   CREATE_REQUEST_PROMISE();
-  send_closure(secure_manager_, &SecureManager::get_preferred_country_code, std::move(request.country_code_),
+  send_closure(secure_manager_, &SecureManager::get_preferred_country_language, std::move(request.country_code_),
                std::move(promise));
 }
 
