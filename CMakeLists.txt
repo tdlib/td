@@ -395,6 +395,7 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.cpp
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
+  td/telegram/CountryInfoManager.cpp
   td/telegram/DelayDispatcher.cpp
   td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
@@ -550,6 +551,7 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.h
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
+  td/telegram/CountryInfoManager.h
   td/telegram/DelayDispatcher.h
   td/telegram/Dependencies.h
   td/telegram/DeviceTokenManager.h

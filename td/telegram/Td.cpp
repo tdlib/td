@@ -22,6 +22,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogFilter.h"
@@ -155,35 +156,6 @@ void Td::ResultHandler::send_query(NetQueryPtr query) {
   td->add_handler(query->id(), shared_from_this());
   td->send(std::move(query));
 }
-
-class GetNearestDcQuery : public Td::ResultHandler {
-  Promise<string> promise_;
-
- public:
-  explicit GetNearestDcQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create_unauth(telegram_api::help_getNearestDc()));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::help_getNearestDc>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(std::move(result->country_));
-  }
-
-  void on_error(uint64 id, Status status) override {
-    if (!G()->is_expected_error(status) && status.message() != "BOT_METHOD_INVALID") {
-      LOG(ERROR) << "GetNearestDc returned " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
 
 class GetPromoDataQuery : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> promise_;
@@ -3813,8 +3785,12 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "AuthManager was cleared" << timer;
       background_manager_.reset();
       LOG(DEBUG) << "BackgroundManager was cleared" << timer;
+      callback_queries_manager_.reset();
+      LOG(DEBUG) << "CallbackQueriesManager was cleared" << timer;
       contacts_manager_.reset();
       LOG(DEBUG) << "ContactsManager was cleared" << timer;
+      country_info_manager_.reset();
+      LOG(DEBUG) << "CountryInfoManager was cleared" << timer;
       documents_manager_.reset();
       LOG(DEBUG) << "DocumentsManager was cleared" << timer;
       file_manager_.reset();
@@ -4230,7 +4206,7 @@ Status Td::init(DbKey key) {
 
   VLOG(td_init) << "Ping datacenter";
   if (!auth_manager_->is_authorized()) {
-    send_get_nearest_dc_query(Promise<string>());
+    country_info_manager_->get_current_country_code(Promise<string>());
   } else {
     updates_manager_->get_difference("init");
     schedule_get_terms_of_service(0);
@@ -4419,6 +4395,7 @@ void Td::init_managers() {
   VLOG(td_init) << "Create Managers";
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
+  country_info_manager_ = make_unique<CountryInfoManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
   video_notes_manager_ = make_unique<VideoNotesManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
@@ -4473,10 +4450,6 @@ void Td::init_managers() {
   G()->set_top_dialog_manager(top_dialog_manager_.get());
   verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
       "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
-}
-
-void Td::send_get_nearest_dc_query(Promise<string> promise) {
-  create_handler<GetNearestDcQuery>(std::move(promise))->send();
 }
 
 void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
@@ -7684,7 +7657,7 @@ void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
       promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
     }
   });
-  create_handler<GetNearestDcQuery>(std::move(query_promise))->send();
+  country_info_manager_->get_current_country_code(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {

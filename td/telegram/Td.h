@@ -46,6 +46,7 @@ class CallManager;
 class CallbackQueriesManager;
 class ConfigManager;
 class ContactsManager;
+class CountryInfoManager;
 class DeviceTokenManager;
 class DocumentsManager;
 class FileManager;
@@ -136,6 +137,7 @@ class Td final : public NetQueryCallback {
 
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
+  unique_ptr<CountryInfoManager> country_info_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
   unique_ptr<VideoNotesManager> video_notes_manager_;
   unique_ptr<VideosManager> videos_manager_;
@@ -1168,8 +1170,6 @@ class Td final : public NetQueryCallback {
   void close_impl(bool destroy_flag);
   static Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
   Status set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
-
-  void send_get_nearest_dc_query(Promise<string> promise);
 
   static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
     return td_api::make_object<td_api::error>(code, error.str());
