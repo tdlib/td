@@ -3298,6 +3298,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getNetworkStatistics::ID:
     case td_api::addNetworkStatistics::ID:
     case td_api::resetNetworkStatistics::ID:
+    case td_api::getCountries::ID:
     case td_api::getCountryCode::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::getApplicationConfig::ID:
@@ -7651,6 +7652,11 @@ void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
     }
   });
   accept_terms_of_service(this, std::move(request.terms_of_service_id_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getCountries &request) {
+  CREATE_REQUEST_PROMISE();
+  country_info_manager_->get_countries(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCountryCode &request) {

@@ -1054,6 +1054,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::acceptTermsOfService &request);
 
+  void on_request(uint64 id, const td_api::getCountries &request);
+
   void on_request(uint64 id, const td_api::getCountryCode &request);
 
   void on_request(uint64 id, const td_api::getInviteText &request);

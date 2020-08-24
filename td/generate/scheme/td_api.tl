@@ -1177,6 +1177,18 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
 
 
+//@description Contains information about a country
+//@country_code A two-letter ISO 3166-1 alpha-2 country code
+//@name Native name of the country
+//@english_name English name of the country
+//@is_hidden True, if the country should be hidden from the list of all countries
+//@calling_codes List of country calling codes
+countryInfo country_code:string name:string english_name:string is_hidden:Bool calling_codes:vector<string> = CountryInfo;
+
+//@description Contains information about countries @countries The list of countries
+countries countries:vector<countryInfo> = Countries;
+
+
 //@description Describes an action associated with a bank card number @text Action text @url The URL to be opened
 bankCardActionOpenUrl text:string url:string = BankCardActionOpenUrl;
 
@@ -4653,6 +4665,9 @@ answerCustomQuery custom_query_id:int64 data:string = Ok;
 //@description Succeeds after a specified amount of time has passed. Can be called before initialization @seconds Number of seconds before the function returns
 setAlarm seconds:double = Ok;
 
+
+//@description Returns information about existing countries. Can be called before authorization
+getCountries = Countries;
 
 //@description Uses current user IP address to find their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;

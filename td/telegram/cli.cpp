@@ -2268,8 +2268,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeBackground>(to_integer<int64>(args)));
     } else if (op == "rbgs") {
       send_request(td_api::make_object<td_api::resetBackgrounds>());
-    } else if (op == "gccode") {
+    } else if (op == "gcoc") {
       send_request(td_api::make_object<td_api::getCountryCode>());
+    } else if (op == "gcos") {
+      send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "git") {
       send_request(td_api::make_object<td_api::getInviteText>());
     } else if (op == "atos") {
