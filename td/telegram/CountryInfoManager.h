@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
@@ -14,14 +15,17 @@ namespace td {
 
 class Td;
 
-class CountryInfoManager {
+class CountryInfoManager : public Actor {
  public:
-  explicit CountryInfoManager(Td *td);
+  explicit CountryInfoManager(Td *td, ActorShared<> parent);
 
   void get_current_country_code(Promise<string> &&promise);
 
  private:
+  void tear_down() override;
+
   Td *td_;
+  ActorShared<> parent_;
 };
 
 }  // namespace td

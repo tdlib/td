@@ -3770,6 +3770,7 @@ void Td::inc_actor_refcnt() {
 
 void Td::dec_actor_refcnt() {
   actor_refcnt_--;
+  LOG(DEBUG) << "Decrease reference count to " << actor_refcnt_;
   if (actor_refcnt_ == 0) {
     if (close_flag_ == 2) {
       create_reference();
@@ -3858,6 +3859,7 @@ void Td::inc_request_actor_refcnt() {
 
 void Td::dec_request_actor_refcnt() {
   request_actor_refcnt_--;
+  LOG(DEBUG) << "Decrease request actor count to " << request_actor_refcnt_;
   if (request_actor_refcnt_ == 0) {
     LOG(WARNING) << "Have no request actors";
     clear();
@@ -3974,6 +3976,8 @@ void Td::clear() {
   LOG(DEBUG) << "BackgroundManager actor was cleared" << timer;
   contacts_manager_actor_.reset();
   LOG(DEBUG) << "ContactsManager actor was cleared" << timer;
+  country_info_manager_actor_.reset();
+  LOG(DEBUG) << "CountryInfoManager actor was cleared" << timer;
   file_manager_actor_.reset();
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
   file_reference_manager_actor_.reset();
@@ -4395,7 +4399,6 @@ void Td::init_managers() {
   VLOG(td_init) << "Create Managers";
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
-  country_info_manager_ = make_unique<CountryInfoManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
   video_notes_manager_ = make_unique<VideoNotesManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
@@ -4410,6 +4413,8 @@ void Td::init_managers() {
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
   contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
   G()->set_contacts_manager(contacts_manager_actor_.get());
+  country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
+  country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());

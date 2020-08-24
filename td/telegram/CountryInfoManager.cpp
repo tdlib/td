@@ -44,7 +44,11 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 };
 
-CountryInfoManager::CountryInfoManager(Td *td) : td_(td) {
+CountryInfoManager::CountryInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void CountryInfoManager::tear_down() {
+  parent_.reset();
 }
 
 void CountryInfoManager::get_current_country_code(Promise<string> &&promise) {

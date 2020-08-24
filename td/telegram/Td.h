@@ -137,7 +137,6 @@ class Td final : public NetQueryCallback {
 
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
-  unique_ptr<CountryInfoManager> country_info_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
   unique_ptr<VideoNotesManager> video_notes_manager_;
   unique_ptr<VideosManager> videos_manager_;
@@ -151,6 +150,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<BackgroundManager> background_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
+  unique_ptr<CountryInfoManager> country_info_manager_;
+  ActorOwn<CountryInfoManager> country_info_manager_actor_;
   unique_ptr<FileManager> file_manager_;
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<FileReferenceManager> file_reference_manager_;
