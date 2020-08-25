@@ -67,7 +67,7 @@ class TdReceiver {
   MultiClient::Response receive(double timeout) {
     if (!responses_.empty()) {
       auto result = std::move(responses_.front());
-      responses_.pop_front();
+      responses_.pop();
       return result;
     }
     return {0, 0, nullptr};
@@ -79,17 +79,17 @@ class TdReceiver {
       Callback(MultiClient::ClientId client_id, TdReceiver *impl) : client_id_(client_id), impl_(impl) {
       }
       void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
-        impl_->responses_.push_back({client_id_, id, std::move(result)});
+        impl_->responses_.push({client_id_, id, std::move(result)});
       }
       void on_error(uint64 id, td_api::object_ptr<td_api::error> error) override {
-        impl_->responses_.push_back({client_id_, id, std::move(error)});
+        impl_->responses_.push({client_id_, id, std::move(error)});
       }
       Callback(const Callback &) = delete;
       Callback &operator=(const Callback &) = delete;
       Callback(Callback &&) = delete;
       Callback &operator=(Callback &&) = delete;
       ~Callback() override {
-        impl_->responses_.push_back({client_id_, 0, nullptr});
+        impl_->responses_.push({client_id_, 0, nullptr});
       }
 
      private:
@@ -153,7 +153,6 @@ class MultiClient::Impl final {
     return response;
   }
 
-  Impl() = default;
   Impl(const Impl &) = delete;
   Impl &operator=(const Impl &) = delete;
   Impl(Impl &&) = delete;

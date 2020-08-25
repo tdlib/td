@@ -63,7 +63,7 @@ int32 PartsManager::set_streaming_offset(int64 offset) {
   return finish();
 }
 
-int32 PartsManager::get_pending_count() {
+int32 PartsManager::get_pending_count() const {
   return pending_count_;
 }
 

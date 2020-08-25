@@ -161,6 +161,7 @@ class MultiClient final {
   MultiClient &operator=(MultiClient &&other);
 
  private:
+  friend class Client;
   class Impl;
   std::unique_ptr<Impl> impl_;
 };
