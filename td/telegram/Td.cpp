@@ -3300,6 +3300,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::resetNetworkStatistics::ID:
     case td_api::getCountries::ID:
     case td_api::getCountryCode::ID:
+    case td_api::getPhoneNumberInfo::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::getApplicationConfig::ID:
     case td_api::saveApplicationLogEvent::ID:
@@ -7669,6 +7670,11 @@ void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
     }
   });
   country_info_manager_->get_current_country_code(std::move(query_promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getPhoneNumberInfo &request) {
+  CREATE_REQUEST_PROMISE();
+  country_info_manager_->get_phone_number_info(request.phone_number_prefix_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {

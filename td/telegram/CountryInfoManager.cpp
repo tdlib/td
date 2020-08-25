@@ -77,7 +77,7 @@ class GetCountriesListQuery : public Td::ResultHandler {
 };
 
 struct CountryInfoManager::CallingCodeInfo {
-  int32 calling_code = 0;
+  string calling_code;
   vector<string> prefixes;
   vector<string> patterns;
 };
@@ -92,7 +92,7 @@ struct CountryInfoManager::CountryInfo {
   td_api::object_ptr<td_api::countryInfo> get_country_info_object() const {
     return td_api::make_object<td_api::countryInfo>(
         country_code, name.empty() ? default_name : name, default_name, is_hidden,
-        transform(calling_codes, [](const CallingCodeInfo &info) { return to_string(info.calling_code); }));
+        transform(calling_codes, [](const CallingCodeInfo &info) { return info.calling_code; }));
   }
 };
 
@@ -124,6 +124,13 @@ void CountryInfoManager::get_countries(Promise<td_api::object_ptr<td_api::countr
 
 void CountryInfoManager::do_get_countries(string language_code, bool is_recursive,
                                           Promise<td_api::object_ptr<td_api::countries>> &&promise) {
+  if (is_recursive) {
+    auto main_language_code = get_main_language_code();
+    if (language_code != main_language_code) {
+      language_code = std::move(main_language_code);
+      is_recursive = false;
+    }
+  }
   auto list = get_country_list(language_code);
   if (list == nullptr) {
     if (is_recursive) {
@@ -141,6 +148,113 @@ void CountryInfoManager::do_get_countries(string language_code, bool is_recursiv
   }
 
   promise.set_value(list->get_countries_object());
+}
+
+void CountryInfoManager::get_phone_number_info(string phone_number_prefix,
+                                               Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise) {
+  td::remove_if(phone_number_prefix, [](char c) { return c < '0' || c > '9'; });
+  if (phone_number_prefix.empty()) {
+    return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string()));
+  }
+  do_get_phone_number_info(std::move(phone_number_prefix), get_main_language_code(), false, std::move(promise));
+}
+
+void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, string language_code, bool is_recursive,
+                                                  Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise) {
+  if (is_recursive) {
+    auto main_language_code = get_main_language_code();
+    if (language_code != main_language_code) {
+      language_code = std::move(main_language_code);
+      is_recursive = false;
+    }
+  }
+  auto list = get_country_list(language_code);
+  if (list == nullptr) {
+    if (is_recursive) {
+      return promise.set_error(Status::Error(500, "Requested data is inaccessible"));
+    }
+    return load_country_list(language_code, 0,
+                             PromiseCreator::lambda([actor_id = actor_id(this), phone_number_prefix, language_code,
+                                                     promise = std::move(promise)](Result<Unit> &&result) mutable {
+                               if (result.is_error()) {
+                                 return promise.set_error(result.move_as_error());
+                               }
+                               send_closure(actor_id, &CountryInfoManager::do_get_phone_number_info,
+                                            std::move(phone_number_prefix), std::move(language_code), true,
+                                            std::move(promise));
+                             }));
+  }
+
+  Slice phone_number = phone_number_prefix;
+  const CountryInfo *best_country = nullptr;
+  const CallingCodeInfo *best_calling_code = nullptr;
+  size_t best_length = 0;
+  bool is_prefix = false;
+  for (auto &country : list->countries_) {
+    for (auto &calling_code : country.calling_codes) {
+      if (begins_with(phone_number, calling_code.calling_code)) {
+        auto calling_code_size = calling_code.calling_code.size();
+        for (auto &prefix : calling_code.prefixes) {
+          if (begins_with(prefix, phone_number.substr(calling_code_size))) {
+            is_prefix = true;
+          }
+          if (calling_code_size + prefix.size() > best_length &&
+              begins_with(phone_number.substr(calling_code_size), prefix)) {
+            best_country = &country;
+            best_calling_code = &calling_code;
+            best_length = calling_code_size + prefix.size();
+          }
+        }
+      }
+      if (begins_with(calling_code.calling_code, phone_number)) {
+        is_prefix = true;
+      }
+    }
+  }
+  if (best_country == nullptr) {
+    return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(
+        nullptr, is_prefix ? phone_number_prefix : string(), is_prefix ? string() : phone_number_prefix));
+  }
+
+  string formatted_part = phone_number_prefix.substr(best_calling_code->calling_code.size());
+  string formatted_phone_number = formatted_part;
+  size_t max_matched_digits = 0;
+  for (auto &pattern : best_calling_code->patterns) {
+    string result;
+    size_t current_pattern_pos = 0;
+    bool is_failed_match = false;
+    size_t matched_digits = 0;
+    for (auto &c : formatted_part) {
+      while (current_pattern_pos < pattern.size() && pattern[current_pattern_pos] != 'X' &&
+             !is_digit(pattern[current_pattern_pos])) {
+        result += pattern[current_pattern_pos++];
+      }
+      if (current_pattern_pos == pattern.size()) {
+        result += c;
+      } else if (pattern[current_pattern_pos] == 'X') {
+        result += c;
+        current_pattern_pos++;
+      } else {
+        CHECK(is_digit(pattern[current_pattern_pos]));
+        if (c == pattern[current_pattern_pos]) {
+          matched_digits++;
+          result += c;
+          current_pattern_pos++;
+        } else {
+          is_failed_match = true;
+          break;
+        }
+      }
+    }
+    if (!is_failed_match && matched_digits >= max_matched_digits) {
+      max_matched_digits = matched_digits;
+      formatted_phone_number = std::move(result);
+    }
+  }
+
+  promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(
+      best_country->get_country_info_object(), best_calling_code->calling_code,
+      formatted_phone_number.empty() ? formatted_part : formatted_phone_number));
 }
 
 void CountryInfoManager::get_current_country_code(Promise<string> &&promise) {
@@ -211,8 +325,11 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
                        << info.country_code;
           } else {
             CallingCodeInfo calling_code_info;
-            calling_code_info.calling_code = r_calling_code.ok();
+            calling_code_info.calling_code = std::move(code->country_code_);
             calling_code_info.prefixes = std::move(code->prefixes_);
+            if (calling_code_info.prefixes.empty()) {
+              calling_code_info.prefixes.resize(1);
+            }
             calling_code_info.patterns = std::move(code->patterns_);
             info.calling_codes.push_back(std::move(calling_code_info));
           }

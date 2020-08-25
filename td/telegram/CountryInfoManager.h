@@ -29,6 +29,9 @@ class CountryInfoManager : public Actor {
 
   void get_current_country_code(Promise<string> &&promise);
 
+  void get_phone_number_info(string phone_number_prefix,
+                             Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise);
+
  private:
   void tear_down() override;
 
@@ -40,6 +43,9 @@ class CountryInfoManager : public Actor {
 
   void do_get_countries(string language_code, bool is_recursive,
                         Promise<td_api::object_ptr<td_api::countries>> &&promise);
+
+  void do_get_phone_number_info(string phone_number_prefix, string language_code, bool is_recursive,
+                                Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise);
 
   void load_country_list(string language_code, int32 hash, Promise<Unit> &&promise);
 

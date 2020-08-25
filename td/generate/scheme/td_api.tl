@@ -1188,6 +1188,12 @@ countryInfo country_code:string name:string english_name:string is_hidden:Bool c
 //@description Contains information about countries @countries The list of countries
 countries countries:vector<countryInfo> = Countries;
 
+//@description Contains information about a phone number
+//@country Information about the country to which the phone number belongs; may be null
+//@country_calling_code The part of the phone number denoting country calling code or its part
+//@formatted_phone_number The phone number without country calling code formatted accordingly to local rules
+phoneNumberInfo country:countryInfo country_calling_code:string formatted_phone_number:string = PhoneNumberInfo;
+
 
 //@description Describes an action associated with a bank card number @text Action text @url The URL to be opened
 bankCardActionOpenUrl text:string url:string = BankCardActionOpenUrl;
@@ -4671,6 +4677,9 @@ getCountries = Countries;
 
 //@description Uses current user IP address to find their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;
+
+//@description Returns information about a phone number by its prefix. Can be called before authorization @phone_number_prefix The phone number prefix
+getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 
 //@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
 getInviteText = Text;
