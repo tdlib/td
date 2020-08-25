@@ -8098,7 +8098,8 @@ void MessagesManager::after_get_difference() {
     auto *list = get_dialog_list(dialog_list_id);
     CHECK(list != nullptr);
     if (!list->is_dialog_unread_count_inited_) {
-      get_dialogs(dialog_list_id, MIN_DIALOG_DATE, 1, false, PromiseCreator::lambda([dialog_list_id](Unit) {
+      get_dialogs(dialog_list_id, MIN_DIALOG_DATE, static_cast<int32>(list->pinned_dialogs_.size() + 2), false,
+                  PromiseCreator::lambda([dialog_list_id](Unit) {
                     if (!G()->close_flag()) {
                       LOG(INFO) << "Inited total chat count in " << dialog_list_id;
                     }
