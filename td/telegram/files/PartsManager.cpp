@@ -29,9 +29,9 @@ Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, con
   return init_no_size(part_size, ready_parts);
 }
 
-int32 PartsManager::set_streaming_offset(int64 offset) {
+int32 PartsManager::set_streaming_offset(int64 offset, int64 limit) {
   auto finish = [&] {
-    set_streaming_limit(streaming_limit_);
+    set_streaming_limit(limit);
     update_first_not_ready_part();
     return first_streaming_not_ready_part_;
   };
@@ -502,7 +502,7 @@ Status PartsManager::init_common(const std::vector<int> &ready_parts) {
 
 void PartsManager::set_need_check() {
   need_check_ = true;
-  set_streaming_offset(0);
+  set_streaming_offset(0, 0);
 }
 
 void PartsManager::set_checked_prefix_size(int64 size) {

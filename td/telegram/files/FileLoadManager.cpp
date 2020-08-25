@@ -158,7 +158,8 @@ void FileLoadManager::update_local_file_location(QueryId id, const LocalFileLoca
   }
   send_closure(node->loader_, &FileLoaderActor::update_local_file_location, local);
 }
-void FileLoadManager::update_download_offset(QueryId id, int64 offset) {
+
+void FileLoadManager::update_downloaded_part(QueryId id, int64 offset, int64 limit) {
   if (stop_flag_) {
     return;
   }
@@ -170,22 +171,9 @@ void FileLoadManager::update_download_offset(QueryId id, int64 offset) {
   if (node == nullptr) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_download_offset, offset);
+  send_closure(node->loader_, &FileLoaderActor::update_downloaded_part, offset, limit);
 }
-void FileLoadManager::update_download_limit(QueryId id, int64 limit) {
-  if (stop_flag_) {
-    return;
-  }
-  auto it = query_id_to_node_id_.find(id);
-  if (it == query_id_to_node_id_.end()) {
-    return;
-  }
-  auto node = nodes_container_.get(it->second);
-  if (node == nullptr) {
-    return;
-  }
-  send_closure(node->loader_, &FileLoaderActor::update_download_limit, limit);
-}
+
 void FileLoadManager::hangup() {
   nodes_container_.for_each([](auto id, auto &node) { node.loader_.reset(); });
   stop_flag_ = true;

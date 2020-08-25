@@ -39,8 +39,7 @@ class FileLoader : public FileLoaderActor {
   void update_resources(const ResourceState &other) override;
 
   void update_local_file_location(const LocalFileLocation &local) override;
-  void update_download_offset(int64 offset) override;
-  void update_download_limit(int64 limit) override;
+  void update_downloaded_part(int64 offset, int64 limit) override;
 
  protected:
   void set_ordered_flag(bool flag);

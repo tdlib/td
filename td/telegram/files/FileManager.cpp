@@ -2231,13 +2231,17 @@ void FileManager::run_download(FileNodePtr node) {
     LOG(INFO) << "Update download offset and limits of file " << node->main_file_id_;
     CHECK(node->download_id_ != 0);
     send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
-    if (need_update_limit) {
+    if (need_update_limit || need_update_offset) {
+      auto download_offset = node->download_offset_;
       auto download_limit = node->download_limit_;
-      send_closure(file_load_manager_, &FileLoadManager::update_download_limit, node->download_id_, download_limit);
-    }
-    if (need_update_offset) {
-      auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
-      send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_, download_offset);
+      if (file_view.is_encrypted_any()) {
+        CHECK(download_offset <= MAX_FILE_SIZE);
+        CHECK(download_limit <= std::numeric_limits<int32>::max());
+        download_limit += download_offset;
+        download_offset = 0;
+      }
+      send_closure(file_load_manager_, &FileLoadManager::update_downloaded_part, node->download_id_, download_offset,
+                   download_limit);
     }
     return;
   }
@@ -2297,8 +2301,14 @@ void FileManager::run_download(FileNodePtr node) {
   LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
             << node->remote_.full.value() << " with suggested name " << node->suggested_name() << " and encyption key "
             << node->encryption_key_;
-  auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
+  auto download_offset = node->download_offset_;
   auto download_limit = node->download_limit_;
+  if (file_view.is_encrypted_any()) {
+    CHECK(download_offset <= MAX_FILE_SIZE);
+    CHECK(download_limit <= std::numeric_limits<int32>::max());
+    download_limit += download_offset;
+    download_offset = 0;
+  }
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full.value(), node->local_,
                node->size_, node->suggested_name(), node->encryption_key_, node->can_search_locally_, download_offset,
                download_limit, priority);

@@ -65,9 +65,9 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
   loop();
 }
 
-void FileLoader::update_download_offset(int64 offset) {
+void FileLoader::update_downloaded_part(int64 offset, int64 limit) {
   if (parts_manager_.get_streaming_offset() != offset) {
-    auto begin_part_id = parts_manager_.set_streaming_offset(offset);
+    auto begin_part_id = parts_manager_.set_streaming_offset(offset, limit);
     auto end_part_id = begin_part_id + static_cast<int32>(part_map_.size()) * 2;
     VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id;
     for (auto &it : part_map_) {
@@ -76,13 +76,9 @@ void FileLoader::update_download_offset(int64 offset) {
         it.second.second.reset();  // cancel_query(it.second.second);
       }
     }
+  } else {
+    parts_manager_.set_streaming_limit(limit);
   }
-  update_estimated_limit();
-  loop();
-}
-
-void FileLoader::update_download_limit(int64 limit) {
-  parts_manager_.set_streaming_limit(limit);
   update_estimated_limit();
   loop();
 }
@@ -124,8 +120,7 @@ void FileLoader::start_up() {
   if (file_info.only_check) {
     parts_manager_.set_checked_prefix_size(0);
   }
-  parts_manager_.set_streaming_offset(file_info.offset);
-  parts_manager_.set_streaming_limit(file_info.limit);
+  parts_manager_.set_streaming_offset(file_info.offset, file_info.limit);
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
