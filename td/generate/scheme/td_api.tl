@@ -178,8 +178,10 @@ inputFileLocal path:string = InputFile;
 inputFileGenerated original_path:string conversion:string expected_size:int32 = InputFile;
 
 
-//@description Photo description @type Thumbnail type (see https://core.telegram.org/constructor/photoSize) @photo Information about the photo file @width Photo width @height Photo height
-photoSize type:string photo:file width:int32 height:int32 = PhotoSize;
+//@description Describes an image in JPEG format @type Image type (see https://core.telegram.org/constructor/photoSize)
+//@photo Information about the image file @width Image width @height Image height
+//@progressive_sizes Sizes of progressive JPEG file prefixes, which can be used to preliminarily show the image
+photoSize type:string photo:file width:int32 height:int32 progressive_sizes:vector<int32> = PhotoSize;
 
 //@description Thumbnail image of a very poor quality and low resolution @width Thumbnail width, usually doesn't exceed 40 @height Thumbnail height, usually doesn't exceed 40 @data The thumbnail in JPEG format
 minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;

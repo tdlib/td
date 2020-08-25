@@ -39,6 +39,7 @@ enum class Version : int32 {
   AddDiceEmoji,  // 25
   AddAnimationStickers,
   AddDialogPhotoHasAnimation,
+  AddPhotoProgressiveSizes,
   Next
 };
 

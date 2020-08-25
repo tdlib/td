@@ -75,6 +75,7 @@ void store(const PhotoSize &photo_size, StorerT &storer) {
   store(photo_size.dimensions, storer);
   store(photo_size.size, storer);
   store(photo_size.file_id, storer);
+  store(photo_size.progressive_sizes, storer);
 }
 
 template <class ParserT>
@@ -83,6 +84,11 @@ void parse(PhotoSize &photo_size, ParserT &parser) {
   parse(photo_size.dimensions, parser);
   parse(photo_size.size, parser);
   parse(photo_size.file_id, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddPhotoProgressiveSizes)) {
+    parse(photo_size.progressive_sizes, parser);
+  } else {
+    photo_size.progressive_sizes.clear();
+  }
   LOG(DEBUG) << "Parsed photo size " << photo_size;
 }
 

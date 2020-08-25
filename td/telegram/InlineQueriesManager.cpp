@@ -864,7 +864,8 @@ tl_object_ptr<td_api::minithumbnail> copy(const td_api::minithumbnail &obj) {
 
 template <>
 tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
-  return make_tl_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_);
+  return make_tl_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_,
+                                           vector<int32>(obj.progressive_sizes_));
 }
 
 template <>
