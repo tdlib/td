@@ -3244,7 +3244,7 @@ updateSelectedBackground for_dark_theme:Bool background:background = Update;
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;
 
-//@description The connection state has changed @state The new connection state
+//@description The connection state has changed. This update must be used only to show the user a human-readable description of the connection state @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method should be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
