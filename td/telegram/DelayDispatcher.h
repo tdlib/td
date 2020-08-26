@@ -18,7 +18,8 @@ namespace td {
 
 class DelayDispatcher : public Actor {
  public:
-  explicit DelayDispatcher(double default_delay) : default_delay_(default_delay) {
+  DelayDispatcher(double default_delay, ActorShared<> parent)
+      : default_delay_(default_delay), parent_(std::move(parent)) {
   }
 
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
@@ -35,6 +36,7 @@ class DelayDispatcher : public Actor {
   std::queue<Query> queue_;
   Timestamp wakeup_at_;
   double default_delay_;
+  ActorShared<> parent_;
 
   void loop() override;
   void tear_down() override;

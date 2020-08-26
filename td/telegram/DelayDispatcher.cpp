@@ -62,6 +62,7 @@ void DelayDispatcher::tear_down() {
     query.net_query->set_error(Status::Error(500, "Request aborted"));
     send_closure(std::move(query.callback), &NetQueryCallback::on_result, std::move(query.net_query));
   }
+  parent_.reset();
 }
 
 }  // namespace td

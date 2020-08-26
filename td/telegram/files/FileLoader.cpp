@@ -40,12 +40,15 @@ void FileLoader::set_ordered_flag(bool flag) {
 size_t FileLoader::get_part_size() const {
   return parts_manager_.get_part_size();
 }
+
 void FileLoader::hangup() {
-  // if (!stop_flag_) {
-  // stop_flag_ = true;
-  // on_error(Status::Error("Cancelled"));
-  //}
-  stop();
+  delay_dispatcher_.reset();
+}
+
+void FileLoader::hangup_shared() {
+  if (get_link_token() == 1) {
+    stop();
+  }
 }
 
 void FileLoader::update_local_file_location(const LocalFileLocation &local) {
@@ -128,7 +131,7 @@ void FileLoader::start_up() {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
   if (file_info.need_delay) {
-    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003);
+    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003, actor_shared(this, 1));
     next_delay_ = 0.05;
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
@@ -151,6 +154,7 @@ void FileLoader::loop() {
     return;
   }
 }
+
 Status FileLoader::do_loop() {
   TRY_RESULT(check_info,
              check_loop(parts_manager_.get_checked_prefix_size(), parts_manager_.get_unchecked_ready_prefix_size(),
@@ -226,7 +230,9 @@ void FileLoader::tear_down() {
     it.second.second.reset();  // cancel_query(it.second.second);
   }
   ordered_parts_.clear([](auto &&part) { part.second->clear(); });
-  send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
+  if (!delay_dispatcher_.empty()) {
+    send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
+  }
 }
 
 void FileLoader::update_estimated_limit() {

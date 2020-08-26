@@ -8,14 +8,13 @@
 
 #include "td/actor/actor.h"
 
+#include "td/telegram/DelayDispatcher.h"
 #include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/PartsManager.h"
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/files/ResourceState.h"
 #include "td/telegram/net/NetQuery.h"
-
-#include "td/telegram/DelayDispatcher.h"
 
 #include "td/utils/OrderedEventsProcessor.h"
 #include "td/utils/Status.h"
@@ -129,6 +128,7 @@ class FileLoader : public FileLoaderActor {
   void loop() override;
   Status do_loop();
   void hangup() override;
+  void hangup_shared() override;
   void tear_down() override;
 
   void update_estimated_limit();
