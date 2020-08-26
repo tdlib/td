@@ -2818,7 +2818,7 @@ class MessagesManager : public Actor {
   KHeap<double> ttl_heap_;
   Slot ttl_slot_;
 
-  enum YieldType : int32 { None, Ttl, TtlDb };  // None must be first
+  enum YieldType : int32 { None, TtlDb };  // None must be first
   int32 ttl_db_expires_from_;
   int32 ttl_db_expires_till_;
   bool ttl_db_has_query_;
