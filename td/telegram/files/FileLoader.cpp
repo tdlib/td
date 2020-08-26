@@ -212,6 +212,7 @@ Status FileLoader::do_loop() {
     if (delay_dispatcher_.empty()) {
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), std::move(callback));
     } else {
+      query->debug("sent to DelayDispatcher");
       send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback_and_delay, std::move(query),
                    std::move(callback), next_delay_);
       next_delay_ = max(next_delay_ * 0.8, 0.003);
