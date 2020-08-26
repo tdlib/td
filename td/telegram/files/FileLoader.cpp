@@ -68,8 +68,11 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
 void FileLoader::update_downloaded_part(int64 offset, int64 limit) {
   if (parts_manager_.get_streaming_offset() != offset) {
     auto begin_part_id = parts_manager_.set_streaming_offset(offset, limit);
-    auto end_part_id = begin_part_id + static_cast<int32>(part_map_.size()) * 2;
-    VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id;
+    auto new_end_part_id = limit <= 0 ? parts_manager_.get_part_count()
+                                      : static_cast<int32>((offset + limit - 1) / parts_manager_.get_part_size()) + 1;
+    auto max_parts = static_cast<int32>(ResourceManager::MAX_RESOURCE_LIMIT / parts_manager_.get_part_size());
+    auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
+    VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
       if (!(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
         VLOG(files) << "Cancel part " << it.second.first.id;
@@ -224,6 +227,7 @@ void FileLoader::tear_down() {
   ordered_parts_.clear([](auto &&part) { part.second->clear(); });
   send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
 }
+
 void FileLoader::update_estimated_limit() {
   if (stop_flag_) {
     return;

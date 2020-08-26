@@ -28,6 +28,8 @@ class ResourceManager : public Actor {
 
   void register_worker(ActorShared<FileLoaderActor> callback, int8 priority);
 
+  static constexpr int64 MAX_RESOURCE_LIMIT = 1 << 21;
+
  private:
   Mode mode_;
   using NodeId = uint64;

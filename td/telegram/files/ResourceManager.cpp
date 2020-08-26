@@ -132,7 +132,7 @@ void ResourceManager::loop() {
     return;
   }
   auto active_limit = resource_state_.active_limit();
-  resource_state_.update_limit(2 * 1024 * (1 << 10) - active_limit);
+  resource_state_.update_limit(MAX_RESOURCE_LIMIT - active_limit);
   LOG(INFO) << tag("unused", resource_state_.unused());
 
   if (mode_ == Mode::Greedy) {
