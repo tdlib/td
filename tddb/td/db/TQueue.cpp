@@ -186,11 +186,7 @@ class TQueueImpl : public TQueue {
     if (it == queues_.end()) {
       return EventId();
     }
-    auto &q = it->second;
-    if (q.events.empty()) {
-      return q.tail_id;
-    }
-    return q.events.begin()->first;
+    return get_queue_head(it->second);
   }
 
   EventId get_tail(QueueId queue_id) const override {
@@ -227,7 +223,7 @@ class TQueueImpl : public TQueue {
     if (from_id.value() > q.tail_id.value() + 10) {
       return Status::Error("Specified from_id is in the future");
     }
-    if (from_id.value() < q.tail_id.value() - static_cast<int32>(MAX_QUEUE_EVENTS) * 2) {
+    if (from_id.value() < get_queue_head(q).value() - MAX_QUEUE_EVENTS) {
       return Status::Error("Specified from_id is in the past");
     }
 
@@ -267,7 +263,7 @@ class TQueueImpl : public TQueue {
     return deleted_events;
   }
 
-  size_t get_size(QueueId queue_id) override {
+  size_t get_size(QueueId queue_id) const override {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       return 0;
@@ -294,7 +290,14 @@ class TQueueImpl : public TQueue {
   std::set<std::pair<int32, QueueId>> queue_gc_at_;
   unique_ptr<StorageCallback> callback_;
 
-  static size_t get_size(Queue &q) {
+  static EventId get_queue_head(const Queue &q) {
+    if (q.events.empty()) {
+      return q.tail_id;
+    }
+    return q.events.begin()->first;
+  }
+
+  static size_t get_size(const Queue &q) {
     if (q.events.empty()) {
       return 0;
     }
