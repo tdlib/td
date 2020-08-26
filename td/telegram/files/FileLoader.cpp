@@ -74,7 +74,7 @@ void FileLoader::update_downloaded_part(int64 offset, int64 limit) {
     auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
     VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
-      if (!(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
+      if (!it.second.second.empty() && !(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
         VLOG(files) << "Cancel part " << it.second.first.id;
         it.second.second.reset();  // cancel_query(it.second.second);
       }
