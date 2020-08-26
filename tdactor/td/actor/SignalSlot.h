@@ -72,7 +72,7 @@ class Slot final : public Actor {
   }
   ActorShared<> get_signal_new() {
     register_if_empty();
-    return actor_shared();
+    return actor_shared(this);
   }
 
  private:

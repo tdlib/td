@@ -459,7 +459,7 @@ class Socks5TestActor : public Actor {
       return promise.set_error(Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error()));
     }
     create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip_address, "", "",
-                         make_unique<Callback>(std::move(promise)), actor_shared())
+                         make_unique<Callback>(std::move(promise)), actor_shared(this))
         .release();
   }
 

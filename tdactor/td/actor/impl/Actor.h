@@ -125,12 +125,11 @@ ActorId<SelfT> Actor::actor_id(SelfT *self) {
   return ActorId<SelfT>(info_.get_weak());
 }
 
-inline ActorShared<> Actor::actor_shared() {
-  return actor_shared(this);
-}
 template <class SelfT>
 ActorShared<SelfT> Actor::actor_shared(SelfT *self, uint64 id) {
   CHECK(static_cast<Actor *>(self) == this);
+  // TODO replace with CHECK
+  LOG_IF(ERROR, id == 0) << "ActorShared with token 0 must not be created";
   return ActorShared<SelfT>(actor_id(self), id);
 }
 

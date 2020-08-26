@@ -353,7 +353,7 @@ class SendToDead : public Actor {
       set_timeout_in(Random::fast_uint32() % 3 * 0.001);
       if (ttl_ != 0) {
         child_ = create_actor_on_scheduler<Parent>(
-            "Child", Random::fast_uint32() % Scheduler::instance()->sched_count(), actor_shared(), ttl_ - 1);
+            "Child", Random::fast_uint32() % Scheduler::instance()->sched_count(), actor_shared(this), ttl_ - 1);
       }
     }
     void timeout_expired() override {
@@ -376,7 +376,7 @@ class SendToDead : public Actor {
 
   ActorShared<> create_reference() {
     ref_cnt_++;
-    return actor_shared();
+    return actor_shared(this);
   }
   void hangup_shared() override {
     ref_cnt_--;

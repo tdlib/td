@@ -1055,7 +1055,7 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
   config_sent_cnt_++;
   auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), dc_id);
   query->total_timeout_limit_ = 60 * 60 * 24;
-  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 0));
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 8));
 }
 
 void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
@@ -1276,7 +1276,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     return;
   }
 
-  CHECK(token == 0);
+  CHECK(token == 8);
   CHECK(config_sent_cnt_ > 0);
   config_sent_cnt_--;
   auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));

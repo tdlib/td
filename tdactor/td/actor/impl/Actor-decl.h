@@ -101,7 +101,6 @@ class Actor : public ObserverBase {
   template <class SelfT>
   ActorId<SelfT> actor_id(SelfT *self);
 
-  ActorShared<> actor_shared();
   template <class SelfT>
   ActorShared<SelfT> actor_shared(SelfT *self, uint64 id = static_cast<uint64>(-1));
 

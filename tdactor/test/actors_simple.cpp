@@ -482,7 +482,7 @@ class LaterMasterActor : public Actor {
   std::vector<ActorOwn<LaterSlave>> children_;
   void start_up() override {
     for (int i = 0; i < cnt_; i++) {
-      children_.push_back(create_actor<LaterSlave>("B", actor_shared()));
+      children_.push_back(create_actor<LaterSlave>("B", actor_shared(this)));
     }
     yield();
   }
