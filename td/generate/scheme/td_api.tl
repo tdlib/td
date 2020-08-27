@@ -3339,7 +3339,7 @@ testVectorStringObject value:vector<testString> = TestVectorStringObject;
 
 ---functions---
 
-//@description Returns the current authorization state; this is an offline request. For informational purposes only. Use updateAuthorizationState instead to maintain the current authorization state
+//@description Returns the current authorization state; this is an offline request. For informational purposes only. Use updateAuthorizationState instead to maintain the current authorization state. Can be called before initialization
 getAuthorizationState = AuthorizationState;
 
 
@@ -3384,10 +3384,10 @@ checkAuthenticationBotToken token:string = Ok;
 //@description Closes the TDLib instance after a proper logout. Requires an available network connection. All local data will be destroyed. After the logout completes, updateAuthorizationState with authorizationStateClosed will be sent
 logOut = Ok;
 
-//@description Closes the TDLib instance. All databases will be flushed to disk and properly closed. After the close completes, updateAuthorizationState with authorizationStateClosed will be sent
+//@description Closes the TDLib instance. All databases will be flushed to disk and properly closed. After the close completes, updateAuthorizationState with authorizationStateClosed will be sent. Can be called before initialization
 close = Ok;
 
-//@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed. After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent
+//@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed. After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent. Can be called before authorization
 destroy = Ok;
 
 
@@ -3395,7 +3395,7 @@ destroy = Ok;
 confirmQrCodeAuthentication link:string = Session;
 
 
-//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially useful if TDLib is run in a separate process. This is an offline method. Can be called before authorization
+//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially useful if TDLib is run in a separate process. Can be called before initialization
 getCurrentState = Updates;
 
 
@@ -3720,36 +3720,36 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text in which to look for entites
+//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;
 
-//@description Parses Bold, Italic, Underline, Strikethrough, Code, Pre, PreCode, TextUrl and MentionName entities contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text to parse @parse_mode Text parse mode
+//@description Parses Bold, Italic, Underline, Strikethrough, Code, Pre, PreCode, TextUrl and MentionName entities contained in the text. Can be called synchronously @text The text to parse @parse_mode Text parse mode
 parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
 
-//@description Parses Markdown entities in a human-friendly format, ignoring mark up errors. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Parses Markdown entities in a human-friendly format, ignoring markup errors. Can be called synchronously
 //@text The text to parse. For example, "__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) __italic**bold italic__bold**"
 parseMarkdown text:formattedText = FormattedText;
 
-//@description Replaces text entities with Markdown formatting in a human-friendly format. Entities that can't be represented in Markdown unambiguously are kept as is. This is an offline method. Can be called before authorization. Can be called synchronously @text The text
+//@description Replaces text entities with Markdown formatting in a human-friendly format. Entities that can't be represented in Markdown unambiguously are kept as is. Can be called synchronously @text The text
 getMarkdownText text:formattedText = FormattedText;
 
-//@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
+//@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;
 
-//@description Returns the extension of a file, guessed by its MIME type. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @mime_type The MIME type of the file
+//@description Returns the extension of a file, guessed by its MIME type. Returns an empty string on failure. Can be called synchronously @mime_type The MIME type of the file
 getFileExtension mime_type:string = Text;
 
-//@description Removes potentially dangerous characters from the name of a file. The encoding of the file name is supposed to be UTF-8. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name File name or path to the file
+//@description Removes potentially dangerous characters from the name of a file. The encoding of the file name is supposed to be UTF-8. Returns an empty string on failure. Can be called synchronously @file_name File name or path to the file
 cleanFileName file_name:string = Text;
 
-//@description Returns a string stored in the local database from the specified localization target and language pack by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Returns a string stored in the local database from the specified localization target and language pack by its key. Returns a 404 error if the string is not found. Can be called synchronously
 //@language_pack_database_path Path to the language pack database in which strings are stored @localization_target Localization target to which the language pack belongs @language_pack_id Language pack identifier @key Language pack key of the string to be returned
 getLanguagePackString language_pack_database_path:string localization_target:string language_pack_id:string key:string = LanguagePackStringValue;
 
-//@description Converts a JSON-serialized string to corresponding JsonValue object. This is an offline method. Can be called before authorization. Can be called synchronously @json The JSON-serialized string
+//@description Converts a JSON-serialized string to corresponding JsonValue object. Can be called synchronously @json The JSON-serialized string
 getJsonValue json:string = JsonValue;
 
-//@description Converts a JsonValue object to corresponding JSON-serialized string. This is an offline method. Can be called before authorization. Can be called synchronously @json_value The JsonValue object
+//@description Converts a JsonValue object to corresponding JSON-serialized string. Can be called synchronously @json_value The JsonValue object
 getJsonString json_value:JsonValue = Text;
 
 
@@ -3901,7 +3901,7 @@ reorderChatFilters chat_filter_ids:vector<int32> = Ok;
 //@description Returns recommended chat filters for the current user
 getRecommendedChatFilters = RecommendedChatFilters;
 
-//@description Returns default icon name for a filter. This is an offline method. Can be called before authorization. Can be called synchronously @filter Chat filter
+//@description Returns default icon name for a filter. Can be called synchronously @filter Chat filter
 getChatFilterDefaultIconName filter:chatFilter = Text;
 
 
@@ -4408,7 +4408,7 @@ registerDevice device_token:DeviceToken other_user_ids:vector<int32> = PushRecei
 //@payload JSON-encoded push notification payload with all fields sent by the server, and "google.sent_time" and "google.notification.sound" fields added
 processPushNotification payload:string = Ok;
 
-//@description Returns a globally unique push notification subscription identifier for identification of an account, which has received a push notification. This is an offline method. Can be called before authorization. Can be called synchronously @payload JSON-encoded push notification payload
+//@description Returns a globally unique push notification subscription identifier for identification of an account, which has received a push notification. Can be called synchronously @payload JSON-encoded push notification payload
 getPushReceiverId payload:string = PushReceiverId;
 
 
@@ -4616,7 +4616,7 @@ sendCustomRequest method:string parameters:string = CustomRequestResult;
 answerCustomQuery custom_query_id:int64 data:string = Ok;
 
 
-//@description Succeeds after a specified amount of time has passed. Can be called before authorization. Can be called before initialization @seconds Number of seconds before the function returns
+//@description Succeeds after a specified amount of time has passed. Can be called before initialization @seconds Number of seconds before the function returns
 setAlarm seconds:double = Ok;
 
 
@@ -4662,30 +4662,30 @@ getProxyLink proxy_id:int32 = Text;
 pingProxy proxy_id:int32 = Seconds;
 
 
-//@description Sets new log stream for internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously @log_stream New log stream
+//@description Sets new log stream for internal logging of TDLib. Can be called synchronously @log_stream New log stream
 setLogStream log_stream:LogStream = Ok;
 
-//@description Returns information about currently used log stream for internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Returns information about currently used log stream for internal logging of TDLib. Can be called synchronously
 getLogStream = LogStream;
 
-//@description Sets the verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Sets the verbosity level of the internal logging of TDLib. Can be called synchronously
 //@new_verbosity_level New value of the verbosity level for logging. Value 0 corresponds to fatal errors, value 1 corresponds to errors, value 2 corresponds to warnings and debug warnings, value 3 corresponds to informational, value 4 corresponds to debug, value 5 corresponds to verbose debug, value greater than 5 and up to 1023 can be used to enable even more logging
 setLogVerbosityLevel new_verbosity_level:int32 = Ok;
 
-//@description Returns current verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Returns current verbosity level of the internal logging of TDLib. Can be called synchronously
 getLogVerbosityLevel = LogVerbosityLevel;
 
-//@description Returns list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Returns list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]. Can be called synchronously
 getLogTags = LogTags;
 
-//@description Sets the verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Sets the verbosity level for a specified TDLib internal log tag. Can be called synchronously
 //@tag Logging tag to change verbosity level @new_verbosity_level New verbosity level; 1-1024
 setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
 
-//@description Returns current verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously @tag Logging tag to change verbosity level
+//@description Returns current verbosity level for a specified TDLib internal log tag. Can be called synchronously @tag Logging tag to change verbosity level
 getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 
-//@description Adds a message to TDLib internal log. This is an offline method. Can be called before authorization. Can be called synchronously
+//@description Adds a message to TDLib internal log. Can be called synchronously
 //@verbosity_level The minimum verbosity level needed for the message to be logged, 0-1023 @text Text of a message to log
 addLogMessage verbosity_level:int32 text:string = Ok;
 
@@ -4715,5 +4715,5 @@ testProxy server:string port:int32 type:ProxyType dc_id:int32 timeout:double = O
 testGetDifference = Ok;
 //@description Does nothing and ensures that the Update object is used; for testing only. This is an offline method. Can be called before authorization
 testUseUpdate = Update;
-//@description Returns the specified error and ensures that the Error object is used; for testing only. This is an offline method. Can be called before authorization. Can be called synchronously @error The error to be returned
+//@description Returns the specified error and ensures that the Error object is used; for testing only. Can be called synchronously @error The error to be returned
 testReturnError error:error = Error;
