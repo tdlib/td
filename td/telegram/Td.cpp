@@ -3378,6 +3378,8 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
         return send_result(id, get_fake_authorization_state_object());
       case td_api::getCurrentState::ID: {
         vector<td_api::object_ptr<td_api::Update>> updates;
+        updates.push_back(td_api::make_object<td_api::updateOption>(
+            "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
         updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
         // send response synchronously to prevent "Request aborted"
         return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
