@@ -30917,9 +30917,18 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   DialogDate old_date(d->order, dialog_id);
   DialogDate new_date(new_order, dialog_id);
 
-  auto &folder = *get_dialog_folder(d->folder_id);
   if (old_date == new_date) {
-    LOG(INFO) << "Order of " << d->dialog_id << " is still " << new_order << " from " << source;
+    LOG(INFO) << "Order of " << d->dialog_id << " from " << d->folder_id << " is still " << new_order << " from "
+              << source;
+  } else {
+    LOG(INFO) << "Update order of " << dialog_id << " from " << d->folder_id << " from " << d->order << " to "
+              << new_order << " from " << source;
+  }
+
+  auto folder_ptr = get_dialog_folder(d->folder_id);
+  CHECK(folder_ptr != nullptr);
+  auto &folder = *folder_ptr;
+  if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
       // first addition of a new left dialog
       if (folder.ordered_dialogs_.insert(new_date).second) {
@@ -30933,8 +30942,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
     return false;
   }
-
-  LOG(INFO) << "Update order of " << dialog_id << " from " << d->order << " to " << new_order << " from " << source;
 
   auto dialog_positions = get_dialog_positions(d);
 
