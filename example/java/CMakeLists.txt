@@ -15,7 +15,7 @@ endif()
 message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
 
 if (NOT Java_FOUND)
-  find_package(Java 1.6 REQUIRED)
+  find_package(Java REQUIRED)
 endif()
 message(STATUS "Found Java: ${Java_JAVAC_EXECUTABLE} ${Java_JAVADOC_EXECUTABLE}")
 
