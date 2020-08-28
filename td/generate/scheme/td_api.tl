@@ -301,7 +301,7 @@ venue location:location title:string address:string provider:string id:string ty
 //@param_description Game description @photo Game photo @animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options
+//@description Describes a poll @id Unique poll identifier @question Poll question, 1-300 characters @options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
 //@is_anonymous True, if the poll is anonymous @type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds @close_date Point in time (Unix timestamp) when the poll will be automatically closed @is_closed True, if the poll is closed
@@ -428,7 +428,7 @@ chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
-//@can_send_other_messages True, if the user can send animations, games, and stickers and use inline bots. Implies can_send_messages permissions
+//@can_send_other_messages True, if the user can send animations, games, stickers and dice and use inline bots. Implies can_send_messages permissions
 //@can_add_web_page_previews True, if the user may add a web page preview to their messages. Implies can_send_messages permissions
 //@can_change_info True, if the user can change the chat title, photo, and other settings
 //@can_invite_users True, if the user can invite new users to the chat
@@ -1750,7 +1750,7 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 //@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider @start_parameter Unique invoice bot start_parameter for the generation of this invoice
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
-//@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question, 1-255 characters @options List of poll answer options, 2-10 strings 1-100 characters each
+//@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question, 1-255 characters (up to 300 characters for bots) @options List of poll answer options, 2-10 strings 1-100 characters each
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
 //@close_date Point in time (Unix timestamp) when the poll will be automatically closed; for bots only
