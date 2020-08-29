@@ -10862,15 +10862,16 @@ void MessagesManager::init() {
 
   start_time_ = Time::now();
 
-  bool is_authorized_user = td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
-  if (is_authorized_user) {
+  bool is_authorized = td_->auth_manager_->is_authorized();
+  bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
+  if (was_authorized_user) {
     create_folders();  // ensure that Main and Archive dialog lists are created
   }
-  if (td_->auth_manager_->is_authorized() && td_->auth_manager_->is_bot()) {
+  if (is_authorized && td_->auth_manager_->is_bot()) {
     disable_get_dialog_filter_ = true;
   }
 
-  if (is_authorized_user) {
+  if (was_authorized_user) {
     vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
                                              NotificationSettingsScope::Channel};
     for (auto scope : scopes) {
@@ -10888,7 +10889,7 @@ void MessagesManager::init() {
         send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
       }
     }
-    if (!channels_notification_settings_.is_synchronized) {
+    if (!channels_notification_settings_.is_synchronized && is_authorized) {
       channels_notification_settings_ = chats_notification_settings_;
       channels_notification_settings_.disable_pinned_message_notifications = false;
       channels_notification_settings_.disable_mention_notifications = false;
@@ -10898,7 +10899,7 @@ void MessagesManager::init() {
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
-  if (is_authorized_user) {
+  if (was_authorized_user) {
     auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
     if (!dialog_filters.empty()) {
       DialogFiltersLogEvent log_event;
@@ -10922,7 +10923,7 @@ void MessagesManager::init() {
     send_update_chat_filters();  // always send updateChatFilters
   }
 
-  if (G()->parameters().use_message_db && is_authorized_user) {
+  if (G()->parameters().use_message_db && was_authorized_user) {
     // erase old keys
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
@@ -11097,7 +11098,7 @@ void MessagesManager::init() {
 
   load_calls_db_state();
 
-  if (is_authorized_user) {
+  if (was_authorized_user && is_authorized) {
     if (need_synchronize_dialog_filters()) {
       reload_dialog_filters();
     } else {
