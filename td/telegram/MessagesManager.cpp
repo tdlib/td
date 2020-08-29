@@ -10844,6 +10844,7 @@ void MessagesManager::start_up() {
 }
 
 void MessagesManager::create_folders() {
+  LOG(INFO) << "Create folders";
   dialog_folders_[FolderId::main()].folder_id = FolderId::main();
   dialog_folders_[FolderId::archive()].folder_id = FolderId::archive();
 
@@ -31596,6 +31597,9 @@ MessagesManager::DialogList &MessagesManager::add_dialog_list(DialogListId dialo
   CHECK(!td_->auth_manager_->is_bot());
   if (dialog_list_id.is_folder() && dialog_list_id.get_folder_id() != FolderId::archive()) {
     dialog_list_id = DialogListId(FolderId::main());
+  }
+  if (dialog_lists_.find(dialog_list_id) == dialog_lists_.end()) {
+    LOG(INFO) << "Create " << dialog_list_id;
   }
   auto &list = dialog_lists_[dialog_list_id];
   list.dialog_list_id = dialog_list_id;
