@@ -293,7 +293,7 @@ contact phone_number:string first_name:string last_name:string vcard:string user
 //@description Describes a location on planet Earth @latitude Latitude of the location in degrees; as defined by the sender @longitude Longitude of the location, in degrees; as defined by the sender
 location latitude:double longitude:double = Location;
 
-//@description Describes a venue @location Venue location; as defined by the sender @title Venue name; as defined by the sender @address Venue address; as defined by the sender @provider Provider of the venue database; as defined by the sender. Currently only "foursquare" and "gplaces" (Google Places) needs to be supported
+//@description Describes a venue @location Venue location; as defined by the sender @title Venue name; as defined by the sender @address Venue address; as defined by the sender @provider Provider of the venue database; as defined by the sender. Currently only "foursquare" and "gplaces" (Google Places) need to be supported
 //@id Identifier of the venue in the provider database; as defined by the sender @type Type of the venue in the provider database; as defined by the sender
 venue location:location title:string address:string provider:string id:string type:string = Venue;
 
@@ -2801,7 +2801,7 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@max_video_file_size The maximum size of a video file to be auto-downloaded
 //@max_other_file_size The maximum size of other file types to be auto-downloaded
 //@video_upload_bitrate The maximum suggested bitrate for uploaded videos
-//@preload_large_videos True, if the beginning of videos needs to be preloaded for instant playback
+//@preload_large_videos True, if the beginning of video files needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
 autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int32 max_other_file_size:int32 video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
@@ -3655,7 +3655,7 @@ sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 options:mes
 //@options Options to be used to send the messages
 //@as_album True, if the messages should be grouped into an album after forwarding. For this to work, no more than 10 messages may be forwarded, and all of them must be photo or video messages
 //@send_copy True, if content of the messages needs to be copied without links to the original messages. Always true if the messages are forwarded to a secret chat
-//@remove_caption True, if media captions of message copies needs to be removed. Ignored if send_copy is false
+//@remove_caption True, if media caption of message copies needs to be removed. Ignored if send_copy is false
 forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions as_album:Bool send_copy:Bool remove_caption:Bool = Messages;
 
 //@description Resends messages which failed to send. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
@@ -3937,7 +3937,7 @@ setChatClientData chat_id:int53 client_data:string = Ok;
 setChatDescription chat_id:int53 description:string = Ok;
 
 //@description Changes the discussion group of a channel chat; requires can_change_info rights in the channel if it is specified @chat_id Identifier of the channel chat. Pass 0 to remove a link from the supergroup passed in the second argument to a linked channel chat (requires can_pin_messages rights in the supergroup) @discussion_chat_id Identifier of a new channel's discussion group. Use 0 to remove the discussion group.
-//-Use the method getSuitableDiscussionChats to find all suitable groups. Basic group chats needs to be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable needs to be used first to change that
+//-Use the method getSuitableDiscussionChats to find all suitable groups. Basic group chats need to be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable needs to be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
@@ -4351,7 +4351,7 @@ deleteSavedCredentials = Ok;
 getSupportUser = User;
 
 
-//@description Returns backgrounds installed by the user @for_dark_theme True, if the backgrounds needs to be ordered for dark theme
+//@description Returns backgrounds installed by the user @for_dark_theme True, if the backgrounds need to be ordered for dark theme
 getBackgrounds for_dark_theme:Bool = Backgrounds;
 
 //@description Constructs a persistent HTTP URL for a background @name Background name @type Background type
@@ -4476,7 +4476,7 @@ getDatabaseStatistics = DatabaseStatistics;
 //@file_types If not empty, only files with the given type(s) are considered. By default, all types except thumbnails, profile photos, stickers and wallpapers are deleted
 //@chat_ids If not empty, only files from the given chats are considered. Use 0 as chat identifier to delete files not belonging to any chat (e.g., profile photos)
 //@exclude_chat_ids If not empty, files from the given chats are excluded. Use 0 as chat identifier to exclude all files not belonging to any chat (e.g., profile photos)
-//@return_deleted_file_statistics Pass true if deleted file statistics needs to be returned instead of the whole storage usage statistics. Affects only returned statistics
+//@return_deleted_file_statistics Pass true if deleted file statistics need to be returned instead of the whole storage usage statistics. Affects only returned statistics
 //@chat_limit Same as in getStorageStatistics. Affects only returned statistics
 optimizeStorage size:int53 ttl:int32 count:int32 immunity_delay:int32 file_types:vector<FileType> chat_ids:vector<int53> exclude_chat_ids:vector<int53> return_deleted_file_statistics:Bool chat_limit:int32 = StorageStatistics;
 
