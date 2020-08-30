@@ -506,6 +506,14 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         CHECK(message->media_ == nullptr);
       }
 
+      if (message->replies_ != nullptr) {
+        for (auto &user_id : message->replies_->recent_repliers_) {
+          if (!is_acceptable_user(UserId(user_id))) {
+            return false;
+          }
+        }
+      }
+
       break;
     }
     case telegram_api::messageService::ID: {
@@ -695,8 +703,8 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
                   update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                   false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_, from_id,
                   make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_),
-                  update->via_bot_id_, update->reply_to_msg_id_, update->date_, update->message_, nullptr, nullptr,
-                  std::move(update->entities_), 0, 0, 0, "", 0, Auto()),
+                  update->via_bot_id_, update->reply_to_msg_id_, 0, update->date_, update->message_, nullptr, nullptr,
+                  std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
               update->pts_, update->pts_count_),
           0, "telegram_api::updatesShortMessage");
       break;
@@ -713,16 +721,16 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
       }
 
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
-      on_pending_update(
-          make_tl_object<telegram_api::updateNewMessage>(
-              make_tl_object<telegram_api::message>(
-                  update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
-                  update->from_id_, make_tl_object<telegram_api::peerChat>(update->chat_id_),
-                  std::move(update->fwd_from_), update->via_bot_id_, update->reply_to_msg_id_, update->date_,
-                  update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, 0, "", 0, Auto()),
-              update->pts_, update->pts_count_),
-          0, "telegram_api::updatesShortChatMessage");
+      on_pending_update(make_tl_object<telegram_api::updateNewMessage>(
+                            make_tl_object<telegram_api::message>(
+                                update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                false /*ignored*/, update->id_, update->from_id_,
+                                make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_),
+                                update->via_bot_id_, update->reply_to_msg_id_, 0, update->date_, update->message_,
+                                nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
+                            update->pts_, update->pts_count_),
+                        0, "telegram_api::updatesShortChatMessage");
       break;
     }
     case telegram_api::updateShort::ID: {
@@ -2184,6 +2192,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadDiscussion> update, bool /*force_apply*/) {
 }
 
 }  // namespace td

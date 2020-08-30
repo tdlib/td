@@ -1280,13 +1280,19 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto interaction_infos = result_ptr.move_as_ok();
+    auto result = result_ptr.move_as_ok();
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
+    auto interaction_infos = std::move(result->views_);
     if (message_ids_.size() != interaction_infos.size()) {
       return on_error(id, Status::Error(500, "Wrong number of message views returned"));
     }
     for (size_t i = 0; i < message_ids_.size(); i++) {
-      td->messages_manager_->on_update_message_interaction_info(
-          {dialog_id_, message_ids_[i]}, interaction_infos[i]->views_, interaction_infos[i]->forwards_);
+      const auto *info = interaction_infos[i].get();
+      auto flags = info->flags_;
+      auto view_count = (flags & telegram_api::messageViews::VIEWS_MASK) != 0 ? info->views_ : 0;
+      auto forward_count = (flags & telegram_api::messageViews::FORWARDS_MASK) != 0 ? info->forwards_ : 0;
+      td->messages_manager_->on_update_message_interaction_info({dialog_id_, message_ids_[i]}, view_count,
+                                                                forward_count);
     }
   }
 
@@ -1611,7 +1617,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
       }
 
       send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), query, std::move(sender_input_user), get_input_messages_filter(filter), 0,
+          flags, std::move(input_peer), query, std::move(sender_input_user), 0, get_input_messages_filter(filter), 0,
           std::numeric_limits<int32>::max(), from_message_id.get_server_message_id().get(), offset, limit,
           std::numeric_limits<int32>::max(), 0, 0)));
     }
@@ -1674,7 +1680,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, folder_id.get(), query, get_input_messages_filter(filter), offset_date_, std::move(input_peer),
+        flags, folder_id.get(), query, get_input_messages_filter(filter), 0, 0, offset_date_, std::move(input_peer),
         offset_message_id.get_server_message_id().get(), limit)));
   }
 
