@@ -2876,7 +2876,8 @@ class GetBroadcastStatsQuery : public Td::ResultHandler {
     auto result = ContactsManager::convert_broadcast_stats(result_ptr.move_as_ok());
     for (auto &info : result->recent_message_interactions_) {
       td->messages_manager_->on_update_message_interaction_info({DialogId(channel_id_), MessageId(info->message_id_)},
-                                                                info->view_count_, info->forward_count_);
+                                                                info->view_count_, info->forward_count_, false,
+                                                                nullptr);
     }
     promise_.set_value(std::move(result));
   }
@@ -13006,6 +13007,18 @@ bool ContactsManager::get_channel_sign_messages(ChannelId channel_id) const {
 
 bool ContactsManager::get_channel_sign_messages(const Channel *c) {
   return c->sign_messages;
+}
+
+bool ContactsManager::get_channel_has_linked_channel(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return get_channel_has_linked_channel(c);
+}
+
+bool ContactsManager::get_channel_has_linked_channel(const Channel *c) {
+  return c->has_linked_channel;
 }
 
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {

@@ -1281,18 +1281,22 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
+    if (!td->auth_manager_->is_bot()) {
+      td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
+    }
     auto interaction_infos = std::move(result->views_);
     if (message_ids_.size() != interaction_infos.size()) {
       return on_error(id, Status::Error(500, "Wrong number of message views returned"));
     }
     for (size_t i = 0; i < message_ids_.size(); i++) {
-      const auto *info = interaction_infos[i].get();
+      FullMessageId full_message_id{dialog_id_, message_ids_[i]};
+
+      auto *info = interaction_infos[i].get();
       auto flags = info->flags_;
       auto view_count = (flags & telegram_api::messageViews::VIEWS_MASK) != 0 ? info->views_ : 0;
       auto forward_count = (flags & telegram_api::messageViews::FORWARDS_MASK) != 0 ? info->forwards_ : 0;
-      td->messages_manager_->on_update_message_interaction_info({dialog_id_, message_ids_[i]}, view_count,
-                                                                forward_count);
+      td->messages_manager_->on_update_message_interaction_info(full_message_id, view_count, forward_count, true,
+                                                                std::move(info->replies_));
     }
   }
 
@@ -4179,6 +4183,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_restriction_reasons = !restriction_reasons.empty();
   bool has_forward_psa_type = is_forwarded && !forward_info->psa_type.empty();
   bool has_forward_count = forward_count > 0;
+  bool has_reply_info = !reply_info.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4228,6 +4233,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_copy);
     STORE_FLAG(has_forward_psa_type);
     STORE_FLAG(has_forward_count);
+    STORE_FLAG(has_reply_info);
     END_STORE_FLAGS();
   }
 
@@ -4282,6 +4288,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   }
   if (has_forward_count) {
     store(forward_count, storer);
+  }
+  if (has_reply_info) {
+    store(reply_info, storer);
   }
   if (has_ttl) {
     store(ttl, storer);
@@ -4343,6 +4352,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_restriction_reasons = false;
   bool has_forward_psa_type = false;
   bool has_forward_count = false;
+  bool has_reply_info = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4392,6 +4402,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_copy);
     PARSE_FLAG(has_forward_psa_type);
     PARSE_FLAG(has_forward_count);
+    PARSE_FLAG(has_reply_info);
     END_PARSE_FLAGS();
   }
 
@@ -4452,6 +4463,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_forward_count) {
     parse(forward_count, parser);
+  }
+  if (has_reply_info) {
+    parse(reply_info, parser);
   }
   if (has_ttl) {
     parse(ttl, parser);
@@ -6005,7 +6019,7 @@ void MessagesManager::on_update_message_view_count(FullMessageId full_message_id
     LOG(ERROR) << "Receive " << view_count << " views in updateChannelMessageViews for " << full_message_id;
     return;
   }
-  update_message_interaction_info(full_message_id, view_count, -1);
+  update_message_interaction_info(full_message_id, view_count, -1, false, nullptr);
 }
 
 void MessagesManager::on_update_message_forward_count(FullMessageId full_message_id, int32 forward_count) {
@@ -6013,16 +6027,17 @@ void MessagesManager::on_update_message_forward_count(FullMessageId full_message
     LOG(ERROR) << "Receive " << forward_count << " forwards in updateChannelMessageForwards for " << full_message_id;
     return;
   }
-  update_message_interaction_info(full_message_id, -1, forward_count);
+  update_message_interaction_info(full_message_id, -1, forward_count, false, nullptr);
 }
 
 void MessagesManager::on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
-                                                         int32 forward_count) {
+                                                         int32 forward_count, bool has_reply_info,
+                                                         tl_object_ptr<telegram_api::messageReplies> &&reply_info) {
   if (view_count < 0 || forward_count < 0) {
     LOG(ERROR) << "Receive " << view_count << "/" << forward_count << " interaction counters for " << full_message_id;
     return;
   }
-  update_message_interaction_info(full_message_id, view_count, forward_count);
+  update_message_interaction_info(full_message_id, view_count, forward_count, has_reply_info, std::move(reply_info));
 }
 
 void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
@@ -6051,7 +6066,8 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
 }
 
 void MessagesManager::update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
-                                                      int32 forward_count) {
+                                                      int32 forward_count, bool has_reply_info,
+                                                      tl_object_ptr<telegram_api::messageReplies> &&reply_info) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -6068,15 +6084,27 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
     return;
   }
 
-  if (update_message_interaction_info(dialog_id, m, view_count >= 0 ? view_count : m->view_count,
-                                      forward_count >= 0 ? forward_count : m->forward_count)) {
-    on_message_changed(d, m, true, "on_update_message_view_count");
+  if (view_count < 0) {
+    view_count = m->view_count;
+  }
+  if (forward_count < 0) {
+    forward_count = m->forward_count;
+  }
+  bool is_empty_reply_info = reply_info == nullptr;
+  MessageReplyInfo new_reply_info(std::move(reply_info), td_->auth_manager_->is_bot());
+  if (new_reply_info.is_empty() && !is_empty_reply_info) {
+    has_reply_info = false;
+  }
+
+  if (update_message_interaction_info(dialog_id, m, view_count, forward_count, has_reply_info,
+                                      std::move(new_reply_info))) {
+    on_message_changed(d, m, true, "update_message_interaction_info");
   }
 }
 
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
-  if (m->view_count == 0 && m->forward_count == 0) {
+  if (m->view_count == 0 && m->forward_count == 0 && m->reply_info.is_empty()) {
     return nullptr;
   }
   if (m->message_id.is_scheduled() && (m->forward_info == nullptr || is_broadcast_channel(dialog_id))) {
@@ -6086,20 +6114,29 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     return nullptr;
   }
 
-  return td_api::make_object<td_api::messageInteractionInfo>(m->view_count, m->forward_count);
+  return td_api::make_object<td_api::messageInteractionInfo>(
+      m->view_count, m->forward_count, m->reply_info.reply_count,
+      td_->contacts_manager_->get_user_ids_object(m->reply_info.recent_replier_user_ids,
+                                                  "get_message_interaction_info_object"));
 }
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
-                                                      int32 forward_count) {
+                                                      int32 forward_count, bool has_reply_info,
+                                                      MessageReplyInfo &&reply_info) {
   CHECK(m != nullptr);
-  if (view_count > m->view_count || forward_count > m->forward_count) {
+  bool need_update_reply_info = has_reply_info && m->reply_info.need_update_to(reply_info);
+  if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info) {
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
-               << '/' << m->forward_count << " to " << view_count << '/' << forward_count;
+               << '/' << m->forward_count << "/" << m->reply_info << " to " << view_count << '/' << forward_count << "/"
+               << reply_info;
     if (view_count > m->view_count) {
       m->view_count = view_count;
     }
     if (forward_count > m->forward_count) {
       m->forward_count = forward_count;
+    }
+    if (need_update_reply_info) {
+      m->reply_info = std::move(reply_info);
     }
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageInteractionInfo>(
@@ -11979,6 +12016,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.view_count = message->views_;
         message_info.forward_count = message->forwards_;
       }
+      if (message->flags_ & MESSAGE_FLAG_HAS_REPLY_INFO) {
+        message_info.reply_info = std::move(message->replies_);
+      }
       if (message->flags_ & MESSAGE_FLAG_HAS_EDIT_DATE) {
         message_info.edit_date = message->edit_date_;
       }
@@ -12155,6 +12195,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong forward_count = " << forward_count << " received in " << message_id << " in " << dialog_id;
     forward_count = 0;
   }
+  MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
@@ -12187,6 +12228,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_from_scheduled = is_from_scheduled;
   message->view_count = view_count;
   message->forward_count = forward_count;
+  message->reply_info = std::move(reply_info);
   message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
@@ -20246,6 +20288,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
+  bool can_get_replies = for_event_log || is_scheduled ? false : !m->reply_info.is_empty() && m->message_id.is_server();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
@@ -20256,8 +20299,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   return make_tl_object<td_api::message>(
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited,
-      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, m->is_channel_post,
-      contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
+      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_replies,
+      m->is_channel_post, contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
       get_message_interaction_info_object(dialog_id, m), reply_to_message_id, ttl, ttl_expires_in, via_bot_user_id,
       m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
@@ -20324,6 +20367,23 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->from_background = options.from_background;
   m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
   m->forward_count = 0;
+  if ([&] {
+        if (is_scheduled) {
+          return false;
+        }
+        if (dialog_type != DialogType::Channel) {
+          return false;
+        }
+        if (td_->auth_manager_->is_bot()) {
+          return false;
+        }
+        if (is_channel_post) {
+          return td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
+        }
+        return !m->reply_to_message_id.is_valid();
+      }()) {
+    m->reply_info.reply_count = 0;
+  }
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
   m->is_copy = is_copy || forward_info != nullptr;
@@ -20769,6 +20829,9 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
         dependencies.dialog_ids.insert(m->forward_info->from_dialog_id).second) {
       add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
     }
+  }
+  for (auto recent_replier_user_id : m->reply_info.recent_replier_user_ids) {
+    dependencies.user_ids.insert(recent_replier_user_id);
   }
   add_message_content_dependencies(dependencies, m->content.get());
 }
@@ -23383,7 +23446,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->in_game_share = in_game_share;
     if (forwarded_message->view_count > 0 && is_broadcast_channel(from_dialog_id)) {
       if (update_message_interaction_info(from_dialog_id, forwarded_message, forwarded_message->view_count,
-                                          forwarded_message->forward_count + 1)) {
+                                          forwarded_message->forward_count + 1, false, {})) {
         on_message_changed(from_dialog, forwarded_message, true, "forward_messages");
       }
     }
@@ -30061,7 +30124,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       update_message_contains_unread_mention(d, old_message, new_message->contains_unread_mention, "update_message")) {
     need_send_update = true;
   }
-  if (update_message_interaction_info(dialog_id, old_message, new_message->view_count, new_message->forward_count)) {
+  if (update_message_interaction_info(dialog_id, old_message, new_message->view_count, new_message->forward_count, true,
+                                      std::move(new_message->reply_info))) {
     need_send_update = true;
   }
   if (old_message->restriction_reasons != new_message->restriction_reasons) {
@@ -32588,7 +32652,7 @@ void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message
   CHECK(d != nullptr);
   Message *m = get_message_force(d, message_id, "update_forward_count");
   if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0) {
-    if (m->forward_count == 0 && update_message_interaction_info(dialog_id, m, m->view_count, 1)) {
+    if (m->forward_count == 0 && update_message_interaction_info(dialog_id, m, m->view_count, 1, false, {})) {
       on_message_changed(d, m, true, "update_forward_count");
     }
 

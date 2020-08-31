@@ -578,7 +578,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@can_set_username True, if the chat username can be changed
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
-//@can_get_statistics True, if the supergroup or channel statistics is available
+//@can_get_statistics True, if the supergroup or channel statistics are available
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
@@ -638,7 +638,9 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-messageInteractionInfo view_count:int32 forward_count:int32 = MessageInteractionInfo;
+//@reply_count Number of times the message was directly or indirectly replied; supergroups and linked channels only
+//@recent_replier_user_ids User identifiers of the recent repliers to the message
+messageInteractionInfo view_count:int32 forward_count:int32 reply_count:int32 recent_replier_user_ids:vector<int32> = MessageInteractionInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
@@ -662,7 +664,8 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@can_be_forwarded True, if the message can be forwarded
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
-//@can_get_statistics True, if the message statistics is available
+//@can_get_statistics True, if the message statistics are available
+//@can_get_replies True, if the message replies are available
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent
@@ -678,7 +681,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_user_id:int32 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_replies:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_to_message_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -2829,7 +2832,7 @@ networkStatisticsEntryFile file_type:FileType network_type:NetworkType sent_byte
 //@sent_bytes Total number of bytes sent @received_bytes Total number of bytes received @duration Total call duration, in seconds
 networkStatisticsEntryCall network_type:NetworkType sent_bytes:int53 received_bytes:int53 duration:double = NetworkStatisticsEntry;
 
-//@description A full list of available network statistic entries @since_date Point in time (Unix timestamp) from which the statistics is collected @entries Network statistics entries
+//@description A full list of available network statistic entries @since_date Point in time (Unix timestamp) from which the statistics are collected @entries Network statistics entries
 networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = NetworkStatistics;
 
 
@@ -4500,7 +4503,7 @@ removeChatActionBar chat_id:int53 = Ok;
 reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 
-//@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics is disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
+//@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
 //@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if SupergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application

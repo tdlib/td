@@ -63,6 +63,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/tl_helpers.h"
 #include "td/utils/tl_storers.h"
 
 #include <array>
@@ -139,6 +140,102 @@ class updateSentMessage : public telegram_api::Update {
     s.store_class_end();
   }
 };
+
+struct MessageReplyInfo {
+  int32 reply_count = -1;
+  int32 pts = -1;
+  vector<UserId> recent_replier_user_ids;
+  ChannelId channel_id;
+  bool is_comment = false;
+
+  MessageReplyInfo() = default;
+  MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
+    if (reply_info == nullptr) {
+      return;
+    }
+    if (reply_info->replies_ < 0) {
+      LOG(ERROR) << "Receive wrong " << to_string(reply_info);
+      return;
+    }
+    reply_count = reply_info->replies_;
+    pts = reply_info->replies_pts_;
+
+    if (!is_bot) {
+      for (auto &user_id_int : reply_info->recent_repliers_) {
+        UserId user_id(user_id_int);
+        if (user_id.is_valid()) {
+          recent_replier_user_ids.push_back(user_id);
+        } else {
+          LOG(ERROR) << "Receive " << user_id << " as a recent replier";
+        }
+      }
+    }
+
+    is_comment = reply_info->comments_;
+    if (is_comment) {
+      channel_id = ChannelId(reply_info->channel_id_);
+      if (!channel_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << channel_id;
+        channel_id = ChannelId();
+      }
+    }
+  }
+
+  bool is_empty() const {
+    return reply_count < 0;
+  }
+
+  bool need_update_to(const MessageReplyInfo &other) const {
+    if (other.pts < pts) {
+      return false;
+    }
+    return true;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    CHECK(!is_empty());
+    bool has_recent_replier_user_ids = !recent_replier_user_ids.empty();
+    bool has_channel_id = channel_id.is_valid();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_comment);
+    STORE_FLAG(has_recent_replier_user_ids);
+    STORE_FLAG(has_channel_id);
+    END_STORE_FLAGS();
+    td::store(reply_count, storer);
+    td::store(pts, storer);
+    if (has_recent_replier_user_ids) {
+      td::store(recent_replier_user_ids, storer);
+    }
+    if (has_channel_id) {
+      td::store(channel_id, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    CHECK(!is_empty());
+    bool has_recent_replier_user_ids = !recent_replier_user_ids.empty();
+    bool has_channel_id = channel_id.is_valid();
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_comment);
+    PARSE_FLAG(has_recent_replier_user_ids);
+    PARSE_FLAG(has_channel_id);
+    END_PARSE_FLAGS();
+    td::parse(reply_count, parser);
+    td::parse(pts, parser);
+    if (has_recent_replier_user_ids) {
+      td::parse(recent_replier_user_ids, parser);
+    }
+    if (has_channel_id) {
+      td::parse(channel_id, parser);
+    }
+  }
+};
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {
+  return string_builder << reply_info.reply_count << " replies by " << reply_info.recent_replier_user_ids;
+}
 
 class MessagesManager : public Actor {
  public:
@@ -335,7 +432,9 @@ class MessagesManager : public Actor {
 
   void on_update_message_forward_count(FullMessageId full_message_id, int32 forward_count);
 
-  void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count);
+  void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
+                                          bool has_reply_info,
+                                          tl_object_ptr<telegram_api::messageReplies> &&reply_info);
 
   void on_update_live_location_viewed(FullMessageId full_message_id);
 
@@ -909,6 +1008,7 @@ class MessagesManager : public Actor {
     UserId via_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
+    tl_object_ptr<telegram_api::messageReplies> reply_info;
     int32 flags = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
@@ -1022,6 +1122,8 @@ class MessagesManager : public Actor {
 
     int32 view_count = 0;
     int32 forward_count = 0;
+    MessageReplyInfo reply_info;
+
     int32 legacy_layer = 0;
 
     int32 send_error_code = 0;
@@ -1844,12 +1946,14 @@ class MessagesManager : public Actor {
 
   void on_pending_message_views_timeout(DialogId dialog_id);
 
-  void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count);
+  void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
+                                       bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info);
 
   td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
                                                                                          const Message *m) const;
 
-  bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count);
+  bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count,
+                                       bool has_reply_info, MessageReplyInfo &&reply_info);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
