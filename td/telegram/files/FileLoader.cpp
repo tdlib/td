@@ -42,7 +42,11 @@ size_t FileLoader::get_part_size() const {
 }
 
 void FileLoader::hangup() {
-  delay_dispatcher_.reset();
+  if (delay_dispatcher_.empty()) {
+    stop();
+  } else {
+    delay_dispatcher_.reset();
+  }
 }
 
 void FileLoader::hangup_shared() {
