@@ -16,6 +16,8 @@
 
 #if TD_PORT_POSIX
 
+#include <cstring>
+
 #if TD_ANDROID
 #include <sys/system_properties.h>
 #else
@@ -99,7 +101,8 @@ Slice get_operating_system_version() {
     utsname name;
     int err = uname(&name);
     if (err == 0) {
-      auto os_name = trim(PSTRING() << name.sysname << " " << name.release);
+      auto os_name = trim(PSTRING() << Slice(name.sysname, std::strlen(name.sysname)) << " "
+                                    << Slice(name.release, std::strlen(name.release)));
       if (!os_name.empty()) {
         return os_name;
       }
