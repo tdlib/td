@@ -824,6 +824,11 @@ void SessionConnection::send_ack(uint64 message_id) {
   // an easiest way to eliminate duplicated acks for gzipped packets
   if (to_ack_.empty() || to_ack_.back() != ack) {
     to_ack_.push_back(ack);
+
+    constexpr size_t MAX_UNACKED_PACKETS = 100;
+    if (to_ack_.size() >= MAX_UNACKED_PACKETS) {
+      send_before(Time::now_cached());
+    }
   }
 }
 
@@ -970,8 +975,8 @@ void SessionConnection::flush_packet() {
     }
   }
 
-  to_ack_.clear();
-  if (to_send_.empty()) {
+  if (to_send_.empty() && to_ack_.empty() && to_get_state_info_.empty() && to_resend_answer_.empty() &&
+      to_cancel_answer_.empty()) {
     force_send_at_ = 0;
   }
 }
