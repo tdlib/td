@@ -347,6 +347,8 @@ class Td final : public NetQueryCallback {
 
   std::shared_ptr<UploadFileCallback> upload_file_callback_;
 
+  std::shared_ptr<ActorContext> old_context_;
+
   static int *get_log_verbosity_level(Slice name);
 
   template <class T>

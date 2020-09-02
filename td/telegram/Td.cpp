@@ -3007,6 +3007,7 @@ class SetBackgroundRequest : public RequestActor<> {
 
 Td::Td(unique_ptr<TdCallback> callback, Options options)
     : callback_(std::move(callback)), td_options_(std::move(options)) {
+  CHECK(callback_ != nullptr);
 }
 
 Td::~Td() = default;
@@ -3724,7 +3725,7 @@ void Td::start_up() {
   }
 
   VLOG(td_init) << "Create Global";
-  set_context(std::make_shared<Global>());
+  old_context_ = set_context(std::make_shared<Global>());
   G()->set_net_query_stats(td_options_.net_query_stats);
   inc_request_actor_refcnt();  // guard
   inc_actor_refcnt();          // guard
@@ -3847,6 +3848,7 @@ void Td::dec_stop_cnt() {
   stop_cnt_--;
   if (stop_cnt_ == 0) {
     LOG(WARNING) << "Stop Td";
+    set_context(std::move(old_context_));
     stop();
   }
 }
@@ -4512,7 +4514,6 @@ void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
 
 void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
   CHECK(id != 0);
-  CHECK(callback_ != nullptr);
   CHECK(error != nullptr);
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
