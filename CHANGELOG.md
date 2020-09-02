@@ -1,4 +1,4 @@
-Changes in 1.6.0:
+Changes in 1.6.0 (31 Jan 2020):
 
 * Added support for multiple chat lists. Currently, only two chat lists Main and Archive are supported:
   - Added the class `ChatList`, which represents a chat list and could be `chatListMain` or `chatListArchive`.
@@ -61,7 +61,7 @@ Changes in 1.6.0:
   - Added the field `type` to the classes `poll` and `inputMessagePoll`.
   - Added support for non-anonymous polls with visible votes by adding the field `is_anonymous` to the classes `poll`
     and `inputMessagePoll`.
-  - Added the method `getPollVoters`, returning users that voted for the specified option in a non-anonymous poll.
+  - Added the method `getPollVoters` returning users that voted for the specified option in a non-anonymous poll.
   - Added the new reply markup keyboard button `keyboardButtonTypeRequestPoll`.
   - Added the field `is_regular` to the class `pushMessageContentPoll`.
   - Added the update `updatePollAnswer` for bots only.
@@ -172,7 +172,7 @@ Changes in 1.6.0:
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.5.0:
+Changes in 1.5.0 (9 Sep 2019):
 
 * Changed authorization workflow:
   - Added the state `authorizationStateWaitRegistration`, which will be received after `authorizationStateWaitCode` for
@@ -250,7 +250,7 @@ Changes in 1.5.0:
   - Added the field `audio_cover_minithumbnail` to the class `audio`.
 * Added support for resending messages which failed to send:
   - Added the fields `error_code`, `error_message`, `can_retry` and `retry_after` to
-    the `messageSendingStateFailed` object.
+    the class `messageSendingStateFailed`.
   - Added the method `resendMessages`.
 * Added the field `is_animated` to the `sticker`, `stickerSet` and `stickerSetInfo` classes.
   Animated stickers can be received anywhere where non-animated stickers can appear.
@@ -278,7 +278,7 @@ Changes in 1.5.0:
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.4.0:
+Changes in 1.4.0 (1 May 2019):
 
 * Added a [TDLib build instructions generator](https://tdlib.github.io/td/build.html), covering in details
   TDLib building on the most popular operating systems.
@@ -532,7 +532,7 @@ Changes in 1.4.0:
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.3.0:
+Changes in 1.3.0 (5 Sep 2018):
 
 * Added a review of existing TDLib based [frameworks](https://github.com/tdlib/td/blob/master/example/README.md)
   in different programming languages.
@@ -678,7 +678,7 @@ Changes in 1.3.0:
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.2.0:
+Changes in 1.2.0 (20 Mar 2018):
 
 * Added support for native .NET bindings through `C++/CLI` and `C++/CX`.
   See [using in .NET projects](README.md#using-dotnet) for more details.
@@ -725,13 +725,13 @@ Changes in 1.2.0:
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.1.1:
+Changes in 1.1.1 (4 Feb 2018):
 * Fixed C JSON bindings compilation error.
 * Fixed locale-dependent JSON generation.
 
 -----------------------------------------------------------------------------------------------------------------------
 
-Changes in 1.1.0:
+Changes in 1.1.0 (31 Jan 2018):
 
 * Methods `td::Log::set_file_path` and `td_set_log_file_path` now return whether they succeeded.
 * Added methods `td::Log::set_max_file_size` and `td_set_log_max_file_size` for restricting maximum TDLib log size.
