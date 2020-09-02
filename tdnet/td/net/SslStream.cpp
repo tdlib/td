@@ -124,7 +124,7 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
     int err = X509_STORE_CTX_get_error(ctx);
     auto warning = PSTRING() << "verify error:num=" << err << ":" << X509_verify_cert_error_string(err)
-                             << ":depth=" << X509_STORE_CTX_get_error_depth(ctx) << ":" << buf;
+                             << ":depth=" << X509_STORE_CTX_get_error_depth(ctx) << ":" << Slice(buf, std::strlen(buf));
     double now = Time::now();
 
     static std::mutex warning_mutex;
