@@ -354,7 +354,7 @@ chatLocation location:location address:string = ChatLocation;
 //@description Animated variant of a chat photo in MPEG4 format
 //@length Animation width and height
 //@file Information about the animation file
-//@main_frame_timestamp Timestamp of the frame, used as static chat photo
+//@main_frame_timestamp Timestamp of the frame, used as a static chat photo
 animatedChatPhoto length:int32 file:file main_frame_timestamp:double = AnimatedChatPhoto;
 
 
@@ -430,7 +430,7 @@ chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
-//@can_send_other_messages True, if the user can send animations, games, stickers and dice and use inline bots. Implies can_send_messages permissions
+//@can_send_other_messages True, if the user can send animations, games, stickers, and dice and use inline bots. Implies can_send_messages permissions
 //@can_add_web_page_previews True, if the user may add a web page preview to their messages. Implies can_send_messages permissions
 //@can_change_info True, if the user can change the chat title, photo, and other settings
 //@can_invite_users True, if the user can invite new users to the chat
@@ -477,9 +477,9 @@ chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 
 //@description A user with information about joining/leaving a chat @user_id User identifier of the chat member
 //@inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
-//@joined_chat_date Point in time (Unix timestamp) when the user joined a chat
+//@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
 //@status Status of the member in the chat
-//@bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not a chat member
+//@bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not the chat member
 chatMember user_id:int32 inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus bot_info:botInfo = ChatMember;
 
 //@description Contains a list of chat members @total_count Approximate total count of chat members found @members A list of chat members
@@ -844,7 +844,7 @@ chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby
 chatInviteLink invite_link:string = ChatInviteLink;
 
 //@description Contains information about a chat invite link
-//@chat_id Chat identifier of the invite link; 0 if the user have no access to the chat before joining
+//@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the remaining time for which read access is granted to the chat, in seconds
 //@type Contains information about the type of the chat
 //@title Title of the chat
@@ -2310,7 +2310,7 @@ languagePackInfo id:string base_language_pack_id:string name:string native_name:
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
 
 
-//@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
+//@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
 
 //@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to de-register a device @encrypt True, if push notifications should be additionally encrypted
 deviceTokenFirebaseCloudMessaging token:string encrypt:Bool = DeviceToken;
@@ -3964,7 +3964,7 @@ getChatFilterDefaultIconName filter:chatFilter = Text;
 setChatTitle chat_id:int53 title:string = Ok;
 
 //@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info rights
-//@chat_id Chat identifier @photo New chat photo. You can pass null to delete the chat photo
+//@chat_id Chat identifier @photo New chat photo. Pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
@@ -4059,7 +4059,7 @@ setScopeNotificationSettings scope:NotificationSettingsScope notification_settin
 resetAllNotificationSettings = Ok;
 
 
-//@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") non-secret chats and the same number of secret chats in the main/arhive chat list
+//@description Changes the pinned state of a chat. There can be up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") pinned non-secret chats and the same number of secret chats in the main/arhive chat list
 //@chat_list Chat list in which to change the pinned state of the chat @chat_id Chat identifier @is_pinned True, if the chat is pinned
 toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 
@@ -4647,7 +4647,7 @@ addStickerToSet user_id:int32 name:string sticker:InputSticker = StickerSet;
 
 //@description Sets a sticker set thumbnail; for bots only. Returns the sticker set
 //@user_id Sticker set owner @name Sticker set name
-//@thumbnail Thumbnail to set in PNG or TGS format. Animated thumbnail must be set for animated sticker sets and only for them. You can use a zero InputFileId to delete the thumbnail
+//@thumbnail Thumbnail to set in PNG or TGS format. Animated thumbnail must be set for animated sticker sets and only for them. Pass a zero InputFileId to delete the thumbnail
 setStickerSetThumbnail user_id:int32 name:string thumbnail:InputFile = StickerSet;
 
 //@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
