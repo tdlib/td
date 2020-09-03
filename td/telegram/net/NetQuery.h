@@ -352,8 +352,9 @@ class NetQuery : public TsListNode<NetQueryDebug> {
       , answer_(std::move(answer))
       , tl_constructor_(tl_constructor)
       , total_timeout_limit_(total_timeout_limit) {
-    get_data_unsafe().my_id_ = get_my_id();
-    get_data_unsafe().start_timestamp_ = Time::now();
+    auto &data = get_data_unsafe();
+    data.my_id_ = get_my_id();
+    data.start_timestamp_ = data.state_timestamp_ = Time::now();
     LOG(INFO) << *this;
     if (stats) {
       nq_counter_ = stats->register_query(this);
