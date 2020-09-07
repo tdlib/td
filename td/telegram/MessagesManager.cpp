@@ -1281,13 +1281,11 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    if (!td->auth_manager_->is_bot()) {
-      td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
-    }
     auto interaction_infos = std::move(result->views_);
     if (message_ids_.size() != interaction_infos.size()) {
       return on_error(id, Status::Error(500, "Wrong number of message views returned"));
     }
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
     for (size_t i = 0; i < message_ids_.size(); i++) {
       FullMessageId full_message_id{dialog_id_, message_ids_[i]};
 
