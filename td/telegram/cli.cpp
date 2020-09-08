@@ -1885,8 +1885,8 @@ class CliClient final : public Actor {
         chat_list = td_api::make_object<td_api::chatListMain>();
       }
       send_request(td_api::make_object<td_api::searchMessages>(
-          std::move(chat_list), query, to_integer<int32>(from_date), 2147482647, 0, to_integer<int32>(limit),
-          as_search_messages_filter(filter)));
+          std::move(chat_list), query, to_integer<int32>(from_date), 2147483647, 0, to_integer<int32>(limit),
+          as_search_messages_filter(filter), 1, 2147483647));
     } else if (op == "SCM") {
       string chat_id;
       string limit;

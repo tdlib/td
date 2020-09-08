@@ -240,7 +240,7 @@ class MessagesManager : public Actor {
 
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-                                     int64 random_id, int32 total_count,
+                                     int32 min_date, int32 max_date, int64 random_id, int32 total_count,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_messages_search(int64 random_id);
 
@@ -678,8 +678,8 @@ class MessagesManager : public Actor {
   std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
                                                           const string &query, int32 offset_date,
                                                           DialogId offset_dialog_id, MessageId offset_message_id,
-                                                          int32 limit, MessageSearchFilter filter, int64 &random_id,
-                                                          Promise<Unit> &&promise);
+                                                          int32 limit, MessageSearchFilter filter, int32 min_date,
+                                                          int32 max_date, int64 &random_id, Promise<Unit> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_call_messages(MessageId from_message_id, int32 limit, bool only_missed,
                                                                int64 &random_id, bool use_db, Promise<Unit> &&promise);

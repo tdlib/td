@@ -1481,14 +1481,16 @@ class SearchMessagesRequest : public RequestActor<> {
   MessageId offset_message_id_;
   int32 limit_;
   MessageSearchFilter filter_;
+  int32 min_date_;
+  int32 max_date_;
   int64 random_id_;
 
   std::pair<int32, vector<FullMessageId>> messages_;
 
   void do_run(Promise<Unit> &&promise) override {
-    messages_ =
-        td->messages_manager_->search_messages(folder_id_, ignore_folder_id_, query_, offset_date_, offset_dialog_id_,
-                                               offset_message_id_, limit_, filter_, random_id_, std::move(promise));
+    messages_ = td->messages_manager_->search_messages(folder_id_, ignore_folder_id_, query_, offset_date_,
+                                                       offset_dialog_id_, offset_message_id_, limit_, filter_,
+                                                       min_date_, max_date_, random_id_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1507,7 +1509,7 @@ class SearchMessagesRequest : public RequestActor<> {
  public:
   SearchMessagesRequest(ActorShared<Td> td, uint64 request_id, FolderId folder_id, bool ignore_folder_id, string query,
                         int32 offset_date, int64 offset_dialog_id, int64 offset_message_id, int32 limit,
-                        tl_object_ptr<td_api::SearchMessagesFilter> &&filter)
+                        tl_object_ptr<td_api::SearchMessagesFilter> &&filter, int32 min_date, int32 max_date)
       : RequestActor(std::move(td), request_id)
       , folder_id_(folder_id)
       , ignore_folder_id_(ignore_folder_id)
@@ -1517,6 +1519,8 @@ class SearchMessagesRequest : public RequestActor<> {
       , offset_message_id_(offset_message_id)
       , limit_(limit)
       , filter_(get_message_search_filter(filter))
+      , min_date_(min_date)
+      , max_date_(max_date)
       , random_id_(0) {
   }
 };
@@ -5482,7 +5486,7 @@ void Td::on_request(uint64 id, td_api::searchMessages &request) {
   }
   CREATE_REQUEST(SearchMessagesRequest, dialog_list_id.get_folder_id(), request.chat_list_ == nullptr,
                  std::move(request.query_), request.offset_date_, request.offset_chat_id_, request.offset_message_id_,
-                 request.limit_, std::move(request.filter_));
+                 request.limit_, std::move(request.filter_), request.min_date_, request.max_date_);
 }
 
 void Td::on_request(uint64 id, td_api::searchCallMessages &request) {
