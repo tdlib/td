@@ -6,6 +6,8 @@
 //
 #include "td/telegram/MessageReplyInfo.h"
 
+#include "td/telegram/DialogId.h"
+
 #include "td/utils/logging.h"
 
 namespace td {
@@ -22,12 +24,14 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
   pts = reply_info->replies_pts_;
 
   if (!is_bot) {
-    for (auto &user_id_int : reply_info->recent_repliers_) {
-      UserId user_id(user_id_int);
-      if (user_id.is_valid()) {
-        recent_replier_user_ids.push_back(user_id);
+    for (auto &peer : reply_info->recent_repliers_) {
+      DialogId dialog_id(peer);
+      if (dialog_id.is_valid()) {
+        if (dialog_id.get_type() == DialogType::User) {
+          recent_replier_user_ids.push_back(dialog_id.get_user_id());
+        }
       } else {
-        LOG(ERROR) << "Receive " << user_id << " as a recent replier";
+        LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
       }
     }
   }

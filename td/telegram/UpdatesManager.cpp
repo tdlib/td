@@ -400,15 +400,9 @@ bool UpdatesManager::is_acceptable_message_forward_header(
   }
 
   auto flags = header->flags_;
-  if (flags & telegram_api::messageFwdHeader::CHANNEL_ID_MASK) {
-    ChannelId channel_id(header->channel_id_);
-    if (!is_acceptable_channel(channel_id)) {
-      return false;
-    }
-  }
   if (flags & telegram_api::messageFwdHeader::FROM_ID_MASK) {
-    UserId user_id(header->from_id_);
-    if (!is_acceptable_user(user_id)) {
+    DialogId dialog_id(header->from_id_);
+    if (!is_acceptable_dialog(dialog_id)) {
       return false;
     }
   }
@@ -431,11 +425,11 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::message::ID: {
       auto message = static_cast<const telegram_api::message *>(message_ptr);
 
-      if (!is_acceptable_dialog(DialogId(message->to_id_))) {
+      if (!is_acceptable_dialog(DialogId(message->peer_id_))) {
         return false;
       }
       if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        if (!is_acceptable_user(UserId(message->from_id_))) {
+        if (!is_acceptable_dialog(DialogId(message->from_id_))) {
           return false;
         }
       }
@@ -522,11 +516,11 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::messageService::ID: {
       auto message = static_cast<const telegram_api::messageService *>(message_ptr);
 
-      if (!is_acceptable_dialog(DialogId(message->to_id_))) {
+      if (!is_acceptable_dialog(DialogId(message->peer_id_))) {
         return false;
       }
       if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        if (!is_acceptable_user(UserId(message->from_id_))) {
+        if (!is_acceptable_dialog(DialogId(message->from_id_))) {
           return false;
         }
       }
@@ -698,18 +692,20 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
 
       auto from_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT ? td_->contacts_manager_->get_my_id().get()
                                                                            : update->user_id_;
+      auto peer_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT ? update->user_id_
+                                                                           : td_->contacts_manager_->get_my_id().get();
 
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
-      on_pending_update(
-          make_tl_object<telegram_api::updateNewMessage>(
-              make_tl_object<telegram_api::message>(
-                  update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_, from_id,
-                  make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_),
-                  update->via_bot_id_, update->reply_to_msg_id_, 0, update->date_, update->message_, nullptr, nullptr,
-                  std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
-              update->pts_, update->pts_count_),
-          0, "telegram_api::updatesShortMessage");
+      on_pending_update(make_tl_object<telegram_api::updateNewMessage>(
+                            make_tl_object<telegram_api::message>(
+                                update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                false /*ignored*/, update->id_, make_tl_object<telegram_api::peerUser>(from_id),
+                                make_tl_object<telegram_api::peerUser>(peer_id), std::move(update->fwd_from_),
+                                update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_,
+                                nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
+                            update->pts_, update->pts_count_),
+                        0, "telegram_api::updatesShortMessage");
       break;
     }
     case telegram_api::updateShortChatMessage::ID: {
@@ -724,16 +720,17 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
       }
 
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
-      on_pending_update(make_tl_object<telegram_api::updateNewMessage>(
-                            make_tl_object<telegram_api::message>(
-                                update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                false /*ignored*/, update->id_, update->from_id_,
-                                make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_),
-                                update->via_bot_id_, update->reply_to_msg_id_, 0, update->date_, update->message_,
-                                nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
-                            update->pts_, update->pts_count_),
-                        0, "telegram_api::updatesShortChatMessage");
+      on_pending_update(
+          make_tl_object<telegram_api::updateNewMessage>(
+              make_tl_object<telegram_api::message>(
+                  update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
+                  make_tl_object<telegram_api::peerUser>(update->from_id_),
+                  make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_),
+                  update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
+                  std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
+              update->pts_, update->pts_count_),
+          0, "telegram_api::updatesShortChatMessage");
       break;
     }
     case telegram_api::updateShort::ID: {

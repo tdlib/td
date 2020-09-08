@@ -165,7 +165,6 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
   static constexpr int32 MESSAGE_FLAG_IS_RESTRICTED = 1 << 22;
   static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
-  static constexpr int32 MESSAGE_FLAG_HAS_RECENT_REPLIERS = 1 << 24;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -234,7 +233,8 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, UserId sender_user_id,
                                             MessageId from_message_id, int32 offset, int32 limit,
-                                            MessageSearchFilter filter, int64 random_id, int32 total_count,
+                                            MessageSearchFilter filter, MessageId top_thread_message_id,
+                                            int64 random_id, int32 total_count,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
@@ -833,9 +833,9 @@ class MessagesManager : public Actor {
   };
   Result<MessagePushNotificationInfo> get_message_push_notification_info(DialogId dialog_id, MessageId message_id,
                                                                          int64 random_id, UserId sender_user_id,
-                                                                         int32 date, bool is_from_scheduled,
-                                                                         bool contains_mention, bool is_pinned,
-                                                                         bool is_from_binlog);
+                                                                         DialogId sender_dialog_id, int32 date,
+                                                                         bool is_from_scheduled, bool contains_mention,
+                                                                         bool is_pinned, bool is_from_binlog);
 
   struct MessageNotificationGroup {
     DialogId dialog_id;
@@ -905,11 +905,13 @@ class MessagesManager : public Actor {
     DialogId dialog_id;
     MessageId message_id;
     UserId sender_user_id;
+    DialogId sender_dialog_id;
     int32 date = 0;
     int32 ttl = 0;
     int64 random_id = 0;
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageId reply_to_message_id;
+    tl_object_ptr<telegram_api::messageReplyHeader> reply_header;
     UserId via_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
@@ -927,7 +929,7 @@ class MessagesManager : public Actor {
   struct MessageForwardInfo {
     UserId sender_user_id;
     int32 date = 0;
-    DialogId dialog_id;
+    DialogId sender_dialog_id;
     MessageId message_id;
     string author_signature;
     string sender_name;
@@ -937,12 +939,12 @@ class MessagesManager : public Actor {
 
     MessageForwardInfo() = default;
 
-    MessageForwardInfo(UserId sender_user_id, int32 date, DialogId dialog_id, MessageId message_id,
+    MessageForwardInfo(UserId sender_user_id, int32 date, DialogId sender_dialog_id, MessageId message_id,
                        string author_signature, string sender_name, DialogId from_dialog_id, MessageId from_message_id,
                        string psa_type)
         : sender_user_id(sender_user_id)
         , date(date)
-        , dialog_id(dialog_id)
+        , sender_dialog_id(sender_dialog_id)
         , message_id(message_id)
         , author_signature(std::move(author_signature))
         , sender_name(std::move(sender_name))
@@ -952,7 +954,7 @@ class MessagesManager : public Actor {
     }
 
     bool operator==(const MessageForwardInfo &rhs) const {
-      return sender_user_id == rhs.sender_user_id && date == rhs.date && dialog_id == rhs.dialog_id &&
+      return sender_user_id == rhs.sender_user_id && date == rhs.date && sender_dialog_id == rhs.sender_dialog_id &&
              message_id == rhs.message_id && author_signature == rhs.author_signature &&
              sender_name == rhs.sender_name && from_dialog_id == rhs.from_dialog_id &&
              from_message_id == rhs.from_message_id && psa_type == rhs.psa_type;
@@ -965,7 +967,7 @@ class MessagesManager : public Actor {
     friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
       return string_builder << "MessageForwardInfo[sender " << forward_info.sender_user_id << "("
                             << forward_info.author_signature << "/" << forward_info.sender_name << "), psa_type "
-                            << forward_info.psa_type << ", source " << forward_info.dialog_id << ", source "
+                            << forward_info.psa_type << ", source " << forward_info.sender_dialog_id << ", source "
                             << forward_info.message_id << ", from " << forward_info.from_dialog_id << ", from "
                             << forward_info.from_message_id << " at " << forward_info.date << "]";
     }
@@ -977,6 +979,7 @@ class MessagesManager : public Actor {
 
     MessageId message_id;
     UserId sender_user_id;
+    DialogId sender_dialog_id;
     int32 date = 0;
     int32 edit_date = 0;
     int32 send_date = 0;
@@ -1664,8 +1667,6 @@ class MessagesManager : public Actor {
   void finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids, Promise<> promise);
 
   void finish_delete_secret_chat_history(DialogId dialog_id, MessageId last_message_id, Promise<> promise);
-
-  void fix_message_info_dialog_id(MessageInfo &message_info) const;
 
   MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
                                          const char *source) const;

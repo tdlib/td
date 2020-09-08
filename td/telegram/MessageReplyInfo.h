@@ -55,7 +55,6 @@ struct MessageReplyInfo {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    CHECK(!is_empty());
     bool has_recent_replier_user_ids = !recent_replier_user_ids.empty();
     bool has_channel_id = channel_id.is_valid();
     BEGIN_PARSE_FLAGS();
