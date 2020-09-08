@@ -1842,7 +1842,7 @@ searchMessagesFilterVoiceAndVideoNote = SearchMessagesFilter;
 //@description Returns only messages with mentions of the current user, or messages that are replies to their messages
 searchMessagesFilterMention = SearchMessagesFilter;
 
-//@description Returns only messages with unread mentions of the current user, or messages that are replies to their messages. When using this filter the results can't be additionally filtered by a query or by the sending user
+//@description Returns only messages with unread mentions of the current user, or messages that are replies to their messages. When using this filter the results can't be additionally filtered by a query, a message thread or by the sending user
 searchMessagesFilterUnreadMention = SearchMessagesFilter;
 
 //@description Returns only failed to send messages. This filter can be used only if the message database is used
@@ -3610,7 +3610,8 @@ deleteChatHistory chat_id:int53 remove_from_chat_list:Bool revoke:Bool = Ok;
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter Filter for message content in the search results
-searchChatMessages chat_id:int53 query:string sender_user_id:int32 from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter = Messages;
+//@message_thread_id If not 0, only messages in the specified thread will be returned; supergroups only
+searchChatMessages chat_id:int53 query:string sender_user_id:int32 from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 = Messages;
 
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance the number of returned messages is chosen by the library

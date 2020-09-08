@@ -661,7 +661,8 @@ class MessagesManager : public Actor {
   std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
                                                              UserId sender_user_id, MessageId from_message_id,
                                                              int32 offset, int32 limit, MessageSearchFilter filter,
-                                                             int64 &random_id, bool use_db, Promise<Unit> &&promise);
+                                                             MessageId top_thread_message_id, int64 &random_id,
+                                                             bool use_db, Promise<Unit> &&promise);
 
   struct FoundMessages {
     vector<FullMessageId> full_message_ids;
