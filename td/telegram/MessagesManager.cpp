@@ -6132,10 +6132,15 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     return nullptr;
   }
 
+  vector<UserId> recent_replier_user_ids;
+  for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
+    if (dialog_id.get_type() == DialogType::User) {
+      recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
+    }
+  }
   return td_api::make_object<td_api::messageInteractionInfo>(
       m->view_count, m->forward_count, m->reply_info.reply_count,
-      td_->contacts_manager_->get_user_ids_object(m->reply_info.recent_replier_user_ids,
-                                                  "get_message_interaction_info_object"));
+      td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"));
 }
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
@@ -20876,8 +20881,10 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
       add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
     }
   }
-  for (auto recent_replier_user_id : m->reply_info.recent_replier_user_ids) {
-    dependencies.user_ids.insert(recent_replier_user_id);
+  for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
+    if (dialog_id.get_type() == DialogType::User) {
+      dependencies.user_ids.insert(recent_replier_dialog_id.get_user_id());
+    }
   }
   add_message_content_dependencies(dependencies, m->content.get());
 }

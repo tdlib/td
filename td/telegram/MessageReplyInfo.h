@@ -7,8 +7,8 @@
 #pragma once
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -19,7 +19,7 @@ namespace td {
 struct MessageReplyInfo {
   int32 reply_count = -1;
   int32 pts = -1;
-  vector<UserId> recent_replier_user_ids;
+  vector<DialogId> recent_replier_dialog_ids;
   ChannelId channel_id;
   bool is_comment = false;
 
@@ -36,17 +36,17 @@ struct MessageReplyInfo {
   template <class StorerT>
   void store(StorerT &storer) const {
     CHECK(!is_empty());
-    bool has_recent_replier_user_ids = !recent_replier_user_ids.empty();
+    bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
     bool has_channel_id = channel_id.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_comment);
-    STORE_FLAG(has_recent_replier_user_ids);
+    STORE_FLAG(has_recent_replier_dialog_ids);
     STORE_FLAG(has_channel_id);
     END_STORE_FLAGS();
     td::store(reply_count, storer);
     td::store(pts, storer);
-    if (has_recent_replier_user_ids) {
-      td::store(recent_replier_user_ids, storer);
+    if (has_recent_replier_dialog_ids) {
+      td::store(recent_replier_dialog_ids, storer);
     }
     if (has_channel_id) {
       td::store(channel_id, storer);
@@ -55,17 +55,17 @@ struct MessageReplyInfo {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    bool has_recent_replier_user_ids = !recent_replier_user_ids.empty();
+    bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
     bool has_channel_id = channel_id.is_valid();
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_comment);
-    PARSE_FLAG(has_recent_replier_user_ids);
+    PARSE_FLAG(has_recent_replier_dialog_ids);
     PARSE_FLAG(has_channel_id);
     END_PARSE_FLAGS();
     td::parse(reply_count, parser);
     td::parse(pts, parser);
-    if (has_recent_replier_user_ids) {
-      td::parse(recent_replier_user_ids, parser);
+    if (has_recent_replier_dialog_ids) {
+      td::parse(recent_replier_dialog_ids, parser);
     }
     if (has_channel_id) {
       td::parse(channel_id, parser);
