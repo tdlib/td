@@ -4161,6 +4161,14 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
     if (dialog_access_by_invite_link_.count(DialogId(channel_id))) {
       return true;
     }
+  } else {
+    if (!from_linked && c->is_megagroup) {
+      auto linked_channel_id = get_linked_channel_id(channel_id);
+      if (linked_channel_id.is_valid()) {
+        return !c->username.empty() || c->has_location ||
+               have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, AccessRights::Read, true);
+      }
+    }
   }
   if (!c->status.is_member()) {
     return false;
