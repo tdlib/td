@@ -885,8 +885,6 @@ class MessagesManager : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
-  static void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
-
   ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
 
  private:

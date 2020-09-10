@@ -8764,7 +8764,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   Dependencies dependencies;
   dependencies.channel_ids.insert(channel_id);
-  MessagesManager::add_dialog_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
+  add_dialog_and_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
   resolve_dependencies_force(td_, dependencies);

@@ -15,6 +15,33 @@
 
 namespace td {
 
+void add_dialog_and_dependencies(Dependencies &dependencies, DialogId dialog_id) {
+  if (dialog_id.is_valid() && dependencies.dialog_ids.insert(dialog_id).second) {
+    add_dialog_dependencies(dependencies, dialog_id);
+  }
+}
+
+void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      dependencies.user_ids.insert(dialog_id.get_user_id());
+      break;
+    case DialogType::Chat:
+      dependencies.chat_ids.insert(dialog_id.get_chat_id());
+      break;
+    case DialogType::Channel:
+      dependencies.channel_ids.insert(dialog_id.get_channel_id());
+      break;
+    case DialogType::SecretChat:
+      dependencies.secret_chat_ids.insert(dialog_id.get_secret_chat_id());
+      break;
+    case DialogType::None:
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
 void resolve_dependencies_force(Td *td, const Dependencies &dependencies) {
   for (auto user_id : dependencies.user_ids) {
     if (user_id.is_valid() && !td->contacts_manager_->have_user_force(user_id)) {

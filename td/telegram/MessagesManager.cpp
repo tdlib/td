@@ -20921,27 +20921,14 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
 
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
   dependencies.user_ids.insert(m->sender_user_id);
-  if (m->sender_dialog_id.is_valid() && dependencies.dialog_ids.insert(m->sender_dialog_id).second) {
-    add_dialog_dependencies(dependencies, m->sender_dialog_id);
-  }
-  if (m->reply_in_dialog_id.is_valid() && dependencies.dialog_ids.insert(m->reply_in_dialog_id).second) {
-    add_dialog_dependencies(dependencies, m->reply_in_dialog_id);
-  }
-  if (m->real_forward_from_dialog_id.is_valid() &&
-      dependencies.dialog_ids.insert(m->real_forward_from_dialog_id).second) {
-    add_dialog_dependencies(dependencies, m->real_forward_from_dialog_id);
-  }
+  add_dialog_and_dependencies(dependencies, m->sender_dialog_id);
+  add_dialog_and_dependencies(dependencies, m->reply_in_dialog_id);
+  add_dialog_and_dependencies(dependencies, m->real_forward_from_dialog_id);
   dependencies.user_ids.insert(m->via_bot_user_id);
   if (m->forward_info != nullptr) {
     dependencies.user_ids.insert(m->forward_info->sender_user_id);
-    if (m->forward_info->sender_dialog_id.is_valid() &&
-        dependencies.dialog_ids.insert(m->forward_info->sender_dialog_id).second) {
-      add_dialog_dependencies(dependencies, m->forward_info->sender_dialog_id);
-    }
-    if (m->forward_info->from_dialog_id.is_valid() &&
-        dependencies.dialog_ids.insert(m->forward_info->from_dialog_id).second) {
-      add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
-    }
+    add_dialog_and_dependencies(dependencies, m->forward_info->sender_dialog_id);
+    add_dialog_and_dependencies(dependencies, m->forward_info->from_dialog_id);
   }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
     if (dialog_id.get_type() == DialogType::User) {
@@ -20949,27 +20936,6 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     }
   }
   add_message_content_dependencies(dependencies, m->content.get());
-}
-
-void MessagesManager::add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      dependencies.user_ids.insert(dialog_id.get_user_id());
-      break;
-    case DialogType::Chat:
-      dependencies.chat_ids.insert(dialog_id.get_chat_id());
-      break;
-    case DialogType::Channel:
-      dependencies.channel_ids.insert(dialog_id.get_channel_id());
-      break;
-    case DialogType::SecretChat:
-      dependencies.secret_chat_ids.insert(dialog_id.get_secret_chat_id());
-      break;
-    case DialogType::None:
-      break;
-    default:
-      UNREACHABLE();
-  }
 }
 
 class MessagesManager::SendMessageLogEvent {
