@@ -190,6 +190,9 @@ class UpdatesManager : public Actor {
 
   bool is_acceptable_message_entities(const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const;
 
+  bool is_acceptable_message_reply_header(
+      const telegram_api::object_ptr<telegram_api::messageReplyHeader> &header) const;
+
   bool is_acceptable_message_forward_header(
       const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const;
 

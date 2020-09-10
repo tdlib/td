@@ -393,20 +393,34 @@ bool UpdatesManager::is_acceptable_message_entities(
   return true;
 }
 
+bool UpdatesManager::is_acceptable_message_reply_header(
+    const telegram_api::object_ptr<telegram_api::messageReplyHeader> &header) const {
+  if (header == nullptr) {
+    return true;
+  }
+
+  if (header->reply_to_peer_id_ != nullptr) {
+    DialogId dialog_id(header->reply_to_peer_id_);
+    if (!is_acceptable_dialog(dialog_id)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool UpdatesManager::is_acceptable_message_forward_header(
     const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const {
   if (header == nullptr) {
     return true;
   }
 
-  auto flags = header->flags_;
-  if (flags & telegram_api::messageFwdHeader::FROM_ID_MASK) {
+  if (header->from_id_ != nullptr) {
     DialogId dialog_id(header->from_id_);
     if (!is_acceptable_dialog(dialog_id)) {
       return false;
     }
   }
-  if (flags & telegram_api::messageFwdHeader::SAVED_FROM_PEER_MASK) {
+  if (header->saved_from_peer_ != nullptr) {
     DialogId dialog_id(header->saved_from_peer_);
     if (!is_acceptable_dialog(dialog_id)) {
       return false;
@@ -428,12 +442,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
       if (!is_acceptable_dialog(DialogId(message->peer_id_))) {
         return false;
       }
-      if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_FROM_ID) {
-        if (!is_acceptable_dialog(DialogId(message->from_id_))) {
-          return false;
-        }
+      if (message->from_id_ != nullptr && !is_acceptable_dialog(DialogId(message->from_id_))) {
+        return false;
       }
 
+      if (!is_acceptable_message_reply_header(message->reply_to_)) {
+        return false;
+      }
       if (!is_acceptable_message_forward_header(message->fwd_from_)) {
         return false;
       }
