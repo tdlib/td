@@ -549,7 +549,7 @@ class MessagesManager : public Actor {
 
   void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
 
-  MessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
+  FullMessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
   MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 
@@ -1718,7 +1718,7 @@ class MessagesManager : public Actor {
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
-  static MessageId get_replied_message_id(const Message *m);
+  static FullMessageId get_replied_message_id(DialogId dialog_id, const Message *m);
 
   MessageId get_reply_to_message_id(Dialog *d, MessageId message_id);
 

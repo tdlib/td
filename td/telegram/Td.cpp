@@ -1032,7 +1032,7 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  MessageId replied_message_id_;
+  FullMessageId replied_message_id_;
 
   void do_run(Promise<Unit> &&promise) override {
     replied_message_id_ =
@@ -1040,7 +1040,7 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_message_object({dialog_id_, replied_message_id_}));
+    send_result(td->messages_manager_->get_message_object(replied_message_id_));
   }
 
  public:
