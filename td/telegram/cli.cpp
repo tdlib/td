@@ -3717,21 +3717,26 @@ class CliClient final : public Actor {
       } else if (status_str == "banned") {
         status = td_api::make_object<td_api::chatMemberStatusBanned>(std::numeric_limits<int32>::max());
       } else if (status_str == "creator") {
-        status = td_api::make_object<td_api::chatMemberStatusCreator>("", true);
+        status = td_api::make_object<td_api::chatMemberStatusCreator>(false, "", true);
+      } else if (status_str == "creatoranon") {
+        status = td_api::make_object<td_api::chatMemberStatusCreator>(true, "", true);
       } else if (status_str == "uncreator") {
-        status = td_api::make_object<td_api::chatMemberStatusCreator>("", false);
+        status = td_api::make_object<td_api::chatMemberStatusCreator>(false, "", false);
+      } else if (status_str == "anon") {
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>(true, "anon", true, true, true, true, true,
+                                                                            true, true, true, true);
       } else if (status_str == "admin") {
-        status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, true, true, true, true, true,
-                                                                            true, true, true);
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>(false, "", true, true, true, true, true,
+                                                                            true, true, true, true);
       } else if (status_str == "adminq") {
-        status = td_api::make_object<td_api::chatMemberStatusAdministrator>("title", true, true, true, true, true, true,
-                                                                            true, true, true);
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>(false, "title", true, true, true, true,
+                                                                            true, true, true, true, true);
       } else if (status_str == "minadmin") {
-        status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, true, false, false, false, false,
-                                                                            false, false, false);
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>(false, "", true, true, false, false, false,
+                                                                            false, false, false, false);
       } else if (status_str == "unadmin") {
-        status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, false, false, false, false, false,
-                                                                            false, false, false);
+        status = td_api::make_object<td_api::chatMemberStatusAdministrator>(false, "", true, false, false, false, false,
+                                                                            false, false, false, false);
       } else if (status_str == "rest") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
             true, static_cast<int32>(120 + std::time(nullptr)),
