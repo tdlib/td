@@ -12151,6 +12151,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   MessageId reply_to_message_id = message_info.reply_to_message_id;
   DialogId reply_in_dialog_id;
+  MessageId top_reply_message_id;
   if (message_info.reply_header != nullptr) {
     reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
     auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
@@ -12159,23 +12160,19 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       if (!reply_in_dialog_id.is_valid()) {
         LOG(ERROR) << " Receive reply in invalid " << to_string(reply_to_peer_id);
         reply_to_message_id = MessageId();
+        reply_in_dialog_id = DialogId();
+      }
+    }
+    if (reply_to_message_id.is_valid()) {
+      if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
+        top_reply_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
+      } else if (message_info.reply_info != nullptr && !is_broadcast_channel(dialog_id)) {
+        top_reply_message_id = reply_to_message_id;
       }
     }
   }
-  CHECK(!reply_to_message_id.is_scheduled());
-  if (reply_to_message_id != MessageId()) {
-    if (!reply_to_message_id.is_valid()) {
-      LOG(ERROR) << "Receive reply to " << reply_to_message_id << " for " << message_id << " in " << dialog_id;
-      reply_to_message_id = MessageId();
-    } else {
-      if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
-        if (reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(2000000000)).get()) {
-          LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id;
-        }
-        reply_to_message_id = MessageId();
-      }
-    }
-  }
+  fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
+  fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_reply_message_id);
 
   UserId via_bot_user_id = message_info.via_bot_user_id;
   if (!via_bot_user_id.is_valid()) {
@@ -12259,7 +12256,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
-                                           message->contains_mention || dialog_id.get_type() == DialogType::User);
+                                           message->contains_mention || dialog_type == DialogType::User);
 
   if (content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo) {
     CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message has already been expired
@@ -20743,6 +20740,26 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
     return MessageId();
   }
   return m->message_id;
+}
+
+void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
+                                                     DialogId reply_in_dialog_id, MessageId &reply_to_message_id) {
+  CHECK(!reply_to_message_id.is_scheduled());
+  if (!reply_to_message_id.is_valid()) {
+    if (reply_to_message_id != MessageId()) {
+      LOG(ERROR) << "Receive reply to " << reply_to_message_id << " for " << message_id << " in " << dialog_id;
+      reply_to_message_id = MessageId();
+    }
+    return;
+  }
+
+  if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
+    if (reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(2000000000)).get() ||
+        dialog_id.get_type() == DialogType::Channel) {
+      LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
+    }
+    reply_to_message_id = MessageId();
+  }
 }
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {

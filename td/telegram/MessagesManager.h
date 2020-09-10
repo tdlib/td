@@ -990,6 +990,8 @@ class MessagesManager : public Actor {
 
     MessageId reply_to_message_id;
     int64 reply_to_random_id = 0;  // for send_message
+    DialogId reply_in_dialog_id;
+    MessageId top_reply_message_id;
 
     UserId via_bot_user_id;
 
@@ -1719,6 +1721,9 @@ class MessagesManager : public Actor {
   static MessageId get_replied_message_id(const Message *m);
 
   MessageId get_reply_to_message_id(Dialog *d, MessageId message_id);
+
+  static void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
+                                             MessageId &reply_to_message_id);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
 

@@ -501,10 +501,10 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
       }
 
       /*
-      // the users are always min, so no need to check
+      // the dialogs are always min, so no need to check
       if (message->replies_ != nullptr) {
-        for (auto &user_id : message->replies_->recent_repliers_) {
-          if (!is_acceptable_user(UserId(user_id))) {
+        for (auto &peer : message->replies_->recent_repliers_) {
+          if (!is_acceptable_dialog(DialogId(peer))) {
             return false;
           }
         }
