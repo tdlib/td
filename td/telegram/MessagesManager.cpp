@@ -20470,8 +20470,9 @@ bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId
     return false;
   }
 
-  CHECK(author_signature != nullptr);
-  *author_signature = status.get_rank();
+  if (author_signature != nullptr) {
+    *author_signature = status.get_rank();
+  }
   return true;
 }
 
@@ -27308,6 +27309,9 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
 
 bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
   if (is_broadcast_channel(dialog_id)) {
+    return true;
+  }
+  if (is_anonymous_administrator(td_->contacts_manager_->get_my_id(), dialog_id, nullptr)) {
     return true;
   }
 
