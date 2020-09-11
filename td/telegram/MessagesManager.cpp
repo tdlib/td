@@ -20454,6 +20454,27 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
+bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id,
+                                                 string *author_signature) const {
+  if (!sender_user_id.is_valid()) {
+    return false;
+  }
+  CHECK(dialog_id.is_valid());
+
+  if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+    return false;
+  }
+
+  auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+  if (!status.is_anonymous()) {
+    return false;
+  }
+
+  CHECK(author_signature != nullptr);
+  *author_signature = status.get_rank();
+  return true;
+}
+
 MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, MessageId reply_to_message_id, const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
     bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
@@ -20478,8 +20499,13 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     if (!is_scheduled && td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
       m->author_signature = td_->contacts_manager_->get_user_title(my_id);
     }
+    m->sender_dialog_id = d->dialog_id;
   } else {
-    m->sender_user_id = my_id;
+    if (is_anonymous_administrator(my_id, d->dialog_id, &m->author_signature)) {
+      m->sender_dialog_id = d->dialog_id;
+    } else {
+      m->sender_user_id = my_id;
+    }
   }
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
@@ -23972,8 +23998,13 @@ Result<MessageId> MessagesManager::add_local_message(
     if (td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
       m->author_signature = td_->contacts_manager_->get_user_title(sender_user_id);
     }
+    m->sender_dialog_id = dialog_id;
   } else {
-    m->sender_user_id = sender_user_id;
+    if (is_anonymous_administrator(sender_user_id, dialog_id, &m->author_signature)) {
+      m->sender_dialog_id = dialog_id;
+    } else {
+      m->sender_user_id = sender_user_id;
+    }
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
