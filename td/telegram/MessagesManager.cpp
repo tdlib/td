@@ -23567,10 +23567,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
     if (forwarded_message->view_count > 0 && is_broadcast_channel(from_dialog_id)) {
-      if (update_message_interaction_info(from_dialog_id, forwarded_message, forwarded_message->view_count,
-                                          forwarded_message->forward_count + 1, false, {})) {
-        on_message_changed(from_dialog, forwarded_message, true, "forward_messages");
-      }
+      forwarded_message->forward_count++;
+      send_update_message_interaction_info(from_dialog_id, forwarded_message);
+      on_message_changed(from_dialog, forwarded_message, true, "forward_messages");
     }
     if (forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
         !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
@@ -32846,7 +32845,9 @@ void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message
   CHECK(d != nullptr);
   Message *m = get_message_force(d, message_id, "update_forward_count");
   if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0) {
-    if (m->forward_count == 0 && update_message_interaction_info(dialog_id, m, m->view_count, 1, false, {})) {
+    if (m->forward_count == 0) {
+      m->forward_count++;
+      send_update_message_interaction_info(dialog_id, m);
       on_message_changed(d, m, true, "update_forward_count");
     }
 
