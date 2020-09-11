@@ -6215,9 +6215,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     if (need_update_reply_info) {
       m->reply_info = std::move(reply_info);
     }
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateMessageInteractionInfo>(
-                     dialog_id.get(), m->message_id.get(), get_message_interaction_info_object(dialog_id, m)));
+    send_update_message_interaction_info(dialog_id, m);
     return true;
   }
   return false;
@@ -25379,6 +25377,16 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
                                                            get_reply_markup_object(m->reply_markup)));
 }
 
+void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateMessageInteractionInfo>(dialog_id.get(), m->message_id.get(),
+                                                                    get_message_interaction_info_object(dialog_id, m)));
+}
+
 void MessagesManager::send_update_message_live_location_viewed(FullMessageId full_message_id) {
   CHECK(get_message(full_message_id) != nullptr);
   send_closure(G()->td(), &Td::send_update,
@@ -29536,10 +29544,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
         top_m->reply_info.add_reply(m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
         on_message_changed(d, top_m, true, "update_message_reply_count");
-        send_closure(
-            G()->td(), &Td::send_update,
-            make_tl_object<td_api::updateMessageInteractionInfo>(
-                dialog_id.get(), top_m->message_id.get(), get_message_interaction_info_object(dialog_id, top_m)));
+        send_update_message_interaction_info(dialog_id, top_m);
       }
     }
   }
