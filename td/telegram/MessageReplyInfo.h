@@ -33,6 +33,8 @@ struct MessageReplyInfo {
 
   bool need_update_to(const MessageReplyInfo &other) const;
 
+  void add_reply(DialogId replier_dialog_id);
+
   template <class StorerT>
   void store(StorerT &storer) const {
     CHECK(!is_empty());

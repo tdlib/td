@@ -6186,7 +6186,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
   if (is_active_reply_info) {
     reply_count = m->reply_info.reply_count;
     for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-      if (dialog_id.get_type() == DialogType::User) {
+      if (recent_replier_dialog_id.get_type() == DialogType::User) {
         recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
       }
     }
@@ -12226,7 +12226,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     if (reply_to_message_id.is_valid()) {
       if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
         top_reply_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
-      } else if (message_info.reply_info != nullptr && !is_broadcast_channel(dialog_id)) {
+      } else if (!is_broadcast_channel(dialog_id)) {
         top_reply_message_id = reply_to_message_id;
       }
     }
@@ -12279,6 +12279,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
+  if (!top_reply_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
+      is_active_message_reply_info(dialog_id, reply_info)) {
+    top_reply_message_id = message_id;
+  }
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
@@ -29176,6 +29180,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
     }
   }
+  if (from_update && message->top_reply_message_id.is_valid() && message->top_reply_message_id != message_id &&
+      have_message_force({dialog_id, message->top_reply_message_id}, "preload top reply message")) {
+    LOG(INFO) << "Preloaded top reply message pinned " << message->top_reply_message_id << " from database";
+  }
 
   // there must be no two recursive calls to add_message_to_dialog
   LOG_CHECK(!d->being_added_message_id.is_valid())
@@ -29520,6 +29528,18 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         case DialogType::None:
         default:
           UNREACHABLE();
+      }
+    }
+
+    if (m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id) {
+      Message *top_m = get_message(d, m->top_reply_message_id);
+      if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
+        top_m->reply_info.add_reply(m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
+        on_message_changed(d, top_m, true, "update_message_reply_count");
+        send_closure(
+            G()->td(), &Td::send_update,
+            make_tl_object<td_api::updateMessageInteractionInfo>(
+                dialog_id.get(), top_m->message_id.get(), get_message_interaction_info_object(dialog_id, top_m)));
       }
     }
   }

@@ -46,7 +46,21 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
   if (other.pts < pts) {
     return false;
   }
-  return true;
+  return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids;
+}
+
+void MessageReplyInfo::add_reply(DialogId replier_dialog_id) {
+  CHECK(!is_empty());
+
+  reply_count++;
+  if (replier_dialog_id.is_valid() &&
+      (recent_replier_dialog_ids.empty() || recent_replier_dialog_ids[0] != replier_dialog_id)) {
+    td::remove(recent_replier_dialog_ids, replier_dialog_id);
+    recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
+    if (recent_replier_dialog_ids.size() > 3) {
+      recent_replier_dialog_ids.pop_back();
+    }
+  }
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {
