@@ -352,7 +352,12 @@ bool UpdatesManager::is_acceptable_channel(ChannelId channel_id) const {
   return td_->contacts_manager_->have_channel_force(channel_id);
 }
 
-bool UpdatesManager::is_acceptable_dialog(DialogId dialog_id) const {
+bool UpdatesManager::is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const {
+  if (peer == nullptr) {
+    return true;
+  }
+
+  DialogId dialog_id(peer);
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (!is_acceptable_user(dialog_id.get_user_id())) {
@@ -399,11 +404,8 @@ bool UpdatesManager::is_acceptable_message_reply_header(
     return true;
   }
 
-  if (header->reply_to_peer_id_ != nullptr) {
-    DialogId dialog_id(header->reply_to_peer_id_);
-    if (!is_acceptable_dialog(dialog_id)) {
-      return false;
-    }
+  if (is_acceptable_peer(header->reply_to_peer_id_)) {
+    return false;
   }
   return true;
 }
@@ -414,10 +416,10 @@ bool UpdatesManager::is_acceptable_message_forward_header(
     return true;
   }
 
-  if (header->from_id_ != nullptr && !is_acceptable_dialog(DialogId(header->from_id_))) {
+  if (!is_acceptable_peer(header->from_id_)) {
     return false;
   }
-  if (header->saved_from_peer_ != nullptr && !is_acceptable_dialog(DialogId(header->saved_from_peer_))) {
+  if (!is_acceptable_peer(header->saved_from_peer_)) {
     return false;
   }
   return true;
@@ -433,10 +435,10 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::message::ID: {
       auto message = static_cast<const telegram_api::message *>(message_ptr);
 
-      if (!is_acceptable_dialog(DialogId(message->peer_id_))) {
+      if (!is_acceptable_peer(message->peer_id_)) {
         return false;
       }
-      if (message->from_id_ != nullptr && !is_acceptable_dialog(DialogId(message->from_id_))) {
+      if (!is_acceptable_peer(message->from_id_)) {
         return false;
       }
 
@@ -513,7 +515,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
       // the dialogs are always min, so no need to check
       if (message->replies_ != nullptr) {
         for (auto &peer : message->replies_->recent_repliers_) {
-          if (!is_acceptable_dialog(DialogId(peer))) {
+          if (!is_acceptable_peer(peer)) {
             return false;
           }
         }
@@ -525,10 +527,10 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
     case telegram_api::messageService::ID: {
       auto message = static_cast<const telegram_api::messageService *>(message_ptr);
 
-      if (!is_acceptable_dialog(DialogId(message->peer_id_))) {
+      if (!is_acceptable_peer(message->peer_id_)) {
         return false;
       }
-      if (message->from_id_ != nullptr && !is_acceptable_dialog(DialogId(message->from_id_))) {
+      if (!is_acceptable_peer(message->from_id_)) {
         return false;
       }
 

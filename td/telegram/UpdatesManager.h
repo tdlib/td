@@ -186,7 +186,7 @@ class UpdatesManager : public Actor {
 
   bool is_acceptable_channel(ChannelId channel_id) const;
 
-  bool is_acceptable_dialog(DialogId dialog_id) const;
+  bool is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const;
 
   bool is_acceptable_message_entities(const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const;
 
