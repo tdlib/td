@@ -3778,7 +3778,9 @@ void Td::inc_actor_refcnt() {
 
 void Td::dec_actor_refcnt() {
   actor_refcnt_--;
-  LOG(DEBUG) << "Decrease reference count to " << actor_refcnt_;
+  if (actor_refcnt_ < 3) {
+    LOG(DEBUG) << "Decrease reference count to " << actor_refcnt_;
+  }
   if (actor_refcnt_ == 0) {
     if (close_flag_ == 2) {
       create_reference();

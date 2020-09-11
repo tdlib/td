@@ -505,6 +505,10 @@ class CliClient final : public Actor {
     return transform(full_split(trim(message_ids), get_delimiter(message_ids)), as_message_id);
   }
 
+  static int64 as_message_thread_id(Slice str) {
+    return as_message_id(str);
+  }
+
   static int32 as_button_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
@@ -1860,6 +1864,12 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),
                                                                0, 100, false));
+    } else if (op == "replies") {
+      string chat_id;
+      string message_thread_id;
+
+      send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), "", 0, 0, 0, 100, nullptr,
+                                                                   as_message_thread_id(message_thread_id)));
     } else if (op == "spvf") {
       search_chat_id_ = as_chat_id(args);
 

@@ -12048,8 +12048,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       auto message = move_tl_object_as<telegram_api::message>(message_ptr);
 
       message_info.dialog_id = DialogId(message->peer_id_);
-      if (message->flags_ & MESSAGE_FLAG_HAS_FROM_ID) {
+      if (message->from_id_ != nullptr) {
         message_info.sender_dialog_id = DialogId(message->from_id_);
+      } else {
+        message_info.sender_dialog_id = message_info.dialog_id;
       }
       message_info.date = message->date_;
       message_info.forward_header = std::move(message->fwd_from_);
@@ -12101,8 +12103,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       auto message = move_tl_object_as<telegram_api::messageService>(message_ptr);
 
       message_info.dialog_id = DialogId(message->peer_id_);
-      if (message->flags_ & MESSAGE_FLAG_HAS_FROM_ID) {
+      if (message->from_id_ != nullptr) {
         message_info.sender_dialog_id = DialogId(message->from_id_);
+      } else {
+        message_info.sender_dialog_id = message_info.dialog_id;
       }
       message_info.date = message->date_;
       message_info.flags = message->flags_;
@@ -23193,7 +23197,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   DialogId from_dialog_id;
   MessageId from_message_id;
   string sender_name;
-  if ((flags & telegram_api::messageFwdHeader::FROM_ID_MASK) != 0) {
+  if (forward_header->from_id_ != nullptr) {
     sender_dialog_id = DialogId(forward_header->from_id_);
     if (!sender_dialog_id.is_valid()) {
       LOG(ERROR) << "Receive invalid sender id in message forward header: " << oneline(to_string(forward_header));
