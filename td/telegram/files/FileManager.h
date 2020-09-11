@@ -629,7 +629,7 @@ class FileManager : public FileLoadManager::Callback {
   void do_cancel_upload(FileNodePtr node);
   void do_cancel_generate(FileNodePtr node);
   void run_upload(FileNodePtr node, std::vector<int> bad_parts);
-  void run_download(FileNodePtr node);
+  void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
   void on_start_download(QueryId query_id) override;

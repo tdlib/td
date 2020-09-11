@@ -1661,7 +1661,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   file_nodes_[node_ids[other_node_i]] = nullptr;
 
   run_generate(node);
-  run_download(node);
+  run_download(node, false);
   run_upload(node, {});
 
   if (other_pmc_id.is_valid()) {
@@ -2182,12 +2182,12 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   // TODO: send current progress?
 
   run_generate(node);
-  run_download(node);
+  run_download(node, true);
 
   try_flush_node(node, "download");
 }
 
-void FileManager::run_download(FileNodePtr node) {
+void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   int8 priority = 0;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
@@ -2230,7 +2230,9 @@ void FileManager::run_download(FileNodePtr node) {
   if (old_priority != 0) {
     LOG(INFO) << "Update download offset and limits of file " << node->main_file_id_;
     CHECK(node->download_id_ != 0);
-    send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
+    if (force_update_priority || priority != old_priority) {
+      send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
+    }
     if (need_update_limit || need_update_offset) {
       auto download_offset = node->download_offset_;
       auto download_limit = node->download_limit_;
@@ -3626,7 +3628,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   if ((status.message() == "FILE_ID_INVALID" || status.message() == "LOCATION_INVALID") &&
       FileView(node).may_reload_photo()) {
     node->need_reload_photo_ = true;
-    run_download(node);
+    run_download(node, true);
     return;
   }
 
@@ -3646,7 +3648,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     }
     CHECK(!node->file_ids_.empty());
     delete_file_reference(node->file_ids_.back(), file_reference);
-    run_download(node);
+    run_download(node, true);
     return;
   }
 
@@ -3660,16 +3662,16 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->download_was_update_file_reference_ = true;
-      run_download(node);
+      run_download(node, true);
       return;
     } else if (ends_with(status.message(), "INCREASE_PART_SIZE")) {
       if (try_fix_partial_local_location(node)) {
-        run_download(node);
+        run_download(node, true);
         return;
       }
     } else {
       node->can_search_locally_ = false;
-      run_download(node);
+      run_download(node, true);
       return;
     }
   }
