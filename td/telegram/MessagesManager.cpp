@@ -6140,9 +6140,38 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   }
 }
 
+bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const {
+  if (info.is_empty()) {
+    return false;
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return false;
+  }
+  if (!info.is_comment) {
+    return true;
+  }
+  if (!is_broadcast_channel(dialog_id)) {
+    return true;
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  if (!td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
+    return false;
+  }
+  auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
+  if (!linked_channel_id.is_valid()) {
+    // keep the comment button while linked channel is unknown
+    td_->contacts_manager_->get_channel_full(channel_id, true, Auto());
+    return true;
+  }
+
+  return linked_channel_id == info.channel_id;
+}
+
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
-  if (m->view_count == 0 && m->forward_count == 0 && m->reply_info.is_empty()) {
+  bool is_active_reply_info = is_active_message_reply_info(dialog_id, m->reply_info);
+  if (m->view_count == 0 && m->forward_count == 0 && !is_active_reply_info) {
     return nullptr;
   }
   if (m->message_id.is_scheduled() && (m->forward_info == nullptr || is_broadcast_channel(dialog_id))) {
@@ -6152,14 +6181,19 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     return nullptr;
   }
 
+  int32 reply_count = -1;
   vector<UserId> recent_replier_user_ids;
-  for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-    if (dialog_id.get_type() == DialogType::User) {
-      recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
+  if (is_active_reply_info) {
+    reply_count = m->reply_info.reply_count;
+    for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
+      if (dialog_id.get_type() == DialogType::User) {
+        recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
+      }
     }
   }
+
   return td_api::make_object<td_api::messageInteractionInfo>(
-      m->view_count, m->forward_count, m->reply_info.reply_count,
+      m->view_count, m->forward_count, reply_count,
       td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"));
 }
 

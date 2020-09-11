@@ -1858,6 +1858,8 @@ class MessagesManager : public Actor {
   void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
                                        bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info);
 
+  bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
+
   td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
                                                                                          const Message *m) const;
 

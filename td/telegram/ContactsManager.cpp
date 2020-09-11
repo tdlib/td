@@ -13029,6 +13029,14 @@ bool ContactsManager::get_channel_has_linked_channel(const Channel *c) {
   return c->has_linked_channel;
 }
 
+ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
+  auto channel_full = get_channel_full_force(channel_id, "get_channel_linked_channel_id");
+  if (channel_full == nullptr) {
+    return ChannelId();
+  }
+  return channel_full->linked_channel_id;
+}
+
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
   auto channel_full = get_channel_full_force(channel_id, "get_channel_slow_mode_delay");
   if (channel_full == nullptr) {
