@@ -21046,18 +21046,19 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     return Status::Error(5, "Can't send message without content");
   }
 
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(5, "Chat not found");
+  }
+
   LOG(INFO) << "Begin to send message to " << dialog_id << " in reply to " << reply_to_message_id;
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
+    copy_options.reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
     TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
     return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
                            std::move(options), input_message->in_game_share_, std::move(copy_options));
-  }
-
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return Status::Error(5, "Chat not found");
   }
 
   TRY_STATUS(can_send_message(dialog_id));
@@ -23520,6 +23521,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   struct CopiedMessage {
     unique_ptr<MessageContent> content;
+    MessageId reply_to_message_id;
     unique_ptr<ReplyMarkup> reply_markup;
     int64 media_album_id;
     bool disable_web_page_preview;
@@ -23549,6 +23551,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
     auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
+    auto reply_to_message_id = copy_options[i].reply_to_message_id;
     auto reply_markup = std::move(copy_options[i].reply_markup);
     unique_ptr<MessageContent> content =
         dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type, std::move(copy_options[i]));
@@ -23583,7 +23586,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     if (need_copy) {
-      copied_messages.push_back({std::move(content), std::move(reply_markup), forwarded_message->media_album_id,
+      copied_messages.push_back({std::move(content), reply_to_message_id, std::move(reply_markup),
+                                 forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
       continue;
     }
@@ -23705,8 +23709,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   if (!copied_messages.empty()) {
     for (auto &copied_message : copied_messages) {
-      Message *m = get_message_to_send(to_dialog, MessageId(), message_send_options, std::move(copied_message.content),
-                                       &need_update_dialog_pos, nullptr, true);
+      Message *m = get_message_to_send(to_dialog, copied_message.reply_to_message_id, message_send_options,
+                                       std::move(copied_message.content), &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       if (copied_message.media_album_id != 0) {
         m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
