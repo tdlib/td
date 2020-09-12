@@ -5773,9 +5773,9 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   auto message_copy_options =
       transform(input_message_ids, [send_copy = request.send_copy_, remove_caption = request.remove_caption_](
                                        MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
-  auto r_message_ids = messages_manager_->forward_messages(dialog_id, DialogId(request.from_chat_id_),
-                                                           std::move(input_message_ids), std::move(request.options_),
-                                                           false, request.as_album_, std::move(message_copy_options));
+  auto r_message_ids =
+      messages_manager_->forward_messages(dialog_id, DialogId(request.from_chat_id_), std::move(input_message_ids),
+                                          std::move(request.options_), false, std::move(message_copy_options));
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }

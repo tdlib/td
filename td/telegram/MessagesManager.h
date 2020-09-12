@@ -402,7 +402,6 @@ class MessagesManager : public Actor {
   Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                              vector<MessageId> message_ids,
                                              tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
-                                             bool as_album,
                                              vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;

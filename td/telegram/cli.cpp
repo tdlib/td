@@ -2726,7 +2726,7 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids),
                                                                as_bool(revoke)));
-    } else if (op == "fm" || op == "fmg" || op == "cm" || op == "cmg") {
+    } else if (op == "fm" || op == "cm") {
       string chat_id;
       string from_chat_id;
       string message_ids;
@@ -2735,8 +2735,8 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::forwardMessages>(
-          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_message_send_options(), op[2] == 'g',
-          op[0] == 'c', Random::fast(0, 1) == 1));
+          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_message_send_options(), op[0] == 'c',
+          Random::fast(0, 1) == 1));
     } else if (op == "resend") {
       string chat_id;
       string message_ids;

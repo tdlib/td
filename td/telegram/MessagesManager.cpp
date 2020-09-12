@@ -3022,7 +3022,7 @@ class ForwardMessagesActor : public NetActorOnce {
     }
 
     auto query = G()->net_query_creator().create(telegram_api::messages_forwardMessages(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
         MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
         schedule_date));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
@@ -23434,9 +23434,6 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   if (messages[0]->from_background) {
     flags |= SEND_MESSAGE_FLAG_FROM_BACKGROUND;
   }
-  if (messages[0]->media_album_id != 0) {
-    flags |= SEND_MESSAGE_FLAG_GROUP_MEDIA;
-  }
   if (messages[0]->in_game_share) {
     flags |= SEND_MESSAGE_FLAG_WITH_MY_SCORE;
   }
@@ -23457,7 +23454,7 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
-                                      false, std::move(all_copy_options)));
+                                      std::move(all_copy_options)));
   CHECK(result.size() == 1);
   auto sent_message_id = result[0];
   if (sent_message_id == MessageId()) {
@@ -23469,7 +23466,7 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                                             vector<MessageId> message_ids,
                                                             tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                            bool in_game_share, bool as_album,
+                                                            bool in_game_share,
                                                             vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
@@ -23498,14 +23495,21 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   TRY_STATUS(can_send_message(to_dialog_id));
   TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options)));
 
-  for (auto message_id : message_ids) {
-    if (message_id.is_valid_scheduled()) {
-      return Status::Error(5, "Can't forward scheduled messages");
+  {
+    MessageId last_message_id;
+    for (auto message_id : message_ids) {
+      if (message_id.is_valid_scheduled()) {
+        return Status::Error(5, "Can't forward scheduled messages");
+      }
+      if (message_id.is_scheduled() || !message_id.is_valid()) {
+        return Status::Error(5, "Invalid message identifier");
+      }
+
+      if (message_id <= last_message_id) {
+        return Status::Error(400, "Message identifiers must be in a strictly increasing order");
+      }
+      last_message_id = message_id;
     }
-    if (!message_id.is_valid()) {
-      return Status::Error(5, "Invalid message identifier");
-    }
-    CHECK(!message_id.is_scheduled());
   }
 
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
@@ -23517,10 +23521,13 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   struct CopiedMessage {
     unique_ptr<MessageContent> content;
     unique_ptr<ReplyMarkup> reply_markup;
+    int64 media_album_id;
     bool disable_web_page_preview;
     size_t index;
   };
   vector<CopiedMessage> copied_messages;
+
+  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
 
   auto my_id = td_->contacts_manager_->get_my_id();
   bool need_update_dialog_pos = false;
@@ -23562,9 +23569,22 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
+    if (forwarded_message->media_album_id != 0) {
+      auto &new_media_album_id = new_media_album_ids[forwarded_message->media_album_id];
+      new_media_album_id.second++;
+      if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
+        CHECK(new_media_album_id.first == 0);
+        new_media_album_id.first = generate_new_media_album_id();
+      }
+      if (new_media_album_id.second == MAX_GROUPED_MESSAGES + 1) {
+        CHECK(new_media_album_id.first != 0);
+        new_media_album_id.first = 0;  // just in case
+      }
+    }
+
     if (need_copy) {
-      copied_messages.push_back(
-          {std::move(content), std::move(reply_markup), get_message_disable_web_page_preview(forwarded_message), i});
+      copied_messages.push_back({std::move(content), std::move(reply_markup), forwarded_message->media_album_id,
+                                 get_message_disable_web_page_preview(forwarded_message), i});
       continue;
     }
 
@@ -23613,6 +23633,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
+    m->media_album_id = forwarded_message->media_album_id;
     if (forwarded_message->view_count > 0 && is_broadcast_channel(from_dialog_id)) {
       forwarded_message->forward_count++;
       send_update_message_interaction_info(from_dialog_id, forwarded_message);
@@ -23671,24 +23692,11 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   }
 
   if (!forwarded_messages.empty()) {
-    if (as_album && forwarded_messages.size() > 1 && forwarded_messages.size() <= MAX_GROUPED_MESSAGES) {
-      bool allow_album = true;
-      for (auto m : forwarded_messages) {
-        if (!is_allowed_media_group_content(m->content->get_type())) {
-          allow_album = false;
-          break;
-        }
-      }
-
-      if (allow_album) {
-        int64 media_album_id = generate_new_media_album_id();
-        for (auto m : forwarded_messages) {
-          m->media_album_id = media_album_id;
-        }
-      }
-    }
-
     for (auto m : forwarded_messages) {
+      if (m->media_album_id != 0) {
+        m->media_album_id = new_media_album_ids[m->media_album_id].first;
+      }
+
       send_update_new_message(to_dialog, m);
     }
 
@@ -23696,26 +23704,13 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   }
 
   if (!copied_messages.empty()) {
-    int64 media_album_id = 0;
-    if (as_album && copied_messages.size() > 1 && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
-      bool allow_album = true;
-      for (auto &copied_message : copied_messages) {
-        if (!is_allowed_media_group_content(copied_message.content->get_type())) {
-          allow_album = false;
-          break;
-        }
-      }
-
-      if (allow_album) {
-        media_album_id = generate_new_media_album_id();
-      }
-    }
-
     for (auto &copied_message : copied_messages) {
       Message *m = get_message_to_send(to_dialog, MessageId(), message_send_options, std::move(copied_message.content),
                                        &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
-      m->media_album_id = media_album_id;
+      if (copied_message.media_album_id != 0) {
+        m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
+      }
       m->reply_markup = std::move(copied_message.reply_markup);
 
       save_send_message_logevent(to_dialog_id, m);
