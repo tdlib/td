@@ -22931,6 +22931,18 @@ void MessagesManager::edit_message_scheduling_state(
   }
 }
 
+bool MessagesManager::has_message_sender_user_id(DialogId dialog_id, const Message *m) const {
+  if (!m->sender_user_id.is_valid()) {
+    return false;
+  }
+  if (td_->auth_manager_->is_bot() && !is_broadcast_channel(dialog_id) &&
+      m->sender_user_id == td_->contacts_manager_->get_service_notifications_user_id() && m->forward_info != nullptr &&
+      m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
+    return false;
+  }
+  return true;
+}
+
 bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
   // m->disable_web_page_preview is known only for sent from this client messages
   if (m->disable_web_page_preview) {
@@ -28964,6 +28976,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
+
+  if (!has_message_sender_user_id(dialog_id, message.get()) && !message->sender_dialog_id.is_valid()) {
+    const auto *forward_info = message->forward_info.get();
+    if (forward_info != nullptr && forward_info->sender_dialog_id.is_valid() && forward_info->message_id.is_valid()) {
+      message->sender_dialog_id = forward_info->sender_dialog_id;
+    } else {
+      LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
+    }
+  }
 
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;

@@ -2468,6 +2468,8 @@ class MessagesManager : public Actor {
 
   void cancel_send_deleted_message(DialogId dialog_id, Message *m, bool is_permanently_deleted);
 
+  bool has_message_sender_user_id(DialogId dialog_id, const Message *m) const;
+
   static bool get_message_disable_web_page_preview(const Message *m);
 
   static int32 get_message_flags(const Message *m);
