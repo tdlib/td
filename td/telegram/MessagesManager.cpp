@@ -22374,7 +22374,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
   InputMessageText input_message_text = r_input_message_text.move_as_ok();
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(dialog_id));
+                                             has_message_sender_user_id(dialog_id, m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
@@ -22431,7 +22431,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(dialog_id));
+                                             has_message_sender_user_id(dialog_id, m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
@@ -22594,7 +22594,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(dialog_id));
+                                             has_message_sender_user_id(dialog_id, m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
@@ -22648,7 +22648,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   auto caption = r_caption.move_as_ok();
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(dialog_id));
+                                             has_message_sender_user_id(dialog_id, m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
@@ -22689,7 +22689,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(dialog_id));
+                                             has_message_sender_user_id(dialog_id, m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
@@ -33956,7 +33956,7 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, td_api::object_pt
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             !is_broadcast_channel(full_message_id.get_dialog_id()));
+                                             has_message_sender_user_id(full_message_id.get_dialog_id(), m));
   if (r_new_reply_markup.is_error()) {
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
