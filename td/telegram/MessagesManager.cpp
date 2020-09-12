@@ -21329,25 +21329,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     CHECK(!is_edit);
-    const FormattedText *message_text = get_message_content_text(content);
-    CHECK(message_text != nullptr);
-
-    int64 random_id = begin_send_message(dialog_id, m);
-    if (is_secret) {
-      CHECK(!m->message_id.is_scheduled());
-      auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-      send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                   m->reply_to_random_id, m->ttl, message_text->text,
-                   get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
-                   get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
-                   m->media_album_id, m->disable_notification, random_id);
-    } else {
-      send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-                   m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
-                   get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
-                   message_text->text, random_id, &m->send_query_ref,
-                   get_sequence_dispatcher_id(dialog_id, content_type));
-    }
+    send_closure_later(actor_id(this), &MessagesManager::on_text_message_ready_to_send, dialog_id, m->message_id);
     return;
   }
 
@@ -21424,8 +21406,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
   }
 
   if (m->media_album_id == 0) {
-    on_media_message_ready_to_send(
-        dialog_id, message_id,
+    send_closure_later(
+        actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
         PromiseCreator::lambda([this, dialog_id, input_media = std::move(input_media), file_id,
                                 thumbnail_file_id](Result<Message *> result) mutable {
           if (result.is_error() || G()->close_flag()) {
@@ -21498,8 +21480,8 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
   */
   // TODO use file_id, thumbnail_file_id, was_uploaded, was_thumbnail_uploaded,
   // invalidate partial remote location for file_id in case of failed upload even message has already been deleted
-  on_media_message_ready_to_send(
-      dialog_id, m->message_id,
+  send_closure_later(
+      actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
       PromiseCreator::lambda(
           [this, dialog_id, secret_input_media = std::move(secret_input_media)](Result<Message *> result) mutable {
             if (result.is_error() || G()->close_flag()) {
@@ -21651,18 +21633,18 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     // send later, because some messages may be being deleted now
     for (auto request_message_id : request.message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
-      send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
-                         request_message_id,
-                         PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) {
-                           if (result.is_error() || G()->close_flag()) {
-                             return;
-                           }
+      auto promise = PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) {
+        if (result.is_error() || G()->close_flag()) {
+          return;
+        }
 
-                           auto m = result.move_as_ok();
-                           CHECK(m != nullptr);
-                           CHECK(m->media_album_id == media_album_id);
-                           send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
-                         }));
+        auto m = result.move_as_ok();
+        CHECK(m != nullptr);
+        CHECK(m->media_album_id == media_album_id);
+        send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
+      });
+      send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
+                         request_message_id, std::move(promise));
     }
   }
 }
@@ -21764,6 +21746,41 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
                reply_to_message_id, schedule_date, std::move(file_ids), std::move(input_single_media),
                get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
+}
+
+void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
+  LOG(INFO) << "Ready to send " << message_id << " to " << dialog_id;
+
+  auto m = get_message({dialog_id, message_id});
+  if (m == nullptr) {
+    return;
+  }
+
+  CHECK(message_id.is_yet_unsent());
+
+  auto content = m->content.get();
+  CHECK(content != nullptr);
+  auto content_type = content->get_type();
+
+  const FormattedText *message_text = get_message_content_text(content);
+  CHECK(message_text != nullptr);
+
+  int64 random_id = begin_send_message(dialog_id, m);
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    CHECK(!message_id.is_scheduled());
+    auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
+    send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
+                 m->reply_to_random_id, m->ttl, message_text->text,
+                 get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
+                 get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
+                 m->media_album_id, m->disable_notification, random_id);
+  } else {
+    send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
+                 m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
+                 get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
+                 message_text->text, random_id, &m->send_query_ref,
+                 get_sequence_dispatcher_id(dialog_id, content_type));
+  }
 }
 
 void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id,

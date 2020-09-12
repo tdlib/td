@@ -1768,6 +1768,8 @@ class MessagesManager : public Actor {
 
   void do_send_message_group(int64 media_album_id);
 
+  void on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id);
+
   void on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id, Promise<Message *> &&promise);
 
   void on_yet_unsent_media_queue_updated(DialogId dialog_id);
