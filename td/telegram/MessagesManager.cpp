@@ -20454,6 +20454,13 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
+bool MessagesManager::is_anonymous_administrator(DialogId dialog_id) const {
+  if (is_broadcast_channel(dialog_id)) {
+    return true;
+  }
+  return is_anonymous_administrator(td_->contacts_manager_->get_my_id(), dialog_id, nullptr);
+}
+
 bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id,
                                                  string *author_signature) const {
   if (!sender_user_id.is_valid()) {
@@ -23328,11 +23335,11 @@ Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
   }
 
   auto dialog_type = dialog_id.get_type();
-  bool is_broadcast = is_broadcast_channel(dialog_id);
+  bool is_anonymous = is_anonymous_administrator(dialog_id);
 
-  bool only_inline_keyboard = is_broadcast;
+  bool only_inline_keyboard = is_anonymous;
   bool request_buttons_allowed = dialog_type == DialogType::User;
-  bool switch_inline_buttons_allowed = !is_broadcast;
+  bool switch_inline_buttons_allowed = !is_anonymous;
 
   TRY_RESULT(reply_markup,
              get_reply_markup(std::move(reply_markup_ptr), td_->auth_manager_->is_bot(), only_inline_keyboard,
@@ -27308,10 +27315,7 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
 }
 
 bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
-  if (is_broadcast_channel(dialog_id)) {
-    return true;
-  }
-  if (is_anonymous_administrator(td_->contacts_manager_->get_my_id(), dialog_id, nullptr)) {
+  if (is_anonymous_administrator(dialog_id)) {
     return true;
   }
 

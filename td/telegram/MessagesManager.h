@@ -1691,6 +1691,8 @@ class MessagesManager : public Actor {
                                              const unique_ptr<MessageContent> &content, int32 ttl);
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
+  bool is_anonymous_administrator(DialogId dialog_id) const;
+
   bool is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id, string *author_signature) const;
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, const MessageSendOptions &options,
