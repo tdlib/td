@@ -2717,15 +2717,13 @@ class CliClient final : public Actor {
     } else if (op == "delf" || op == "DeleteFile") {
       string file_id = args;
       send_request(td_api::make_object<td_api::deleteFile>(as_file_id(file_id)));
-    } else if (op == "dm") {
+    } else if (op == "dm" || op == "dmr") {
       string chat_id;
       string message_ids;
-      string revoke;
-      std::tie(chat_id, args) = split(args);
-      std::tie(message_ids, revoke) = split(args);
+      std::tie(chat_id, message_ids) = split(args);
 
-      send_request(td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids),
-                                                               as_bool(revoke)));
+      send_request(
+          td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids), op == "dmr"));
     } else if (op == "fm" || op == "cm") {
       string chat_id;
       string from_chat_id;
