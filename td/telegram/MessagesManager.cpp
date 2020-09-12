@@ -28978,11 +28978,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   MessageId message_id = message->message_id;
 
   if (!has_message_sender_user_id(dialog_id, message.get()) && !message->sender_dialog_id.is_valid()) {
-    const auto *forward_info = message->forward_info.get();
-    if (forward_info != nullptr && forward_info->sender_dialog_id.is_valid() && forward_info->message_id.is_valid()) {
-      message->sender_dialog_id = forward_info->sender_dialog_id;
+    if (is_broadcast_channel(dialog_id)) {
+      message->sender_dialog_id = dialog_id;
     } else {
-      LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
+      const auto *forward_info = message->forward_info.get();
+      if (forward_info != nullptr && forward_info->sender_dialog_id.is_valid() && forward_info->message_id.is_valid()) {
+        message->sender_dialog_id = forward_info->sender_dialog_id;
+      } else {
+        LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
+      }
     }
   }
 
