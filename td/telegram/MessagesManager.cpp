@@ -21630,10 +21630,12 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
   request.finished_count++;
 
   if (request.finished_count == request.message_ids.size() || request.results[pos].is_error()) {
-    // send later, because some messages may be being deleted now
+    // must use send_closure_later if some messages may be being deleted now
+    // but this function is called only through send_closure_later, so there should be no being deleted messages
+    // we must to use synchronous calls to keep the correct message order during copying of multiple messages
     for (auto request_message_id : request.message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
-      auto promise = PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) {
+      auto promise = PromiseCreator::lambda([this, media_album_id](Result<Message *> result) {
         if (result.is_error() || G()->close_flag()) {
           return;
         }
@@ -21641,10 +21643,12 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
         auto m = result.move_as_ok();
         CHECK(m != nullptr);
         CHECK(m->media_album_id == media_album_id);
-        send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
+        do_send_message_group(media_album_id);
+        // send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
       });
-      send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
-                         request_message_id, std::move(promise));
+      // send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
+      //                   request_message_id, std::move(promise));
+      on_media_message_ready_to_send(dialog_id, request_message_id, std::move(promise));
     }
   }
 }
