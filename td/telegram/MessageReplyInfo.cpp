@@ -11,7 +11,7 @@
 namespace td {
 
 MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
-  if (reply_info == nullptr) {
+  if (reply_info == nullptr || is_bot) {
     return;
   }
   if (reply_info->replies_ < 0) {
@@ -21,14 +21,12 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
   reply_count = reply_info->replies_;
   pts = reply_info->replies_pts_;
 
-  if (!is_bot) {
-    for (auto &peer : reply_info->recent_repliers_) {
-      DialogId dialog_id(peer);
-      if (dialog_id.is_valid()) {
-        recent_replier_dialog_ids.push_back(dialog_id);
-      } else {
-        LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
-      }
+  for (auto &peer : reply_info->recent_repliers_) {
+    DialogId dialog_id(peer);
+    if (dialog_id.is_valid()) {
+      recent_replier_dialog_ids.push_back(dialog_id);
+    } else {
+      LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
     }
   }
 

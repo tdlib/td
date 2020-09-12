@@ -6594,8 +6594,8 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->forward_info != nullptr || m->had_forward_info || m->via_bot_user_id.is_valid() || m->hide_via_bot ||
-      m->is_channel_post || m->message_id.is_scheduled()) {
+  if (td_->auth_manager_->is_bot() || m->forward_info != nullptr || m->had_forward_info ||
+      m->via_bot_user_id.is_valid() || m->hide_via_bot || m->is_channel_post || m->message_id.is_scheduled()) {
     return;
   }
 
@@ -12147,11 +12147,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   UserId sender_user_id = message_info.sender_user_id;
   DialogId sender_dialog_id = message_info.sender_dialog_id;
   if (!sender_user_id.is_valid()) {
-    if (!is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
-      sender_user_id = td_->contacts_manager_->get_service_notifications_user_id();
-    } else if (sender_user_id != UserId()) {
+    if (sender_user_id != UserId()) {
       LOG(ERROR) << "Receive invalid " << sender_user_id;
       sender_user_id = UserId();
+    }
+    if (!is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
+      sender_user_id = td_->contacts_manager_->get_service_notifications_user_id();
     }
   }
   if (sender_dialog_id.is_valid()) {
@@ -12221,7 +12222,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         reply_in_dialog_id = DialogId();
       }
     }
-    if (reply_to_message_id.is_valid()) {
+    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
       if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
         top_reply_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
       } else if (!is_broadcast_channel(dialog_id)) {
@@ -12277,7 +12278,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
-  if (!top_reply_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
+  if (!td_->auth_manager_->is_bot() && !top_reply_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
       is_active_message_reply_info(dialog_id, reply_info)) {
     top_reply_message_id = message_id;
   }
@@ -29553,7 +29554,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     cancel_user_dialog_action(dialog_id, m);
     try_hide_distance(dialog_id, m);
 
-    if (d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
+    if (!td_->auth_manager_->is_bot() && d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
       switch (dialog_id.get_type()) {
         case DialogType::User:
           td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
@@ -29577,7 +29578,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
 
-    if (m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id) {
+    if (!td_->auth_manager_->is_bot() && m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id) {
       Message *top_m = get_message(d, m->top_reply_message_id);
       if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
         top_m->reply_info.add_reply(m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
@@ -32880,6 +32881,7 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
 }
 
 void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   Message *m = get_message_force(d, message_id, "update_forward_count");
@@ -32898,7 +32900,7 @@ void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message
 
 void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (!m->is_outgoing && dialog_id != get_my_dialog_id()) {
+  if (td_->auth_manager_->is_bot() || !m->is_outgoing && dialog_id != get_my_dialog_id()) {
     return;
   }
 
