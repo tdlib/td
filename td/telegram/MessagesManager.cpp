@@ -15652,8 +15652,9 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
           return {};
         }
 
-        auto it = public_message_links_[for_group].find({linked_dialog_id, linked_message_id});
-        if (it == public_message_links_[for_group].end()) {
+        auto &links = public_message_links_[for_group][linked_dialog_id].links_;
+        auto it = links.find(linked_message_id);
+        if (it == links.end()) {
           td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
               ->send(linked_dialog_id.get_channel_id(), linked_message_id, for_group, false);
           return {};
@@ -15665,8 +15666,9 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     }
   }
 
-  auto it = public_message_links_[for_group].find(full_message_id);
-  if (it == public_message_links_[for_group].end()) {
+  auto &links = public_message_links_[for_group][dialog_id].links_;
+  auto it = links.find(m->message_id);
+  if (it == links.end()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
         ->send(dialog_id.get_channel_id(), m->message_id, for_group, false);
     return {};
@@ -15683,7 +15685,8 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
 void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
                                                  string html) {
   LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
-  public_message_links_[for_group][full_message_id] = {std::move(url), std::move(html)};
+  public_message_links_[for_group][full_message_id.get_dialog_id()].links_[full_message_id.get_message_id()] = {
+      std::move(url), std::move(html)};
 }
 
 string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
