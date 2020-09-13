@@ -27325,6 +27325,10 @@ void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const strin
   if (d != nullptr) {
     update_dialogs_hints(d);
   }
+  if (old_username != new_username) {
+    public_message_links_[0].erase(dialog_id);
+    public_message_links_[1].erase(dialog_id);
+  }
   if (!old_username.empty() && old_username != new_username) {
     resolved_usernames_.erase(clean_username(old_username));
     inaccessible_resolved_usernames_.erase(clean_username(old_username));
