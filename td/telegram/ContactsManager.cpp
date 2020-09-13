@@ -9744,6 +9744,14 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     update_channel_full(channel, channel_id);
+
+    if (linked_channel_id.is_valid()) {
+      auto linked_channel_full = get_channel_full_force(linked_channel_id, "on_get_chat_full");
+      on_update_channel_full_linked_channel_id(linked_channel_full, linked_channel_id, channel_id);
+      if (linked_channel_full != nullptr) {
+        update_channel_full(linked_channel_full, linked_channel_id);
+      }
+    }
   }
   promise.set_value(Unit());
 }
@@ -11195,6 +11203,17 @@ ChannelId ContactsManager::get_linked_channel_id(ChannelId channel_id) const {
 
 void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                                ChannelId linked_channel_id) {
+  auto old_linked_channel_id = get_linked_channel_id(channel_id);
+  LOG(INFO) << "Uplate linked channel in " << channel_id << " from " << old_linked_channel_id << " to "
+            << linked_channel_id;
+
+  if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id &&
+      channel_full->linked_channel_id.is_valid()) {
+    get_channel_force(channel_full->linked_channel_id);
+    get_channel_full_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 0");
+  }
+  auto old_linked_linked_channel_id = get_linked_channel_id(linked_channel_id);
+
   remove_linked_channel_id(channel_id);
   remove_linked_channel_id(linked_channel_id);
   if (channel_id.is_valid() && linked_channel_id.is_valid()) {
@@ -11249,6 +11268,20 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
     c->has_linked_channel = linked_channel_id.is_valid();
     c->is_changed = true;
     update_channel(c, channel_id);
+  }
+
+  if (old_linked_channel_id != linked_channel_id) {
+    // must be called after the linked channel is changed
+    td_->messages_manager_->on_dialog_linked_channel_updated(DialogId(channel_id), old_linked_channel_id,
+                                                             linked_channel_id);
+  }
+  auto new_linked_linked_channel_id = get_linked_channel_id(linked_channel_id);
+  LOG(INFO) << "Uplate linked channel in " << linked_channel_id << " from " << old_linked_linked_channel_id << " to "
+            << new_linked_linked_channel_id;
+  if (old_linked_linked_channel_id != new_linked_linked_channel_id) {
+    // must be called after the linked channel is changed
+    td_->messages_manager_->on_dialog_linked_channel_updated(DialogId(linked_channel_id), old_linked_linked_channel_id,
+                                                             new_linked_linked_channel_id);
   }
 }
 

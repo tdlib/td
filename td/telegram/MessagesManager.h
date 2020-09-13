@@ -734,6 +734,9 @@ class MessagesManager : public Actor {
   void on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked);
   void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
 
+  void on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
+                                        ChannelId new_linked_channel_id) const;
+
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
 
@@ -1846,6 +1849,9 @@ class MessagesManager : public Actor {
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 logevent_id, Promise<Unit> &&promise);
 
   static MessageId find_message_by_date(const Message *m, int32 date);
+
+  static void find_discussed_messages(const Message *m, ChannelId old_channel_id, ChannelId new_channel_id,
+                                      vector<MessageId> &message_ids);
 
   static void find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids);
 

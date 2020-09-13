@@ -9645,6 +9645,22 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
   }
 }
 
+void MessagesManager::find_discussed_messages(const Message *m, ChannelId old_channel_id, ChannelId new_channel_id,
+                                              vector<MessageId> &message_ids) {
+  if (m == nullptr) {
+    return;
+  }
+
+  find_discussed_messages(m->left.get(), old_channel_id, new_channel_id, message_ids);
+
+  if (!m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
+      (m->reply_info.channel_id == old_channel_id || m->reply_info.channel_id == new_channel_id)) {
+    message_ids.push_back(m->message_id);
+  }
+
+  find_discussed_messages(m->right.get(), old_channel_id, new_channel_id, message_ids);
+}
+
 void MessagesManager::find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
@@ -25449,6 +25465,7 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
 }
 
 void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -26993,6 +27010,26 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
               update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_deleted_updated");
             }
           });
+    }
+  }
+}
+
+void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
+                                                       ChannelId new_linked_channel_id) const {
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  if (!is_broadcast_channel(dialog_id)) {
+    return;
+  }
+  auto d = get_dialog(dialog_id);  // no need to create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    vector<MessageId> message_ids;
+    find_discussed_messages(d->messages.get(), old_linked_channel_id, new_linked_channel_id, message_ids);
+    LOG(INFO) << "Found discussion messages " << message_ids;
+    for (auto message_id : message_ids) {
+      send_update_message_interaction_info(dialog_id, get_message(d, message_id));
+      if (message_id == d->last_message_id) {
+        send_update_chat_last_message_impl(d, "on_dialog_linked_channel_updated");
+      }
     }
   }
 }
@@ -29627,8 +29664,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       Message *top_m = get_message(d, m->top_reply_message_id);
       if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
         top_m->reply_info.add_reply(m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
-        on_message_changed(d, top_m, true, "update_message_reply_count");
         send_update_message_interaction_info(dialog_id, top_m);
+        on_message_changed(d, top_m, true, "update_message_reply_count");
       }
     }
   }
