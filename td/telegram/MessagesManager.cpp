@@ -2409,7 +2409,7 @@ class SendMultiMediaActor : public NetActorOnce {
         is_result_wrong = true;
       }
       for (auto &sent_message : sent_messages) {
-        if (td->messages_manager_->get_message_dialog_id(*sent_message) != dialog_id_) {
+        if (MessagesManager::get_message_dialog_id(*sent_message) != dialog_id_) {
           is_result_wrong = true;
         }
       }
@@ -3079,7 +3079,7 @@ class ForwardMessagesActor : public NetActorOnce {
         is_result_wrong = true;
       }
       for (auto &sent_message : sent_messages) {
-        if (td->messages_manager_->get_message_dialog_id(*sent_message) != to_dialog_id_) {
+        if (MessagesManager::get_message_dialog_id(*sent_message) != to_dialog_id_) {
           is_result_wrong = true;
         }
       }
@@ -10906,7 +10906,7 @@ MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Mess
   }
 }
 
-DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) const {
+DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID:
       return DialogId();
@@ -10925,7 +10925,7 @@ DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api
 }
 
 FullMessageId MessagesManager::get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr,
-                                                   bool is_scheduled) const {
+                                                   bool is_scheduled) {
   return {get_message_dialog_id(message_ptr), get_message_id(message_ptr, is_scheduled)};
 }
 
