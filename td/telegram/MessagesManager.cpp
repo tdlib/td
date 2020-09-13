@@ -12298,6 +12298,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       is_active_message_reply_info(dialog_id, reply_info)) {
     top_reply_message_id = message_id;
   }
+  if (top_reply_message_id.is_valid() && dialog_type != DialogType::Channel) {
+    top_reply_message_id = MessageId();
+  }
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
@@ -15306,37 +15309,39 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   LOG(INFO) << "Get " << message_id << " in " << d->dialog_id << " using " << to_string(input_message);
   auto dialog_type = d->dialog_id.get_type();
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
-  if (m == nullptr && message_id.is_valid() && message_id.is_server()) {
-    if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
-      // message will not be added to the dialog anyway
-      if (dialog_type == DialogType::Channel) {
-        // so we try to force channel difference first
+  if (m == nullptr) {
+    if (message_id.is_valid() && message_id.is_server()) {
+      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
+        // message will not be added to the dialog anyway
+        if (dialog_type == DialogType::Channel) {
+          // so we try to force channel difference first
 
-        // replied message can't be older than already added original message, but pinned message can be
-        LOG_CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID)
-            << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
-            << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
-            << " " << d->pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
-            << d->max_unavailable_message_id << " " << d->last_clear_history_message_id << " " << d->order << " "
-            << d->deleted_last_message_id << " " << d->max_added_message_id << " " << d->pts << " "
-            << d->last_assigned_message_id << " " << d->debug_last_new_message_id << " "
-            << d->debug_first_database_message_id << " " << d->debug_last_database_message_id;
-        postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise),
-                                                                   std::move(input_message));
-        get_channel_difference(d->dialog_id, d->pts, true, "get_message");
-      } else {
-        promise.set_value(Unit());
+          // replied message can't be older than already added original message, but pinned message can be
+          LOG_CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID)
+              << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
+              << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
+              << " " << d->pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
+              << d->max_unavailable_message_id << " " << d->last_clear_history_message_id << " " << d->order << " "
+              << d->deleted_last_message_id << " " << d->max_added_message_id << " " << d->pts << " "
+              << d->last_assigned_message_id << " " << d->debug_last_new_message_id << " "
+              << d->debug_first_database_message_id << " " << d->debug_last_database_message_id;
+          postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise),
+                                                                     std::move(input_message));
+          get_channel_difference(d->dialog_id, d->pts, true, "get_message");
+        } else {
+          promise.set_value(Unit());
+        }
+        return;
       }
-      return;
-    }
 
-    if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
-      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
-    }
-  } else if (m == nullptr && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-    if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
-        dialog_type != DialogType::SecretChat && input_message == nullptr) {
-      return get_message_from_server({d->dialog_id, message_id}, std::move(promise));
+      if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
+        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
+      }
+    } else if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
+      if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
+          dialog_type != DialogType::SecretChat && input_message == nullptr) {
+        return get_message_from_server({d->dialog_id, message_id}, std::move(promise));
+      }
     }
   }
 
@@ -15571,40 +15576,93 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
 }
 
 std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId full_message_id, bool for_group,
-                                                                   Promise<Unit> &&promise) {
+                                                                   bool &for_comment, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    promise.set_error(Status::Error(6, "Chat not found"));
+    promise.set_error(Status::Error(400, "Chat not found"));
     return {};
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(6, "Can't access the chat"));
+    promise.set_error(Status::Error(400, "Can't access the chat"));
     return {};
   }
   if (dialog_id.get_type() != DialogType::Channel ||
       td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
     promise.set_error(Status::Error(
-        6, "Public message links are available only for messages in supergroups and channel chats with a username"));
+        400, "Public message links are available only for messages in supergroups and channel chats with a username"));
     return {};
   }
 
   auto *m = get_message_force(d, full_message_id.get_message_id(), "get_public_message_link");
   if (m == nullptr) {
-    promise.set_error(Status::Error(6, "Message not found"));
+    promise.set_error(Status::Error(400, "Message not found"));
     return {};
   }
   if (m->message_id.is_yet_unsent()) {
-    promise.set_error(Status::Error(6, "Message is yet unsent"));
+    promise.set_error(Status::Error(400, "Message is yet unsent"));
     return {};
   }
   if (m->message_id.is_scheduled()) {
-    promise.set_error(Status::Error(6, "Message is scheduled"));
+    promise.set_error(Status::Error(400, "Message is scheduled"));
     return {};
   }
   if (!m->message_id.is_server()) {
-    promise.set_error(Status::Error(6, "Message is local"));
+    promise.set_error(Status::Error(400, "Message is local"));
     return {};
+  }
+
+  if (m->media_album_id == 0) {
+    for_group = true;  // default is true
+  }
+
+  string comment_link;
+  if (!m->top_reply_message_id.is_valid()) {
+    for_comment = false;
+  }
+  if (d->deleted_message_ids.count(m->top_reply_message_id) != 0) {
+    for_comment = false;
+  }
+  if (for_comment) {
+    CHECK(dialog_id.get_type() == DialogType::Channel);  // only channel messages can have top_reply_message_id
+    auto *top_m = get_message_force(d, m->top_reply_message_id, "get_public_message_link");
+    if (top_m == nullptr) {
+      get_message_force_from_server(d, m->top_reply_message_id, std::move(promise));
+      return {};
+    }
+    if (top_m->sender_user_id.is_valid() || top_m->forward_info == nullptr ||
+        !top_m->forward_info->sender_dialog_id.is_valid() || !top_m->forward_info->message_id.is_valid() ||
+        DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id())) !=
+            top_m->forward_info->sender_dialog_id) {
+      for_comment = false;
+    } else {
+      auto linked_dialog_id = top_m->forward_info->sender_dialog_id;
+      auto linked_message_id = top_m->forward_info->message_id;
+      auto linked_d = get_dialog(linked_dialog_id);
+      CHECK(linked_d != nullptr);
+      CHECK(linked_dialog_id.get_type() == DialogType::Channel);
+      if (!have_input_peer(linked_dialog_id, AccessRights::Read) ||
+          td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id()).empty() ||
+          linked_d->deleted_message_ids.count(linked_message_id) != 0) {
+        for_comment = false;
+      } else {
+        auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
+        if (linked_m == nullptr) {
+          get_message_force_from_server(linked_d, linked_message_id, std::move(promise));
+          return {};
+        }
+
+        auto it = public_message_links_[for_group].find({linked_dialog_id, linked_message_id});
+        if (it == public_message_links_[for_group].end()) {
+          td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
+              ->send(linked_dialog_id.get_channel_id(), linked_message_id, for_group, false);
+          return {};
+        }
+
+        comment_link = PSTRING() << it->second.first << (it->second.first.find('?') == string::npos ? '?' : '&')
+                                 << "comment_id=" << m->message_id.get_server_message_id().get();
+      }
+    }
   }
 
   auto it = public_message_links_[for_group].find(full_message_id);
@@ -15615,7 +15673,11 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
   }
 
   promise.set_value(Unit());
-  return it->second;
+  if (for_comment) {
+    return {std::move(comment_link), it->second.second};
+  } else {
+    return it->second;
+  }
 }
 
 void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
@@ -15628,30 +15690,30 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    promise.set_error(Status::Error(6, "Chat not found"));
+    promise.set_error(Status::Error(400, "Chat not found"));
     return {};
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(6, "Can't access the chat"));
+    promise.set_error(Status::Error(400, "Can't access the chat"));
     return {};
   }
   if (dialog_id.get_type() != DialogType::Channel) {
     promise.set_error(
-        Status::Error(6, "Message links are available only for messages in supergroups and channel chats"));
+        Status::Error(400, "Message links are available only for messages in supergroups and channel chats"));
     return {};
   }
 
   auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
   if (m == nullptr) {
-    promise.set_error(Status::Error(6, "Message not found"));
+    promise.set_error(Status::Error(400, "Message not found"));
     return {};
   }
   if (m->message_id.is_scheduled()) {
-    promise.set_error(Status::Error(6, "Message is scheduled"));
+    promise.set_error(Status::Error(400, "Message is scheduled"));
     return {};
   }
   if (!m->message_id.is_server()) {
-    promise.set_error(Status::Error(6, "Message is local"));
+    promise.set_error(Status::Error(400, "Message is local"));
     return {};
   }
 

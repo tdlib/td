@@ -3681,8 +3681,9 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@description Returns a public HTTPS link to a message. Available only for messages in supergroups and channels with a username
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@for_album Pass true if a link for a whole media album should be returned
-getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool = PublicMessageLink;
+//@for_album Pass true to create a link for a whole media album
+//@for_comment Pass true to create a link to a message as a channel message comment
+getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = PublicMessageLink;
 
 //@description Returns a private HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. The link will work only for members of the chat
 //@chat_id Identifier of the chat to which the message belongs
