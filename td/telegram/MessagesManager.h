@@ -194,6 +194,8 @@ class MessagesManager : public Actor {
 
   static vector<int32> get_scheduled_server_message_ids(const vector<MessageId> &message_ids);
 
+  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
+
   DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) const;
 
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
@@ -213,6 +215,8 @@ class MessagesManager : public Actor {
                                                                            AccessRights access_rights) const;
 
   bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
+
+  void on_get_empty_messages(DialogId dialog_id, vector<MessageId> empty_message_ids);
 
   struct MessagesInfo {
     vector<tl_object_ptr<telegram_api::Message>> messages;
@@ -1634,8 +1638,6 @@ class MessagesManager : public Actor {
 
   static constexpr bool DROP_UPDATES = false;
 
-  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
-
   FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) const;
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
@@ -1741,7 +1743,8 @@ class MessagesManager : public Actor {
 
   void delete_messages_from_updates(const vector<MessageId> &message_ids);
 
-  void delete_dialog_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids);
+  void delete_dialog_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                           bool skip_update_for_not_found_messages);
 
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, uint64 logevent_id);
