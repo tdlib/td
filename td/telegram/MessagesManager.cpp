@@ -6170,7 +6170,7 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
 
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
-  bool is_active_reply_info = is_active_message_reply_info(dialog_id, m->reply_info);
+  bool is_active_reply_info = m->message_id.is_server() && is_active_message_reply_info(dialog_id, m->reply_info);
   if (m->view_count == 0 && m->forward_count == 0 && !is_active_reply_info) {
     return nullptr;
   }
@@ -20553,7 +20553,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
         if (is_channel_post) {
           return td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
         }
-        return !m->reply_to_message_id.is_valid();
+        return !reply_to_message_id.is_valid() &&
+               td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
       }()) {
     m->reply_info.reply_count = 0;
   }
