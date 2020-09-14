@@ -1868,6 +1868,7 @@ class CliClient final : public Actor {
       string chat_id;
       string message_thread_id;
 
+      std::tie(chat_id, message_thread_id) = split(args);
       send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), "", 0, 0, 0, 100, nullptr,
                                                                    as_message_thread_id(message_thread_id)));
     } else if (op == "spvf") {

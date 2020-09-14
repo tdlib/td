@@ -1624,6 +1624,10 @@ class SearchMessagesQuery : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
+    } else if (top_thread_message_id.is_valid() && !sender_user_id.is_valid() && filter == MessageSearchFilter::Empty) {
+      send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
+          std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
+          from_message_id.get_server_message_id().get(), offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
     } else {
       int32 flags = 0;
       if (sender_input_user != nullptr) {
@@ -1645,6 +1649,9 @@ class SearchMessagesQuery : public Td::ResultHandler {
     static_assert(std::is_same<telegram_api::messages_getUnreadMentions::ReturnType,
                                telegram_api::messages_search::ReturnType>::value,
                   "");
+    static_assert(
+        std::is_same<telegram_api::messages_getReplies::ReturnType, telegram_api::messages_search::ReturnType>::value,
+        "");
     auto result_ptr = fetch_result<telegram_api::messages_search>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -4204,7 +4211,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reply_info = !reply_info.is_empty();
   bool has_sender_dialog_id = sender_dialog_id.is_valid();
   bool has_reply_in_dialog_id = is_reply && reply_in_dialog_id.is_valid();
-  bool has_top_reply_message_id = is_reply && top_reply_message_id.is_valid();
+  bool has_top_reply_message_id = top_reply_message_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
