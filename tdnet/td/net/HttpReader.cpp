@@ -24,30 +24,6 @@ namespace td {
 
 constexpr const char HttpReader::TEMP_DIRECTORY_PREFIX[];
 
-static size_t urldecode(Slice from, MutableSlice to, bool decode_plus_sign_as_space) {
-  size_t to_i = 0;
-  CHECK(to.size() >= from.size());
-  for (size_t from_i = 0, n = from.size(); from_i < n; from_i++) {
-    if (from[from_i] == '%' && from_i + 2 < n) {
-      int high = hex_to_int(from[from_i + 1]);
-      int low = hex_to_int(from[from_i + 2]);
-      if (high < 16 && low < 16) {
-        to[to_i++] = static_cast<char>(high * 16 + low);
-        from_i += 2;
-        continue;
-      }
-    }
-    to[to_i++] = decode_plus_sign_as_space && from[from_i] == '+' ? ' ' : from[from_i];
-  }
-  return to_i;
-}
-
-static MutableSlice urldecode_inplace(MutableSlice str, bool decode_plus_sign_as_space) {
-  size_t result_size = urldecode(str, str, decode_plus_sign_as_space);
-  str.truncate(result_size);
-  return str;
-}
-
 void HttpReader::init(ChainBufferReader *input, size_t max_post_size, size_t max_files) {
   input_ = input;
   state_ = State::ReadHeaders;
@@ -571,7 +547,7 @@ Status HttpReader::parse_url(MutableSlice url) {
     url_path_size++;
   }
 
-  query_->url_path_ = urldecode_inplace({url.data(), url_path_size}, false);
+  query_->url_path_ = url_decode_inplace({url.data(), url_path_size}, false);
 
   if (url_path_size == url.size() || url[url_path_size] != '?') {
     return Status::OK();
@@ -591,9 +567,9 @@ Status HttpReader::parse_parameters(MutableSlice parameters) {
     auto key_value = parser.read_till_nofail('&');
     parser.skip_nofail('&');
     Parser kv_parser(key_value);
-    auto key = urldecode_inplace(kv_parser.read_till_nofail('='), true);
+    auto key = url_decode_inplace(kv_parser.read_till_nofail('='), true);
     kv_parser.skip_nofail('=');
-    auto value = urldecode_inplace(kv_parser.data(), true);
+    auto value = url_decode_inplace(kv_parser.data(), true);
     query_->args_.emplace_back(key, value);
   }
 

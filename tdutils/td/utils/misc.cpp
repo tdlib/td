@@ -137,6 +137,30 @@ string url_encode(Slice data) {
   return result;
 }
 
+size_t url_decode(Slice from, MutableSlice to, bool decode_plus_sign_as_space) {
+  size_t to_i = 0;
+  CHECK(to.size() >= from.size());
+  for (size_t from_i = 0, n = from.size(); from_i < n; from_i++) {
+    if (from[from_i] == '%' && from_i + 2 < n) {
+      int high = hex_to_int(from[from_i + 1]);
+      int low = hex_to_int(from[from_i + 2]);
+      if (high < 16 && low < 16) {
+        to[to_i++] = static_cast<char>(high * 16 + low);
+        from_i += 2;
+        continue;
+      }
+    }
+    to[to_i++] = decode_plus_sign_as_space && from[from_i] == '+' ? ' ' : from[from_i];
+  }
+  return to_i;
+}
+
+MutableSlice url_decode_inplace(MutableSlice str, bool decode_plus_sign_as_space) {
+  size_t result_size = url_decode(str, str, decode_plus_sign_as_space);
+  str.truncate(result_size);
+  return str;
+}
+
 string buffer_to_hex(Slice buffer) {
   const char *hex = "0123456789ABCDEF";
   string res(2 * buffer.size(), '\0');
