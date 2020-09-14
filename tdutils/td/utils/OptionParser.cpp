@@ -96,20 +96,20 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 
       auto it = long_options.find(long_arg.str());
       if (it == long_options.end()) {
-        return Status::Error(PSLICE() << "Option " << long_arg << " was unrecognized");
+        return Status::Error(PSLICE() << "Option \"" << long_arg << "\" is unrecognized");
       }
 
       auto option = it->second;
       switch (option->type) {
         case Option::Type::NoArg:
           if (has_equal) {
-            return Status::Error(PSLICE() << "Option " << long_arg << " must not have argument");
+            return Status::Error(PSLICE() << "Option \"" << long_arg << "\" must not have an argument");
           }
           break;
         case Option::Type::Arg:
           if (!has_equal) {
             if (++arg_pos == argc) {
-              return Status::Error(PSLICE() << "Option " << long_arg << " must have argument");
+              return Status::Error(PSLICE() << "Option \"" << long_arg << "\" requires an argument");
             }
             parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
           }
@@ -125,7 +125,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
     for (size_t opt_pos = 1; arg[opt_pos] != '\0'; opt_pos++) {
       auto it = short_options.find(arg[opt_pos]);
       if (it == short_options.end()) {
-        return Status::Error(PSLICE() << "Option " << arg[opt_pos] << " was unrecognized");
+        return Status::Error(PSLICE() << "Option \"" << arg[opt_pos] << "\" is unrecognized");
       }
 
       auto option = it->second;
@@ -137,7 +137,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
         case Option::Type::Arg:
           if (arg[opt_pos + 1] == '\0') {
             if (++arg_pos == argc) {
-              return Status::Error(PSLICE() << "Option " << arg[opt_pos] << " must have argument");
+              return Status::Error(PSLICE() << "Option \"" << arg[opt_pos] << "\" requires an argument");
             }
             parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
           } else {
