@@ -110,6 +110,8 @@ struct CountryInfoManager::CountryList {
 CountryInfoManager::CountryInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+CountryInfoManager::~CountryInfoManager() = default;
+
 void CountryInfoManager::tear_down() {
   parent_.reset();
 }

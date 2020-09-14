@@ -32,6 +32,12 @@ class CountryInfoManager : public Actor {
   void get_phone_number_info(string phone_number_prefix,
                              Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise);
 
+  CountryInfoManager(const CountryInfoManager &) = delete;
+  CountryInfoManager &operator=(const CountryInfoManager &) = delete;
+  CountryInfoManager(CountryInfoManager &&) = delete;
+  CountryInfoManager &operator=(CountryInfoManager &&) = delete;
+  ~CountryInfoManager() override;
+
  private:
   void tear_down() override;
 
