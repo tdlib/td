@@ -1859,7 +1859,7 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageDocument::ID: {
       auto input_message = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      auto file_type = input_message->force_file_ ? FileType::DocumentAsFile : FileType::Document;
+      auto file_type = input_message->disable_content_type_detection_ ? FileType::DocumentAsFile : FileType::Document;
       r_file_id =
           td->file_manager_->get_input_file_id(file_type, input_message->document_, dialog_id, false, is_secret, true);
       input_thumbnail = std::move(input_message->thumbnail_);
