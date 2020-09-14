@@ -9876,8 +9876,8 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
 }
 
 int32 MessagesManager::get_unload_dialog_delay() const {
-  constexpr int32 DIALOG_UNLOAD_DELAY = 60;       // seconds
-  constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 600;  // seconds
+  constexpr int32 DIALOG_UNLOAD_DELAY = 60;        // seconds
+  constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 1800;  // seconds
   return td_->auth_manager_->is_bot() ? DIALOG_UNLOAD_BOT_DELAY : DIALOG_UNLOAD_DELAY;
 }
 
