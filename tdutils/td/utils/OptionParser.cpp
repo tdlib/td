@@ -9,8 +9,16 @@
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
 
+#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#include "td/utils/port/wstring_convert.h"
+#endif
+
 #include <cstring>
 #include <unordered_map>
+
+#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#include <shellapi.h>
+#endif
 
 namespace td {
 
@@ -63,6 +71,21 @@ void OptionParser::add_check(std::function<Status()> check) {
 }
 
 Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_non_option_count) {
+#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+  LPWSTR *utf16_argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (utf16_argv == nullptr) {
+    return Status::Error("Failed to parse command line");
+  }
+  vector<string> args_storage(argc);
+  vector<char *> args(argc);
+  for (int i = 0; i < argc; i++) {
+    TRY_RESULT_ASSIGN(args_storage[i], from_wstring(utf16_argv[i]));
+    args[i] = &args_storage[i][0];
+  }
+  LocalFree(utf16_argv);
+  argv = &args[0];
+#endif
+
   std::unordered_map<char, const Option *> short_options;
   std::unordered_map<string, const Option *> long_options;
   for (auto &opt : options_) {
@@ -91,7 +114,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 
     if (arg[1] == '-') {
       // long option
-      Slice long_arg(arg + 2, std::strlen(arg + 2));
+      Slice long_arg(arg + 2);
       Slice parameter;
       auto equal_pos = long_arg.find('=');
       bool has_equal = equal_pos != Slice::npos;
@@ -117,7 +140,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
             if (++arg_pos == argc) {
               return Status::Error(PSLICE() << "Option \"" << long_arg << "\" requires an argument");
             }
-            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos]);
           }
           break;
         default:
@@ -145,9 +168,9 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
             if (++arg_pos == argc) {
               return Status::Error(PSLICE() << "Option \"" << arg[opt_pos] << "\" requires an argument");
             }
-            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos]);
           } else {
-            parameter = Slice(arg + opt_pos + 1, std::strlen(arg + opt_pos + 1));
+            parameter = Slice(arg + opt_pos + 1);
             opt_pos += parameter.size();
           }
           break;
