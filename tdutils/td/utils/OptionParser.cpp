@@ -177,9 +177,10 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
 
   size_t max_length = 0;
   for (auto &opt : o.options_) {
-    bool has_short_key = opt.short_key != '\0';
-    bool has_long_key = !opt.long_key.empty();
-    size_t length = (has_short_key ? 2 : 0) + (has_long_key ? 2 + opt.long_key.size() + 2 * has_short_key : 0);
+    size_t length = 2;
+    if (!opt.long_key.empty()) {
+      length += 4 + opt.long_key.size();
+    }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       length += 5;
     }
@@ -195,15 +196,18 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
     size_t length = max_length;
     if (has_short_key) {
       sb << '-' << opt.short_key;
-      length -= 2;
+    } else {
+      sb << "  ";
     }
+    length -= 2;
     if (!opt.long_key.empty()) {
       if (has_short_key) {
         sb << ", ";
-        length -= 2;
+      } else {
+        sb << "  ";
       }
       sb << "--" << opt.long_key;
-      length -= 2 + opt.long_key.size();
+      length -= 4 + opt.long_key.size();
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       sb << "<arg>";
