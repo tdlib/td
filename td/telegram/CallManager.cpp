@@ -48,6 +48,7 @@ void CallManager::update_call_signaling_data(int64 call_id, string data) {
   auto info_it = call_info_.find(call_id);
   if (info_it == call_info_.end() || !info_it->second.call_id.is_valid()) {
     LOG(INFO) << "Ignore signaling data for " << call_id;
+    return;
   }
 
   auto actor = get_call_actor(info_it->second.call_id);
