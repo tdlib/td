@@ -12195,7 +12195,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     }
   }
   if (sender_dialog_id.is_valid()) {
-    CHECK(!sender_user_id.is_valid());
     if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
       LOG(ERROR) << "Receive " << message_id << " sent by " << sender_dialog_id << " in " << dialog_id;
       return {DialogId(), nullptr};
@@ -29756,7 +29755,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (!td_->auth_manager_->is_bot() && m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id) {
       Message *top_m = get_message(d, m->top_reply_message_id);
       if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
-        top_m->reply_info.add_reply(m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
+        top_m->reply_info.add_reply(has_message_sender_user_id(dialog_id, m) ? DialogId(m->sender_user_id)
+                                                                             : m->sender_dialog_id);
         send_update_message_interaction_info(dialog_id, top_m);
         on_message_changed(d, top_m, true, "update_message_reply_count");
       }
