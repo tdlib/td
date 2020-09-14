@@ -46,6 +46,7 @@ class unique_ptr final {
     return *this;
   }
   void reset(T *new_ptr = nullptr) noexcept {
+    static_assert(sizeof(T) > 0, "Can't destroy unique_ptr with incomplete type");
     delete ptr_;
     ptr_ = new_ptr;
   }
