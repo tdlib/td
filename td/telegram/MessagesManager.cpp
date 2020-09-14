@@ -33075,7 +33075,7 @@ void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message
 
 void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || !m->is_outgoing && dialog_id != get_my_dialog_id()) {
+  if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != get_my_dialog_id())) {
     return;
   }
 
