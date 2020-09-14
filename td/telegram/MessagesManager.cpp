@@ -20514,8 +20514,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_get_replies = for_event_log || is_scheduled ? false : !m->reply_info.is_empty() && m->message_id.is_server();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
-  auto reply_in_dialog_id = m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
+  auto reply_in_dialog_id =
+      reply_to_message_id == 0 ? DialogId() : (m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id);
   auto top_reply_message_id = for_event_log || is_scheduled ? static_cast<int64>(0) : m->top_reply_message_id.get();
   bool contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
