@@ -29817,7 +29817,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info != nullptr &&
+  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info != nullptr && m->sender_user_id.is_valid() &&
       m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
     update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id);
   }
