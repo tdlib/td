@@ -45,6 +45,8 @@ class OptionParser {
     };
   }
 
+  void set_usage(Slice executable_name, Slice usage);
+
   void set_description(string description);
 
   void add_checked_option(char short_key, Slice long_key, Slice description, std::function<Status(Slice)> callback);
@@ -69,6 +71,7 @@ class OptionParser {
  private:
   vector<Option> options_;
   vector<std::function<Status()>> checks_;
+  string usage_;
   string description_;
 };
 

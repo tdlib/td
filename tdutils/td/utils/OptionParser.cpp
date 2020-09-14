@@ -7,11 +7,17 @@
 #include "td/utils/OptionParser.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/PathView.h"
 
 #include <cstring>
 #include <unordered_map>
 
 namespace td {
+
+void OptionParser::set_usage(Slice executable_name, Slice usage) {
+  PathView path_view(executable_name);
+  usage_ = PSTRING() << path_view.file_name() << " " << usage;
+}
 
 void OptionParser::set_description(string description) {
   description_ = std::move(description);
@@ -170,6 +176,9 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
+  if (!o.usage_.empty()) {
+    sb << "Usage: " << o.usage_ << "\n\n";
+  }
   if (!o.description_.empty()) {
     sb << o.description_ << ". ";
   }
