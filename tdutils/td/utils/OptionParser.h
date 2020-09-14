@@ -39,6 +39,12 @@ class OptionParser {
     };
   }
 
+  static std::function<void(Slice)> parse_string(string &value) {
+    return [&value](Slice value_str) {
+      value = value_str.str();
+    };
+  }
+
   void set_description(string description);
 
   void add_checked_option(char short_key, Slice long_key, Slice description, std::function<Status(Slice)> callback);

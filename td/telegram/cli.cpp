@@ -4461,8 +4461,8 @@ void main(int argc, char **argv) {
                      [&](Slice parameter) { api_id = to_integer<int32>(parameter); });
   options.add_option('\0', "api_id", "Set Telegram API ID",
                      [&](Slice parameter) { api_id = to_integer<int32>(parameter); });
-  options.add_option('\0', "api-hash", "Set Telegram API hash", [&](Slice parameter) { api_hash = parameter.str(); });
-  options.add_option('\0', "api_hash", "Set Telegram API hash", [&](Slice parameter) { api_hash = parameter.str(); });
+  options.add_option('\0', "api-hash", "Set Telegram API hash", OptionParser::parse_string(api_hash));
+  options.add_option('\0', "api_hash", "Set Telegram API hash", OptionParser::parse_string(api_hash));
   options.add_check([&] {
     if (api_id == 0 || api_hash.empty()) {
       return Status::Error("You must provide valid api-id and api-hash obtained at https://my.telegram.org");
