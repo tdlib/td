@@ -397,12 +397,19 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
 };
 
 class GetDiscussionMessageQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
+ public:
+  struct Result {
+    FullMessageId full_message_id;
+    MessageId max_read_message_id;
+  };
+
+ private:
+  Promise<Result> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
 
  public:
-  explicit GetDiscussionMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetDiscussionMessageQuery(Promise<Result> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, MessageId message_id) {
@@ -424,9 +431,11 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive discussion message for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetDiscussionMessageQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
-    td->messages_manager_->on_get_discussion_message(dialog_id_, message_id_, std::move(ptr->message_),
-                                                     MessageId(ServerMessageId(ptr->read_max_id_)),
-                                                     std::move(promise_));
+    Result result;
+    result.full_message_id = td->messages_manager_->on_get_message(std::move(ptr->message_), false, true, false, false,
+                                                                   false, "GetDiscussionMessageQuery");
+    result.max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
+    promise_.set_value(std::move(result));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -15527,14 +15536,26 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
     return result;
   }
 
-  td_->create_handler<GetDiscussionMessageQuery>(std::move(promise))->send(dialog_id, message_id);
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
+                              promise = std::move(promise)](Result<GetDiscussionMessageQuery::Result> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &MessagesManager::on_get_discussion_message, dialog_id, message_id,
+                     result.ok().full_message_id, result.ok().max_read_message_id, std::move(promise));
+      });
+
+  td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))->send(dialog_id, message_id);
 
   return FullMessageId();
 }
 
-void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
-                                                tl_object_ptr<telegram_api::Message> &&message,
+void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id, FullMessageId full_message_id,
                                                 MessageId max_read_message_id, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   Dialog *d = get_dialog_force(dialog_id);
   CHECK(d != nullptr);
 
@@ -15550,8 +15571,6 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
     return promise.set_value(Unit());
   }
 
-  auto full_message_id =
-      on_get_message(std::move(message), false, true, false, false, false, "on_get_discussion_message");
   if (!full_message_id.get_message_id().is_valid()) {
     return promise.set_value(Unit());
   }
