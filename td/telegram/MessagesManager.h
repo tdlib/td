@@ -259,7 +259,7 @@ class MessagesManager : public Actor {
                                              vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_get_message_public_forwards(int64 random_id);
 
-  // if message is from_update, flags have_previous and have_next are ignored and should be both true
+  // if message is from_update, flags have_previous and have_next are ignored and must be both true
   FullMessageId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                bool is_channel_message, bool is_scheduled, bool have_previous, bool have_next,
                                const char *source);
@@ -553,6 +553,12 @@ class MessagesManager : public Actor {
   void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
 
   FullMessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
+
+  FullMessageId get_discussion_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
+
+  void on_get_discussion_message(DialogId dialog_id, MessageId message_id,
+                                 tl_object_ptr<telegram_api::Message> &&message, MessageId max_read_message_id,
+                                 Promise<Unit> &&promise);
 
   MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 
@@ -1037,6 +1043,7 @@ class MessagesManager : public Actor {
     int32 view_count = 0;
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
+    MessageId discussion_message_id;
 
     int32 legacy_layer = 0;
 

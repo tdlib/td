@@ -3523,8 +3523,11 @@ getMessage chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a message, if it is available locally without sending network request. This is an offline request @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message that is replied by given message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which get
+//@description Returns information about a message that is replied by given message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which to get
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
+
+//@description Returns information about a message that was automatically forwarded to a discussion supergroup from the given channel message @chat_id Chat identifier @message_id Identifier of the channel message
+getDiscussionMessage chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a pinned chat message @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;

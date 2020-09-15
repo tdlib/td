@@ -36,6 +36,7 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
     if (!channel_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << channel_id;
       channel_id = ChannelId();
+      is_comment = false;
     }
   }
 }

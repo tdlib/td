@@ -396,6 +396,45 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
   }
 };
 
+class GetDiscussionMessageQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit GetDiscussionMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getDiscussionMessage(std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getDiscussionMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive discussion message for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetDiscussionMessageQuery");
+    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
+    td->messages_manager_->on_get_discussion_message(dialog_id_, message_id_, std::move(ptr->message_),
+                                                     MessageId(ServerMessageId(ptr->read_max_id_)),
+                                                     std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6230,6 +6269,12 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       m->forward_count = forward_count;
     }
     if (need_update_reply_info) {
+      if (m->reply_info.channel_id != reply_info.channel_id) {
+        if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid()) {
+          LOG(ERROR) << "Reply info changed from " << m->reply_info << " to " << reply_info;
+        }
+        m->discussion_message_id = MessageId();
+      }
       m->reply_info = std::move(reply_info);
     }
     send_update_message_interaction_info(dialog_id, m);
@@ -15420,6 +15465,92 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   get_message_force_from_server(d, replied_message_id.get_message_id(), std::move(promise), std::move(input_message));
 
   return replied_message_id;
+}
+
+FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, MessageId message_id, bool force,
+                                                      Promise<Unit> &&promise) {
+  LOG(INFO) << "Get discussion message from " << message_id << " in " << dialog_id;
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(400, "Chat not found"));
+    return FullMessageId();
+  }
+  if (!is_broadcast_channel(dialog_id)) {
+    promise.set_error(Status::Error(400, "Chat is not a channel"));
+    return FullMessageId();
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(400, "Can't access the chat"));
+    return FullMessageId();
+  }
+  if (!message_id.is_valid_scheduled() && !message_id.is_valid()) {
+    promise.set_error(Status::Error(400, "Invalid message identifier"));
+    return FullMessageId();
+  }
+  if (message_id.is_scheduled()) {
+    promise.set_error(Status::Error(400, "Scheduled messages can't have comments"));
+    return FullMessageId();
+  }
+
+  auto m = get_message_force(d, message_id, "get_discussion_message");
+  if (m == nullptr) {
+    if (force) {
+      promise.set_value(Unit());
+    } else {
+      get_message_force_from_server(d, message_id, std::move(promise));
+    }
+    return FullMessageId();
+  }
+  if (!m->reply_info.is_comment) {
+    promise.set_error(Status::Error(400, "Message have no comments"));
+    return FullMessageId();
+  }
+  CHECK(m->reply_info.channel_id.is_valid());
+  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+    promise.set_value(Unit());
+    return FullMessageId();
+  }
+  if (m->discussion_message_id.is_valid()) {
+    promise.set_value(Unit());
+    FullMessageId result(DialogId(m->reply_info.channel_id), m->discussion_message_id);
+    m->discussion_message_id = MessageId();  // force server request each time
+    return result;
+  }
+
+  td_->create_handler<GetDiscussionMessageQuery>(std::move(promise))->send(dialog_id, message_id);
+
+  return FullMessageId();
+}
+
+void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
+                                                tl_object_ptr<telegram_api::Message> &&message,
+                                                MessageId max_read_message_id, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  CHECK(d != nullptr);
+
+  auto m = get_message_force(d, message_id, "on_get_discussion_message");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(500, "Message not found"));
+  }
+  if (!m->reply_info.is_comment) {
+    return promise.set_error(Status::Error(400, "Message have no comments"));
+  }
+  CHECK(m->reply_info.channel_id.is_valid());
+  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+    return promise.set_value(Unit());
+  }
+
+  auto full_message_id =
+      on_get_message(std::move(message), false, true, false, false, false, "on_get_discussion_message");
+  if (!full_message_id.get_message_id().is_valid()) {
+    return promise.set_value(Unit());
+  }
+  if (full_message_id.get_dialog_id() != DialogId(m->reply_info.channel_id)) {
+    return promise.set_error(Status::Error(500, "Expected message in a different chat"));
+  }
+
+  m->discussion_message_id = full_message_id.get_message_id();
+  promise.set_value(Unit());
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {

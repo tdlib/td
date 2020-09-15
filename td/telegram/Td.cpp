@@ -1050,6 +1050,28 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   }
 };
 
+class GetDiscussionMessageRequest : public RequestOnceActor {
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+  FullMessageId discussion_message_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    discussion_message_id_ =
+        td->messages_manager_->get_discussion_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_object(discussion_message_id_));
+  }
+
+ public:
+  GetDiscussionMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
+      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), message_id_(message_id) {
+    set_tries(3);  // 1 to get initial message, 1 to get the discussion message and 1 for result
+  }
+};
+
 class GetChatPinnedMessageRequest : public RequestOnceActor {
   DialogId dialog_id_;
 
@@ -5092,6 +5114,11 @@ void Td::on_request(uint64 id, const td_api::getMessageLocally &request) {
 
 void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
   CREATE_REQUEST(GetRepliedMessageRequest, request.chat_id_, request.message_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::getDiscussionMessage &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetDiscussionMessageRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatPinnedMessage &request) {
