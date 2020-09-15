@@ -643,8 +643,8 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-//@reply_count Number of times the message was directly or indirectly replied; supergroups and linked channels only
-//@recent_replier_user_ids User identifiers of the recent repliers to the message
+//@reply_count Number of times the message was directly or indirectly replied; discussion supergroups and discussed channels only
+//@recent_replier_user_ids User identifiers of the recent repliers to the channel post
 messageInteractionInfo view_count:int32 forward_count:int32 reply_count:int32 recent_replier_user_ids:vector<int32> = MessageInteractionInfo;
 
 

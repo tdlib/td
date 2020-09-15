@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -19,8 +20,10 @@ namespace td {
 struct MessageReplyInfo {
   int32 reply_count = -1;
   int32 pts = -1;
-  vector<DialogId> recent_replier_dialog_ids;
-  ChannelId channel_id;
+  vector<DialogId> recent_replier_dialog_ids;  // comments only
+  ChannelId channel_id;                        // comments only
+  MessageId max_message_id;                    // comments only
+  MessageId max_read_message_id;               // comments only
   bool is_comment = false;
 
   MessageReplyInfo() = default;
@@ -33,17 +36,23 @@ struct MessageReplyInfo {
 
   bool need_update_to(const MessageReplyInfo &other) const;
 
-  void add_reply(DialogId replier_dialog_id);
+  bool update_max_message_ids(const MessageReplyInfo &other);
+
+  void add_reply(DialogId replier_dialog_id, MessageId reply_message_id);
 
   template <class StorerT>
   void store(StorerT &storer) const {
     CHECK(!is_empty());
     bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
     bool has_channel_id = channel_id.is_valid();
+    bool has_max_message_id = max_message_id.is_valid();
+    bool has_max_read_message_id = max_read_message_id.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_comment);
     STORE_FLAG(has_recent_replier_dialog_ids);
     STORE_FLAG(has_channel_id);
+    STORE_FLAG(has_max_message_id);
+    STORE_FLAG(has_max_read_message_id);
     END_STORE_FLAGS();
     td::store(reply_count, storer);
     td::store(pts, storer);
@@ -53,16 +62,26 @@ struct MessageReplyInfo {
     if (has_channel_id) {
       td::store(channel_id, storer);
     }
+    if (has_max_message_id) {
+      td::store(max_message_id, storer);
+    }
+    if (has_max_read_message_id) {
+      td::store(max_read_message_id, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
-    bool has_channel_id = channel_id.is_valid();
+    bool has_recent_replier_dialog_ids;
+    bool has_channel_id;
+    bool has_max_message_id;
+    bool has_max_read_message_id;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_comment);
     PARSE_FLAG(has_recent_replier_dialog_ids);
     PARSE_FLAG(has_channel_id);
+    PARSE_FLAG(has_max_message_id);
+    PARSE_FLAG(has_max_read_message_id);
     END_PARSE_FLAGS();
     td::parse(reply_count, parser);
     td::parse(pts, parser);
@@ -71,6 +90,12 @@ struct MessageReplyInfo {
     }
     if (has_channel_id) {
       td::parse(channel_id, parser);
+    }
+    if (has_max_message_id) {
+      td::parse(max_message_id, parser);
+    }
+    if (has_max_read_message_id) {
+      td::parse(max_read_message_id, parser);
     }
   }
 };

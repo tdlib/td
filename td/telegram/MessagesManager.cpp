@@ -6258,6 +6258,16 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
                                                       MessageReplyInfo &&reply_info) {
   CHECK(m != nullptr);
   bool need_update_reply_info = has_reply_info && m->reply_info.need_update_to(reply_info);
+  if (has_reply_info && m->reply_info.channel_id == reply_info.channel_id) {
+    if (need_update_reply_info) {
+      reply_info.update_max_message_ids(m->reply_info);
+    } else {
+      if (m->reply_info.update_max_message_ids(reply_info) && view_count <= m->view_count &&
+          forward_count <= m->forward_count) {
+        on_message_changed(get_dialog(dialog_id), m, false, "update_message_interaction_info");
+      }
+    }
+  }
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info) {
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
                << '/' << m->forward_count << "/" << m->reply_info << " to " << view_count << '/' << forward_count << "/"
@@ -21249,7 +21259,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     add_dialog_and_dependencies(dependencies, m->forward_info->from_dialog_id);
   }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-    if (dialog_id.get_type() == DialogType::User) {
+    if (recent_replier_dialog_id.get_type() == DialogType::User) {
       dependencies.user_ids.insert(recent_replier_dialog_id.get_user_id());
     }
   }
@@ -29541,8 +29551,21 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if (from_update && message->top_reply_message_id.is_valid() && message->top_reply_message_id != message_id &&
+      message_id.is_server() &&
       have_message_force({dialog_id, message->top_reply_message_id}, "preload top reply message")) {
-    LOG(INFO) << "Preloaded top reply message pinned " << message->top_reply_message_id << " from database";
+    LOG(INFO) << "Preloaded top reply " << message->top_reply_message_id << " from database";
+
+    Message *top_m = get_message(d, message->top_reply_message_id);
+    CHECK(top_m != nullptr);
+    if (is_active_message_reply_info(dialog_id, top_m->reply_info) && !top_m->sender_user_id.is_valid() &&
+        top_m->forward_info != nullptr && top_m->forward_info->sender_dialog_id.is_valid() &&
+        top_m->forward_info->message_id.is_valid() &&
+        have_message_force({top_m->forward_info->sender_dialog_id, top_m->forward_info->message_id},
+                           "preload discussed message")) {
+      LOG(INFO) << "Preloaded discussed "
+                << FullMessageId{top_m->forward_info->sender_dialog_id, top_m->forward_info->message_id}
+                << " from database";
+    }
   }
 
   // there must be no two recursive calls to add_message_to_dialog
@@ -29891,13 +29914,26 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
 
-    if (!td_->auth_manager_->is_bot() && m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id) {
+    if (!td_->auth_manager_->is_bot() && m->top_reply_message_id.is_valid() && m->top_reply_message_id != message_id &&
+        message_id.is_server()) {
       Message *top_m = get_message(d, m->top_reply_message_id);
       if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
-        top_m->reply_info.add_reply(has_message_sender_user_id(dialog_id, m) ? DialogId(m->sender_user_id)
-                                                                             : m->sender_dialog_id);
+        auto replier_dialog_id =
+            has_message_sender_user_id(dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
+        top_m->reply_info.add_reply(replier_dialog_id, message_id);
         send_update_message_interaction_info(dialog_id, top_m);
-        on_message_changed(d, top_m, true, "update_message_reply_count");
+        on_message_changed(d, top_m, true, "update_message_reply_count 1");
+
+        if (!top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
+            top_m->forward_info->sender_dialog_id.is_valid() && top_m->forward_info->message_id.is_valid()) {
+          auto channel_dialog_id = top_m->forward_info->sender_dialog_id;
+          Message *channel_m = get_message({channel_dialog_id, top_m->forward_info->message_id});
+          if (channel_m != nullptr && is_active_message_reply_info(channel_dialog_id, channel_m->reply_info)) {
+            channel_m->reply_info.add_reply(replier_dialog_id, message_id);
+            send_update_message_interaction_info(channel_dialog_id, channel_m);
+            on_message_changed(get_dialog(channel_dialog_id), channel_m, true, "update_message_reply_count 2");
+          }
+        }
       }
     }
   }
@@ -29955,7 +29991,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info != nullptr && m->sender_user_id.is_valid() &&
+  if (!td_->auth_manager_->is_bot() && from_update && m->sender_user_id.is_valid() && m->forward_info != nullptr &&
       m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
     update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id);
   }
