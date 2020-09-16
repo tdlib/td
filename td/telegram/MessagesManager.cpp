@@ -6111,7 +6111,8 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
   if (m->reply_info.update_max_message_ids(max_message_id, max_read_message_id)) {
-    on_message_changed(d, m, false, "on_update_read_message_comments");
+    send_update_message_interaction_info(dialog_id, m);
+    on_message_changed(d, m, true, "on_update_read_message_comments");
   }
 }
 
@@ -6281,6 +6282,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   int32 reply_count = -1;
   vector<UserId> recent_replier_user_ids;
+  MessageId max_read_message_id;
   if (is_active_reply_info) {
     reply_count = m->reply_info.reply_count;
     for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
@@ -6288,11 +6290,13 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
         recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
       }
     }
+    max_read_message_id = m->reply_info.max_read_message_id;
   }
 
   return td_api::make_object<td_api::messageInteractionInfo>(
       m->view_count, m->forward_count, reply_count,
-      td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"));
+      td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"),
+      max_read_message_id.get());
 }
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
@@ -6306,7 +6310,8 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     } else {
       if (m->reply_info.update_max_message_ids(reply_info) && view_count <= m->view_count &&
           forward_count <= m->forward_count) {
-        on_message_changed(get_dialog(dialog_id), m, false, "update_message_interaction_info");
+        send_update_message_interaction_info(dialog_id, m);
+        on_message_changed(get_dialog(dialog_id), m, true, "update_message_interaction_info");
       }
     }
   }
