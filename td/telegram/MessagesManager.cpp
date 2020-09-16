@@ -399,7 +399,8 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
 class GetDiscussionMessageQuery : public Td::ResultHandler {
  public:
   struct Result {
-    FullMessageId full_message_id;
+    vector<FullMessageId> full_message_ids;
+    MessageId max_message_id;
     MessageId max_read_message_id;
   };
 
@@ -432,9 +433,19 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetDiscussionMessageQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
     Result result;
-    result.full_message_id = td->messages_manager_->on_get_message(std::move(ptr->message_), false, true, false, false,
-                                                                   false, "GetDiscussionMessageQuery");
-    result.max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
+    for (auto &message : ptr->messages_) {
+      auto full_message_id = td->messages_manager_->on_get_message(std::move(message), false, true, false, false, false,
+                                                                   "GetDiscussionMessageQuery");
+      if (full_message_id.get_message_id().is_valid()) {
+        result.full_message_ids.push_back(full_message_id);
+      }
+    }
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
+      result.max_message_id = MessageId(ServerMessageId(ptr->max_id_));
+    }
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_MAX_ID_MASK) != 0) {
+      result.max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
+    }
     promise_.set_value(std::move(result));
   }
 
@@ -640,8 +651,13 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
     ignore_result_ = ignore_result;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_exportMessageLink(
-        std::move(input_channel), message_id.get_server_message_id().get(), for_group)));
+    int32 flags = 0;
+    if (for_group) {
+      flags |= telegram_api::channels_exportMessageLink::GROUPED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_exportMessageLink(flags, false /*ignored*/, false /*ignored*/, std::move(input_channel),
+                                                 message_id.get_server_message_id().get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1344,6 +1360,7 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
       return on_error(id, Status::Error(500, "Wrong number of message views returned"));
     }
     td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
+    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetMessagesViewsQuery");
     for (size_t i = 0; i < message_ids_.size(); i++) {
       FullMessageId full_message_id{dialog_id_, message_ids_[i]};
 
@@ -15543,7 +15560,8 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
           return promise.set_error(result.move_as_error());
         }
         send_closure(actor_id, &MessagesManager::on_get_discussion_message, dialog_id, message_id,
-                     result.ok().full_message_id, result.ok().max_read_message_id, std::move(promise));
+                     std::move(result.ok_ref().full_message_ids), result.ok().max_message_id,
+                     result.ok().max_read_message_id, std::move(promise));
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))->send(dialog_id, message_id);
@@ -15551,7 +15569,8 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
   return FullMessageId();
 }
 
-void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id, FullMessageId full_message_id,
+void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
+                                                vector<FullMessageId> full_message_ids, MessageId max_message_id,
                                                 MessageId max_read_message_id, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
@@ -15571,9 +15590,10 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
     return promise.set_value(Unit());
   }
 
-  if (!full_message_id.get_message_id().is_valid()) {
+  if (full_message_ids.empty()) {
     return promise.set_value(Unit());
   }
+  auto full_message_id = full_message_ids.back();
   if (full_message_id.get_dialog_id() != DialogId(m->reply_info.channel_id)) {
     return promise.set_error(Status::Error(500, "Expected message in a different chat"));
   }

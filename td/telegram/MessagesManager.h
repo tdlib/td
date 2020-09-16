@@ -556,8 +556,8 @@ class MessagesManager : public Actor {
 
   FullMessageId get_discussion_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
-  void on_get_discussion_message(DialogId dialog_id, MessageId message_id, FullMessageId full_message_id,
-                                 MessageId max_read_message_id, Promise<Unit> &&promise);
+  void on_get_discussion_message(DialogId dialog_id, MessageId message_id, vector<FullMessageId> full_message_ids,
+                                 MessageId max_message_id, MessageId max_read_message_id, Promise<Unit> &&promise);
 
   MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 

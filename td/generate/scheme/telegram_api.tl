@@ -1149,11 +1149,11 @@ help.countriesList#87d0759e countries:Vector<help.Country> hash:int = help.Count
 
 messageViews#455b853d flags:# views:flags.0?int forwards:flags.1?int replies:flags.2?MessageReplies = MessageViews;
 
-messages.messageViews#2c3f2ae2 views:Vector<MessageViews> users:Vector<User> = messages.MessageViews;
+messages.messageViews#b6c4f543 views:Vector<MessageViews> chats:Vector<Chat> users:Vector<User> = messages.MessageViews;
 
 stats.messageStats#8999f295 views_graph:StatsGraph = stats.MessageStats;
 
-messages.discussionMessage#d25fad90 message:Message read_max_id:int chats:Vector<Chat> users:Vector<User> = messages.DiscussionMessage;
+messages.discussionMessage#6d64690e flags:# messages:Vector<Message> max_id:flags.0?int read_max_id:flags.1?int chats:Vector<Chat> users:Vector<User> = messages.DiscussionMessage;
 
 messageReplyHeader#a6d57763 flags:# reply_to_msg_id:int reply_to_peer_id:flags.0?Peer reply_to_top_id:flags.1?int = MessageReplyHeader;
 
@@ -1467,7 +1467,7 @@ channels.joinChannel#24b524c5 channel:InputChannel = Updates;
 channels.leaveChannel#f836aa95 channel:InputChannel = Updates;
 channels.inviteToChannel#199f3a6c channel:InputChannel users:Vector<InputUser> = Updates;
 channels.deleteChannel#c0111fe3 channel:InputChannel = Updates;
-channels.exportMessageLink#ceb77163 channel:InputChannel id:int grouped:Bool = ExportedMessageLink;
+channels.exportMessageLink#e63fadeb flags:# grouped:flags.0?true thread:flags.1?true channel:InputChannel id:int = ExportedMessageLink;
 channels.toggleSignatures#1f69b606 channel:InputChannel enabled:Bool = Updates;
 channels.getAdminedPublicChannels#f8b036af flags:# by_location:flags.0?true check_limit:flags.1?true = messages.Chats;
 channels.editBanned#72796912 channel:InputChannel user_id:InputUser banned_rights:ChatBannedRights = Updates;
