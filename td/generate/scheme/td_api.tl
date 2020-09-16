@@ -2730,7 +2730,7 @@ chatReportReasonUnrelatedLocation = ChatReportReason;
 chatReportReasonCustom text:string = ChatReportReason;
 
 
-//@description Contains a public HTTPS link to a message in a supergroup or channel with a username @link Message link @html HTML-code for embedding the message
+//@description Contains a public HTTPS link to a message in a supergroup or channel with a username @link Message link @html HTML-code for embedding the message; may be empty if unknown
 publicMessageLink link:string html:string = PublicMessageLink;
 
 //@description Contains information about a link to a message in a chat
@@ -3686,7 +3686,7 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@for_album Pass true to create a link for a whole media album
-//@for_comment Pass true to create a link to a message as a channel message comment
+//@for_comment Pass true to create a link to a message as a channel post comment. The channel or the discussion supergroup must have a username
 getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = PublicMessageLink;
 
 //@description Returns a private HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. The link will work only for members of the chat

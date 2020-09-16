@@ -12425,7 +12425,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
-  if (!td_->auth_manager_->is_bot() && !top_reply_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
+  if (!top_reply_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
       is_active_message_reply_info(dialog_id, reply_info)) {
     top_reply_message_id = message_id;
   }
@@ -15804,7 +15804,7 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
 }
 
 std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId full_message_id, bool for_group,
-                                                                   bool &for_comment, Promise<Unit> &&promise) {
+                                                                   bool for_comment, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -15815,10 +15815,9 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     promise.set_error(Status::Error(400, "Can't access the chat"));
     return {};
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
-    promise.set_error(Status::Error(
-        400, "Public message links are available only for messages in supergroups and channel chats with a username"));
+  if (dialog_id.get_type() != DialogType::Channel) {
+    promise.set_error(
+        Status::Error(400, "Public message links are available only for messages in supergroups and channel chats"));
     return {};
   }
 
@@ -15844,54 +15843,48 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     for_group = true;  // default is true
   }
 
-  string comment_link;
-  if (!m->top_reply_message_id.is_valid()) {
+  if (!m->top_reply_message_id.is_valid() || !m->top_reply_message_id.is_server()) {
     for_comment = false;
   }
   if (d->deleted_message_ids.count(m->top_reply_message_id) != 0) {
     for_comment = false;
   }
+  string comment_link;
   if (for_comment) {
-    CHECK(dialog_id.get_type() == DialogType::Channel);  // only channel messages can have top_reply_message_id
     auto *top_m = get_message_force(d, m->top_reply_message_id, "get_public_message_link");
     if (top_m == nullptr) {
       get_message_force_from_server(d, m->top_reply_message_id, std::move(promise));
       return {};
     }
-    if (top_m->sender_user_id.is_valid() || top_m->forward_info == nullptr ||
-        !top_m->forward_info->sender_dialog_id.is_valid() || !top_m->forward_info->message_id.is_valid() ||
-        DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id())) !=
+    if (!top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
+        top_m->forward_info->sender_dialog_id.is_valid() && top_m->forward_info->message_id.is_valid() &&
+        DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id())) ==
             top_m->forward_info->sender_dialog_id) {
-      for_comment = false;
-    } else {
       auto linked_dialog_id = top_m->forward_info->sender_dialog_id;
       auto linked_message_id = top_m->forward_info->message_id;
       auto linked_d = get_dialog(linked_dialog_id);
       CHECK(linked_d != nullptr);
       CHECK(linked_dialog_id.get_type() == DialogType::Channel);
-      if (!have_input_peer(linked_dialog_id, AccessRights::Read) ||
-          td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id()).empty() ||
-          linked_d->deleted_message_ids.count(linked_message_id) != 0) {
-        for_comment = false;
-      } else {
+      auto channel_username = td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id());
+      if (linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
+          !channel_username.empty() && linked_d->deleted_message_ids.count(linked_message_id) == 0) {
         auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
         if (linked_m == nullptr) {
           get_message_force_from_server(linked_d, linked_message_id, std::move(promise));
           return {};
         }
 
-        auto &links = public_message_links_[for_group][linked_dialog_id].links_;
-        auto it = links.find(linked_message_id);
-        if (it == links.end()) {
-          td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
-              ->send(linked_dialog_id.get_channel_id(), linked_message_id, for_group, false);
-          return {};
-        }
-
-        comment_link = PSTRING() << it->second.first << (it->second.first.find('?') == string::npos ? '?' : '&')
-                                 << "comment_id=" << m->message_id.get_server_message_id().get();
+        comment_link = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/")
+                                 << channel_username << '/' << linked_message_id.get_server_message_id().get()
+                                 << "?comment=" << m->message_id.get_server_message_id().get()
+                                 << (for_group ? "" : "&single");
       }
     }
+  }
+  if (comment_link.empty() && td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
+    promise.set_error(
+        Status::Error(400, "Public message links are available only for messages in chats with a username"));
+    return {};
   }
 
   auto &links = public_message_links_[for_group][dialog_id].links_;
@@ -15902,8 +15895,13 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
     return {};
   }
 
+  if (for_comment && comment_link.empty()) {
+    comment_link = PSTRING() << it->second.first << (it->second.first.find('?') == string::npos ? '?' : '&')
+                             << "thread=" << m->top_reply_message_id.get_server_message_id().get();
+  }
+
   promise.set_value(Unit());
-  if (for_comment) {
+  if (!comment_link.empty()) {
     return {std::move(comment_link), it->second.second};
   } else {
     return it->second;
@@ -30694,11 +30692,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   if (old_message->top_reply_message_id != new_message->top_reply_message_id) {
-    if (new_message->top_reply_message_id == MessageId()) {
-      LOG(DEBUG) << "Drop message top_reply_message_id";
-      old_message->reply_to_message_id = MessageId();
+    if (new_message->top_reply_message_id == MessageId() || old_message->top_reply_message_id == MessageId()) {
+      LOG(DEBUG) << "Change message top_reply_message_id";
+      old_message->top_reply_message_id = new_message->top_reply_message_id;
       need_send_update = true;
-    } else if (is_new_available && old_message->top_reply_message_id.is_valid()) {
+    } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed top message it is reply to from "
                  << old_message->top_reply_message_id << " to " << new_message->top_reply_message_id
                  << ", message content type is " << old_message->content->get_type() << '/'
@@ -33170,8 +33168,11 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 }
 
 void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, const Message *m) {
-  if (m->message_id.is_any_server() && dialog_id.get_type() != DialogType::SecretChat &&
-      (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER))) {
+  if (!m->message_id.is_any_server() || dialog_id.get_type() == DialogType::SecretChat) {
+    return;
+  }
+
+  if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER)) {
     FullMessageId full_message_id{dialog_id, m->message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
     get_message_from_server(full_message_id, Auto());
