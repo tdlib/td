@@ -334,6 +334,9 @@ class MessagesManager : public Actor {
   void on_update_read_channel_messages_contents(
       tl_object_ptr<telegram_api::updateChannelReadMessagesContents> &&update);
 
+  void on_update_read_message_comments(DialogId dialog_id, MessageId message_id, MessageId max_message_id,
+                                       MessageId max_read_message_id);
+
   void on_update_channel_too_long(tl_object_ptr<telegram_api::updateChannelTooLong> &&update, bool force_apply);
 
   void on_update_message_view_count(FullMessageId full_message_id, int32 view_count);
@@ -557,7 +560,7 @@ class MessagesManager : public Actor {
   FullMessageId get_discussion_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, vector<FullMessageId> full_message_ids,
-                                 MessageId max_message_id, MessageId max_read_message_id, Promise<Unit> &&promise);
+                                 Promise<Unit> &&promise);
 
   MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 

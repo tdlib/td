@@ -397,20 +397,13 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
 };
 
 class GetDiscussionMessageQuery : public Td::ResultHandler {
- public:
-  struct Result {
-    vector<FullMessageId> full_message_ids;
-    MessageId max_message_id;
-    MessageId max_read_message_id;
-  };
-
  private:
-  Promise<Result> promise_;
+  Promise<vector<FullMessageId>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
 
  public:
-  explicit GetDiscussionMessageQuery(Promise<Result> &&promise) : promise_(std::move(promise)) {
+  explicit GetDiscussionMessageQuery(Promise<vector<FullMessageId>> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, MessageId message_id) {
@@ -432,21 +425,27 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive discussion message for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetDiscussionMessageQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
-    Result result;
+
+    MessageId max_message_id;
+    MessageId max_read_message_id;
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
+      max_message_id = MessageId(ServerMessageId(ptr->max_id_));
+    }
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_MAX_ID_MASK) != 0) {
+      max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
+    }
+    td->messages_manager_->on_update_read_message_comments(dialog_id_, message_id_, max_message_id,
+                                                           max_read_message_id);
+
+    vector<FullMessageId> full_message_ids;
     for (auto &message : ptr->messages_) {
       auto full_message_id = td->messages_manager_->on_get_message(std::move(message), false, true, false, false, false,
                                                                    "GetDiscussionMessageQuery");
       if (full_message_id.get_message_id().is_valid()) {
-        result.full_message_ids.push_back(full_message_id);
+        full_message_ids.push_back(full_message_id);
       }
     }
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
-      result.max_message_id = MessageId(ServerMessageId(ptr->max_id_));
-    }
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_MAX_ID_MASK) != 0) {
-      result.max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
-    }
-    promise_.set_value(std::move(result));
+    promise_.set_value(std::move(full_message_ids));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -6096,6 +6095,23 @@ void MessagesManager::on_update_read_channel_messages_contents(
 
   for (auto &server_message_id : update->messages_) {
     read_channel_message_content_from_updates(d, MessageId(ServerMessageId(server_message_id)));
+  }
+}
+
+void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId message_id,
+                                                      MessageId max_message_id, MessageId max_read_message_id) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(INFO) << "Ignore update of read message comments in unknown " << dialog_id << " in updateReadDiscussion";
+    return;
+  }
+
+  auto m = get_message_force(d, message_id, "on_update_read_message_comments");
+  if (m == nullptr) {
+    return;
+  }
+  if (m->reply_info.update_max_message_ids(max_message_id, max_read_message_id)) {
+    on_message_changed(d, m, false, "on_update_read_message_comments");
   }
 }
 
@@ -15555,13 +15571,12 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
-                              promise = std::move(promise)](Result<GetDiscussionMessageQuery::Result> result) mutable {
+                              promise = std::move(promise)](Result<vector<FullMessageId>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
-        send_closure(actor_id, &MessagesManager::on_get_discussion_message, dialog_id, message_id,
-                     std::move(result.ok_ref().full_message_ids), result.ok().max_message_id,
-                     result.ok().max_read_message_id, std::move(promise));
+        send_closure(actor_id, &MessagesManager::on_get_discussion_message, dialog_id, message_id, result.move_as_ok(),
+                     std::move(promise));
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))->send(dialog_id, message_id);
@@ -15570,8 +15585,7 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
-                                                vector<FullMessageId> full_message_ids, MessageId max_message_id,
-                                                MessageId max_read_message_id, Promise<Unit> &&promise) {
+                                                vector<FullMessageId> full_message_ids, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }

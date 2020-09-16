@@ -58,17 +58,25 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
 }
 
 bool MessageReplyInfo::update_max_message_ids(const MessageReplyInfo &other) {
-  if (!is_comment || !other.is_comment) {
+  if (!other.is_comment) {
+    return false;
+  }
+
+  return update_max_message_ids(other.max_message_id, other.max_read_message_id);
+}
+
+bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id, MessageId other_max_read_message_id) {
+  if (!is_comment) {
     return false;
   }
 
   bool result = false;
-  if (other.max_message_id > max_message_id) {
-    max_message_id = other.max_message_id;
+  if (other_max_message_id > max_message_id) {
+    max_message_id = other_max_message_id;
     result = true;
   }
-  if (other.max_read_message_id > max_read_message_id) {
-    max_read_message_id = other.max_read_message_id;
+  if (other_max_read_message_id > max_read_message_id) {
+    max_read_message_id = other_max_read_message_id;
     result = true;
   }
   return result;

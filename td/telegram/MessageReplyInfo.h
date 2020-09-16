@@ -36,6 +36,8 @@ struct MessageReplyInfo {
 
   bool need_update_to(const MessageReplyInfo &other) const;
 
+  bool update_max_message_ids(MessageId other_max_message_id, MessageId other_max_read_message_id);
+
   bool update_max_message_ids(const MessageReplyInfo &other);
 
   void add_reply(DialogId replier_dialog_id, MessageId reply_message_id);

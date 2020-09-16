@@ -1664,6 +1664,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelReadMess
   td_->messages_manager_->on_update_read_channel_messages_contents(std::move(update));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadDiscussion> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_read_message_comments(DialogId(update->peer_),
+                                                          MessageId(ServerMessageId(update->msg_id_)), MessageId(),
+                                                          MessageId(ServerMessageId(update->read_max_id_)));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelTooLong> update, bool force_apply) {
   td_->messages_manager_->on_update_channel_too_long(std::move(update), force_apply);
 }
@@ -2198,9 +2204,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadDiscussion> update, bool /*force_apply*/) {
 }
 
 }  // namespace td
