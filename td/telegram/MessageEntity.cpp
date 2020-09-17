@@ -3873,10 +3873,10 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
-    if (!from_album && (send_date == 0 || send_date > 1579219200)) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " with content \""
-                 << debug_message_text << "\" -> \"" << message_text << "\" sent at " << send_date << " with entities "
-                 << format::as_array(debug_entities) << " -> " << format::as_array(entities);
+    if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
+                 << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
+                 << "\" with entities " << format::as_array(debug_entities) << " -> " << format::as_array(entities);
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();
