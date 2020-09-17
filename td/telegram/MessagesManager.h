@@ -579,7 +579,7 @@ class MessagesManager : public Actor {
 
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
-  string get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
+  string get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment, Promise<Unit> &&promise);
 
   struct MessageLinkInfo {
     string username;

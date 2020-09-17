@@ -15915,7 +15915,8 @@ void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, 
       std::move(url), std::move(html)};
 }
 
-string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
+string MessagesManager::get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment,
+                                         Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -15946,12 +15947,33 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, Promise<
     return {};
   }
 
+  if (m->media_album_id == 0) {
+    for_group = true;  // default is true
+  }
+
+  if (!m->top_reply_message_id.is_valid() || !m->top_reply_message_id.is_server()) {
+    for_comment = false;
+  }
+  if (d->deleted_message_ids.count(m->top_reply_message_id) != 0) {
+    for_comment = false;
+  }
+
   td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
-      ->send(dialog_id.get_channel_id(), m->message_id, false, true);
+      ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
 
   promise.set_value(Unit());
+
+  string args;
+  if (for_comment) {
+    args = PSTRING() << "?thread=" << m->top_reply_message_id.get_server_message_id().get();
+  }
+  if (!for_group) {
+    args += args.empty() ? '?' : '&';
+    args += "single";
+  }
+
   return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "c/"
-                   << dialog_id.get_channel_id().get() << "/" << m->message_id.get_server_message_id().get();
+                   << dialog_id.get_channel_id().get() << "/" << m->message_id.get_server_message_id().get() << args;
 }
 
 Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(Slice url) {

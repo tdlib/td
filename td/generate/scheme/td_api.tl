@@ -3685,14 +3685,16 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@description Returns a public HTTPS link to a message. Available only for messages in supergroups and channels with a username
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@for_album Pass true to create a link for a whole media album
-//@for_comment Pass true to create a link to a message as a channel post comment. The channel or the discussion supergroup must have a username
+//@for_album Pass true to create a link for the whole media album
+//@for_comment Pass true to create a link to the message as a channel post comment. The channel or the discussion supergroup must have a username
 getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = PublicMessageLink;
 
 //@description Returns a private HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. The link will work only for members of the chat
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-getMessageLink chat_id:int53 message_id:int53 = HttpUrl;
+//@for_album Pass true to create a link for the whole media album
+//@for_comment Pass true to create a link to the message as a channel post comment
+getMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = HttpUrl;
 
 //@description Returns information about a public or private message link @url The message link in the format "https://t.me/c/...", or "tg://privatepost?...", or "https://t.me/username/...", or "tg://resolve?..."
 getMessageLinkInfo url:string = MessageLinkInfo;
