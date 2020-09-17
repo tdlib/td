@@ -401,14 +401,19 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
   Promise<vector<FullMessageId>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
+  ChannelId expected_channel_id_;
 
  public:
   explicit GetDiscussionMessageQuery(Promise<vector<FullMessageId>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id) {
+  void send(DialogId dialog_id, MessageId message_id, ChannelId expected_channel_id) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
+    expected_channel_id_ = expected_channel_id;
+    if (!expected_channel_id_.is_valid()) {
+      return promise_.set_error(Status::Error(500, "Wrong message specified"));
+    }
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
@@ -443,13 +448,17 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
                                                                    "GetDiscussionMessageQuery");
       if (full_message_id.get_message_id().is_valid()) {
         full_message_ids.push_back(full_message_id);
+        if (full_message_id.get_dialog_id() != DialogId(expected_channel_id_)) {
+          return on_error(id, Status::Error(500, "Expected messages in a different chat"));
+        }
       }
     }
     promise_.set_value(std::move(full_message_ids));
   }
 
   void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
+    // because the error can be caused by the linked channel
+    // td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -15584,7 +15593,8 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
                      std::move(promise));
       });
 
-  td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))->send(dialog_id, message_id);
+  td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
+      ->send(dialog_id, message_id, m->reply_info.channel_id);
 
   return FullMessageId();
 }
