@@ -472,7 +472,8 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::gameHighScores> get_game_high_scores_object(int64 random_id);
 
-  void send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise);
+  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
+                          const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise);
 
   vector<DialogListId> get_dialog_lists_to_add_dialog(DialogId dialog_id);
 
@@ -2283,7 +2284,7 @@ class MessagesManager : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  bool is_dialog_action_unneded(DialogId dialog_id) const;
+  bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
 

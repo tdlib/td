@@ -5798,7 +5798,8 @@ void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
 
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->send_dialog_action(DialogId(request.chat_id_), std::move(request.action_), std::move(promise));
+  messages_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                        std::move(request.action_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request) {

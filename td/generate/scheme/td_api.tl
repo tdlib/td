@@ -3903,8 +3903,8 @@ getInlineGameHighScores inline_message_id:string user_id:int32 = GameHighScores;
 deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
 
 
-//@description Sends a notification about user activity in a chat @chat_id Chat identifier @action The action description
-sendChatAction chat_id:int53 action:ChatAction = Ok;
+//@description Sends a notification about user activity in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier of the action @action The action description
+sendChatAction chat_id:int53 message_thread_id:int53 action:ChatAction = Ok;
 
 
 //@description Informs TDLib that the chat is opened by the user. Many useful activities depend on the chat being opened or closed (e.g., in supergroups and channels all updates are received only for opened chats) @chat_id Chat identifier

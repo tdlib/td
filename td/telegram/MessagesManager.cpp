@@ -3247,14 +3247,17 @@ class SetTypingQuery : public Td::ResultHandler {
   explicit SetTypingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+  NetQueryRef send(DialogId dialog_id, MessageId message_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
-    auto net_query = G()->net_query_creator().create(
-        telegram_api::messages_setTyping(flags, std::move(input_peer), 0, std::move(action)));
+    if (message_id.is_valid()) {
+      flags |= telegram_api::messages_setTyping::TOP_MSG_ID_MASK;
+    }
+    auto net_query = G()->net_query_creator().create(telegram_api::messages_setTyping(
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), std::move(action)));
     auto result = net_query.get_weak();
     send_query(std::move(net_query));
     return result;
@@ -20952,6 +20955,12 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
+  if (reply_to_message_id.is_valid()) {
+    const Message *reply_m = get_message(d, reply_to_message_id);
+    if (reply_m != nullptr) {
+      m->top_reply_message_id = reply_m->top_reply_message_id;
+    }
+  }
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
@@ -24483,6 +24492,12 @@ Result<MessageId> MessagesManager::add_local_message(
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
+  if (m->reply_to_message_id.is_valid()) {
+    const Message *reply_m = get_message(d, m->reply_to_message_id);
+    if (reply_m != nullptr) {
+      m->top_reply_message_id = reply_m->top_reply_message_id;
+    }
+  }
   m->is_channel_post = is_channel_post;
   m->is_outgoing = dialog_id != DialogId(my_id) && sender_user_id == my_id;
   m->disable_notification = disable_notification;
@@ -27806,7 +27821,7 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
   return d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
 }
 
-bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
+bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
   if (is_anonymous_administrator(dialog_id)) {
     return true;
   }
@@ -27827,14 +27842,18 @@ bool MessagesManager::is_dialog_action_unneded(DialogId dialog_id) const {
   return false;
 }
 
-void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr<td_api::ChatAction> &action,
-                                         Promise<Unit> &&promise) {
+void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
+                                         const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise) {
   if (action == nullptr) {
     return promise.set_error(Status::Error(5, "Action must be non-empty"));
   }
 
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(5, "Chat not found"));
+  }
+  if (top_thread_message_id != MessageId() &&
+      (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server())) {
+    return promise.set_error(Status::Error(5, "Invalid message thread specified"));
   }
 
   auto can_send_status = can_send_message(dialog_id);
@@ -27845,7 +27864,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
     return promise.set_value(Unit());
   }
 
-  if (is_dialog_action_unneded(dialog_id)) {
+  if (is_dialog_action_unneeded(dialog_id)) {
     return promise.set_value(Unit());
   }
 
@@ -27959,7 +27978,8 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
     LOG(INFO) << "Cancel previous set typing query";
     cancel_query(query_ref);
   }
-  query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))->send(dialog_id, std::move(send_action));
+  query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
+                  ->send(dialog_id, top_thread_message_id, std::move(send_action));
 }
 
 void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
@@ -28035,7 +28055,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   }
   CHECK(action != nullptr);
   LOG(INFO) << "Send action in " << dialog_id << ": " << to_string(action);
-  send_dialog_action(dialog_id, std::move(action), Auto());
+  send_dialog_action(dialog_id, m->top_reply_message_id, std::move(action), Auto());
 }
 
 void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
@@ -29828,7 +29848,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
-      if (!td_->auth_manager_->is_bot() && !is_dialog_action_unneded(dialog_id)) {
+      if (!td_->auth_manager_->is_bot() && !is_dialog_action_unneeded(dialog_id)) {
         pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 1.0);
       }
     }

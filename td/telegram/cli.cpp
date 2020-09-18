@@ -2936,9 +2936,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), std::move(chat_ids)));
     } else if (op == "sca") {
       string chat_id;
+      string message_thread_id;
       string action;
-      std::tie(chat_id, action) = split(args);
-      send_request(td_api::make_object<td_api::sendChatAction>(as_chat_id(chat_id), get_chat_action(action)));
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_thread_id, action) = split(args);
+      send_request(td_api::make_object<td_api::sendChatAction>(
+          as_chat_id(chat_id), as_message_thread_id(message_thread_id), get_chat_action(action)));
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       const string &chat_id = args;
       for (int i = 1; i <= 200; i++) {
