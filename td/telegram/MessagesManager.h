@@ -588,6 +588,10 @@ class MessagesManager : public Actor {
 
     MessageId message_id;
     bool is_single = false;
+
+    DialogId comment_dialog_id;
+    MessageId comment_message_id;
+    bool for_comment = false;
   };
   void get_message_link_info(Slice url, Promise<MessageLinkInfo> &&promise);
 
@@ -2529,6 +2533,11 @@ class MessagesManager : public Actor {
   static Result<MessageLinkInfo> get_message_link_info(Slice url);
 
   void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
+
+  void on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id, Promise<MessageLinkInfo> &&promise);
+
+  void on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
+                                              Promise<MessageLinkInfo> &&promise);
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 

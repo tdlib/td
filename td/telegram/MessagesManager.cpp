@@ -15999,7 +15999,9 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
   Slice username;
   Slice channel_id_slice;
   Slice message_id_slice;
+  Slice comment_message_id_slice = "0";
   bool is_single = false;
+  bool for_comment = false;
   if (begins_with(url, "tg:")) {
     url = url.substr(3);
     if (begins_with(url, "//")) {
@@ -16048,6 +16050,12 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
       if (key_value.first == "single") {
         is_single = true;
       }
+      if (key_value.first == "comment") {
+        comment_message_id_slice = key_value.second;
+      }
+      if (key_value.first == "thread") {
+        for_comment = true;
+      }
     }
   } else {
     if (begins_with(url, "http://") || begins_with(url, "https://")) {
@@ -16088,7 +16096,21 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
 
         auto query_pos = url.find('?');
         message_id_slice = url.substr(0, query_pos);
-        is_single = query_pos != Slice::npos && url.substr(query_pos + 1) == "single";
+        if (query_pos != Slice::npos) {
+          auto args = full_split(url.substr(query_pos + 1), '&');
+          for (auto arg : args) {
+            auto key_value = split(arg, '=');
+            if (key_value.first == "single") {
+              is_single = true;
+            }
+            if (key_value.first == "comment") {
+              comment_message_id_slice = key_value.second;
+            }
+            if (key_value.first == "thread") {
+              for_comment = true;
+            }
+          }
+        }
         break;
       }
     }
@@ -16108,11 +16130,19 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
     return Status::Error("Wrong message ID");
   }
 
+  auto r_comment_message_id = to_integer_safe<int32>(comment_message_id_slice);
+  if (r_comment_message_id.is_error() ||
+      !(r_comment_message_id.ok() == 0 || ServerMessageId(r_comment_message_id.ok()).is_valid())) {
+    return Status::Error("Wrong comment message ID");
+  }
+
   MessageLinkInfo info;
   info.username = username.str();
   info.channel_id = channel_id;
   info.message_id = MessageId(ServerMessageId(r_message_id.ok()));
+  info.comment_message_id = MessageId(ServerMessageId(r_comment_message_id.ok()));
   info.is_single = is_single;
+  info.for_comment = for_comment;
   LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << "/" << channel_id.get();
   return std::move(info);
 }
@@ -16167,10 +16197,59 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise
     return promise.set_error(Status::Error(500, "Chat not found"));
   }
 
+  get_message_force_from_server(d, info.message_id,
+                                PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
+                                                        promise = std::move(promise)](Result<Unit> &&result) mutable {
+                                  if (result.is_error()) {
+                                    return promise.set_value(std::move(info));
+                                  }
+                                  send_closure(actor_id, &MessagesManager::on_get_message_link_message, std::move(info),
+                                               dialog_id, std::move(promise));
+                                }));
+}
+
+void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id,
+                                                  Promise<MessageLinkInfo> &&promise) {
+  Message *m = get_message_force({dialog_id, info.message_id}, "on_get_message_link_message");
+  if (info.comment_message_id == MessageId() || m == nullptr || !is_broadcast_channel(dialog_id) ||
+      !m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
+    return promise.set_value(std::move(info));
+  }
+
+  if (td_->contacts_manager_->have_channel_force(m->reply_info.channel_id)) {
+    force_create_dialog(DialogId(m->reply_info.channel_id), "on_get_message_link_message");
+    on_get_message_link_discussion_message(std::move(info), DialogId(m->reply_info.channel_id), std::move(promise));
+    return;
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info),
+                              promise = std::move(promise)](Result<vector<FullMessageId>> result) mutable {
+        if (result.is_error() || result.ok().empty()) {
+          return promise.set_value(std::move(info));
+        }
+        send_closure(actor_id, &MessagesManager::on_get_message_link_discussion_message, std::move(info),
+                     result.ok()[0].get_dialog_id(), std::move(promise));
+      });
+
+  td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
+      ->send(dialog_id, info.message_id, m->reply_info.channel_id);
+}
+
+void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
+                                                             Promise<MessageLinkInfo> &&promise) {
+  CHECK(comment_dialog_id.is_valid());
+  info.comment_dialog_id = comment_dialog_id;
+
+  Dialog *d = get_dialog_force(comment_dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(500, "Chat not found"));
+  }
+
   get_message_force_from_server(
-      d, info.message_id,
+      d, info.comment_message_id,
       PromiseCreator::lambda([info = std::move(info), promise = std::move(promise)](Result<Unit> &&result) mutable {
-        promise.set_value(std::move(info));
+        return promise.set_value(std::move(info));
       }));
 }
 
@@ -16179,22 +16258,28 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   CHECK(info.username.empty() == info.channel_id.is_valid());
 
   bool is_public = !info.username.empty();
-  DialogId dialog_id = is_public ? resolve_dialog_username(info.username) : DialogId(info.channel_id);
+  DialogId dialog_id = info.comment_dialog_id.is_valid()
+                           ? info.comment_dialog_id
+                           : (is_public ? resolve_dialog_username(info.username) : DialogId(info.channel_id));
+  MessageId message_id = info.comment_dialog_id.is_valid() ? info.comment_message_id : info.message_id;
   td_api::object_ptr<td_api::message> message;
   bool for_album = false;
+  bool for_comment = false;
 
   const Dialog *d = get_dialog(dialog_id);
   if (d == nullptr) {
     dialog_id = DialogId();
   } else {
-    const Message *m = get_message(d, info.message_id);
+    const Message *m = get_message(d, message_id);
     if (m != nullptr) {
       message = get_message_object(dialog_id, m);
       for_album = !info.is_single && m->media_album_id != 0;
+      for_comment = (info.comment_dialog_id.is_valid() || info.for_comment) && m->top_reply_message_id.is_valid();
     }
   }
 
-  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), for_album);
+  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), for_album,
+                                                      for_comment);
 }
 
 InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {

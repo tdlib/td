@@ -2738,7 +2738,8 @@ publicMessageLink link:string html:string = PublicMessageLink;
 //@chat_id If found, identifier of the chat to which the message belongs, 0 otherwise
 //@message If found, the linked message; may be null
 //@for_album True, if the whole media album to which the message belongs is linked
-messageLinkInfo is_public:Bool chat_id:int53 message:message for_album:Bool = MessageLinkInfo;
+//@for_comment True, if the message is linked as a channel post comment or from a message thread
+messageLinkInfo is_public:Bool chat_id:int53 message:message for_album:Bool for_comment:Bool = MessageLinkInfo;
 
 
 //@description Contains a part of a file @data File bytes
@@ -3686,14 +3687,14 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@for_album Pass true to create a link for the whole media album
-//@for_comment Pass true to create a link to the message as a channel post comment. The channel or the discussion supergroup must have a username
+//@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread. The channel or the discussion supergroup must have a username
 getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = PublicMessageLink;
 
 //@description Returns a private HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. The link will work only for members of the chat
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@for_album Pass true to create a link for the whole media album
-//@for_comment Pass true to create a link to the message as a channel post comment
+//@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread
 getMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = HttpUrl;
 
 //@description Returns information about a public or private message link @url The message link in the format "https://t.me/c/...", or "tg://privatepost?...", or "https://t.me/username/...", or "tg://resolve?..."
