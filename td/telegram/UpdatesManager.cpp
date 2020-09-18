@@ -1883,8 +1883,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
     return;
   }
-  td_->messages_manager_->on_user_dialog_action(
-      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
+                                                convert_send_message_action(std::move(update->action_)),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1898,8 +1899,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
     LOG(DEBUG) << "Ignore user chat typing in unknown " << dialog_id;
     return;
   }
-  td_->messages_manager_->on_user_dialog_action(
-      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
+                                                convert_send_message_action(std::move(update->action_)),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/) {
@@ -1921,11 +1923,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTypi
       return;
     }
   }
-  if (top_reply_message_id.is_valid()) {
-    return;
-  }
-  td_->messages_manager_->on_user_dialog_action(
-      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(dialog_id, top_reply_message_id, user_id,
+                                                convert_send_message_action(std::move(update->action_)),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1943,8 +1943,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
     return;
   }
 
-  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id, make_tl_object<td_api::chatActionTyping>(),
-                                                get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
+                                                make_tl_object<td_api::chatActionTyping>(), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {

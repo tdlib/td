@@ -364,7 +364,8 @@ class MessagesManager : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
-  void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action, int32 date,
+  void on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
+                             tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                              MessageContentType message_content_type = MessageContentType::None);
 
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
@@ -3017,13 +3018,14 @@ class MessagesManager : public Actor {
   std::unordered_map<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
 
   struct ActiveDialogAction {
+    MessageId top_thread_message_id;
     UserId user_id;
     int32 action_id;
     int32 progress;
     double start_time;
 
-    ActiveDialogAction(UserId user_id, int32 action_id, double start_time)
-        : user_id(user_id), action_id(action_id), start_time(start_time) {
+    ActiveDialogAction(MessageId top_thread_message_id, UserId user_id, int32 action_id, double start_time)
+        : top_thread_message_id(top_thread_message_id), user_id(user_id), action_id(action_id), start_time(start_time) {
     }
   };
 

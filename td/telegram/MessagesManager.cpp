@@ -6638,7 +6638,7 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageCon
   }
 }
 
-void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
+void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
                                             tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                                             MessageContentType message_content_type) {
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
@@ -6669,6 +6669,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
     }
 
     LOG(DEBUG) << "Cancel action of " << user_id << " in " << dialog_id;
+    top_thread_message_id = it->top_thread_message_id;
     active_actions.erase(it);
     if (active_actions.empty()) {
       active_dialog_actions_.erase(dialog_id);
@@ -6686,10 +6687,12 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
     auto &active_actions = active_dialog_actions_[dialog_id];
     auto it = std::find_if(active_actions.begin(), active_actions.end(),
                            [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
+    MessageId prev_top_thread_message_id;
     int32 prev_action_id = 0;
     int32 prev_progress = 0;
     if (it != active_actions.end()) {
       LOG(DEBUG) << "Re-add action of " << user_id << " in " << dialog_id;
+      prev_top_thread_message_id = it->top_thread_message_id;
       prev_action_id = it->action_id;
       prev_progress = it->progress;
       active_actions.erase(it);
@@ -6714,9 +6717,17 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
           return 0;
       }
     }();
-    active_actions.emplace_back(user_id, action_id, Time::now());
-    if (action_id == prev_action_id && progress <= prev_progress) {
+    active_actions.emplace_back(top_thread_message_id, user_id, action_id, Time::now());
+    if (top_thread_message_id == prev_top_thread_message_id && action_id == prev_action_id &&
+        progress <= prev_progress) {
       return;
+    }
+    if (top_thread_message_id != prev_top_thread_message_id) {
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateUserChatAction>(
+                       dialog_id.get(), prev_top_thread_message_id.get(),
+                       td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
+                       make_tl_object<td_api::chatActionCancel>()));
     }
     if (active_actions.size() == 1u) {
       LOG(DEBUG) << "Set action timeout in " << dialog_id;
@@ -6727,8 +6738,8 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
   LOG(DEBUG) << "Send action of " << user_id << " in " << dialog_id << ": " << to_string(action);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateUserChatAction>(
-                   dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
-                   std::move(action)));
+                   dialog_id.get(), top_thread_message_id.get(),
+                   td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"), std::move(action)));
 }
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
@@ -6738,7 +6749,7 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
     return;
   }
 
-  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->date, m->content->get_type());
+  on_user_dialog_action(dialog_id, MessageId(), m->sender_user_id, nullptr, m->date, m->content->get_type());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -28068,7 +28079,8 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
 
   auto now = Time::now();
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
-    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr, 0);
+    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
+                          nullptr, 0);
 
     actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -28087,7 +28099,8 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   auto actions_it = active_dialog_actions_.find(dialog_id);
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
-    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr, 0);
+    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
+                          nullptr, 0);
     actions_it = active_dialog_actions_.find(dialog_id);
   }
 }

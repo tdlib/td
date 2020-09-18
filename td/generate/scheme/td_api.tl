@@ -3209,8 +3209,8 @@ updateHavePendingNotifications have_delayed_notifications:Bool have_unreceived_n
 //@from_cache True, if the messages are deleted only from the cache and can possibly be retrieved again in the future
 updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool from_cache:Bool = Update;
 
-//@description User activity in the chat has changed @chat_id Chat identifier @user_id Identifier of a user performing an action @action The action description
-updateUserChatAction chat_id:int53 user_id:int32 action:ChatAction = Update;
+//@description User activity in the chat has changed @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the action was performed @user_id Identifier of a user performing an action @action The action description
+updateUserChatAction chat_id:int53 message_thread_id:int53 user_id:int32 action:ChatAction = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int32 status:UserStatus = Update;
@@ -3903,7 +3903,7 @@ getInlineGameHighScores inline_message_id:string user_id:int32 = GameHighScores;
 deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
 
 
-//@description Sends a notification about user activity in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier of the action @action The action description
+//@description Sends a notification about user activity in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the action was performed @action The action description
 sendChatAction chat_id:int53 message_thread_id:int53 action:ChatAction = Ok;
 
 
