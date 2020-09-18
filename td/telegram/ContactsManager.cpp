@@ -359,10 +359,11 @@ class SetUserIsBlockedQuery : public Td::ResultHandler {
 
   void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_blocked) {
     user_id_ = user_id;
+    auto input_peer = td->contacts_manager_->get_input_peer_user(user_id, AccessRights::Read);
     if (is_blocked) {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_user))));
+      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer))));
     } else {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_user))));
+      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer))));
     }
   }
 
@@ -4723,16 +4724,20 @@ int64 ContactsManager::get_blocked_users(int32 offset, int32 limit, Promise<Unit
 }
 
 void ContactsManager::on_get_blocked_users_result(int32 offset, int32 limit, int64 random_id, int32 total_count,
-                                                  vector<tl_object_ptr<telegram_api::contactBlocked>> &&blocked_users) {
-  LOG(INFO) << "Receive " << blocked_users.size() << " blocked users out of " << total_count;
+                                                  vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers) {
+  LOG(INFO) << "Receive " << blocked_peers.size() << " blocked users out of " << total_count;
   auto it = found_blocked_users_.find(random_id);
   CHECK(it != found_blocked_users_.end());
 
   auto &result = it->second.second;
   CHECK(result.empty());
-  for (auto &blocked_user : blocked_users) {
-    CHECK(blocked_user != nullptr);
-    UserId user_id(blocked_user->user_id_);
+  for (auto &blocked_peer : blocked_peers) {
+    CHECK(blocked_peer != nullptr);
+    DialogId dialog_id(blocked_peer->peer_id_);
+    if (dialog_id.get_type() != DialogType::User) {
+      continue;
+    }
+    auto user_id = dialog_id.get_user_id();
     if (have_user(user_id)) {
       result.push_back(user_id);
     } else {

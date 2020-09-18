@@ -296,7 +296,7 @@ class ContactsManager : public Actor {
   int64 get_blocked_users(int32 offset, int32 limit, Promise<Unit> &&promise);
 
   void on_get_blocked_users_result(int32 offset, int32 limit, int64 random_id, int32 total_count,
-                                   vector<tl_object_ptr<telegram_api::contactBlocked>> &&blocked_users);
+                                   vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers);
 
   void on_failed_get_blocked_users(int64 random_id);
 

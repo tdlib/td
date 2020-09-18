@@ -218,13 +218,15 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserName> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserPhone> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, bool /*force_apply*/);
-  void on_update(tl_object_ptr<telegram_api::updateUserBlocked> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdd> update, bool /*force_apply*/);
@@ -248,6 +250,9 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/);
@@ -318,8 +323,6 @@ class UpdatesManager : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/);
-
-  void on_update(tl_object_ptr<telegram_api::updateReadDiscussion> update, bool /*force_apply*/);
 };
 
 }  // namespace td

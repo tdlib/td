@@ -23,7 +23,8 @@ struct MessageReplyInfo {
   vector<DialogId> recent_replier_dialog_ids;  // comments only
   ChannelId channel_id;                        // comments only
   MessageId max_message_id;                    // comments only
-  MessageId max_read_message_id;               // comments only
+  MessageId last_read_inbox_message_id;        // comments only
+  MessageId last_read_outbox_message_id;       // comments only
   bool is_comment = false;
 
   MessageReplyInfo() = default;
@@ -36,7 +37,8 @@ struct MessageReplyInfo {
 
   bool need_update_to(const MessageReplyInfo &other) const;
 
-  bool update_max_message_ids(MessageId other_max_message_id, MessageId other_max_read_message_id);
+  bool update_max_message_ids(MessageId other_max_message_id, MessageId other_last_read_inbox_message_id,
+                              MessageId other_last_read_outbox_message_id);
 
   bool update_max_message_ids(const MessageReplyInfo &other);
 
@@ -48,13 +50,15 @@ struct MessageReplyInfo {
     bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
     bool has_channel_id = channel_id.is_valid();
     bool has_max_message_id = max_message_id.is_valid();
-    bool has_max_read_message_id = max_read_message_id.is_valid();
+    bool has_last_read_inbox_message_id = last_read_inbox_message_id.is_valid();
+    bool has_last_read_outbox_message_id = last_read_outbox_message_id.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_comment);
     STORE_FLAG(has_recent_replier_dialog_ids);
     STORE_FLAG(has_channel_id);
     STORE_FLAG(has_max_message_id);
-    STORE_FLAG(has_max_read_message_id);
+    STORE_FLAG(has_last_read_inbox_message_id);
+    STORE_FLAG(has_last_read_outbox_message_id);
     END_STORE_FLAGS();
     td::store(reply_count, storer);
     td::store(pts, storer);
@@ -67,8 +71,11 @@ struct MessageReplyInfo {
     if (has_max_message_id) {
       td::store(max_message_id, storer);
     }
-    if (has_max_read_message_id) {
-      td::store(max_read_message_id, storer);
+    if (has_last_read_inbox_message_id) {
+      td::store(last_read_inbox_message_id, storer);
+    }
+    if (has_last_read_outbox_message_id) {
+      td::store(last_read_outbox_message_id, storer);
     }
   }
 
@@ -77,13 +84,15 @@ struct MessageReplyInfo {
     bool has_recent_replier_dialog_ids;
     bool has_channel_id;
     bool has_max_message_id;
-    bool has_max_read_message_id;
+    bool has_last_read_inbox_message_id;
+    bool has_last_read_outbox_message_id;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_comment);
     PARSE_FLAG(has_recent_replier_dialog_ids);
     PARSE_FLAG(has_channel_id);
     PARSE_FLAG(has_max_message_id);
-    PARSE_FLAG(has_max_read_message_id);
+    PARSE_FLAG(has_last_read_inbox_message_id);
+    PARSE_FLAG(has_last_read_outbox_message_id);
     END_PARSE_FLAGS();
     td::parse(reply_count, parser);
     td::parse(pts, parser);
@@ -96,8 +105,11 @@ struct MessageReplyInfo {
     if (has_max_message_id) {
       td::parse(max_message_id, parser);
     }
-    if (has_max_read_message_id) {
-      td::parse(max_read_message_id, parser);
+    if (has_last_read_inbox_message_id) {
+      td::parse(last_read_inbox_message_id, parser);
+    }
+    if (has_last_read_outbox_message_id) {
+      td::parse(last_read_outbox_message_id, parser);
     }
   }
 };

@@ -41,11 +41,13 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
         LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
       }
     }
-    if ((reply_info->flags_ & telegram_api::messageReplies::MAX_ID_MASK) != 0 && reply_info->max_id_ > 0) {
+    if ((reply_info->flags_ & telegram_api::messageReplies::MAX_ID_MASK) != 0 &&
+        ServerMessageId(reply_info->max_id_).is_valid()) {
       max_message_id = MessageId(ServerMessageId(reply_info->max_id_));
     }
-    if ((reply_info->flags_ & telegram_api::messageReplies::READ_MAX_ID_MASK) != 0 && reply_info->read_max_id_ > 0) {
-      max_read_message_id = MessageId(ServerMessageId(reply_info->read_max_id_));
+    if ((reply_info->flags_ & telegram_api::messageReplies::READ_MAX_ID_MASK) != 0 &&
+        ServerMessageId(reply_info->read_max_id_).is_valid()) {
+      last_read_inbox_message_id = MessageId(ServerMessageId(reply_info->read_max_id_));
     }
   }
 }
@@ -62,10 +64,13 @@ bool MessageReplyInfo::update_max_message_ids(const MessageReplyInfo &other) {
     return false;
   }
 
-  return update_max_message_ids(other.max_message_id, other.max_read_message_id);
+  return update_max_message_ids(other.max_message_id, other.last_read_inbox_message_id,
+                                other.last_read_outbox_message_id);
 }
 
-bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id, MessageId other_max_read_message_id) {
+bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
+                                              MessageId other_last_read_inbox_message_id,
+                                              MessageId other_last_read_outbox_message_id) {
   if (!is_comment) {
     return false;
   }
@@ -75,8 +80,12 @@ bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id, Me
     max_message_id = other_max_message_id;
     result = true;
   }
-  if (other_max_read_message_id > max_read_message_id) {
-    max_read_message_id = other_max_read_message_id;
+  if (other_last_read_inbox_message_id > last_read_inbox_message_id) {
+    last_read_inbox_message_id = other_last_read_inbox_message_id;
+    result = true;
+  }
+  if (other_last_read_outbox_message_id > last_read_outbox_message_id) {
+    last_read_outbox_message_id = other_last_read_outbox_message_id;
     result = true;
   }
   return result;
@@ -103,7 +112,8 @@ void MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {
   if (reply_info.is_comment) {
     return string_builder << reply_info.reply_count << " comments in " << reply_info.channel_id << " by "
-                          << reply_info.recent_replier_dialog_ids << " read up to " << reply_info.max_read_message_id;
+                          << reply_info.recent_replier_dialog_ids << " read up to "
+                          << reply_info.last_read_inbox_message_id << "/" << reply_info.last_read_outbox_message_id;
   } else {
     return string_builder << reply_info.reply_count << " replies";
   }

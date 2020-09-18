@@ -432,15 +432,19 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
 
     MessageId max_message_id;
-    MessageId max_read_message_id;
+    MessageId last_read_inbox_message_id;
+    MessageId last_read_outbox_message_id;
     if ((ptr->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
       max_message_id = MessageId(ServerMessageId(ptr->max_id_));
     }
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_MAX_ID_MASK) != 0) {
-      max_read_message_id = MessageId(ServerMessageId(ptr->read_max_id_));
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_INBOX_MAX_ID_MASK) != 0) {
+      last_read_inbox_message_id = MessageId(ServerMessageId(ptr->read_inbox_max_id_));
+    }
+    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_OUTBOX_MAX_ID_MASK) != 0) {
+      last_read_outbox_message_id = MessageId(ServerMessageId(ptr->read_outbox_max_id_));
     }
     td->messages_manager_->on_update_read_message_comments(dialog_id_, message_id_, max_message_id,
-                                                           max_read_message_id);
+                                                           last_read_inbox_message_id, last_read_outbox_message_id);
 
     vector<FullMessageId> full_message_ids;
     for (auto &message : ptr->messages_) {
@@ -3248,8 +3252,9 @@ class SetTypingQuery : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    auto net_query =
-        G()->net_query_creator().create(telegram_api::messages_setTyping(std::move(input_peer), std::move(action)));
+    int32 flags = 0;
+    auto net_query = G()->net_query_creator().create(
+        telegram_api::messages_setTyping(flags, std::move(input_peer), 0, std::move(action)));
     auto result = net_query.get_weak();
     send_query(std::move(net_query));
     return result;
@@ -6108,7 +6113,8 @@ void MessagesManager::on_update_read_channel_messages_contents(
 }
 
 void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId message_id,
-                                                      MessageId max_message_id, MessageId max_read_message_id) {
+                                                      MessageId max_message_id, MessageId last_read_inbox_message_id,
+                                                      MessageId last_read_outbox_message_id) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(INFO) << "Ignore update of read message comments in unknown " << dialog_id << " in updateReadDiscussion";
@@ -6119,7 +6125,7 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   if (m == nullptr) {
     return;
   }
-  if (m->reply_info.update_max_message_ids(max_message_id, max_read_message_id)) {
+  if (m->reply_info.update_max_message_ids(max_message_id, last_read_inbox_message_id, last_read_outbox_message_id)) {
     send_update_message_interaction_info(dialog_id, m);
     on_message_changed(d, m, true, "on_update_read_message_comments");
   }
@@ -6291,7 +6297,8 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   int32 reply_count = -1;
   vector<UserId> recent_replier_user_ids;
-  MessageId max_read_message_id;
+  MessageId last_read_inbox_message_id;
+  MessageId last_read_outbox_message_id;
   if (is_active_reply_info) {
     reply_count = m->reply_info.reply_count;
     for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
@@ -6299,13 +6306,14 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
         recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
       }
     }
-    max_read_message_id = m->reply_info.max_read_message_id;
+    last_read_inbox_message_id = m->reply_info.last_read_inbox_message_id;
+    last_read_outbox_message_id = m->reply_info.last_read_outbox_message_id;
   }
 
   return td_api::make_object<td_api::messageInteractionInfo>(
       m->view_count, m->forward_count, reply_count,
       td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"),
-      max_read_message_id.get());
+      last_read_inbox_message_id.get(), last_read_outbox_message_id.get());
 }
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
