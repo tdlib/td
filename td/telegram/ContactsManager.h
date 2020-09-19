@@ -863,6 +863,7 @@ class ContactsManager : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
+    bool is_blocked = false;
 
     bool is_slow_mode_next_send_date_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -1040,6 +1041,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 19;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 20;
+  static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;

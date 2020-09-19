@@ -3806,6 +3806,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_photo);
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
+  STORE_FLAG(is_blocked);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3899,6 +3900,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_photo);
   PARSE_FLAG(is_can_view_statistics_inited);
   PARSE_FLAG(can_view_statistics);
+  PARSE_FLAG(is_blocked);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -9603,6 +9605,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
+    auto is_blocked = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id =
@@ -9626,7 +9629,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
         channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
         channel->stats_dc_id != stats_dc_id || channel->sticker_set_id != sticker_set_id ||
-        channel->is_all_history_available != is_all_history_available) {
+        channel->is_all_history_available != is_all_history_available || channel->is_blocked != is_blocked) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -9640,6 +9643,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->stats_dc_id = stats_dc_id;
       channel->is_all_history_available = is_all_history_available;
       channel->sticker_set_id = sticker_set_id;
+      channel->is_blocked = is_blocked;
 
       channel->is_changed = true;
 
