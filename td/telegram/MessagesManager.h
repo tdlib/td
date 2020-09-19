@@ -537,19 +537,19 @@ class MessagesManager : public Actor {
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
 
-  vector<DialogId> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit, bool force,
-                               Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit,
+                                                 bool force, Promise<Unit> &&promise);
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
-  std::pair<size_t, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
 
   vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
 
   void drop_common_dialogs_cache(UserId user_id);
 
-  vector<DialogId> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
-                                      Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit,
+                                                        bool force, Promise<Unit> &&promise);
 
   bool can_get_message_statistics(FullMessageId full_message_id);
 
@@ -667,7 +667,9 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::chat> get_chat_object(DialogId dialog_id) const;
 
-  static tl_object_ptr<td_api::chats> get_chats_object(const vector<DialogId> &dialogs);
+  static tl_object_ptr<td_api::chats> get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids);
+
+  static tl_object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids);
 
   tl_object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id) const;
 
@@ -2983,6 +2985,7 @@ class MessagesManager : public Actor {
   struct CommonDialogs {
     vector<DialogId> dialog_ids;
     double received_date = 0;
+    int32 total_count = 0;
     bool is_outdated = false;
   };
   std::unordered_map<UserId, CommonDialogs, UserIdHash> found_common_dialogs_;

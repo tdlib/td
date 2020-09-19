@@ -14464,15 +14464,14 @@ void MessagesManager::on_load_recommended_dialog_filters(
   promise.set_value(td_api::make_object<td_api::recommendedChatFilters>(std::move(chat_filters)));
 }
 
-vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit, bool force,
-                                              Promise<Unit> &&promise) {
+std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dialog_list_id, DialogDate offset,
+                                                                int32 limit, bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
-  vector<DialogId> result;
   auto *list_ptr = get_dialog_list(dialog_list_id);
   if (list_ptr == nullptr) {
     promise.set_error(Status::Error(3, "Chat list not found"));
-    return result;
+    return {};
   }
   auto &list = *list_ptr;
 
@@ -14483,13 +14482,14 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
 
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit in getChats must be positive"));
-    return result;
+    return {};
   }
 
   if (limit > MAX_GET_DIALOGS + 2) {
     limit = MAX_GET_DIALOGS + 2;
   }
 
+  vector<DialogId> result;
   if (dialog_list_id == DialogListId(FolderId::main()) && sponsored_dialog_id_.is_valid()) {
     auto d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
@@ -14506,18 +14506,19 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
   if (!list.are_pinned_dialogs_inited_) {
     if (limit == 0 || force) {
       promise.set_value(Unit());
+      return {get_dialog_total_count(list), std::move(result)};
     } else {
       if (dialog_list_id.is_folder()) {
         auto &folder = *get_dialog_folder(dialog_list_id.get_folder_id());
         if (folder.last_loaded_database_dialog_date_ == folder.last_database_server_dialog_date_ &&
             folder.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
           load_dialog_list(list, limit, std::move(promise));
-          return result;
+          return {};
         }
       }
       reload_pinned_dialogs(dialog_list_id, std::move(promise));
+      return {};
     }
-    return result;
   }
   if (dialog_list_id.is_filter()) {
     auto *filter = get_dialog_filter(dialog_list_id.get_filter_id());
@@ -14539,10 +14540,11 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     if (!input_dialog_ids.empty()) {
       if (limit == 0 || force) {
         promise.set_value(Unit());
+        return {get_dialog_total_count(list), std::move(result)};
       } else {
         td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
+        return {};
       }
-      return result;
     }
   }
 
@@ -14614,10 +14616,11 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
 
     promise.set_value(Unit());
+    return {get_dialog_total_count(list), std::move(result)};
   } else {
     load_dialog_list(list, limit, std::move(promise));
+    return {};
   }
-  return result;
 }
 
 void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Unit> &&promise) {
@@ -15161,7 +15164,7 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
   }
 
   send_search_public_dialogs_query(query, std::move(promise));
-  return vector<DialogId>();
+  return {};
 }
 
 void MessagesManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
@@ -15175,8 +15178,8 @@ void MessagesManager::send_search_public_dialogs_query(const string &query, Prom
   td_->create_handler<SearchPublicDialogsQuery>()->send(query);
 }
 
-std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
-                                                                    Promise<Unit> &&promise) {
+std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
+                                                                   Promise<Unit> &&promise) {
   LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
   CHECK(!td_->auth_manager_->is_bot());
 
@@ -15191,7 +15194,7 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 
     promise.set_value(Unit());
     size_t result_size = min(static_cast<size_t>(limit), recently_found_dialog_ids_.size());
-    return {recently_found_dialog_ids_.size(),
+    return {narrow_cast<int32>(recently_found_dialog_ids_.size()),
             vector<DialogId>(recently_found_dialog_ids_.begin(), recently_found_dialog_ids_.begin() + result_size)};
   }
 
@@ -15203,7 +15206,7 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
   }
 
   promise.set_value(Unit());
-  return {result.first, std::move(dialog_ids)};
+  return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
 }
 
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
@@ -15254,7 +15257,7 @@ vector<DialogId> MessagesManager::search_dialogs_on_server(const string &query, 
   }
 
   send_search_public_dialogs_query(query, std::move(promise));
-  return vector<DialogId>();
+  return {};
 }
 
 void MessagesManager::drop_common_dialogs_cache(UserId user_id) {
@@ -15264,20 +15267,21 @@ void MessagesManager::drop_common_dialogs_cache(UserId user_id) {
   }
 }
 
-vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
-                                                     Promise<Unit> &&promise) {
+std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId user_id, DialogId offset_dialog_id,
+                                                                       int32 limit, bool force,
+                                                                       Promise<Unit> &&promise) {
   if (!td_->contacts_manager_->have_input_user(user_id)) {
     promise.set_error(Status::Error(6, "Have no access to the user"));
-    return vector<DialogId>();
+    return {};
   }
 
   if (user_id == td_->contacts_manager_->get_my_id()) {
     promise.set_error(Status::Error(6, "Can't get common chats with self"));
-    return vector<DialogId>();
+    return {};
   }
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit must be positive"));
-    return vector<DialogId>();
+    return {};
   }
   if (limit > MAX_GET_DIALOGS) {
     limit = MAX_GET_DIALOGS;
@@ -15299,7 +15303,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
     case DialogType::User:
     case DialogType::SecretChat:
       promise.set_error(Status::Error(6, "Wrong offset_chat_id"));
-      return vector<DialogId>();
+      return {};
     default:
       UNREACHABLE();
       break;
@@ -15307,6 +15311,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
 
   auto it = found_common_dialogs_.find(user_id);
   if (it != found_common_dialogs_.end() && !it->second.dialog_ids.empty()) {
+    int32 total_count = it->second.total_count;
     vector<DialogId> &common_dialog_ids = it->second.dialog_ids;
     bool use_cache = (!it->second.is_outdated && it->second.received_date >= Time::now() - 3600) || force ||
                      offset_chat_id != 0 || common_dialog_ids.size() >= static_cast<size_t>(MAX_GET_DIALOGS);
@@ -15317,7 +15322,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
         offset_it = std::find(common_dialog_ids.begin(), common_dialog_ids.end(), offset_dialog_id);
         if (offset_it == common_dialog_ids.end()) {
           promise.set_error(Status::Error(6, "Wrong offset_chat_id"));
-          return vector<DialogId>();
+          return {};
         }
         ++offset_it;
       }
@@ -15329,19 +15334,19 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
         auto dialog_id = *offset_it++;
         if (dialog_id == DialogId()) {  // end of the list
           promise.set_value(Unit());
-          return result;
+          return {total_count, std::move(result)};
         }
         result.push_back(dialog_id);
       }
       if (result.size() == static_cast<size_t>(limit) || force) {
         promise.set_value(Unit());
-        return result;
+        return {total_count, std::move(result)};
       }
     }
   }
 
   td_->create_handler<GetCommonDialogsQuery>(std::move(promise))->send(user_id, offset_chat_id, MAX_GET_DIALOGS);
-  return vector<DialogId>();
+  return {};
 }
 
 void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id,
@@ -15428,8 +15433,16 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
     }
   }
   if (result.size() >= static_cast<size_t>(total_count) || is_last) {
+    if (result.size() != static_cast<size_t>(total_count)) {
+      LOG(ERROR) << "Fix total count of common groups with " << user_id << " from " << total_count << " to "
+                 << result.size();
+      total_count = narrow_cast<int32>(result.size());
+      td_->contacts_manager_->on_update_user_common_chat_count(user_id, total_count);
+    }
+
     result.push_back(DialogId());
   }
+  common_dialogs.total_count = total_count;
 }
 
 bool MessagesManager::have_message_force(FullMessageId full_message_id, const char *source) {
@@ -18365,8 +18378,16 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id)
   return get_chat_object(get_dialog(dialog_id));
 }
 
-tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const vector<DialogId> &dialogs) {
-  return td_api::make_object<td_api::chats>(transform(dialogs, [](DialogId dialog_id) { return dialog_id.get(); }));
+tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids) {
+  if (total_count == -1) {
+    total_count = narrow_cast<int32>(dialog_ids.size());
+  }
+  return td_api::make_object<td_api::chats>(total_count,
+                                            transform(dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); }));
+}
+
+tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids) {
+  return get_chats_object(dialog_ids.first, dialog_ids.second);
 }
 
 td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(DialogFilterId dialog_filter_id) const {

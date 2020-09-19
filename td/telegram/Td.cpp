@@ -837,7 +837,7 @@ class GetChatsRequest : public RequestActor<> {
   DialogDate offset_;
   int32 limit_;
 
-  vector<DialogId> dialog_ids_;
+  std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
     dialog_ids_ =
@@ -890,7 +890,7 @@ class SearchPublicChatsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -903,10 +903,10 @@ class SearchChatsRequest : public RequestActor<> {
   string query_;
   int32 limit_;
 
-  vector<DialogId> dialog_ids_;
+  std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
-    dialog_ids_ = td->messages_manager_->search_dialogs(query_, limit_, std::move(promise)).second;
+    dialog_ids_ = td->messages_manager_->search_dialogs(query_, limit_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -930,7 +930,7 @@ class SearchChatsOnServerRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -944,7 +944,7 @@ class GetGroupsInCommonRequest : public RequestActor<> {
   DialogId offset_dialog_id_;
   int32 limit_;
 
-  vector<DialogId> dialog_ids_;
+  std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
     dialog_ids_ = td->messages_manager_->get_common_dialogs(user_id_, offset_dialog_id_, limit_, get_tries() < 2,
@@ -970,7 +970,7 @@ class GetCreatedPublicChatsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -987,7 +987,7 @@ class GetSuitableDiscussionChatsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -1003,7 +1003,7 @@ class GetInactiveSupergroupChatsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -2307,7 +2307,7 @@ class GetChatNotificationSettingsExceptionsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
  public:
@@ -5352,7 +5352,7 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(MessagesManager::get_chats_object(result.ok()));
+      promise.set_value(MessagesManager::get_chats_object(-1, result.ok()));
     }
   });
   send_closure(top_dialog_manager_, &TopDialogManager::get_top_dialogs, get_top_dialog_category(*request.category_),
