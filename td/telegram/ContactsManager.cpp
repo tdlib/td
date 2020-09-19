@@ -5942,7 +5942,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
       return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
     }
 
-    broadcast_input_channel = td_->contacts_manager_->get_input_channel(broadcast_channel_id);
+    broadcast_input_channel = get_input_channel(broadcast_channel_id);
     CHECK(broadcast_input_channel != nullptr);
   } else {
     broadcast_input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
@@ -5971,7 +5971,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
       return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
     }
 
-    group_input_channel = td_->contacts_manager_->get_input_channel(group_channel_id);
+    group_input_channel = get_input_channel(group_channel_id);
     CHECK(group_input_channel != nullptr);
   } else {
     group_input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();

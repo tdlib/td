@@ -4254,7 +4254,7 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
 
   if (is_animated) {
     int32 width = for_thumbnail ? 100 : 512;
-    td_->stickers_manager_->create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
+    create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
   }
