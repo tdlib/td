@@ -3409,7 +3409,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_photo = !photo.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
-  STORE_FLAG(is_blocked);
+  STORE_FLAG(false);
   STORE_FLAG(can_be_called);
   STORE_FLAG(has_private_calls);
   STORE_FLAG(can_pin_messages);
@@ -3432,9 +3432,10 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   using td::parse;
   bool has_about;
   bool has_photo;
+  bool legacy_is_blocked;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
-  PARSE_FLAG(is_blocked);
+  PARSE_FLAG(legacy_is_blocked);
   PARSE_FLAG(can_be_called);
   PARSE_FLAG(has_private_calls);
   PARSE_FLAG(can_pin_messages);
@@ -3806,7 +3807,6 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_photo);
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
-  STORE_FLAG(is_blocked);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3900,7 +3900,6 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_photo);
   PARSE_FLAG(is_can_view_statistics_inited);
   PARSE_FLAG(can_view_statistics);
-  PARSE_FLAG(is_blocked);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -4663,13 +4662,13 @@ Status ContactsManager::set_user_is_blocked(UserId user_id, bool is_blocked) {
   td_->create_handler<SetUserIsBlockedQuery>(std::move(query_promise))
       ->send(user_id, std::move(input_user), is_blocked);
 
-  on_update_user_is_blocked(user_id, is_blocked);
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked);
   return Status::OK();
 }
 
 void ContactsManager::on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error) {
   LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << error;
-  on_update_user_is_blocked(user_id, !is_blocked);
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), !is_blocked);
   reload_user_full(user_id);
   td_->messages_manager_->reget_dialog_action_bar(DialogId(user_id), "on_set_user_is_blocked_failed");
 }
@@ -9129,10 +9128,6 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, bool
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
   }
-  if (user_full->is_is_blocked_changed) {
-    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), user_full->is_blocked);
-    user_full->is_is_blocked_changed = false;
-  }
 
   user_full->need_send_update |= user_full->is_changed;
   user_full->need_save_to_database |= user_full->is_changed;
@@ -9269,6 +9264,10 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
                                                            "on_get_user_full");
 
   {
+    bool is_blocked = (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0;
+    td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked);
+  }
+  {
     MessageId pinned_message_id;
     if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
       pinned_message_id = MessageId(ServerMessageId(user_full->pinned_msg_id_));
@@ -9288,7 +9287,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   UserFull *user = add_user_full(user_id);
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
 
-  on_update_user_full_is_blocked(user, user_id, (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0);
   on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
   on_update_user_full_need_phone_number_privacy_exception(
       user, user_id, (user_full->settings_->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0);
@@ -9605,7 +9603,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
-    auto is_blocked = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
     StickerSetId sticker_set_id;
     if (channel_full->stickerset_ != nullptr) {
       sticker_set_id =
@@ -9629,7 +9626,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
         channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
         channel->stats_dc_id != stats_dc_id || channel->sticker_set_id != sticker_set_id ||
-        channel->is_all_history_available != is_all_history_available || channel->is_blocked != is_blocked) {
+        channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -9643,7 +9640,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->stats_dc_id = stats_dc_id;
       channel->is_all_history_available = is_all_history_available;
       channel->sticker_set_id = sticker_set_id;
-      channel->is_blocked = is_blocked;
 
       channel->is_changed = true;
 
@@ -9674,6 +9670,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_invite_link(channel, std::move(channel_full->exported_invite_));
 
+    {
+      auto is_blocked = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
+      td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), is_blocked);
+    }
     {
       MessageId pinned_message_id;
       if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
@@ -10069,31 +10069,6 @@ void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, i
   }
 }
 
-void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked) {
-  LOG(INFO) << "Receive update user is blocked with " << user_id << " and is_blocked = " << is_blocked;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
-  UserFull *user_full = get_user_full_force(user_id);
-  if (user_full == nullptr) {
-    td_->messages_manager_->on_dialog_user_is_blocked_updated(DialogId(user_id), is_blocked);
-    return;
-  }
-  on_update_user_full_is_blocked(user_full, user_id, is_blocked);
-  update_user_full(user_full, user_id);
-}
-
-void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked) {
-  CHECK(user_full != nullptr);
-  if (user_full->is_blocked != is_blocked) {
-    user_full->is_is_blocked_changed = true;
-    user_full->is_blocked = is_blocked;
-    user_full->is_changed = true;
-  }
-}
-
 void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 common_chat_count) {
   LOG(INFO) << "Receive " << common_chat_count << " common chat count with " << user_id;
   if (!user_id.is_valid()) {
@@ -10369,7 +10344,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->expires_at = 0.0;
 
   user_full->photo = Photo();
-  user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->supports_video_calls = false;
   user_full->has_private_calls = false;
@@ -10672,11 +10646,6 @@ bool ContactsManager::is_user_contact(UserId user_id) const {
 
 bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
   return u != nullptr && u->is_contact && user_id != get_my_id();
-}
-
-bool ContactsManager::is_user_blocked(UserId user_id) {
-  const UserFull *user_full = get_user_full_force(user_id);
-  return user_full != nullptr && user_full->is_blocked;
 }
 
 void ContactsManager::on_get_channel_participants_success(
@@ -14244,10 +14213,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
   return make_tl_object<td_api::userFullInfo>(
-      get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
-      user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
-      is_bot ? user_full->about : string(), user_full->common_chat_count,
+      get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->can_be_called,
+      user_full->supports_video_calls, user_full->has_private_calls, user_full->need_phone_number_privacy_exception,
+      is_bot ? string() : user_full->about, is_bot ? user_full->about : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
 }
 

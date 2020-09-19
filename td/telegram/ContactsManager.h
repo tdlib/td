@@ -174,7 +174,6 @@ class ContactsManager : public Actor {
   void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
-  void on_update_user_is_blocked(UserId user_id, bool is_blocked);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
@@ -425,8 +424,6 @@ class ContactsManager : public Actor {
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id) const;
-
-  bool is_user_blocked(UserId user_id);
 
   bool is_user_deleted(UserId user_id) const;
 
@@ -681,14 +678,12 @@ class ContactsManager : public Actor {
 
     int32 common_chat_count = 0;
 
-    bool is_blocked = false;
     bool can_be_called = false;
     bool supports_video_calls = false;
     bool has_private_calls = false;
     bool can_pin_messages = false;
     bool need_phone_number_privacy_exception = false;
 
-    bool is_is_blocked_changed = true;
     bool is_common_chat_count_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
@@ -863,7 +858,6 @@ class ContactsManager : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
-    bool is_blocked = false;
 
     bool is_slow_mode_next_send_date_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -1158,7 +1152,6 @@ class ContactsManager : public Actor {
 
   void register_user_photo(User *u, UserId user_id, const Photo &photo);
 
-  void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);

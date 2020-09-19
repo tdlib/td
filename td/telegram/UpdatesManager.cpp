@@ -1971,11 +1971,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhoto> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, bool /*force_apply*/) {
-  DialogId dialog_id(update->peer_id_);
-  if (dialog_id.get_type() != DialogType::User) {
-    return;
-  }
-  td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), update->blocked_);
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(update->peer_id_), update->blocked_);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/) {

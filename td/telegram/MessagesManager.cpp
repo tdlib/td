@@ -4757,6 +4757,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_distance);
     STORE_FLAG(hide_distance);
     STORE_FLAG(has_last_yet_unsent_message);
+    STORE_FLAG(is_blocked);
+    STORE_FLAG(is_is_blocked_inited);
     END_STORE_FLAGS();
   }
 
@@ -4923,6 +4925,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_distance);
     PARSE_FLAG(hide_distance);
     PARSE_FLAG(had_last_yet_unsent_message);
+    PARSE_FLAG(is_blocked);
+    PARSE_FLAG(is_is_blocked_inited);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -4937,6 +4941,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     can_unarchive = false;
     hide_distance = false;
     had_last_yet_unsent_message = false;
+    is_blocked = false;
+    is_is_blocked_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -7830,9 +7836,9 @@ void MessagesManager::fix_dialog_action_bar(Dialog *d) {
   if (dialog_type == DialogType::User) {
     auto user_id = d->dialog_id.get_user_id();
     bool is_me = user_id == td_->contacts_manager_->get_my_id();
-    bool is_contact = td_->contacts_manager_->is_user_contact(user_id);
-    bool is_blocked = td_->contacts_manager_->is_user_blocked(user_id);
+    bool is_blocked = d->is_blocked;
     bool is_deleted = td_->contacts_manager_->is_user_deleted(user_id);
+    bool is_contact = td_->contacts_manager_->is_user_contact(user_id);
     if (is_me || is_blocked) {
       d->can_report_spam = false;
       d->can_unarchive = false;
@@ -13413,6 +13419,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
                  << dialog_id;
       dialog->unread_mentions_count_ = 0;
     }
+    if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get is_blocked from the server
+      // TODO add is_blocked to telegram_api::dialog
+      get_dialog_info_full(dialog_id, Auto());
+    }
     if (!d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       // TODO add pinned_message_id to telegram_api::dialog
@@ -18366,8 +18377,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)), get_chat_positions_object(d),
-      d->is_marked_as_unread, get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
-      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      d->is_marked_as_unread, d->is_blocked, get_dialog_has_scheduled_messages(d), can_delete_for_self,
+      can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
@@ -27084,6 +27095,71 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   }
 }
 
+void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (d->is_blocked == is_blocked) {
+    if (!d->is_is_blocked_inited) {
+      CHECK(is_blocked == false);
+      d->is_is_blocked_inited = true;
+      on_dialog_updated(dialog_id, "on_update_dialog_is_blocked");
+    }
+    return;
+  }
+
+  set_dialog_is_blocked(d, is_blocked);
+}
+
+void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
+  CHECK(d != nullptr);
+  CHECK(d->is_blocked != is_blocked);
+  d->is_blocked = is_blocked;
+  d->is_is_blocked_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_is_blocked");
+
+  LOG(INFO) << "Set " << d->dialog_id << " is_blocked to " << is_blocked;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_blocked";
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatIsBlocked>(d->dialog_id.get(), is_blocked));
+
+  if (d->dialog_id.get_type() == DialogType::User) {
+    if (d->know_action_bar) {
+      if (is_blocked) {
+        if (d->can_report_spam || d->can_share_phone_number || d->can_block_user || d->can_add_contact ||
+            d->can_unarchive || d->distance >= 0) {
+          d->can_report_spam = false;
+          d->can_share_phone_number = false;
+          d->can_block_user = false;
+          d->can_add_contact = false;
+          d->can_unarchive = false;
+          d->distance = -1;
+          send_update_chat_action_bar(d);
+        }
+      } else {
+        repair_dialog_action_bar(d, "on_dialog_user_is_blocked_updated");
+      }
+    }
+
+    td_->contacts_manager_->for_each_secret_chat_with_user(
+        d->dialog_id.get_user_id(), [this, is_blocked](SecretChatId secret_chat_id) {
+          DialogId dialog_id(secret_chat_id);
+          auto d = get_dialog(dialog_id);  // must not create the dialog
+          if (d != nullptr && d->is_update_new_chat_sent && d->is_blocked != is_blocked) {
+            set_dialog_is_blocked(d, is_blocked);
+          }
+        });
+  }
+}
+
 void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
@@ -27429,29 +27505,6 @@ void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool
               update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_contact_updated");
             }
           });
-    }
-  }
-}
-
-void MessagesManager::on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked) {
-  CHECK(dialog_id.get_type() == DialogType::User);
-  auto d = get_dialog(dialog_id);  // called from update_user_full, must not create the dialog
-  if (d != nullptr && d->is_update_new_chat_sent) {
-    if (d->know_action_bar) {
-      if (is_blocked) {
-        if (d->can_report_spam || d->can_share_phone_number || d->can_block_user || d->can_add_contact ||
-            d->can_unarchive || d->distance >= 0) {
-          d->can_report_spam = false;
-          d->can_share_phone_number = false;
-          d->can_block_user = false;
-          d->can_add_contact = false;
-          d->can_unarchive = false;
-          d->distance = -1;
-          send_update_chat_action_bar(d);
-        }
-      } else {
-        repair_dialog_action_bar(d, "on_dialog_user_is_blocked_updated");
-      }
     }
   }
 }
@@ -31389,10 +31442,12 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
       d->is_pinned_message_id_inited = true;
+      d->is_is_blocked_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
             d.get(), td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
       }
+
       break;
     case DialogType::None:
     default:
@@ -31450,12 +31505,28 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   auto dialog_id = d->dialog_id;
   auto dialog_type = dialog_id.get_type();
 
+  if (!td_->auth_manager_->is_bot() && dialog_type == DialogType::SecretChat) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    if (user_id.is_valid()) {
+      force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar and is_blocked");
+
+      Dialog *user_d = get_dialog_force(DialogId(user_id));
+      if (user_d != nullptr && d->is_blocked != user_d->is_blocked) {
+        set_dialog_is_blocked(d, user_d->is_blocked);
+      }
+    }
+  }
+
   if (being_added_dialog_id_ != dialog_id && !td_->auth_manager_->is_bot() && !is_dialog_inited(d) &&
       dialog_type != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get dialog from the server
     send_get_dialog_query(dialog_id, Auto());
   }
 
+  if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get is_blocked from the server
+    get_dialog_info_full(dialog_id, Auto());
+  }
   if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited &&
       (dialog_id == get_my_dialog_id() || dialog_type != DialogType::User) && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
@@ -31466,17 +31537,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get dialog folder id from the server
     get_dialog_info_full(dialog_id, Auto());
   }
-  if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_id != get_my_dialog_id() &&
-      have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_type != DialogType::SecretChat &&
+      dialog_id != get_my_dialog_id() && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get action bar from the server
-    if (dialog_type == DialogType::SecretChat) {
-      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (user_id.is_valid()) {
-        force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar");
-      }
-    } else {
-      reget_dialog_action_bar(dialog_id, "fix_new_dialog");
-    }
+    reget_dialog_action_bar(dialog_id, "fix_new_dialog");
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&

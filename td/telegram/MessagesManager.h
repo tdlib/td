@@ -312,6 +312,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
+  void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked);
+
   void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
 
   void on_update_dialog_has_scheduled_server_messages(DialogId dialog_id, bool has_scheduled_server_messages);
@@ -751,7 +753,6 @@ class MessagesManager : public Actor {
   void on_dialog_permissions_updated(DialogId dialog_id);
 
   void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
-  void on_dialog_user_is_blocked_updated(DialogId dialog_id, bool is_blocked);
   void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
 
   void on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
@@ -1204,6 +1205,8 @@ class MessagesManager : public Actor {
     bool need_repair_server_unread_count = false;
     bool need_repair_channel_server_unread_count = false;
     bool is_marked_as_unread = false;
+    bool is_blocked = false;
+    bool is_is_blocked_inited = false;
     bool last_sent_has_scheduled_messages = false;
     bool has_scheduled_server_messages = false;
     bool has_scheduled_database_messages = false;
@@ -2228,6 +2231,8 @@ class MessagesManager : public Actor {
                             bool need_update_dialog_lists = true);
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
+
+  void set_dialog_is_blocked(Dialog *d, bool is_blocked);
 
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
 
