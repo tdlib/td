@@ -22,9 +22,9 @@ struct MessageReplyInfo {
   int32 pts = -1;
   vector<DialogId> recent_replier_dialog_ids;  // comments only
   ChannelId channel_id;                        // comments only
-  MessageId max_message_id;                    // comments only
-  MessageId last_read_inbox_message_id;        // comments only
-  MessageId last_read_outbox_message_id;       // comments only
+  MessageId max_message_id;
+  MessageId last_read_inbox_message_id;
+  MessageId last_read_outbox_message_id;
   bool is_comment = false;
 
   MessageReplyInfo() = default;

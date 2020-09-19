@@ -1722,15 +1722,20 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailabl
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update,
                                bool /*force_apply*/) {
   td_->messages_manager_->on_update_read_message_comments(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)),
-      MessageId(ServerMessageId(update->top_msg_id_)), MessageId(ServerMessageId(update->read_max_id_)), MessageId());
+      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
+      MessageId(ServerMessageId(update->read_max_id_)), MessageId());
+  if ((update->flags_ & telegram_api::updateReadChannelDiscussionInbox::BROADCAST_ID_MASK) != 0) {
+    td_->messages_manager_->on_update_read_message_comments(
+        DialogId(ChannelId(update->broadcast_id_)), MessageId(ServerMessageId(update->broadcast_post_)), MessageId(),
+        MessageId(ServerMessageId(update->read_max_id_)), MessageId());
+  }
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update,
                                bool /*force_apply*/) {
   td_->messages_manager_->on_update_read_message_comments(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)),
-      MessageId(ServerMessageId(update->top_msg_id_)), MessageId(), MessageId(ServerMessageId(update->read_max_id_)));
+      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
+      MessageId(), MessageId(ServerMessageId(update->read_max_id_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/) {

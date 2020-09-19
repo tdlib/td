@@ -643,11 +643,12 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-//@reply_count Number of times the message was directly or indirectly replied; discussion supergroups and discussed channels only
-//@recent_replier_user_ids User identifiers of the recent repliers to the channel post
-//@last_read_inbox_comment_message_id Identifier of the last read incoming comment to the channel post in the corresponding discussion supergroup
-//@last_read_outbox_comment_message_id Identifier of the last read outgoing comment to the channel post in the corresponding discussion supergroup
-messageInteractionInfo view_count:int32 forward_count:int32 reply_count:int32 recent_replier_user_ids:vector<int32> last_read_inbox_comment_message_id:int53 last_read_outbox_comment_message_id:int53 = MessageInteractionInfo;
+//@reply_count Number of times the message was directly or indirectly replied; available in discussion supergroups and channels with a discussion supergroup
+//@recent_replier_user_ids User identifiers of the recent repliers to the message; available in channels with a discussion supergroup
+//@last_read_inbox_comment_message_id Identifier of the last read incoming comment to the message
+//@last_read_outbox_comment_message_id Identifier of the last read outgoing comment to the message
+//@last_comment_message_id Identifier of the last comment to the message
+messageInteractionInfo view_count:int32 forward_count:int32 reply_count:int32 recent_replier_user_ids:vector<int32> last_read_inbox_comment_message_id:int53 last_read_outbox_comment_message_id:int53 last_comment_message_id:int53 = MessageInteractionInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
