@@ -16212,6 +16212,59 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, bool for
                    << dialog_id.get_channel_id().get() << "/" << m->message_id.get_server_message_id().get() << args;
 }
 
+string MessagesManager::get_message_embedding_code(FullMessageId full_message_id, bool for_group,
+                                                   Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(400, "Chat not found"));
+    return {};
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(400, "Can't access the chat"));
+    return {};
+  }
+  if (dialog_id.get_type() != DialogType::Channel ||
+      td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
+    promise.set_error(Status::Error(
+        400, "Message embedding code is available only for messages in public supergroups and channel chats"));
+    return {};
+  }
+
+  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_embedding_code");
+  if (m == nullptr) {
+    promise.set_error(Status::Error(400, "Message not found"));
+    return {};
+  }
+  if (m->message_id.is_yet_unsent()) {
+    promise.set_error(Status::Error(400, "Message is yet unsent"));
+    return {};
+  }
+  if (m->message_id.is_scheduled()) {
+    promise.set_error(Status::Error(400, "Message is scheduled"));
+    return {};
+  }
+  if (!m->message_id.is_server()) {
+    promise.set_error(Status::Error(400, "Message is local"));
+    return {};
+  }
+
+  if (m->media_album_id == 0) {
+    for_group = true;  // default is true
+  }
+
+  auto &links = public_message_links_[for_group][dialog_id].links_;
+  auto it = links.find(m->message_id);
+  if (it == links.end()) {
+    td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
+        ->send(dialog_id.get_channel_id(), m->message_id, for_group, false);
+    return {};
+  }
+
+  promise.set_value(Unit());
+  return it->second.second;
+}
+
 Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(Slice url) {
   if (url.empty()) {
     return Status::Error("URL must be non-empty");

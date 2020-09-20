@@ -589,6 +589,8 @@ class MessagesManager : public Actor {
   std::pair<string, string> get_public_message_link(FullMessageId full_message_id, bool for_group, bool for_comment,
                                                     Promise<Unit> &&promise);
 
+  string get_message_embedding_code(FullMessageId full_message_id, bool for_group, Promise<Unit> &&promise);
+
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
   string get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment, Promise<Unit> &&promise);

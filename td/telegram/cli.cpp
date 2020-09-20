@@ -2633,6 +2633,14 @@ class CliClient final : public Actor {
       std::tie(for_album, for_comment) = split(args);
       send_request(td_api::make_object<td_api::getMessageLink>(as_chat_id(chat_id), as_message_id(message_id),
                                                                as_bool(for_album), as_bool(for_comment)));
+    } else if (op == "gmec") {
+      string chat_id;
+      string message_id;
+      string for_album;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, for_album) = split(args);
+      send_request(td_api::make_object<td_api::getMessageEmbeddingCode>(as_chat_id(chat_id), as_message_id(message_id),
+                                                                        as_bool(for_album)));
     } else if (op == "gmli") {
       send_request(td_api::make_object<td_api::getMessageLinkInfo>(args));
     } else if (op == "gcmbd") {

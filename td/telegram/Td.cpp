@@ -1165,6 +1165,29 @@ class GetMessageLinkRequest : public RequestActor<> {
   }
 };
 
+class GetMessageEmbeddingCodeRequest : public RequestActor<> {
+  FullMessageId full_message_id_;
+  bool for_group_;
+
+  string html_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    html_ = td->messages_manager_->get_message_embedding_code(full_message_id_, for_group_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(make_tl_object<td_api::text>(html_));
+  }
+
+ public:
+  GetMessageEmbeddingCodeRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                                 bool for_group)
+      : RequestActor(std::move(td), request_id)
+      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , for_group_(for_group) {
+  }
+};
+
 class GetMessageLinkInfoRequest : public RequestActor<MessagesManager::MessageLinkInfo> {
   string url_;
 
@@ -5146,6 +5169,11 @@ void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageLinkRequest, request.chat_id_, request.message_id_, request.for_album_,
                  request.for_comment_);
+}
+
+void Td::on_request(uint64 id, const td_api::getMessageEmbeddingCode &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetMessageEmbeddingCodeRequest, request.chat_id_, request.message_id_, request.for_album_);
 }
 
 void Td::on_request(uint64 id, td_api::getMessageLinkInfo &request) {

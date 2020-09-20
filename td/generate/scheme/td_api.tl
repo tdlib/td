@@ -661,7 +661,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 
 
 //@description Describes a message
-//@id Message identifier, unique for the chat to which the message belongs
+//@id Message identifier; unique for the chat to which the message belongs
 //@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts, for channel posts automatically forwarded to discussion group and for anonimously sent supergroup messages
 //@sender_chat_id Identifier of the chat on behalf of which the message was sent; 0 if none
 //@chat_id Chat identifier
@@ -682,7 +682,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@interaction_info Information about interactions with the message; may be null
 //@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs; Currently, only messages in the Replies chat can have different reply_in_chat_id and chat_id
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
-//@message_thread_id If non-zero, the identifier of the message thread the message belongs to
+//@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
 //@ttl For self-destructing messages, the message's TTL (Time To Live), in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the TTL expires
 //@ttl_expires_in Time left before the message expires, in seconds
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
@@ -3701,6 +3701,12 @@ getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:B
 //@for_album Pass true to create a link for the whole media album
 //@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread
 getMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = HttpUrl;
+
+//@description Returns an HTML code for embedding the message. Available only for messages in supergroups and channels with a username
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@for_album Pass true to return an HTML code for embedding of the whole media album
+getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 
 //@description Returns information about a public or private message link @url The message link in the format "https://t.me/c/...", or "tg://privatepost?...", or "https://t.me/username/...", or "tg://resolve?..."
 getMessageLinkInfo url:string = MessageLinkInfo;
