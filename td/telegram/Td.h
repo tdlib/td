@@ -714,6 +714,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request);
 
+  void on_request(uint64 id, const td_api::toggleChatIsBlocked &request);
+
   void on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request);
 
   void on_request(uint64 id, const td_api::setPinnedChats &request);
@@ -781,10 +783,6 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::readFilePart &request);
 
   void on_request(uint64 id, const td_api::deleteFile &request);
-
-  void on_request(uint64 id, const td_api::blockUser &request);
-
-  void on_request(uint64 id, const td_api::unblockUser &request);
 
   void on_request(uint64 id, const td_api::getBlockedUsers &request);
 

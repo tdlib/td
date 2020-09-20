@@ -4005,6 +4005,9 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 
+//@description Changes the block state of a chat @chat_id Chat identifier @is_blocked New value of is_blocked
+toggleChatIsBlocked chat_id:int53 is_blocked:Bool = Ok;
+
 //@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
@@ -4168,12 +4171,6 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-
-//@description Blocks a user @user_id User identifier
-blockUser user_id:int32 = Ok;
-
-//@description Unblocks a user @user_id User identifier
-unblockUser user_id:int32 = Ok;
 
 //@description Returns users that were blocked by the current user @offset Number of users to skip in the result; must be non-negative @limit The maximum number of users to return; up to 100
 getBlockedUsers offset:int32 limit:int32 = Users;

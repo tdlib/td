@@ -2293,10 +2293,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getDeepLinkInfo>(args));
     } else if (op == "tme") {
       send_request(td_api::make_object<td_api::getRecentlyVisitedTMeUrls>(args));
-    } else if (op == "bu") {
-      send_request(td_api::make_object<td_api::blockUser>(as_user_id(args)));
-    } else if (op == "ubu") {
-      send_request(td_api::make_object<td_api::unblockUser>(as_user_id(args)));
     } else if (op == "gbu") {
       string offset;
       string limit;
@@ -2915,12 +2911,17 @@ class CliClient final : public Actor {
       std::tie(chat_id, is_pinned) = split(args);
       send_request(
           td_api::make_object<td_api::toggleChatIsPinned>(as_chat_list(op), as_chat_id(chat_id), as_bool(is_pinned)));
-    } else if (op == "tcimar") {
+    } else if (op == "tcimau") {
       string chat_id;
       string is_marked_as_read;
       std::tie(chat_id, is_marked_as_read) = split(args);
       send_request(
           td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(as_chat_id(chat_id), as_bool(is_marked_as_read)));
+    } else if (op == "tcib") {
+      string chat_id;
+      string is_blocked;
+      std::tie(chat_id, is_blocked) = split(args);
+      send_request(td_api::make_object<td_api::toggleChatIsBlocked>(as_chat_id(chat_id), as_bool(is_blocked)));
     } else if (op == "tcddn") {
       string chat_id;
       string default_disable_notification;

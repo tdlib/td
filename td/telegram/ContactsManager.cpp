@@ -349,43 +349,6 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class SetUserIsBlockedQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  UserId user_id_;
-
- public:
-  explicit SetUserIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_blocked) {
-    user_id_ = user_id;
-    auto input_peer = td->contacts_manager_->get_input_peer_user(user_id, AccessRights::Read);
-    if (is_blocked) {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer))));
-    } else {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer))));
-    }
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    static_assert(
-        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
-    auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Block/Unblock " << user_id_ << " has failed";
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetBlockedUsersQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 offset_;
@@ -4641,36 +4604,6 @@ void ContactsManager::disconnect_website(int64 website_id, Promise<Unit> &&promi
 
 void ContactsManager::disconnect_all_websites(Promise<Unit> &&promise) const {
   td_->create_handler<ResetWebAuthorizationsQuery>(std::move(promise))->send();
-}
-
-Status ContactsManager::set_user_is_blocked(UserId user_id, bool is_blocked) {
-  if (user_id == get_my_id()) {
-    return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
-  }
-
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return Status::Error(5, "User not found");
-  }
-
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id, is_blocked](Result<Unit> result) {
-    if (!G()->close_flag() && result.is_error()) {
-      send_closure(actor_id, &ContactsManager::on_set_user_is_blocked_failed, user_id, is_blocked,
-                   result.move_as_error());
-    }
-  });
-  td_->create_handler<SetUserIsBlockedQuery>(std::move(query_promise))
-      ->send(user_id, std::move(input_user), is_blocked);
-
-  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked);
-  return Status::OK();
-}
-
-void ContactsManager::on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error) {
-  LOG(WARNING) << "Receive error for SetUserIsBlockedQuery: " << error;
-  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), !is_blocked);
-  reload_user_full(user_id);
-  td_->messages_manager_->reget_dialog_action_bar(DialogId(user_id), "on_set_user_is_blocked_failed");
 }
 
 bool ContactsManager::is_valid_username(const string &username) {

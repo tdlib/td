@@ -6050,6 +6050,11 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request
                                                                            request.is_marked_as_unread_));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatIsBlocked &request) {
+  CHECK_IS_USER();
+  answer_ok_query(id, messages_manager_->toggle_dialog_is_blocked(DialogId(request.chat_id_), request.is_blocked_));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_silent_send_message(DialogId(request.chat_id_),
@@ -6371,16 +6376,6 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(promise),
                "td_api::deleteFile");
-}
-
-void Td::on_request(uint64 id, const td_api::blockUser &request) {
-  CHECK_IS_USER();
-  answer_ok_query(id, contacts_manager_->set_user_is_blocked(UserId(request.user_id_), true));
-}
-
-void Td::on_request(uint64 id, const td_api::unblockUser &request) {
-  CHECK_IS_USER();
-  answer_ok_query(id, contacts_manager_->set_user_is_blocked(UserId(request.user_id_), false));
 }
 
 void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {

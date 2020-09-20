@@ -622,6 +622,8 @@ class MessagesManager : public Actor {
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
 
+  Status toggle_dialog_is_blocked(DialogId dialog_id, bool is_blocked) TD_WARN_UNUSED_RESULT;
+
   Status toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) TD_WARN_UNUSED_RESULT;
 
   Status set_pinned_dialogs(DialogListId dialog_list_id, vector<DialogId> dialog_ids) TD_WARN_UNUSED_RESULT;
@@ -1599,6 +1601,7 @@ class MessagesManager : public Actor {
   class SetDialogFolderIdOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
+  class ToggleDialogIsBlockedOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
@@ -2252,6 +2255,8 @@ class MessagesManager : public Actor {
 
   void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 logevent_id);
 
+  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 logevent_id);
+
   void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 logevent_id);
 
   void set_dialog_reply_markup(Dialog *d, MessageId message_id);
@@ -2821,6 +2826,8 @@ class MessagesManager : public Actor {
   uint64 save_reorder_pinned_dialogs_on_server_logevent(FolderId folder_id, const vector<DialogId> &dialog_ids);
 
   uint64 save_toggle_dialog_is_marked_as_unread_on_server_logevent(DialogId dialog_id, bool is_marked_as_unread);
+
+  uint64 save_toggle_dialog_is_blocked_on_server_logevent(DialogId dialog_id, bool is_blocked);
 
   uint64 save_read_message_contents_on_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids);
 

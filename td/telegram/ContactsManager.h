@@ -290,8 +290,6 @@ class ContactsManager : public Actor {
   void disconnect_website(int64 authorizations_id, Promise<Unit> &&promise) const;
   void disconnect_all_websites(Promise<Unit> &&promise) const;
 
-  Status set_user_is_blocked(UserId user_id, bool is_blocked);
-
   int64 get_blocked_users(int32 offset, int32 limit, Promise<Unit> &&promise);
 
   void on_get_blocked_users_result(int32 offset, int32 limit, int64 random_id, int32 total_count,
@@ -1160,8 +1158,6 @@ class ContactsManager : public Actor {
   bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);
-
-  void on_set_user_is_blocked_failed(UserId user_id, bool is_blocked, Status error);
 
   void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
   void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions, int32 version);

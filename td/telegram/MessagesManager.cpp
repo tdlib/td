@@ -1341,7 +1341,58 @@ class ToggleDialogUnreadMarkQuery : public Td::ResultHandler {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogUnreadMarkQuery")) {
       LOG(ERROR) << "Receive error for ToggleDialogUnreadMarkQuery: " << status;
     }
-    td->messages_manager_->on_update_dialog_is_marked_as_unread(dialog_id_, !is_marked_as_unread_);
+    if (!G()->close_flag()) {
+      td->messages_manager_->on_update_dialog_is_marked_as_unread(dialog_id_, !is_marked_as_unread_);
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleDialogIsBlockedQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool is_blocked_;
+
+ public:
+  explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_blocked) {
+    dialog_id_ = dialog_id;
+    is_blocked_ = is_blocked;
+
+    auto input_peer = MessagesManager::get_input_peer_force(dialog_id);
+    CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
+    if (is_blocked) {
+      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer))));
+    } else {
+      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer))));
+    }
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    static_assert(
+        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
+    auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG_IF(WARNING, !result) << "Block/Unblock " << dialog_id_ << " has failed";
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
+    }
+    if (!G()->close_flag()) {
+      td->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_);
+      td->messages_manager_->get_dialog_info_full(dialog_id_, Auto());
+      td->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -17548,6 +17599,75 @@ void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialo
 
   td_->create_handler<ToggleDialogUnreadMarkQuery>(get_erase_logevent_promise(logevent_id))
       ->send(dialog_id, is_marked_as_unread);
+}
+
+Status MessagesManager::toggle_dialog_is_blocked(DialogId dialog_id, bool is_blocked) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(6, "Chat not found");
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    dialog_id = DialogId(user_id);
+    d = get_dialog_force(dialog_id);
+    if (d == nullptr) {
+      return Status::Error(6, "Chat info not found");
+    }
+  }
+  if (dialog_id == get_my_dialog_id()) {
+    return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
+  }
+
+  if (is_blocked == d->is_blocked) {
+    return Status::OK();
+  }
+  set_dialog_is_blocked(d, is_blocked);
+
+  toggle_dialog_is_blocked_on_server(dialog_id, is_blocked, 0);
+  return Status::OK();
+}
+
+class MessagesManager::ToggleDialogIsBlockedOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_blocked_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_blocked_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_blocked_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_logevent(DialogId dialog_id, bool is_blocked) {
+  ToggleDialogIsBlockedOnServerLogEvent logevent{dialog_id, is_blocked};
+  auto storer = LogEventStorerImpl<ToggleDialogIsBlockedOnServerLogEvent>(logevent);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer, storer);
+}
+
+void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 logevent_id) {
+  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+    // don't even create new binlog events
+    return;
+  }
+
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    logevent_id = save_toggle_dialog_is_blocked_on_server_logevent(dialog_id, is_blocked);
+  }
+
+  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_id, is_blocked);
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -34124,6 +34244,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         toggle_dialog_is_marked_as_unread_on_server(dialog_id, log_event.is_marked_as_unread_, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogIsBlockedOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_is_blocked_on_server(dialog_id, log_event.is_blocked_, event.id_);
         break;
       }
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer: {
