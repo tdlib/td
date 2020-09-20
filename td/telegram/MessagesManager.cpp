@@ -16087,10 +16087,9 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
   if (for_comment) {
     auto *top_m = get_message_force(d, m->top_reply_message_id, "get_public_message_link");
-    if (top_m != nullptr && !top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
-        top_m->forward_info->sender_dialog_id.is_valid() && top_m->forward_info->message_id.is_valid() &&
-        DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id())) ==
-            top_m->forward_info->sender_dialog_id) {
+    if (is_discussion_message(dialog_id, top_m) &&
+        top_m->forward_info->sender_dialog_id ==
+            DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id()))) {
       auto linked_dialog_id = top_m->forward_info->sender_dialog_id;
       auto linked_message_id = top_m->forward_info->message_id;
       auto linked_d = get_dialog(linked_dialog_id);
@@ -23671,13 +23670,33 @@ void MessagesManager::edit_message_scheduling_state(
   }
 }
 
+bool MessagesManager::is_discussion_message(DialogId dialog_id, const Message *m) const {
+  if (m == nullptr || m->forward_info == nullptr) {
+    return false;
+  }
+  if (m->sender_user_id.is_valid()) {
+    if (!td_->auth_manager_->is_bot() ||
+        m->sender_user_id != td_->contacts_manager_->get_service_notifications_user_id()) {
+      return false;
+    }
+  }
+  if (!m->forward_info->sender_dialog_id.is_valid() || !m->forward_info->message_id.is_valid()) {
+    return false;
+  }
+  if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+    return false;
+  }
+  if (m->forward_info->sender_dialog_id == dialog_id) {
+    return false;
+  }
+  return true;
+}
+
 bool MessagesManager::has_message_sender_user_id(DialogId dialog_id, const Message *m) const {
   if (!m->sender_user_id.is_valid()) {
     return false;
   }
-  if (td_->auth_manager_->is_bot() && !is_broadcast_channel(dialog_id) &&
-      m->sender_user_id == td_->contacts_manager_->get_service_notifications_user_id() && m->forward_info != nullptr &&
-      m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
+  if (td_->auth_manager_->is_bot() && is_discussion_message(dialog_id, m)) {
     return false;
   }
   return true;
@@ -29799,9 +29818,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (is_broadcast_channel(dialog_id)) {
       message->sender_dialog_id = dialog_id;
     } else {
-      const auto *forward_info = message->forward_info.get();
-      if (forward_info != nullptr && forward_info->sender_dialog_id.is_valid() && forward_info->message_id.is_valid()) {
-        message->sender_dialog_id = forward_info->sender_dialog_id;
+      if (is_discussion_message(dialog_id, message.get())) {
+        message->sender_dialog_id = message->forward_info->sender_dialog_id;
       } else {
         LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
       }
@@ -30077,9 +30095,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
     Message *top_m = get_message(d, message->top_reply_message_id);
     CHECK(top_m != nullptr);
-    if (is_active_message_reply_info(dialog_id, top_m->reply_info) && !top_m->sender_user_id.is_valid() &&
-        top_m->forward_info != nullptr && top_m->forward_info->sender_dialog_id.is_valid() &&
-        top_m->forward_info->message_id.is_valid() &&
+    if (is_active_message_reply_info(dialog_id, top_m->reply_info) && is_discussion_message(dialog_id, top_m) &&
         have_message_force({top_m->forward_info->sender_dialog_id, top_m->forward_info->message_id},
                            "preload discussed message")) {
       LOG(INFO) << "Preloaded discussed "
@@ -30444,8 +30460,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         send_update_message_interaction_info(dialog_id, top_m);
         on_message_changed(d, top_m, true, "update_message_reply_count 1");
 
-        if (!top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
-            top_m->forward_info->sender_dialog_id.is_valid() && top_m->forward_info->message_id.is_valid()) {
+        if (is_discussion_message(dialog_id, top_m)) {
           auto channel_dialog_id = top_m->forward_info->sender_dialog_id;
           Message *channel_m = get_message({channel_dialog_id, top_m->forward_info->message_id});
           if (channel_m != nullptr && is_active_message_reply_info(channel_dialog_id, channel_m->reply_info)) {
@@ -30511,8 +30526,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  if (!td_->auth_manager_->is_bot() && from_update && m->sender_user_id.is_valid() && m->forward_info != nullptr &&
-      m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid()) {
+  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info != nullptr &&
+      m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid() &&
+      !is_discussion_message(dialog_id, m)) {
     update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id);
   }
 
