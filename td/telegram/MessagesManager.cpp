@@ -1421,7 +1421,7 @@ class ToggleDialogIsBlockedQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     is_blocked_ = is_blocked;
 
-    auto input_peer = MessagesManager::get_input_peer_force(dialog_id);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
     if (is_blocked) {
       send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer))));
@@ -5603,18 +5603,12 @@ tl_object_ptr<telegram_api::InputMessage> MessagesManager::get_input_message(Mes
 tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer(DialogId dialog_id,
                                                                        AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->get_input_peer_user(user_id, access_rights);
-    }
-    case DialogType::Chat: {
-      ChatId chat_id = dialog_id.get_chat_id();
-      return td_->contacts_manager_->get_input_peer_chat(chat_id, access_rights);
-    }
-    case DialogType::Channel: {
-      ChannelId channel_id = dialog_id.get_channel_id();
-      return td_->contacts_manager_->get_input_peer_channel(channel_id, access_rights);
-    }
+    case DialogType::User:
+      return td_->contacts_manager_->get_input_peer_user(dialog_id.get_user_id(), access_rights);
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_input_peer_chat(dialog_id.get_chat_id(), access_rights);
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_input_peer_channel(dialog_id.get_channel_id(), access_rights);
     case DialogType::SecretChat:
       return nullptr;
     case DialogType::None:

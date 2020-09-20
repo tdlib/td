@@ -3975,6 +3975,9 @@ bool ContactsManager::have_input_peer_user(const User *u, AccessRights access_ri
   if (u->access_hash == -1 || u->is_min_access_hash) {
     return false;
   }
+  if (access_rights == AccessRights::Know) {
+    return true;
+  }
   if (access_rights == AccessRights::Read) {
     return true;
   }
@@ -4004,6 +4007,9 @@ bool ContactsManager::have_input_peer_chat(ChatId chat_id, AccessRights access_r
 bool ContactsManager::have_input_peer_chat(const Chat *c, AccessRights access_rights) {
   if (c == nullptr) {
     return false;
+  }
+  if (access_rights == AccessRights::Know) {
+    return true;
   }
   if (access_rights == AccessRights::Read) {
     return true;
@@ -4047,6 +4053,9 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
   if (c == nullptr) {
     return false;
   }
+  if (access_rights == AccessRights::Know) {
+    return true;
+  }
   if (c->status.is_creator()) {
     return true;
   }
@@ -4089,6 +4098,9 @@ bool ContactsManager::have_input_encrypted_peer(SecretChatId secret_chat_id, Acc
 bool ContactsManager::have_input_encrypted_peer(const SecretChat *secret_chat, AccessRights access_rights) {
   if (secret_chat == nullptr) {
     return false;
+  }
+  if (access_rights == AccessRights::Know) {
+    return true;
   }
   if (access_rights == AccessRights::Read) {
     return true;

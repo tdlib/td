@@ -4005,7 +4005,7 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 
-//@description Changes the block state of a chat @chat_id Chat identifier @is_blocked New value of is_blocked
+//@description Changes the block state of a chat. Currently, only private chats and supergroups can be blocked @chat_id Chat identifier @is_blocked New value of is_blocked
 toggleChatIsBlocked chat_id:int53 is_blocked:Bool = Ok;
 
 //@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
