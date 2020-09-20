@@ -2613,16 +2613,6 @@ class CliClient final : public Actor {
       string message_ids;
       std::tie(chat_id, message_ids) = split(args);
       send_request(td_api::make_object<td_api::getMessages>(as_chat_id(chat_id), as_message_ids(message_ids)));
-    } else if (op == "gpml") {
-      string chat_id;
-      string message_id;
-      string for_album;
-      string for_comment;
-      std::tie(chat_id, args) = split(args);
-      std::tie(message_id, args) = split(args);
-      std::tie(for_album, for_comment) = split(args);
-      send_request(td_api::make_object<td_api::getPublicMessageLink>(as_chat_id(chat_id), as_message_id(message_id),
-                                                                     as_bool(for_album), as_bool(for_comment)));
     } else if (op == "gmlink") {
       string chat_id;
       string message_id;

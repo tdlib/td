@@ -1112,59 +1112,6 @@ class GetMessagesRequest : public RequestOnceActor {
   }
 };
 
-class GetPublicMessageLinkRequest : public RequestActor<> {
-  FullMessageId full_message_id_;
-  bool for_group_;
-  bool for_comment_;
-
-  string link_;
-  string html_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    std::tie(link_, html_) =
-        td->messages_manager_->get_public_message_link(full_message_id_, for_group_, for_comment_, std::move(promise));
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::publicMessageLink>(link_, html_));
-  }
-
- public:
-  GetPublicMessageLinkRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id, bool for_group,
-                              bool for_comment)
-      : RequestActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , for_group_(for_group)
-      , for_comment_(for_comment) {
-    set_tries(5);  // get top message + get linked channel message + get message HTML + get linked channel message link
-  }
-};
-
-class GetMessageLinkRequest : public RequestActor<> {
-  FullMessageId full_message_id_;
-  bool for_group_;
-  bool for_comment_;
-
-  string link_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    link_ = td->messages_manager_->get_message_link(full_message_id_, for_group_, for_comment_, std::move(promise));
-  }
-
-  void do_send_result() override {
-    send_result(td_api::make_object<td_api::httpUrl>(link_));
-  }
-
- public:
-  GetMessageLinkRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id, bool for_group,
-                        bool for_comment)
-      : RequestActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , for_group_(for_group)
-      , for_comment_(for_comment) {
-  }
-};
-
 class GetMessageEmbeddingCodeRequest : public RequestActor<> {
   FullMessageId full_message_id_;
   bool for_group_;
@@ -5159,16 +5106,16 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
 }
 
-void Td::on_request(uint64 id, const td_api::getPublicMessageLink &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST(GetPublicMessageLinkRequest, request.chat_id_, request.message_id_, request.for_album_,
-                 request.for_comment_);
-}
-
 void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetMessageLinkRequest, request.chat_id_, request.message_id_, request.for_album_,
-                 request.for_comment_);
+  auto r_message_link = messages_manager_->get_message_link(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.for_album_, request.for_comment_);
+  if (r_message_link.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_message_link.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id,
+                 td_api::make_object<td_api::messageLink>(r_message_link.ok().first, r_message_link.ok().second));
+  }
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageEmbeddingCode &request) {

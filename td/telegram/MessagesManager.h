@@ -586,14 +586,11 @@ class MessagesManager : public Actor {
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
-  std::pair<string, string> get_public_message_link(FullMessageId full_message_id, bool for_group, bool for_comment,
-                                                    Promise<Unit> &&promise);
+  Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment);
 
   string get_message_embedding_code(FullMessageId full_message_id, bool for_group, Promise<Unit> &&promise);
 
   void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
-
-  string get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment, Promise<Unit> &&promise);
 
   struct MessageLinkInfo {
     string username;

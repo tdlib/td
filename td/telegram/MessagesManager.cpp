@@ -16039,40 +16039,32 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
-std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId full_message_id, bool for_group,
-                                                                   bool for_comment, Promise<Unit> &&promise) {
+Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, bool for_group,
+                                                                  bool for_comment) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return {};
+    return Status::Error(400, "Chat not found");
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
-    return {};
+    return Status::Error(400, "Can't access the chat");
   }
   if (dialog_id.get_type() != DialogType::Channel) {
-    promise.set_error(
-        Status::Error(400, "Public message links are available only for messages in supergroups and channel chats"));
-    return {};
+    return Status::Error(400, "Public message links are available only for messages in supergroups and channel chats");
   }
 
-  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_public_message_link");
+  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
   if (m == nullptr) {
-    promise.set_error(Status::Error(400, "Message not found"));
-    return {};
+    return Status::Error(400, "Message not found");
   }
   if (m->message_id.is_yet_unsent()) {
-    promise.set_error(Status::Error(400, "Message is yet unsent"));
-    return {};
+    return Status::Error(400, "Message is yet unsent");
   }
   if (m->message_id.is_scheduled()) {
-    promise.set_error(Status::Error(400, "Message is scheduled"));
-    return {};
+    return Status::Error(400, "Message is scheduled");
   }
   if (!m->message_id.is_server()) {
-    promise.set_error(Status::Error(400, "Message is local"));
-    return {};
+    return Status::Error(400, "Message is local");
   }
 
   if (m->media_album_id == 0) {
@@ -16085,14 +16077,17 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
   if (d->deleted_message_ids.count(m->top_reply_message_id) != 0) {
     for_comment = false;
   }
-  string comment_link;
+  if (for_comment && is_broadcast_channel(dialog_id)) {
+    for_comment = false;
+  }
+
+  td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
+      ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
+
+  auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
   if (for_comment) {
     auto *top_m = get_message_force(d, m->top_reply_message_id, "get_public_message_link");
-    if (top_m == nullptr) {
-      get_message_force_from_server(d, m->top_reply_message_id, std::move(promise));
-      return {};
-    }
-    if (!top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
+    if (top_m != nullptr && !top_m->sender_user_id.is_valid() && top_m->forward_info != nullptr &&
         top_m->forward_info->sender_dialog_id.is_valid() && top_m->forward_info->message_id.is_valid() &&
         DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id())) ==
             top_m->forward_info->sender_dialog_id) {
@@ -16101,103 +16096,26 @@ std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId
       auto linked_d = get_dialog(linked_dialog_id);
       CHECK(linked_d != nullptr);
       CHECK(linked_dialog_id.get_type() == DialogType::Channel);
+      auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
       auto channel_username = td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id());
-      if (linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
-          !channel_username.empty() && linked_d->deleted_message_ids.count(linked_message_id) == 0) {
-        auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
-        if (linked_m == nullptr) {
-          get_message_force_from_server(linked_d, linked_message_id, std::move(promise));
-          return {};
-        }
-
-        comment_link = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/")
-                                 << channel_username << '/' << linked_message_id.get_server_message_id().get()
-                                 << "?comment=" << m->message_id.get_server_message_id().get()
-                                 << (for_group ? "" : "&single");
+      if (linked_m != nullptr && linked_message_id.is_server() &&
+          have_input_peer(linked_dialog_id, AccessRights::Read) && !channel_username.empty() &&
+          linked_d->deleted_message_ids.count(linked_message_id) == 0) {
+        return std::make_pair(
+            PSTRING() << t_me << channel_username << '/' << linked_message_id.get_server_message_id().get()
+                      << "?comment=" << m->message_id.get_server_message_id().get() << (for_group ? "" : "&single"),
+            true);
       }
     }
   }
-  if (comment_link.empty() && td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
-    promise.set_error(
-        Status::Error(400, "Public message links are available only for messages in chats with a username"));
-    return {};
-  }
 
-  auto &links = public_message_links_[for_group][dialog_id].links_;
-  auto it = links.find(m->message_id);
-  if (it == links.end()) {
-    td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
-        ->send(dialog_id.get_channel_id(), m->message_id, for_group, false);
-    return {};
+  auto dialog_username = td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id());
+  if (m->content->get_type() == MessageContentType::VideoNote && is_broadcast_channel(dialog_id) &&
+      !dialog_username.empty()) {
+    return std::make_pair(
+        PSTRING() << "https://telesco.pe/" << dialog_username << '/' << m->message_id.get_server_message_id().get(),
+        true);
   }
-
-  if (for_comment && comment_link.empty()) {
-    comment_link = PSTRING() << it->second.first << (it->second.first.find('?') == string::npos ? '?' : '&')
-                             << "thread=" << m->top_reply_message_id.get_server_message_id().get();
-  }
-
-  promise.set_value(Unit());
-  if (!comment_link.empty()) {
-    return {std::move(comment_link), it->second.second};
-  } else {
-    return it->second;
-  }
-}
-
-void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
-                                                 string html) {
-  LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
-  public_message_links_[for_group][full_message_id.get_dialog_id()].links_[full_message_id.get_message_id()] = {
-      std::move(url), std::move(html)};
-}
-
-string MessagesManager::get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment,
-                                         Promise<Unit> &&promise) {
-  auto dialog_id = full_message_id.get_dialog_id();
-  auto d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return {};
-  }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
-    return {};
-  }
-  if (dialog_id.get_type() != DialogType::Channel) {
-    promise.set_error(
-        Status::Error(400, "Message links are available only for messages in supergroups and channel chats"));
-    return {};
-  }
-
-  auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
-  if (m == nullptr) {
-    promise.set_error(Status::Error(400, "Message not found"));
-    return {};
-  }
-  if (m->message_id.is_scheduled()) {
-    promise.set_error(Status::Error(400, "Message is scheduled"));
-    return {};
-  }
-  if (!m->message_id.is_server()) {
-    promise.set_error(Status::Error(400, "Message is local"));
-    return {};
-  }
-
-  if (m->media_album_id == 0) {
-    for_group = true;  // default is true
-  }
-
-  if (!m->top_reply_message_id.is_valid() || !m->top_reply_message_id.is_server()) {
-    for_comment = false;
-  }
-  if (d->deleted_message_ids.count(m->top_reply_message_id) != 0) {
-    for_comment = false;
-  }
-
-  td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
-      ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
-
-  promise.set_value(Unit());
 
   string args;
   if (for_comment) {
@@ -16208,8 +16126,13 @@ string MessagesManager::get_message_link(FullMessageId full_message_id, bool for
     args += "single";
   }
 
-  return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "c/"
-                   << dialog_id.get_channel_id().get() << "/" << m->message_id.get_server_message_id().get() << args;
+  bool is_public = !dialog_username.empty();
+  if (!is_public) {
+    dialog_username = PSTRING() << "c/" << dialog_id.get_channel_id().get();
+  }
+  return std::make_pair(PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/")
+                                  << dialog_username << '/' << m->message_id.get_server_message_id().get() << args,
+                        is_public);
 }
 
 string MessagesManager::get_message_embedding_code(FullMessageId full_message_id, bool for_group,
@@ -16263,6 +16186,13 @@ string MessagesManager::get_message_embedding_code(FullMessageId full_message_id
 
   promise.set_value(Unit());
   return it->second.second;
+}
+
+void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
+                                                 string html) {
+  LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
+  public_message_links_[for_group][full_message_id.get_dialog_id()].links_[full_message_id.get_message_id()] = {
+      std::move(url), std::move(html)};
 }
 
 Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(Slice url) {
