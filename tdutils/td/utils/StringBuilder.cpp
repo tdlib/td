@@ -81,11 +81,10 @@ template <class T>
 static char *print_int(char *current_ptr, T x) {
   if (x < 0) {
     if (x == std::numeric_limits<T>::min()) {
-      std::stringstream ss;
-      ss << x;
-      auto len = narrow_cast<int>(static_cast<std::streamoff>(ss.tellp()));
-      ss.read(current_ptr, len);
-      return current_ptr + len;
+      current_ptr = print_int(current_ptr, x + 1);
+      CHECK(current_ptr[-1] != '9');
+      current_ptr[-1]++;
+      return current_ptr;
     }
 
     *current_ptr++ = '-';
