@@ -290,15 +290,6 @@ class ContactsManager : public Actor {
   void disconnect_website(int64 authorizations_id, Promise<Unit> &&promise) const;
   void disconnect_all_websites(Promise<Unit> &&promise) const;
 
-  int64 get_blocked_users(int32 offset, int32 limit, Promise<Unit> &&promise);
-
-  void on_get_blocked_users_result(int32 offset, int32 limit, int64 random_id, int32 total_count,
-                                   vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers);
-
-  void on_failed_get_blocked_users(int64 random_id);
-
-  tl_object_ptr<td_api::users> get_blocked_users_object(int64 random_id);
-
   void add_contact(td_api::object_ptr<td_api::contact> &&contact, bool share_phone_number, Promise<Unit> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> import_contacts(const vector<tl_object_ptr<td_api::contact>> &contacts,
@@ -1554,9 +1545,6 @@ class ContactsManager : public Actor {
   std::unordered_map<int64, std::pair<int32, vector<DialogParticipant>>> received_channel_participants_;
 
   std::unordered_map<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
-
-  std::unordered_map<int64, std::pair<int32, vector<UserId>>>
-      found_blocked_users_;  // random_id -> [total_count, [user_id]...]
 
   bool are_contacts_loaded_ = false;
   int32 next_contacts_sync_date_ = 0;

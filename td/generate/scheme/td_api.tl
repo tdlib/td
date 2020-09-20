@@ -4171,9 +4171,8 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-
-//@description Returns users that were blocked by the current user @offset Number of users to skip in the result; must be non-negative @limit The maximum number of users to return; up to 100
-getBlockedUsers offset:int32 limit:int32 = Users;
+//@description Returns chats that were blocked by the current user @offset Number of chats to skip in the result; must be non-negative @limit The maximum number of chats to return; up to 100
+getBlockedChats offset:int32 limit:int32 = Chats;
 
 
 //@description Adds a user to the contact list or edits an existing contact by their user identifier @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored

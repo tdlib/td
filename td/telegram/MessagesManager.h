@@ -553,6 +553,14 @@ class MessagesManager : public Actor {
   std::pair<int32, vector<DialogId>> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit,
                                                         bool force, Promise<Unit> &&promise);
 
+  std::pair<int32, vector<DialogId>> get_blocked_dialogs(int32 offset, int32 limit, int64 &random_id,
+                                                         Promise<Unit> &&promise);
+
+  void on_get_blocked_dialogs(int32 offset, int32 limit, int64 random_id, int32 total_count,
+                              vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers);
+
+  void on_failed_get_blocked_dialogs(int64 random_id);
+
   bool can_get_message_statistics(FullMessageId full_message_id);
 
   bool have_message_force(FullMessageId full_message_id, const char *source);
@@ -3001,6 +3009,9 @@ class MessagesManager : public Actor {
     bool is_outdated = false;
   };
   std::unordered_map<UserId, CommonDialogs, UserIdHash> found_common_dialogs_;
+
+  std::unordered_map<int64, std::pair<int32, vector<DialogId>>>
+      found_blocked_dialogs_;  // random_id -> [total_count, [dialog_id]...]
 
   std::unordered_map<int64, FullMessageId> get_dialog_message_by_date_results_;
 

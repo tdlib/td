@@ -349,65 +349,6 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class GetBlockedUsersQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  int32 offset_;
-  int32 limit_;
-  int64 random_id_;
-
- public:
-  explicit GetBlockedUsersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(int32 offset, int32 limit, int64 random_id) {
-    offset_ = offset;
-    limit_ = limit;
-    random_id_ = random_id;
-
-    send_query(G()->net_query_creator().create(telegram_api::contacts_getBlocked(offset, limit)));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::contacts_getBlocked>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetBlockedUsersQuery: " << to_string(ptr);
-
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::contacts_blocked::ID: {
-        auto blocked_users = move_tl_object_as<telegram_api::contacts_blocked>(ptr);
-
-        td->contacts_manager_->on_get_users(std::move(blocked_users->users_), "GetBlockedUsersQuery");
-        td->contacts_manager_->on_get_blocked_users_result(offset_, limit_, random_id_,
-                                                           narrow_cast<int32>(blocked_users->blocked_.size()),
-                                                           std::move(blocked_users->blocked_));
-        break;
-      }
-      case telegram_api::contacts_blockedSlice::ID: {
-        auto blocked_users = move_tl_object_as<telegram_api::contacts_blockedSlice>(ptr);
-
-        td->contacts_manager_->on_get_users(std::move(blocked_users->users_), "GetBlockedUsersQuery");
-        td->contacts_manager_->on_get_blocked_users_result(offset_, limit_, random_id_, blocked_users->count_,
-                                                           std::move(blocked_users->blocked_));
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_failed_get_blocked_users(random_id_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetContactsQuery : public Td::ResultHandler {
  public:
   void send(int32 hash) {
@@ -4632,67 +4573,6 @@ bool ContactsManager::is_valid_username(const string &username) {
     return false;
   }
   return true;
-}
-
-int64 ContactsManager::get_blocked_users(int32 offset, int32 limit, Promise<Unit> &&promise) {
-  LOG(INFO) << "Get blocked users with offset = " << offset << " and limit = " << limit;
-
-  if (offset < 0) {
-    promise.set_error(Status::Error(3, "Parameter offset must be non-negative"));
-    return 0;
-  }
-
-  if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
-    return 0;
-  }
-
-  int64 random_id;
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || found_blocked_users_.find(random_id) != found_blocked_users_.end());
-  found_blocked_users_[random_id];  // reserve place for result
-
-  td_->create_handler<GetBlockedUsersQuery>(std::move(promise))->send(offset, limit, random_id);
-  return random_id;
-}
-
-void ContactsManager::on_get_blocked_users_result(int32 offset, int32 limit, int64 random_id, int32 total_count,
-                                                  vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers) {
-  LOG(INFO) << "Receive " << blocked_peers.size() << " blocked users out of " << total_count;
-  auto it = found_blocked_users_.find(random_id);
-  CHECK(it != found_blocked_users_.end());
-
-  auto &result = it->second.second;
-  CHECK(result.empty());
-  for (auto &blocked_peer : blocked_peers) {
-    CHECK(blocked_peer != nullptr);
-    DialogId dialog_id(blocked_peer->peer_id_);
-    if (dialog_id.get_type() != DialogType::User) {
-      continue;
-    }
-    auto user_id = dialog_id.get_user_id();
-    if (have_user(user_id)) {
-      result.push_back(user_id);
-    } else {
-      LOG(ERROR) << "Have no info about " << user_id;
-    }
-  }
-  it->second.first = total_count;
-}
-
-void ContactsManager::on_failed_get_blocked_users(int64 random_id) {
-  auto it = found_blocked_users_.find(random_id);
-  CHECK(it != found_blocked_users_.end());
-  found_blocked_users_.erase(it);
-}
-
-tl_object_ptr<td_api::users> ContactsManager::get_blocked_users_object(int64 random_id) {
-  auto it = found_blocked_users_.find(random_id);
-  CHECK(it != found_blocked_users_.end());
-  auto result = get_users_object(it->second.first, it->second.second);
-  found_blocked_users_.erase(it);
-  return result;
 }
 
 int32 ContactsManager::get_user_was_online(const User *u, UserId user_id) const {

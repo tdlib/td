@@ -850,6 +850,66 @@ class GetCommonDialogsQuery : public Td::ResultHandler {
   }
 };
 
+class GetBlockedDialogsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int32 offset_;
+  int32 limit_;
+  int64 random_id_;
+
+ public:
+  explicit GetBlockedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int32 offset, int32 limit, int64 random_id) {
+    offset_ = offset;
+    limit_ = limit;
+    random_id_ = random_id;
+
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getBlocked(offset, limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_getBlocked>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBlockedDialogsQuery: " << to_string(ptr);
+
+    switch (ptr->get_id()) {
+      case telegram_api::contacts_blocked::ID: {
+        auto blocked_peers = move_tl_object_as<telegram_api::contacts_blocked>(ptr);
+
+        td->contacts_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
+        td->contacts_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
+        td->messages_manager_->on_get_blocked_dialogs(offset_, limit_, random_id_,
+                                                      narrow_cast<int32>(blocked_peers->blocked_.size()),
+                                                      std::move(blocked_peers->blocked_));
+        break;
+      }
+      case telegram_api::contacts_blockedSlice::ID: {
+        auto blocked_peers = move_tl_object_as<telegram_api::contacts_blockedSlice>(ptr);
+
+        td->contacts_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
+        td->contacts_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
+        td->messages_manager_->on_get_blocked_dialogs(offset_, limit_, random_id_, blocked_peers->count_,
+                                                      std::move(blocked_peers->blocked_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_failed_get_blocked_dialogs(random_id_);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateChatQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 random_id_;
@@ -15505,6 +15565,72 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
     result.push_back(DialogId());
   }
   common_dialogs.total_count = total_count;
+}
+
+std::pair<int32, vector<DialogId>> MessagesManager::get_blocked_dialogs(int32 offset, int32 limit, int64 &random_id,
+                                                                        Promise<Unit> &&promise) {
+  LOG(INFO) << "Get blocked chats with offset = " << offset << " and limit = " << limit;
+
+  if (random_id != 0) {
+    // request has already been sent before
+    auto it = found_blocked_dialogs_.find(random_id);
+    CHECK(it != found_blocked_dialogs_.end());
+    auto result = std::move(it->second);
+    found_blocked_dialogs_.erase(it);
+
+    promise.set_value(Unit());
+    return result;
+  }
+
+  if (offset < 0) {
+    promise.set_error(Status::Error(3, "Parameter offset must be non-negative"));
+    return {};
+  }
+
+  if (limit <= 0) {
+    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    return {};
+  }
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_blocked_dialogs_.find(random_id) != found_blocked_dialogs_.end());
+  found_blocked_dialogs_[random_id];  // reserve place for result
+
+  td_->create_handler<GetBlockedDialogsQuery>(std::move(promise))->send(offset, limit, random_id);
+  return {};
+}
+
+void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int64 random_id, int32 total_count,
+                                             vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers) {
+  LOG(INFO) << "Receive " << blocked_peers.size() << " blocked chats from offset " << offset << " out of "
+            << total_count;
+  auto it = found_blocked_dialogs_.find(random_id);
+  CHECK(it != found_blocked_dialogs_.end());
+
+  auto &result = it->second.second;
+  CHECK(result.empty());
+  for (auto &blocked_peer : blocked_peers) {
+    CHECK(blocked_peer != nullptr);
+    DialogId dialog_id(blocked_peer->peer_id_);
+    force_create_dialog(dialog_id, "on_get_blocked_dialogs");
+    if (have_dialog(dialog_id)) {
+      result.push_back(dialog_id);
+    } else {
+      LOG(ERROR) << "Have no info about " << dialog_id;
+    }
+  }
+  if (!result.empty() && offset + result.size() > static_cast<size_t>(total_count)) {
+    LOG(ERROR) << "Fix total count of blocked chats from " << total_count << " to " << offset + result.size();
+    total_count = offset + narrow_cast<int32>(result.size());
+  }
+  it->second.first = total_count;
+}
+
+void MessagesManager::on_failed_get_blocked_dialogs(int64 random_id) {
+  auto it = found_blocked_dialogs_.find(random_id);
+  CHECK(it != found_blocked_dialogs_.end());
+  found_blocked_dialogs_.erase(it);
 }
 
 bool MessagesManager::have_message_force(FullMessageId full_message_id, const char *source) {

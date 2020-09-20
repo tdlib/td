@@ -2079,23 +2079,24 @@ class GetChatEventLogRequest : public RequestOnceActor {
   }
 };
 
-class GetBlockedUsersRequest : public RequestOnceActor {
+class GetBlockedChatsRequest : public RequestActor<> {
   int32 offset_;
   int32 limit_;
-
   int64 random_id_;
 
+  std::pair<int32, vector<DialogId>> dialog_ids_;
+
   void do_run(Promise<Unit> &&promise) override {
-    random_id_ = td->contacts_manager_->get_blocked_users(offset_, limit_, std::move(promise));
+    dialog_ids_ = td->messages_manager_->get_blocked_dialogs(offset_, limit_, random_id_, std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->contacts_manager_->get_blocked_users_object(random_id_));
+    send_result(MessagesManager::get_chats_object(dialog_ids_));
   }
 
  public:
-  GetBlockedUsersRequest(ActorShared<Td> td, uint64 request_id, int32 offset, int32 limit)
-      : RequestOnceActor(std::move(td), request_id), offset_(offset), limit_(limit), random_id_(0) {
+  GetBlockedChatsRequest(ActorShared<Td> td, uint64 request_id, int32 offset, int32 limit)
+      : RequestActor(std::move(td), request_id), offset_(offset), limit_(limit), random_id_(0) {
   }
 };
 
@@ -6378,9 +6379,9 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
                "td_api::deleteFile");
 }
 
-void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {
+void Td::on_request(uint64 id, const td_api::getBlockedChats &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetBlockedUsersRequest, request.offset_, request.limit_);
+  CREATE_REQUEST(GetBlockedChatsRequest, request.offset_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::addContact &request) {
