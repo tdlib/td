@@ -690,7 +690,7 @@ class GetUserFullInfoRequest : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->get_user_full(user_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_user_full(user_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {
@@ -725,7 +725,7 @@ class GetGroupFullInfoRequest : public RequestActor<> {
   ChatId chat_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->get_chat_full(chat_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_chat_full(chat_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {
@@ -760,7 +760,7 @@ class GetSupergroupFullInfoRequest : public RequestActor<> {
   ChannelId channel_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->get_channel_full(channel_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_channel_full(channel_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() override {

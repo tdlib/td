@@ -8351,7 +8351,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (is_user_deleted(user_id)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
-    get_user_full(user_id, true, Auto());
+    load_user_full(user_id, true, Auto());
   }
 }
 
@@ -8618,7 +8618,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   update_channel_full(channel_full, channel_id, true);
 
   if (channel_full->expires_at == 0.0) {
-    get_channel_full(channel_id, true, Auto());
+    load_channel_full(channel_id, true, Auto());
   }
 }
 
@@ -10086,7 +10086,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       user_full->photo = Photo();
       user_full->is_changed = true;
 
-      get_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto());
     }
     if (send_updates) {
       update_user_full(user_full, user_id);
@@ -10146,7 +10146,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
       }
-      get_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto());
     }
     update_user_full(user_full, user_id);
   }
@@ -12355,7 +12355,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
 }
 
-bool ContactsManager::get_user_full(UserId user_id, bool force, Promise<Unit> &&promise) {
+bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
@@ -12370,17 +12370,17 @@ bool ContactsManager::get_user_full(UserId user_id, bool force, Promise<Unit> &&
       return false;
     }
 
-    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get_user_full");
+    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load_user_full");
     return false;
   }
   if (user_full->is_expired() || is_bot_info_expired(user_id, u->bot_info_version)) {
     auto input_user = get_input_user(user_id);
     CHECK(input_user != nullptr);
     if (td_->auth_manager_->is_bot() && !force) {
-      send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get expired user_full");
+      send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load expired user_full");
       return false;
     } else {
-      send_get_user_full_query(user_id, std::move(input_user), Auto(), "get expired user_full");
+      send_get_user_full_query(user_id, std::move(input_user), Auto(), "load expired user_full");
     }
   }
 
@@ -12683,7 +12683,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
   return false;
 }
 
-bool ContactsManager::get_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise) {
+bool ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise) {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     promise.set_error(Status::Error(6, "Group not found"));
@@ -12693,17 +12693,17 @@ bool ContactsManager::get_chat_full(ChatId chat_id, bool force, Promise<Unit> &&
   auto chat_full = get_chat_full_force(chat_id);
   if (chat_full == nullptr) {
     LOG(INFO) << "Full " << chat_id << " not found";
-    send_get_chat_full_query(chat_id, std::move(promise), "get_chat_full");
+    send_get_chat_full_query(chat_id, std::move(promise), "load_chat_full");
     return false;
   }
 
   if (is_chat_full_outdated(chat_full, c, chat_id)) {
     LOG(INFO) << "Have outdated full " << chat_id;
     if (td_->auth_manager_->is_bot() && !force) {
-      send_get_chat_full_query(chat_id, std::move(promise), "get expired chat_full");
+      send_get_chat_full_query(chat_id, std::move(promise), "load expired chat_full");
       return false;
     } else {
-      send_get_chat_full_query(chat_id, Auto(), "get expired chat_full");
+      send_get_chat_full_query(chat_id, Auto(), "load expired chat_full");
     }
   }
 
@@ -12990,19 +12990,19 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
   return channel_full_ptr.get();
 }
 
-bool ContactsManager::get_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
-  auto channel_full = get_channel_full_force(channel_id, "get_channel_full");
+bool ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
+  auto channel_full = get_channel_full_force(channel_id, "load_channel_full");
   if (channel_full == nullptr) {
-    send_get_channel_full_query(channel_full, channel_id, std::move(promise), "get_channel_full");
+    send_get_channel_full_query(channel_full, channel_id, std::move(promise), "load_channel_full");
     return false;
   }
   if (channel_full->is_expired()) {
     if (td_->auth_manager_->is_bot() && !force) {
-      send_get_channel_full_query(channel_full, channel_id, std::move(promise), "get expired channel_full");
+      send_get_channel_full_query(channel_full, channel_id, std::move(promise), "load expired channel_full");
       return false;
     } else {
       // request has already been sent in get_channel_full_force
-      // send_get_channel_full_query(channel_full, channel_id, Auto(), "get expired channel_full");
+      // send_get_channel_full_query(channel_full, channel_id, Auto(), "load expired channel_full");
     }
   }
 
@@ -13170,7 +13170,7 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
   if (force) {
     promise.set_value(Unit());
-  } else if (!get_chat_full(chat_id, force, std::move(promise))) {
+  } else if (!load_chat_full(chat_id, force, std::move(promise))) {
     return DialogParticipant();
   }
   // promise is already set
@@ -13195,7 +13195,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
   if (force) {
     promise.set_value(Unit());
-  } else if (!get_chat_full(chat_id, force, std::move(promise))) {
+  } else if (!load_chat_full(chat_id, force, std::move(promise))) {
     return {};
   }
   // promise is already set
@@ -13507,7 +13507,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
 void ContactsManager::reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      get_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
+      load_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
       break;
     case DialogType::Channel:
       td_->create_handler<GetChannelAdministratorsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), hash);

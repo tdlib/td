@@ -6395,7 +6395,8 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
   auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
   if (!linked_channel_id.is_valid()) {
     // keep the comment button while linked channel is unknown
-    td_->contacts_manager_->get_channel_full(channel_id, true, Auto());
+    send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, channel_id, false,
+                       Promise<Unit>());
     return true;
   }
 
@@ -10546,7 +10547,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
-  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), false, Promise<Unit>());
+  get_dialog_info_full(d->dialog_id, Promise<Unit>());
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
@@ -15859,13 +15860,16 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->get_user_full(dialog_id.get_user_id(), false, std::move(promise));
+      send_closure_later(G()->contacts_manager(), &ContactsManager::load_user_full, dialog_id.get_user_id(), false,
+                         std::move(promise));
       return;
     case DialogType::Chat:
-      td_->contacts_manager_->get_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
+      send_closure_later(G()->contacts_manager(), &ContactsManager::load_chat_full, dialog_id.get_chat_id(), false,
+                         std::move(promise));
       return;
     case DialogType::Channel:
-      td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), false, std::move(promise));
+      send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, dialog_id.get_channel_id(),
+                         false, std::move(promise));
       return;
     case DialogType::SecretChat:
       return promise.set_value(Unit());
@@ -28514,6 +28518,7 @@ void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool fr
 
   Promise<> promise;
   if (d->set_folder_id_logevent_id.logevent_id != 0) {
+    d->set_folder_id_logevent_id.generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
                                       generation = d->set_folder_id_logevent_id.generation](Result<Unit> result) {
       if (!G()->close_flag()) {
@@ -34401,7 +34406,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         d->set_folder_id_logevent_id.logevent_id = event.id_;
-        d->set_folder_id_logevent_id.generation++;
 
         set_dialog_folder_id(d, log_event.folder_id_);
 
