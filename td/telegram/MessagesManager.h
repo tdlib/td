@@ -24,6 +24,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputDialogId.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageId.h"
@@ -1144,14 +1145,10 @@ class MessagesManager : public Actor {
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     unique_ptr<DraftMessage> draft_message;
-    uint64 save_draft_message_logevent_id = 0;
-    uint64 save_draft_message_logevent_id_generation = 0;
-    uint64 save_notification_settings_logevent_id = 0;
-    uint64 save_notification_settings_logevent_id_generation = 0;
-    uint64 read_history_logevent_id = 0;
-    uint64 read_history_logevent_id_generation = 0;
-    uint64 set_folder_id_logevent_id = 0;
-    uint64 set_folder_id_logevent_id_generation = 0;
+    LogeventIdWithGeneration save_draft_message_logevent_id;
+    LogeventIdWithGeneration save_notification_settings_logevent_id;
+    LogeventIdWithGeneration read_history_logevent_id;
+    LogeventIdWithGeneration set_folder_id_logevent_id;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask

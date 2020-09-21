@@ -439,6 +439,7 @@ set(TDLIB_SOURCE
   td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
   td/telegram/Location.cpp
+  td/telegram/logevent/LogEventHelper.cpp
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageContentType.cpp
