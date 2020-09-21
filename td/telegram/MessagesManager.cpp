@@ -1713,9 +1713,10 @@ class ReadHistoryQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId max_message_id) {
     dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_readHistory(td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read),
-                                           max_message_id.get_server_message_id().get())));
+        telegram_api::messages_readHistory(std::move(input_peer), max_message_id.get_server_message_id().get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1774,6 +1775,38 @@ class ReadChannelHistoryQuery : public Td::ResultHandler {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "ReadChannelHistoryQuery")) {
       LOG(ERROR) << "Receive error for readChannelHistory: " << status;
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReadDiscussionQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReadDiscussionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId top_thread_message_id, MessageId max_message_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_readDiscussion(
+        std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
+        max_message_id.get_server_message_id().get())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_readDiscussion>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadDiscussionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -5331,8 +5364,8 @@ void MessagesManager::on_pending_read_history_timeout_callback(void *messages_ma
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::read_history_on_server_impl,
-                     DialogId(dialog_id_int), MessageId());
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::do_read_history_on_server,
+                     DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_pending_updated_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -16090,9 +16123,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
   if (for_comment) {
     auto *top_m = get_message_force(d, m->top_reply_message_id, "get_public_message_link");
-    if (is_discussion_message(dialog_id, top_m) &&
-        top_m->forward_info->sender_dialog_id ==
-            DialogId(td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id()))) {
+    if (is_discussion_message(dialog_id, top_m) && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       auto linked_dialog_id = top_m->forward_info->sender_dialog_id;
       auto linked_message_id = top_m->forward_info->message_id;
       auto linked_d = get_dialog(linked_dialog_id);
@@ -16100,9 +16131,9 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
       CHECK(linked_dialog_id.get_type() == DialogType::Channel);
       auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
       auto channel_username = td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id());
-      if (linked_m != nullptr && linked_message_id.is_server() &&
-          have_input_peer(linked_dialog_id, AccessRights::Read) && !channel_username.empty() &&
-          linked_d->deleted_message_ids.count(linked_message_id) == 0) {
+      if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info) &&
+          linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
+          !channel_username.empty()) {
         return std::make_pair(
             PSTRING() << t_me << channel_username << '/' << linked_message_id.get_server_message_id().get()
                       << "?comment=" << m->message_id.get_server_message_id().get() << (for_group ? "" : "&single"),
@@ -18079,7 +18110,8 @@ DialogId MessagesManager::get_my_dialog_id() const {
   return DialogId(td_->contacts_manager_->get_my_id());
 }
 
-Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool force_read) {
+Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_message_id,
+                                      const vector<MessageId> &message_ids, bool force_read) {
   CHECK(!td_->auth_manager_->is_bot());
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -18093,6 +18125,15 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(5, "Can't access the chat");
+  }
+
+  if (top_thread_message_id != MessageId()) {
+    if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+      return Status::Error(400, "Invalid message thread ID specified");
+    }
+    if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+      return Status::Error(400, "There is no message threads in the chat");
+    }
   }
 
   bool need_read = force_read || d->is_opened;
@@ -18138,9 +18179,55 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
   }
 
-  if (need_read && max_message_id > d->last_read_inbox_message_id) {
-    MessageId last_read_message_id = max_message_id;
-    MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
+  if (!need_read) {
+    return Status::OK();
+  }
+
+  if (top_thread_message_id.is_valid()) {
+    MessageId prev_last_read_inbox_message_id;
+    MessageId max_thread_message_id;
+    Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
+    if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
+      prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id;
+      if (top_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
+        send_update_message_interaction_info(dialog_id, top_m);
+        on_message_changed(d, top_m, true, "view_messages 3");
+      }
+      max_thread_message_id = top_m->reply_info.max_message_id;
+
+      if (is_discussion_message(dialog_id, top_m)) {
+        auto linked_dialog_id = top_m->forward_info->sender_dialog_id;
+        auto linked_d = get_dialog(linked_dialog_id);
+        CHECK(linked_d != nullptr);
+        CHECK(linked_dialog_id.get_type() == DialogType::Channel);
+        auto *linked_m = get_message_force(linked_d, top_m->forward_info->message_id, "view_messages 4");
+        if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info)) {
+          if (linked_m->reply_info.last_read_inbox_message_id < prev_last_read_inbox_message_id) {
+            prev_last_read_inbox_message_id = linked_m->reply_info.last_read_inbox_message_id;
+          }
+          if (linked_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
+            send_update_message_interaction_info(linked_dialog_id, linked_m);
+            on_message_changed(linked_d, linked_m, true, "view_messages 5");
+          }
+          if (linked_m->reply_info.max_message_id > max_thread_message_id) {
+            max_thread_message_id = linked_m->reply_info.max_message_id;
+          }
+        }
+      }
+    }
+
+    if (max_message_id.get_prev_server_message_id().get() >
+        prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
+      read_message_thread_history_on_server(d, top_thread_message_id, max_message_id.get_prev_server_message_id(),
+                                            max_thread_message_id.get_prev_server_message_id());
+    }
+
+    return Status::OK();
+  }
+
+  if (max_message_id > d->last_read_inbox_message_id) {
+    const MessageId last_read_message_id = max_message_id;
+    const MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
     MessageId read_history_on_server_message_id;
     if (dialog_id.get_type() != DialogType::SecretChat) {
       if (last_read_message_id.get_prev_server_message_id().get() >
@@ -18164,7 +18251,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
       read_history_on_server(d, read_history_on_server_message_id);
     }
   }
-  if (need_read && d->is_marked_as_unread) {
+  if (d->is_marked_as_unread) {
     set_dialog_is_marked_as_unread(d, false);
   }
 
@@ -19106,6 +19193,27 @@ class MessagesManager::ReadHistoryInSecretChatLogEvent {
   }
 };
 
+class MessagesManager::ReadMessageThreadHistoryOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  MessageId top_thread_message_id_;
+  MessageId max_message_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(top_thread_message_id_, storer);
+    td::store(max_message_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(top_thread_message_id_, parser);
+    td::parse(max_message_id_, parser);
+  }
+};
+
 void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -19128,7 +19236,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryInSecretChatLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.max_date_ = m->date;
-    add_log_event(d->read_history_logevent_id, LogEventStorerImpl<ReadHistoryInSecretChatLogEvent>(logevent),
+    add_log_event(d->read_history_logevent_ids[0], LogEventStorerImpl<ReadHistoryInSecretChatLogEvent>(logevent),
                   LogEvent::HandlerType::ReadHistoryInSecretChat, "read history");
 
     d->last_read_inbox_message_date = m->date;
@@ -19136,37 +19244,87 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_logevent_id, LogEventStorerImpl<ReadHistoryOnServerLogEvent>(logevent),
+    add_log_event(d->read_history_logevent_ids[0], LogEventStorerImpl<ReadHistoryOnServerLogEvent>(logevent),
                   LogEvent::HandlerType::ReadHistoryOnServer, "read history");
   }
+
+  d->updated_read_history_message_ids.insert(MessageId());
 
   bool need_delay = d->is_opened && !is_secret && d->server_unread_count > 0;
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
-void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id) {
+void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId top_thread_message_id,
+                                                            MessageId max_message_id, MessageId last_message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  CHECK(top_thread_message_id.is_valid());
+  CHECK(top_thread_message_id.is_server());
+  CHECK(max_message_id.is_server());
+
+  auto dialog_id = d->dialog_id;
+  LOG(INFO) << "Read history in thread of " << top_thread_message_id << " in " << dialog_id << " on server up to "
+            << max_message_id;
+
+  if (G()->parameters().use_message_db) {
+    ReadMessageThreadHistoryOnServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    logevent.top_thread_message_id_ = top_thread_message_id;
+    logevent.max_message_id_ = max_message_id;
+    add_log_event(d->read_history_logevent_ids[top_thread_message_id.get()],
+                  LogEventStorerImpl<ReadMessageThreadHistoryOnServerLogEvent>(logevent),
+                  LogEvent::HandlerType::ReadMessageThreadHistoryOnServer, "read history");
+  }
+
+  d->updated_read_history_message_ids.insert(top_thread_message_id);
+
+  bool need_delay = d->is_opened && last_message_id.is_valid() && max_message_id != last_message_id;
+  pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
+}
+
+void MessagesManager::do_read_history_on_server(DialogId dialog_id) {
   if (G()->close_flag()) {
     return;
   }
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
+  CHECK(!d->updated_read_history_message_ids.empty());
 
-  auto message_id = d->last_read_inbox_message_id;
-  if (dialog_id.get_type() != DialogType::SecretChat) {
-    message_id = message_id.get_prev_server_message_id();
+  for (auto top_thread_message_id : d->updated_read_history_message_ids) {
+    if (!top_thread_message_id.is_valid()) {
+      read_history_on_server_impl(d, MessageId());
+    } else {
+      read_message_thread_history_on_server_impl(d, top_thread_message_id, MessageId());
+    }
   }
-  if (message_id > max_message_id) {
-    max_message_id = message_id;
+  reset_to_empty(d->updated_read_history_message_ids);
+}
+
+void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_message_id) {
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
+
+  {
+    auto message_id = d->last_read_inbox_message_id;
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      message_id = message_id.get_prev_server_message_id();
+    }
+    if (message_id > max_message_id) {
+      max_message_id = message_id;
+    }
   }
 
   Promise<> promise;
-  if (d->read_history_logevent_id.logevent_id != 0) {
-    d->read_history_logevent_id.generation++;
+  if (d->read_history_logevent_ids[0].logevent_id != 0) {
+    d->read_history_logevent_ids[0].generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                      generation = d->read_history_logevent_id.generation](Result<Unit> result) {
+                                      generation = d->read_history_logevent_ids[0].generation](Result<Unit> result) {
       if (!G()->close_flag()) {
-        send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, generation);
+        send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, MessageId(), generation);
       }
     });
   }
@@ -19174,7 +19332,7 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
-  if (!max_message_id.is_valid()) {
+  if (!max_message_id.is_valid() || !have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_value(Unit());
   }
 
@@ -19210,10 +19368,53 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
   }
 }
 
-void MessagesManager::on_read_history_finished(DialogId dialog_id, uint64 generation) {
+void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, MessageId top_thread_message_id,
+                                                                 MessageId max_message_id) {
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+
+  const Message *m = get_message_force(d, top_thread_message_id, "read_message_thread_history_on_server_impl");
+  if (m != nullptr) {
+    auto message_id = m->reply_info.last_read_inbox_message_id.get_prev_server_message_id();
+    if (message_id > max_message_id) {
+      max_message_id = message_id;
+    }
+  }
+
+  Promise<> promise;
+  if (d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id != 0) {
+    d->read_history_logevent_ids[top_thread_message_id.get()].generation++;
+    promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, top_thread_message_id,
+         generation = d->read_history_logevent_ids[top_thread_message_id.get()].generation](Result<Unit> result) {
+          if (!G()->close_flag()) {
+            send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, top_thread_message_id,
+                         generation);
+          }
+        });
+  }
+
+  if (!max_message_id.is_valid() || !have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_value(Unit());
+  }
+
+  LOG(INFO) << "Send read history request in thread of " << top_thread_message_id << " in " << dialog_id << " up to "
+            << max_message_id;
+  td_->create_handler<ReadDiscussionQuery>(std::move(promise))->send(dialog_id, top_thread_message_id, max_message_id);
+}
+
+void MessagesManager::on_read_history_finished(DialogId dialog_id, MessageId top_thread_message_id, uint64 generation) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  delete_log_event(d->read_history_logevent_id, generation, "read history");
+  auto it = d->read_history_logevent_ids.find(top_thread_message_id.get());
+  if (it == d->read_history_logevent_ids.end()) {
+    return;
+  }
+  delete_log_event(it->second, generation, "read history");
+  if (it->second.logevent_id == 0) {
+    d->read_history_logevent_ids.erase(it);
+  }
 }
 
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
@@ -23632,6 +23833,9 @@ bool MessagesManager::is_discussion_message(DialogId dialog_id, const Message *m
     return false;
   }
   if (m->forward_info->sender_dialog_id == dialog_id) {
+    return false;
+  }
+  if (m->forward_info->sender_dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
   return true;
@@ -34162,13 +34366,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_logevent_id.logevent_id != 0) {
+        if (d->read_history_logevent_ids[0].logevent_id != 0) {
           // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_id.logevent_id);
+          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_ids[0].logevent_id);
         }
-        d->read_history_logevent_id.logevent_id = event.id_;
+        d->read_history_logevent_ids[0].logevent_id = event.id_;
 
-        read_history_on_server_impl(dialog_id, log_event.max_message_id_);
+        read_history_on_server_impl(d, log_event.max_message_id_);
         break;
       }
       case LogEvent::HandlerType::ReadHistoryInSecretChat: {
@@ -34188,14 +34392,40 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_logevent_id.logevent_id != 0) {
+        if (d->read_history_logevent_ids[0].logevent_id != 0) {
           // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_id.logevent_id);
+          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_ids[0].logevent_id);
         }
-        d->read_history_logevent_id.logevent_id = event.id_;
+        d->read_history_logevent_ids[0].logevent_id = event.id_;
         d->last_read_inbox_message_date = log_event.max_date_;
 
-        read_history_on_server_impl(dialog_id, MessageId());
+        read_history_on_server_impl(d, MessageId());
+        break;
+      }
+      case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ReadMessageThreadHistoryOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        auto top_thread_message_id = log_event.top_thread_message_id_;
+        if (d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id != 0) {
+          // we need only latest read history event
+          binlog_erase(G()->td_db()->get_binlog(),
+                       d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id);
+        }
+        d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id = event.id_;
+
+        read_message_thread_history_on_server_impl(d, top_thread_message_id, log_event.max_message_id_);
         break;
       }
       case LogEvent::HandlerType::ReadMessageContentsOnServer: {

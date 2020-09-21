@@ -3960,12 +3960,17 @@ class CliClient final : public Actor {
     } else if (op == "rrh") {
       auto hashtag = std::move(args);
       send_request(td_api::make_object<td_api::removeRecentHashtag>(hashtag));
-    } else if (op == "view") {
+    } else if (op == "view" || op == "viewt") {
       string chat_id;
+      string message_thread_id;
       string message_ids;
       std::tie(chat_id, message_ids) = split(args);
+      if (op == "viewt") {
+        std::tie(message_thread_id, message_ids) = split(message_ids);
+      }
 
-      send_request(td_api::make_object<td_api::viewMessages>(as_chat_id(chat_id), as_message_ids(message_ids), true));
+      send_request(td_api::make_object<td_api::viewMessages>(
+          as_chat_id(chat_id), as_message_thread_id(message_thread_id), as_message_ids(message_ids), true));
     } else if (op == "omc") {
       string chat_id;
       string message_id;

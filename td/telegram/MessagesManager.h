@@ -654,7 +654,8 @@ class MessagesManager : public Actor {
 
   Status close_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
 
-  Status view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool force_read) TD_WARN_UNUSED_RESULT;
+  Status view_messages(DialogId dialog_id, MessageId top_thread_message_id, const vector<MessageId> &message_ids,
+                       bool force_read) TD_WARN_UNUSED_RESULT;
 
   Status open_message_content(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
@@ -1147,7 +1148,8 @@ class MessagesManager : public Actor {
     unique_ptr<DraftMessage> draft_message;
     LogeventIdWithGeneration save_draft_message_logevent_id;
     LogeventIdWithGeneration save_notification_settings_logevent_id;
-    LogeventIdWithGeneration read_history_logevent_id;
+    std::unordered_map<int64, LogeventIdWithGeneration> read_history_logevent_ids;
+    std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
     LogeventIdWithGeneration set_folder_id_logevent_id;
 
     FolderId folder_id;
@@ -1592,9 +1594,10 @@ class MessagesManager : public Actor {
   class GetChannelDifferenceLogEvent;
   class GetDialogFromServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
-  class ReadHistoryOnServerLogEvent;
   class ReadHistoryInSecretChatLogEvent;
+  class ReadHistoryOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
+  class ReadMessageThreadHistoryOnServerLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
   class ResetAllNotificationSettingsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
@@ -1603,9 +1606,9 @@ class MessagesManager : public Actor {
   class SendMessageLogEvent;
   class SendScreenshotTakenNotificationMessageLogEvent;
   class SetDialogFolderIdOnServerLogEvent;
-  class ToggleDialogIsPinnedOnServerLogEvent;
-  class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsBlockedOnServerLogEvent;
+  class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
+  class ToggleDialogIsPinnedOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
@@ -1935,9 +1938,16 @@ class MessagesManager : public Actor {
 
   void read_history_on_server(Dialog *d, MessageId max_message_id);
 
-  void read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id);
+  void do_read_history_on_server(DialogId dialog_id);
 
-  void on_read_history_finished(DialogId dialog_id, uint64 generation);
+  void read_history_on_server_impl(Dialog *d, MessageId max_message_id);
+
+  void read_message_thread_history_on_server_impl(Dialog *d, MessageId top_thread_message_id, MessageId max_message_id);
+
+  void on_read_history_finished(DialogId dialog_id, MessageId top_thread_message_id, uint64 generation);
+
+  void read_message_thread_history_on_server(Dialog *d, MessageId top_thread_message_id, MessageId max_message_id,
+                                             MessageId last_message_id);
 
   void read_secret_chat_outbox_inner(DialogId dialog_id, int32 up_to_date, int32 read_date);
 

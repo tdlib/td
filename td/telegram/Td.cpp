@@ -5454,9 +5454,9 @@ void Td::on_request(uint64 id, const td_api::closeChat &request) {
 
 void Td::on_request(uint64 id, const td_api::viewMessages &request) {
   CHECK_IS_USER();
-  answer_ok_query(
-      id, messages_manager_->view_messages(
-              DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_), request.force_read_));
+  answer_ok_query(id, messages_manager_->view_messages(
+                          DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                          MessagesManager::get_message_ids(request.message_ids_), request.force_read_));
 }
 
 void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
