@@ -1505,7 +1505,7 @@ void WebPagesManager::save_web_page(const WebPage *web_page, WebPageId web_page_
   CHECK(web_page != nullptr);
   if (!from_binlog) {
     WebPageLogEvent logevent(web_page_id, web_page);
-    LogEventStorerImpl<WebPageLogEvent> storer(logevent);
+    auto storer = get_log_event_storer(logevent);
     if (web_page->logevent_id == 0) {
       web_page->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::WebPages, storer);
     } else {

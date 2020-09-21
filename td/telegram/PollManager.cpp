@@ -767,7 +767,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
     logevent.poll_id_ = poll_id;
     logevent.full_message_id_ = full_message_id;
     logevent.options_ = options;
-    auto storer = LogEventStorerImpl<SetPollAnswerLogEvent>(logevent);
+    auto storer = get_log_event_storer(logevent);
     if (pending_answer.generation_ == 0) {
       CHECK(pending_answer.logevent_id_ == 0);
       logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetPollAnswer, storer);
@@ -1108,8 +1108,8 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
   LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
   if (logevent_id == 0 && G()->parameters().use_message_db && reply_markup == nullptr) {
     StopPollLogEvent logevent{poll_id, full_message_id};
-    auto storer = LogEventStorerImpl<StopPollLogEvent>(logevent);
-    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, storer);
+    logevent_id =
+        binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, get_log_event_storer(logevent));
   }
 
   bool is_inserted = being_closed_polls_.insert(poll_id).second;

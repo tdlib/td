@@ -7741,8 +7741,8 @@ class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
 uint64 MessagesManager::save_change_dialog_report_spam_state_on_server_logevent(DialogId dialog_id,
                                                                                 bool is_spam_dialog) {
   ChangeDialogReportSpamStateOnServerLogEvent logevent{dialog_id, is_spam_dialog};
-  auto storer = LogEventStorerImpl<ChangeDialogReportSpamStateOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
@@ -9720,8 +9720,8 @@ class MessagesManager::DeleteMessagesFromServerLogEvent {
 uint64 MessagesManager::save_delete_messages_from_server_logevent(DialogId dialog_id,
                                                                   const vector<MessageId> &message_ids, bool revoke) {
   DeleteMessagesFromServerLogEvent logevent{dialog_id, message_ids, revoke};
-  auto storer = LogEventStorerImpl<DeleteMessagesFromServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesFromServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesFromServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
@@ -9793,8 +9793,8 @@ class MessagesManager::DeleteScheduledMessagesFromServerLogEvent {
 uint64 MessagesManager::save_delete_scheduled_messages_from_server_logevent(DialogId dialog_id,
                                                                             const vector<MessageId> &message_ids) {
   DeleteScheduledMessagesFromServerLogEvent logevent{dialog_id, message_ids};
-  auto storer = LogEventStorerImpl<DeleteScheduledMessagesFromServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesFromServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesFromServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids,
@@ -9923,8 +9923,8 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
 uint64 MessagesManager::save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
                                                                         bool remove_from_dialog_list, bool revoke) {
   DeleteDialogHistoryFromServerLogEvent logevent{dialog_id, max_message_id, remove_from_dialog_list, revoke};
-  auto storer = LogEventStorerImpl<DeleteDialogHistoryFromServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id,
@@ -10153,9 +10153,8 @@ class MessagesManager::DeleteAllChannelMessagesFromUserOnServerLogEvent {
 uint64 MessagesManager::save_delete_all_channel_messages_from_user_on_server_logevent(ChannelId channel_id,
                                                                                       UserId user_id) {
   DeleteAllChannelMessagesFromUserOnServerLogEvent logevent{channel_id, user_id};
-  auto storer = LogEventStorerImpl<DeleteAllChannelMessagesFromUserOnServerLogEvent>(logevent);
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer,
-                    storer);
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id,
@@ -10385,8 +10384,8 @@ class MessagesManager::ReadAllDialogMentionsOnServerLogEvent {
 
 uint64 MessagesManager::save_read_all_dialog_mentions_on_server_logevent(DialogId dialog_id) {
   ReadAllDialogMentionsOnServerLogEvent logevent{dialog_id};
-  auto storer = LogEventStorerImpl<ReadAllDialogMentionsOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogMentionsOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogMentionsOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 logevent_id,
@@ -17294,8 +17293,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
       if (G()->parameters().use_message_db) {
         SaveDialogDraftMessageOnServerLogEvent logevent;
         logevent.dialog_id_ = dialog_id;
-        add_log_event(d->save_draft_message_logevent_id,
-                      LogEventStorerImpl<SaveDialogDraftMessageOnServerLogEvent>(logevent),
+        add_log_event(d->save_draft_message_logevent_id, get_log_event_storer(logevent),
                       LogEvent::HandlerType::SaveDialogDraftMessageOnServer, "draft");
       }
 
@@ -17484,8 +17482,8 @@ class MessagesManager::ToggleDialogIsPinnedOnServerLogEvent {
 
 uint64 MessagesManager::save_toggle_dialog_is_pinned_on_server_logevent(DialogId dialog_id, bool is_pinned) {
   ToggleDialogIsPinnedOnServerLogEvent logevent{dialog_id, is_pinned};
-  auto storer = LogEventStorerImpl<ToggleDialogIsPinnedOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id) {
@@ -17644,8 +17642,8 @@ class MessagesManager::ReorderPinnedDialogsOnServerLogEvent {
 uint64 MessagesManager::save_reorder_pinned_dialogs_on_server_logevent(FolderId folder_id,
                                                                        const vector<DialogId> &dialog_ids) {
   ReorderPinnedDialogsOnServerLogEvent logevent{folder_id, dialog_ids};
-  auto storer = LogEventStorerImpl<ReorderPinnedDialogsOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReorderPinnedDialogsOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReorderPinnedDialogsOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids,
@@ -17703,8 +17701,8 @@ class MessagesManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
 uint64 MessagesManager::save_toggle_dialog_is_marked_as_unread_on_server_logevent(DialogId dialog_id,
                                                                                   bool is_marked_as_unread) {
   ToggleDialogIsMarkedAsUnreadOnServerLogEvent logevent{dialog_id, is_marked_as_unread};
-  auto storer = LogEventStorerImpl<ToggleDialogIsMarkedAsUnreadOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread,
@@ -17774,8 +17772,8 @@ class MessagesManager::ToggleDialogIsBlockedOnServerLogEvent {
 
 uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_logevent(DialogId dialog_id, bool is_blocked) {
   ToggleDialogIsBlockedOnServerLogEvent logevent{dialog_id, is_blocked};
-  auto storer = LogEventStorerImpl<ToggleDialogIsBlockedOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 logevent_id) {
@@ -17841,8 +17839,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
   if (!from_binlog && G()->parameters().use_message_db) {
     UpdateDialogNotificationSettingsOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
-    add_log_event(d->save_notification_settings_logevent_id,
-                  LogEventStorerImpl<UpdateDialogNotificationSettingsOnServerLogEvent>(logevent),
+    add_log_event(d->save_notification_settings_logevent_id, get_log_event_storer(logevent),
                   LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer, "notification settings");
   }
 
@@ -18307,8 +18304,8 @@ class MessagesManager::ReadMessageContentsOnServerLogEvent {
 uint64 MessagesManager::save_read_message_contents_on_server_logevent(DialogId dialog_id,
                                                                       const vector<MessageId> &message_ids) {
   ReadMessageContentsOnServerLogEvent logevent{dialog_id, message_ids};
-  auto storer = LogEventStorerImpl<ReadMessageContentsOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadMessageContentsOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadMessageContentsOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids,
@@ -18935,8 +18932,8 @@ class MessagesManager::UpdateScopeNotificationSettingsOnServerLogEvent {
 
 uint64 MessagesManager::save_update_scope_notification_settings_on_server_logevent(NotificationSettingsScope scope) {
   UpdateScopeNotificationSettingsOnServerLogEvent logevent{scope};
-  auto storer = LogEventStorerImpl<UpdateScopeNotificationSettingsOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::update_scope_notification_settings_on_server(NotificationSettingsScope scope,
@@ -18985,8 +18982,8 @@ class MessagesManager::ResetAllNotificationSettingsOnServerLogEvent {
 
 uint64 MessagesManager::save_reset_all_notification_settings_on_server_logevent() {
   ResetAllNotificationSettingsOnServerLogEvent logevent;
-  auto storer = LogEventStorerImpl<ResetAllNotificationSettingsOnServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAllNotificationSettingsOnServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAllNotificationSettingsOnServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_id) {
@@ -19236,7 +19233,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryInSecretChatLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.max_date_ = m->date;
-    add_log_event(d->read_history_logevent_ids[0], LogEventStorerImpl<ReadHistoryInSecretChatLogEvent>(logevent),
+    add_log_event(d->read_history_logevent_ids[0], get_log_event_storer(logevent),
                   LogEvent::HandlerType::ReadHistoryInSecretChat, "read history");
 
     d->last_read_inbox_message_date = m->date;
@@ -19244,7 +19241,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_logevent_ids[0], LogEventStorerImpl<ReadHistoryOnServerLogEvent>(logevent),
+    add_log_event(d->read_history_logevent_ids[0], get_log_event_storer(logevent),
                   LogEvent::HandlerType::ReadHistoryOnServer, "read history");
   }
 
@@ -19274,8 +19271,7 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
     logevent.dialog_id_ = dialog_id;
     logevent.top_thread_message_id_ = top_thread_message_id;
     logevent.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_logevent_ids[top_thread_message_id.get()],
-                  LogEventStorerImpl<ReadMessageThreadHistoryOnServerLogEvent>(logevent),
+    add_log_event(d->read_history_logevent_ids[top_thread_message_id.get()], get_log_event_storer(logevent),
                   LogEvent::HandlerType::ReadMessageThreadHistoryOnServer, "read history");
   }
 
@@ -22168,9 +22164,9 @@ void MessagesManager::save_send_message_logevent(DialogId dialog_id, const Messa
   CHECK(m != nullptr);
   LOG(INFO) << "Save " << FullMessageId(dialog_id, m->message_id) << " to binlog";
   auto logevent = SendMessageLogEvent(dialog_id, m);
-  auto storer = LogEventStorerImpl<SendMessageLogEvent>(logevent);
   CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, storer);
+  m->send_message_logevent_id =
+      binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, get_log_event_storer(logevent));
 }
 
 void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts) {
@@ -22844,10 +22840,9 @@ void MessagesManager::save_send_bot_start_message_logevent(UserId bot_user_id, D
   logevent.dialog_id = dialog_id;
   logevent.parameter = parameter;
   logevent.m_in = m;
-  auto storer = LogEventStorerImpl<SendBotStartMessageLogEvent>(logevent);
   CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id =
-      binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendBotStartMessage, storer);
+  m->send_message_logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendBotStartMessage,
+                                           get_log_event_storer(logevent));
 }
 
 void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter,
@@ -22984,10 +22979,9 @@ void MessagesManager::save_send_inline_query_result_message_logevent(DialogId di
   logevent.query_id = query_id;
   logevent.result_id = result_id;
   logevent.m_in = m;
-  auto storer = LogEventStorerImpl<SendInlineQueryResultMessageLogEvent>(logevent);
   CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id =
-      binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, storer);
+  m->send_message_logevent_id = binlog_add(
+      G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, get_log_event_storer(logevent));
 }
 
 void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
@@ -24317,8 +24311,7 @@ uint64 MessagesManager::save_forward_messages_logevent(DialogId to_dialog_id, Di
                                                        const vector<Message *> &messages,
                                                        const vector<MessageId> &message_ids) {
   ForwardMessagesLogEvent logevent{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
-  auto storer = LogEventStorerImpl<ForwardMessagesLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, get_log_event_storer(logevent));
 }
 
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
@@ -24852,8 +24845,8 @@ uint64 MessagesManager::save_send_screenshot_taken_notification_message_logevent
   SendScreenshotTakenNotificationMessageLogEvent logevent;
   logevent.dialog_id = dialog_id;
   logevent.m_in = m;
-  auto storer = LogEventStorerImpl<SendScreenshotTakenNotificationMessageLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendScreenshotTakenNotificationMessage, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendScreenshotTakenNotificationMessage,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dialog_id, const Message *m,
@@ -26880,9 +26873,9 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
     auto logevent = SendMessageLogEvent(dialog_id, m);
-    auto storer = LogEventStorerImpl<SendMessageLogEvent>(logevent);
     CHECK(m->send_message_logevent_id != 0);
-    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage, storer);
+    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage,
+                   get_log_event_storer(logevent));
   }
 
   do_send_message(dialog_id, m, {bad_part});
@@ -26932,9 +26925,9 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
     auto logevent = SendMessageLogEvent(dialog_id, m);
-    auto storer = LogEventStorerImpl<SendMessageLogEvent>(logevent);
     CHECK(m->send_message_logevent_id != 0);
-    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage, storer);
+    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage,
+                   get_log_event_storer(logevent));
   }
 
   do_send_message(dialog_id, m, {-1});
@@ -28084,8 +28077,8 @@ class MessagesManager::GetDialogFromServerLogEvent {
 
 uint64 MessagesManager::save_get_dialog_from_server_logevent(DialogId dialog_id) {
   GetDialogFromServerLogEvent logevent{dialog_id};
-  auto storer = LogEventStorerImpl<GetDialogFromServerLogEvent>(logevent);
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer, storer);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer,
+                    get_log_event_storer(logevent));
 }
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id) {
@@ -28716,7 +28709,7 @@ void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool fr
     SetDialogFolderIdOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.folder_id_ = d->folder_id;
-    add_log_event(d->set_folder_id_logevent_id, LogEventStorerImpl<SetDialogFolderIdOnServerLogEvent>(logevent),
+    add_log_event(d->set_folder_id_logevent_id, get_log_event_storer(logevent),
                   LogEvent::HandlerType::SetDialogFolderIdOnServer, "set chat folder");
   }
 
@@ -31066,8 +31059,8 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
   if (!logevent.file_ids_.empty()) {
     auto logevent_id = logevent.id_;
     if (logevent_id == 0) {
-      auto storer = LogEventStorerImpl<DeleteMessageLogEvent>(logevent);
-      logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, storer);
+      logevent_id =
+          binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, get_log_event_storer(logevent));
     }
 
     MultiPromiseActorSafe mpas{"DeleteMessageMultiPromiseActor"};
@@ -33323,8 +33316,8 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     CHECK(input_channel->get_id() == telegram_api::inputChannel::ID);
     auto access_hash = static_cast<const telegram_api::inputChannel &>(*input_channel).access_hash_;
     auto logevent = GetChannelDifferenceLogEvent(channel_id, access_hash);
-    auto storer = LogEventStorerImpl<GetChannelDifferenceLogEvent>(logevent);
-    auto logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetChannelDifference, storer);
+    auto logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetChannelDifference,
+                                  get_log_event_storer(logevent));
 
     get_channel_difference_to_logevent_id_.emplace(dialog_id, logevent_id);
   }

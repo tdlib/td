@@ -7314,7 +7314,7 @@ void ContactsManager::save_user(User *u, UserId user_id, bool from_binlog) {
   if (!u->is_saved || !u->is_status_saved) {  // TODO more effective handling of !u->is_status_saved
     if (!from_binlog) {
       auto logevent = UserLogEvent(user_id, *u);
-      auto storer = LogEventStorerImpl<UserLogEvent>(logevent);
+      auto storer = get_log_event_storer(logevent);
       if (u->logevent_id == 0) {
         u->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Users, storer);
       } else {
@@ -7590,7 +7590,7 @@ void ContactsManager::save_chat(Chat *c, ChatId chat_id, bool from_binlog) {
   if (!c->is_saved) {
     if (!from_binlog) {
       auto logevent = ChatLogEvent(chat_id, *c);
-      auto storer = LogEventStorerImpl<ChatLogEvent>(logevent);
+      auto storer = get_log_event_storer(logevent);
       if (c->logevent_id == 0) {
         c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Chats, storer);
       } else {
@@ -7826,7 +7826,7 @@ void ContactsManager::save_channel(Channel *c, ChannelId channel_id, bool from_b
   if (!c->is_saved) {
     if (!from_binlog) {
       auto logevent = ChannelLogEvent(channel_id, *c);
-      auto storer = LogEventStorerImpl<ChannelLogEvent>(logevent);
+      auto storer = get_log_event_storer(logevent);
       if (c->logevent_id == 0) {
         c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Channels, storer);
       } else {
@@ -8076,7 +8076,7 @@ void ContactsManager::save_secret_chat(SecretChat *c, SecretChatId secret_chat_i
   if (!c->is_saved) {
     if (!from_binlog) {
       auto logevent = SecretChatLogEvent(secret_chat_id, *c);
-      auto storer = LogEventStorerImpl<SecretChatLogEvent>(logevent);
+      auto storer = get_log_event_storer(logevent);
       if (c->logevent_id == 0) {
         c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SecretChatInfos, storer);
       } else {

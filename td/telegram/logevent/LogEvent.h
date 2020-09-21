@@ -232,24 +232,6 @@ class LogEventStorerUnsafe : public WithContext<TlStorerUnsafe, Global *> {
   }
 };
 
-}  // namespace logevent
-
-using LogEvent = logevent::LogEvent;
-using LogEventParser = logevent::LogEventParser;
-using LogEventStorerCalcLength = logevent::LogEventStorerCalcLength;
-using LogEventStorerUnsafe = logevent::LogEventStorerUnsafe;
-
-template <class T>
-Status log_event_parse(T &data, Slice slice) TD_WARN_UNUSED_RESULT;
-
-template <class T>
-Status log_event_parse(T &data, Slice slice) {
-  LogEventParser parser(slice);
-  parse(data, parser);
-  parser.fetch_end();
-  return parser.get_status();
-}
-
 template <class T>
 class LogEventStorerImpl : public Storer {
  public:
@@ -275,6 +257,24 @@ class LogEventStorerImpl : public Storer {
   const T &event_;
 };
 
+}  // namespace logevent
+
+using LogEvent = logevent::LogEvent;
+using LogEventParser = logevent::LogEventParser;
+using LogEventStorerCalcLength = logevent::LogEventStorerCalcLength;
+using LogEventStorerUnsafe = logevent::LogEventStorerUnsafe;
+
+template <class T>
+Status log_event_parse(T &data, Slice slice) TD_WARN_UNUSED_RESULT;
+
+template <class T>
+Status log_event_parse(T &data, Slice slice) {
+  LogEventParser parser(slice);
+  parse(data, parser);
+  parser.fetch_end();
+  return parser.get_status();
+}
+
 template <class T>
 BufferSlice log_event_store(const T &data) {
   LogEventStorerCalcLength storer_calc_length;
@@ -292,6 +292,11 @@ BufferSlice log_event_store(const T &data) {
   log_event_parse(check_result, value_buffer.as_slice()).ensure();
 #endif
   return value_buffer;
+}
+
+template <class T>
+logevent::LogEventStorerImpl<T> get_log_event_storer(const T &event) {
+  return logevent::LogEventStorerImpl<T>(event);
 }
 
 }  // namespace td

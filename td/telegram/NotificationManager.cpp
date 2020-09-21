@@ -3612,8 +3612,8 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
         dialog_id, message_id,        random_id,        sender_user_id,    sender_dialog_id, sender_name,
         date,      is_from_scheduled, contains_mention, initial_is_silent, loc_key,          arg,
         photo,     document,          notification_id};
-    auto storer = LogEventStorerImpl<AddMessagePushNotificationLogEvent>(logevent);
-    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification, storer);
+    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification,
+                             get_log_event_storer(logevent));
   }
 
   auto group_id = info.group_id;
@@ -3740,7 +3740,7 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     EditMessagePushNotificationLogEvent logevent{dialog_id, message_id, edit_date, loc_key, arg, photo, document};
-    auto storer = LogEventStorerImpl<EditMessagePushNotificationLogEvent>(logevent);
+    auto storer = get_log_event_storer(logevent);
     auto &cur_logevent_id = temporary_edit_notification_logevent_ids_[notification_id];
     if (cur_logevent_id == 0) {
       logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::EditMessagePushNotification, storer);
