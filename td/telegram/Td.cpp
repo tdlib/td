@@ -4198,7 +4198,7 @@ Status Td::init(DbKey key) {
   // for each Actor.
   //
   // 2. An actor must not make some decisions before all binlog events are processed.
-  // For example, SecretChatActor must not send RequestKey, before it receives logevent with RequestKey and understands
+  // For example, SecretChatActor must not send RequestKey, before it receives log event with RequestKey and understands
   // that RequestKey was already sent.
   //
   // 3. During replay of binlog some queries may be sent to other actors. They shouldn't process such events before all

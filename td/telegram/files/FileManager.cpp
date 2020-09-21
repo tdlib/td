@@ -2873,7 +2873,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   }
   auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
-  logevent::WithVersion<TlParser> parser(decoded_binary);
+  log_event::WithVersion<TlParser> parser(decoded_binary);
   parser.set_version(version);
   parse(remote_location, parser);
   parser.fetch_end();

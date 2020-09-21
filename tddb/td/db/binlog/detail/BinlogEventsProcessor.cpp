@@ -20,7 +20,7 @@ Status BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   if ((event.flags_ & BinlogEvent::Flags::Rewrite) && !ids_.empty() && ids_.back() >= fixed_id) {
     auto it = std::lower_bound(ids_.begin(), ids_.end(), fixed_id);
     if (it == ids_.end() || *it != fixed_id) {
-      return Status::Error(PSLICE() << "Ignore rewrite logevent " << event.public_to_string());
+      return Status::Error(PSLICE() << "Ignore rewrite log event " << event.public_to_string());
     }
     auto pos = it - ids_.begin();
     total_raw_events_size_ -= static_cast<int64>(events_[pos].raw_event_.size());

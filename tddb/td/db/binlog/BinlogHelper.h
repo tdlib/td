@@ -21,13 +21,13 @@ inline uint64 binlog_add(BinlogInterface *binlog_ptr, int32 type, const Storer &
   return binlog_ptr->add(type, storer, std::move(promise));
 }
 
-inline uint64 binlog_rewrite(BinlogInterface *binlog_ptr, uint64 logevent_id, int32 type, const Storer &storer,
+inline uint64 binlog_rewrite(BinlogInterface *binlog_ptr, uint64 log_event_id, int32 type, const Storer &storer,
                              Promise<> promise = Promise<>()) {
-  return binlog_ptr->rewrite(logevent_id, type, storer, std::move(promise));
+  return binlog_ptr->rewrite(log_event_id, type, storer, std::move(promise));
 }
 
-inline uint64 binlog_erase(BinlogInterface *binlog_ptr, uint64 logevent_id, Promise<> promise = Promise<>()) {
-  return binlog_ptr->erase(logevent_id, std::move(promise));
+inline uint64 binlog_erase(BinlogInterface *binlog_ptr, uint64 log_event_id, Promise<> promise = Promise<>()) {
+  return binlog_ptr->erase(log_event_id, std::move(promise));
 }
 
 }  // namespace td

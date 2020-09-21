@@ -1654,25 +1654,25 @@ void NotificationManager::on_notification_processed(NotificationId notification_
 void NotificationManager::on_notification_removed(NotificationId notification_id) {
   VLOG(notifications) << "In on_notification_removed with " << notification_id;
 
-  auto add_it = temporary_notification_logevent_ids_.find(notification_id);
-  if (add_it == temporary_notification_logevent_ids_.end()) {
+  auto add_it = temporary_notification_log_event_ids_.find(notification_id);
+  if (add_it == temporary_notification_log_event_ids_.end()) {
     return;
   }
 
-  auto edit_it = temporary_edit_notification_logevent_ids_.find(notification_id);
-  if (edit_it != temporary_edit_notification_logevent_ids_.end()) {
-    VLOG(notifications) << "Remove from binlog edit of " << notification_id << " with logevent " << edit_it->second;
+  auto edit_it = temporary_edit_notification_log_event_ids_.find(notification_id);
+  if (edit_it != temporary_edit_notification_log_event_ids_.end()) {
+    VLOG(notifications) << "Remove from binlog edit of " << notification_id << " with log event " << edit_it->second;
     if (!is_being_destroyed_) {
       binlog_erase(G()->td_db()->get_binlog(), edit_it->second);
     }
-    temporary_edit_notification_logevent_ids_.erase(edit_it);
+    temporary_edit_notification_log_event_ids_.erase(edit_it);
   }
 
-  VLOG(notifications) << "Remove from binlog " << notification_id << " with logevent " << add_it->second;
+  VLOG(notifications) << "Remove from binlog " << notification_id << " with log event " << add_it->second;
   if (!is_being_destroyed_) {
     binlog_erase(G()->td_db()->get_binlog(), add_it->second);
   }
-  temporary_notification_logevent_ids_.erase(add_it);
+  temporary_notification_log_event_ids_.erase(add_it);
 
   auto erased_notification_count = temporary_notifications_.erase(temporary_notification_message_ids_[notification_id]);
   auto erased_message_id_count = temporary_notification_message_ids_.erase(notification_id);
@@ -3547,18 +3547,18 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
                                                         string sender_name, int32 date, bool is_from_scheduled,
                                                         bool contains_mention, bool initial_is_silent, bool is_silent,
                                                         string loc_key, string arg, Photo photo, Document document,
-                                                        NotificationId notification_id, uint64 logevent_id,
+                                                        NotificationId notification_id, uint64 log_event_id,
                                                         Promise<Unit> promise) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, sender_dialog_id, date, is_from_scheduled, contains_mention,
-      is_pinned, logevent_id != 0);
+      is_pinned, log_event_id != 0);
   if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id << " sent by " << sender_user_id << "/" << sender_dialog_id << " at " << date
                         << ": " << r_info.error();
-    if (logevent_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     if (r_info.error().code() == 406) {
       promise.set_error(r_info.move_as_error());
@@ -3576,24 +3576,24 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     // TODO support secret chat notifications
     // main problem: there is no message_id yet
     // also don't forget to delete newSecretChat notification
-    CHECK(logevent_id == 0);
+    CHECK(log_event_id == 0);
     return promise.set_error(Status::Error(406, "Secret chat push notifications are unsupported"));
   }
   CHECK(random_id == 0);
 
   if (is_disabled() || max_notification_group_count_ == 0) {
-    CHECK(logevent_id == 0);
+    CHECK(log_event_id == 0);
     return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
   if (!notification_id.is_valid()) {
-    CHECK(logevent_id == 0);
+    CHECK(log_event_id == 0);
     notification_id = get_next_notification_id();
     if (!notification_id.is_valid()) {
       return promise.set_value(Unit());
     }
   } else {
-    CHECK(logevent_id != 0);
+    CHECK(log_event_id != 0);
   }
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
@@ -3607,13 +3607,13 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    AddMessagePushNotificationLogEvent logevent{
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    AddMessagePushNotificationLogEvent log_event{
         dialog_id, message_id,        random_id,        sender_user_id,    sender_dialog_id, sender_name,
         date,      is_from_scheduled, contains_mention, initial_is_silent, loc_key,          arg,
         photo,     document,          notification_id};
-    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification,
-                             get_log_event_storer(logevent));
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification,
+                              get_log_event_storer(log_event));
   }
 
   auto group_id = info.group_id;
@@ -3621,9 +3621,9 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
 
   bool is_outgoing =
       sender_user_id.is_valid() ? td_->contacts_manager_->get_my_id() == sender_user_id : is_from_scheduled;
-  if (logevent_id != 0) {
-    VLOG(notifications) << "Register temporary " << notification_id << " with logevent " << logevent_id;
-    temporary_notification_logevent_ids_[notification_id] = logevent_id;
+  if (log_event_id != 0) {
+    VLOG(notifications) << "Register temporary " << notification_id << " with log event " << log_event_id;
+    temporary_notification_log_event_ids_[notification_id] = log_event_id;
     temporary_notifications_[FullMessageId(dialog_id, message_id)] = {group_id,         notification_id, sender_user_id,
                                                                       sender_dialog_id, sender_name,     is_outgoing};
     temporary_notification_message_ids_[notification_id] = FullMessageId(dialog_id, message_id);
@@ -3716,9 +3716,9 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
 
 void NotificationManager::edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date,
                                                          string loc_key, string arg, Photo photo, Document document,
-                                                         uint64 logevent_id, Promise<Unit> promise) {
+                                                         uint64 log_event_id, Promise<Unit> promise) {
   if (is_disabled() || max_notification_group_count_ == 0) {
-    CHECK(logevent_id == 0);
+    CHECK(log_event_id == 0);
     return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
@@ -3738,23 +3738,23 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
   CHECK(group_id.is_valid());
   CHECK(notification_id.is_valid());
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    EditMessagePushNotificationLogEvent logevent{dialog_id, message_id, edit_date, loc_key, arg, photo, document};
-    auto storer = get_log_event_storer(logevent);
-    auto &cur_logevent_id = temporary_edit_notification_logevent_ids_[notification_id];
-    if (cur_logevent_id == 0) {
-      logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::EditMessagePushNotification, storer);
-      cur_logevent_id = logevent_id;
-      VLOG(notifications) << "Add edit message push notification logevent " << logevent_id;
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    EditMessagePushNotificationLogEvent log_event{dialog_id, message_id, edit_date, loc_key, arg, photo, document};
+    auto storer = get_log_event_storer(log_event);
+    auto &cur_log_event_id = temporary_edit_notification_log_event_ids_[notification_id];
+    if (cur_log_event_id == 0) {
+      log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::EditMessagePushNotification, storer);
+      cur_log_event_id = log_event_id;
+      VLOG(notifications) << "Add edit message push notification log event " << log_event_id;
     } else {
-      auto new_logevent_id = binlog_rewrite(G()->td_db()->get_binlog(), cur_logevent_id,
-                                            LogEvent::HandlerType::EditMessagePushNotification, storer);
-      VLOG(notifications) << "Rewrite edit message push notification logevent " << cur_logevent_id << " with "
-                          << new_logevent_id;
+      auto new_log_event_id = binlog_rewrite(G()->td_db()->get_binlog(), cur_log_event_id,
+                                             LogEvent::HandlerType::EditMessagePushNotification, storer);
+      VLOG(notifications) << "Rewrite edit message push notification log event " << cur_log_event_id << " with "
+                          << new_log_event_id;
     }
-  } else if (logevent_id != 0) {
-    VLOG(notifications) << "Register edit of temporary " << notification_id << " with logevent " << logevent_id;
-    temporary_edit_notification_logevent_ids_[notification_id] = logevent_id;
+  } else if (log_event_id != 0) {
+    VLOG(notifications) << "Register edit of temporary " << notification_id << " with log event " << log_event_id;
+    temporary_edit_notification_log_event_ids_[notification_id] = log_event_id;
   }
 
   push_notification_promises_[notification_id].push_back(std::move(promise));
@@ -4113,7 +4113,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       default:
-        LOG(FATAL) << "Unsupported logevent type " << event.type_;
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
     }
   }
   if (is_inited_) {

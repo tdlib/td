@@ -16,15 +16,15 @@
 namespace td {
 
 struct LogeventIdWithGeneration {
-  uint64 logevent_id = 0;
+  uint64 log_event_id = 0;
   uint64 generation = 0;
 };
 
-void add_log_event(LogeventIdWithGeneration &logevent_id, const Storer &storer, uint32 type, Slice name);
+void add_log_event(LogeventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name);
 
-void delete_log_event(LogeventIdWithGeneration &logevent_id, uint64 generation, Slice name);
+void delete_log_event(LogeventIdWithGeneration &log_event_id, uint64 generation, Slice name);
 
-Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise = Promise<Unit>());
+Promise<Unit> get_erase_log_event_promise(uint64 log_event_id, Promise<Unit> promise = Promise<Unit>());
 
 template <class StorerT>
 void store_time(double time_at, StorerT &storer) {

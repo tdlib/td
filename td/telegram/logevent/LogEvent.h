@@ -25,7 +25,7 @@
 #include <type_traits>
 
 namespace td {
-namespace logevent {
+namespace log_event {
 
 template <class ParentT>
 class WithVersion : public ParentT {
@@ -107,19 +107,19 @@ class LogEvent {
 
   using Id = uint64;
 
-  Id logevent_id() const {
-    return logevent_id_;
+  Id log_event_id() const {
+    return log_event_id_;
   }
-  void set_logevent_id(Id logevent_id) {
-    logevent_id_ = logevent_id;
+  void set_log_event_id(Id log_event_id) {
+    log_event_id_ = log_event_id;
   }
 
   virtual StringBuilder &print(StringBuilder &sb) const {
-    return sb << "[Logevent " << tag("id", logevent_id()) << "]";
+    return sb << "[Logevent " << tag("id", log_event_id()) << "]";
   }
 
  private:
-  Id logevent_id_{};
+  Id log_event_id_{};
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const LogEvent &log_event) {
   return log_event.print(sb);
@@ -257,12 +257,12 @@ class LogEventStorerImpl : public Storer {
   const T &event_;
 };
 
-}  // namespace logevent
+}  // namespace log_event
 
-using LogEvent = logevent::LogEvent;
-using LogEventParser = logevent::LogEventParser;
-using LogEventStorerCalcLength = logevent::LogEventStorerCalcLength;
-using LogEventStorerUnsafe = logevent::LogEventStorerUnsafe;
+using LogEvent = log_event::LogEvent;
+using LogEventParser = log_event::LogEventParser;
+using LogEventStorerCalcLength = log_event::LogEventStorerCalcLength;
+using LogEventStorerUnsafe = log_event::LogEventStorerUnsafe;
 
 template <class T>
 Status log_event_parse(T &data, Slice slice) TD_WARN_UNUSED_RESULT;
@@ -295,8 +295,8 @@ BufferSlice log_event_store(const T &data) {
 }
 
 template <class T>
-logevent::LogEventStorerImpl<T> get_log_event_storer(const T &event) {
-  return logevent::LogEventStorerImpl<T>(event);
+log_event::LogEventStorerImpl<T> get_log_event_storer(const T &event) {
+  return log_event::LogEventStorerImpl<T>(event);
 }
 
 }  // namespace td

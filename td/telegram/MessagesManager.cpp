@@ -5130,7 +5130,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     int32 size;
     parse(size, parser);
     if (size < 0) {
-      // the logevent is broken
+      // the log event is broken
       // it should be impossible, but has happenned at least once
       parser.set_error("Wrong first_database_message_id_by_index table size");
       return;
@@ -5145,7 +5145,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     int32 size;
     parse(size, parser);
     if (size < 0) {
-      // the logevent is broken
+      // the log event is broken
       // it should be impossible, but has happenned at least once
       parser.set_error("Wrong message_count_by_index table size");
       return;
@@ -7738,20 +7738,20 @@ class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_change_dialog_report_spam_state_on_server_logevent(DialogId dialog_id,
-                                                                                bool is_spam_dialog) {
-  ChangeDialogReportSpamStateOnServerLogEvent logevent{dialog_id, is_spam_dialog};
+uint64 MessagesManager::save_change_dialog_report_spam_state_on_server_log_event(DialogId dialog_id,
+                                                                                 bool is_spam_dialog) {
+  ChangeDialogReportSpamStateOnServerLogEvent log_event{dialog_id, is_spam_dialog};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
-                                                                uint64 logevent_id, Promise<Unit> &&promise) {
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_change_dialog_report_spam_state_on_server_logevent(dialog_id, is_spam_dialog);
+                                                                uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_change_dialog_report_spam_state_on_server_log_event(dialog_id, is_spam_dialog);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
@@ -9717,26 +9717,26 @@ class MessagesManager::DeleteMessagesFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_messages_from_server_logevent(DialogId dialog_id,
-                                                                  const vector<MessageId> &message_ids, bool revoke) {
-  DeleteMessagesFromServerLogEvent logevent{dialog_id, message_ids, revoke};
+uint64 MessagesManager::save_delete_messages_from_server_log_event(DialogId dialog_id,
+                                                                   const vector<MessageId> &message_ids, bool revoke) {
+  DeleteMessagesFromServerLogEvent log_event{dialog_id, message_ids, revoke};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesFromServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
-                                                  uint64 logevent_id, Promise<Unit> &&promise) {
+                                                  uint64 log_event_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
   LOG(INFO) << (revoke ? "Revoke " : "Delete ") << format::as_array(message_ids) << " in " << dialog_id
             << " from server";
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_delete_messages_from_server_logevent(dialog_id, message_ids, revoke);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_delete_messages_from_server_log_event(dialog_id, message_ids, revoke);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
@@ -9790,25 +9790,25 @@ class MessagesManager::DeleteScheduledMessagesFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_scheduled_messages_from_server_logevent(DialogId dialog_id,
-                                                                            const vector<MessageId> &message_ids) {
-  DeleteScheduledMessagesFromServerLogEvent logevent{dialog_id, message_ids};
+uint64 MessagesManager::save_delete_scheduled_messages_from_server_log_event(DialogId dialog_id,
+                                                                             const vector<MessageId> &message_ids) {
+  DeleteScheduledMessagesFromServerLogEvent log_event{dialog_id, message_ids};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesFromServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                            uint64 logevent_id, Promise<Unit> &&promise) {
+                                                            uint64 log_event_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
   LOG(INFO) << "Delete " << format::as_array(message_ids) << " in " << dialog_id << " from server";
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_delete_scheduled_messages_from_server_logevent(dialog_id, message_ids);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_delete_scheduled_messages_from_server_log_event(dialog_id, message_ids);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
@@ -9920,24 +9920,24 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
-                                                                        bool remove_from_dialog_list, bool revoke) {
-  DeleteDialogHistoryFromServerLogEvent logevent{dialog_id, max_message_id, remove_from_dialog_list, revoke};
+uint64 MessagesManager::save_delete_dialog_history_from_server_log_event(DialogId dialog_id, MessageId max_message_id,
+                                                                         bool remove_from_dialog_list, bool revoke) {
+  DeleteDialogHistoryFromServerLogEvent log_event{dialog_id, max_message_id, remove_from_dialog_list, revoke};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id,
                                                         bool remove_from_dialog_list, bool revoke, bool allow_error,
-                                                        uint64 logevent_id, Promise<Unit> &&promise) {
+                                                        uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete history in " << dialog_id << " up to " << max_message_id << " from server";
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id =
-        save_delete_dialog_history_from_server_logevent(dialog_id, max_message_id, remove_from_dialog_list, revoke);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id =
+        save_delete_dialog_history_from_server_log_event(dialog_id, max_message_id, remove_from_dialog_list, revoke);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
@@ -10150,20 +10150,20 @@ class MessagesManager::DeleteAllChannelMessagesFromUserOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_all_channel_messages_from_user_on_server_logevent(ChannelId channel_id,
-                                                                                      UserId user_id) {
-  DeleteAllChannelMessagesFromUserOnServerLogEvent logevent{channel_id, user_id};
+uint64 MessagesManager::save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id,
+                                                                                       UserId user_id) {
+  DeleteAllChannelMessagesFromUserOnServerLogEvent log_event{channel_id, user_id};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id,
-                                                                      uint64 logevent_id, Promise<Unit> &&promise) {
-  if (logevent_id == 0 && G()->parameters().use_chat_info_db) {
-    logevent_id = save_delete_all_channel_messages_from_user_on_server_logevent(channel_id, user_id);
+                                                                      uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_chat_info_db) {
+    log_event_id = save_delete_all_channel_messages_from_user_on_server_log_event(channel_id, user_id);
   }
 
-  td_->create_handler<DeleteUserHistoryQuery>(get_erase_logevent_promise(logevent_id, std::move(promise)))
+  td_->create_handler<DeleteUserHistoryQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
       ->send(channel_id, user_id);
 }
 
@@ -10382,20 +10382,20 @@ class MessagesManager::ReadAllDialogMentionsOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_read_all_dialog_mentions_on_server_logevent(DialogId dialog_id) {
-  ReadAllDialogMentionsOnServerLogEvent logevent{dialog_id};
+uint64 MessagesManager::save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id) {
+  ReadAllDialogMentionsOnServerLogEvent log_event{dialog_id};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogMentionsOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
-void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 logevent_id,
+void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id,
                                                          Promise<Unit> &&promise) {
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_read_all_dialog_mentions_on_server_logevent(dialog_id);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_read_all_dialog_mentions_on_server_log_event(dialog_id);
   }
 
   LOG(INFO) << "Read all mentions on server in " << dialog_id;
-  td_->create_handler<ReadAllMentionsQuery>(get_erase_logevent_promise(logevent_id, std::move(promise)))
+  td_->create_handler<ReadAllMentionsQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
       ->send(dialog_id);
 }
 
@@ -11244,7 +11244,7 @@ void MessagesManager::ttl_read_history(Dialog *d, bool is_outgoing, MessageId fr
   CHECK(!from_message_id.is_scheduled());
   CHECK(!till_message_id.is_scheduled());
 
-  // TODO: protect with logevent
+  // TODO: protect with log event
   suffix_load_till_message_id(d, till_message_id,
                               PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, is_outgoing,
                                                       from_message_id, till_message_id, view_date](Result<Unit>) {
@@ -12102,7 +12102,7 @@ void MessagesManager::read_secret_chat_outbox(SecretChatId secret_chat_id, int32
     }
   }
 
-  // TODO: protect with logevent
+  // TODO: protect with log event
   suffix_load_till_date(
       d, up_to_date,
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, up_to_date, read_date](Result<Unit> result) {
@@ -12528,7 +12528,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_outgoing = supposed_to_be_outgoing;
 
     if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
-        get_channel_difference_to_logevent_id_.count(dialog_id) == 0) {
+        get_channel_difference_to_log_event_id_.count(dialog_id) == 0) {
       // it is safer to completely ignore the message and re-get it through getChannelsDifference
       Dialog *d = get_dialog(dialog_id);
       if (d != nullptr) {
@@ -17291,9 +17291,9 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
   if (update_dialog_draft_message(d, std::move(new_draft_message), false, true)) {
     if (dialog_id.get_type() != DialogType::SecretChat) {
       if (G()->parameters().use_message_db) {
-        SaveDialogDraftMessageOnServerLogEvent logevent;
-        logevent.dialog_id_ = dialog_id;
-        add_log_event(d->save_draft_message_logevent_id, get_log_event_storer(logevent),
+        SaveDialogDraftMessageOnServerLogEvent log_event;
+        log_event.dialog_id_ = dialog_id;
+        add_log_event(d->save_draft_message_log_event_id, get_log_event_storer(log_event),
                       LogEvent::HandlerType::SaveDialogDraftMessageOnServer, "draft");
       }
 
@@ -17312,10 +17312,10 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
   CHECK(d != nullptr);
 
   Promise<> promise;
-  if (d->save_draft_message_logevent_id.logevent_id != 0) {
-    d->save_draft_message_logevent_id.generation++;
+  if (d->save_draft_message_log_event_id.log_event_id != 0) {
+    d->save_draft_message_log_event_id.generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                      generation = d->save_draft_message_logevent_id.generation](Result<Unit> result) {
+                                      generation = d->save_draft_message_log_event_id.generation](Result<Unit> result) {
       if (!G()->close_flag()) {
         send_closure(actor_id, &MessagesManager::on_saved_dialog_draft_message, dialog_id, generation);
       }
@@ -17329,7 +17329,7 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
 void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  delete_log_event(d->save_draft_message_logevent_id, generation, "draft");
+  delete_log_event(d->save_draft_message_log_event_id, generation, "draft");
 }
 
 void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promise<Unit> &&promise) {
@@ -17480,24 +17480,24 @@ class MessagesManager::ToggleDialogIsPinnedOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_toggle_dialog_is_pinned_on_server_logevent(DialogId dialog_id, bool is_pinned) {
-  ToggleDialogIsPinnedOnServerLogEvent logevent{dialog_id, is_pinned};
+uint64 MessagesManager::save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned) {
+  ToggleDialogIsPinnedOnServerLogEvent log_event{dialog_id, is_pinned};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
-void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id) {
+void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
     // don't even create new binlog events
     return;
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_toggle_dialog_is_pinned_on_server_logevent(dialog_id, is_pinned);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_toggle_dialog_is_pinned_on_server_log_event(dialog_id, is_pinned);
   }
 
-  td_->create_handler<ToggleDialogPinQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_id, is_pinned);
+  td_->create_handler<ToggleDialogPinQuery>(get_erase_log_event_promise(log_event_id))->send(dialog_id, is_pinned);
 }
 
 Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<DialogId> dialog_ids) {
@@ -17639,20 +17639,21 @@ class MessagesManager::ReorderPinnedDialogsOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_reorder_pinned_dialogs_on_server_logevent(FolderId folder_id,
-                                                                       const vector<DialogId> &dialog_ids) {
-  ReorderPinnedDialogsOnServerLogEvent logevent{folder_id, dialog_ids};
+uint64 MessagesManager::save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id,
+                                                                        const vector<DialogId> &dialog_ids) {
+  ReorderPinnedDialogsOnServerLogEvent log_event{folder_id, dialog_ids};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReorderPinnedDialogsOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids,
-                                                       uint64 logevent_id) {
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_reorder_pinned_dialogs_on_server_logevent(folder_id, dialog_ids);
+                                                       uint64 log_event_id) {
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_reorder_pinned_dialogs_on_server_log_event(folder_id, dialog_ids);
   }
 
-  td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_logevent_promise(logevent_id))->send(folder_id, dialog_ids);
+  td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(folder_id, dialog_ids);
 }
 
 Status MessagesManager::toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
@@ -17698,25 +17699,25 @@ class MessagesManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_toggle_dialog_is_marked_as_unread_on_server_logevent(DialogId dialog_id,
-                                                                                  bool is_marked_as_unread) {
-  ToggleDialogIsMarkedAsUnreadOnServerLogEvent logevent{dialog_id, is_marked_as_unread};
+uint64 MessagesManager::save_toggle_dialog_is_marked_as_unread_on_server_log_event(DialogId dialog_id,
+                                                                                   bool is_marked_as_unread) {
+  ToggleDialogIsMarkedAsUnreadOnServerLogEvent log_event{dialog_id, is_marked_as_unread};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread,
-                                                                  uint64 logevent_id) {
-  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+                                                                  uint64 log_event_id) {
+  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
     // don't even create new binlog events
     return;
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_toggle_dialog_is_marked_as_unread_on_server_logevent(dialog_id, is_marked_as_unread);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_toggle_dialog_is_marked_as_unread_on_server_log_event(dialog_id, is_marked_as_unread);
   }
 
-  td_->create_handler<ToggleDialogUnreadMarkQuery>(get_erase_logevent_promise(logevent_id))
+  td_->create_handler<ToggleDialogUnreadMarkQuery>(get_erase_log_event_promise(log_event_id))
       ->send(dialog_id, is_marked_as_unread);
 }
 
@@ -17770,23 +17771,24 @@ class MessagesManager::ToggleDialogIsBlockedOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_logevent(DialogId dialog_id, bool is_blocked) {
-  ToggleDialogIsBlockedOnServerLogEvent logevent{dialog_id, is_blocked};
+uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked) {
+  ToggleDialogIsBlockedOnServerLogEvent log_event{dialog_id, is_blocked};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
-void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 logevent_id) {
-  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id) {
+  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
     // don't even create new binlog events
     return;
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_toggle_dialog_is_blocked_on_server_logevent(dialog_id, is_blocked);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked);
   }
 
-  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_id, is_blocked);
+  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(dialog_id, is_blocked);
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -17837,18 +17839,18 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
   CHECK(d != nullptr);
 
   if (!from_binlog && G()->parameters().use_message_db) {
-    UpdateDialogNotificationSettingsOnServerLogEvent logevent;
-    logevent.dialog_id_ = dialog_id;
-    add_log_event(d->save_notification_settings_logevent_id, get_log_event_storer(logevent),
+    UpdateDialogNotificationSettingsOnServerLogEvent log_event;
+    log_event.dialog_id_ = dialog_id;
+    add_log_event(d->save_notification_settings_log_event_id, get_log_event_storer(log_event),
                   LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer, "notification settings");
   }
 
   Promise<> promise;
-  if (d->save_notification_settings_logevent_id.logevent_id != 0) {
-    d->save_notification_settings_logevent_id.generation++;
+  if (d->save_notification_settings_log_event_id.log_event_id != 0) {
+    d->save_notification_settings_log_event_id.generation++;
     promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id,
-         generation = d->save_notification_settings_logevent_id.generation](Result<Unit> result) {
+         generation = d->save_notification_settings_log_event_id.generation](Result<Unit> result) {
           if (!G()->close_flag()) {
             send_closure(actor_id, &MessagesManager::on_updated_dialog_notification_settings, dialog_id, generation);
           }
@@ -17870,7 +17872,7 @@ void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id
   CHECK(!td_->auth_manager_->is_bot());
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  delete_log_event(d->save_notification_settings_logevent_id, generation, "notification settings");
+  delete_log_event(d->save_notification_settings_log_event_id, generation, "notification settings");
 }
 
 Status MessagesManager::set_dialog_client_data(DialogId dialog_id, string &&client_data) {
@@ -18301,24 +18303,25 @@ class MessagesManager::ReadMessageContentsOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_read_message_contents_on_server_logevent(DialogId dialog_id,
-                                                                      const vector<MessageId> &message_ids) {
-  ReadMessageContentsOnServerLogEvent logevent{dialog_id, message_ids};
+uint64 MessagesManager::save_read_message_contents_on_server_log_event(DialogId dialog_id,
+                                                                       const vector<MessageId> &message_ids) {
+  ReadMessageContentsOnServerLogEvent log_event{dialog_id, message_ids};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadMessageContentsOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                      uint64 logevent_id, Promise<Unit> &&promise, bool skip_logevent) {
+                                                      uint64 log_event_id, Promise<Unit> &&promise,
+                                                      bool skip_log_event) {
   CHECK(!message_ids.empty());
 
   LOG(INFO) << "Read contents of " << format::as_array(message_ids) << " in " << dialog_id << " on server";
 
-  if (logevent_id == 0 && G()->parameters().use_message_db && !skip_logevent) {
-    logevent_id = save_read_message_contents_on_server_logevent(dialog_id, message_ids);
+  if (log_event_id == 0 && G()->parameters().use_message_db && !skip_log_event) {
+    log_event_id = save_read_message_contents_on_server_log_event(dialog_id, message_ids);
   }
 
-  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
@@ -18930,21 +18933,21 @@ class MessagesManager::UpdateScopeNotificationSettingsOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_update_scope_notification_settings_on_server_logevent(NotificationSettingsScope scope) {
-  UpdateScopeNotificationSettingsOnServerLogEvent logevent{scope};
+uint64 MessagesManager::save_update_scope_notification_settings_on_server_log_event(NotificationSettingsScope scope) {
+  UpdateScopeNotificationSettingsOnServerLogEvent log_event{scope};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::update_scope_notification_settings_on_server(NotificationSettingsScope scope,
-                                                                   uint64 logevent_id) {
+                                                                   uint64 log_event_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (logevent_id == 0) {
-    logevent_id = save_update_scope_notification_settings_on_server_logevent(scope);
+  if (log_event_id == 0) {
+    log_event_id = save_update_scope_notification_settings_on_server_log_event(scope);
   }
 
-  LOG(INFO) << "Update " << scope << " notification settings on server with logevent " << logevent_id;
-  td_->create_handler<UpdateScopeNotifySettingsQuery>(get_erase_logevent_promise(logevent_id))
+  LOG(INFO) << "Update " << scope << " notification settings on server with log_event " << log_event_id;
+  td_->create_handler<UpdateScopeNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))
       ->send(scope, *get_scope_notification_settings(scope));
 }
 
@@ -18980,20 +18983,20 @@ class MessagesManager::ResetAllNotificationSettingsOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_reset_all_notification_settings_on_server_logevent() {
-  ResetAllNotificationSettingsOnServerLogEvent logevent;
+uint64 MessagesManager::save_reset_all_notification_settings_on_server_log_event() {
+  ResetAllNotificationSettingsOnServerLogEvent log_event;
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAllNotificationSettingsOnServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
-void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_id) {
+void MessagesManager::reset_all_notification_settings_on_server(uint64 log_event_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (logevent_id == 0) {
-    logevent_id = save_reset_all_notification_settings_on_server_logevent();
+  if (log_event_id == 0) {
+    log_event_id = save_reset_all_notification_settings_on_server_log_event();
   }
 
   LOG(INFO) << "Reset all notification settings";
-  td_->create_handler<ResetNotifySettingsQuery>(get_erase_logevent_promise(logevent_id))->send();
+  td_->create_handler<ResetNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))->send();
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dialog_id, MessageId from_message_id,
@@ -19230,18 +19233,18 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
       return;
     }
 
-    ReadHistoryInSecretChatLogEvent logevent;
-    logevent.dialog_id_ = dialog_id;
-    logevent.max_date_ = m->date;
-    add_log_event(d->read_history_logevent_ids[0], get_log_event_storer(logevent),
+    ReadHistoryInSecretChatLogEvent log_event;
+    log_event.dialog_id_ = dialog_id;
+    log_event.max_date_ = m->date;
+    add_log_event(d->read_history_log_event_ids[0], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadHistoryInSecretChat, "read history");
 
     d->last_read_inbox_message_date = m->date;
   } else if (G()->parameters().use_message_db) {
-    ReadHistoryOnServerLogEvent logevent;
-    logevent.dialog_id_ = dialog_id;
-    logevent.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_logevent_ids[0], get_log_event_storer(logevent),
+    ReadHistoryOnServerLogEvent log_event;
+    log_event.dialog_id_ = dialog_id;
+    log_event.max_message_id_ = max_message_id;
+    add_log_event(d->read_history_log_event_ids[0], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadHistoryOnServer, "read history");
   }
 
@@ -19267,11 +19270,11 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
             << max_message_id;
 
   if (G()->parameters().use_message_db) {
-    ReadMessageThreadHistoryOnServerLogEvent logevent;
-    logevent.dialog_id_ = dialog_id;
-    logevent.top_thread_message_id_ = top_thread_message_id;
-    logevent.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_logevent_ids[top_thread_message_id.get()], get_log_event_storer(logevent),
+    ReadMessageThreadHistoryOnServerLogEvent log_event;
+    log_event.dialog_id_ = dialog_id;
+    log_event.top_thread_message_id_ = top_thread_message_id;
+    log_event.max_message_id_ = max_message_id;
+    add_log_event(d->read_history_log_event_ids[top_thread_message_id.get()], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadMessageThreadHistoryOnServer, "read history");
   }
 
@@ -19315,10 +19318,10 @@ void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_messa
   }
 
   Promise<> promise;
-  if (d->read_history_logevent_ids[0].logevent_id != 0) {
-    d->read_history_logevent_ids[0].generation++;
+  if (d->read_history_log_event_ids[0].log_event_id != 0) {
+    d->read_history_log_event_ids[0].generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                      generation = d->read_history_logevent_ids[0].generation](Result<Unit> result) {
+                                      generation = d->read_history_log_event_ids[0].generation](Result<Unit> result) {
       if (!G()->close_flag()) {
         send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, MessageId(), generation);
       }
@@ -19379,11 +19382,11 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
   }
 
   Promise<> promise;
-  if (d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id != 0) {
-    d->read_history_logevent_ids[top_thread_message_id.get()].generation++;
+  if (d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id != 0) {
+    d->read_history_log_event_ids[top_thread_message_id.get()].generation++;
     promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id, top_thread_message_id,
-         generation = d->read_history_logevent_ids[top_thread_message_id.get()].generation](Result<Unit> result) {
+         generation = d->read_history_log_event_ids[top_thread_message_id.get()].generation](Result<Unit> result) {
           if (!G()->close_flag()) {
             send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, top_thread_message_id,
                          generation);
@@ -19403,13 +19406,13 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
 void MessagesManager::on_read_history_finished(DialogId dialog_id, MessageId top_thread_message_id, uint64 generation) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  auto it = d->read_history_logevent_ids.find(top_thread_message_id.get());
-  if (it == d->read_history_logevent_ids.end()) {
+  auto it = d->read_history_log_event_ids.find(top_thread_message_id.get());
+  if (it == d->read_history_log_event_ids.end()) {
     return;
   }
   delete_log_event(it->second, generation, "read history");
-  if (it->second.logevent_id == 0) {
-    d->read_history_logevent_ids.erase(it);
+  if (it->second.log_event_id == 0) {
+    d->read_history_log_event_ids.erase(it);
   }
 }
 
@@ -21775,10 +21778,10 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_query_ref = NetQueryRef();
   }
 
-  if (m->send_message_logevent_id != 0) {
+  if (m->send_message_log_event_id != 0) {
     LOG(INFO) << "Delete send message log event for " << m->message_id;
-    binlog_erase(G()->td_db()->get_binlog(), m->send_message_logevent_id);
-    m->send_message_logevent_id = 0;
+    binlog_erase(G()->td_db()->get_binlog(), m->send_message_log_event_id);
+    m->send_message_log_event_id = 0;
   }
 
   if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
@@ -21946,7 +21949,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
-  save_send_message_logevent(dialog_id, m);
+  save_send_message_log_event(dialog_id, m);
   do_send_message(dialog_id, m);
 
   send_update_new_message(d, m);
@@ -22143,7 +22146,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     }
     m->media_album_id = media_album_id;
 
-    save_send_message_logevent(dialog_id, m);
+    save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
 
     send_update_new_message(d, m);
@@ -22156,17 +22159,17 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   return result;
 }
 
-void MessagesManager::save_send_message_logevent(DialogId dialog_id, const Message *m) {
+void MessagesManager::save_send_message_log_event(DialogId dialog_id, const Message *m) {
   if (!G()->parameters().use_message_db) {
     return;
   }
 
   CHECK(m != nullptr);
   LOG(INFO) << "Save " << FullMessageId(dialog_id, m->message_id) << " to binlog";
-  auto logevent = SendMessageLogEvent(dialog_id, m);
-  CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id =
-      binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, get_log_event_storer(logevent));
+  auto log_event = SendMessageLogEvent(dialog_id, m);
+  CHECK(m->send_message_log_event_id == 0);
+  m->send_message_log_event_id =
+      binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts) {
@@ -22793,10 +22796,10 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   }
 
   if (parameter.empty() && is_chat_with_bot) {
-    save_send_message_logevent(dialog_id, m);
+    save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
   } else {
-    save_send_bot_start_message_logevent(bot_user_id, dialog_id, parameter, m);
+    save_send_bot_start_message_log_event(bot_user_id, dialog_id, parameter, m);
     do_send_bot_start_message(bot_user_id, dialog_id, parameter, m);
   }
   return m->message_id;
@@ -22827,22 +22830,22 @@ class MessagesManager::SendBotStartMessageLogEvent {
   }
 };
 
-void MessagesManager::save_send_bot_start_message_logevent(UserId bot_user_id, DialogId dialog_id,
-                                                           const string &parameter, const Message *m) {
+void MessagesManager::save_send_bot_start_message_log_event(UserId bot_user_id, DialogId dialog_id,
+                                                            const string &parameter, const Message *m) {
   if (!G()->parameters().use_message_db) {
     return;
   }
 
   CHECK(m != nullptr);
   LOG(INFO) << "Save " << FullMessageId(dialog_id, m->message_id) << " to binlog";
-  SendBotStartMessageLogEvent logevent;
-  logevent.bot_user_id = bot_user_id;
-  logevent.dialog_id = dialog_id;
-  logevent.parameter = parameter;
-  logevent.m_in = m;
-  CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendBotStartMessage,
-                                           get_log_event_storer(logevent));
+  SendBotStartMessageLogEvent log_event;
+  log_event.bot_user_id = bot_user_id;
+  log_event.dialog_id = dialog_id;
+  log_event.parameter = parameter;
+  log_event.m_in = m;
+  CHECK(m->send_message_log_event_id == 0);
+  m->send_message_log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendBotStartMessage,
+                                            get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter,
@@ -22931,12 +22934,12 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
 
   if (to_secret) {
-    save_send_message_logevent(dialog_id, m);
+    save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
     return m->message_id;
   }
 
-  save_send_inline_query_result_message_logevent(dialog_id, m, query_id, result_id);
+  save_send_inline_query_result_message_log_event(dialog_id, m, query_id, result_id);
   do_send_inline_query_result_message(dialog_id, m, query_id, result_id);
   return m->message_id;
 }
@@ -22966,22 +22969,22 @@ class MessagesManager::SendInlineQueryResultMessageLogEvent {
   }
 };
 
-void MessagesManager::save_send_inline_query_result_message_logevent(DialogId dialog_id, const Message *m,
-                                                                     int64 query_id, const string &result_id) {
+void MessagesManager::save_send_inline_query_result_message_log_event(DialogId dialog_id, const Message *m,
+                                                                      int64 query_id, const string &result_id) {
   if (!G()->parameters().use_message_db) {
     return;
   }
 
   CHECK(m != nullptr);
   LOG(INFO) << "Save " << FullMessageId(dialog_id, m->message_id) << " to binlog";
-  SendInlineQueryResultMessageLogEvent logevent;
-  logevent.dialog_id = dialog_id;
-  logevent.query_id = query_id;
-  logevent.result_id = result_id;
-  logevent.m_in = m;
-  CHECK(m->send_message_logevent_id == 0);
-  m->send_message_logevent_id = binlog_add(
-      G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, get_log_event_storer(logevent));
+  SendInlineQueryResultMessageLogEvent log_event;
+  log_event.dialog_id = dialog_id;
+  log_event.query_id = query_id;
+  log_event.result_id = result_id;
+  log_event.m_in = m;
+  CHECK(m->send_message_log_event_id == 0);
+  m->send_message_log_event_id = binlog_add(
+      G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
@@ -24307,23 +24310,24 @@ class MessagesManager::ForwardMessagesLogEvent {
   }
 };
 
-uint64 MessagesManager::save_forward_messages_logevent(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                       const vector<Message *> &messages,
-                                                       const vector<MessageId> &message_ids) {
-  ForwardMessagesLogEvent logevent{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, get_log_event_storer(logevent));
+uint64 MessagesManager::save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
+                                                        const vector<Message *> &messages,
+                                                        const vector<MessageId> &message_ids) {
+  ForwardMessagesLogEvent log_event{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages,
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                           const vector<Message *> &messages, const vector<MessageId> &message_ids,
-                                          uint64 logevent_id) {
+                                          uint64 log_event_id) {
   CHECK(messages.size() == message_ids.size());
   if (messages.empty()) {
     return;
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_forward_messages_logevent(to_dialog_id, from_dialog_id, messages, message_ids);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_forward_messages_log_event(to_dialog_id, from_dialog_id, messages, message_ids);
   }
 
   auto schedule_date = get_message_schedule_date(messages[0]);
@@ -24344,7 +24348,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
-  send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_logevent_promise(logevent_id)),
+  send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_log_event_promise(log_event_id)),
                &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id, message_ids, std::move(random_ids),
                schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
 }
@@ -24617,7 +24621,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       }
       m->reply_markup = std::move(copied_message.reply_markup);
 
-      save_send_message_logevent(to_dialog_id, m);
+      save_send_message_log_event(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
       result[copied_message.index] = m->message_id;
 
@@ -24731,7 +24735,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     m->is_content_secret = message->is_content_secret;
     m->media_album_id = new_media_album_ids[message->media_album_id].first;
 
-    save_send_message_logevent(dialog_id, m);
+    save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
 
     send_update_new_message(d, m);
@@ -24835,31 +24839,32 @@ class MessagesManager::SendScreenshotTakenNotificationMessageLogEvent {
   }
 };
 
-uint64 MessagesManager::save_send_screenshot_taken_notification_message_logevent(DialogId dialog_id, const Message *m) {
+uint64 MessagesManager::save_send_screenshot_taken_notification_message_log_event(DialogId dialog_id,
+                                                                                  const Message *m) {
   if (!G()->parameters().use_message_db) {
     return 0;
   }
 
   CHECK(m != nullptr);
   LOG(INFO) << "Save " << FullMessageId(dialog_id, m->message_id) << " to binlog";
-  SendScreenshotTakenNotificationMessageLogEvent logevent;
-  logevent.dialog_id = dialog_id;
-  logevent.m_in = m;
+  SendScreenshotTakenNotificationMessageLogEvent log_event;
+  log_event.dialog_id = dialog_id;
+  log_event.m_in = m;
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendScreenshotTakenNotificationMessage,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dialog_id, const Message *m,
-                                                                    uint64 logevent_id) {
+                                                                    uint64 log_event_id) {
   LOG(INFO) << "Do send screenshot taken notification " << FullMessageId(dialog_id, m->message_id);
   CHECK(dialog_id.get_type() == DialogType::User);
 
-  if (logevent_id == 0) {
-    logevent_id = save_send_screenshot_taken_notification_message_logevent(dialog_id, m);
+  if (log_event_id == 0) {
+    log_event_id = save_send_screenshot_taken_notification_message_log_event(dialog_id, m);
   }
 
   int64 random_id = begin_send_message(dialog_id, m);
-  td_->create_handler<SendScreenshotNotificationQuery>(get_erase_logevent_promise(logevent_id))
+  td_->create_handler<SendScreenshotNotificationQuery>(get_erase_log_event_promise(log_event_id))
       ->send(dialog_id, random_id);
 }
 
@@ -25098,7 +25103,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
 
     notification_group_id_to_dialog_id_.emplace(next_notification_group_id, dialog_id);
 
-    if (running_get_channel_difference(dialog_id) || get_channel_difference_to_logevent_id_.count(dialog_id) != 0) {
+    if (running_get_channel_difference(dialog_id) || get_channel_difference_to_log_event_id_.count(dialog_id) != 0) {
       send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
                          next_notification_group_id);
     }
@@ -26551,7 +26556,7 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
                                         << source;
   on_dialog_updated(d->dialog_id, source);
   if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
-                 get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0)) {
+                 get_channel_difference_to_log_event_id_.count(d->dialog_id) != 0)) {
     LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
               << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
     postponed_chat_read_inbox_updates_.insert(d->dialog_id);
@@ -26872,10 +26877,10 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
-    auto logevent = SendMessageLogEvent(dialog_id, m);
-    CHECK(m->send_message_logevent_id != 0);
-    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage,
-                   get_log_event_storer(logevent));
+    auto log_event = SendMessageLogEvent(dialog_id, m);
+    CHECK(m->send_message_log_event_id != 0);
+    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_log_event_id, LogEvent::HandlerType::SendMessage,
+                   get_log_event_storer(log_event));
   }
 
   do_send_message(dialog_id, m, {bad_part});
@@ -26924,10 +26929,10 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
     delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
-    auto logevent = SendMessageLogEvent(dialog_id, m);
-    CHECK(m->send_message_logevent_id != 0);
-    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage,
-                   get_log_event_storer(logevent));
+    auto log_event = SendMessageLogEvent(dialog_id, m);
+    CHECK(m->send_message_log_event_id != 0);
+    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_log_event_id, LogEvent::HandlerType::SendMessage,
+                   get_log_event_storer(log_event));
   }
 
   do_send_message(dialog_id, m, {-1});
@@ -27407,7 +27412,7 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
     return;
   }
 
-  // TODO logevent + delete_logevent_promise
+  // TODO log event + delete_log_event_promise
 
   auto *list = get_dialog_list(DialogListId(folder_id));
   if (list == nullptr || !list->are_pinned_dialogs_inited_) {
@@ -27595,7 +27600,7 @@ void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
   }
   d->last_repair_scheduled_messages_generation = scheduled_messages_sync_generation_;
 
-  // TODO create logevent
+  // TODO create log event
   auto dialog_id = d->dialog_id;
   LOG(INFO) << "Repair scheduled messages in " << dialog_id << " with generation "
             << d->last_repair_scheduled_messages_generation;
@@ -28075,22 +28080,22 @@ class MessagesManager::GetDialogFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_get_dialog_from_server_logevent(DialogId dialog_id) {
-  GetDialogFromServerLogEvent logevent{dialog_id};
+uint64 MessagesManager::save_get_dialog_from_server_log_event(DialogId dialog_id) {
+  GetDialogFromServerLogEvent log_event{dialog_id};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer,
-                    get_log_event_storer(logevent));
+                    get_log_event_storer(log_event));
 }
 
-void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id) {
+void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
-    if (logevent_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    if (logevent_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
@@ -28098,19 +28103,19 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
   auto &promises = get_dialog_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
-    if (logevent_id != 0) {
+    if (log_event_id != 0) {
       LOG(INFO) << "Duplicate getDialog query for " << dialog_id;
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     // query has already been sent, just wait for the result
     return;
   }
 
-  if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_get_dialog_from_server_logevent(dialog_id);
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_get_dialog_from_server_log_event(dialog_id);
   }
-  if (logevent_id != 0) {
-    auto result = get_dialog_query_logevent_id_.emplace(dialog_id, logevent_id);
+  if (log_event_id != 0) {
+    auto result = get_dialog_query_log_event_id_.emplace(dialog_id, log_event_id);
     CHECK(result.second);
   }
   if (G()->close_flag()) {
@@ -28130,12 +28135,12 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
   auto promises = std::move(it->second);
   get_dialog_queries_.erase(it);
 
-  auto logevent_it = get_dialog_query_logevent_id_.find(dialog_id);
-  if (logevent_it != get_dialog_query_logevent_id_.end()) {
+  auto log_event_it = get_dialog_query_log_event_id_.find(dialog_id);
+  if (log_event_it != get_dialog_query_log_event_id_.end()) {
     if (!G()->close_flag()) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+      binlog_erase(G()->td_db()->get_binlog(), log_event_it->second);
     }
-    get_dialog_query_logevent_id_.erase(logevent_it);
+    get_dialog_query_log_event_id_.erase(log_event_it);
   }
 
   for (auto &promise : promises) {
@@ -28706,18 +28711,18 @@ void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool fr
   CHECK(d != nullptr);
 
   if (!from_binlog && G()->parameters().use_message_db) {
-    SetDialogFolderIdOnServerLogEvent logevent;
-    logevent.dialog_id_ = dialog_id;
-    logevent.folder_id_ = d->folder_id;
-    add_log_event(d->set_folder_id_logevent_id, get_log_event_storer(logevent),
+    SetDialogFolderIdOnServerLogEvent log_event;
+    log_event.dialog_id_ = dialog_id;
+    log_event.folder_id_ = d->folder_id;
+    add_log_event(d->set_folder_id_log_event_id, get_log_event_storer(log_event),
                   LogEvent::HandlerType::SetDialogFolderIdOnServer, "set chat folder");
   }
 
   Promise<> promise;
-  if (d->set_folder_id_logevent_id.logevent_id != 0) {
-    d->set_folder_id_logevent_id.generation++;
+  if (d->set_folder_id_log_event_id.log_event_id != 0) {
+    d->set_folder_id_log_event_id.generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                      generation = d->set_folder_id_logevent_id.generation](Result<Unit> result) {
+                                      generation = d->set_folder_id_log_event_id.generation](Result<Unit> result) {
       if (!G()->close_flag()) {
         send_closure(actor_id, &MessagesManager::on_updated_dialog_folder_id, dialog_id, generation);
       }
@@ -28731,7 +28736,7 @@ void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool fr
 void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 generation) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  delete_log_event(d->set_folder_id_logevent_id, generation, "set chat folder");
+  delete_log_event(d->set_folder_id_log_event_id, generation, "set chat folder");
 }
 
 void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
@@ -31041,41 +31046,41 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     return;
   }
 
-  DeleteMessageLogEvent logevent;
+  DeleteMessageLogEvent log_event;
 
-  logevent.full_message_id_ = {d->dialog_id, message_id};
+  log_event.full_message_id_ = {d->dialog_id, message_id};
 
   if (need_delete_files) {
-    logevent.file_ids_ = get_message_file_ids(m);
+    log_event.file_ids_ = get_message_file_ids(m);
   }
 
-  do_delete_message_logevent(logevent);
+  do_delete_message_log_event(log_event);
 }
 
-void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const {
+void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &log_event) const {
   CHECK(G()->parameters().use_message_db);
 
   Promise<Unit> db_promise;
-  if (!logevent.file_ids_.empty()) {
-    auto logevent_id = logevent.id_;
-    if (logevent_id == 0) {
-      logevent_id =
-          binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, get_log_event_storer(logevent));
+  if (!log_event.file_ids_.empty()) {
+    auto log_event_id = log_event.id_;
+    if (log_event_id == 0) {
+      log_event_id =
+          binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, get_log_event_storer(log_event));
     }
 
     MultiPromiseActorSafe mpas{"DeleteMessageMultiPromiseActor"};
-    mpas.add_promise(PromiseCreator::lambda([logevent_id](Result<Unit> result) {
+    mpas.add_promise(PromiseCreator::lambda([log_event_id](Result<Unit> result) {
       if (result.is_error() || G()->close_flag()) {
         return;
       }
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }));
 
     auto lock = mpas.get_promise();
-    for (auto file_id : logevent.file_ids_) {
-      if (need_delete_file(logevent.full_message_id_, file_id)) {
+    for (auto file_id : log_event.file_ids_) {
+      if (need_delete_file(log_event.full_message_id_, file_id)) {
         send_closure(G()->file_manager(), &FileManager::delete_file, file_id, mpas.get_promise(),
-                     "do_delete_message_logevent");
+                     "do_delete_message_log_event");
       }
     }
     db_promise = mpas.get_promise();
@@ -31083,8 +31088,8 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
   }
 
   // message may not exist in the dialog
-  LOG(INFO) << "Delete " << logevent.full_message_id_ << " from database";
-  G()->td_db()->get_messages_db_async()->delete_message(logevent.full_message_id_, std::move(db_promise));
+  LOG(INFO) << "Delete " << log_event.full_message_id_ << " from database";
+  G()->td_db()->get_messages_db_async()->delete_message(log_event.full_message_id_, std::move(db_promise));
 }
 
 void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
@@ -33311,15 +33316,15 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     return;
   }
 
-  if (force && get_channel_difference_to_logevent_id_.count(dialog_id) == 0 && !G()->ignore_backgrond_updates()) {
+  if (force && get_channel_difference_to_log_event_id_.count(dialog_id) == 0 && !G()->ignore_backgrond_updates()) {
     auto channel_id = dialog_id.get_channel_id();
     CHECK(input_channel->get_id() == telegram_api::inputChannel::ID);
     auto access_hash = static_cast<const telegram_api::inputChannel &>(*input_channel).access_hash_;
-    auto logevent = GetChannelDifferenceLogEvent(channel_id, access_hash);
-    auto logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetChannelDifference,
-                                  get_log_event_storer(logevent));
+    auto log_event = GetChannelDifferenceLogEvent(channel_id, access_hash);
+    auto log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetChannelDifference,
+                                   get_log_event_storer(log_event));
 
-    get_channel_difference_to_logevent_id_.emplace(dialog_id, logevent_id);
+    get_channel_difference_to_log_event_id_.emplace(dialog_id, log_event_id);
   }
 
   return do_get_channel_difference(dialog_id, pts, force, std::move(input_channel), source);
@@ -33703,12 +33708,12 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   LOG(INFO) << "After " << (success ? "" : "un") << "successful get channel difference in " << dialog_id;
   LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
-  auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
-  if (logevent_it != get_channel_difference_to_logevent_id_.end()) {
+  auto log_event_it = get_channel_difference_to_log_event_id_.find(dialog_id);
+  if (log_event_it != get_channel_difference_to_log_event_id_.end()) {
     if (!G()->close_flag()) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_it->second);
+      binlog_erase(G()->td_db()->get_binlog(), log_event_it->second);
     }
-    get_channel_difference_to_logevent_id_.erase(logevent_it);
+    get_channel_difference_to_log_event_id_.erase(log_event_it);
   }
 
   auto d = get_dialog(dialog_id);
@@ -33965,19 +33970,19 @@ void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
 }
 
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m,
-                                                                 uint64 logevent_id) {
-  CHECK(logevent_id != 0);
+                                                                 uint64 log_event_id) {
+  CHECK(log_event_id != 0);
   CHECK(m != nullptr);
   CHECK(m->content != nullptr);
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << " to continue send a message";
-    binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return nullptr;
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return nullptr;
   }
 
@@ -34039,7 +34044,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id;
         auto m = std::move(log_event.m_out);
-        m->send_message_logevent_id = event.id_;
+        m->send_message_log_event_id = event.id_;
 
         if (m->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(Slice(event.data_));
@@ -34073,7 +34078,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id;
         auto m = std::move(log_event.m_out);
-        m->send_message_logevent_id = event.id_;
+        m->send_message_log_event_id = event.id_;
 
         CHECK(m->content->get_type() == MessageContentType::Text);
 
@@ -34106,7 +34111,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id;
         auto m = std::move(log_event.m_out);
-        m->send_message_logevent_id = event.id_;
+        m->send_message_log_event_id = event.id_;
 
         if (m->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(Slice(event.data_));
@@ -34139,7 +34144,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id;
         auto m = std::move(log_event.m_out);
-        m->send_message_logevent_id = 0;  // to not allow event deletion by message deletion
+        m->send_message_log_event_id = 0;  // to not allow event deletion by message deletion
 
         CHECK(m->content->get_type() == MessageContentType::ScreenshotTaken);
 
@@ -34250,7 +34255,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           }
         }
 
-        do_delete_message_logevent(log_event);
+        do_delete_message_log_event(log_event);
         break;
       }
       case LogEvent::HandlerType::DeleteMessagesFromServer: {
@@ -34359,11 +34364,11 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_logevent_ids[0].logevent_id != 0) {
+        if (d->read_history_log_event_ids[0].log_event_id != 0) {
           // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_ids[0].logevent_id);
+          binlog_erase(G()->td_db()->get_binlog(), d->read_history_log_event_ids[0].log_event_id);
         }
-        d->read_history_logevent_ids[0].logevent_id = event.id_;
+        d->read_history_log_event_ids[0].log_event_id = event.id_;
 
         read_history_on_server_impl(d, log_event.max_message_id_);
         break;
@@ -34385,11 +34390,11 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_logevent_ids[0].logevent_id != 0) {
+        if (d->read_history_log_event_ids[0].log_event_id != 0) {
           // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_logevent_ids[0].logevent_id);
+          binlog_erase(G()->td_db()->get_binlog(), d->read_history_log_event_ids[0].log_event_id);
         }
-        d->read_history_logevent_ids[0].logevent_id = event.id_;
+        d->read_history_log_event_ids[0].log_event_id = event.id_;
         d->last_read_inbox_message_date = log_event.max_date_;
 
         read_history_on_server_impl(d, MessageId());
@@ -34411,12 +34416,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         auto top_thread_message_id = log_event.top_thread_message_id_;
-        if (d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id != 0) {
+        if (d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id != 0) {
           // we need only latest read history event
           binlog_erase(G()->td_db()->get_binlog(),
-                       d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id);
+                       d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id);
         }
-        d->read_history_logevent_ids[top_thread_message_id.get()].logevent_id = event.id_;
+        d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id = event.id_;
 
         read_message_thread_history_on_server_impl(d, top_thread_message_id, log_event.max_message_id_);
         break;
@@ -34555,7 +34560,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        d->save_draft_message_logevent_id.logevent_id = event.id_;
+        d->save_draft_message_log_event_id.log_event_id = event.id_;
 
         save_dialog_draft_message_on_server(dialog_id);
         break;
@@ -34575,7 +34580,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        d->save_notification_settings_logevent_id.logevent_id = event.id_;
+        d->save_notification_settings_log_event_id.log_event_id = event.id_;
 
         update_dialog_notification_settings_on_server(dialog_id, true);
         break;
@@ -34628,7 +34633,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        d->set_folder_id_logevent_id.logevent_id = event.id_;
+        d->set_folder_id_log_event_id.log_event_id = event.id_;
 
         set_dialog_folder_id(d, log_event.folder_id_);
 
@@ -34670,7 +34675,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         DialogId dialog_id(log_event.channel_id);
         LOG(INFO) << "Continue to run getChannelDifference in " << dialog_id;
-        get_channel_difference_to_logevent_id_.emplace(dialog_id, event.id_);
+        get_channel_difference_to_log_event_id_.emplace(dialog_id, event.id_);
         do_get_channel_difference(
             dialog_id, load_channel_pts(dialog_id), true,
             telegram_api::make_object<telegram_api::inputChannel>(log_event.channel_id.get(), log_event.access_hash),
@@ -34678,7 +34683,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       default:
-        LOG(FATAL) << "Unsupported logevent type " << event.type_;
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
     }
   }
 }

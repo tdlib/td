@@ -630,7 +630,7 @@ class ContactsManager : public Actor {
 
     bool is_received_from_server = false;  // true, if the user was received from the server and not the database
 
-    uint64 logevent_id = 0;
+    uint64 log_event_id = 0;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -722,7 +722,7 @@ class ContactsManager : public Actor {
 
     bool is_received_from_server = false;  // true, if the chat was received from the server and not the database
 
-    uint64 logevent_id = 0;
+    uint64 log_event_id = 0;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -799,7 +799,7 @@ class ContactsManager : public Actor {
 
     bool is_received_from_server = false;  // true, if the channel was received from the server and not the database
 
-    uint64 logevent_id = 0;
+    uint64 log_event_id = 0;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -882,7 +882,7 @@ class ContactsManager : public Actor {
     bool is_saved = false;        // is current secret chat version being saved/is saved to the database
     bool is_being_saved = false;  // is current secret chat being saved to the database
 
-    uint64 logevent_id = 0;
+    uint64 log_event_id = 0;
 
     template <class StorerT>
     void store(StorerT &storer) const;

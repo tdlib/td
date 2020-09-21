@@ -15,43 +15,41 @@
 
 namespace td {
 
-void add_log_event(LogeventIdWithGeneration &logevent_id, const Storer &storer, uint32 type, Slice name) {
+void add_log_event(LogeventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name) {
   LOG(INFO) << "Save " << name << " to binlog";
-  if (logevent_id.logevent_id == 0) {
-    logevent_id.logevent_id =
-        binlog_add(G()->td_db()->get_binlog(), type, storer);
-    LOG(INFO) << "Add " << name << " logevent " << logevent_id.logevent_id;
+  if (log_event_id.log_event_id == 0) {
+    log_event_id.log_event_id = binlog_add(G()->td_db()->get_binlog(), type, storer);
+    LOG(INFO) << "Add " << name << " log event " << log_event_id.log_event_id;
   } else {
-    auto new_logevent_id = binlog_rewrite(G()->td_db()->get_binlog(), logevent_id.logevent_id,
-                                          type, storer);
-    LOG(INFO) << "Rewrite " << name << " logevent " << logevent_id.logevent_id << " with " << new_logevent_id;
+    auto new_log_event_id = binlog_rewrite(G()->td_db()->get_binlog(), log_event_id.log_event_id, type, storer);
+    LOG(INFO) << "Rewrite " << name << " log event " << log_event_id.log_event_id << " with " << new_log_event_id;
   }
-  logevent_id.generation++;
+  log_event_id.generation++;
 }
 
-void delete_log_event(LogeventIdWithGeneration &logevent_id, uint64 generation, Slice name) {
-  LOG(INFO) << "Finish to process " << name << " logevent " << logevent_id.logevent_id << " with generation " << generation;
-  if (logevent_id.generation == generation) {
-    CHECK(logevent_id.logevent_id != 0);
-    LOG(INFO) << "Delete " << name << " logevent " << logevent_id.logevent_id;
-    binlog_erase(G()->td_db()->get_binlog(), logevent_id.logevent_id);
-    logevent_id.logevent_id = 0;
+void delete_log_event(LogeventIdWithGeneration &log_event_id, uint64 generation, Slice name) {
+  LOG(INFO) << "Finish to process " << name << " log event " << log_event_id.log_event_id << " with generation "
+            << generation;
+  if (log_event_id.generation == generation) {
+    CHECK(log_event_id.log_event_id != 0);
+    LOG(INFO) << "Delete " << name << " log event " << log_event_id.log_event_id;
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id.log_event_id);
+    log_event_id.log_event_id = 0;
   }
 }
 
-Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise) {
-  if (logevent_id == 0) {
+Promise<Unit> get_erase_log_event_promise(uint64 log_event_id, Promise<Unit> promise) {
+  if (log_event_id == 0) {
     return promise;
   }
 
-  return PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
+  return PromiseCreator::lambda([log_event_id, promise = std::move(promise)](Result<Unit> result) mutable {
     if (!G()->close_flag()) {
-      binlog_erase(G()->td_db()->get_binlog(), logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
 
     promise.set_result(std::move(result));
   });
 }
-
 
 }  // namespace td

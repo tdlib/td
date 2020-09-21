@@ -1093,7 +1093,7 @@ class MessagesManager : public Actor {
 
     mutable int32 last_access_date = 0;
 
-    mutable uint64 send_message_logevent_id = 0;
+    mutable uint64 send_message_log_event_id = 0;
 
     mutable NetQueryRef send_query_ref;
 
@@ -1146,11 +1146,11 @@ class MessagesManager : public Actor {
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     unique_ptr<DraftMessage> draft_message;
-    LogeventIdWithGeneration save_draft_message_logevent_id;
-    LogeventIdWithGeneration save_notification_settings_logevent_id;
-    std::unordered_map<int64, LogeventIdWithGeneration> read_history_logevent_ids;
+    LogeventIdWithGeneration save_draft_message_log_event_id;
+    LogeventIdWithGeneration save_notification_settings_log_event_id;
+    std::unordered_map<int64, LogeventIdWithGeneration> read_history_log_event_ids;
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
-    LogeventIdWithGeneration set_folder_id_logevent_id;
+    LogeventIdWithGeneration set_folder_id_log_event_id;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -1777,7 +1777,7 @@ class MessagesManager : public Actor {
                                            bool skip_update_for_not_found_messages);
 
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
-                           const vector<MessageId> &message_ids, uint64 logevent_id);
+                           const vector<MessageId> &message_ids, uint64 log_event_id);
 
   Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
                                     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
@@ -1810,22 +1810,22 @@ class MessagesManager : public Actor {
 
   void on_yet_unsent_media_queue_updated(DialogId dialog_id);
 
-  void save_send_bot_start_message_logevent(UserId bot_user_id, DialogId dialog_id, const string &parameter,
-                                            const Message *m);
+  void save_send_bot_start_message_log_event(UserId bot_user_id, DialogId dialog_id, const string &parameter,
+                                             const Message *m);
 
   void do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter, const Message *m);
 
-  void save_send_inline_query_result_message_logevent(DialogId dialog_id, const Message *m, int64 query_id,
-                                                      const string &result_id);
+  void save_send_inline_query_result_message_log_event(DialogId dialog_id, const Message *m, int64 query_id,
+                                                       const string &result_id);
 
   void do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
                                            const string &result_id);
 
-  uint64 save_send_screenshot_taken_notification_message_logevent(DialogId dialog_id, const Message *m);
+  uint64 save_send_screenshot_taken_notification_message_log_event(DialogId dialog_id, const Message *m);
 
-  void do_send_screenshot_taken_notification_message(DialogId dialog_id, const Message *m, uint64 logevent_id);
+  void do_send_screenshot_taken_notification_message(DialogId dialog_id, const Message *m, uint64 log_event_id);
 
-  Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m, uint64 logevent_id);
+  Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m, uint64 log_event_id);
 
   bool is_message_unload_enabled() const;
 
@@ -1867,19 +1867,19 @@ class MessagesManager : public Actor {
 
   void delete_message_from_server(DialogId dialog_id, MessageId message_ids, bool revoke);
 
-  void delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 logevent_id,
+  void delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
                                    Promise<Unit> &&promise);
 
-  void delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id,
+  void delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                              Promise<Unit> &&promise);
 
   void delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
-                                         bool revoke, bool allow_error, uint64 logevent_id, Promise<Unit> &&promise);
+                                         bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 logevent_id,
+  void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 log_event_id,
                                                        Promise<Unit> &&promise);
 
-  void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 logevent_id, Promise<Unit> &&promise);
+  void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   static MessageId find_message_by_date(const Message *m, int32 date);
 
@@ -1918,8 +1918,8 @@ class MessagesManager : public Actor {
 
   bool read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source);
 
-  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id,
-                                       Promise<Unit> &&promise, bool skip_logevent = false);
+  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
+                                       Promise<Unit> &&promise, bool skip_log_event = false);
 
   bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
@@ -2065,7 +2065,7 @@ class MessagesManager : public Actor {
                                           NotificationId prev_last_notification_id,
                                           Result<vector<Notification>> result);
 
-  void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
+  void do_delete_message_log_event(const DeleteMessageLogEvent &log_event) const;
 
   void attach_message_to_previous(Dialog *d, MessageId message_id, const char *source);
 
@@ -2265,13 +2265,13 @@ class MessagesManager : public Actor {
 
   void do_set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
-  void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
+  void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
 
-  void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 logevent_id);
+  void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 log_event_id);
 
-  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 logevent_id);
+  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id);
 
-  void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 logevent_id);
+  void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 log_event_id);
 
   void set_dialog_reply_markup(Dialog *d, MessageId message_id);
 
@@ -2359,7 +2359,7 @@ class MessagesManager : public Actor {
   void on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                     Promise<Unit> &&promise);
 
-  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id = 0);
+  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id = 0);
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
@@ -2645,11 +2645,11 @@ class MessagesManager : public Actor {
 
   void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
-  void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 logevent_id);
+  void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 log_event_id);
 
-  void reset_all_notification_settings_on_server(uint64 logevent_id);
+  void reset_all_notification_settings_on_server(uint64 log_event_id);
 
-  void change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 logevent_id,
+  void change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 log_event_id,
                                                  Promise<Unit> &&promise);
 
   void set_dialog_folder_id_on_server(DialogId dialog_id, bool from_binlog);
@@ -2821,40 +2821,40 @@ class MessagesManager : public Actor {
 
   static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
 
-  void save_send_message_logevent(DialogId dialog_id, const Message *m);
+  void save_send_message_log_event(DialogId dialog_id, const Message *m);
 
-  uint64 save_change_dialog_report_spam_state_on_server_logevent(DialogId dialog_id, bool is_spam_dialog);
+  uint64 save_change_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
 
-  uint64 save_delete_messages_from_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                                   bool revoke);
+  uint64 save_delete_messages_from_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                                    bool revoke);
 
-  uint64 save_delete_scheduled_messages_from_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids);
+  uint64 save_delete_scheduled_messages_from_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids);
 
-  uint64 save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
-                                                         bool remove_from_dialog_list, bool revoke);
+  uint64 save_delete_dialog_history_from_server_log_event(DialogId dialog_id, MessageId max_message_id,
+                                                          bool remove_from_dialog_list, bool revoke);
 
-  uint64 save_delete_all_channel_messages_from_user_on_server_logevent(ChannelId channel_id, UserId user_id);
+  uint64 save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id, UserId user_id);
 
-  uint64 save_read_all_dialog_mentions_on_server_logevent(DialogId dialog_id);
+  uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 
-  uint64 save_toggle_dialog_is_pinned_on_server_logevent(DialogId dialog_id, bool is_pinned);
+  uint64 save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned);
 
-  uint64 save_reorder_pinned_dialogs_on_server_logevent(FolderId folder_id, const vector<DialogId> &dialog_ids);
+  uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 
-  uint64 save_toggle_dialog_is_marked_as_unread_on_server_logevent(DialogId dialog_id, bool is_marked_as_unread);
+  uint64 save_toggle_dialog_is_marked_as_unread_on_server_log_event(DialogId dialog_id, bool is_marked_as_unread);
 
-  uint64 save_toggle_dialog_is_blocked_on_server_logevent(DialogId dialog_id, bool is_blocked);
+  uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked);
 
-  uint64 save_read_message_contents_on_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids);
+  uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids);
 
-  uint64 save_update_scope_notification_settings_on_server_logevent(NotificationSettingsScope scope);
+  uint64 save_update_scope_notification_settings_on_server_log_event(NotificationSettingsScope scope);
 
-  uint64 save_reset_all_notification_settings_on_server_logevent();
+  uint64 save_reset_all_notification_settings_on_server_log_event();
 
-  uint64 save_get_dialog_from_server_logevent(DialogId dialog_id);
+  uint64 save_get_dialog_from_server_log_event(DialogId dialog_id);
 
-  uint64 save_forward_messages_logevent(DialogId to_dialog_id, DialogId from_dialog_id,
-                                        const vector<Message *> &messages, const vector<MessageId> &message_ids);
+  uint64 save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
+                                         const vector<Message *> &messages, const vector<MessageId> &message_ids);
 
   void suffix_load_loop(Dialog *d);
   void suffix_load_update_first_message_id(Dialog *d);
@@ -3047,7 +3047,7 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_queries_;
-  std::unordered_map<DialogId, uint64, DialogIdHash> get_dialog_query_logevent_id_;
+  std::unordered_map<DialogId, uint64, DialogIdHash> get_dialog_query_log_event_id_;
 
   std::unordered_map<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
 
@@ -3093,7 +3093,7 @@ class MessagesManager : public Actor {
   vector<Promise<Unit>> dialog_filter_reload_queries_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
-  std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
+  std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};

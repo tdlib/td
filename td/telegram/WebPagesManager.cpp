@@ -230,7 +230,7 @@ class WebPagesManager::WebPage {
 
   FileSourceId file_source_id;
 
-  mutable uint64 logevent_id = 0;
+  mutable uint64 log_event_id = 0;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -425,10 +425,10 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       LOG(INFO) << "Got empty " << web_page_id;
       const WebPage *web_page_to_delete = get_web_page(web_page_id);
       if (web_page_to_delete != nullptr) {
-        if (web_page_to_delete->logevent_id != 0) {
+        if (web_page_to_delete->log_event_id != 0) {
           LOG(INFO) << "Erase " << web_page_id << " from binlog";
-          binlog_erase(G()->td_db()->get_binlog(), web_page_to_delete->logevent_id);
-          web_page_to_delete->logevent_id = 0;
+          binlog_erase(G()->td_db()->get_binlog(), web_page_to_delete->log_event_id);
+          web_page_to_delete->log_event_id = 0;
         }
         if (web_page_to_delete->file_source_id.is_valid()) {
           td_->file_manager_->change_files_source(web_page_to_delete->file_source_id,
@@ -551,7 +551,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
     }
 
     old_instant_view = std::move(page->instant_view);
-    web_page->logevent_id = page->logevent_id;
+    web_page->log_event_id = page->log_event_id;
   } else {
     auto it = url_to_file_source_id_.find(web_page->url);
     if (it != url_to_file_source_id_.end()) {
@@ -1504,12 +1504,12 @@ void WebPagesManager::save_web_page(const WebPage *web_page, WebPageId web_page_
 
   CHECK(web_page != nullptr);
   if (!from_binlog) {
-    WebPageLogEvent logevent(web_page_id, web_page);
-    auto storer = get_log_event_storer(logevent);
-    if (web_page->logevent_id == 0) {
-      web_page->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::WebPages, storer);
+    WebPageLogEvent log_event(web_page_id, web_page);
+    auto storer = get_log_event_storer(log_event);
+    if (web_page->log_event_id == 0) {
+      web_page->log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::WebPages, storer);
     } else {
-      binlog_rewrite(G()->td_db()->get_binlog(), web_page->logevent_id, LogEvent::HandlerType::WebPages, storer);
+      binlog_rewrite(G()->td_db()->get_binlog(), web_page->log_event_id, LogEvent::HandlerType::WebPages, storer);
     }
   }
 
@@ -1540,7 +1540,7 @@ void WebPagesManager::on_binlog_web_page_event(BinlogEvent &&event) {
   auto web_page = std::move(log_event.web_page_out);
   CHECK(web_page != nullptr);
 
-  web_page->logevent_id = event.id_;
+  web_page->log_event_id = event.id_;
 
   update_web_page(std::move(web_page), web_page_id, true, false);
 }
@@ -1561,13 +1561,13 @@ void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool s
 
   if (!success) {
     LOG(ERROR) << "Failed to save " << web_page_id << " to database";
-    save_web_page(web_page, web_page_id, web_page->logevent_id != 0);
+    save_web_page(web_page, web_page_id, web_page->log_event_id != 0);
   } else {
     LOG(INFO) << "Successfully saved " << web_page_id << " to database";
-    if (web_page->logevent_id != 0) {
+    if (web_page->log_event_id != 0) {
       LOG(INFO) << "Erase " << web_page_id << " from binlog";
-      binlog_erase(G()->td_db()->get_binlog(), web_page->logevent_id);
-      web_page->logevent_id = 0;
+      binlog_erase(G()->td_db()->get_binlog(), web_page->log_event_id);
+      web_page->log_event_id = 0;
     }
   }
 }
