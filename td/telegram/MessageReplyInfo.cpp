@@ -50,6 +50,10 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
       ServerMessageId(reply_info->read_max_id_).is_valid()) {
     last_read_inbox_message_id = MessageId(ServerMessageId(reply_info->read_max_id_));
   }
+  if (last_read_inbox_message_id > max_message_id) {
+    LOG(ERROR) << "Receive last_read_inbox_message_id = " << last_read_inbox_message_id << ", but max_message_id = " << max_message_id;
+    max_message_id = last_read_inbox_message_id;
+  }
 }
 
 bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
@@ -78,6 +82,14 @@ bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
   }
   if (other_last_read_outbox_message_id > last_read_outbox_message_id) {
     last_read_outbox_message_id = other_last_read_outbox_message_id;
+    result = true;
+  }
+  if (last_read_inbox_message_id > max_message_id) {
+    max_message_id = last_read_inbox_message_id;
+    result = true;
+  }
+  if (last_read_outbox_message_id > max_message_id) {
+    max_message_id = last_read_outbox_message_id;
     result = true;
   }
   return result;
