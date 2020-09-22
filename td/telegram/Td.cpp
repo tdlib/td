@@ -6016,7 +6016,8 @@ void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {
 void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
   CHECK_IS_USER();
   answer_ok_query(
-      id, messages_manager_->set_dialog_draft_message(DialogId(request.chat_id_), std::move(request.draft_message_)));
+      id, messages_manager_->set_dialog_draft_message(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                                      std::move(request.draft_message_)));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {

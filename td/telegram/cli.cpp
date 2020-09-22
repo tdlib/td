@@ -2883,11 +2883,15 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "scdm") {
+    if (op == "scdm" || op == "scdmt") {
       string chat_id;
+      string message_thread_id;
       string reply_to_message_id;
       string message;
       std::tie(chat_id, args) = split(args);
+      if (op == "scdmt") {
+        std::tie(message_thread_id, args) = split(args);
+      }
       std::tie(reply_to_message_id, message) = split(args);
       td_api::object_ptr<td_api::draftMessage> draft_message;
       if (!reply_to_message_id.empty() || !message.empty()) {
@@ -2900,7 +2904,8 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), true,
                                                           false));
       }
-      send_request(td_api::make_object<td_api::setChatDraftMessage>(as_chat_id(chat_id), std::move(draft_message)));
+      send_request(td_api::make_object<td_api::setChatDraftMessage>(
+          as_chat_id(chat_id), as_message_thread_id(message_thread_id), std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tcip" || op == "tcipa" || begins_with(op, "tcip-")) {

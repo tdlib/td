@@ -4443,6 +4443,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_sender_dialog_id = sender_dialog_id.is_valid();
   bool has_reply_in_dialog_id = is_reply && reply_in_dialog_id.is_valid();
   bool has_top_reply_message_id = top_reply_message_id.is_valid();
+  bool has_thread_draft_message = thread_draft_message != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4496,6 +4497,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_sender_dialog_id);
     STORE_FLAG(has_reply_in_dialog_id);
     STORE_FLAG(has_top_reply_message_id);
+    STORE_FLAG(has_thread_draft_message);
     END_STORE_FLAGS();
   }
 
@@ -4589,6 +4591,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_top_reply_message_id) {
     store(top_reply_message_id, storer);
   }
+  if (has_thread_draft_message) {
+    store(thread_draft_message, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -4627,6 +4632,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_sender_dialog_id = false;
   bool has_reply_in_dialog_id = false;
   bool has_top_reply_message_id = false;
+  bool has_thread_draft_message = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4680,6 +4686,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_sender_dialog_id);
     PARSE_FLAG(has_reply_in_dialog_id);
     PARSE_FLAG(has_top_reply_message_id);
+    PARSE_FLAG(has_thread_draft_message);
     END_PARSE_FLAGS();
   }
 
@@ -4778,6 +4785,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_top_reply_message_id) {
     parse(top_reply_message_id, parser);
+  }
+  if (has_thread_draft_message) {
+    parse(thread_draft_message, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -15889,10 +15899,23 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     const MessageThreadInfo &info) {
   Dialog *d = get_dialog(info.dialog_id);
   CHECK(d != nullptr);
-  auto messages = transform(info.message_ids, [this, d](MessageId message_id) {
-    return get_message_object(d->dialog_id, get_message_force(d, message_id, "get_message_thread_info_object"));
-  });
-  return td_api::make_object<td_api::messageThreadInfo>(std::move(messages));
+  vector<td_api::object_ptr<td_api::message>> messages;
+  messages.reserve(info.message_ids.size());
+  for (auto message_id : info.message_ids) {
+    auto message = get_message_object(d->dialog_id, get_message_force(d, message_id, "get_message_thread_info_object"));
+    if (message != nullptr) {
+      messages.push_back(std::move(message));
+    }
+  }
+
+  td_api::object_ptr<td_api::draftMessage> draft_message;
+  if (!info.message_ids.empty() && can_send_message(d->dialog_id).is_ok()) {
+    const Message *m = get_message_force(d, info.message_ids.back(), "get_message_thread_info_object 2");
+    if (m != nullptr && !m->reply_info.is_comment && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
+      draft_message = get_draft_message_object(m->thread_draft_message);
+    }
+  }
+  return td_api::make_object<td_api::messageThreadInfo>(std::move(messages), std::move(draft_message));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
@@ -17260,7 +17283,7 @@ class MessagesManager::SaveDialogDraftMessageOnServerLogEvent {
   }
 };
 
-Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
+Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                                  tl_object_ptr<td_api::draftMessage> &&draft_message) {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(6, "Bots can't change chat draft message");
@@ -17292,6 +17315,28 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
     if (!new_draft_message->reply_to_message_id.is_valid() && new_draft_message->input_message_text.text.text.empty()) {
       new_draft_message = nullptr;
     }
+  }
+
+  if (top_thread_message_id != MessageId()) {
+    if (!top_thread_message_id.is_valid()) {
+      return Status::Error(6, "Invalid message thread specified");
+    }
+
+    auto m = get_message_force(d, top_thread_message_id, "set_dialog_draft_message");
+    if (m == nullptr || m->message_id.is_scheduled() || m->reply_info.is_comment ||
+        !is_active_message_reply_info(dialog_id, m->reply_info)) {
+      return Status::OK();
+    }
+
+    auto &old_draft_message = m->thread_draft_message;
+    if (((new_draft_message == nullptr) != (old_draft_message == nullptr)) ||
+        (new_draft_message != nullptr &&
+         (old_draft_message->reply_to_message_id != new_draft_message->reply_to_message_id ||
+          old_draft_message->input_message_text != new_draft_message->input_message_text))) {
+      old_draft_message = std::move(new_draft_message);
+      on_message_changed(d, m, false, "set_dialog_draft_message");
+    }
+    return Status::OK();
   }
 
   if (update_dialog_draft_message(d, std::move(new_draft_message), false, true)) {

@@ -627,7 +627,7 @@ class MessagesManager : public Actor {
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
-  Status set_dialog_draft_message(DialogId dialog_id,
+  Status set_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                   tl_object_ptr<td_api::draftMessage> &&draft_message) TD_WARN_UNUSED_RESULT;
 
   void clear_all_draft_messages(bool exclude_secret_chats, Promise<Unit> &&promise);
@@ -1071,6 +1071,7 @@ class MessagesManager : public Actor {
     int32 view_count = 0;
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
+    unique_ptr<DraftMessage> thread_draft_message;
 
     int32 legacy_layer = 0;
 

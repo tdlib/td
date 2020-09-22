@@ -975,8 +975,10 @@ loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int32 request_write_access:Bool = LoginUrlInfo;
 
 
-//@description Contains information about a message thread @messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
-messageThreadInfo messages:vector<message> = MessageThreadInfo;
+//@description Contains information about a message thread
+//@messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
+//@draft_message A draft of a message in the message thread; may be null
+messageThreadInfo messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
 //@class RichText @description Describes a text object inside an instant-view web page
@@ -4001,8 +4003,8 @@ setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
-//@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
-setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
+//@description Changes the draft message in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the draft was changed @draft_message New draft message; may be null
+setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMessage = Ok;
 
 //@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed
 //@chat_id Chat identifier @notification_settings New notification settings for the chat. If the chat is muted for more than 1 week, it is considered to be muted forever
