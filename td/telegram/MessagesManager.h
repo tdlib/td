@@ -1059,7 +1059,6 @@ class MessagesManager : public Actor {
     bool in_game_share = false;             // for send_message
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
-    bool is_in_thread = false;              // for resend_message
 
     bool have_previous = false;
     bool have_next = false;

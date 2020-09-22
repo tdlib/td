@@ -4498,7 +4498,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_reply_in_dialog_id);
     STORE_FLAG(has_top_reply_message_id);
     STORE_FLAG(has_thread_draft_message);
-    STORE_FLAG(is_in_thread);
     END_STORE_FLAGS();
   }
 
@@ -4688,7 +4687,6 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_reply_in_dialog_id);
     PARSE_FLAG(has_top_reply_message_id);
     PARSE_FLAG(has_thread_draft_message);
-    PARSE_FLAG(is_in_thread);
     END_PARSE_FLAGS();
   }
 
@@ -22015,14 +22013,17 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId to
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
-  m->is_in_thread = top_thread_message_id.is_valid();
   if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
 
   if (message_content.clear_draft) {
-    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+    if (top_thread_message_id.is_valid()) {
+      set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
+    } else {
+      update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+    }
   }
 
   save_send_message_log_event(dialog_id, m);
@@ -22246,7 +22247,6 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
       m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
     }
     m->media_album_id = media_album_id;
-    m->is_in_thread = top_thread_message_id.is_valid();
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
@@ -23030,9 +23030,12 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
   m->disable_web_page_preview = content->disable_web_page_preview;
   m->clear_draft = true;
-  m->is_in_thread = top_thread_message_id.is_valid();
 
-  update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+  if (top_thread_message_id.is_valid()) {
+    set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
+  } else {
+    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+  }
 
   send_update_new_message(d, m);
   if (need_update_dialog_pos) {
@@ -24733,7 +24736,6 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
       }
       m->reply_markup = std::move(copied_message.reply_markup);
-      m->is_in_thread = copied_message.top_thread_message_id.is_valid();
 
       save_send_message_log_event(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
@@ -24849,7 +24851,6 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     m->ttl = message->ttl;
     m->is_content_secret = message->is_content_secret;
     m->media_album_id = new_media_album_ids[message->media_album_id].first;
-    m->is_in_thread = message->is_in_thread;
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
