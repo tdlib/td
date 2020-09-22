@@ -15899,6 +15899,10 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
 
 td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_thread_info_object(
     const MessageThreadInfo &info) {
+  if (info.message_ids.empty()) {
+    return nullptr;
+  }
+
   Dialog *d = get_dialog(info.dialog_id);
   CHECK(d != nullptr);
   vector<td_api::object_ptr<td_api::message>> messages;
@@ -15910,14 +15914,17 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     }
   }
 
+  MessageId top_thread_message_id;
   td_api::object_ptr<td_api::draftMessage> draft_message;
   if (!info.message_ids.empty() && can_send_message(d->dialog_id).is_ok()) {
-    const Message *m = get_message_force(d, info.message_ids.back(), "get_message_thread_info_object 2");
+    top_thread_message_id = info.message_ids.back();
+    const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
     if (m != nullptr && !m->reply_info.is_comment && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
       draft_message = get_draft_message_object(m->thread_draft_message);
     }
   }
-  return td_api::make_object<td_api::messageThreadInfo>(std::move(messages), std::move(draft_message));
+  return td_api::make_object<td_api::messageThreadInfo>(d->dialog_id.get(), top_thread_message_id.get(),
+                                                        std::move(messages), std::move(draft_message));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
