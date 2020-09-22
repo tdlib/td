@@ -1335,13 +1335,8 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     return;
   }
 
-  if (processed_updates == updates.size()) {
-    if (seq_begin || seq_end) {
-      LOG(ERROR) << "All updates from " << source << " was processed but seq = " << seq_
-                 << ", seq_begin = " << seq_begin << ", seq_end = " << seq_end;
-    } else {
-      LOG(INFO) << "All updates was processed";
-    }
+  if (processed_updates == updates.size() && seq_begin == 0 && seq_end == 0) {
+    LOG(INFO) << "All updates was processed";
     return;
   }
 
