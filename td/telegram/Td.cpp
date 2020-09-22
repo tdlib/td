@@ -5584,9 +5584,9 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id =
-      messages_manager_->send_message(dialog_id, MessageId(request.reply_to_message_id_), std::move(request.options_),
-                                      std::move(request.reply_markup_), std::move(request.input_message_content_));
+  auto r_new_message_id = messages_manager_->send_message(
+      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+      std::move(request.options_), std::move(request.reply_markup_), std::move(request.input_message_content_));
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
@@ -5598,9 +5598,9 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_message_ids =
-      messages_manager_->send_message_group(dialog_id, MessageId(request.reply_to_message_id_),
-                                            std::move(request.options_), std::move(request.input_message_contents_));
+  auto r_message_ids = messages_manager_->send_message_group(
+      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+      std::move(request.options_), std::move(request.input_message_contents_));
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }
@@ -5631,8 +5631,8 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
 
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_inline_query_result_message(
-      dialog_id, MessageId(request.reply_to_message_id_), std::move(request.options_), request.query_id_,
-      request.result_id_, request.hide_via_bot_);
+      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+      std::move(request.options_), request.query_id_, request.result_id_, request.hide_via_bot_);
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }

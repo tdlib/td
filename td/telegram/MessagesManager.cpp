@@ -4498,6 +4498,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_reply_in_dialog_id);
     STORE_FLAG(has_top_reply_message_id);
     STORE_FLAG(has_thread_draft_message);
+    STORE_FLAG(is_in_thread);
     END_STORE_FLAGS();
   }
 
@@ -4687,6 +4688,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_reply_in_dialog_id);
     PARSE_FLAG(has_top_reply_message_id);
     PARSE_FLAG(has_thread_draft_message);
+    PARSE_FLAG(is_in_thread);
     END_PARSE_FLAGS();
   }
 
@@ -17299,7 +17301,8 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   if (draft_message != nullptr) {
     new_draft_message = make_unique<DraftMessage>();
     new_draft_message->date = G()->unix_time();
-    new_draft_message->reply_to_message_id = get_reply_to_message_id(d, MessageId(draft_message->reply_to_message_id_));
+    new_draft_message->reply_to_message_id =
+        get_reply_to_message_id(d, top_thread_message_id, MessageId(draft_message->reply_to_message_id_));
 
     auto input_message_content = std::move(draft_message->input_message_text_);
     if (input_message_content != nullptr) {
@@ -21746,19 +21749,27 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
   return message_id;
 }
 
-MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_id) {
+MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id) {
   CHECK(d != nullptr);
   if (!message_id.is_valid()) {
+    if (message_id == MessageId() && top_thread_message_id.is_valid() && top_thread_message_id.is_server() &&
+        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 1") != nullptr) {
+      return top_thread_message_id;
+    }
     return MessageId();
   }
   message_id = get_persistent_message_id(d, message_id);
-  const Message *m = get_message_force(d, message_id, "get_reply_to_message_id");
+  const Message *m = get_message_force(d, message_id, "get_reply_to_message_id 2");
   if (m == nullptr || m->message_id.is_yet_unsent() ||
       (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
     if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
         message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
       // allow to reply yet unreceived server message
       return message_id;
+    }
+    if (top_thread_message_id.is_valid() && top_thread_message_id.is_server() &&
+        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 1") != nullptr) {
+      return top_thread_message_id;
     }
 
     // TODO local replies to local messages can be allowed
@@ -21951,7 +21962,8 @@ class MessagesManager::SendMessageLogEvent {
   }
 };
 
-Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId reply_to_message_id,
+Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId top_thread_message_id,
+                                                MessageId reply_to_message_id,
                                                 tl_object_ptr<td_api::messageSendOptions> &&options,
                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
@@ -21965,10 +21977,14 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   }
 
   LOG(INFO) << "Begin to send message to " << dialog_id << " in reply to " << reply_to_message_id;
+
+  reply_to_message_id = get_reply_to_message_id(d, top_thread_message_id, reply_to_message_id);
+
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
-    copy_options.reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
+    copy_options.top_thread_message_id = top_thread_message_id;
+    copy_options.reply_to_message_id = reply_to_message_id;
     TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
     return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
                            std::move(options), input_message->in_game_share_, std::move(copy_options));
@@ -21979,11 +21995,12 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
+  TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
   // there must be no errors after get_message_to_send call
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), message_send_options,
+  Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(),
                                                        MessageContentDupType::Send, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
@@ -21991,6 +22008,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
+  m->is_in_thread = top_thread_message_id.is_valid();
   if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
@@ -22018,6 +22036,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   }
 
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+    // for sendMessageAlbum/editMessageMedia/addLocalMessage
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
     if (!copy_options.send_copy) {
@@ -22136,6 +22155,28 @@ Status MessagesManager::can_use_message_send_options(const MessageSendOptions &o
   return can_use_message_send_options(options, content.content, content.ttl);
 }
 
+Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
+                                                      MessageId reply_to_message_id) {
+  if (top_thread_message_id == MessageId()) {
+    return Status::OK();
+  }
+
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+    return Status::Error(400, "Invalid message thread ID specified");
+  }
+  if (d->dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(d->dialog_id)) {
+    return Status::Error(400, "Chat doesn't have threads");
+  }
+  if (reply_to_message_id.is_valid()) {
+    const Message *reply_m = get_message(d, reply_to_message_id);
+    if (reply_m != nullptr && top_thread_message_id != reply_m->top_reply_message_id) {
+      return Status::Error(400, "The message to reply is not in the specified thread");
+    }
+  }
+
+  return Status::OK();
+}
+
 int64 MessagesManager::generate_new_media_album_id() {
   int64 media_album_id = 0;
   do {
@@ -22145,7 +22186,8 @@ int64 MessagesManager::generate_new_media_album_id() {
 }
 
 Result<vector<MessageId>> MessagesManager::send_message_group(
-    DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
+    DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+    tl_object_ptr<td_api::messageSendOptions> &&options,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
     return Status::Error(4, "Too much messages to send as an album");
@@ -22173,7 +22215,8 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     message_contents.emplace_back(std::move(message_content.content), message_content.ttl);
   }
 
-  reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
+  reply_to_message_id = get_reply_to_message_id(d, top_thread_message_id, reply_to_message_id);
+  TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
   int64 media_album_id = 0;
   if (message_contents.size() > 1) {
@@ -22196,6 +22239,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
       m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
     }
     m->media_album_id = media_album_id;
+    m->is_in_thread = top_thread_message_id.is_valid();
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
@@ -22919,7 +22963,8 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
                                                                  std::move(input_peer), parameter, random_id);
 }
 
-Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
+Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dialog_id, MessageId top_thread_message_id,
+                                                                    MessageId reply_to_message_id,
                                                                     tl_object_ptr<td_api::messageSendOptions> &&options,
                                                                     int64 query_id, const string &result_id,
                                                                     bool hide_via_bot) {
@@ -22959,11 +23004,13 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
     return Status::Error(5, "Inline query result not found");
   }
 
+  reply_to_message_id = get_reply_to_message_id(d, top_thread_message_id, reply_to_message_id);
   TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, 0));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
+  TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), message_send_options,
+  Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(),
                                                        MessageContentDupType::SendViaBot, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, true);
@@ -22976,6 +23023,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
   m->disable_web_page_preview = content->disable_web_page_preview;
   m->clear_draft = true;
+  m->is_in_thread = top_thread_message_id.is_valid();
 
   update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
 
@@ -24476,6 +24524,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   struct CopiedMessage {
     unique_ptr<MessageContent> content;
+    MessageId top_thread_message_id;
     MessageId reply_to_message_id;
     unique_ptr<ReplyMarkup> reply_markup;
     int64 media_album_id;
@@ -24506,6 +24555,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
     auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
+    auto top_thread_message_id = copy_options[i].top_thread_message_id;
     auto reply_to_message_id = copy_options[i].reply_to_message_id;
     auto reply_markup = std::move(copy_options[i].reply_markup);
     unique_ptr<MessageContent> content =
@@ -24527,6 +24577,11 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
+    if (can_use_top_thread_message_id(to_dialog, top_thread_message_id, reply_to_message_id).is_error()) {
+      LOG(INFO) << "Ignore invalid message thread ID " << top_thread_message_id;
+      top_thread_message_id = MessageId();
+    }
+
     if (forwarded_message->media_album_id != 0) {
       auto &new_media_album_id = new_media_album_ids[forwarded_message->media_album_id];
       new_media_album_id.second++;
@@ -24541,8 +24596,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     if (need_copy) {
-      copied_messages.push_back({std::move(content), reply_to_message_id, std::move(reply_markup),
-                                 forwarded_message->media_album_id,
+      copied_messages.push_back({std::move(content), top_thread_message_id, reply_to_message_id,
+                                 std::move(reply_markup), forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
       continue;
     }
@@ -24671,6 +24726,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
       }
       m->reply_markup = std::move(copied_message.reply_markup);
+      m->is_in_thread = copied_message.top_thread_message_id.is_valid();
 
       save_send_message_log_event(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
@@ -24776,8 +24832,9 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     MessageSendOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
-    Message *m = get_message_to_send(d, get_reply_to_message_id(d, message->reply_to_message_id), options,
-                                     std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
+    Message *m =
+        get_message_to_send(d, get_reply_to_message_id(d, message->top_reply_message_id, message->reply_to_message_id),
+                            options, std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
     m->reply_markup = std::move(message->reply_markup);
     m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
@@ -24785,6 +24842,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     m->ttl = message->ttl;
     m->is_content_secret = message->is_content_secret;
     m->media_album_id = new_media_album_ids[message->media_album_id].first;
+    m->is_in_thread = message->is_in_thread;
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
@@ -24983,7 +25041,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
   m->date = G()->unix_time();
-  m->reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
+  m->reply_to_message_id = get_reply_to_message_id(d, MessageId(), reply_to_message_id);
   if (m->reply_to_message_id.is_valid()) {
     const Message *reply_m = get_message(d, m->reply_to_message_id);
     if (reply_m != nullptr) {

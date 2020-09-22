@@ -394,18 +394,20 @@ class MessagesManager : public Actor {
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
   Result<MessageId> send_message(
-      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
-      tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+      DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+      tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> send_message_group(
-      DialogId dialog_id, MessageId reply_to_message_id, tl_object_ptr<td_api::messageSendOptions> &&options,
+      DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+      tl_object_ptr<td_api::messageSendOptions> &&options,
       vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
 
-  Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
+  Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId top_thread_message_id,
+                                                     MessageId reply_to_message_id,
                                                      tl_object_ptr<td_api::messageSendOptions> &&options,
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
@@ -1057,6 +1059,7 @@ class MessagesManager : public Actor {
     bool in_game_share = false;             // for send_message
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
+    bool is_in_thread = false;              // for resend_message
 
     bool have_previous = false;
     bool have_next = false;
@@ -1731,6 +1734,8 @@ class MessagesManager : public Actor {
                                              const unique_ptr<MessageContent> &content, int32 ttl);
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
+  Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id);
+
   bool is_anonymous_administrator(DialogId dialog_id) const;
 
   bool is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id, string *author_signature) const;
@@ -1762,7 +1767,7 @@ class MessagesManager : public Actor {
 
   static FullMessageId get_replied_message_id(DialogId dialog_id, const Message *m);
 
-  MessageId get_reply_to_message_id(Dialog *d, MessageId message_id);
+  MessageId get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id);
 
   static void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
                                              MessageId &reply_to_message_id);

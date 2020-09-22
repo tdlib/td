@@ -3712,27 +3712,33 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 
 
 //@description Sends a message. Returns the sent message
-//@chat_id Target chat @reply_to_message_id Identifier of the message to reply to or 0
+//@chat_id Target chat
+//@message_thread_id If not 0, a message thread identifier in which the message will be sent
+//@reply_to_message_id Identifier of the message to reply to or 0
 //@options Options to be used to send the message
 //@reply_markup Markup for replying to the message; for bots only @input_message_content The content of the message to be sent
-sendMessage chat_id:int53 reply_to_message_id:int53 options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
+sendMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Sends messages grouped together into an album. Currently only photo and video messages can be grouped into an album. Returns sent messages
-//@chat_id Target chat @reply_to_message_id Identifier of a message to reply to or 0
+//@chat_id Target chat
+//@message_thread_id If not 0, a message thread identifier in which the messages will be sent
+//@reply_to_message_id Identifier of a message to reply to or 0
 //@options Options to be used to send the messages
 //@input_message_contents Contents of messages to be sent
-sendMessageAlbum chat_id:int53 reply_to_message_id:int53 options:messageSendOptions input_message_contents:vector<InputMessageContent> = Messages;
+sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions input_message_contents:vector<InputMessageContent> = Messages;
 
 //@description Invites a bot to a chat (if it is not yet a member) and sends it the /start command. Bots can't be invited to a private chat other than the chat with the bot. Bots can't be invited to channels (although they can be added as admins) and secret chats. Returns the sent message
 //@bot_user_id Identifier of the bot @chat_id Identifier of the target chat @parameter A hidden parameter sent to the bot for deep linking purposes (https://core.telegram.org/bots#deep-linking)
 sendBotStartMessage bot_user_id:int32 chat_id:int53 parameter:string = Message;
 
 //@description Sends the result of an inline query as a message. Returns the sent message. Always clears a chat draft message
-//@chat_id Target chat @reply_to_message_id Identifier of a message to reply to or 0
+//@chat_id Target chat
+//@message_thread_id If not 0, a message thread identifier in which the message will be sent
+//@reply_to_message_id Identifier of a message to reply to or 0
 //@options Options to be used to send the message
 //@query_id Identifier of the inline query @result_id Identifier of the inline result
 //@hide_via_bot If true, there will be no mention of a bot, via which the message is sent. Can be used only for bots GetOption("animation_search_bot_username"), GetOption("photo_search_bot_username") and GetOption("venue_search_bot_username")
-sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
+sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
 //@chat_id Identifier of the chat to which to forward messages @from_chat_id Identifier of the chat from which to forward messages @message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order

@@ -1394,7 +1394,7 @@ class CliClient final : public Actor {
                     bool disable_notification = false, bool from_background = false, int64 reply_to_message_id = 0) {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
-        chat, reply_to_message_id,
+        chat, as_message_thread_id(message_thread_id_), reply_to_message_id,
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background,
                                                         as_message_scheduling_state(schedule_date_)),
         nullptr, std::move(input_message_content)));
@@ -2976,6 +2976,8 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), query, offset, to_integer<int32>(limit), as_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = args;
+    } else if (op == "smti") {
+      message_thread_id_ = args;
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
       string chat_id;
       string reply_to_message_id;
@@ -3018,8 +3020,8 @@ class CliClient final : public Actor {
       photos = full_split(args);
 
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          as_chat_id(chat_id), as_message_id(reply_to_message_id), default_message_send_options(),
-          transform(photos, [](const string &photo_path) {
+          as_chat_id(chat_id), as_message_thread_id(message_thread_id_), as_message_id(reply_to_message_id),
+          default_message_send_options(), transform(photos, [](const string &photo_path) {
             td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
                 as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
             return content;
@@ -3147,7 +3149,8 @@ class CliClient final : public Actor {
 
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-          chat, 0, default_message_send_options(), to_integer<int64>(query_id), result_id, op == "siqrh"));
+          chat, as_message_thread_id(message_thread_id_), 0, default_message_send_options(),
+          to_integer<int64>(query_id), result_id, op == "siqrh"));
     } else if (op == "gcqa") {
       string chat_id;
       string message_id;
@@ -4382,6 +4385,7 @@ class CliClient final : public Actor {
 
   int32 my_id_ = 0;
   string schedule_date_;
+  string message_thread_id_;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
