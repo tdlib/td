@@ -404,7 +404,7 @@ bool UpdatesManager::is_acceptable_message_reply_header(
     return true;
   }
 
-  if (is_acceptable_peer(header->reply_to_peer_id_)) {
+  if (!is_acceptable_peer(header->reply_to_peer_id_)) {
     return false;
   }
   return true;
