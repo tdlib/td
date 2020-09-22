@@ -570,10 +570,16 @@ class MessagesManager : public Actor {
 
   FullMessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
-  FullMessageId get_discussion_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
+  struct MessageThreadInfo {
+    DialogId dialog_id;
+    vector<MessageId> message_ids;
+  };
+  void get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise);
+
+  td_api::object_ptr<td_api::messageThreadInfo> get_message_thread_info_object(const MessageThreadInfo &info);
 
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, vector<FullMessageId> full_message_ids,
-                                 Promise<Unit> &&promise);
+                                 Promise<MessageThreadInfo> &&promise);
 
   MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 
@@ -1065,7 +1071,6 @@ class MessagesManager : public Actor {
     int32 view_count = 0;
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
-    MessageId discussion_message_id;
 
     int32 legacy_layer = 0;
 

@@ -2600,11 +2600,11 @@ class CliClient final : public Actor {
       string message_id;
       std::tie(chat_id, message_id) = split(args);
       send_request(td_api::make_object<td_api::getRepliedMessage>(as_chat_id(chat_id), as_message_id(message_id)));
-    } else if (op == "gdm") {
+    } else if (op == "gmt") {
       string chat_id;
       string message_id;
       std::tie(chat_id, message_id) = split(args);
-      send_request(td_api::make_object<td_api::getDiscussionMessage>(as_chat_id(chat_id), as_message_id(message_id)));
+      send_request(td_api::make_object<td_api::getMessageThread>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "gcpm") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::getChatPinnedMessage>(as_chat_id(chat_id)));

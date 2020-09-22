@@ -975,6 +975,10 @@ loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int32 request_write_access:Bool = LoginUrlInfo;
 
 
+//@description Contains information about a message thread @messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
+messageThreadInfo messages:vector<message> = MessageThreadInfo;
+
+
 //@class RichText @description Describes a text object inside an instant-view web page
 
 //@description A plain text @text Text
@@ -3533,14 +3537,14 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a message that is replied by given message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which to get
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message that was automatically forwarded to a discussion supergroup from the given channel message @chat_id Chat identifier @message_id Identifier of the channel message
-getDiscussionMessage chat_id:int53 message_id:int53 = Message;
-
 //@description Returns information about a pinned chat message @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;
 
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
+
+//@description Returns information about a message thread; only for messages with replies @chat_id Chat identifier @message_id Identifier of the message
+getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
 
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
 getFile file_id:int32 = File;

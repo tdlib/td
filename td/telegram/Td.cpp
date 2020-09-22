@@ -1050,25 +1050,31 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetDiscussionMessageRequest : public RequestOnceActor {
+class GetMessageThreadRequest : public RequestActor<MessagesManager::MessageThreadInfo> {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  FullMessageId discussion_message_id_;
+  MessagesManager::MessageThreadInfo message_thread_info_;
 
-  void do_run(Promise<Unit> &&promise) override {
-    discussion_message_id_ =
-        td->messages_manager_->get_discussion_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
+  void do_run(Promise<MessagesManager::MessageThreadInfo> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(message_thread_info_));
+      return;
+    }
+    td->messages_manager_->get_message_thread(dialog_id_, message_id_, std::move(promise));
+  }
+
+  void do_set_result(MessagesManager::MessageThreadInfo &&result) override {
+    message_thread_info_ = std::move(result);
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_message_object(discussion_message_id_));
+    send_result(td->messages_manager_->get_message_thread_info_object(message_thread_info_));
   }
 
  public:
-  GetDiscussionMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), message_id_(message_id) {
-    set_tries(3);  // 1 to get initial message, 1 to get the discussion message and 1 for result
+  GetMessageThreadRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
+      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id), message_id_(message_id) {
   }
 };
 
@@ -5093,13 +5099,13 @@ void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
   CREATE_REQUEST(GetRepliedMessageRequest, request.chat_id_, request.message_id_);
 }
 
-void Td::on_request(uint64 id, const td_api::getDiscussionMessage &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST(GetDiscussionMessageRequest, request.chat_id_, request.message_id_);
-}
-
 void Td::on_request(uint64 id, const td_api::getChatPinnedMessage &request) {
   CREATE_REQUEST(GetChatPinnedMessageRequest, request.chat_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessages &request) {
@@ -5107,7 +5113,6 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
-  CHECK_IS_USER();
   auto r_message_link = messages_manager_->get_message_link(
       {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.for_album_, request.for_comment_);
   if (r_message_link.is_error()) {

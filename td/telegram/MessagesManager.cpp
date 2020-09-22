@@ -6275,7 +6275,7 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   }
 
   auto m = get_message_force(d, message_id, "on_update_read_message_comments");
-  if (m == nullptr) {
+  if (m == nullptr || !m->message_id.is_server()) {
     return;
   }
   if (m->reply_info.update_max_message_ids(max_message_id, last_read_inbox_message_id, last_read_outbox_message_id)) {
@@ -6438,7 +6438,8 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
 
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
-  bool is_active_reply_info = m->message_id.is_server() && is_active_message_reply_info(dialog_id, m->reply_info);
+  bool is_active_reply_info =
+      m->message_id.is_valid() && m->message_id.is_server() && is_active_message_reply_info(dialog_id, m->reply_info);
   if (m->view_count == 0 && m->forward_count == 0 && !is_active_reply_info) {
     return nullptr;
   }
@@ -6476,6 +6477,9 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
                                                       int32 forward_count, bool has_reply_info,
                                                       MessageReplyInfo &&reply_info) {
   CHECK(m != nullptr);
+  if (m->message_id.is_valid_scheduled()) {
+    has_reply_info = false;
+  }
   bool need_update_reply_info = has_reply_info && m->reply_info.need_update_to(reply_info);
   if (has_reply_info && m->reply_info.channel_id == reply_info.channel_id) {
     if (need_update_reply_info) {
@@ -6503,7 +6507,6 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
         if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid()) {
           LOG(ERROR) << "Reply info changed from " << m->reply_info << " to " << reply_info;
         }
-        m->discussion_message_id = MessageId();
       }
       m->reply_info = std::move(reply_info);
     }
@@ -15791,55 +15794,41 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   return replied_message_id;
 }
 
-FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, MessageId message_id, bool force,
-                                                      Promise<Unit> &&promise) {
-  LOG(INFO) << "Get discussion message from " << message_id << " in " << dialog_id;
+void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_id,
+                                         Promise<MessageThreadInfo> &&promise) {
+  LOG(INFO) << "Get message thread from " << message_id << " in " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return FullMessageId();
-  }
-  if (!is_broadcast_channel(dialog_id)) {
-    promise.set_error(Status::Error(400, "Chat is not a channel"));
-    return FullMessageId();
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
-    return FullMessageId();
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
-  if (!message_id.is_valid_scheduled() && !message_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Invalid message identifier"));
-    return FullMessageId();
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup or a channel"));
   }
   if (message_id.is_scheduled()) {
-    promise.set_error(Status::Error(400, "Scheduled messages can't have comments"));
-    return FullMessageId();
+    return promise.set_error(Status::Error(400, "Scheduled messages can't have message threads"));
   }
 
-  auto m = get_message_force(d, message_id, "get_discussion_message");
+  auto m = get_message_force(d, message_id, "get_message_thread");
   if (m == nullptr) {
-    if (force) {
-      promise.set_value(Unit());
-    } else {
-      get_message_force_from_server(d, message_id, std::move(promise));
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  ChannelId message_thread_channel_id;
+  if (m->reply_info.is_comment) {
+    if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+      return promise.set_error(Status::Error(400, "Message has no comments"));
     }
-    return FullMessageId();
+    message_thread_channel_id = m->reply_info.channel_id;
+  } else {
+    if (!m->top_reply_message_id.is_valid()) {
+      return promise.set_error(Status::Error(400, "Message has no thread"));
+    }
+    message_thread_channel_id = dialog_id.get_channel_id();
   }
-  if (!m->reply_info.is_comment) {
-    promise.set_error(Status::Error(400, "Message have no comments"));
-    return FullMessageId();
-  }
-  CHECK(m->reply_info.channel_id.is_valid());
-  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
-    promise.set_value(Unit());
-    return FullMessageId();
-  }
-  if (m->discussion_message_id.is_valid()) {
-    promise.set_value(Unit());
-    FullMessageId result(DialogId(m->reply_info.channel_id), m->discussion_message_id);
-    m->discussion_message_id = MessageId();  // force server request each time
-    return result;
-  }
+  CHECK(message_thread_channel_id.is_valid());
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
@@ -15852,13 +15841,12 @@ FullMessageId MessagesManager::get_discussion_message(DialogId dialog_id, Messag
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, message_id, m->reply_info.channel_id);
-
-  return FullMessageId();
+      ->send(dialog_id, message_id, message_thread_channel_id);
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
-                                                vector<FullMessageId> full_message_ids, Promise<Unit> &&promise) {
+                                                vector<FullMessageId> full_message_ids,
+                                                Promise<MessageThreadInfo> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
@@ -15867,26 +15855,44 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
 
   auto m = get_message_force(d, message_id, "on_get_discussion_message");
   if (m == nullptr) {
-    return promise.set_error(Status::Error(500, "Message not found"));
+    return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!m->reply_info.is_comment) {
-    return promise.set_error(Status::Error(400, "Message have no comments"));
-  }
-  CHECK(m->reply_info.channel_id.is_valid());
-  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
-    return promise.set_value(Unit());
-  }
-
   if (full_message_ids.empty()) {
-    return promise.set_value(Unit());
-  }
-  auto full_message_id = full_message_ids.back();
-  if (full_message_id.get_dialog_id() != DialogId(m->reply_info.channel_id)) {
-    return promise.set_error(Status::Error(500, "Expected message in a different chat"));
+    return promise.set_error(Status::Error(400, "Message has no thread"));
   }
 
-  m->discussion_message_id = full_message_id.get_message_id();
-  promise.set_value(Unit());
+  DialogId expected_dialog_id;
+  if (m->reply_info.is_comment) {
+    if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+      return promise.set_error(Status::Error(400, "Message has no comments"));
+    }
+    expected_dialog_id = DialogId(m->reply_info.channel_id);
+  } else {
+    if (!m->top_reply_message_id.is_valid()) {
+      return promise.set_error(Status::Error(400, "Message has no thread"));
+    }
+    expected_dialog_id = dialog_id;
+  }
+
+  MessageThreadInfo result;
+  for (auto full_message_id : full_message_ids) {
+    if (full_message_id.get_dialog_id() != expected_dialog_id) {
+      return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
+    }
+    result.message_ids.push_back(full_message_id.get_message_id());
+  }
+  result.dialog_id = expected_dialog_id;
+  promise.set_value(std::move(result));
+}
+
+td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_thread_info_object(
+    const MessageThreadInfo &info) {
+  Dialog *d = get_dialog(info.dialog_id);
+  CHECK(d != nullptr);
+  auto messages = transform(info.message_ids, [this, d](MessageId message_id) {
+    return get_message_object(d->dialog_id, get_message_force(d, message_id, "get_message_thread_info_object"));
+  });
+  return td_api::make_object<td_api::messageThreadInfo>(std::move(messages));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise) {
