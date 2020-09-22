@@ -479,6 +479,13 @@ class AesIgeStateImpl {
     encrypted_iv_.load(iv.ubegin());
     plaintext_iv_.load(iv.ubegin() + AES_BLOCK_SIZE);
   }
+
+  void get_iv(MutableSlice iv) {
+    CHECK(iv.size() == 32);
+    encrypted_iv_.store(iv.ubegin());
+    plaintext_iv_.store(iv.ubegin() + AES_BLOCK_SIZE);
+  }
+
   void encrypt(Slice from, MutableSlice to) {
     CHECK(from.size() % AES_BLOCK_SIZE == 0);
     CHECK(to.size() >= from.size());
@@ -575,12 +582,14 @@ void aes_ige_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
   AesIgeStateImpl state;
   state.init(aes_key, aes_iv, true);
   state.encrypt(from, to);
+  state.get_iv(aes_iv);
 }
 
 void aes_ige_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to) {
   AesIgeStateImpl state;
   state.init(aes_key, aes_iv, false);
   state.decrypt(from, to);
+  state.get_iv(aes_iv);
 }
 
 static void aes_cbc_xcrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
