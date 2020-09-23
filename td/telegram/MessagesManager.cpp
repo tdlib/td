@@ -401,15 +401,17 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
   DialogId dialog_id_;
   MessageId message_id_;
   ChannelId expected_channel_id_;
+  MessageId expected_message_id_;
 
  public:
   explicit GetDiscussionMessageQuery(Promise<vector<FullMessageId>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, ChannelId expected_channel_id) {
+  void send(DialogId dialog_id, MessageId message_id, ChannelId expected_channel_id, MessageId expected_message_id) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
     expected_channel_id_ = expected_channel_id;
+    expected_message_id_ = expected_message_id;
     if (!expected_channel_id_.is_valid()) {
       return promise_.set_error(Status::Error(500, "Wrong message specified"));
     }
@@ -448,6 +450,7 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     }
 
     vector<FullMessageId> full_message_ids;
+    MessageId top_message_id;
     for (auto &message : ptr->messages_) {
       auto full_message_id = td->messages_manager_->on_get_message(std::move(message), false, true, false, false, false,
                                                                    "GetDiscussionMessageQuery");
@@ -456,12 +459,18 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
         if (full_message_id.get_dialog_id() != DialogId(expected_channel_id_)) {
           return on_error(id, Status::Error(500, "Expected messages in a different chat"));
         }
+        if (full_message_id.get_message_id() == expected_message_id_) {
+          top_message_id = expected_message_id_;
+        }
       }
     }
-    if (!full_message_ids.empty()) {
-      td->messages_manager_->on_update_read_message_comments(full_message_ids.back().get_dialog_id(),
-                                                             full_message_ids.back().get_message_id(), max_message_id,
-                                                             last_read_inbox_message_id, last_read_outbox_message_id);
+    if (!full_message_ids.empty() && !top_message_id.is_valid()) {
+      top_message_id = full_message_ids.back().get_message_id();
+    }
+    if (top_message_id.is_valid()) {
+      td->messages_manager_->on_update_read_message_comments(DialogId(expected_channel_id_), top_message_id,
+                                                             max_message_id, last_read_inbox_message_id,
+                                                             last_read_outbox_message_id);
     }
     promise_.set_value(std::move(full_message_ids));
   }
@@ -15827,6 +15836,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   }
 
   ChannelId message_thread_channel_id;
+  MessageId top_thread_message_id;
   if (m->reply_info.is_comment) {
     if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
       return promise.set_error(Status::Error(400, "Message has no comments"));
@@ -15837,6 +15847,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
       return promise.set_error(Status::Error(400, "Message has no thread"));
     }
     message_thread_channel_id = dialog_id.get_channel_id();
+    top_thread_message_id = m->top_reply_message_id;
   }
   CHECK(message_thread_channel_id.is_valid());
 
@@ -15851,7 +15862,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, message_id, message_thread_channel_id);
+      ->send(dialog_id, message_id, message_thread_channel_id, top_thread_message_id);
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
@@ -16510,7 +16521,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, info.message_id, m->reply_info.channel_id);
+      ->send(dialog_id, info.message_id, m->reply_info.channel_id, MessageId());
 }
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
