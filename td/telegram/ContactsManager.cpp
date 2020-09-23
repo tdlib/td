@@ -4401,6 +4401,10 @@ UserId ContactsManager::get_service_notifications_user_id() {
   return user_id;
 }
 
+UserId ContactsManager::get_replies_bot_user_id() {
+  return UserId(G()->is_test_dc() ? 708513 : 1271266957);
+}
+
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {

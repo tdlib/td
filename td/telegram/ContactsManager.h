@@ -261,6 +261,8 @@ class ContactsManager : public Actor {
 
   UserId get_service_notifications_user_id();
 
+  static UserId get_replies_bot_user_id();
+
   void on_update_online_status_privacy();
 
   void on_update_phone_number_privacy();
