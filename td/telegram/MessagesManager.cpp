@@ -21410,8 +21410,9 @@ bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId
 }
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
-    Dialog *d, MessageId reply_to_message_id, const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
-    bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
+    Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
+    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info,
+    bool is_copy) {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
   CHECK(content != nullptr);
@@ -21444,9 +21445,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
+  m->top_reply_message_id = top_thread_message_id;
   if (reply_to_message_id.is_valid()) {
     const Message *reply_m = get_message(d, reply_to_message_id);
-    if (reply_m != nullptr) {
+    if (reply_m != nullptr && reply_m->top_reply_message_id.is_valid()) {
       m->top_reply_message_id = reply_m->top_reply_message_id;
     }
   }
@@ -22016,7 +22018,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId to
   // there must be no errors after get_message_to_send call
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
+  Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(),
                                                        MessageContentDupType::Send, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
@@ -22187,9 +22189,18 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
     return Status::Error(400, "Chat doesn't have threads");
   }
   if (reply_to_message_id.is_valid()) {
-    const Message *reply_m = get_message(d, reply_to_message_id);
+    const Message *reply_m = get_message_force(d, reply_to_message_id, "can_use_top_thread_message_id 1");
     if (reply_m != nullptr && top_thread_message_id != reply_m->top_reply_message_id) {
-      return Status::Error(400, "The message to reply is not in the specified thread");
+      if (reply_m->top_reply_message_id.is_valid() || reply_m->media_album_id == 0) {
+        return Status::Error(400, "The message to reply is not in the specified message thread");
+      }
+
+      // if the message is in an album and not in the thread, it can be in the album of top_thread_message_id
+      const Message *top_m = get_message_force(d, top_thread_message_id, "can_use_top_thread_message_id 2");
+      if (top_m != nullptr &&
+          (top_m->media_album_id != reply_m->media_album_id || top_m->top_reply_message_id != top_m->message_id)) {
+        return Status::Error(400, "The message to reply is not in the specified message thread root album");
+      }
     }
   }
 
@@ -22247,7 +22258,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<MessageId> result;
   bool need_update_dialog_pos = false;
   for (auto &message_content : message_contents) {
-    Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
+    Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                      dup_message_content(td_, dialog_id, message_content.first.get(),
                                                          MessageContentDupType::Send, MessageCopyOptions()),
                                      &need_update_dialog_pos);
@@ -22898,7 +22909,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   vector<MessageEntity> text_entities;
   text_entities.emplace_back(MessageEntity::Type::BotCommand, 0, narrow_cast<int32>(text.size()));
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(),
+  Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
                                    create_text_message_content(text, std::move(text_entities), WebPageId()),
                                    &need_update_dialog_pos);
   m->is_bot_start_message = true;
@@ -23028,7 +23039,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, reply_to_message_id, message_send_options,
+  Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(),
                                                        MessageContentDupType::SendViaBot, MessageCopyOptions()),
                                    &need_update_dialog_pos, nullptr, true);
@@ -24662,7 +24673,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       }
     }
 
-    Message *m = get_message_to_send(to_dialog, MessageId(), message_send_options, std::move(content),
+    Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
                                      &need_update_dialog_pos, std::move(forward_info));
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
@@ -24740,7 +24751,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   if (!copied_messages.empty()) {
     for (auto &copied_message : copied_messages) {
-      Message *m = get_message_to_send(to_dialog, copied_message.reply_to_message_id, message_send_options,
+      Message *m = get_message_to_send(to_dialog, copied_message.top_thread_message_id,
+                                       copied_message.reply_to_message_id, message_send_options,
                                        std::move(copied_message.content), &need_update_dialog_pos, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       if (copied_message.media_album_id != 0) {
@@ -24853,7 +24865,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     MessageSendOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
     Message *m =
-        get_message_to_send(d, get_reply_to_message_id(d, message->top_reply_message_id, message->reply_to_message_id),
+        get_message_to_send(d, message->top_reply_message_id,
+                            get_reply_to_message_id(d, message->top_reply_message_id, message->reply_to_message_id),
                             options, std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
     m->reply_markup = std::move(message->reply_markup);
     m->via_bot_user_id = message->via_bot_user_id;
@@ -24897,8 +24910,8 @@ Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_i
 
   TRY_STATUS(can_send_message(dialog_id));
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(), create_chat_set_ttl_message_content(ttl),
-                                   &need_update_dialog_pos);
+  Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
+                                   create_chat_set_ttl_message_content(ttl), &need_update_dialog_pos);
 
   send_update_new_message(d, m);
   if (need_update_dialog_pos) {
@@ -24930,7 +24943,7 @@ Status MessagesManager::send_screenshot_taken_notification_message(DialogId dial
 
   if (dialog_type == DialogType::User) {
     bool need_update_dialog_pos = false;
-    const Message *m = get_message_to_send(d, MessageId(), MessageSendOptions(),
+    const Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
                                            create_screenshot_taken_message_content(), &need_update_dialog_pos);
 
     do_send_screenshot_taken_notification_message(dialog_id, m, 0);
