@@ -363,7 +363,7 @@ class GetContactsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for getContacts: " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetContactsQuery: " << to_string(ptr);
     td->contacts_manager_->on_get_contacts(std::move(ptr));
   }
 
@@ -391,7 +391,7 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for getContactsStatuses: " << status;
+      LOG(ERROR) << "Receive error for GetContactsStatusesQuery: " << status;
     }
   }
 };
@@ -512,7 +512,7 @@ class ImportContactsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for importContacts: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ImportContactsQuery: " << to_string(ptr);
 
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "ImportContactsQuery");
     for (auto &imported_contact : ptr->imported_) {
@@ -835,7 +835,7 @@ class DeleteProfilePhotoQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for deleteProfilePhoto " << format::as_array(result);
+    LOG(INFO) << "Receive result for DeleteProfilePhotoQuery: " << format::as_array(result);
     if (result.size() != 1u) {
       LOG(WARNING) << "Photo can't be deleted";
       return on_error(id, Status::Error(7, "Photo can't be deleted"));
@@ -875,7 +875,7 @@ class UpdateProfileQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for updateProfile " << to_string(result_ptr.ok());
+    LOG(DEBUG) << "Receive result for UpdateProfileQuery: " << to_string(result_ptr.ok());
     td->contacts_manager_->on_get_user(result_ptr.move_as_ok(), "UpdateProfileQuery");
     td->contacts_manager_->on_update_profile_success(flags_, first_name_, last_name_, about_);
 
@@ -929,7 +929,7 @@ class UpdateUsernameQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for updateUsername " << to_string(result_ptr.ok());
+    LOG(DEBUG) << "Receive result for UpdateUsernameQuery: " << to_string(result_ptr.ok());
     td->contacts_manager_->on_get_user(result_ptr.move_as_ok(), "UpdateUsernameQuery");
     promise_.set_value(Unit());
   }
@@ -1043,7 +1043,7 @@ class UpdateChannelUsernameQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG(DEBUG) << "Receive result for updateChannelUsername " << result;
+    LOG(DEBUG) << "Receive result for UpdateChannelUsernameQuery: " << result;
     if (!result) {
       return on_error(id, Status::Error(500, "Supergroup username is not updated"));
     }
@@ -1092,7 +1092,7 @@ class SetChannelStickerSetQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG(DEBUG) << "Receive result for setChannelStickerSet " << result;
+    LOG(DEBUG) << "Receive result for SetChannelStickerSetQuery: " << result;
     if (!result) {
       return on_error(id, Status::Error(500, "Supergroup sticker set not updated"));
     }
@@ -1138,7 +1138,7 @@ class ToggleChannelSignaturesQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for toggleChannelSignatures: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ToggleChannelSignaturesQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1183,7 +1183,7 @@ class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for togglePreHistoryHidden: " << to_string(ptr);
+    LOG(INFO) << "Receive result for TogglePreHistoryHiddenQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
     td->contacts_manager_->on_update_channel_is_all_history_available(channel_id_, is_all_history_available_);
 
@@ -1242,7 +1242,7 @@ class EditChatAboutQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG(DEBUG) << "Receive result for editChatAbout " << result;
+    LOG(DEBUG) << "Receive result for EditChatAboutQuery: " << result;
     if (!result) {
       return on_error(id, Status::Error(500, "Chat description is not updated"));
     }
@@ -1370,7 +1370,7 @@ class ToggleSlowModeQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for toggleSlowMode: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ToggleSlowModeQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     td->contacts_manager_->on_update_channel_slow_mode_delay(channel_id_, slow_mode_delay_);
@@ -1454,7 +1454,7 @@ class DeleteChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for deleteChannel: " << to_string(ptr);
+    LOG(INFO) << "Receive result for DeleteChannelQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1485,7 +1485,7 @@ class AddChatUserQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for addChatUser: " << to_string(ptr);
+    LOG(INFO) << "Receive result for AddChatUserQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1557,7 +1557,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for exportChatInvite: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(ptr);
 
     td->contacts_manager_->on_get_chat_invite_link(chat_id_, std::move(ptr));
     promise_.set_value(Unit());
@@ -1593,7 +1593,7 @@ class ExportChannelInviteLinkQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for exportChannelInvite: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ExportChannelInviteQuery: " << to_string(ptr);
 
     td->contacts_manager_->on_get_channel_invite_link(channel_id_, std::move(ptr));
     promise_.set_value(Unit());
@@ -1627,7 +1627,7 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for checkChatInvite: " << to_string(ptr);
+    LOG(INFO) << "Receive result for CheckChatInviteQuery: " << to_string(ptr);
 
     td->contacts_manager_->on_get_dialog_invite_link_info(invite_link_, std::move(ptr), std::move(promise_));
   }
@@ -1659,7 +1659,7 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for importChatInvite: " << to_string(ptr);
+    LOG(INFO) << "Receive result for ImportChatInviteQuery: " << to_string(ptr);
 
     auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
     if (dialog_ids.size() != 1u) {
@@ -1697,7 +1697,7 @@ class DeleteChatUserQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for deleteChatUser: " << to_string(ptr);
+    LOG(INFO) << "Receive result for DeleteChatUserQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1731,7 +1731,7 @@ class JoinChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for joinChannel: " << to_string(ptr);
+    LOG(INFO) << "Receive result for JoinChannelQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1767,7 +1767,7 @@ class InviteToChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for inviteToChannel: " << to_string(ptr);
+    LOG(INFO) << "Receive result for InviteToChannelQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
     td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
@@ -1804,7 +1804,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editChannelAdmin: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditChannelAdminQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
     td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
@@ -1841,7 +1841,7 @@ class EditChannelBannedQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editChannelBanned: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditChannelBannedQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
     td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
@@ -1877,7 +1877,7 @@ class LeaveChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for leaveChannel: " << to_string(ptr);
+    LOG(INFO) << "Receive result for LeaveChannelQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1912,7 +1912,7 @@ class CanEditChannelCreatorQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(ERROR) << "Receive result for CanEditChannelCreator: " << to_string(ptr);
+    LOG(ERROR) << "Receive result for CanEditChannelCreatorQuery: " << to_string(ptr);
     promise_.set_error(Status::Error(500, "Server doesn't returned error"));
   }
 
@@ -1951,7 +1951,7 @@ class EditChannelCreatorQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editChannelCreator: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditChannelCreatorQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
     td->contacts_manager_->invalidate_channel_full(channel_id_, false, false);
 
@@ -1983,7 +1983,7 @@ class MigrateChatQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for migrateChat: " << to_string(ptr);
+    LOG(INFO) << "Receive result for MigrateChatQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -2023,7 +2023,7 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
     }
 
     auto chats_ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetCreatedPublicChannelsQuery " << to_string(chats_ptr);
+    LOG(INFO) << "Receive result for GetCreatedPublicChannelsQuery: " << to_string(chats_ptr);
     int32 constructor_id = chats_ptr->get_id();
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
@@ -2067,7 +2067,7 @@ class GetGroupsForDiscussionQuery : public Td::ResultHandler {
     }
 
     auto chats_ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetGroupsForDiscussionQuery " << to_string(chats_ptr);
+    LOG(INFO) << "Receive result for GetGroupsForDiscussionQuery: " << to_string(chats_ptr);
     int32 constructor_id = chats_ptr->get_id();
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
@@ -2111,7 +2111,7 @@ class GetInactiveChannelsQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetInactiveChannelsQuery " << to_string(result);
+    LOG(INFO) << "Receive result for GetInactiveChannelsQuery: " << to_string(result);
     // TODO use result->dates_
     td->contacts_manager_->on_get_users(std::move(result->users_), "GetInactiveChannelsQuery");
     td->contacts_manager_->on_get_inactive_channels(std::move(result->chats_));
@@ -2168,7 +2168,7 @@ class GetFullUserQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for getFullUser " << to_string(result_ptr.ok());
+    LOG(DEBUG) << "Receive result for GetFullUserQuery: " << to_string(result_ptr.ok());
     td->contacts_manager_->on_get_user_full(result_ptr.move_as_ok());
     promise_.set_value(Unit());
   }
@@ -2207,7 +2207,7 @@ class GetUserPhotosQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
 
-    LOG(INFO) << "Receive result for GetUserPhotosQuery " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetUserPhotosQuery: " << to_string(ptr);
     int32 constructor_id = ptr->get_id();
     if (constructor_id == telegram_api::photos_photos::ID) {
       auto photos = move_tl_object_as<telegram_api::photos_photos>(ptr);
@@ -2328,7 +2328,7 @@ class GetChannelsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    //    LOG(INFO) << "Receive result for getChannels query: " << to_string(result_ptr.ok());
+    //    LOG(INFO) << "Receive result for GetChannelsQuery query: " << to_string(result_ptr.ok());
     auto chats_ptr = result_ptr.move_as_ok();
     int32 constructor_id = chats_ptr->get_id();
     switch (constructor_id) {

@@ -360,7 +360,7 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!G()->is_expected_error(status)) {
-      LOG(WARNING) << "Receive error for SetBotUpdatesStatus: " << status;
+      LOG(WARNING) << "Receive error for SetBotUpdatesStatusQuery: " << status;
     }
     status.ignore();
   }
@@ -3155,7 +3155,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
   }
 
   if (r_promo_data.is_error()) {
-    LOG(ERROR) << "Receive error for getPromoData: " << r_promo_data.error();
+    LOG(ERROR) << "Receive error for GetPromoDataQuery: " << r_promo_data.error();
     return schedule_get_promo_data(60);
   }
 

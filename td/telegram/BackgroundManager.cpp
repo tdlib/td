@@ -66,7 +66,8 @@ class GetBackgroundQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getBackground " << background_id_ << "/" << background_name_ << ": " << status;
+    LOG(INFO) << "Receive error for GetBackgroundQuery for " << background_id_ << "/" << background_name_ << ": "
+              << status;
     promise_.set_error(std::move(status));
   }
 };

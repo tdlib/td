@@ -146,7 +146,7 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
     }
 
     bool ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery " << ptr;
+    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery: " << ptr;
     promise_.set_value(Unit());
   }
 

@@ -81,7 +81,7 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetWebPagePreviewQuery " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetWebPagePreviewQuery: " << to_string(ptr);
     td->web_pages_manager_->on_get_web_page_preview_success(request_id_, url_, std::move(ptr), std::move(promise_));
   }
 
@@ -112,7 +112,7 @@ class GetWebPageQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetWebPageQuery " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetWebPageQuery: " << to_string(ptr);
     if (ptr->get_id() == telegram_api::webPageNotModified::ID) {
       if (web_page_id_.is_valid()) {
         auto web_page = move_tl_object_as<telegram_api::webPageNotModified>(ptr);

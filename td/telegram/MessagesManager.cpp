@@ -938,7 +938,7 @@ class CreateChatQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for createChat " << to_string(ptr);
+    LOG(INFO) << "Receive result for CreateChatQuery: " << to_string(ptr);
     td->messages_manager_->on_create_new_dialog_success(random_id_, std::move(ptr), DialogType::Chat,
                                                         std::move(promise_));
   }
@@ -981,7 +981,7 @@ class CreateChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for createChannel " << to_string(ptr);
+    LOG(INFO) << "Receive result for CreateChannelQuery: " << to_string(ptr);
     td->messages_manager_->on_create_new_dialog_success(random_id_, std::move(ptr), DialogType::Channel,
                                                         std::move(promise_));
   }
@@ -1037,7 +1037,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditDialogPhoto: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogPhotoQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     if (file_id_.is_valid() && was_uploaded_) {
@@ -1113,7 +1113,7 @@ class EditDialogTitleQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditDialogTitle: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogTitleQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1157,7 +1157,7 @@ class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditDialogPermissions: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogPermissionsQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1259,7 +1259,7 @@ class ClearAllDraftsQuery : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     if (!result) {
-      LOG(INFO) << "Receive false for clearAllDrafts";
+      LOG(INFO) << "Receive false for ClearAllDraftsQuery";
     } else {
       LOG(INFO) << "All draft messages has been cleared";
     }
@@ -1706,7 +1706,7 @@ class GetHistoryQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetHistoryQuery")) {
-      LOG(ERROR) << "Receive error for getHistoryQuery in " << dialog_id_ << ": " << status;
+      LOG(ERROR) << "Receive error for GetHistoryQuery in " << dialog_id_ << ": " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -1736,7 +1736,7 @@ class ReadHistoryQuery : public Td::ResultHandler {
 
     auto affected_messages = result_ptr.move_as_ok();
     CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
-    LOG(INFO) << "Receive result for readHistory: " << to_string(affected_messages);
+    LOG(INFO) << "Receive result for ReadHistoryQuery: " << to_string(affected_messages);
 
     if (affected_messages->pts_count_ > 0) {
       td->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
@@ -1748,7 +1748,7 @@ class ReadHistoryQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadHistoryQuery")) {
-      LOG(ERROR) << "Receive error for readHistory: " << status;
+      LOG(ERROR) << "Receive error for ReadHistoryQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -1782,7 +1782,7 @@ class ReadChannelHistoryQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "ReadChannelHistoryQuery")) {
-      LOG(ERROR) << "Receive error for readChannelHistory: " << status;
+      LOG(ERROR) << "Receive error for ReadChannelHistoryQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -2233,7 +2233,7 @@ class DeleteChannelHistoryQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelHistoryQuery")) {
-      LOG(ERROR) << "Receive error for deleteChannelHistory: " << status;
+      LOG(ERROR) << "Receive error for DeleteChannelHistoryQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -2268,7 +2268,7 @@ class BlockFromRepliesQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for BlockFromReplies: " << to_string(ptr);
+    LOG(INFO) << "Receive result for BlockFromRepliesQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -2496,7 +2496,7 @@ class SendMessageActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for sendMessage for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMessageQuery for " << random_id_ << ": " << to_string(ptr);
 
     auto constructor_id = ptr->get_id();
     if (constructor_id != telegram_api::updateShortSentMessage::ID) {
@@ -2521,7 +2521,7 @@ class SendMessageActor : public NetActorOnce {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for sendMessage: " << status;
+    LOG(INFO) << "Receive error for SendMessageQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2564,14 +2564,14 @@ class StartBotQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for startBot for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for StartBotQuery for " << random_id_ << ": " << to_string(ptr);
     // Result may contain messageActionChatAddUser
     // td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "StartBot");
     td->updates_manager_->on_get_updates(std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for startBot: " << status;
+    LOG(INFO) << "Receive error for StartBotQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message should be re-sent
       return;
@@ -2609,13 +2609,13 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for sendInlineBotResult for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendInlineBotResultQuery for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendInlineBotResult");
     td->updates_manager_->on_get_updates(std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for sendInlineBotResult: " << status;
+    LOG(INFO) << "Receive error for SendInlineBotResultQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2667,7 +2667,8 @@ class SendMultiMediaActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for sendMultiMedia for " << format::as_array(random_ids_) << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMultiMediaQuery for " << format::as_array(random_ids_) << ": "
+              << to_string(ptr);
 
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
@@ -2698,7 +2699,7 @@ class SendMultiMediaActor : public NetActorOnce {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for sendMultiMedia with random_ids " << format::as_array(random_ids_)
+      LOG(ERROR) << "Receive wrong result for SendMultiMediaQuery with random_ids " << format::as_array(random_ids_)
                  << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
       td->updates_manager_->schedule_get_difference("Wrong sendMultiMedia result");
     }
@@ -2707,7 +2708,7 @@ class SendMultiMediaActor : public NetActorOnce {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for sendMultiMedia: " << status;
+    LOG(INFO) << "Receive error for SendMultiMediaQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2795,13 +2796,13 @@ class SendMediaActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for sendMedia for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
     td->updates_manager_->on_get_updates(std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for sendMedia: " << status;
+    LOG(INFO) << "Receive error for SendMediaQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2883,12 +2884,13 @@ class UploadMediaQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for uploadMedia for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for UploadMediaQuery for " << message_id_ << " in " << dialog_id_ << ": "
+              << to_string(ptr);
     td->messages_manager_->on_upload_message_media_success(dialog_id_, message_id_, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for uploadMedia for " << message_id_ << " in " << dialog_id_ << ": " << status;
+    LOG(INFO) << "Receive error for UploadMediaQuery for " << message_id_ << " in " << dialog_id_ << ": " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2954,14 +2956,14 @@ class SendScheduledMessageActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendScheduledMessage: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendScheduledMessageActor: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for SendScheduledMessage: " << status;
+    LOG(INFO) << "Receive error for SendScheduledMessageActor: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScheduledMessageActor");
     promise_.set_error(std::move(status));
   }
@@ -3030,14 +3032,14 @@ class EditMessageActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditMessage: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditMessageActor: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for editMessage: " << status;
+    LOG(INFO) << "Receive error for EditMessageQuery: " << status;
     if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
@@ -3097,7 +3099,7 @@ class EditInlineMessageQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for editInlineMessage: " << status;
+    LOG(INFO) << "Receive error for EditInlineMessageQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -3148,14 +3150,14 @@ class SetGameScoreActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SetGameScore: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SetGameScoreActor: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for setGameScore: " << status;
+    LOG(INFO) << "Receive error for SetGameScoreQuery: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
     promise_.set_error(std::move(status));
   }
@@ -3201,7 +3203,7 @@ class SetInlineGameScoreQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for setInlineGameScore: " << status;
+    LOG(INFO) << "Receive error for SetInlineGameScoreQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -3239,7 +3241,7 @@ class GetGameHighScoresQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getGameHighScores: " << status;
+    LOG(INFO) << "Receive error for GetGameHighScoresQuery: " << status;
     td->messages_manager_->on_get_game_high_scores(random_id_, nullptr);
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
     promise_.set_error(std::move(status));
@@ -3278,7 +3280,7 @@ class GetInlineGameHighScoresQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getInlineGameHighScores: " << status;
+    LOG(INFO) << "Receive error for GetInlineGameHighScoresQuery: " << status;
     td->messages_manager_->on_get_game_high_scores(random_id_, nullptr);
     promise_.set_error(std::move(status));
   }
@@ -3338,7 +3340,8 @@ class ForwardMessagesActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for forwardMessages for " << format::as_array(random_ids_) << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for ForwardMessagesQuery for " << format::as_array(random_ids_) << ": "
+              << to_string(ptr);
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
@@ -3584,7 +3587,7 @@ class DeleteChannelMessagesQuery : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for deleteChannelMessages: " << to_string(affected_messages);
+    LOG(INFO) << "Receive result for DeleteChannelMessagesQuery: " << to_string(affected_messages);
     CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
 
     if (affected_messages->pts_count_ > 0) {
@@ -4342,7 +4345,7 @@ class ResolveUsernameQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for resolveUsername " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for ResolveUsernameQuery: " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
 
@@ -12013,7 +12016,6 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<Di
 
 void MessagesManager::on_send_secret_message_error(int64 random_id, Status error, Promise<> promise) {
   promise.set_value(Unit());  // TODO: set after error is saved
-  LOG(INFO) << "Receive error for SecretChatsManager::send_message: " << error;
 
   auto it = being_sent_messages_.find(random_id);
   if (it != being_sent_messages_.end()) {
