@@ -6360,6 +6360,13 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
                "td_api::deleteFile");
 }
 
+void Td::on_request(uint64 id, const td_api::blockChatFromReplies &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->block_dialog_from_replies(MessageId(request.message_id_), request.delete_message_,
+                                               request.delete_all_messages_, request.report_spam_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getBlockedChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetBlockedChatsRequest, request.offset_, request.limit_);

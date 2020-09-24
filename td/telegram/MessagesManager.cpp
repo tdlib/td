@@ -1037,7 +1037,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editDialogPhoto: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogPhoto: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     if (file_id_.is_valid() && was_uploaded_) {
@@ -1113,7 +1113,7 @@ class EditDialogTitleQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editDialogTitle " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogTitle: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -1157,7 +1157,7 @@ class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editDialogPermissions " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditDialogPermissions: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -2239,6 +2239,46 @@ class DeleteChannelHistoryQuery : public Td::ResultHandler {
   }
 };
 
+class BlockFromRepliesQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit BlockFromRepliesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id, bool delete_message, bool delete_all_messages, bool report_spam) {
+    int32 flags = 0;
+    if (delete_message) {
+      flags |= telegram_api::contacts_blockFromReplies::DELETE_MESSAGE_MASK;
+    }
+    if (delete_all_messages) {
+      flags |= telegram_api::contacts_blockFromReplies::DELETE_HISTORY_MASK;
+    }
+    if (report_spam) {
+      flags |= telegram_api::contacts_blockFromReplies::REPORT_SPAM_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::contacts_blockFromReplies(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, message_id.get_server_message_id().get())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_blockFromReplies>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for BlockFromReplies: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteUserHistoryQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -2990,7 +3030,7 @@ class EditMessageActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for editMessage: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditMessage: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -3108,7 +3148,7 @@ class SetGameScoreActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for setGameScore: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SetGameScore: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -15613,6 +15653,109 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id
     result.push_back(DialogId());
   }
   common_dialogs.total_count = total_count;
+}
+
+void MessagesManager::block_dialog_from_replies(MessageId message_id, bool delete_message, bool delete_all_messages,
+                                                bool report_spam, Promise<Unit> &&promise) {
+  auto dialog_id = DialogId(ContactsManager::get_replies_bot_user_id());
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Not enough rights"));
+  }
+
+  auto *m = get_message_force(d, message_id, "block_dialog_from_replies");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (m->is_outgoing || m->message_id.is_scheduled() || !m->message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Wrong message specified"));
+  }
+
+  auto sender_user_id = m->sender_user_id;
+  bool need_update_dialog_pos = false;
+  vector<int64> deleted_message_ids;
+  if (delete_message) {
+    auto p = this->delete_message(d, message_id, true, &need_update_dialog_pos, "block_dialog_from_replies");
+    CHECK(p.get() == m);
+    deleted_message_ids.push_back(p->message_id.get());
+  }
+  if (delete_all_messages) {
+    if (sender_user_id.is_valid()) {
+      if (G()->parameters().use_message_db) {
+        LOG(INFO) << "Delete all messages from " << sender_user_id << " in " << dialog_id << " from database";
+        G()->td_db()->get_messages_db_async()->delete_dialog_messages_from_user(dialog_id, sender_user_id, Auto());
+      }
+
+      vector<MessageId> message_ids;
+      find_messages_from_user(d->messages.get(), sender_user_id, message_ids);
+
+      for (auto user_message_id : message_ids) {
+        auto p = this->delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_dialog_from_replies 2");
+        deleted_message_ids.push_back(p->message_id.get());
+      }
+    }
+  }
+
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "block_dialog_from_replies");
+  }
+
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+  block_dialog_from_replies_on_server(message_id, delete_message, delete_all_messages, report_spam, 0,
+                                      std::move(promise));
+}
+
+class MessagesManager::BlockDialogFromRepliesOnServerLogEvent {
+ public:
+  MessageId message_id_;
+  bool delete_message_;
+  bool delete_all_messages_;
+  bool report_spam_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(delete_message_);
+    STORE_FLAG(delete_all_messages_);
+    STORE_FLAG(report_spam_);
+    END_STORE_FLAGS();
+
+    td::store(message_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(delete_message_);
+    PARSE_FLAG(delete_all_messages_);
+    PARSE_FLAG(report_spam_);
+    END_PARSE_FLAGS();
+
+    td::parse(message_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_block_dialog_from_replies_on_server_log_event(MessageId message_id, bool delete_message,
+                                                                           bool delete_all_messages, bool report_spam) {
+  BlockDialogFromRepliesOnServerLogEvent log_event{message_id, delete_message, delete_all_messages, report_spam};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::BlockDialogFromRepliesOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::block_dialog_from_replies_on_server(MessageId message_id, bool delete_message,
+                                                          bool delete_all_messages, bool report_spam,
+                                                          uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    log_event_id = save_block_dialog_from_replies_on_server_log_event(message_id, delete_message, delete_all_messages,
+                                                                      report_spam);
+  }
+
+  td_->create_handler<BlockFromRepliesQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
+      ->send(message_id, delete_message, delete_all_messages, report_spam);
 }
 
 std::pair<int32, vector<DialogId>> MessagesManager::get_blocked_dialogs(int32 offset, int32 limit, int64 &random_id,
@@ -34462,6 +34605,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         delete_dialog_history_from_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
                                           log_event.revoke_, true, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::BlockDialogFromRepliesOnServer: {
+        BlockDialogFromRepliesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        block_dialog_from_replies_on_server(log_event.message_id_, log_event.delete_message_,
+                                            log_event.delete_all_messages_, log_event.report_spam_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer: {

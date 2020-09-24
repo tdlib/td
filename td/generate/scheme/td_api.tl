@@ -635,8 +635,8 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
 //@public_service_announcement_type The type of a public service announcement for the forwarded message
-//@from_chat_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
-//@from_message_id For messages forwarded to the chat with the current user (Saved Messages) or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
+//@from_chat_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
+//@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 //@description Contains information about interactions with a message
@@ -4186,6 +4186,13 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 //@description Sends debug information for a call @call_id Call identifier @debug_information Debug information in application-specific format
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
+
+//@description Blocks an original sender of a message in the Replies chat
+//@message_id The identifier of an incoming message in the Replies chat
+//@delete_message Pass true if the message must be deleted
+//@delete_all_messages Pass true if all messages from the same sender must be deleted
+//@report_spam Pass true if the sender must be reported to the Telegram moderators
+blockChatFromReplies message_id:int53 delete_message:Bool delete_all_messages:Bool report_spam:Bool = Ok;
 
 //@description Returns chats that were blocked by the current user @offset Number of chats to skip in the result; must be non-negative @limit The maximum number of chats to return; up to 100
 getBlockedChats offset:int32 limit:int32 = Chats;

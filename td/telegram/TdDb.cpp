@@ -114,6 +114,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteScheduledMessagesFromServer:
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer:
+      case LogEvent::HandlerType::BlockDialogFromRepliesOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
