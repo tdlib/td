@@ -2902,6 +2902,10 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   my_id_ = load_my_id();
 
+  G()->shared_config().set_option_integer("telegram_service_notifications_chat_id",
+                                          DialogId(get_service_notifications_user_id()).get());
+  G()->shared_config().set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
+
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
     if (!next_contacts_sync_date_string.empty()) {
