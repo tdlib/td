@@ -14,6 +14,7 @@
 #include "td/utils/UInt.h"
 
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 
 #include <array>
 #include <atomic>
@@ -161,6 +162,47 @@ class AesCtrBench : public td::Benchmark {
     for (int i = 0; i < n; i++) {
       state.encrypt(data_slice, data_slice);
     }
+  }
+};
+
+class AesCtrOpenSSLBench : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[DATA_SIZE];
+  alignas(64) unsigned char dest[DATA_SIZE];
+  td::UInt256 key;
+  td::UInt128 iv;
+
+  std::string get_description() const override {
+    return PSTRING() << "AES CTR RAW OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+  }
+
+  void start_up() override {
+    for (int i = 0; i < DATA_SIZE; i++) {
+      data[i] = 123;
+    }
+    td::Random::secure_bytes(key.raw, sizeof(key));
+    td::Random::secure_bytes(iv.raw, sizeof(iv));
+  }
+
+  void run(int n) override {
+    EVP_CIPHER_CTX *ctx;
+    int len;
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key.raw, iv.raw);
+
+    td::MutableSlice data_slice(data, DATA_SIZE);
+    td::MutableSlice dest_slice(dest, DATA_SIZE);
+    td::AesCtrState state;
+    state.init(as_slice(key), as_slice(iv));
+    for (int i = 0; i < n; i++) {
+      //state.encrypt(data_slice, data_slice);
+      len = (int)data_slice.size();
+      EVP_EncryptUpdate(ctx, dest_slice.ubegin(), &len, data_slice.ubegin(), len);
+    }
+
+    //EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
+
+    EVP_CIPHER_CTX_free(ctx);
   }
 };
 
@@ -346,13 +388,14 @@ class Crc64Bench : public td::Benchmark {
 
 int main() {
   td::init_openssl_threads();
+  td::bench(AesCtrBench());
+  td::bench(AesCtrOpenSSLBench());
 
   td::bench(AesIgeShortBench<true>());
   td::bench(AesIgeShortBench<false>());
   td::bench(AesIgeEncryptBench());
   td::bench(AesIgeDecryptBench());
   td::bench(AesEcbBench());
-  td::bench(AesCtrBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());
