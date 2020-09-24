@@ -6106,7 +6106,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
 }
 
 MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
-  UserId service_notifications_user_id = td_->contacts_manager_->get_service_notifications_user_id();
+  UserId service_notifications_user_id = td_->contacts_manager_->add_service_notifications_user();
   DialogId service_notifications_dialog_id(service_notifications_user_id);
   force_create_dialog(service_notifications_dialog_id, "get_service_notifications_dialog");
   return get_dialog(service_notifications_dialog_id);
@@ -12546,7 +12546,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       sender_user_id = UserId();
     }
     if (!is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
-      sender_user_id = td_->contacts_manager_->get_service_notifications_user_id();
+      sender_user_id = td_->contacts_manager_->add_service_notifications_user();
     }
   }
   if (sender_dialog_id.is_valid()) {
@@ -24093,8 +24093,7 @@ bool MessagesManager::is_discussion_message(DialogId dialog_id, const Message *m
     return false;
   }
   if (m->sender_user_id.is_valid()) {
-    if (!td_->auth_manager_->is_bot() ||
-        m->sender_user_id != td_->contacts_manager_->get_service_notifications_user_id()) {
+    if (!td_->auth_manager_->is_bot() || m->sender_user_id != ContactsManager::get_service_notifications_user_id()) {
       return false;
     }
   }
@@ -28869,8 +28868,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
     return result;
   }
 
-  if (dialog_id != get_my_dialog_id() &&
-      dialog_id != DialogId(td_->contacts_manager_->get_service_notifications_user_id())) {
+  if (dialog_id != get_my_dialog_id() && dialog_id != DialogId(ContactsManager::get_service_notifications_user_id())) {
     result.push_back(DialogListId(d->folder_id == FolderId::archive() ? FolderId::main() : FolderId::archive()));
   }
 
@@ -28961,7 +28959,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
 
   if (folder_id == FolderId::archive() &&
       (dialog_id == get_my_dialog_id() ||
-       dialog_id == DialogId(td_->contacts_manager_->get_service_notifications_user_id()))) {
+       dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()))) {
     return promise.set_error(Status::Error(400, "Chat can't be archived"));
   }
 

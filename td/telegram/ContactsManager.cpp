@@ -4393,7 +4393,11 @@ ContactsManager::MyOnlineStatusInfo ContactsManager::get_my_online_status() cons
 }
 
 UserId ContactsManager::get_service_notifications_user_id() {
-  UserId user_id(777000);
+  return UserId(777000);
+}
+
+UserId ContactsManager::add_service_notifications_user() {
+  auto user_id = get_service_notifications_user_id();
   if (!have_user_force(user_id)) {
     LOG(FATAL) << "Failed to load service notification user";
   }
@@ -7516,7 +7520,7 @@ bool ContactsManager::have_user_force(UserId user_id) {
 
 ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   auto u = get_user_force_impl(user_id);
-  if (user_id == UserId(777000) && (u == nullptr || !u->is_received)) {
+  if (user_id == get_service_notifications_user_id() && (u == nullptr || !u->is_received)) {
     int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
                   telegram_api::user::SUPPORT_MASK | telegram_api::user::APPLY_MIN_PHOTO_MASK;
@@ -7532,8 +7536,9 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", string(),
-        string(), "42777", std::move(profile_photo), nullptr, 0, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        get_service_notifications_user_id().get(), 1, "Telegram", string(), string(), "42777", std::move(profile_photo),
+        nullptr, 0, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);

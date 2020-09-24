@@ -259,7 +259,9 @@ class ContactsManager : public Actor {
 
   MyOnlineStatusInfo get_my_online_status() const;
 
-  UserId get_service_notifications_user_id();
+  static UserId get_service_notifications_user_id();
+
+  UserId add_service_notifications_user();
 
   static UserId get_replies_bot_user_id();
 
