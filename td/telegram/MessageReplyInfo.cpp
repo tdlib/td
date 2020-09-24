@@ -6,7 +6,10 @@
 //
 #include "td/telegram/MessageReplyInfo.h"
 
+#include "td/telegram/ServerMessageId.h"
+
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -51,7 +54,8 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
     last_read_inbox_message_id = MessageId(ServerMessageId(reply_info->read_max_id_));
   }
   if (last_read_inbox_message_id > max_message_id) {
-    LOG(ERROR) << "Receive last_read_inbox_message_id = " << last_read_inbox_message_id << ", but max_message_id = " << max_message_id;
+    LOG(ERROR) << "Receive last_read_inbox_message_id = " << last_read_inbox_message_id
+               << ", but max_message_id = " << max_message_id;
     max_message_id = last_read_inbox_message_id;
   }
 }

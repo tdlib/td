@@ -12,10 +12,11 @@
 #include "tddb/td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
-void add_log_event(LogeventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name) {
+void add_log_event(LogEventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name) {
   LOG(INFO) << "Save " << name << " to binlog";
   if (log_event_id.log_event_id == 0) {
     log_event_id.log_event_id = binlog_add(G()->td_db()->get_binlog(), type, storer);
@@ -27,7 +28,7 @@ void add_log_event(LogeventIdWithGeneration &log_event_id, const Storer &storer,
   log_event_id.generation++;
 }
 
-void delete_log_event(LogeventIdWithGeneration &log_event_id, uint64 generation, Slice name) {
+void delete_log_event(LogEventIdWithGeneration &log_event_id, uint64 generation, Slice name) {
   LOG(INFO) << "Finish to process " << name << " log event " << log_event_id.log_event_id << " with generation "
             << generation;
   if (log_event_id.generation == generation) {

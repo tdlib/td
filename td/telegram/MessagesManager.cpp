@@ -396,7 +396,6 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
 };
 
 class GetDiscussionMessageQuery : public Td::ResultHandler {
- private:
   Promise<vector<FullMessageId>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;

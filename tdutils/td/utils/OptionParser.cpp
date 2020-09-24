@@ -13,7 +13,6 @@
 #include "td/utils/port/wstring_convert.h"
 #endif
 
-#include <cstring>
 #include <unordered_map>
 
 #if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)

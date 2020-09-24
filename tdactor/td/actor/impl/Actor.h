@@ -128,8 +128,7 @@ ActorId<SelfT> Actor::actor_id(SelfT *self) {
 template <class SelfT>
 ActorShared<SelfT> Actor::actor_shared(SelfT *self, uint64 id) {
   CHECK(static_cast<Actor *>(self) == this);
-  // TODO replace with CHECK
-  LOG_IF(ERROR, id == 0) << "ActorShared with token 0 must not be created";
+  CHECK(id != 0);
   return ActorShared<SelfT>(actor_id(self), id);
 }
 

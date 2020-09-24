@@ -9,20 +9,21 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Status.h"
+#include "td/utils/Slice.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
 
-struct LogeventIdWithGeneration {
+struct LogEventIdWithGeneration {
   uint64 log_event_id = 0;
   uint64 generation = 0;
 };
 
-void add_log_event(LogeventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name);
+void add_log_event(LogEventIdWithGeneration &log_event_id, const Storer &storer, uint32 type, Slice name);
 
-void delete_log_event(LogeventIdWithGeneration &log_event_id, uint64 generation, Slice name);
+void delete_log_event(LogEventIdWithGeneration &log_event_id, uint64 generation, Slice name);
 
 Promise<Unit> get_erase_log_event_promise(uint64 log_event_id, Promise<Unit> promise = Promise<Unit>());
 

@@ -127,7 +127,6 @@ class Session final
   // Do not invalidate iterators of these two containers!
   // TODO: better data structures
   struct PriorityQueue {
-   public:
     void push(NetQueryPtr query);
     NetQueryPtr pop();
     bool empty() const;

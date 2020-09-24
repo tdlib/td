@@ -23,7 +23,7 @@ class Td;
 
 class CountryInfoManager : public Actor {
  public:
-  explicit CountryInfoManager(Td *td, ActorShared<> parent);
+  CountryInfoManager(Td *td, ActorShared<> parent);
 
   void get_countries(Promise<td_api::object_ptr<td_api::countries>> &&promise);
 

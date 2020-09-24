@@ -60,7 +60,6 @@
 #include <algorithm>
 #include <limits>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 
 namespace td {

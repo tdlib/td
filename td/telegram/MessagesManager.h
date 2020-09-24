@@ -1157,11 +1157,11 @@ class MessagesManager : public Actor {
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     unique_ptr<DraftMessage> draft_message;
-    LogeventIdWithGeneration save_draft_message_log_event_id;
-    LogeventIdWithGeneration save_notification_settings_log_event_id;
-    std::unordered_map<int64, LogeventIdWithGeneration> read_history_log_event_ids;
+    LogEventIdWithGeneration save_draft_message_log_event_id;
+    LogEventIdWithGeneration save_notification_settings_log_event_id;
+    std::unordered_map<int64, LogEventIdWithGeneration> read_history_log_event_ids;
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
-    LogeventIdWithGeneration set_folder_id_log_event_id;
+    LogEventIdWithGeneration set_folder_id_log_event_id;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
