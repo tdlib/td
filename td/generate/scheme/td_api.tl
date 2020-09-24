@@ -2595,7 +2595,7 @@ optionValueBoolean value:Bool = OptionValue;
 optionValueEmpty = OptionValue;
 
 //@description Represents an integer option @value The value of the option
-optionValueInteger value:int32 = OptionValue;
+optionValueInteger value:int64 = OptionValue;
 
 //@description Represents a string option @value The value of the option
 optionValueString value:string = OptionValue;

@@ -3618,17 +3618,20 @@ void Td::on_config_option_updated(const string &name) {
   if (name == "auth") {
     return on_authorization_lost();
   } else if (name == "saved_animations_limit") {
-    return animations_manager_->on_update_saved_animations_limit(G()->shared_config().get_option_integer(name));
+    return animations_manager_->on_update_saved_animations_limit(
+        narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
   } else if (name == "animation_search_emojis") {
     return animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
   } else if (name == "animation_search_provider") {
     return animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
   } else if (name == "recent_stickers_limit") {
-    return stickers_manager_->on_update_recent_stickers_limit(G()->shared_config().get_option_integer(name));
+    return stickers_manager_->on_update_recent_stickers_limit(
+        narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
   } else if (name == "favorite_stickers_limit") {
-    stickers_manager_->on_update_favorite_stickers_limit(G()->shared_config().get_option_integer(name));
+    stickers_manager_->on_update_favorite_stickers_limit(
+        narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
   } else if (name == "my_id") {
-    G()->set_my_id(G()->shared_config().get_option_integer(name));
+    G()->set_my_id(static_cast<int32>(G()->shared_config().get_option_integer(name)));
   } else if (name == "session_count") {
     G()->net_query_dispatcher().update_session_count();
   } else if (name == "use_pfs") {
@@ -6974,7 +6977,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   LOG(INFO) << "Set option " << request.name_;
 
-  auto set_integer_option = [&](Slice name, int32 min = 0, int32 max = std::numeric_limits<int32>::max()) {
+  auto set_integer_option = [&](Slice name, int64 min = 0, int64 max = std::numeric_limits<int32>::max()) {
     if (request.name_ != name) {
       return false;
     }
@@ -6986,7 +6989,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(name);
     } else {
-      int32 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
+      int64 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
       if (value < min || value > max) {
         send_error_raw(id, 3,
                        PSLICE() << "Option's \"" << name << "\" value " << value << " is outside of a valid range ["

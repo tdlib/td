@@ -19,6 +19,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/tl_helpers.h"
 
@@ -200,7 +201,7 @@ double Global::get_dns_time_difference() const {
 
 DcId Global::get_webfile_dc_id() const {
   CHECK(shared_config_ != nullptr);
-  int32 dc_id = shared_config_->get_option_integer("webfile_dc_id");
+  auto dc_id = narrow_cast<int32>(shared_config_->get_option_integer("webfile_dc_id"));
   if (!DcId::is_valid(dc_id)) {
     if (is_test_dc()) {
       dc_id = 2;

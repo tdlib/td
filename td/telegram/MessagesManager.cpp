@@ -9634,7 +9634,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       bool can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
-      int32 revoke_time_limit =
+      int64 revoke_time_limit =
           G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
       if (G()->unix_time_cached() - m->date < 86400 && content_type == MessageContentType::Dice) {
@@ -9647,7 +9647,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
     case DialogType::Chat: {
       bool is_appointed_administrator =
           td_->contacts_manager_->is_appointed_chat_administrator(dialog_id.get_chat_id());
-      int32 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+      int64 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
       return ((m->is_outgoing && !is_service_message_content(content_type)) || is_appointed_administrator) &&
              G()->unix_time_cached() - m->date <= revoke_time_limit;
@@ -17569,7 +17569,7 @@ int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
     key = Slice("pinned_archived_chat_count_max");
     default_limit = 100;
   }
-  int32 limit = clamp(G()->shared_config().get_option_integer(key), 0, 1000);
+  int32 limit = clamp(narrow_cast<int32>(G()->shared_config().get_option_integer(key)), 0, 1000);
   if (limit <= 0) {
     return default_limit;
   }
@@ -23363,7 +23363,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 
   if (has_edit_time_limit) {
     const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
-    int32 edit_time_limit = G()->shared_config().get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
+    int64 edit_time_limit = G()->shared_config().get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
     if (G()->unix_time_cached() - m->date - (is_editing ? 300 : 0) >= edit_time_limit) {
       return false;
     }

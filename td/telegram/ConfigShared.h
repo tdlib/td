@@ -37,14 +37,14 @@ class ConfigShared {
 
   void set_option_boolean(Slice name, bool value);
   void set_option_empty(Slice name);
-  void set_option_integer(Slice name, int32 value);
+  void set_option_integer(Slice name, int64 value);
   void set_option_string(Slice name, Slice value);
 
   bool have_option(Slice name) const;
   std::unordered_map<string, string> get_options() const;
 
   bool get_option_boolean(Slice name, bool default_value = false) const;
-  int32 get_option_integer(Slice name, int32 default_value = 0) const;
+  int64 get_option_integer(Slice name, int64 default_value = 0) const;
   string get_option_string(Slice name, string default_value = "") const;
 
   tl_object_ptr<td_api::OptionValue> get_option_value(Slice name) const;

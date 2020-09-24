@@ -1132,8 +1132,10 @@ class StickersManager::UploadStickerFileCallback : public FileManager::UploadCal
 StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
 
-  on_update_recent_stickers_limit(G()->shared_config().get_option_integer("recent_stickers_limit", 200));
-  on_update_favorite_stickers_limit(G()->shared_config().get_option_integer("favorite_stickers_limit", 5));
+  on_update_recent_stickers_limit(
+      narrow_cast<int32>(G()->shared_config().get_option_integer("recent_stickers_limit", 200)));
+  on_update_favorite_stickers_limit(
+      narrow_cast<int32>(G()->shared_config().get_option_integer("favorite_stickers_limit", 5)));
   on_update_dice_emojis();
 }
 

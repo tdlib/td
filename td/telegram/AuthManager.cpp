@@ -160,7 +160,7 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   if (state_ == State::Ok) {
     if (!is_bot_) {
       // fix old bots
-      const int32 AUTH_IS_BOT_FIXED_DATE = 1500940800;
+      const int64 AUTH_IS_BOT_FIXED_DATE = 1500940800;
       if (G()->shared_config().get_option_integer("authorization_date") < AUTH_IS_BOT_FIXED_DATE) {
         G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
         is_bot_ = true;

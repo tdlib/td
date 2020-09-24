@@ -363,7 +363,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   if (new_version < 0) {
     Slice version_key = is_base ? Slice("base_language_pack_version") : Slice("language_pack_version");
-    new_version = G()->shared_config().get_option_integer(version_key, -1);
+    new_version = narrow_cast<int32>(G()->shared_config().get_option_integer(version_key, -1));
   }
   if (new_version <= 0) {
     return;

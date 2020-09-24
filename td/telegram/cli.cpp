@@ -286,11 +286,9 @@ class CliClient final : public Actor {
   }
 
   void update_option(const td_api::updateOption &option) {
-    if (option.name_ == "my_id") {
-      if (option.value_->get_id() == td_api::optionValueInteger::ID) {
-        my_id_ = static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_;
-        LOG(INFO) << "Set my id to " << my_id_;
-      }
+    if (option.name_ == "my_id" && option.value_->get_id() == td_api::optionValueInteger::ID) {
+      my_id_ = static_cast<int32>(static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_);
+      LOG(INFO) << "Set my id to " << my_id_;
     }
   }
 
@@ -2190,7 +2188,7 @@ class CliClient final : public Actor {
       string value;
 
       std::tie(name, value) = split(args);
-      int32 value_int = to_integer<int32>(value);
+      auto value_int = to_integer<int64>(value);
       send_request(
           td_api::make_object<td_api::setOption>(name, td_api::make_object<td_api::optionValueInteger>(value_int)));
     } else if (op == "sos") {

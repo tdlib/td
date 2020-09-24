@@ -2362,8 +2362,8 @@ void NotificationManager::on_notification_group_count_max_changed(bool send_upda
     return;
   }
 
-  auto new_max_notification_group_count =
-      G()->shared_config().get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX);
+  auto new_max_notification_group_count = narrow_cast<int32>(
+      G()->shared_config().get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_COUNT_MAX <= new_max_notification_group_count &&
         new_max_notification_group_count <= MAX_NOTIFICATION_GROUP_COUNT_MAX);
 
@@ -2425,8 +2425,8 @@ void NotificationManager::on_notification_group_size_max_changed() {
     return;
   }
 
-  auto new_max_notification_group_size =
-      G()->shared_config().get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX);
+  auto new_max_notification_group_size = narrow_cast<int32>(
+      G()->shared_config().get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_SIZE_MAX <= new_max_notification_group_size &&
         new_max_notification_group_size <= MAX_NOTIFICATION_GROUP_SIZE_MAX);
 
@@ -2508,8 +2508,8 @@ void NotificationManager::on_online_cloud_timeout_changed() {
     return;
   }
 
-  online_cloud_timeout_ms_ =
-      G()->shared_config().get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS);
+  online_cloud_timeout_ms_ = narrow_cast<int32>(
+      G()->shared_config().get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS));
   VLOG(notifications) << "Set online_cloud_timeout_ms to " << online_cloud_timeout_ms_;
 }
 
@@ -2518,8 +2518,8 @@ void NotificationManager::on_notification_cloud_delay_changed() {
     return;
   }
 
-  notification_cloud_delay_ms_ =
-      G()->shared_config().get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS);
+  notification_cloud_delay_ms_ = narrow_cast<int32>(
+      G()->shared_config().get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS));
   VLOG(notifications) << "Set notification_cloud_delay_ms to " << notification_cloud_delay_ms_;
 }
 
@@ -2528,8 +2528,8 @@ void NotificationManager::on_notification_default_delay_changed() {
     return;
   }
 
-  notification_default_delay_ms_ =
-      G()->shared_config().get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS);
+  notification_default_delay_ms_ = narrow_cast<int32>(
+      G()->shared_config().get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS));
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
