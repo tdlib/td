@@ -4166,6 +4166,8 @@ Status Td::init(DbKey key) {
 
   init_managers();
 
+  G()->set_my_id(static_cast<int32>(G()->shared_config().get_option_integer("my_id")));
+
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
                                                   min(current_scheduler_id + 2, scheduler_count - 1));
   G()->set_storage_manager(storage_manager_.get());
