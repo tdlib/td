@@ -7256,7 +7256,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(DEBUG) << "Bot info version has changed for " << user_id;
     u->need_save_to_database = true;
   }
-  if (u->need_apply_min_photo != need_apply_min_photo) {
+  if (is_received && u->need_apply_min_photo != need_apply_min_photo) {
     u->need_apply_min_photo = need_apply_min_photo;
     u->need_save_to_database = true;
   }
