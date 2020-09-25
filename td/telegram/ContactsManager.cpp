@@ -7540,9 +7540,22 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        get_service_notifications_user_id().get(), 1, "Telegram", string(), string(), "42777", std::move(profile_photo),
-        nullptr, 0, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, "Telegram",
+        string(), string(), "42777", std::move(profile_photo), nullptr, 0, Auto(), string(), string());
+    on_get_user(std::move(user), "get_user_force");
+    u = get_user(user_id);
+    CHECK(u != nullptr && u->is_received);
+  }
+  if (user_id == get_replies_bot_user_id() && (u == nullptr || !u->is_received)) {
+    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
+                  telegram_api::user::USERNAME_MASK |
+                  /*telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |*/
+                  telegram_api::user::BOT_MASK | telegram_api::user::APPLY_MIN_PHOTO_MASK;
+    auto user = telegram_api::make_object<telegram_api::user>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, "Replies",
+        string(), "replies", "", nullptr, nullptr, 1, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
