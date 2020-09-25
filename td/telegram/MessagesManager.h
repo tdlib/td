@@ -1922,6 +1922,8 @@ class MessagesManager : public Actor {
 
   bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
 
+  bool is_visible_message_reply_info(DialogId dialog_id, const Message *m) const;
+
   td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
                                                                                          const Message *m) const;
 

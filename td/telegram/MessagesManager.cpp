@@ -6497,11 +6497,16 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
   return linked_channel_id == info.channel_id;
 }
 
+bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  return m->message_id.is_valid() && m->message_id.is_server() && !m->had_reply_markup && m->reply_markup == nullptr &&
+         is_active_message_reply_info(dialog_id, m->reply_info);
+}
+
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
-  bool is_active_reply_info =
-      m->message_id.is_valid() && m->message_id.is_server() && is_active_message_reply_info(dialog_id, m->reply_info);
-  if (m->view_count == 0 && m->forward_count == 0 && !is_active_reply_info) {
+  bool is_visible_reply_info = is_visible_message_reply_info(dialog_id, m);
+  if (m->view_count == 0 && m->forward_count == 0 && !is_visible_reply_info) {
     return nullptr;
   }
   if (m->message_id.is_scheduled() && (m->forward_info == nullptr || is_broadcast_channel(dialog_id))) {
@@ -6516,7 +6521,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
   MessageId last_read_inbox_message_id;
   MessageId last_read_outbox_message_id;
   MessageId max_message_id;
-  if (is_active_reply_info) {
+  if (is_visible_reply_info) {
     reply_count = m->reply_info.reply_count;
     for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
       if (recent_replier_dialog_id.get_type() == DialogType::User) {
@@ -6557,11 +6562,14 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
                << '/' << m->forward_count << "/" << m->reply_info << " to " << view_count << '/' << forward_count << "/"
                << reply_info;
+    bool need_update = false;
     if (view_count > m->view_count) {
       m->view_count = view_count;
+      need_update = true;
     }
     if (forward_count > m->forward_count) {
       m->forward_count = forward_count;
+      need_update = true;
     }
     if (need_update_reply_info) {
       if (m->reply_info.channel_id != reply_info.channel_id) {
@@ -6570,8 +6578,12 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
         }
       }
       m->reply_info = std::move(reply_info);
+      need_update |=
+          m->message_id.is_valid() && m->message_id.is_server() && !m->had_reply_markup && m->reply_markup == nullptr;
     }
-    send_update_message_interaction_info(dialog_id, m);
+    if (need_update) {
+      send_update_message_interaction_info(dialog_id, m);
+    }
     return true;
   }
   return false;
@@ -31428,6 +31440,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   bool replace_legacy = (old_message->legacy_layer != 0 &&
                          (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer)) ||
                         old_message->content->get_type() == MessageContentType::Unsupported;
+  bool was_visible_message_reply_info = is_visible_message_reply_info(dialog_id, old_message);
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
       LOG_IF(ERROR, !is_scheduled && !new_message->is_outgoing && dialog_id != get_my_dialog_id())
@@ -31776,9 +31789,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
 
+  if (was_visible_message_reply_info && !is_visible_message_reply_info(dialog_id, old_message)) {
+    send_update_message_interaction_info(dialog_id, old_message);
+  }
+
   if (is_edited && !td_->auth_manager_->is_bot()) {
     d->last_edited_message_id = message_id;
     send_update_message_edited(dialog_id, old_message);
+  }
+
+  if (!was_visible_message_reply_info && is_visible_message_reply_info(dialog_id, old_message)) {
+    send_update_message_interaction_info(dialog_id, old_message);
   }
 
   on_message_changed(d, old_message, need_send_update, "update_message");
