@@ -58,6 +58,9 @@ class CountryInfoManager : public Actor {
   void on_get_country_list(const string &language_code,
                            Result<tl_object_ptr<telegram_api::help_CountriesList>> r_country_list);
 
+  void on_get_country_list_impl(const string &language_code,
+                                tl_object_ptr<telegram_api::help_CountriesList> country_list);
+
   const CountryList *get_country_list(const string &language_code);
 
   std::unordered_map<string, vector<Promise<Unit>>> pending_load_country_queries_;
