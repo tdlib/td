@@ -1017,22 +1017,23 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                      NotificationId notification_id, BufferSlice data, Promise<> promise) {
-      add_write_query([=, promise = std::move(promise), data = std::move(data), text = std::move(text)](Unit) mutable {
-        this->on_write_result(
-            std::move(promise),
-            sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at,
-                                  index_mask, search_id, std::move(text), notification_id, std::move(data)));
+      add_write_query([this, full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at, index_mask,
+                       search_id, text = std::move(text), notification_id, data = std::move(data),
+                       promise = std::move(promise)](Unit) mutable {
+        on_write_result(std::move(promise), sync_db_->add_message(full_message_id, unique_message_id, sender_user_id,
+                                                                  random_id, ttl_expires_at, index_mask, search_id,
+                                                                  std::move(text), notification_id, std::move(data)));
       });
     }
     void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) {
       add_write_query([this, full_message_id, promise = std::move(promise), data = std::move(data)](Unit) mutable {
-        this->on_write_result(std::move(promise), sync_db_->add_scheduled_message(full_message_id, std::move(data)));
+        on_write_result(std::move(promise), sync_db_->add_scheduled_message(full_message_id, std::move(data)));
       });
     }
 
     void delete_message(FullMessageId full_message_id, Promise<> promise) {
-      add_write_query([=, promise = std::move(promise)](Unit) mutable {
-        this->on_write_result(std::move(promise), sync_db_->delete_message(full_message_id));
+      add_write_query([this, full_message_id, promise = std::move(promise)](Unit) mutable {
+        on_write_result(std::move(promise), sync_db_->delete_message(full_message_id));
       });
     }
     void on_write_result(Promise<> promise, Status status) {

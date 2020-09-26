@@ -500,7 +500,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
   auto password = update_settings.current_password;
   get_full_state(
       std::move(password),
-      PromiseCreator::lambda([=, actor_id = actor_id(this), result_promise = std::move(result_promise),
+      PromiseCreator::lambda([actor_id = actor_id(this), result_promise = std::move(result_promise),
                               update_settings = std::move(update_settings)](Result<PasswordFullState> r_state) mutable {
         if (r_state.is_error()) {
           return result_promise.set_error(r_state.move_as_error());

@@ -221,7 +221,8 @@ bool Global::ignore_backgrond_updates() const {
 }
 
 void Global::set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats) {
-  net_query_creator_.set_create_func([=] { return td::make_unique<NetQueryCreator>(net_query_stats); });
+  net_query_creator_.set_create_func(
+      [net_query_stats = std::move(net_query_stats)] { return td::make_unique<NetQueryCreator>(net_query_stats); });
 }
 
 void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
