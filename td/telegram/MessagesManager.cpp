@@ -12514,7 +12514,6 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.flags = message->flags_;
-      message_info.reply_header = std::move(message->reply_to_);
       auto reply_to_message_id = MessageId(
           ServerMessageId(message_info.reply_header == nullptr ? 0 : message_info.reply_header->reply_to_msg_id_));
       message_info.content =
