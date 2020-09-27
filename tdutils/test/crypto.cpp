@@ -71,17 +71,32 @@ TEST(Crypto, AesCtrState) {
     td::AesCtrState state;
     state.init(as_slice(key), as_slice(iv));
     td::string t(length, '\0');
-    state.encrypt(s, t);
+    std::size_t pos = 0;
+    for (auto str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_EQ(answers1[i], td::crc32(t));
     state.init(as_slice(key), as_slice(iv));
-    state.decrypt(t, t);
+    pos = 0;
+    for (auto str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
 
     for (auto &c : iv.raw) {
       c = 0xFF;
     }
     state.init(as_slice(key), as_slice(iv));
-    state.encrypt(s, t);
+    pos = 0;
+    for (auto str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_EQ(answers2[i], td::crc32(t));
 
     i++;
