@@ -47,13 +47,12 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
                  (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_ADMIN) |
                  (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
                  (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_ADMIN) |
-                 (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS);
+                 (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS) |
+                 (static_cast<uint32>(is_anonymous) * IS_ANONYMOUS);
   if (flags == 0 || flags == CAN_BE_EDITED) {
     return Member();
   }
-  return DialogParticipantStatus(Type::Administrator,
-                                 IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags | (is_anonymous ? IS_ANONYMOUS : 0), 0,
-                                 std::move(rank));
+  return DialogParticipantStatus(Type::Administrator, IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags, 0, std::move(rank));
 }
 
 DialogParticipantStatus DialogParticipantStatus::Member() {
