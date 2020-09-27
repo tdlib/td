@@ -6117,7 +6117,7 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
       }
 
       new_status =
-          td_api::make_object<td_api::chatMemberStatusCreator>(status.is_anonymous(), status.get_rank(), false);
+          td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), status.is_anonymous(), false);
     }
   }
   messages_manager_->set_dialog_participant_status(dialog_id, contacts_manager_->get_my_id(), std::move(new_status),

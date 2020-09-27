@@ -111,12 +111,12 @@ RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
 tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member_status_object() const {
   switch (type_) {
     case Type::Creator:
-      return td_api::make_object<td_api::chatMemberStatusCreator>(is_anonymous(), rank_, is_member());
+      return td_api::make_object<td_api::chatMemberStatusCreator>(rank_, is_anonymous(), is_member());
     case Type::Administrator:
       return td_api::make_object<td_api::chatMemberStatusAdministrator>(
-          is_anonymous(), rank_, can_be_edited(), can_change_info_and_settings(), can_post_messages(),
-          can_edit_messages(), can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(),
-          can_promote_members());
+          rank_, can_be_edited(), can_change_info_and_settings(), can_post_messages(), can_edit_messages(),
+          can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(), can_promote_members(),
+          is_anonymous());
     case Type::Member:
       return td_api::make_object<td_api::chatMemberStatusMember>();
     case Type::Restricted:
