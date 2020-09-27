@@ -11,7 +11,6 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
-#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -146,29 +145,9 @@ class Stage {
   std::atomic<uint64> value_{0};
 };
 
-inline string rand_string(int from, int to, size_t len) {
-  string res(len, '\0');
-  for (auto &c : res) {
-    c = static_cast<char>(Random::fast(from, to));
-  }
-  return res;
-}
+string rand_string(int from, int to, size_t len);
 
-inline vector<string> rand_split(Slice str) {
-  vector<string> res;
-  size_t pos = 0;
-  while (pos < str.size()) {
-    size_t len;
-    if (Random::fast(0, 1) == 1) {
-      len = Random::fast(1, 10);
-    } else {
-      len = Random::fast(100, 200);
-    }
-    res.push_back(str.substr(pos, len).str());
-    pos += len;
-  }
-  return res;
-}
+vector<string> rand_split(Slice str);
 
 template <class T1, class T2>
 void assert_eq_impl(const T1 &expected, const T2 &got, const char *file, int line) {
