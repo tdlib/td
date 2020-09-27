@@ -13,8 +13,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/UInt.h"
 
-#include <openssl/sha.h>
 #include <openssl/evp.h>
+#include <openssl/sha.h>
 
 #include <array>
 #include <atomic>
@@ -168,7 +168,6 @@ class AesCtrBench : public td::Benchmark {
 class AesCtrOpenSSLBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
-  alignas(64) unsigned char dest[DATA_SIZE];
   td::UInt256 key;
   td::UInt128 iv;
 
@@ -185,22 +184,17 @@ class AesCtrOpenSSLBench : public td::Benchmark {
   }
 
   void run(int n) override {
-    EVP_CIPHER_CTX *ctx;
-    int len;
-    ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key.raw, iv.raw);
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key.raw, iv.raw);
 
     td::MutableSlice data_slice(data, DATA_SIZE);
-    td::MutableSlice dest_slice(dest, DATA_SIZE);
     td::AesCtrState state;
     state.init(as_slice(key), as_slice(iv));
     for (int i = 0; i < n; i++) {
-      //state.encrypt(data_slice, data_slice);
-      len = (int)data_slice.size();
-      EVP_EncryptUpdate(ctx, dest_slice.ubegin(), &len, data_slice.ubegin(), len);
+      int len = 0;
+      EVP_EncryptUpdate(ctx, data_slice.ubegin(), &len, data_slice.ubegin(), DATA_SIZE);
+      CHECK(len == DATA_SIZE);
     }
-
-    //EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
 
     EVP_CIPHER_CTX_free(ctx);
   }
