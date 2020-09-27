@@ -1906,6 +1906,9 @@ class MessagesManager : public Actor {
 
   static void find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids);
 
+  static void find_incoming_messages_forwarded_from_user(const Message *m, UserId user_id,
+                                                         vector<MessageId> &message_ids);
+
   static void find_unread_mentions(const Message *m, vector<MessageId> &message_ids);
 
   static void find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids);

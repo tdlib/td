@@ -10067,6 +10067,21 @@ void MessagesManager::find_messages_from_user(const Message *m, UserId user_id, 
   find_messages_from_user(m->right.get(), user_id, message_ids);
 }
 
+void MessagesManager::find_incoming_messages_forwarded_from_user(const Message *m, UserId user_id,
+                                                                 vector<MessageId> &message_ids) {
+  if (m == nullptr) {
+    return;
+  }
+
+  find_incoming_messages_forwarded_from_user(m->left.get(), user_id, message_ids);
+
+  if (!m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == user_id) {
+    message_ids.push_back(m->message_id);
+  }
+
+  find_incoming_messages_forwarded_from_user(m->right.get(), user_id, message_ids);
+}
+
 void MessagesManager::find_unread_mentions(const Message *m, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
@@ -15686,7 +15701,10 @@ void MessagesManager::block_dialog_from_replies(MessageId message_id, bool delet
     return promise.set_error(Status::Error(400, "Wrong message specified"));
   }
 
-  auto sender_user_id = m->sender_user_id;
+  UserId sender_user_id;
+  if (m->forward_info != nullptr) {
+    sender_user_id = m->forward_info->sender_user_id;
+  }
   bool need_update_dialog_pos = false;
   vector<int64> deleted_message_ids;
   if (delete_message) {
@@ -15694,20 +15712,13 @@ void MessagesManager::block_dialog_from_replies(MessageId message_id, bool delet
     CHECK(p.get() == m);
     deleted_message_ids.push_back(p->message_id.get());
   }
-  if (delete_all_messages) {
-    if (sender_user_id.is_valid()) {
-      if (G()->parameters().use_message_db) {
-        LOG(INFO) << "Delete all messages from " << sender_user_id << " in " << dialog_id << " from database";
-        G()->td_db()->get_messages_db_async()->delete_dialog_messages_from_user(dialog_id, sender_user_id, Auto());
-      }
+  if (delete_all_messages && sender_user_id.is_valid()) {
+    vector<MessageId> message_ids;
+    find_incoming_messages_forwarded_from_user(d->messages.get(), sender_user_id, message_ids);
 
-      vector<MessageId> message_ids;
-      find_messages_from_user(d->messages.get(), sender_user_id, message_ids);
-
-      for (auto user_message_id : message_ids) {
-        auto p = this->delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_dialog_from_replies 2");
-        deleted_message_ids.push_back(p->message_id.get());
-      }
+    for (auto user_message_id : message_ids) {
+      auto p = this->delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_dialog_from_replies 2");
+      deleted_message_ids.push_back(p->message_id.get());
     }
   }
 
