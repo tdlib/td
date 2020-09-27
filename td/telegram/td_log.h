@@ -76,6 +76,24 @@ typedef void (*td_log_fatal_error_callback_ptr)(const char *error_message);
  */
 TDJSON_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
 
+/**
+ * A type of callback function that will be called to log a message when the stream is set to `logStreamCallback`.
+ *
+ * \param[in]  verbosity Verbosity level of the log message.
+ * \param[in]  message Null-terminated string with the log message
+ */
+typedef void (*td_log_message_callback_ptr)(int verbosity, const char *message);
+
+/**
+ * Sets the callback that will be called to deliver log messages when the stream is set to `logStreamCallback`.
+ * None of the TDLib methods can be called from the callback.
+ * By default the callback is not set.
+ *
+ * @param callback Callback that will be called when a message is written to the log.
+ *                 Pass NULL to remove the callback.
+ */
+TDJSON_EXPORT void td_set_log_message_callback(td_log_message_callback_ptr callback);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

@@ -204,6 +204,24 @@ class NullLog : public LogInterface {
   }
 };
 
+using LogMessageCallbackPtr = void (*)(int verbosity, const char *message);
+
+class CallbackLog : public LogInterface {
+ public:
+  LogMessageCallbackPtr callback;
+
+  void append(CSlice slice, int level) override {
+    if(this->callback != nullptr) {
+      (this->callback)(level, slice.c_str());
+    }
+  }
+  void rotate() override {
+  }
+  CallbackLog &ref() {
+    return *this;
+  }
+};
+
 extern LogInterface *const default_log_interface;
 extern LogInterface *log_interface;
 

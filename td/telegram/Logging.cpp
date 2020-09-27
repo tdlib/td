@@ -34,6 +34,7 @@ static std::mutex logging_mutex;
 static FileLog file_log;
 static TsLog ts_log(&file_log);
 static NullLog null_log;
+static CallbackLog callback_log;
 
 #define ADD_TAG(tag) \
   { #tag, &VERBOSITY_NAME(tag) }
@@ -69,6 +70,9 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
     }
     case td_api::logStreamEmpty::ID:
       log_interface = &null_log;
+      return Status::OK();
+    case td_api::logStreamCallback::ID:
+      log_interface = &callback_log;
       return Status::OK();
     default:
       UNREACHABLE();
@@ -133,6 +137,10 @@ Result<int> Logging::get_tag_verbosity_level(Slice tag) {
 void Logging::add_message(int log_verbosity_level, Slice message) {
   int VERBOSITY_NAME(client) = clamp(log_verbosity_level, 0, VERBOSITY_NAME(NEVER));
   VLOG(client) << message;
+}
+
+void Logging::set_log_message_callback(LogMessageCallbackPtr callback) {
+  callback_log.callback = callback;
 }
 
 }  // namespace td

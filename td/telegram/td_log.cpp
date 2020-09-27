@@ -25,3 +25,7 @@ void td_set_log_verbosity_level(int new_verbosity_level) {
 void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback) {
   td::Log::set_fatal_error_callback(callback);
 }
+
+void td_set_log_message_callback(td_log_message_callback_ptr callback) {
+  td::Log::set_log_message_callback(callback);
+}

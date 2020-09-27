@@ -12,6 +12,8 @@
  * By default TDLib writes logs to stderr or an OS specific log and uses a verbosity level of 5.
  */
 
+#include "td/utils/logging.h"
+
 #include <cstdint>
 #include <string>
 
@@ -80,6 +82,16 @@ class Log {
    *                      Pass nullptr to remove the callback.
    */
   static void set_fatal_error_callback(FatalErrorCallbackPtr callback);
+
+  /**
+   * Sets the callback that will be called to deliver log messages when the stream is set to `logStreamCallback`.
+   * None of the TDLib methods can be called from the callback.
+   * By default the callback is not set.
+   *
+   * @param callback Callback that will be called when a message is written to the log.
+   *                 Pass NULL to remove the callback.
+   */
+  static void set_log_message_callback(LogMessageCallbackPtr callback);
 };
 
 }  // namespace td

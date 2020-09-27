@@ -31,6 +31,8 @@ class Logging {
   static Result<int> get_tag_verbosity_level(Slice tag);
 
   static void add_message(int log_verbosity_level, Slice message);
+
+  static void set_log_message_callback(LogMessageCallbackPtr callback);
 };
 
 }  // namespace td

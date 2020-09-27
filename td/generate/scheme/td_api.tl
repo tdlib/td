@@ -3308,12 +3308,14 @@ updates updates:vector<Update> = Updates;
 //@description The log is written to stderr or an OS specific log
 logStreamDefault = LogStream;
 
-//@description The log is written to a file @path Path to the file to where the internal TDLib log will be written @max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
+//@description The log is written to a file by redirecting the global stderr stream @path Path to the file to where the internal TDLib log will be written @max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
 logStreamFile path:string max_file_size:int53 = LogStream;
 
 //@description The log is written nowhere
 logStreamEmpty = LogStream;
 
+//@description Log messages call callbacks that have been set in `td_set_log_message_callback`. If no callback has been set, the messages are discarded.
+logStreamCallback = LogStream;
 
 //@description Contains a TDLib internal log verbosity level @verbosity_level Log verbosity level
 logVerbosityLevel verbosity_level:int32 = LogVerbosityLevel;

@@ -65,4 +65,8 @@ void Log::set_fatal_error_callback(FatalErrorCallbackPtr callback) {
   }
 }
 
+void Log::set_log_message_callback(LogMessageCallbackPtr callback) {
+  Logging::set_log_message_callback(callback);
+}
+
 }  // namespace td
