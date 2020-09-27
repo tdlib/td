@@ -91,6 +91,11 @@ class AesCtrState {
 class AesCbcState {
  public:
   AesCbcState(Slice key256, Slice iv128);
+  AesCbcState(const AesCbcState &from) = delete;
+  AesCbcState &operator=(const AesCbcState &from) = delete;
+  AesCbcState(AesCbcState &&from);
+  AesCbcState &operator=(AesCbcState &&from);
+  ~AesCbcState();
 
   void encrypt(Slice from, MutableSlice to);
   void decrypt(Slice from, MutableSlice to);
@@ -104,7 +109,11 @@ class AesCbcState {
   }
 
  private:
+  struct Impl;
+  unique_ptr<Impl> ctx_;
+
   Raw raw_;
+  bool is_encrypt_ = false;
 };
 
 void sha1(Slice data, unsigned char output[20]);
