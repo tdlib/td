@@ -3377,8 +3377,11 @@ updates updates:vector<Update> = Updates;
 //@description The log is written to stderr or an OS specific log
 logStreamDefault = LogStream;
 
-//@description The log is written to a file @path Path to the file to where the internal TDLib log will be written @max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
-logStreamFile path:string max_file_size:int53 = LogStream;
+//@description The log is written to a file
+//@path Path to the file to where the internal TDLib log will be written
+//@max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
+//@redirect_stderr Pass true to additionally redirect stderr to the log file. Ignored on Windows
+logStreamFile path:string max_file_size:int53 redirect_stderr:Bool = LogStream;
 
 //@description The log is written nowhere
 logStreamEmpty = LogStream;
