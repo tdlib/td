@@ -126,10 +126,10 @@ TEST(Crypto, AesIgeState) {
 }
 
 TEST(Crypto, AesCbcState) {
-  td::vector<td::uint32> answers1{0u, 3617355989u, 3449188102u, 186999968u, 4244808847u};
+  td::vector<td::uint32> answers1{0u, 3617355989u, 3449188102u, 186999968u, 4244808847u, 2626031206u};
 
   std::size_t i = 0;
-  for (auto length : {0, 16, 32, 256, 1024}) {
+  for (auto length : {0, 16, 32, 256, 1024, 65536}) {
     td::uint32 seed = length;
     td::string s(length, '\0');
     for (auto &c : s) {
@@ -149,16 +149,34 @@ TEST(Crypto, AesCbcState) {
     }
 
     td::AesCbcState state(as_slice(key), as_slice(iv));
-    //state.init(as_slice(key), as_slice(iv), true);
     td::string t(length, '\0');
-    state.encrypt(s, t);
+    td::UInt128 iv_copy = iv;
+    td::string u(length, '\0');
+    std::size_t pos = 0;
+    for (auto str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_cbc_encrypt(as_slice(key), as_slice(iv_copy), td::Slice(s).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
 
     ASSERT_EQ(answers1[i], td::crc32(t));
+    ASSERT_EQ(answers1[i], td::crc32(u));
 
-    //state.init(as_slice(key), as_slice(iv), false);
     state = td::AesCbcState(as_slice(key), as_slice(iv));
-    state.decrypt(t, t);
+    iv_copy = iv;
+    pos = 0;
+    for (auto str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_cbc_decrypt(as_slice(key), as_slice(iv_copy), td::Slice(u).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
     ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(u));
+
     i++;
   }
 }
