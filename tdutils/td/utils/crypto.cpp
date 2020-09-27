@@ -310,61 +310,6 @@ struct AesBlock {
 static_assert(sizeof(AesBlock) == 16, "");
 static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
 
-class XorBytes {
- public:
-  static void run(const uint8 *a, const uint8 *b, uint8 *c, size_t n) {
-    static constexpr int BLOCK_SIZE = 16;
-    auto block_cnt = n / BLOCK_SIZE;
-    n -= block_cnt * BLOCK_SIZE;
-    while (block_cnt-- > 0) {
-      Block<BLOCK_SIZE> a_big = as<Block<BLOCK_SIZE>>(a);
-      Block<BLOCK_SIZE> b_big = as<Block<BLOCK_SIZE>>(b);
-      as<Block<BLOCK_SIZE>>(c) = a_big ^ b_big;
-      a += BLOCK_SIZE;
-      b += BLOCK_SIZE;
-      c += BLOCK_SIZE;
-    }
-    while (n-- > 0) {
-      c[n] = a[n] ^ b[n];
-    }
-  }
-
- private:
-  template <size_t N>
-  struct alignas(N) Block {
-    uint8 data[N];
-    Block operator^(const Block &b) const & {
-      Block res;
-      for (size_t i = 0; i < N; i++) {
-        res.data[i] = data[i] ^ b.data[i];
-      }
-      return res;
-    }
-  };
-};
-
-struct AesCtrCounterPack {
-  static constexpr size_t BLOCK_COUNT = 32;
-  AesBlock blocks[BLOCK_COUNT];
-  uint8 *raw() {
-    return reinterpret_cast<uint8 *>(this);
-  }
-  const uint8 *raw() const {
-    return reinterpret_cast<const uint8 *>(this);
-  }
-
-  static size_t size() {
-    return sizeof(blocks);
-  }
-
-  void init(AesBlock block) {
-    blocks[0] = block;
-    for (size_t i = 1; i < BLOCK_COUNT; i++) {
-      blocks[i] = blocks[i - 1].inc();
-    }
-  }
-};
-
 class Evp {
  public:
   Evp() {
