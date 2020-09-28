@@ -15963,16 +15963,26 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   }
 
   tl_object_ptr<telegram_api::InputMessage> input_message;
-  if (m->message_id.is_valid() && m->message_id.is_server()) {
-    input_message = make_tl_object<telegram_api::inputMessageReplyTo>(m->message_id.get_server_message_id().get());
-  }
   auto replied_message_id = get_replied_message_id(dialog_id, m);
   if (replied_message_id.get_dialog_id() != dialog_id) {
-    d = get_dialog_force(replied_message_id.get_dialog_id());
-    if (d == nullptr) {
-      promise.set_error(Status::Error(6, "Chat with replied message not found"));
-      return FullMessageId();
+    dialog_id = replied_message_id.get_dialog_id();
+    if (!have_dialog_info_force(dialog_id)) {
+      promise.set_value(Unit());
+      return {};
     }
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      promise.set_value(Unit());
+      return {};
+    }
+
+    force_create_dialog(dialog_id, "get_replied_message");
+    d = get_dialog_force(dialog_id);
+    if (d == nullptr) {
+      promise.set_error(Status::Error(500, "Chat with replied message not found"));
+      return {};
+    }
+  } else if (m->message_id.is_valid() && m->message_id.is_server()) {
+    input_message = make_tl_object<telegram_api::inputMessageReplyTo>(m->message_id.get_server_message_id().get());
   }
   get_message_force_from_server(d, replied_message_id.get_message_id(), std::move(promise), std::move(input_message));
 
