@@ -1035,6 +1035,7 @@ class MessagesManager : public Actor {
     int64 reply_to_random_id = 0;  // for send_message
     DialogId reply_in_dialog_id;
     MessageId top_thread_message_id;
+    vector<MessageId> local_thread_message_ids;
 
     UserId via_bot_user_id;
 
@@ -2055,6 +2056,8 @@ class MessagesManager : public Actor {
 
   Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                            const char *source);
+
+  void register_new_local_message_id(Dialog *d, const Message *m);
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 

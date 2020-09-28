@@ -4495,6 +4495,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reply_in_dialog_id = is_reply && reply_in_dialog_id.is_valid();
   bool has_top_thread_message_id = top_thread_message_id.is_valid();
   bool has_thread_draft_message = thread_draft_message != nullptr;
+  bool has_local_thread_message_ids = !local_thread_message_ids.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4549,6 +4550,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_reply_in_dialog_id);
     STORE_FLAG(has_top_thread_message_id);
     STORE_FLAG(has_thread_draft_message);
+    STORE_FLAG(has_local_thread_message_ids);
     END_STORE_FLAGS();
   }
 
@@ -4645,6 +4647,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_thread_draft_message) {
     store(thread_draft_message, storer);
   }
+  if (has_local_thread_message_ids) {
+    store(local_thread_message_ids, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -4684,6 +4689,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_reply_in_dialog_id = false;
   bool has_top_thread_message_id = false;
   bool has_thread_draft_message = false;
+  bool has_local_thread_message_ids = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4738,6 +4744,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_reply_in_dialog_id);
     PARSE_FLAG(has_top_thread_message_id);
     PARSE_FLAG(has_thread_draft_message);
+    PARSE_FLAG(has_local_thread_message_ids);
     END_PARSE_FLAGS();
   }
 
@@ -4839,6 +4846,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_thread_draft_message) {
     parse(thread_draft_message, parser);
+  }
+  if (has_local_thread_message_ids) {
+    parse(local_thread_message_ids, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -6190,6 +6200,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     if (m != nullptr && need_update) {
       send_update_new_message(d, m);
     }
+    register_new_local_message_id(d, m);
 
     if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "on_update_service_notification");
@@ -25293,6 +25304,7 @@ Result<MessageId> MessagesManager::add_local_message(
   auto result =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
+  register_new_local_message_id(d, result);
 
   if (is_message_auto_read(dialog_id, result->is_outgoing)) {
     if (result->is_outgoing) {
@@ -27603,6 +27615,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // add_message_to_dialog will not update counts, because need_update == false
     update_message_count_by_index(d, +1, m);
   }
+  register_new_local_message_id(d, m);
 
   LOG(INFO) << "Send updateMessageSendFailed for " << full_message_id;
   if (!td_->auth_manager_->is_bot()) {
@@ -31119,6 +31132,30 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   return result_message;
 }
 
+void MessagesManager::register_new_local_message_id(Dialog *d, const Message *m) {
+  if (m == nullptr) {
+    return;
+  }
+  if (m->message_id.is_scheduled()) {
+    return;
+  }
+  CHECK(m->message_id.is_local());
+  if (m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id) {
+    Message *top_m = get_message_force(d, m->top_thread_message_id, "register_new_local_message_id");
+    if (top_m != nullptr && top_m->top_thread_message_id == top_m->message_id) {
+      auto it = std::lower_bound(top_m->local_thread_message_ids.begin(), top_m->local_thread_message_ids.end(),
+                                 m->message_id);
+      if (it == top_m->local_thread_message_ids.end() || *it != m->message_id) {
+        top_m->local_thread_message_ids.insert(it, m->message_id);
+        if (top_m->local_thread_message_ids.size() >= 1000) {
+          top_m->local_thread_message_ids.erase(top_m->local_thread_message_ids.begin());
+        }
+        on_message_changed(d, top_m, false, "register_new_local_message_id");
+      }
+    }
+  }
+}
+
 void MessagesManager::on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
@@ -31331,6 +31368,20 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   if (message_id.is_yet_unsent()) {
     return;
+  }
+
+  if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_local() &&
+      m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id) {
+    // must not load the message from the database
+    Message *top_m = get_message(d, m->top_thread_message_id);
+    if (top_m != nullptr && top_m->top_thread_message_id == top_m->message_id) {
+      auto it = std::lower_bound(top_m->local_thread_message_ids.begin(), top_m->local_thread_message_ids.end(),
+                                 m->message_id);
+      if (it != top_m->local_thread_message_ids.end() && *it == m->message_id) {
+        top_m->local_thread_message_ids.erase(it);
+        on_message_changed(d, top_m, false, "delete_message_from_database");
+      }
+    }
   }
 
   if (is_permanently_deleted) {
