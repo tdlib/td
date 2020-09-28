@@ -21498,7 +21498,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
-  bool can_get_message_thread = for_event_log || is_scheduled ? false : !m->reply_info.is_empty() && m->message_id.is_server();
+  bool can_get_message_thread =
+      for_event_log || is_scheduled ? false : !m->reply_info.is_empty() || m->top_reply_message_id.is_valid();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
