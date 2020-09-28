@@ -113,10 +113,9 @@ Status init_messages_db(SqliteDb &db, int32 version) {
   if (version == 0) {
     LOG(INFO) << "Create new message database";
     TRY_STATUS(
-        db.exec("CREATE TABLE IF NOT EXISTS messages (dialog_id INT8, message_id INT8, "
-                "unique_message_id INT4, sender_user_id INT4, random_id INT8, data BLOB, "
-                "ttl_expires_at INT4, index_mask INT4, search_id INT8, text STRING, notification_id INT4, PRIMARY KEY "
-                "(dialog_id, message_id))"));
+        db.exec("CREATE TABLE IF NOT EXISTS messages (dialog_id INT8, message_id INT8, unique_message_id INT4, "
+                "sender_user_id INT4, random_id INT8, data BLOB, ttl_expires_at INT4, index_mask INT4, search_id INT8, "
+                "text STRING, notification_id INT4, top_thread_message_id INT8, PRIMARY KEY (dialog_id, message_id))"));
 
     TRY_STATUS(
         db.exec("CREATE INDEX IF NOT EXISTS message_by_random_id ON messages (dialog_id, random_id) "
@@ -164,6 +163,9 @@ Status init_messages_db(SqliteDb &db, int32 version) {
   if (version < static_cast<int32>(DbVersion::AddScheduledMessages)) {
     TRY_STATUS(add_scheduled_messages_table());
   }
+  if (version < static_cast<int32>(DbVersion::AddMessageThreadSupport)) {
+    TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN top_thread_message_id INT8"));
+  }
   return Status::OK();
 }
 
@@ -183,7 +185,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   Status init() {
     TRY_RESULT_ASSIGN(
         add_message_stmt_,
-        db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"));
+        db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"));
     TRY_RESULT_ASSIGN(delete_message_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_all_dialog_messages_stmt_,
@@ -276,7 +278,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                     NotificationId notification_id, BufferSlice data) override {
+                     NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) override {
     LOG(INFO) << "Add " << full_message_id << " to database";
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -343,6 +345,11 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       add_message_stmt_.bind_int32(11, notification_id.get()).ensure();
     } else {
       add_message_stmt_.bind_null(11).ensure();
+    }
+    if (top_thread_message_id.is_valid()) {
+      add_message_stmt_.bind_int64(12, top_thread_message_id.get()).ensure();
+    } else {
+      add_message_stmt_.bind_null(12).ensure();
     }
 
     add_message_stmt_.step().ensure();
@@ -943,10 +950,11 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
 
   void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                   NotificationId notification_id, BufferSlice data, Promise<> promise) override {
+                   NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
+                   Promise<> promise) override {
     send_closure_later(impl_, &Impl::add_message, full_message_id, unique_message_id, sender_user_id, random_id,
-                       ttl_expires_at, index_mask, search_id, std::move(text), notification_id, std::move(data),
-                       std::move(promise));
+                       ttl_expires_at, index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
+                       std::move(data), std::move(promise));
   }
   void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) override {
     send_closure_later(impl_, &Impl::add_scheduled_message, full_message_id, std::move(data), std::move(promise));
@@ -1016,13 +1024,15 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     }
     void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                     NotificationId notification_id, BufferSlice data, Promise<> promise) {
+                     NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
+                     Promise<> promise) {
       add_write_query([this, full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at, index_mask,
-                       search_id, text = std::move(text), notification_id, data = std::move(data),
-                       promise = std::move(promise)](Unit) mutable {
-        on_write_result(std::move(promise), sync_db_->add_message(full_message_id, unique_message_id, sender_user_id,
-                                                                  random_id, ttl_expires_at, index_mask, search_id,
-                                                                  std::move(text), notification_id, std::move(data)));
+                       search_id, text = std::move(text), notification_id, top_thread_message_id,
+                       data = std::move(data), promise = std::move(promise)](Unit) mutable {
+        on_write_result(std::move(promise),
+                        sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id,
+                                              ttl_expires_at, index_mask, search_id, std::move(text), notification_id,
+                                              top_thread_message_id, std::move(data)));
       });
     }
     void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) {

@@ -54,6 +54,7 @@ enum class DbVersion : int32 {
   AddFolders,
   AddScheduledMessages,
   StorePinnedDialogsInBinlog,
+  AddMessageThreadSupport,
   Next
 };
 
