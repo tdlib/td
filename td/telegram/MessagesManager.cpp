@@ -21498,7 +21498,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
-  bool can_get_replies = for_event_log || is_scheduled ? false : !m->reply_info.is_empty() && m->message_id.is_server();
+  bool can_get_message_thread = for_event_log || is_scheduled ? false : !m->reply_info.is_empty() && m->message_id.is_server();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
@@ -21513,7 +21513,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
       m->sender_dialog_id.get(), dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing,
       can_be_edited, can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics,
-      can_get_replies, m->is_channel_post, contains_unread_mention, date, edit_date,
+      can_get_message_thread, m->is_channel_post, contains_unread_mention, date, edit_date,
       get_message_forward_info_object(m->forward_info), get_message_interaction_info_object(dialog_id, m),
       reply_in_dialog_id.get(), reply_to_message_id, top_reply_message_id, ttl, ttl_expires_in, via_bot_user_id,
       m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),

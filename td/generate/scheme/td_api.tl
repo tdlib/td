@@ -673,7 +673,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
 //@can_get_statistics True, if the message statistics are available
-//@can_get_replies True, if the message replies are available
+//@can_get_message_thread True, if the message thread info is available
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent
@@ -691,7 +691,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 sender_chat_id:int53 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_replies:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_user_id:int32 sender_chat_id:int53 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_message_thread:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -3550,7 +3550,7 @@ getChatPinnedMessage chat_id:int53 = Message;
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
-//@description Returns information about a message thread; only for messages with replies @chat_id Chat identifier @message_id Identifier of the message
+//@description Returns information about a message thread. Can be used only if message.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
 
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
