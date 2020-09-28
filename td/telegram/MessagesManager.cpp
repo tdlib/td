@@ -14391,6 +14391,16 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
   // also called for unloaded messages
 
+  if (m->message_id.is_yet_unsent() && m->top_thread_message_id.is_valid()) {
+    auto it = d->yet_unsent_thread_message_ids.find(m->top_thread_message_id);
+    CHECK(it != d->yet_unsent_thread_message_ids.end());
+    auto is_deleted = it->second.erase(m->message_id) > 0;
+    CHECK(is_deleted);
+    if (it->second.empty()) {
+      d->yet_unsent_thread_message_ids.erase(it);
+    }
+  }
+
   cancel_send_deleted_message(d->dialog_id, m, is_permanently_deleted);
 
   CHECK(m->message_id.is_valid());
@@ -30940,6 +30950,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     } else if (m->have_previous) {
       attach_message_to_previous(d, m->message_id, source);
     }
+  }
+
+  if (m->message_id.is_yet_unsent() && m->top_thread_message_id.is_valid()) {
+    auto is_inserted = d->yet_unsent_thread_message_ids[m->top_thread_message_id].insert(m->message_id).second;
+    CHECK(is_inserted);
   }
 
   switch (dialog_id.get_type()) {

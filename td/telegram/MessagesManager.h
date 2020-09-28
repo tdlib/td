@@ -1250,6 +1250,9 @@ class MessagesManager : public Actor {
                                          // application start, used to guarantee that all assigned message identifiers
                                          // are different
 
+    std::unordered_map<MessageId, std::set<MessageId>, MessageIdHash>
+        yet_unsent_thread_message_ids;  // top_thread_message_id -> yet unsent message IDs
+
     std::unordered_map<ScheduledServerMessageId, int32, ScheduledServerMessageIdHash> scheduled_message_date;
 
     std::unordered_map<MessageId, MessageId, MessageIdHash> yet_unsent_message_id_to_persistent_message_id;
