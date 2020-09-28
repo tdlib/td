@@ -1915,15 +1915,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTypi
     LOG(DEBUG) << "Ignore user channel typing in unknown " << dialog_id;
     return;
   }
-  MessageId top_reply_message_id;
+  MessageId top_thread_message_id;
   if ((update->flags_ & telegram_api::updateChannelUserTyping::TOP_MSG_ID_MASK) != 0) {
-    top_reply_message_id = MessageId(ServerMessageId(update->top_msg_id_));
-    if (!top_reply_message_id.is_valid() && top_reply_message_id != MessageId()) {
-      LOG(ERROR) << "Ignore user channel typing in replies of " << top_reply_message_id;
+    top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
+    if (!top_thread_message_id.is_valid() && top_thread_message_id != MessageId()) {
+      LOG(ERROR) << "Ignore user channel typing in the message thread of " << top_thread_message_id;
       return;
     }
   }
-  td_->messages_manager_->on_user_dialog_action(dialog_id, top_reply_message_id, user_id,
+  td_->messages_manager_->on_user_dialog_action(dialog_id, top_thread_message_id, user_id,
                                                 convert_send_message_action(std::move(update->action_)),
                                                 get_short_update_date());
 }
