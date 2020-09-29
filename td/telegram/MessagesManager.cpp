@@ -9186,6 +9186,8 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     // anyway pretend that there is no more messages
     first_added_message_id = MessageId::min();
   }
+  bool can_be_in_different_dialog = top_thread_message_id.is_valid() && is_broadcast_channel(dialog_id);
+  DialogId real_dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   for (auto &message : messages) {
@@ -9197,13 +9199,26 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     }
 
     if (new_full_message_id.get_dialog_id() != dialog_id) {
-      LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << dialog_id;
-      total_count--;
-      continue;
+      if (!can_be_in_different_dialog) {
+        LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << dialog_id;
+        total_count--;
+        continue;
+      } else {
+        if (!real_dialog_id.is_valid()) {
+          real_dialog_id = new_full_message_id.get_dialog_id();
+          found_dialog_messages_dialog_id_[random_id] = real_dialog_id;
+        } else if (new_full_message_id.get_dialog_id() != real_dialog_id) {
+          LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << real_dialog_id << " or "
+                     << dialog_id;
+          total_count--;
+          continue;
+        }
+      }
     }
 
     auto message_id = new_full_message_id.get_message_id();
-    if (filter == MessageSearchFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id) {
+    if (filter == MessageSearchFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id &&
+        !real_dialog_id.is_valid()) {
       total_count--;
       continue;
     }
@@ -19691,6 +19706,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
     if (it != found_dialog_messages_.end()) {
+      CHECK(found_dialog_messages_dialog_id_.count(random_id) == 0);
       auto result = std::move(it->second);
       found_dialog_messages_.erase(it);
       promise.set_value(Unit());
@@ -20313,7 +20329,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (r_messages.is_error()) {
-    LOG(ERROR) << r_messages.error();
+    LOG(ERROR) << "Failed to get messages from the database: " << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
         filter != MessageSearchFilter::FailedToSend) {
       found_dialog_messages_.erase(random_id);
@@ -20749,6 +20765,7 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearc
     CHECK(it != found_dialog_messages_.end());
     auto result = std::move(it->second);
     found_dialog_messages_.erase(it);
+    CHECK(found_dialog_messages_dialog_id_.count(random_id) == 0);
     promise.set_value(Unit());
     return result.first;
   }

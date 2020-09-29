@@ -3056,7 +3056,8 @@ class MessagesManager : public Actor {
   std::unordered_map<int64, FullMessageId> get_dialog_message_by_date_results_;
 
   std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
-      found_dialog_messages_;  // random_id -> [total_count, [message_id]...]
+      found_dialog_messages_;                                            // random_id -> [total_count, [message_id]...]
+  std::unordered_map<int64, DialogId> found_dialog_messages_dialog_id_;  // random_id -> dialog_id
   std::unordered_map<int64, std::pair<int32, vector<FullMessageId>>>
       found_messages_;  // random_id -> [total_count, [full_message_id]...]
   std::unordered_map<int64, std::pair<int32, vector<FullMessageId>>>
