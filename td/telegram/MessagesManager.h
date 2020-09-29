@@ -1035,6 +1035,7 @@ class MessagesManager : public Actor {
     int64 reply_to_random_id = 0;  // for send_message
     DialogId reply_in_dialog_id;
     MessageId top_thread_message_id;
+    MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
 
     UserId via_bot_user_id;

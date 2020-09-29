@@ -4496,6 +4496,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_top_thread_message_id = top_thread_message_id.is_valid();
   bool has_thread_draft_message = thread_draft_message != nullptr;
   bool has_local_thread_message_ids = !local_thread_message_ids.empty();
+  bool has_linked_top_thread_message_id = linked_top_thread_message_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4551,6 +4552,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_top_thread_message_id);
     STORE_FLAG(has_thread_draft_message);
     STORE_FLAG(has_local_thread_message_ids);
+    STORE_FLAG(has_linked_top_thread_message_id);
     END_STORE_FLAGS();
   }
 
@@ -4650,6 +4652,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_local_thread_message_ids) {
     store(local_thread_message_ids, storer);
   }
+  if (has_linked_top_thread_message_id) {
+    store(linked_top_thread_message_id, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -4690,6 +4695,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_top_thread_message_id = false;
   bool has_thread_draft_message = false;
   bool has_local_thread_message_ids = false;
+  bool has_linked_top_thread_message_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4745,6 +4751,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_top_thread_message_id);
     PARSE_FLAG(has_thread_draft_message);
     PARSE_FLAG(has_local_thread_message_ids);
+    PARSE_FLAG(has_linked_top_thread_message_id);
     END_PARSE_FLAGS();
   }
 
@@ -4849,6 +4856,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_local_thread_message_ids) {
     parse(local_thread_message_ids, parser);
+  }
+  if (has_linked_top_thread_message_id) {
+    parse(linked_top_thread_message_id, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -6347,7 +6357,8 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   }
 
   auto m = get_message_force(d, message_id, "on_update_read_message_comments");
-  if (m == nullptr || !m->message_id.is_server()) {
+  if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id ||
+      !is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
   }
   if (m->reply_info.update_max_message_ids(max_message_id, last_read_inbox_message_id, last_read_outbox_message_id)) {
@@ -11519,6 +11530,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   m->reply_to_message_id = MessageId();
   m->reply_in_dialog_id = DialogId();
   m->top_thread_message_id = MessageId();
+  m->linked_top_thread_message_id = MessageId();
   m->is_content_secret = false;
 }
 
@@ -12782,6 +12794,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     message->reply_to_message_id = MessageId();
     message->reply_in_dialog_id = DialogId();
     message->top_thread_message_id = MessageId();
+    message->linked_top_thread_message_id = MessageId();
   }
 
   if (message_info.media_album_id != 0) {
@@ -16113,6 +16126,23 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
       return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
     }
     result.message_ids.push_back(full_message_id.get_message_id());
+  }
+  if (expected_dialog_id != dialog_id && m->reply_info.is_comment && !result.message_ids.empty() &&
+      m->linked_top_thread_message_id != result.message_ids.back()) {
+    auto linked_d = get_dialog_force(expected_dialog_id);
+    CHECK(linked_d != nullptr);
+    auto linked_message_id = result.message_ids.back();
+    Message *linked_m = get_message_force(linked_d, linked_message_id, "on_get_discussion_message");
+    CHECK(linked_m != nullptr && linked_m->message_id.is_server());
+    if (linked_m->top_thread_message_id == linked_m->message_id &&
+        is_active_message_reply_info(expected_dialog_id, linked_m->reply_info)) {
+      if (m->linked_top_thread_message_id.is_valid()) {
+        LOG(ERROR) << "Comment message identifier for " << message_id << " in " << dialog_id << " changed from "
+                   << m->linked_top_thread_message_id << " to " << linked_message_id;
+      }
+      m->linked_top_thread_message_id = linked_message_id;
+      on_dialog_updated(dialog_id, "on_get_discussion_message");
+    }
   }
   result.dialog_id = expected_dialog_id;
   promise.set_value(std::move(result));
