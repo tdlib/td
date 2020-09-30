@@ -6607,6 +6607,10 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       m->reply_info = std::move(reply_info);
       need_update |=
           m->message_id.is_valid() && m->message_id.is_server() && !m->had_reply_markup && m->reply_markup == nullptr;
+      if (!m->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
+          is_visible_message_reply_info(dialog_id, m)) {
+        m->top_thread_message_id = m->message_id;
+      }
     }
     if (need_update) {
       send_update_message_interaction_info(dialog_id, m);
@@ -30604,6 +30608,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
       }
     }
+  }
+  if (!message->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
+      is_visible_message_reply_info(dialog_id, message.get())) {
+    message->top_thread_message_id = message_id;
   }
 
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
