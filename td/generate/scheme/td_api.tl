@@ -618,7 +618,7 @@ secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int
 //@description The message was originally written by a known user @sender_user_id Identifier of the user that originally sent the message
 messageForwardOriginUser sender_user_id:int32 = MessageForwardOrigin;
 
-//@description The message was originally written by an anonimous chat administrator on behalf of the chat @sender_chat_id Identifier of the chat that originally sent the message
+//@description The message was originally written by an anonymous chat administrator on behalf of the chat @sender_chat_id Identifier of the chat that originally sent the message
 messageForwardOriginChat sender_chat_id:int53 = MessageForwardOrigin;
 
 //@description The message was originally written by a user, which is hidden by their privacy settings @sender_name Name of the sender
@@ -662,7 +662,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 
 //@description Describes a message
 //@id Message identifier; unique for the chat to which the message belongs
-//@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts, for channel posts automatically forwarded to discussion group and for anonimously sent supergroup messages
+//@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts, for channel posts automatically forwarded to discussion group and for anonymously sent supergroup messages
 //@sender_chat_id Identifier of the chat on behalf of which the message was sent; 0 if none
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
