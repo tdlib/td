@@ -3949,8 +3949,10 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
   }
 
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return !contacts_manager->is_user_bot(dialog_id.get_user_id());
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      return user_id == ContactsManager::get_replies_bot_user_id() || !contacts_manager->is_user_bot(user_id);
+    }
     case DialogType::SecretChat: {
       auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       return !user_id.is_valid() || !contacts_manager->is_user_bot(user_id);
