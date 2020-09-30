@@ -4089,7 +4089,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
       return true;
     }
   } else {
-    if (!from_linked && c->is_megagroup) {
+    if (!from_linked && c->is_megagroup && !td_->auth_manager_->is_bot()) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
       if (linked_channel_id.is_valid()) {
         return is_public ||
