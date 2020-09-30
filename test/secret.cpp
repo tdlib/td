@@ -183,7 +183,7 @@ class messages_sendEncrypted final {
   BufferSlice data_;
 
   messages_sendEncrypted() = default;
-  static const int32 ID = -1451792525;
+  static const int32 ID = 1157265941;
 
   explicit messages_sendEncrypted(TlBufferParser &p)
       : flags_(TlFetchInt::parse(p))
