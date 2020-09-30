@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/Global.h"
+
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
