@@ -4059,14 +4059,19 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
   if (access_rights == AccessRights::Know) {
     return true;
   }
-  if (c->status.is_creator()) {
+  if (c->status.is_administrator()) {
     return true;
   }
   if (c->status.is_banned()) {
     return false;
   }
+  if (c->status.is_member()) {
+    return true;
+  }
+
+  bool is_public = is_channel_public(c);
   if (access_rights == AccessRights::Read) {
-    if (!c->username.empty() || c->has_location) {
+    if (is_public) {
       return true;
     }
     if (!from_linked) {
@@ -4076,22 +4081,19 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
         return true;
       }
     }
-    if (dialog_access_by_invite_link_.count(DialogId(channel_id))) {
+    if (!from_linked && dialog_access_by_invite_link_.count(DialogId(channel_id))) {
       return true;
     }
   } else {
     if (!from_linked && c->is_megagroup) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
       if (linked_channel_id.is_valid()) {
-        return !c->username.empty() || c->has_location ||
+        return is_public ||
                have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, AccessRights::Read, true);
       }
     }
   }
-  if (!c->status.is_member()) {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool ContactsManager::have_input_encrypted_peer(SecretChatId secret_chat_id, AccessRights access_rights) const {
