@@ -548,7 +548,7 @@ void aes_cbc_encrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
   Evp evp;
   evp.init_encrypt_cbc(aes_key);
   evp.init_iv(aes_iv);
-  evp.encrypt(from.ubegin(), to.ubegin(), from.size());
+  evp.encrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
   aes_iv.copy_from(to.substr(from.size() - 16));
 }
 
@@ -560,7 +560,7 @@ void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
   evp.init_decrypt_cbc(aes_key);
   evp.init_iv(aes_iv);
   aes_iv.copy_from(from.substr(from.size() - 16));
-  evp.decrypt(from.ubegin(), to.ubegin(), from.size());
+  evp.decrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
 }
 
 struct AesCbcState::Impl {
@@ -591,7 +591,7 @@ void AesCbcState::encrypt(Slice from, MutableSlice to) {
   } else {
     CHECK(is_encrypt_);
   }
-  ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), from.size());
+  ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
   raw_.iv.as_mutable_slice().copy_from(to.substr(from.size() - 16));
 }
 
@@ -611,7 +611,7 @@ void AesCbcState::decrypt(Slice from, MutableSlice to) {
     CHECK(!is_encrypt_);
   }
   raw_.iv.as_mutable_slice().copy_from(from.substr(from.size() - 16));
-  ctx_->evp_.decrypt(from.ubegin(), to.ubegin(), from.size());
+  ctx_->evp_.decrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
 }
 
 struct AesCtrState::Impl {
@@ -633,7 +633,7 @@ void AesCtrState::init(Slice key, Slice iv) {
 
 void AesCtrState::encrypt(Slice from, MutableSlice to) {
   CHECK(from.size() <= to.size());
-  ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), from.size());
+  ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
 }
 
 void AesCtrState::decrypt(Slice from, MutableSlice to) {
