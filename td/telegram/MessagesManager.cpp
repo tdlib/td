@@ -6973,7 +6973,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
         progress <= prev_progress) {
       return;
     }
-    if (top_thread_message_id != prev_top_thread_message_id) {
+    if (top_thread_message_id != prev_top_thread_message_id && prev_top_thread_message_id.is_valid()) {
       send_update_user_chat_action(dialog_id, prev_top_thread_message_id, user_id,
                                    td_api::make_object<td_api::chatActionCancel>());
     }
@@ -6983,6 +6983,9 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
   }
 
+  if (top_thread_message_id.is_valid()) {
+    send_update_user_chat_action(dialog_id, MessageId(), user_id, copy_chat_action_object(action));
+  }
   send_update_user_chat_action(dialog_id, top_thread_message_id, user_id, std::move(action));
 }
 
@@ -28914,6 +28917,52 @@ bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
     }
   }
   return false;
+}
+
+tl_object_ptr<td_api::ChatAction> MessagesManager::copy_chat_action_object(
+    const tl_object_ptr<td_api::ChatAction> &action) {
+  CHECK(action != nullptr);
+  switch (action->get_id()) {
+    case td_api::chatActionCancel::ID:
+      return make_tl_object<td_api::chatActionCancel>();
+    case td_api::chatActionTyping::ID:
+      return make_tl_object<td_api::chatActionTyping>();
+    case td_api::chatActionRecordingVideo::ID:
+      return make_tl_object<td_api::chatActionRecordingVideo>();
+    case td_api::chatActionUploadingVideo::ID: {
+      auto progress = static_cast<const td_api::chatActionUploadingVideo &>(*action).progress_;
+      return make_tl_object<td_api::chatActionUploadingVideo>(progress);
+    }
+    case td_api::chatActionRecordingVoiceNote::ID:
+      return make_tl_object<td_api::chatActionRecordingVoiceNote>();
+    case td_api::chatActionUploadingVoiceNote::ID: {
+      auto progress = static_cast<const td_api::chatActionUploadingVoiceNote &>(*action).progress_;
+      return make_tl_object<td_api::chatActionUploadingVoiceNote>(progress);
+    }
+    case td_api::chatActionUploadingPhoto::ID: {
+      auto progress = static_cast<const td_api::chatActionUploadingPhoto &>(*action).progress_;
+      return make_tl_object<td_api::chatActionUploadingPhoto>(progress);
+    }
+    case td_api::chatActionUploadingDocument::ID: {
+      auto progress = static_cast<const td_api::chatActionUploadingDocument &>(*action).progress_;
+      return make_tl_object<td_api::chatActionUploadingDocument>(progress);
+    }
+    case td_api::chatActionChoosingLocation::ID:
+      return make_tl_object<td_api::chatActionChoosingLocation>();
+    case td_api::chatActionChoosingContact::ID:
+      return make_tl_object<td_api::chatActionChoosingContact>();
+    case td_api::chatActionStartPlayingGame::ID:
+      return make_tl_object<td_api::chatActionStartPlayingGame>();
+    case td_api::chatActionRecordingVideoNote::ID:
+      return make_tl_object<td_api::chatActionRecordingVideoNote>();
+    case td_api::chatActionUploadingVideoNote::ID: {
+      auto progress = static_cast<const td_api::chatActionUploadingVideoNote &>(*action).progress_;
+      return make_tl_object<td_api::chatActionUploadingVideoNote>(progress);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,

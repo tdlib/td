@@ -2353,6 +2353,8 @@ class MessagesManager : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
+  static tl_object_ptr<td_api::ChatAction> copy_chat_action_object(const tl_object_ptr<td_api::ChatAction> &action);
+
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
