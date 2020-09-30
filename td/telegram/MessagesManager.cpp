@@ -6974,11 +6974,8 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
       return;
     }
     if (top_thread_message_id != prev_top_thread_message_id) {
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateUserChatAction>(
-                       dialog_id.get(), prev_top_thread_message_id.get(),
-                       td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
-                       make_tl_object<td_api::chatActionCancel>()));
+      send_update_user_chat_action(dialog_id, prev_top_thread_message_id, user_id,
+                                   td_api::make_object<td_api::chatActionCancel>());
     }
     if (active_actions.size() == 1u) {
       LOG(DEBUG) << "Set action timeout in " << dialog_id;
@@ -6986,11 +6983,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
   }
 
-  LOG(DEBUG) << "Send action of " << user_id << " in " << dialog_id << ": " << to_string(action);
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(
-                   dialog_id.get(), top_thread_message_id.get(),
-                   td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"), std::move(action)));
+  send_update_user_chat_action(dialog_id, top_thread_message_id, user_id, std::move(action));
 }
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
@@ -27275,6 +27268,21 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_has_scheduled_messages";
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_messages));
+}
+
+void MessagesManager::send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
+                                                   td_api::object_ptr<td_api::ChatAction> action) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  LOG(DEBUG) << "Send action of " << user_id << " in thread of " << top_thread_message_id << " in " << dialog_id << ": "
+             << to_string(action);
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateUserChatAction>(
+          dialog_id.get(), top_thread_message_id.get(),
+          td_->contacts_manager_->get_user_id_object(user_id, "send_update_user_chat_action"), std::move(action)));
 }
 
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {

@@ -2215,6 +2215,9 @@ class MessagesManager : public Actor {
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
+  void send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
+                                    td_api::object_ptr<td_api::ChatAction> action);
+
   void repair_dialog_action_bar(Dialog *d, const char *source);
 
   void hide_dialog_action_bar(Dialog *d);
