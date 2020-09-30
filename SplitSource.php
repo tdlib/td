@@ -156,6 +156,7 @@ function split_file($file, $chunks, $undo) {
                            '(?<name>[A-Z][A-Za-z]*) : public (Td::ResultHandler|NetActor|Request)|'.
                            '(CREATE_REQUEST|CREATE_NO_ARGS_REQUEST)[(](?<name>[A-Z][A-Za-z]*)|'.
                            '(?<name>complete_pending_preauthentication_requests)|'.
+                           '(?<name>get_message_history_slice)|'.
                            '(Up|Down)load[a-zA-Z]*C(?<name>allback)|(up|down)load_[a-z_]*_c(?<name>allback)_|'.
                            '(?<name>lazy_to_json)|'.
                            '(?<name>LogEvent)[^sA]|'.

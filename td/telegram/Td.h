@@ -572,6 +572,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deleteChatHistory &request);
 
+  void on_request(uint64 id, const td_api::getMessageThreadHistory &request);
+
   void on_request(uint64 id, td_api::searchChatMessages &request);
 
   void on_request(uint64 id, td_api::searchSecretMessages &request);

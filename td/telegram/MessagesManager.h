@@ -701,6 +701,11 @@ class MessagesManager : public Actor {
                                                      int32 limit, int left_tries, bool only_local,
                                                      Promise<Unit> &&promise);
 
+  std::pair<DialogId, vector<MessageId>> get_message_thread_history(DialogId dialog_id, MessageId message_id,
+                                                                    MessageId from_message_id, int32 offset,
+                                                                    int32 limit, int64 &random_id,
+                                                                    Promise<Unit> &&promise);
+
   std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
                                                              UserId sender_user_id, MessageId from_message_id,
                                                              int32 offset, int32 limit, MessageSearchFilter filter,
@@ -1986,6 +1991,10 @@ class MessagesManager : public Actor {
                                       const char *source);
 
   void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
+
+  template <class T, class It>
+  vector<MessageId> get_message_history_slice(const T &begin, It it, const T &end, MessageId from_message_id,
+                                              int32 offset, int32 limit);
 
   void preload_newer_messages(const Dialog *d, MessageId max_message_id);
 

@@ -1398,6 +1398,39 @@ class GetChatHistoryRequest : public RequestActor<> {
   }
 };
 
+class GetMessageThreadHistoryRequest : public RequestActor<> {
+  DialogId dialog_id_;
+  MessageId message_id_;
+  MessageId from_message_id_;
+  int32 offset_;
+  int32 limit_;
+  int64 random_id_;
+
+  std::pair<DialogId, vector<MessageId>> messages_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    messages_ = td->messages_manager_->get_message_thread_history(dialog_id_, message_id_, from_message_id_, offset_,
+                                                                  limit_, random_id_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second));
+  }
+
+ public:
+  GetMessageThreadHistoryRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                                 int64 from_message_id, int32 offset, int32 limit)
+      : RequestActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , message_id_(message_id)
+      , from_message_id_(from_message_id)
+      , offset_(offset)
+      , limit_(limit)
+      , random_id_(0) {
+    set_tries(3);
+  }
+};
+
 class SearchChatMessagesRequest : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
@@ -5486,6 +5519,12 @@ void Td::on_request(uint64 id, const td_api::deleteChatHistory &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->delete_dialog_history(DialogId(request.chat_id_), request.remove_from_chat_list_, request.revoke_,
                                            std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getMessageThreadHistory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetMessageThreadHistoryRequest, request.chat_id_, request.message_id_, request.from_message_id_,
+                 request.offset_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMessages &request) {

@@ -1816,13 +1816,17 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::getGroupsInCommon>(as_user_id(user_id), as_chat_id(offset_chat_id),
                                                                   to_integer<int32>(limit)));
-    } else if (op == "gh" || op == "GetHistory" || op == "ghl") {
+    } else if (op == "gh" || op == "GetHistory" || op == "ghl" || op == "gmth") {
       string chat_id;
+      string thread_message_id;
       string from_message_id;
       string offset;
       string limit;
 
       std::tie(chat_id, args) = split(args);
+      if (op == "gmth") {
+        std::tie(thread_message_id, args) = split(args);
+      }
       std::tie(from_message_id, args) = split(args);
       if (from_message_id.empty()) {
         from_message_id = "0";
@@ -1837,6 +1841,10 @@ class CliClient final : public Actor {
       }
       if (!args.empty()) {
         LOG(ERROR) << "Wrong parameters to function getChatHistory specified";
+      } else if (op == "gmth") {
+        send_request(td_api::make_object<td_api::getMessageThreadHistory>(
+            as_chat_id(chat_id), as_message_id(thread_message_id), as_message_id(from_message_id),
+            to_integer<int32>(offset), to_integer<int32>(limit)));
       } else {
         send_request(td_api::make_object<td_api::getChatHistory>(as_chat_id(chat_id), as_message_id(from_message_id),
                                                                  to_integer<int32>(offset), to_integer<int32>(limit),

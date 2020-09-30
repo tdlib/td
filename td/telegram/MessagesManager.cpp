@@ -19330,7 +19330,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     return nullptr;
   }
   if (offset < -limit) {
-    promise.set_error(Status::Error(5, "Parameter offset must not be less than -limit"));
+    promise.set_error(Status::Error(5, "Parameter offset must be greater than or equal to -limit"));
     return nullptr;
   }
   bool is_limit_increased = false;
@@ -19726,6 +19726,202 @@ void MessagesManager::on_read_history_finished(DialogId dialog_id, MessageId top
   if (it->second.log_event_id == 0) {
     d->read_history_log_event_ids.erase(it);
   }
+}
+
+template <class T, class It>
+vector<MessageId> MessagesManager::get_message_history_slice(const T &begin, It it, const T &end,
+                                                             MessageId from_message_id, int32 offset, int32 limit) {
+  int32 left_offset = -offset;
+  int32 left_limit = limit + offset;
+  while (left_offset > 0 && it != end) {
+    ++it;
+    left_offset--;
+    left_limit++;
+  }
+
+  vector<MessageId> message_ids;
+  while (left_limit > 0 && it != begin) {
+    --it;
+    left_limit--;
+    message_ids.push_back(*it);
+  }
+  return message_ids;
+}
+
+std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_history(
+    DialogId dialog_id, MessageId message_id, MessageId from_message_id, int32 offset, int32 limit, int64 &random_id,
+    Promise<Unit> &&promise) {
+  if (limit <= 0) {
+    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    return {};
+  }
+  if (limit > MAX_GET_HISTORY) {
+    limit = MAX_GET_HISTORY;
+  }
+  if (offset > 0) {
+    promise.set_error(Status::Error(5, "Parameter offset must be non-positive"));
+    return {};
+  }
+  if (offset <= -MAX_GET_HISTORY) {
+    promise.set_error(Status::Error(5, "Parameter offset must be greater than -100"));
+    return {};
+  }
+  if (offset < -limit) {
+    promise.set_error(Status::Error(5, "Parameter offset must be greater than or equal to -limit"));
+    return {};
+  }
+  bool is_limit_increased = false;
+  if (limit == -offset) {
+    limit++;
+    is_limit_increased = true;
+  }
+  CHECK(0 < limit && limit <= MAX_GET_HISTORY);
+  CHECK(-limit < offset && offset <= 0);
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return {};
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(5, "Can't access the chat"));
+    return {};
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    promise.set_error(Status::Error(400, "Can't get message thread history in the chat"));
+    return {};
+  }
+
+  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
+    from_message_id = MessageId::max();
+  }
+  if (!from_message_id.is_valid()) {
+    promise.set_error(Status::Error(3, "Parameter from_message_id must be identifier of the chat message or 0"));
+    return {};
+  }
+
+  DialogId message_thread_dialog_id;
+  MessageId top_thread_message_id;
+  {
+    Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
+    if (m == nullptr) {
+      promise.set_error(Status::Error(400, "Message not found"));
+      return {};
+    }
+
+    if (m->reply_info.is_comment) {
+      if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+        promise.set_error(Status::Error(400, "Message has no comments"));
+        return {};
+      }
+      if (!m->linked_top_thread_message_id.is_valid()) {
+        get_message_thread(
+            dialog_id, message_id,
+            PromiseCreator::lambda([promise = std::move(promise)](Result<MessageThreadInfo> &&result) mutable {
+              if (result.is_error()) {
+                promise.set_error(result.move_as_error());
+              } else {
+                promise.set_value(Unit());
+              }
+            }));
+        return {};
+      }
+      message_thread_dialog_id = DialogId(m->reply_info.channel_id);
+      top_thread_message_id = m->linked_top_thread_message_id;
+    } else {
+      if (!m->top_thread_message_id.is_valid()) {
+        promise.set_error(Status::Error(400, "Message has no thread"));
+        return {};
+      }
+      message_thread_dialog_id = dialog_id;
+      top_thread_message_id = m->top_thread_message_id;
+    }
+  }
+  CHECK(top_thread_message_id.is_valid());
+
+  if (random_id != 0) {
+    // request has already been sent before
+    auto it = found_dialog_messages_.find(random_id);
+    CHECK(it != found_dialog_messages_.end());
+    auto result = std::move(it->second.second);
+    found_dialog_messages_.erase(it);
+
+    auto dialog_id_it = found_dialog_messages_dialog_id_.find(random_id);
+    if (dialog_id_it != found_dialog_messages_dialog_id_.end()) {
+      dialog_id = dialog_id_it->second;
+      found_dialog_messages_dialog_id_.erase(dialog_id_it);
+
+      d = get_dialog(dialog_id);
+      CHECK(d != nullptr);
+    }
+    if (dialog_id != message_thread_dialog_id) {
+      promise.set_error(Status::Error(500, "Receive messages in an unexpected chat"));
+      return {};
+    }
+
+    auto yet_unsent_it = d->yet_unsent_thread_message_ids.find(top_thread_message_id);
+    if (yet_unsent_it != d->yet_unsent_thread_message_ids.end()) {
+      const std::set<MessageId> &message_ids = yet_unsent_it->second;
+      auto merge_message_ids = get_message_history_slice(message_ids.begin(), message_ids.lower_bound(from_message_id),
+                                                         message_ids.end(), from_message_id, offset, limit);
+      vector<MessageId> new_result(result.size() + merge_message_ids.size());
+      std::merge(result.begin(), result.end(), merge_message_ids.begin(), merge_message_ids.end(), new_result.begin(),
+                 std::greater<>());
+      result = std::move(new_result);
+    }
+
+    Message *top_m = get_message_force(d, top_thread_message_id, "get_message_thread_history 2");
+    if (top_m != nullptr && !top_m->local_thread_message_ids.empty()) {
+      vector<MessageId> &message_ids = top_m->local_thread_message_ids;
+      vector<MessageId> merge_message_ids;
+      while (true) {
+        merge_message_ids = get_message_history_slice(
+            message_ids.begin(), std::lower_bound(message_ids.begin(), message_ids.end(), from_message_id),
+            message_ids.end(), from_message_id, offset, limit);
+        bool found_deleted = false;
+        for (auto local_message_id : merge_message_ids) {
+          Message *local_m = get_message_force(d, local_message_id, "get_message_thread_history 3");
+          if (local_m == nullptr) {
+            auto local_it = std::lower_bound(message_ids.begin(), message_ids.end(), local_message_id);
+            CHECK(local_it != message_ids.end() && *local_it == local_message_id);
+            message_ids.erase(local_it);
+            found_deleted = true;
+          }
+        }
+        if (!found_deleted) {
+          break;
+        }
+        on_message_changed(d, top_m, false, "get_message_thread_history");
+      }
+      vector<MessageId> new_result(result.size() + merge_message_ids.size());
+      std::merge(result.begin(), result.end(), merge_message_ids.begin(), merge_message_ids.end(), new_result.begin(),
+                 std::greater<>());
+      result = std::move(new_result);
+    }
+
+    if (is_limit_increased) {
+      limit--;
+    }
+
+    std::reverse(result.begin(), result.end());
+    result = get_message_history_slice(result.begin(), std::lower_bound(result.begin(), result.end(), from_message_id),
+                                       result.end(), from_message_id, offset, limit);
+
+    LOG(INFO) << "Return " << result.size() << " messages in result to getMessageThreadHistory";
+
+    promise.set_value(Unit());
+    return {dialog_id, std::move(result)};
+  }
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
+  found_dialog_messages_[random_id];  // reserve place for result
+
+  td_->create_handler<SearchMessagesQuery>(std::move(promise))
+      ->send(dialog_id, string(), UserId(), nullptr, from_message_id.get_next_server_message_id(), offset, limit,
+             MessageSearchFilter::Empty, message_id, random_id);
+  return {};
 }
 
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
