@@ -61,6 +61,10 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
 }
 
 bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
+  if (other.is_empty() && !is_empty()) {
+    // ignore updates to empty reply info, because we will hide the info ourselves
+    // return true;
+  }
   if (other.pts < pts) {
     return false;
   }
