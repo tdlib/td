@@ -9,14 +9,18 @@
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
 
-#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #include "td/utils/port/wstring_convert.h"
+#endif
 #endif
 
 #include <unordered_map>
 
-#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #include <shellapi.h>
+#endif
 #endif
 
 namespace td {
@@ -70,7 +74,8 @@ void OptionParser::add_check(std::function<Status()> check) {
 }
 
 Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_non_option_count) {
-#if TD_PORT_WINDOWS && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   LPWSTR *utf16_argv = CommandLineToArgvW(GetCommandLineW(), &argc);
   if (utf16_argv == nullptr) {
     return Status::Error("Failed to parse command line");
@@ -83,6 +88,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
   }
   LocalFree(utf16_argv);
   argv = &args[0];
+#endif
 #endif
 
   std::unordered_map<char, const Option *> short_options;
