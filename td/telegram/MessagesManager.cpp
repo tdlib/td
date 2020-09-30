@@ -6521,8 +6521,13 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
 
 bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  return m->message_id.is_valid() && m->message_id.is_server() && !m->had_reply_markup && m->reply_markup == nullptr &&
-         is_active_message_reply_info(dialog_id, m->reply_info);
+  if (!m->message_id.is_valid() || !m->message_id.is_server()) {
+    return false;
+  }
+  if (is_broadcast_channel(dialog_id) && (m->had_reply_markup || m->reply_markup != nullptr)) {
+    return false;
+  }
+  return is_active_message_reply_info(dialog_id, m->reply_info);
 }
 
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
@@ -16059,7 +16064,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   ChannelId message_thread_channel_id;
   MessageId top_thread_message_id;
   if (m->reply_info.is_comment) {
-    if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+    if (!is_visible_message_reply_info(dialog_id, m)) {
       return promise.set_error(Status::Error(400, "Message has no comments"));
     }
     message_thread_channel_id = m->reply_info.channel_id;
@@ -19806,7 +19811,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     }
 
     if (m->reply_info.is_comment) {
-      if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+      if (!is_visible_message_reply_info(dialog_id, m)) {
         promise.set_error(Status::Error(400, "Message has no comments"));
         return {};
       }
@@ -21768,8 +21773,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
-  bool can_get_message_thread =
-      for_event_log || is_scheduled ? false : !m->reply_info.is_empty() || m->top_thread_message_id.is_valid();
+  bool can_get_message_thread = for_event_log || is_scheduled ? false
+                                                              : is_visible_message_reply_info(dialog_id, m) ||
+                                                                    m->top_thread_message_id.is_valid();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
