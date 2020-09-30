@@ -3358,6 +3358,10 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   if (has_photo) {
     parse(photo, parser);
   }
+
+  if (legacy_is_blocked) {
+    LOG(DEBUG) << "Ignore legacy is_blocked flag";
+  }
 }
 
 template <class StorerT>
