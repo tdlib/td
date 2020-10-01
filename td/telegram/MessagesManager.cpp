@@ -16045,6 +16045,9 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
 
 Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Message is scheduled");
+  }
   if (m->reply_info.is_comment) {
     if (!is_visible_message_reply_info(dialog_id, m)) {
       return Status::Error(400, "Message has no comments");
@@ -21772,9 +21775,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
-  bool can_get_message_thread = for_event_log || is_scheduled ? false
-                                                              : is_visible_message_reply_info(dialog_id, m) ||
-                                                                    m->top_thread_message_id.is_valid();
+  bool can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
