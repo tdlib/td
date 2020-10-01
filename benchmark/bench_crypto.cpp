@@ -6,6 +6,7 @@
 //
 #include "td/utils/benchmark.h"
 
+#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
@@ -185,7 +186,7 @@ class AesCtrOpenSSLBench : public td::Benchmark {
 
   void run(int n) override {
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key.raw, iv.raw);
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, key.raw, iv.raw);
 
     td::MutableSlice data_slice(data, DATA_SIZE);
     td::AesCtrState state;
