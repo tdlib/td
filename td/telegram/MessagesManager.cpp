@@ -6495,6 +6495,12 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
   if (dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
+
+  auto channel_id = dialog_id.get_channel_id();
+  if (!td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
+    return false;
+  }
+
   if (!info.is_comment) {
     return true;
   }
@@ -6502,10 +6508,6 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return true;
   }
 
-  auto channel_id = dialog_id.get_channel_id();
-  if (!td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
-    return false;
-  }
   auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
   if (!linked_channel_id.is_valid()) {
     // keep the comment button while linked channel is unknown
@@ -16049,7 +16051,7 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
     }
     return FullMessageId{DialogId(m->reply_info.channel_id), m->linked_top_thread_message_id};
   } else {
-    if (!m->top_thread_message_id.is_valid()) {
+    if (!m->top_thread_message_id.is_valid() || !is_visible_message_reply_info(dialog_id, m)) {
       return Status::Error(400, "Message has no thread");
     }
     return FullMessageId{dialog_id, m->top_thread_message_id};
