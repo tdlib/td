@@ -2189,7 +2189,7 @@ inlineQueryResults inline_query_id:int64 next_offset:string results:vector<Inlin
 //@description The payload for a general callback button @data Data that was attached to the callback button
 callbackQueryPayloadData data:bytes = CallbackQueryPayload;
 
-//@description The payload for a callback button requiring password @password The password for the current user@data Data that was attached to the callback button
+//@description The payload for a callback button requiring password @password The password for the current user @data Data that was attached to the callback button
 callbackQueryPayloadDataWithPassword password:string data:bytes = CallbackQueryPayload;
 
 //@description The payload for a game callback button @game_short_name A short name of the game that was attached to the callback button
