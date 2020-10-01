@@ -242,7 +242,7 @@ string LanguagePackManager::get_main_language_code() {
   if (language_pack_.empty() || language_code_.empty()) {
     return "en";
   }
-  if (language_code_.size() <= 2) {
+  if (language_code_.size() == 2) {
     return language_code_;
   }
 
@@ -267,7 +267,8 @@ string LanguagePackManager::get_main_language_code() {
   }
 
   if (info == nullptr) {
-    LOG(ERROR) << "Failed to find information about chosen language " << language_code_;
+    LOG(WARNING) << "Failed to find information about chosen language " << language_code_
+                 << ", ensure that valid language pack ID is used";
     if (!is_custom_language_code(language_code_)) {
       search_language_info(language_code_, Auto());
     }
@@ -308,11 +309,12 @@ vector<string> LanguagePackManager::get_used_language_codes() {
   }
 
   vector<string> result;
-  if (language_code_.size() <= 2) {
+  if (language_code_.size() == 2) {
     result.push_back(language_code_);
   }
   if (info == nullptr) {
-    LOG(ERROR) << "Failed to find information about chosen language " << language_code_;
+    LOG(WARNING) << "Failed to find information about chosen language " << language_code_
+                 << ", ensure that valid language pack ID is used";
     if (!is_custom_language_code(language_code_)) {
       search_language_info(language_code_, Auto());
     }

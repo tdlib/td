@@ -5879,12 +5879,14 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
                                                          Promise<Unit> &promise) {
   vector<string> language_codes = td_->language_pack_manager_->get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
-  if (!system_language_code.empty() && system_language_code.find('$') == string::npos) {
-    language_codes.push_back(system_language_code);
+  if (system_language_code.size() >= 2 && system_language_code.find('$') == string::npos &&
+      (system_language_code.size() == 2 || system_language_code[2] == '-')) {
+    language_codes.push_back(system_language_code.substr(0, 2));
   }
   for (auto &input_language_code : input_language_codes) {
-    if (!input_language_code.empty() && input_language_code.find('$') == string::npos) {
-      language_codes.push_back(input_language_code);
+    if (input_language_code.size() >= 2 && input_language_code.find('$') == string::npos &&
+        (input_language_code.size() == 2 || input_language_code[2] == '-')) {
+      language_codes.push_back(input_language_code.substr(0, 2));
     }
   }
   if (!text.empty()) {
@@ -5904,7 +5906,7 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   }
 
   if (language_codes.empty()) {
-    LOG(ERROR) << "List of language codes is empty";
+    LOG(INFO) << "List of language codes is empty";
     language_codes.push_back("en");
   }
   std::sort(language_codes.begin(), language_codes.end());
@@ -5919,6 +5921,7 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   if (it->second.empty()) {
     load_language_codes(std::move(language_codes), std::move(key), std::move(promise));
   } else {
+    LOG(DEBUG) << "Have emoji language codes " << it->second;
     double now = Time::now_cached();
     for (auto &language_code : it->second) {
       double last_difference_time = get_emoji_language_code_last_difference_time(language_code);
