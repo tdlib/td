@@ -6596,7 +6596,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     }
     if (need_update_reply_info) {
       if (m->reply_info.channel_id != reply_info.channel_id) {
-        if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid()) {
+        if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid() && m->message_id.is_server()) {
           LOG(ERROR) << "Reply info changed from " << m->reply_info << " to " << reply_info;
         }
       }
@@ -21812,13 +21812,17 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
         if (td_->auth_manager_->is_bot()) {
           return false;
         }
-        if (is_channel_post) {
-          return td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
-        }
-        return !reply_to_message_id.is_valid() &&
+        return (is_channel_post || !reply_to_message_id.is_valid()) &&
                td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
       }()) {
     m->reply_info.reply_count = 0;
+    if (is_channel_post) {
+      auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
+      if (linked_channel_id.is_valid()) {
+        m->reply_info.is_comment = true;
+        m->reply_info.channel_id = linked_channel_id;
+      }
+    }
   }
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);

@@ -36,7 +36,7 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
   }
 
   if (is_comment) {
-    for (auto &peer : reply_info->recent_repliers_) {
+    for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
       if (dialog_id.is_valid()) {
         recent_replier_dialog_ids.push_back(dialog_id);
@@ -58,6 +58,7 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
                << ", but max_message_id = " << max_message_id;
     max_message_id = last_read_inbox_message_id;
   }
+  LOG(DEBUG) << "Parsed " << oneline(to_string(reply_info)) << " to " << *this;
 }
 
 bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
@@ -68,7 +69,8 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
   if (other.pts < pts) {
     return false;
   }
-  return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids;
+  return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids ||
+         is_comment != other.is_comment || channel_id != other.channel_id;
 }
 
 bool MessageReplyInfo::update_max_message_ids(const MessageReplyInfo &other) {
