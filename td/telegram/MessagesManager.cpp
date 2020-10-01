@@ -6360,7 +6360,7 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
   if (m->reply_info.update_max_message_ids(max_message_id, last_read_inbox_message_id, last_read_outbox_message_id)) {
-    send_update_message_interaction_info(dialog_id, m);
+    on_message_reply_info_changed(dialog_id, m);
     on_message_changed(d, m, true, "on_update_read_message_comments");
   }
 }
@@ -6530,6 +6530,16 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
   return is_active_message_reply_info(dialog_id, m->reply_info);
 }
 
+void MessagesManager::on_message_reply_info_changed(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (is_visible_message_reply_info(dialog_id, m)) {
+    send_update_message_interaction_info(dialog_id, m);
+  }
+}
+
 td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_interaction_info_object(
     DialogId dialog_id, const Message *m) const {
   bool is_visible_reply_info = is_visible_message_reply_info(dialog_id, m);
@@ -6576,7 +6586,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     } else {
       if (m->reply_info.update_max_message_ids(reply_info) && view_count <= m->view_count &&
           forward_count <= m->forward_count) {
-        send_update_message_interaction_info(dialog_id, m);
+        on_message_reply_info_changed(dialog_id, m);
         on_message_changed(get_dialog(dialog_id), m, true, "update_message_interaction_info");
       }
     }
@@ -6601,12 +6611,11 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
         }
       }
       m->reply_info = std::move(reply_info);
-      need_update |=
-          m->message_id.is_valid() && m->message_id.is_server() && !m->had_reply_markup && m->reply_markup == nullptr;
       if (!m->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
           is_visible_message_reply_info(dialog_id, m)) {
         m->top_thread_message_id = m->message_id;
       }
+      need_update |= is_visible_message_reply_info(dialog_id, m);
     }
     if (need_update) {
       send_update_message_interaction_info(dialog_id, m);
@@ -18415,7 +18424,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id;
       if (top_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
-        send_update_message_interaction_info(dialog_id, top_m);
+        on_message_reply_info_changed(dialog_id, top_m);
         on_message_changed(d, top_m, true, "view_messages 3");
       }
       max_thread_message_id = top_m->reply_info.max_message_id;
@@ -18431,7 +18440,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
             prev_last_read_inbox_message_id = linked_m->reply_info.last_read_inbox_message_id;
           }
           if (linked_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
-            send_update_message_interaction_info(linked_dialog_id, linked_m);
+            on_message_reply_info_changed(linked_dialog_id, linked_m);
             on_message_changed(linked_d, linked_m, true, "view_messages 5");
           }
           if (linked_m->reply_info.max_message_id > max_thread_message_id) {
@@ -30980,7 +30989,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto replier_dialog_id =
             has_message_sender_user_id(dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
         top_m->reply_info.add_reply(replier_dialog_id, message_id);
-        send_update_message_interaction_info(dialog_id, top_m);
+        on_message_reply_info_changed(dialog_id, top_m);
         on_message_changed(d, top_m, true, "update_message_reply_count 1");
 
         if (is_discussion_message(dialog_id, top_m)) {
@@ -30988,7 +30997,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           Message *channel_m = get_message({channel_dialog_id, top_m->forward_info->message_id});
           if (channel_m != nullptr && is_active_message_reply_info(channel_dialog_id, channel_m->reply_info)) {
             channel_m->reply_info.add_reply(replier_dialog_id, message_id);
-            send_update_message_interaction_info(channel_dialog_id, channel_m);
+            on_message_reply_info_changed(channel_dialog_id, channel_m);
             on_message_changed(get_dialog(channel_dialog_id), channel_m, true, "update_message_reply_count 2");
           }
         }
