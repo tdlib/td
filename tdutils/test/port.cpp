@@ -21,34 +21,38 @@
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
 
+#if TD_PORT_POSIX && !TD_THREAD_UNSUPPORTED
+#include <algorithm>
 #include <atomic>
-#include <set>
+#include <mutex>
 
-using namespace td;
+#include <pthread.h>
+#include <signal.h>
+#endif
 
 TEST(Port, files) {
-  CSlice main_dir = "test_dir";
-  rmrf(main_dir).ignore();
-  ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
-  ASSERT_TRUE(walk_path(main_dir, [](CSlice name, WalkPath::Type type) { UNREACHABLE(); }).is_error());
-  mkdir(main_dir).ensure();
-  mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "A").ensure();
-  mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B").ensure();
-  mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B" << TD_DIR_SLASH << "D").ensure();
-  mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "C").ensure();
-  ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
-  std::string fd_path = PSTRING() << main_dir << TD_DIR_SLASH << "t.txt";
-  std::string fd2_path = PSTRING() << main_dir << TD_DIR_SLASH << "C" << TD_DIR_SLASH << "t2.txt";
+  td::CSlice main_dir = "test_dir";
+  td::rmrf(main_dir).ignore();
+  ASSERT_TRUE(td::FileFd::open(main_dir, td::FileFd::Write).is_error());
+  ASSERT_TRUE(td::walk_path(main_dir, [](td::CSlice name, td::WalkPath::Type type) { UNREACHABLE(); }).is_error());
+  td::mkdir(main_dir).ensure();
+  td::mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "A").ensure();
+  td::mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B").ensure();
+  td::mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B" << TD_DIR_SLASH << "D").ensure();
+  td::mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "C").ensure();
+  ASSERT_TRUE(td::FileFd::open(main_dir, td::FileFd::Write).is_error());
+  td::string fd_path = PSTRING() << main_dir << TD_DIR_SLASH << "t.txt";
+  td::string fd2_path = PSTRING() << main_dir << TD_DIR_SLASH << "C" << TD_DIR_SLASH << "t2.txt";
 
-  auto fd = FileFd::open(fd_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
-  auto fd2 = FileFd::open(fd2_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
+  auto fd = td::FileFd::open(fd_path, td::FileFd::Write | td::FileFd::CreateNew).move_as_ok();
+  auto fd2 = td::FileFd::open(fd2_path, td::FileFd::Write | td::FileFd::CreateNew).move_as_ok();
   fd2.close();
 
   int cnt = 0;
   const int ITER_COUNT = 1000;
   for (int i = 0; i < ITER_COUNT; i++) {
-    walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
-      if (type == WalkPath::Type::NotDir) {
+    td::walk_path(main_dir, [&](td::CSlice name, td::WalkPath::Type type) {
+      if (type == td::WalkPath::Type::NotDir) {
         ASSERT_TRUE(name == fd_path || name == fd2_path);
       }
       cnt++;
@@ -56,28 +60,28 @@ TEST(Port, files) {
   }
   ASSERT_EQ((5 * 2 + 2) * ITER_COUNT, cnt);
   bool was_abort = false;
-  walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
+  td::walk_path(main_dir, [&](td::CSlice name, td::WalkPath::Type type) {
     CHECK(!was_abort);
-    if (type == WalkPath::Type::EnterDir && ends_with(name, PSLICE() << TD_DIR_SLASH << "B")) {
+    if (type == td::WalkPath::Type::EnterDir && ends_with(name, PSLICE() << TD_DIR_SLASH << "B")) {
       was_abort = true;
-      return WalkPath::Action::Abort;
+      return td::WalkPath::Action::Abort;
     }
-    return WalkPath::Action::Continue;
+    return td::WalkPath::Action::Continue;
   }).ensure();
   CHECK(was_abort);
 
   cnt = 0;
   bool is_first_dir = true;
-  walk_path(main_dir, [&](CSlice name, WalkPath::Type type) {
+  td::walk_path(main_dir, [&](td::CSlice name, td::WalkPath::Type type) {
     cnt++;
-    if (type == WalkPath::Type::EnterDir) {
+    if (type == td::WalkPath::Type::EnterDir) {
       if (is_first_dir) {
         is_first_dir = false;
       } else {
-        return WalkPath::Action::SkipDir;
+        return td::WalkPath::Action::SkipDir;
       }
     }
-    return WalkPath::Action::Continue;
+    return td::WalkPath::Action::Continue;
   }).ensure();
   ASSERT_EQ(6, cnt);
 
@@ -85,13 +89,13 @@ TEST(Port, files) {
   ASSERT_EQ(12u, fd.write("Hello world!").move_as_ok());
   ASSERT_EQ(4u, fd.pwrite("abcd", 1).move_as_ok());
   char buf[100];
-  MutableSlice buf_slice(buf, sizeof(buf));
+  td::MutableSlice buf_slice(buf, sizeof(buf));
   ASSERT_TRUE(fd.pread(buf_slice.substr(0, 4), 2).is_error());
   fd.seek(11).ensure();
   ASSERT_EQ(2u, fd.write("?!").move_as_ok());
 
-  ASSERT_TRUE(FileFd::open(main_dir, FileFd::Read | FileFd::CreateNew).is_error());
-  fd = FileFd::open(fd_path, FileFd::Read | FileFd::Create).move_as_ok();
+  ASSERT_TRUE(td::FileFd::open(main_dir, td::FileFd::Read | td::FileFd::CreateNew).is_error());
+  fd = td::FileFd::open(fd_path, td::FileFd::Read | td::FileFd::Create).move_as_ok();
   ASSERT_EQ(13u, fd.get_size().move_as_ok());
   ASSERT_EQ(4u, fd.pread(buf_slice.substr(0, 4), 1).move_as_ok());
   ASSERT_STREQ("abcd", buf_slice.substr(0, 4));
@@ -102,53 +106,48 @@ TEST(Port, files) {
 }
 
 TEST(Port, SparseFiles) {
-  CSlice path = "sparse.txt";
-  unlink(path).ignore();
-  auto fd = FileFd::open(path, FileFd::Write | FileFd::CreateNew).move_as_ok();
+  td::CSlice path = "sparse.txt";
+  td::unlink(path).ignore();
+  auto fd = td::FileFd::open(path, td::FileFd::Write | td::FileFd::CreateNew).move_as_ok();
   ASSERT_EQ(0, fd.get_size().move_as_ok());
-  int64 offset = 100000000;
+  td::int64 offset = 100000000;
   fd.pwrite("a", offset).ensure();
   ASSERT_EQ(offset + 1, fd.get_size().move_as_ok());
   auto real_size = fd.get_real_size().move_as_ok();
   if (real_size >= offset + 1) {
     LOG(ERROR) << "File system doesn't support sparse files, rewind during streaming can be slow";
   }
-  unlink(path).ensure();
+  td::unlink(path).ensure();
 }
 
 TEST(Port, Writev) {
-  std::vector<IoSlice> vec;
-  CSlice test_file_path = "test.txt";
-  unlink(test_file_path).ignore();
-  auto fd = FileFd::open(test_file_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
-  vec.push_back(as_io_slice("a"));
-  vec.push_back(as_io_slice("b"));
-  vec.push_back(as_io_slice("cd"));
+  td::vector<td::IoSlice> vec;
+  td::CSlice test_file_path = "test.txt";
+  td::unlink(test_file_path).ignore();
+  auto fd = td::FileFd::open(test_file_path, td::FileFd::Write | td::FileFd::CreateNew).move_as_ok();
+  vec.push_back(td::as_io_slice("a"));
+  vec.push_back(td::as_io_slice("b"));
+  vec.push_back(td::as_io_slice("cd"));
   ASSERT_EQ(4u, fd.writev(vec).move_as_ok());
   vec.clear();
-  vec.push_back(as_io_slice("efg"));
-  vec.push_back(as_io_slice(""));
-  vec.push_back(as_io_slice("hi"));
+  vec.push_back(td::as_io_slice("efg"));
+  vec.push_back(td::as_io_slice(""));
+  vec.push_back(td::as_io_slice("hi"));
   ASSERT_EQ(5u, fd.writev(vec).move_as_ok());
   fd.close();
-  fd = FileFd::open(test_file_path, FileFd::Read).move_as_ok();
-  Slice expected_content = "abcdefghi";
-  ASSERT_EQ(static_cast<int64>(expected_content.size()), fd.get_size().ok());
-  std::string content(expected_content.size(), '\0');
+  fd = td::FileFd::open(test_file_path, td::FileFd::Read).move_as_ok();
+  td::Slice expected_content = "abcdefghi";
+  ASSERT_EQ(static_cast<td::int64>(expected_content.size()), fd.get_size().ok());
+  td::string content(expected_content.size(), '\0');
   ASSERT_EQ(content.size(), fd.read(content).move_as_ok());
   ASSERT_EQ(expected_content, content);
 }
 
 #if TD_PORT_POSIX && !TD_THREAD_UNSUPPORTED
-#include <pthread.h>
-#include <signal.h>
-
-#include <algorithm>
-#include <mutex>
 
 static std::mutex m;
-static std::vector<std::string> ptrs;
-static std::vector<int *> addrs;
+static td::vector<td::string> ptrs;
+static td::vector<int *> addrs;
 static TD_THREAD_LOCAL int thread_id;
 
 static void on_user_signal(int sig) {
@@ -159,21 +158,21 @@ static void on_user_signal(int sig) {
 }
 
 TEST(Port, SignalsAndThread) {
-  setup_signals_alt_stack().ensure();
-  set_signal_handler(SignalType::User, on_user_signal).ensure();
+  td::setup_signals_alt_stack().ensure();
+  td::set_signal_handler(td::SignalType::User, on_user_signal).ensure();
   SCOPE_EXIT {
-    set_signal_handler(SignalType::User, nullptr).ensure();
+    td::set_signal_handler(td::SignalType::User, nullptr).ensure();
   };
-  std::vector<std::string> ans = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+  td::vector<td::string> ans = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
   {
-    std::vector<td::thread> threads;
+    td::vector<td::thread> threads;
     int thread_n = 10;
-    std::vector<Stage> stages(thread_n);
+    td::vector<td::Stage> stages(thread_n);
     ptrs.clear();
     addrs.resize(thread_n);
     for (int i = 0; i < 10; i++) {
       threads.emplace_back([&, i] {
-        setup_signals_alt_stack().ensure();
+        td::setup_signals_alt_stack().ensure();
         if (i != 0) {
           stages[i].wait(2);
         }
@@ -190,13 +189,12 @@ TEST(Port, SignalsAndThread) {
     CHECK(ptrs == ans);
 
     //LOG(ERROR) << ptrs;
-    //LOG(ERROR) << std::set<int *>(addrs.begin(), addrs.end()).size();
     //LOG(ERROR) << addrs;
   }
 
   {
-    Stage stage;
-    std::vector<td::thread> threads;
+    td::Stage stage;
+    td::vector<td::thread> threads;
     int thread_n = 10;
     ptrs.clear();
     addrs.resize(thread_n);
@@ -219,16 +217,16 @@ TEST(Port, SignalsAndThread) {
 }
 
 TEST(Port, EventFdAndSignals) {
-  set_signal_handler(SignalType::User, [](int signal) {}).ensure();
+  td::set_signal_handler(td::SignalType::User, [](int signal) {}).ensure();
   SCOPE_EXIT {
-    set_signal_handler(SignalType::User, nullptr).ensure();
+    td::set_signal_handler(td::SignalType::User, nullptr).ensure();
   };
 
   std::atomic_flag flag;
   flag.test_and_set();
   auto main_thread = pthread_self();
   td::thread interrupt_thread{[&flag, &main_thread] {
-    setup_signals_alt_stack().ensure();
+    td::setup_signals_alt_stack().ensure();
     while (flag.test_and_set()) {
       pthread_kill(main_thread, SIGUSR1);
       td::usleep_for(1000 * td::Random::fast(1, 10));  // 0.001s - 0.01s
@@ -238,7 +236,7 @@ TEST(Port, EventFdAndSignals) {
   for (int timeout_ms : {0, 1, 2, 10, 100, 500}) {
     double min_diff = 10000000;
     double max_diff = 0;
-    for (int t = 0; t < max(5, 1000 / td::max(timeout_ms, 1)); t++) {
+    for (int t = 0; t < td::max(5, 1000 / td::max(timeout_ms, 1)); t++) {
       td::EventFd event_fd;
       event_fd.init();
       auto start = td::Timestamp::now();
