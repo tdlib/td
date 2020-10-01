@@ -832,7 +832,6 @@ if (TD_ENABLE_DOTNET)
     td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
-  set(VCPKG_APPLOCAL_LIBRARY_DEPS ON)
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
   target_link_libraries(tddotnet PRIVATE tdclient tdutils)
   target_include_directories(tddotnet PUBLIC
