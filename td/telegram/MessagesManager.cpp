@@ -13972,8 +13972,7 @@ void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
 }
 
 bool MessagesManager::is_message_unload_enabled() const {
-  auto has_custom_unload_time = G()->shared_config().have_option("chat_unload_delay");
-  return G()->parameters().use_message_db || td_->auth_manager_->is_bot() || has_custom_unload_time;
+  return G()->parameters().use_message_db || td_->auth_manager_->is_bot();
 }
 
 bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) const {
