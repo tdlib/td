@@ -10303,10 +10303,14 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
 int32 MessagesManager::get_unload_dialog_delay() const {
   constexpr int32 DIALOG_UNLOAD_DELAY = 60;        // seconds
   constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 1800;  // seconds
-  if (td_->auth_manager_->is_bot()) {
-    return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_unload_delay", DIALOG_UNLOAD_BOT_DELAY));
+
+  auto is_bot = td_->auth_manager_->is_bot();
+  auto default_unload_delay = is_bot ? DIALOG_UNLOAD_BOT_DELAY : DIALOG_UNLOAD_DELAY;
+
+  if (G()->parameters().use_message_db || is_bot) {
+    return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_unload_delay", default_unload_delay));
   } else {
-    return DIALOG_UNLOAD_DELAY;
+    return default_unload_delay;
   }
 }
 
