@@ -639,15 +639,19 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
+//@description Contains information about message replies
+//@reply_count Number of times the message was directly or indirectly replied
+//@recent_replier_user_ids User identifiers of the recent repliers to the message; available in channels with a discussion supergroup
+//@last_read_inbox_message_id Identifier of the last read incoming reply to the message
+//@last_read_outbox_message_id Identifier of the last read outgoing reply to the message
+//@last_message_id Identifier of the last reply to the message
+messageReplyInfo reply_count:int32 recent_replier_user_ids:vector<int32> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
+
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-//@reply_count Number of times the message was directly or indirectly replied; available in discussion supergroups and channels with a discussion supergroup
-//@recent_replier_user_ids User identifiers of the recent repliers to the message; available in channels with a discussion supergroup
-//@last_read_inbox_comment_message_id Identifier of the last read incoming comment to the message
-//@last_read_outbox_comment_message_id Identifier of the last read outgoing comment to the message
-//@last_comment_message_id Identifier of the last comment to the message
-messageInteractionInfo view_count:int32 forward_count:int32 reply_count:int32 recent_replier_user_ids:vector<int32> last_read_inbox_comment_message_id:int53 last_read_outbox_comment_message_id:int53 last_comment_message_id:int53 = MessageInteractionInfo;
+//@reply_info Contains information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
+messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo = MessageInteractionInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
