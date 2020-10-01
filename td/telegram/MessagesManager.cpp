@@ -16172,11 +16172,13 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
 
   MessageId top_thread_message_id;
   td_api::object_ptr<td_api::draftMessage> draft_message;
-  if (!info.message_ids.empty() && can_send_message(d->dialog_id).is_ok()) {
+  if (!info.message_ids.empty()) {
     top_thread_message_id = info.message_ids.back();
-    const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
-    if (m != nullptr && !m->reply_info.is_comment && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
-      draft_message = get_draft_message_object(m->thread_draft_message);
+    if (can_send_message(d->dialog_id).is_ok()) {
+      const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
+      if (m != nullptr && !m->reply_info.is_comment && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
+        draft_message = get_draft_message_object(m->thread_draft_message);
+      }
     }
   }
   return td_api::make_object<td_api::messageThreadInfo>(d->dialog_id.get(), top_thread_message_id.get(),
