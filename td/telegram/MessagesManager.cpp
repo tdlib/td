@@ -10304,7 +10304,7 @@ int32 MessagesManager::get_unload_dialog_delay() const {
   constexpr int32 DIALOG_UNLOAD_DELAY = 60;        // seconds
   constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 1800;  // seconds
   if (td_->auth_manager_->is_bot()) {
-    return G()->shared_config().get_option_integer("chat_unload_delay", DIALOG_UNLOAD_BOT_DELAY);
+    return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_unload_delay", DIALOG_UNLOAD_BOT_DELAY));
   } else {
     return DIALOG_UNLOAD_DELAY;
   }
@@ -13972,7 +13972,7 @@ void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
 }
 
 bool MessagesManager::is_message_unload_enabled() const {
-  auto has_custom_unload_time = clamp(G()->shared_config().get_option_integer("unload_messages_after_seconds", -1), -1, 86400) != -1;
+  auto has_custom_unload_time = G()->shared_config().have_option("chat_unload_delay");
   return G()->parameters().use_message_db || td_->auth_manager_->is_bot() || has_custom_unload_time;
 }
 
