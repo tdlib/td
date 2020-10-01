@@ -399,21 +399,19 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
   Promise<vector<FullMessageId>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
-  ChannelId expected_channel_id_;
+  DialogId expected_dialog_id_;
   MessageId expected_message_id_;
 
  public:
   explicit GetDiscussionMessageQuery(Promise<vector<FullMessageId>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, ChannelId expected_channel_id, MessageId expected_message_id) {
+  void send(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
-    expected_channel_id_ = expected_channel_id;
+    expected_dialog_id_ = expected_dialog_id;
     expected_message_id_ = expected_message_id;
-    if (!expected_channel_id_.is_valid()) {
-      return promise_.set_error(Status::Error(500, "Wrong message specified"));
-    }
+    CHECK(expected_dialog_id_.is_valid());
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
@@ -443,7 +441,7 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
     if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_OUTBOX_MAX_ID_MASK) != 0) {
       last_read_outbox_message_id = MessageId(ServerMessageId(ptr->read_outbox_max_id_));
     }
-    if (DialogId(expected_channel_id_) != dialog_id_) {
+    if (expected_dialog_id_ != dialog_id_) {
       td->messages_manager_->on_update_read_message_comments(dialog_id_, message_id_, max_message_id,
                                                              last_read_inbox_message_id, last_read_outbox_message_id);
     }
@@ -455,7 +453,7 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
                                                                    "GetDiscussionMessageQuery");
       if (full_message_id.get_message_id().is_valid()) {
         full_message_ids.push_back(full_message_id);
-        if (full_message_id.get_dialog_id() != DialogId(expected_channel_id_)) {
+        if (full_message_id.get_dialog_id() != expected_dialog_id_) {
           return on_error(id, Status::Error(500, "Expected messages in a different chat"));
         }
         if (full_message_id.get_message_id() == expected_message_id_) {
@@ -467,16 +465,16 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
       top_message_id = full_message_ids.back().get_message_id();
     }
     if (top_message_id.is_valid()) {
-      td->messages_manager_->on_update_read_message_comments(DialogId(expected_channel_id_), top_message_id,
-                                                             max_message_id, last_read_inbox_message_id,
-                                                             last_read_outbox_message_id);
+      td->messages_manager_->on_update_read_message_comments(expected_dialog_id_, top_message_id, max_message_id,
+                                                             last_read_inbox_message_id, last_read_outbox_message_id);
     }
     promise_.set_value(std::move(full_message_ids));
   }
 
   void on_error(uint64 id, Status status) override {
-    // because the error can be caused by the linked channel
-    // td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
+    if (expected_dialog_id_ == dialog_id_) {
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -16065,21 +16063,21 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  ChannelId message_thread_channel_id;
+  DialogId message_thread_dialog_id;
   MessageId top_thread_message_id;
   if (m->reply_info.is_comment) {
     if (!is_visible_message_reply_info(dialog_id, m)) {
       return promise.set_error(Status::Error(400, "Message has no comments"));
     }
-    message_thread_channel_id = m->reply_info.channel_id;
+    message_thread_dialog_id = DialogId(m->reply_info.channel_id);
   } else {
     if (!m->top_thread_message_id.is_valid()) {
       return promise.set_error(Status::Error(400, "Message has no thread"));
     }
-    message_thread_channel_id = dialog_id.get_channel_id();
+    message_thread_dialog_id = dialog_id;
     top_thread_message_id = m->top_thread_message_id;
   }
-  CHECK(message_thread_channel_id.is_valid());
+  CHECK(message_thread_dialog_id.is_valid());
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
@@ -16092,7 +16090,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, message_id, message_thread_channel_id, top_thread_message_id);
+      ->send(dialog_id, message_id, message_thread_dialog_id, top_thread_message_id);
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
@@ -16770,7 +16768,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, info.message_id, m->reply_info.channel_id, MessageId());
+      ->send(dialog_id, info.message_id, DialogId(m->reply_info.channel_id), MessageId());
 }
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
