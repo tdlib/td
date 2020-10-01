@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
@@ -367,9 +368,8 @@ class MessagesManager : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
-  void on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                             tl_object_ptr<td_api::ChatAction> &&action, int32 date,
-                             MessageContentType message_content_type = MessageContentType::None);
+  void on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id, DialogAction action,
+                             int32 date, MessageContentType message_content_type = MessageContentType::None);
 
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
@@ -478,8 +478,8 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::gameHighScores> get_game_high_scores_object(int64 random_id);
 
-  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
-                          const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise);
+  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
+                          Promise<Unit> &&promise);
 
   vector<DialogListId> get_dialog_lists_to_add_dialog(DialogId dialog_id);
 
@@ -2218,7 +2218,7 @@ class MessagesManager : public Actor {
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
   void send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                    td_api::object_ptr<td_api::ChatAction> action);
+                                    DialogAction action);
 
   void repair_dialog_action_bar(Dialog *d, const char *source);
 
@@ -2355,8 +2355,6 @@ class MessagesManager : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  static tl_object_ptr<td_api::ChatAction> copy_chat_action_object(const tl_object_ptr<td_api::ChatAction> &action);
-
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
@@ -2364,8 +2362,6 @@ class MessagesManager : public Actor {
   void on_active_dialog_action_timeout(DialogId dialog_id);
 
   void clear_active_dialog_actions(DialogId dialog_id);
-
-  static bool need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type);
 
   void cancel_user_dialog_action(DialogId dialog_id, const Message *m);
 
@@ -3104,12 +3100,11 @@ class MessagesManager : public Actor {
   struct ActiveDialogAction {
     MessageId top_thread_message_id;
     UserId user_id;
-    int32 action_id;
-    int32 progress;
+    DialogAction action;
     double start_time;
 
-    ActiveDialogAction(MessageId top_thread_message_id, UserId user_id, int32 action_id, double start_time)
-        : top_thread_message_id(top_thread_message_id), user_id(user_id), action_id(action_id), start_time(start_time) {
+    ActiveDialogAction(MessageId top_thread_message_id, UserId user_id, DialogAction action, double start_time)
+        : top_thread_message_id(top_thread_message_id), user_id(user_id), action(action), start_time(start_time) {
     }
   };
 

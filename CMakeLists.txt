@@ -400,6 +400,7 @@ set(TDLIB_SOURCE
   td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
   td/telegram/DhCache.cpp
+  td/telegram/DialogAction.cpp
   td/telegram/DialogAdministrator.cpp
   td/telegram/DialogDb.cpp
   td/telegram/DialogFilter.cpp
@@ -559,6 +560,7 @@ set(TDLIB_SOURCE
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h
+  td/telegram/DialogAction.h
   td/telegram/DialogAdministrator.h
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h

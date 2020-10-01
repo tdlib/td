@@ -136,9 +136,6 @@ class UpdatesManager : public Actor {
 
   int32 get_short_update_date() const;
 
-  static tl_object_ptr<td_api::ChatAction> convert_send_message_action(
-      tl_object_ptr<telegram_api::SendMessageAction> action);
-
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                       vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages,
                                       vector<tl_object_ptr<telegram_api::Update>> &&other_updates);

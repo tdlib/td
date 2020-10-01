@@ -6825,87 +6825,17 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
-bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type) {
-  if (message_content_type == MessageContentType::None) {
-    return true;
-  }
-
-  if (action_id == td_api::chatActionTyping::ID) {
-    return message_content_type == MessageContentType::Text || message_content_type == MessageContentType::Game ||
-           can_have_message_content_caption(message_content_type);
-  }
-
-  switch (message_content_type) {
-    case MessageContentType::Animation:
-    case MessageContentType::Audio:
-    case MessageContentType::Document:
-      return action_id == td_api::chatActionUploadingDocument::ID;
-    case MessageContentType::ExpiredPhoto:
-    case MessageContentType::Photo:
-      return action_id == td_api::chatActionUploadingPhoto::ID;
-    case MessageContentType::ExpiredVideo:
-    case MessageContentType::Video:
-      return action_id == td_api::chatActionRecordingVideo::ID || action_id == td_api::chatActionUploadingVideo::ID;
-    case MessageContentType::VideoNote:
-      return action_id == td_api::chatActionRecordingVideoNote::ID ||
-             action_id == td_api::chatActionUploadingVideoNote::ID;
-    case MessageContentType::VoiceNote:
-      return action_id == td_api::chatActionRecordingVoiceNote::ID ||
-             action_id == td_api::chatActionUploadingVoiceNote::ID;
-    case MessageContentType::Contact:
-      return action_id == td_api::chatActionChoosingContact::ID;
-    case MessageContentType::LiveLocation:
-    case MessageContentType::Location:
-    case MessageContentType::Venue:
-      return action_id == td_api::chatActionChoosingLocation::ID;
-    case MessageContentType::Game:
-    case MessageContentType::Invoice:
-    case MessageContentType::Sticker:
-    case MessageContentType::Text:
-    case MessageContentType::Unsupported:
-    case MessageContentType::ChatCreate:
-    case MessageContentType::ChatChangeTitle:
-    case MessageContentType::ChatChangePhoto:
-    case MessageContentType::ChatDeletePhoto:
-    case MessageContentType::ChatDeleteHistory:
-    case MessageContentType::ChatAddUsers:
-    case MessageContentType::ChatJoinedByLink:
-    case MessageContentType::ChatDeleteUser:
-    case MessageContentType::ChatMigrateTo:
-    case MessageContentType::ChannelCreate:
-    case MessageContentType::ChannelMigrateFrom:
-    case MessageContentType::PinMessage:
-    case MessageContentType::GameScore:
-    case MessageContentType::ScreenshotTaken:
-    case MessageContentType::ChatSetTtl:
-    case MessageContentType::Call:
-    case MessageContentType::PaymentSuccessful:
-    case MessageContentType::ContactRegistered:
-    case MessageContentType::CustomServiceAction:
-    case MessageContentType::WebsiteConnected:
-    case MessageContentType::PassportDataSent:
-    case MessageContentType::PassportDataReceived:
-    case MessageContentType::Poll:
-    case MessageContentType::Dice:
-      return false;
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                            tl_object_ptr<td_api::ChatAction> &&action, int32 date,
-                                            MessageContentType message_content_type) {
+                                            DialogAction action, int32 date, MessageContentType message_content_type) {
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
 
-  if (action != nullptr || message_content_type != MessageContentType::None) {
+  bool is_canceled = action == DialogAction();
+  if (!is_canceled || message_content_type != MessageContentType::None) {
     td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
   }
 
-  bool is_canceled = action == nullptr || action->get_id() == td_api::chatActionCancel::ID;
   if (is_canceled) {
     auto actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -6920,7 +6850,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
 
     if (!td_->contacts_manager_->is_user_bot(user_id) &&
-        !need_cancel_user_dialog_action(it->action_id, message_content_type)) {
+        !it->action.is_cancelled_by_message_of_type(message_content_type)) {
       return;
     }
 
@@ -6932,9 +6862,6 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
       LOG(DEBUG) << "Cancel action timeout in " << dialog_id;
       active_dialog_action_timeout_.cancel_timeout(dialog_id.get());
     }
-    if (action == nullptr) {
-      action = make_tl_object<td_api::chatActionCancel>();
-    }
   } else {
     if (date < G()->unix_time_cached() - DIALOG_ACTION_TIMEOUT - 60) {
       LOG(DEBUG) << "Ignore too old action of " << user_id << " in " << dialog_id << " sent at " << date;
@@ -6944,43 +6871,22 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     auto it = std::find_if(active_actions.begin(), active_actions.end(),
                            [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
     MessageId prev_top_thread_message_id;
-    int32 prev_action_id = 0;
-    int32 prev_progress = 0;
+    DialogAction prev_action;
     if (it != active_actions.end()) {
       LOG(DEBUG) << "Re-add action of " << user_id << " in " << dialog_id;
       prev_top_thread_message_id = it->top_thread_message_id;
-      prev_action_id = it->action_id;
-      prev_progress = it->progress;
+      prev_action = it->action;
       active_actions.erase(it);
     } else {
       LOG(DEBUG) << "Add action of " << user_id << " in " << dialog_id;
     }
 
-    auto action_id = action->get_id();
-    auto progress = [&] {
-      switch (action_id) {
-        case td_api::chatActionUploadingVideo::ID:
-          return static_cast<td_api::chatActionUploadingVideo &>(*action).progress_;
-        case td_api::chatActionUploadingVoiceNote::ID:
-          return static_cast<td_api::chatActionUploadingVoiceNote &>(*action).progress_;
-        case td_api::chatActionUploadingPhoto::ID:
-          return static_cast<td_api::chatActionUploadingPhoto &>(*action).progress_;
-        case td_api::chatActionUploadingDocument::ID:
-          return static_cast<td_api::chatActionUploadingDocument &>(*action).progress_;
-        case td_api::chatActionUploadingVideoNote::ID:
-          return static_cast<td_api::chatActionUploadingVideoNote &>(*action).progress_;
-        default:
-          return 0;
-      }
-    }();
-    active_actions.emplace_back(top_thread_message_id, user_id, action_id, Time::now());
-    if (top_thread_message_id == prev_top_thread_message_id && action_id == prev_action_id &&
-        progress <= prev_progress) {
+    active_actions.emplace_back(top_thread_message_id, user_id, action, Time::now());
+    if (top_thread_message_id == prev_top_thread_message_id && action == prev_action) {
       return;
     }
     if (top_thread_message_id != prev_top_thread_message_id && prev_top_thread_message_id.is_valid()) {
-      send_update_user_chat_action(dialog_id, prev_top_thread_message_id, user_id,
-                                   td_api::make_object<td_api::chatActionCancel>());
+      send_update_user_chat_action(dialog_id, prev_top_thread_message_id, user_id, DialogAction());
     }
     if (active_actions.size() == 1u) {
       LOG(DEBUG) << "Set action timeout in " << dialog_id;
@@ -6989,9 +6895,9 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   }
 
   if (top_thread_message_id.is_valid()) {
-    send_update_user_chat_action(dialog_id, MessageId(), user_id, copy_chat_action_object(action));
+    send_update_user_chat_action(dialog_id, MessageId(), user_id, action);
   }
-  send_update_user_chat_action(dialog_id, top_thread_message_id, user_id, std::move(action));
+  send_update_user_chat_action(dialog_id, top_thread_message_id, user_id, action);
 }
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
@@ -7001,7 +6907,7 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
     return;
   }
 
-  on_user_dialog_action(dialog_id, MessageId(), m->sender_user_id, nullptr, m->date, m->content->get_type());
+  on_user_dialog_action(dialog_id, MessageId(), m->sender_user_id, DialogAction(), m->date, m->content->get_type());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -7746,7 +7652,7 @@ void MessagesManager::repair_dialog_action_bar(Dialog *d, const char *source) {
   d->know_action_bar = false;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
     create_actor<SleepActor>(
-        "RepairDialogActionBarActor", 1.0,
+        "RepairChatActionBarActor", 1.0,
         PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Result<Unit> result) {
           send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source);
         }))
@@ -27276,18 +27182,18 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
 }
 
 void MessagesManager::send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                                   td_api::object_ptr<td_api::ChatAction> action) {
+                                                   DialogAction action) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(DEBUG) << "Send action of " << user_id << " in thread of " << top_thread_message_id << " in " << dialog_id << ": "
-             << to_string(action);
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateUserChatAction>(
-          dialog_id.get(), top_thread_message_id.get(),
-          td_->contacts_manager_->get_user_id_object(user_id, "send_update_user_chat_action"), std::move(action)));
+  LOG(DEBUG) << "Send " << action << " of " << user_id << " in thread of " << top_thread_message_id << " in "
+             << dialog_id;
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateUserChatAction>(
+                   dialog_id.get(), top_thread_message_id.get(),
+                   td_->contacts_manager_->get_user_id_object(user_id, "send_update_user_chat_action"),
+                   action.get_chat_action_object()));
 }
 
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
@@ -28921,58 +28827,8 @@ bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
   return false;
 }
 
-tl_object_ptr<td_api::ChatAction> MessagesManager::copy_chat_action_object(
-    const tl_object_ptr<td_api::ChatAction> &action) {
-  CHECK(action != nullptr);
-  switch (action->get_id()) {
-    case td_api::chatActionCancel::ID:
-      return make_tl_object<td_api::chatActionCancel>();
-    case td_api::chatActionTyping::ID:
-      return make_tl_object<td_api::chatActionTyping>();
-    case td_api::chatActionRecordingVideo::ID:
-      return make_tl_object<td_api::chatActionRecordingVideo>();
-    case td_api::chatActionUploadingVideo::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVideo &>(*action).progress_;
-      return make_tl_object<td_api::chatActionUploadingVideo>(progress);
-    }
-    case td_api::chatActionRecordingVoiceNote::ID:
-      return make_tl_object<td_api::chatActionRecordingVoiceNote>();
-    case td_api::chatActionUploadingVoiceNote::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVoiceNote &>(*action).progress_;
-      return make_tl_object<td_api::chatActionUploadingVoiceNote>(progress);
-    }
-    case td_api::chatActionUploadingPhoto::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingPhoto &>(*action).progress_;
-      return make_tl_object<td_api::chatActionUploadingPhoto>(progress);
-    }
-    case td_api::chatActionUploadingDocument::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingDocument &>(*action).progress_;
-      return make_tl_object<td_api::chatActionUploadingDocument>(progress);
-    }
-    case td_api::chatActionChoosingLocation::ID:
-      return make_tl_object<td_api::chatActionChoosingLocation>();
-    case td_api::chatActionChoosingContact::ID:
-      return make_tl_object<td_api::chatActionChoosingContact>();
-    case td_api::chatActionStartPlayingGame::ID:
-      return make_tl_object<td_api::chatActionStartPlayingGame>();
-    case td_api::chatActionRecordingVideoNote::ID:
-      return make_tl_object<td_api::chatActionRecordingVideoNote>();
-    case td_api::chatActionUploadingVideoNote::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVideoNote &>(*action).progress_;
-      return make_tl_object<td_api::chatActionUploadingVideoNote>(progress);
-    }
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
-                                         const tl_object_ptr<td_api::ChatAction> &action, Promise<Unit> &&promise) {
-  if (action == nullptr) {
-    return promise.set_error(Status::Error(5, "Action must be non-empty"));
-  }
-
+void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
+                                         Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(5, "Chat not found"));
   }
@@ -28994,108 +28850,10 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
-    tl_object_ptr<secret_api::SendMessageAction> send_action;
-    switch (action->get_id()) {
-      case td_api::chatActionCancel::ID:
-        send_action = make_tl_object<secret_api::sendMessageCancelAction>();
-        break;
-      case td_api::chatActionTyping::ID:
-        send_action = make_tl_object<secret_api::sendMessageTypingAction>();
-        break;
-      case td_api::chatActionRecordingVideo::ID:
-        send_action = make_tl_object<secret_api::sendMessageRecordVideoAction>();
-        break;
-      case td_api::chatActionUploadingVideo::ID:
-        send_action = make_tl_object<secret_api::sendMessageUploadVideoAction>();
-        break;
-      case td_api::chatActionRecordingVoiceNote::ID:
-        send_action = make_tl_object<secret_api::sendMessageRecordAudioAction>();
-        break;
-      case td_api::chatActionUploadingVoiceNote::ID:
-        send_action = make_tl_object<secret_api::sendMessageUploadAudioAction>();
-        break;
-      case td_api::chatActionUploadingPhoto::ID:
-        send_action = make_tl_object<secret_api::sendMessageUploadPhotoAction>();
-        break;
-      case td_api::chatActionUploadingDocument::ID:
-        send_action = make_tl_object<secret_api::sendMessageUploadDocumentAction>();
-        break;
-      case td_api::chatActionChoosingLocation::ID:
-        send_action = make_tl_object<secret_api::sendMessageGeoLocationAction>();
-        break;
-      case td_api::chatActionChoosingContact::ID:
-        send_action = make_tl_object<secret_api::sendMessageChooseContactAction>();
-        break;
-      case td_api::chatActionRecordingVideoNote::ID:
-        send_action = make_tl_object<secret_api::sendMessageRecordRoundAction>();
-        break;
-      case td_api::chatActionUploadingVideoNote::ID:
-        send_action = make_tl_object<secret_api::sendMessageUploadRoundAction>();
-        break;
-      case td_api::chatActionStartPlayingGame::ID:
-        return promise.set_error(Status::Error(5, "Games are unsupported in secret chats"));
-      default:
-        UNREACHABLE();
-    }
     send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
-                 std::move(send_action));
+                 action.get_secret_input_send_message_action());
     promise.set_value(Unit());
     return;
-  }
-
-  tl_object_ptr<telegram_api::SendMessageAction> send_action;
-  switch (action->get_id()) {
-    case td_api::chatActionCancel::ID:
-      send_action = make_tl_object<telegram_api::sendMessageCancelAction>();
-      break;
-    case td_api::chatActionTyping::ID:
-      send_action = make_tl_object<telegram_api::sendMessageTypingAction>();
-      break;
-    case td_api::chatActionRecordingVideo::ID:
-      send_action = make_tl_object<telegram_api::sendMessageRecordVideoAction>();
-      break;
-    case td_api::chatActionUploadingVideo::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVideo &>(*action).progress_;
-      send_action = make_tl_object<telegram_api::sendMessageUploadVideoAction>(progress);
-      break;
-    }
-    case td_api::chatActionRecordingVoiceNote::ID:
-      send_action = make_tl_object<telegram_api::sendMessageRecordAudioAction>();
-      break;
-    case td_api::chatActionUploadingVoiceNote::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVoiceNote &>(*action).progress_;
-      send_action = make_tl_object<telegram_api::sendMessageUploadAudioAction>(progress);
-      break;
-    }
-    case td_api::chatActionUploadingPhoto::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingPhoto &>(*action).progress_;
-      send_action = make_tl_object<telegram_api::sendMessageUploadPhotoAction>(progress);
-      break;
-    }
-    case td_api::chatActionUploadingDocument::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingDocument &>(*action).progress_;
-      send_action = make_tl_object<telegram_api::sendMessageUploadDocumentAction>(progress);
-      break;
-    }
-    case td_api::chatActionChoosingLocation::ID:
-      send_action = make_tl_object<telegram_api::sendMessageGeoLocationAction>();
-      break;
-    case td_api::chatActionChoosingContact::ID:
-      send_action = make_tl_object<telegram_api::sendMessageChooseContactAction>();
-      break;
-    case td_api::chatActionStartPlayingGame::ID:
-      send_action = make_tl_object<telegram_api::sendMessageGamePlayAction>();
-      break;
-    case td_api::chatActionRecordingVideoNote::ID:
-      send_action = make_tl_object<telegram_api::sendMessageRecordRoundAction>();
-      break;
-    case td_api::chatActionUploadingVideoNote::ID: {
-      auto progress = static_cast<const td_api::chatActionUploadingVideoNote &>(*action).progress_;
-      send_action = make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress);
-      break;
-    }
-    default:
-      UNREACHABLE();
   }
 
   auto &query_ref = set_typing_query_[dialog_id];
@@ -29104,7 +28862,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     cancel_query(query_ref);
   }
   query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
-                  ->send(dialog_id, top_thread_message_id, std::move(send_action));
+                  ->send(dialog_id, top_thread_message_id, action.get_input_send_message_action());
 }
 
 void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
@@ -29156,31 +28914,12 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     progress = static_cast<int32>(100 * uploaded_size / total_size);
   }
 
-  td_api::object_ptr<td_api::ChatAction> action;
-  switch (m->content->get_type()) {
-    case MessageContentType::Animation:
-    case MessageContentType::Audio:
-    case MessageContentType::Document:
-      action = td_api::make_object<td_api::chatActionUploadingDocument>(progress);
-      break;
-    case MessageContentType::Photo:
-      action = td_api::make_object<td_api::chatActionUploadingPhoto>(progress);
-      break;
-    case MessageContentType::Video:
-      action = td_api::make_object<td_api::chatActionUploadingVideo>(progress);
-      break;
-    case MessageContentType::VideoNote:
-      action = td_api::make_object<td_api::chatActionUploadingVideoNote>(progress);
-      break;
-    case MessageContentType::VoiceNote:
-      action = td_api::make_object<td_api::chatActionUploadingVoiceNote>(progress);
-      break;
-    default:
-      return;
+  DialogAction action = DialogAction::get_uploading_action(m->content->get_type(), progress);
+  if (action == DialogAction()) {
+    return;
   }
-  CHECK(action != nullptr);
-  LOG(INFO) << "Send action in " << dialog_id << ": " << to_string(action);
-  send_dialog_action(dialog_id, m->top_thread_message_id, std::move(action), Auto());
+  LOG(INFO) << "Send " << action << " in " << dialog_id;
+  send_dialog_action(dialog_id, m->top_thread_message_id, std::move(action), Promise<Unit>());
 }
 
 void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
@@ -29194,7 +28933,7 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
   auto now = Time::now();
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
     on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
-                          nullptr, 0);
+                          DialogAction(), 0);
 
     actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -29214,7 +28953,7 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
     on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
-                          nullptr, 0);
+                          DialogAction(), 0);
     actions_it = active_dialog_actions_.find(dialog_id);
   }
 }

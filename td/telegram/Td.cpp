@@ -24,6 +24,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DeviceTokenManager.h"
+#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilterId.h"
@@ -5825,7 +5826,7 @@ void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
-                                        std::move(request.action_), std::move(promise));
+                                        DialogAction(std::move(request.action_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request) {

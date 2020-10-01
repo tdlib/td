@@ -16,6 +16,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
@@ -1829,55 +1830,6 @@ int32 UpdatesManager::get_short_update_date() const {
   return now;
 }
 
-tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
-    tl_object_ptr<telegram_api::SendMessageAction> action) {
-  auto fix_progress = [](int32 progress) {
-    return progress <= 0 || progress > 100 ? 0 : progress;
-  };
-
-  switch (action->get_id()) {
-    case telegram_api::sendMessageCancelAction::ID:
-      return make_tl_object<td_api::chatActionCancel>();
-    case telegram_api::sendMessageTypingAction::ID:
-      return make_tl_object<td_api::chatActionTyping>();
-    case telegram_api::sendMessageRecordVideoAction::ID:
-      return make_tl_object<td_api::chatActionRecordingVideo>();
-    case telegram_api::sendMessageUploadVideoAction::ID: {
-      auto upload_video_action = move_tl_object_as<telegram_api::sendMessageUploadVideoAction>(action);
-      return make_tl_object<td_api::chatActionUploadingVideo>(fix_progress(upload_video_action->progress_));
-    }
-    case telegram_api::sendMessageRecordAudioAction::ID:
-      return make_tl_object<td_api::chatActionRecordingVoiceNote>();
-    case telegram_api::sendMessageUploadAudioAction::ID: {
-      auto upload_audio_action = move_tl_object_as<telegram_api::sendMessageUploadAudioAction>(action);
-      return make_tl_object<td_api::chatActionUploadingVoiceNote>(fix_progress(upload_audio_action->progress_));
-    }
-    case telegram_api::sendMessageUploadPhotoAction::ID: {
-      auto upload_photo_action = move_tl_object_as<telegram_api::sendMessageUploadPhotoAction>(action);
-      return make_tl_object<td_api::chatActionUploadingPhoto>(fix_progress(upload_photo_action->progress_));
-    }
-    case telegram_api::sendMessageUploadDocumentAction::ID: {
-      auto upload_document_action = move_tl_object_as<telegram_api::sendMessageUploadDocumentAction>(action);
-      return make_tl_object<td_api::chatActionUploadingDocument>(fix_progress(upload_document_action->progress_));
-    }
-    case telegram_api::sendMessageGeoLocationAction::ID:
-      return make_tl_object<td_api::chatActionChoosingLocation>();
-    case telegram_api::sendMessageChooseContactAction::ID:
-      return make_tl_object<td_api::chatActionChoosingContact>();
-    case telegram_api::sendMessageGamePlayAction::ID:
-      return make_tl_object<td_api::chatActionStartPlayingGame>();
-    case telegram_api::sendMessageRecordRoundAction::ID:
-      return make_tl_object<td_api::chatActionRecordingVideoNote>();
-    case telegram_api::sendMessageUploadRoundAction::ID: {
-      auto upload_round_action = move_tl_object_as<telegram_api::sendMessageUploadRoundAction>(action);
-      return make_tl_object<td_api::chatActionUploadingVideoNote>(fix_progress(upload_round_action->progress_));
-    }
-    default:
-      UNREACHABLE();
-      return make_tl_object<td_api::chatActionTyping>();
-  }
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/) {
   UserId user_id(update->user_id_);
   if (!td_->contacts_manager_->have_min_user(user_id)) {
@@ -1890,8 +1842,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     return;
   }
   td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
-                                                convert_send_message_action(std::move(update->action_)),
-                                                get_short_update_date());
+                                                DialogAction(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1906,8 +1857,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
     return;
   }
   td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
-                                                convert_send_message_action(std::move(update->action_)),
-                                                get_short_update_date());
+                                                DialogAction(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/) {
@@ -1930,8 +1880,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTypi
     }
   }
   td_->messages_manager_->on_user_dialog_action(dialog_id, top_thread_message_id, user_id,
-                                                convert_send_message_action(std::move(update->action_)),
-                                                get_short_update_date());
+                                                DialogAction(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1950,7 +1899,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
   }
 
   td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
-                                                make_tl_object<td_api::chatActionTyping>(), get_short_update_date());
+                                                DialogAction(DialogAction::Type::Typing, 0), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {
