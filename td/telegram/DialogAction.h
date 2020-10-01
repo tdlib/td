@@ -55,6 +55,8 @@ class DialogAction {
 
   static DialogAction get_uploading_action(MessageContentType message_content_type, int32 progress);
 
+  static DialogAction get_typing_action();
+
  private:
   void init(Type type);
   void init(Type type, int32 progress);

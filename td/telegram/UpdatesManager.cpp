@@ -1898,8 +1898,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
     return;
   }
 
-  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
-                                                DialogAction(DialogAction::Type::Typing, 0), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id, DialogAction::get_typing_action(),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {

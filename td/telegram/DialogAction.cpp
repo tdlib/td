@@ -331,6 +331,10 @@ DialogAction DialogAction::get_uploading_action(MessageContentType message_conte
   }
 }
 
+DialogAction DialogAction::get_typing_action() {
+  return DialogAction(Type::Typing, 0);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action) {
   string_builder << "ChatAction";
   const char *type = [action_type = action.type_] {
