@@ -16041,6 +16041,21 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   return replied_message_id;
 }
 
+Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  if (m->reply_info.is_comment) {
+    if (!is_visible_message_reply_info(dialog_id, m)) {
+      return Status::Error(400, "Message has no comments");
+    }
+    return FullMessageId{DialogId(m->reply_info.channel_id), m->linked_top_thread_message_id};
+  } else {
+    if (!m->top_thread_message_id.is_valid()) {
+      return Status::Error(400, "Message has no thread");
+    }
+    return FullMessageId{dialog_id, m->top_thread_message_id};
+  }
+}
+
 void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_id,
                                          Promise<MessageThreadInfo> &&promise) {
   LOG(INFO) << "Get message thread from " << message_id << " in " << dialog_id;
@@ -16063,21 +16078,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  DialogId message_thread_dialog_id;
-  MessageId top_thread_message_id;
-  if (m->reply_info.is_comment) {
-    if (!is_visible_message_reply_info(dialog_id, m)) {
-      return promise.set_error(Status::Error(400, "Message has no comments"));
-    }
-    message_thread_dialog_id = DialogId(m->reply_info.channel_id);
-  } else {
-    if (!m->top_thread_message_id.is_valid()) {
-      return promise.set_error(Status::Error(400, "Message has no thread"));
-    }
-    message_thread_dialog_id = dialog_id;
-    top_thread_message_id = m->top_thread_message_id;
-  }
-  CHECK(message_thread_dialog_id.is_valid());
+  TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m));
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
@@ -16090,7 +16091,8 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
       });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, message_id, message_thread_dialog_id, top_thread_message_id);
+      ->send(dialog_id, message_id, top_thread_full_message_id.get_dialog_id(),
+             top_thread_full_message_id.get_message_id());
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
@@ -19805,8 +19807,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     return {};
   }
 
-  DialogId message_thread_dialog_id;
-  MessageId top_thread_message_id;
+  FullMessageId top_thread_full_message_id;
   {
     Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
     if (m == nullptr) {
@@ -19814,35 +19815,27 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
 
-    if (m->reply_info.is_comment) {
-      if (!is_visible_message_reply_info(dialog_id, m)) {
-        promise.set_error(Status::Error(400, "Message has no comments"));
-        return {};
-      }
-      if (!m->linked_top_thread_message_id.is_valid()) {
-        get_message_thread(
-            dialog_id, message_id,
-            PromiseCreator::lambda([promise = std::move(promise)](Result<MessageThreadInfo> &&result) mutable {
-              if (result.is_error()) {
-                promise.set_error(result.move_as_error());
-              } else {
-                promise.set_value(Unit());
-              }
-            }));
-        return {};
-      }
-      message_thread_dialog_id = DialogId(m->reply_info.channel_id);
-      top_thread_message_id = m->linked_top_thread_message_id;
-    } else {
-      if (!m->top_thread_message_id.is_valid()) {
-        promise.set_error(Status::Error(400, "Message has no thread"));
-        return {};
-      }
-      message_thread_dialog_id = dialog_id;
-      top_thread_message_id = m->top_thread_message_id;
+    auto r_top_thread_full_message_id = get_top_thread_full_message_id(dialog_id, m);
+    if (r_top_thread_full_message_id.is_error()) {
+      promise.set_error(r_top_thread_full_message_id.move_as_error());
+      return {};
+    }
+    top_thread_full_message_id = r_top_thread_full_message_id.move_as_ok();
+
+    if (!top_thread_full_message_id.get_message_id().is_valid()) {
+      CHECK(m->reply_info.is_comment);
+      get_message_thread(
+          dialog_id, message_id,
+          PromiseCreator::lambda([promise = std::move(promise)](Result<MessageThreadInfo> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              promise.set_value(Unit());
+            }
+          }));
+      return {};
     }
   }
-  CHECK(top_thread_message_id.is_valid());
 
   if (random_id != 0) {
     // request has already been sent before
@@ -19859,12 +19852,12 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       d = get_dialog(dialog_id);
       CHECK(d != nullptr);
     }
-    if (dialog_id != message_thread_dialog_id) {
+    if (dialog_id != top_thread_full_message_id.get_dialog_id()) {
       promise.set_error(Status::Error(500, "Receive messages in an unexpected chat"));
       return {};
     }
 
-    auto yet_unsent_it = d->yet_unsent_thread_message_ids.find(top_thread_message_id);
+    auto yet_unsent_it = d->yet_unsent_thread_message_ids.find(top_thread_full_message_id.get_message_id());
     if (yet_unsent_it != d->yet_unsent_thread_message_ids.end()) {
       const std::set<MessageId> &message_ids = yet_unsent_it->second;
       auto merge_message_ids = get_message_history_slice(message_ids.begin(), message_ids.lower_bound(from_message_id),
@@ -19875,7 +19868,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       result = std::move(new_result);
     }
 
-    Message *top_m = get_message_force(d, top_thread_message_id, "get_message_thread_history 2");
+    Message *top_m = get_message_force(d, top_thread_full_message_id.get_message_id(), "get_message_thread_history 2");
     if (top_m != nullptr && !top_m->local_thread_message_ids.empty()) {
       vector<MessageId> &message_ids = top_m->local_thread_message_ids;
       vector<MessageId> merge_message_ids;
