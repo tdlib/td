@@ -10303,6 +10303,10 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
 int32 MessagesManager::get_unload_dialog_delay() const {
   constexpr int32 DIALOG_UNLOAD_DELAY = 60;        // seconds
   constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 1800;  // seconds
+  auto custom_unload_delay = clamp(G()->shared_config().get_option_integer("dialog_unload_delay", -1), -1, 86400);
+  if (custom_unload_delay != -1) {
+    return custom_unload_delay;
+  }
   return td_->auth_manager_->is_bot() ? DIALOG_UNLOAD_BOT_DELAY : DIALOG_UNLOAD_DELAY;
 }
 
@@ -13968,7 +13972,8 @@ void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
 }
 
 bool MessagesManager::is_message_unload_enabled() const {
-  return G()->parameters().use_message_db || td_->auth_manager_->is_bot();
+  auto has_custom_unload_time = clamp(G()->shared_config().get_option_integer("unload_messages_after_seconds", -1), -1, 86400) != -1;
+  return G()->parameters().use_message_db || td_->auth_manager_->is_bot() || has_custom_unload_time;
 }
 
 bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) const {
