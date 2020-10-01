@@ -18,7 +18,6 @@
 namespace td {
 
 class DialogAction {
- public:
   enum class Type : int32 {
     Cancel,
     Typing,
@@ -37,9 +36,14 @@ class DialogAction {
   Type type_ = Type::Cancel;
   int32 progress_ = 0;
 
-  DialogAction() = default;
-
   DialogAction(Type type, int32 progress);
+
+  void init(Type type);
+
+  void init(Type type, int32 progress);
+
+ public:
+  DialogAction() = default;
 
   explicit DialogAction(tl_object_ptr<td_api::ChatAction> &&action);
 
@@ -57,14 +61,12 @@ class DialogAction {
 
   static DialogAction get_typing_action();
 
- private:
-  void init(Type type);
-  void init(Type type, int32 progress);
-};
+  friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
+    return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_;
+  }
 
-inline bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
-  return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_;
-}
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action);
+};
 
 inline bool operator!=(const DialogAction &lhs, const DialogAction &rhs) {
   return !(lhs == rhs);
