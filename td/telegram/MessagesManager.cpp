@@ -1828,6 +1828,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
   MessageSearchFilter filter_;
   MessageId top_thread_message_id_;
   int64 random_id_;
+  bool handle_errors_ = true;
 
  public:
   explicit SearchMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -1858,6 +1859,8 @@ class SearchMessagesQuery : public Td::ResultHandler {
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (top_thread_message_id.is_valid() && !sender_user_id.is_valid() && filter == MessageSearchFilter::Empty) {
+      handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
+                       td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Broadcast;
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
           std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
           from_message_id.get_server_message_id().get(), 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
@@ -1899,7 +1902,9 @@ class SearchMessagesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
+    if (!handle_errors_) {
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
+    }
     td->messages_manager_->on_failed_dialog_messages_search(dialog_id_, random_id_);
     promise_.set_error(std::move(status));
   }
