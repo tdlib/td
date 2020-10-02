@@ -7124,6 +7124,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'd':
+      if ((parameters_.use_message_db || is_bot) && set_integer_option("chat_unload_delay", 60, 86400)) {
+        return;
+      }
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
