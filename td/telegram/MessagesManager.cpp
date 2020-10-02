@@ -15974,14 +15974,23 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Message is scheduled");
   }
-  if (m->reply_info.is_comment) {
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return Status::Error(400, "Chat can't have message threads");
+  }
+  if (!m->reply_info.is_empty() && m->reply_info.is_comment) {
     if (!is_visible_message_reply_info(dialog_id, m)) {
       return Status::Error(400, "Message has no comments");
     }
     return FullMessageId{DialogId(m->reply_info.channel_id), m->linked_top_thread_message_id};
   } else {
-    if (!m->top_thread_message_id.is_valid() || !is_visible_message_reply_info(dialog_id, m)) {
+    if (!m->top_thread_message_id.is_valid()) {
       return Status::Error(400, "Message has no thread");
+    }
+    if (!m->message_id.is_server()) {
+      return Status::Error(400, "Message thread is unavailable for the message");
+    }
+    if (!td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
+      return Status::Error(400, "Message threads are unavailable in the chat");
     }
     return FullMessageId{dialog_id, m->top_thread_message_id};
   }
