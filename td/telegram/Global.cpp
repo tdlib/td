@@ -266,7 +266,7 @@ void Global::add_location_access_hash(double latitude, double longitude, int64 a
   location_access_hashes_[get_location_key(latitude, longitude)] = access_hash;
 }
 
-double get_server_time() {
+double get_global_server_time() {
   return G()->server_time();
 }
 

@@ -36,7 +36,7 @@ void store_time(double time_at, StorerT &storer) {
   } else {
     double time_left = max(time_at - Time::now(), 0.0);
     store(time_left, storer);
-    store(get_server_time(), storer);
+    store(get_global_server_time(), storer);
   }
 }
 
