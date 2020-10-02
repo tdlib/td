@@ -12582,6 +12582,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
                << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
     is_outgoing = supposed_to_be_outgoing;
 
+    /*
+    // it is useless to call getChannelsDifference, because the channel pts will be increased already
     if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
         get_channel_difference_to_log_event_id_.count(dialog_id) == 0) {
       // it is safer to completely ignore the message and re-get it through getChannelsDifference
@@ -12591,6 +12593,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         return {DialogId(), nullptr};
       }
     }
+    */
   }
 
   MessageId reply_to_message_id = message_info.reply_to_message_id;
