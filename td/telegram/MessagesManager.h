@@ -2187,7 +2187,7 @@ class MessagesManager : public Actor {
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                    bool from_cache) const;
 
-  void send_update_new_chat(Dialog *d, int64 real_order);
+  void send_update_new_chat(Dialog *d);
 
   void send_update_chat_draft_message(const Dialog *d);
 
@@ -2388,7 +2388,7 @@ class MessagesManager : public Actor {
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d,
                                                                        bool hide_unarchive = false) const;
 
-  td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d, int64 real_order = DEFAULT_ORDER) const;
+  td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
