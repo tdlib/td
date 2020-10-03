@@ -854,6 +854,13 @@ class CliClient final : public Actor {
     options.net_query_stats = net_query_stats_;
 
     td_client_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_), std::move(options));
+
+    if (get_chat_list_) {
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 100));
+    }
+    if (disable_network_) {
+      send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeNone>()));
+    }
   }
 
   void init_td() {
@@ -923,13 +930,6 @@ class CliClient final : public Actor {
     reactivate_readline();
 #endif
     Scheduler::subscribe(stdin_.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
-
-    if (get_chat_list_) {
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 100));
-    }
-    if (disable_network_) {
-      send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeNone>()));
-    }
   }
 #ifndef USE_READLINE
   size_t buffer_pos_ = 0;
