@@ -7552,6 +7552,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     int32 profile_photo_local_id = 0;
     int32 profile_photo_dc_id = 1;
     string first_name;
+    string last_name;
     string username;
     string phone_number;
     int32 bot_info_version = 0;
@@ -7559,6 +7560,10 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     if (user_id == get_service_notifications_user_id()) {
       flags |= telegram_api::user::PHONE_MASK | telegram_api::user::VERIFIED_MASK | telegram_api::user::SUPPORT_MASK;
       first_name = "Telegram";
+      if (G()->is_test_dc()) {
+        flags |= telegram_api::user::LAST_NAME_MASK;
+        last_name = "Notifications";
+      }
       phone_number = "42777";
       profile_photo_id = 3337190045231023;
       profile_photo_volume_id = 107738948;
@@ -12338,8 +12343,9 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
     return false;
   }
 
-  if (user_id == UserId(777000)) {
-    get_user_force(user_id);  // preload 777000 synchronously
+  if (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
+      user_id == get_anonymous_bot_user_id()) {
+    get_user_force(user_id);
   }
 
   // TODO support loading user from database and merging it with min-user in memory
