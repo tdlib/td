@@ -1357,6 +1357,9 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   if (seq_begin <= seq_) {
+    if (seq_ >= 1000000000 && seq_begin < seq_ - 1000000000) {
+      set_seq_gap_timeout(0.001);
+    }
     if (seq_end > seq_) {
       LOG(ERROR) << "Strange updates from " << source << " coming with seq_begin = " << seq_begin
                  << ", seq_end = " << seq_end << ", but seq = " << seq_;
