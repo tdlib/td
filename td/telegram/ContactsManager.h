@@ -265,6 +265,10 @@ class ContactsManager : public Actor {
 
   static UserId get_replies_bot_user_id();
 
+  static UserId get_anonymous_bot_user_id();
+
+  UserId add_anonymous_bot_user();
+
   void on_update_online_status_privacy();
 
   void on_update_phone_number_privacy();

@@ -4418,6 +4418,18 @@ UserId ContactsManager::get_replies_bot_user_id() {
   return UserId(G()->is_test_dc() ? 708513 : 1271266957);
 }
 
+UserId ContactsManager::get_anonymous_bot_user_id() {
+  return UserId(G()->is_test_dc() ? 552888 : 1087968824);
+}
+
+UserId ContactsManager::add_anonymous_bot_user() {
+  auto user_id = get_anonymous_bot_user_id();
+  if (!have_user_force(user_id)) {
+    LOG(FATAL) << "Failed to load anonymous bot user";
+  }
+  return user_id;
+}
+
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
@@ -7530,38 +7542,60 @@ bool ContactsManager::have_user_force(UserId user_id) {
 
 ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   auto u = get_user_force_impl(user_id);
-  if (user_id == get_service_notifications_user_id() && (u == nullptr || !u->is_received)) {
+  if ((u == nullptr || !u->is_received) &&
+      (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
+       user_id == get_anonymous_bot_user_id())) {
     int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
-                  telegram_api::user::SUPPORT_MASK | telegram_api::user::APPLY_MIN_PHOTO_MASK;
-    auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-        0, false /*ignored*/, 3337190045231023,
-        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13226),
-        telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(107738948, 13228), 1);
-    if (G()->is_test_dc()) {
-      profile_photo = nullptr;
-      flags -= telegram_api::user::PHOTO_MASK;
+                  telegram_api::user::APPLY_MIN_PHOTO_MASK;
+    int64 profile_photo_id = 0;
+    int64 profile_photo_volume_id = 0;
+    int32 profile_photo_local_id = 0;
+    int32 profile_photo_dc_id = 1;
+    string first_name;
+    string username;
+    string phone_number;
+    int32 bot_info_version = 0;
+
+    if (user_id == get_service_notifications_user_id()) {
+      flags |= telegram_api::user::PHONE_MASK | telegram_api::user::VERIFIED_MASK | telegram_api::user::SUPPORT_MASK;
+      first_name = "Telegram";
+      phone_number = "42777";
+      profile_photo_id = 3337190045231023;
+      profile_photo_volume_id = 107738948;
+      profile_photo_local_id = 13226;
+    } else if (user_id == get_replies_bot_user_id()) {
+      flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      first_name = "Replies";
+      username = "replies";
+      bot_info_version = G()->is_test_dc() ? 1 : 3;
+    } else if (user_id == get_anonymous_bot_user_id()) {
+      flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      first_name = "Group";
+      username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
+      bot_info_version = G()->is_test_dc() ? 1 : 3;
+      profile_photo_id = 5159307831025969322;
+      profile_photo_volume_id = 806529792;
+      profile_photo_local_id = 188482;
+    }
+
+    telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
+    if (!G()->is_test_dc() && profile_photo_id != 0) {
+      flags |= telegram_api::user::PHOTO_MASK;
+      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
+          0, false /*ignored*/, profile_photo_id,
+          telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(profile_photo_volume_id,
+                                                                              profile_photo_local_id),
+          telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(profile_photo_volume_id,
+                                                                              profile_photo_local_id + 2),
+          profile_photo_dc_id);
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, "Telegram",
-        string(), string(), "42777", std::move(profile_photo), nullptr, 0, Auto(), string(), string());
-    on_get_user(std::move(user), "get_user_force");
-    u = get_user(user_id);
-    CHECK(u != nullptr && u->is_received);
-  }
-  if (user_id == get_replies_bot_user_id() && (u == nullptr || !u->is_received)) {
-    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::USERNAME_MASK |
-                  /*telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |*/
-                  telegram_api::user::BOT_MASK | telegram_api::user::APPLY_MIN_PHOTO_MASK;
-    auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, "Replies",
-        string(), "replies", "", nullptr, nullptr, 1, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name,
+        string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(),
+        string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
