@@ -10,6 +10,8 @@ TDLib can be easily used from almost any programming language on any platform. S
 Choose your preferred programming language to see examples of usage and a detailed description:
 
 - [Python](#python)
+- [lazarus](#lazarus)
+- [delphi](#delphi)
 - [JavaScript](#javascript)
 - [Go](#go)
 - [Java](#java)
@@ -48,6 +50,209 @@ These wrappers contain generators for TDLib API classes and basic classes for in
 
 You can also check out [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) and
 [tdlib-python](https://github.com/JunaidBabu/tdlib-python) for some very basic examples of TDLib JSON interface integration with Python.
+
+<a name="lazarus"></a>
+# Using TDLib in Lazarus projects
+
+This Example was developed by [*Ruan Diego Lacerda Menezes*](https://github.com/dieletro/)
+for use and consumption of the Official [*Telegram TDLib API*](https://core.telegram.org/tdlib) for use in Lazarus
+
+# Developer Support Group:
+ * **[*Telegram*](https://t.me/TinjectTelegram)**
+
+## Description
+
+Client for TDLib (Telegram database library) with Lazarus through the json interface.
+
+## Requirements
+
+* Lazarus 2.0.10 or latter
+* [superobject](https://github.com/hgourvest/superobject) Files 
+
+## Install
+
+Add to your Lazarus project:
+
+    superdate.pas
+    superobject.pas
+    supertimezone.pas
+    supertypes.pas
+    superxmlparser.pas
+    
+Declare in your Uses:
+
+    superobject;
+    
+## Configuration
+-- Windows
+
+TDLib requires other third-parties libraries: OpenSSL and ZLib. These libraries must be deployed with tdjson library.
+* [OpenSSL](https://wiki.openssl.org/index.php/Binaries)
+* [ZLib](http://www.winimage.com/zLibDll/)
+* Windows versions requires VCRuntime which can be download from microsoft: https://www.microsoft.com/en-us/download/details.aspx?id=52685
+
+Copy the following libraries in the same directory where is your application:
+
+### Windows 64
+    tdjson-x64.dll
+    libcrypto-1_1-x64.dll
+    libssl-1_1-x64.dll
+    zlib1.dll
+
+### Windows 32	
+    tdjson.dll	
+    libcrypto-1_1.dll	
+    libssl-1_1.dll	
+    zlib1.dll	
+
+### Linux64
+
+Deploy the library libtdjson.so to your device and set the library path calling the method SetTDJsonPath.
+
+* **Precompiled binaries included in the example project**
+> - [X] Windows 64.
+> - [X] Windows 32.
+> - [X] Linux64.
+
+## Creating your Telegram Application
+In order to obtain an API id and develop your own application using the Telegram API you need to do the following:
+
+Sign up for Telegram using any application.
+
+Log in to your Telegram core: https://my.telegram.org.
+
+Go to API development tools and fill out the form.
+
+You will get basic addresses as well as the api_id and api_hash parameters required for user authorization.
+
+For the moment each number can only have one api_id connected to it.
+
+These values must be set in Telegram.API property of Telegram component. In order to authenticate, you can authenticate as an user or as a bot, there are 2 properties which you can set to login to Telegram:
+
+PhoneNumber: if you login as an user, you must set your phone number (with international code), example: +5521997196000
+
+DatabaseDirectory: allows to specify where is the tdlib database. Leave empty and will take the default configuration.
+
+## The following parameters can be configured:
+
+* ApplicationVersion: application version, example: 1.0
+* DeviceModel: device model, example: desktop
+* LanguageCode: user language code, example: en or pt, es, ...
+* SystemVersion: verison of operating system, example: windows.
+
+# TDLib for Lazarus
+For more information, go here
+ * **[*tdlib-lazarus*](https://github.com/dieletro/tdlib-lazarus)**
+
+<a name="delphi"></a>
+# Using TDLib in Delphi projects
+
+This Example was developed by [*Ruan Diego Lacerda Menezes*](https://github.com/dieletro/)
+for use and consumption of the Official [*Telegram TDLib API*](https://core.telegram.org/tdlib) for use in Delphi
+
+# Developer Support Group:
+ * **[*Telegram*](https://t.me/TinjectTelegram)**
+
+## Description
+
+Client for TDLib (Telegram database library) with Delphi through the json interface.
+
+## Requirements
+
+* Delphi 2010 or latter
+* [x-superobject](https://github.com/onryldz/x-superobject) Files 
+
+## Install
+
+Add to your Delphi project:
+
+    XSuperJSON.pas
+    XSuperObject.inc
+    XSuperObject.pas
+    
+Declare in your Uses:
+
+    XSuperJSON,
+    XSuperObject;
+    
+## Configuration
+-- Windows
+
+TDLib requires other third-parties libraries: OpenSSL and ZLib. These libraries must be deployed with tdjson library.
+* [OpenSSL](https://wiki.openssl.org/index.php/Binaries)
+* [ZLib](http://www.winimage.com/zLibDll/)
+* Windows versions requires VCRuntime which can be download from microsoft: https://www.microsoft.com/en-us/download/details.aspx?id=52685
+
+Copy the following libraries in the same directory where is your application:
+
+### Windows 64
+    tdjson-x64.dll
+    libcrypto-1_1-x64.dll
+    libssl-1_1-x64.dll
+    zlib1.dll
+
+### Windows 32	
+    tdjson.dll	
+    libcrypto-1_1.dll	
+    libssl-1_1.dll	
+    zlib1.dll	
+
+### OSX64
+
+Deploy the library libtdjson.dylib to your device and you can set where is the library using SetTDJsonPath, example:
+
+if you deploy to "Contents\MacOS\", you must set the path in System.SysUtils.GetCurrentDir folder.
+
+### Linux64
+
+Deploy the library libtdjson.so to your device and set the library path calling the method SetTDJsonPath.
+
+### Android
+
+Deploy the library libtdjsonandroid.so to your device. Example: if you deploy an Android64 library, set RemotePath in Project/Deployment to "library\lib\arm64-v8a\". If is Android32, set RemotePath to "library\lib\armeabi-v7a\"
+
+### iOS64
+
+Copy the library libtdjson.a to these directories:
+
+C:\Program Files (x86)\Embarcadero\Studio\<IDE Version>\lib\iosDevice64\debug
+
+C:\Program Files (x86)\Embarcadero\Studio\<IDE Version>\lib\iosDevice64\release
+
+* **Precompiled binaries included in the example project**
+> - [X] Windows 64.
+> - [X] Windows 32.
+> - [X] Linux64.
+
+## Creating your Telegram Application
+In order to obtain an API id and develop your own application using the Telegram API you need to do the following:
+
+Sign up for Telegram using any application.
+
+Log in to your Telegram core: https://my.telegram.org.
+
+Go to API development tools and fill out the form.
+
+You will get basic addresses as well as the api_id and api_hash parameters required for user authorization.
+
+For the moment each number can only have one api_id connected to it.
+
+These values must be set in Telegram.API property of Telegram component. In order to authenticate, you can authenticate as an user or as a bot, there are 2 properties which you can set to login to Telegram:
+
+PhoneNumber: if you login as an user, you must set your phone number (with international code), example: +5521997196000
+
+DatabaseDirectory: allows to specify where is the tdlib database. Leave empty and will take the default configuration.
+
+## The following parameters can be configured:
+
+* ApplicationVersion: application version, example: 1.0
+* DeviceModel: device model, example: desktop
+* LanguageCode: user language code, example: en or pt, es, ...
+* SystemVersion: verison of operating system, example: windows.
+
+# TDLib for Delphi
+For more information, go here
+ * **[*tdlib-delphi*](https://github.com/dieletro/tdlib-delphi)**
 
 <a name="javascript"></a>
 ## Using TDLib in JavaScript projects
