@@ -498,6 +498,7 @@ application/x-dtbresource+xml			res
 application/x-dvi				dvi
 application/x-envoy				evy
 application/x-eva				eva
+application/x-fictionbook+xml			fb2
 application/x-font-bdf				bdf
 application/x-font-ghostscript			gsf
 application/x-font-linux-psf			psf
