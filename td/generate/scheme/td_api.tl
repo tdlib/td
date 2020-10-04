@@ -441,7 +441,7 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 
 //@description The user is the owner of a chat and has all the administrator privileges
 //@custom_title A custom title of the owner; 0-16 characters without emojis; applicable to supergroups only
-//@is_anonymous True, if the creator isn't shown in the chat member list and sends messages anonymously
+//@is_anonymous True, if the creator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
 //@is_member True, if the user is a member of the chat
 chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = ChatMemberStatus;
 
@@ -456,7 +456,7 @@ chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = C
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
 //@can_pin_messages True, if the administrator can pin messages; applicable to groups only
 //@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
-//@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously
+//@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
 chatMemberStatusAdministrator custom_title:string can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool is_anonymous:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat, without any additional privileges or restrictions
