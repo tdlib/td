@@ -27,19 +27,9 @@ void td_json_client_send(void *client, const char *request) {
 }
 
 const char *td_json_client_receive(void *client, double timeout) {
-  auto slice = static_cast<td::ClientJson *>(client)->receive(timeout);
-  if (slice.empty()) {
-    return nullptr;
-  } else {
-    return slice.c_str();
-  }
+  return static_cast<td::ClientJson *>(client)->receive(timeout);
 }
 
 const char *td_json_client_execute(void *client, const char *request) {
-  auto slice = td::ClientJson::execute(td::Slice(request == nullptr ? "" : request));
-  if (slice.empty()) {
-    return nullptr;
-  } else {
-    return slice.c_str();
-  }
+  return td::ClientJson::execute(td::Slice(request == nullptr ? "" : request));
 }

@@ -84,7 +84,7 @@ TDJSON_EXPORT const char *td_json_client_receive(void *client, double timeout);
  * in the same thread, so it can't be used after that.
  * \param[in] client The client. Currently ignored for all requests, so NULL can be passed.
  * \param[in] request JSON-serialized null-terminated request to TDLib.
- * \return JSON-serialized null-terminated request response. May be NULL if the request can't be parsed.
+ * \return JSON-serialized null-terminated request response.
  */
 TDJSON_EXPORT const char *td_json_client_execute(void *client, const char *request);
 

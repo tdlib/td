@@ -22,9 +22,9 @@ class ClientJson final {
  public:
   void send(Slice request);
 
-  CSlice receive(double timeout);
+  const char *receive(double timeout);
 
-  static CSlice execute(Slice request);
+  static const char *execute(Slice request);
 
  private:
   Client client_;

@@ -67,10 +67,10 @@ static std::string from_response(const td_api::Object &object, const string &ext
 
 static TD_THREAD_LOCAL std::string *current_output;
 
-static CSlice store_string(std::string str) {
+static const char *store_string(std::string str) {
   init_thread_local<std::string>(current_output);
   *current_output = std::move(str);
-  return *current_output;
+  return current_output->c_str();
 }
 
 void ClientJson::send(Slice request) {
@@ -83,10 +83,10 @@ void ClientJson::send(Slice request) {
   client_.send(Client::Request{extra_id, std::move(parsed_request.first)});
 }
 
-CSlice ClientJson::receive(double timeout) {
+const char *ClientJson::receive(double timeout) {
   auto response = client_.receive(timeout);
   if (!response.object) {
-    return {};
+    return nullptr;
   }
 
   std::string extra;
@@ -101,7 +101,7 @@ CSlice ClientJson::receive(double timeout) {
   return store_string(from_response(*response.object, extra));
 }
 
-CSlice ClientJson::execute(Slice request) {
+const char *ClientJson::execute(Slice request) {
   auto parsed_request = to_request(request);
   return store_string(from_response(*Client::execute(Client::Request{0, std::move(parsed_request.first)}).object,
                                     parsed_request.second));
