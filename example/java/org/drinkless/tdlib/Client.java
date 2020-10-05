@@ -104,28 +104,6 @@ public final class Client implements Runnable {
     }
 
     /**
-     * Replaces handler for incoming updates from the TDLib.
-     *
-     * @param updateHandler    Handler with onResult method which will be called for every incoming
-     *                         update from the TDLib.
-     * @param exceptionHandler Exception handler with onException method which will be called on
-     *                         exception thrown from updateHandler, if it is null, defaultExceptionHandler will be invoked.
-     */
-    public void setUpdateHandler(ResultHandler updateHandler, ExceptionHandler exceptionHandler) {
-        updateHandlers.put(nativeClientId, new Handler(updateHandler, exceptionHandler));
-    }
-
-    /**
-     * Replaces handler for incoming updates from the TDLib. Sets empty ExceptionHandler.
-     *
-     * @param updateHandler Handler with onResult method which will be called for every incoming
-     *                      update from the TDLib.
-     */
-    public void setUpdateHandler(ResultHandler updateHandler) {
-        setUpdateHandler(updateHandler, null);
-    }
-
-    /**
      * Replaces default exception handler to be invoked on exceptions thrown from updateHandler and all other ResultHandler.
      *
      * @param defaultExceptionHandler Default exception handler. If null Exceptions are ignored.
