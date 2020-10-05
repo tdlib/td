@@ -53,13 +53,11 @@ void ResourceManager::update_resources(const ResourceState &resource_state) {
   }
   auto node = (*node_ptr).get();
   CHECK(node);
-  VLOG(files) << "Before total: " << resource_state_;
-  VLOG(files) << "Before " << tag("node_id", node_id) << ": " << node->resource_state_;
+  VLOG(file_loader) << "Before total: " << resource_state_ << "; node " << node_id << ": " << node->resource_state_;
   resource_state_ -= node->resource_state_;
   node->resource_state_.update_master(resource_state);
   resource_state_ += node->resource_state_;
-  VLOG(files) << "After total: " << resource_state_;
-  VLOG(files) << "After " << tag("node_id", node_id) << ": " << node->resource_state_;
+  VLOG(file_loader) << "After total: " << resource_state_ << "; node " << node_id << ": " << node->resource_state_;
 
   if (mode_ == Mode::Greedy) {
     add_to_heap(node);
@@ -107,16 +105,16 @@ bool ResourceManager::satisfy_node(NodeId file_node_id) {
   CHECK(file_node);
   auto part_size = narrow_cast<int64>(file_node->resource_state_.unit_size());
   auto need = file_node->resource_state_.estimated_extra();
-  VLOG(files) << tag("need", need) << tag("part_size", part_size);
+  VLOG(file_loader) << tag("need", need) << tag("part_size", part_size);
   need = (need + part_size - 1) / part_size * part_size;
-  VLOG(files) << tag("need", need);
+  VLOG(file_loader) << tag("need", need);
   if (need == 0) {
     return true;
   }
   auto give = resource_state_.unused();
   give = min(need, give);
   give -= give % part_size;
-  VLOG(files) << tag("give", give);
+  VLOG(file_loader) << tag("give", give);
   if (give == 0) {
     return false;
   }

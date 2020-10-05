@@ -147,9 +147,9 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
 }
 
 bool PartsManager::unchecked_ready() {
-  VLOG(files) << "Check readiness. Ready size is " << ready_size_ << ", total size is " << size_
-              << ", unknown_size_flag = " << unknown_size_flag_ << ", need_check = " << need_check_
-              << ", checked_prefix_size = " << checked_prefix_size_;
+  VLOG(file_loader) << "Check readiness. Ready size is " << ready_size_ << ", total size is " << size_
+                    << ", unknown_size_flag = " << unknown_size_flag_ << ", need_check = " << need_check_
+                    << ", checked_prefix_size = " << checked_prefix_size_;
   return !unknown_size_flag_ && ready_size_ == size_;
 }
 
@@ -352,7 +352,7 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
     streaming_ready_size_ += narrow_cast<int64>(actual_size);
   }
 
-  VLOG(files) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
+  VLOG(file_loader) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
 
   int64 offset = narrow_cast<int64>(part_size_) * id;
   int64 end_offset = offset + narrow_cast<int64>(actual_size);

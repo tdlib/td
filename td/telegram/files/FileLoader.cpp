@@ -31,7 +31,7 @@ void FileLoader::update_priority(int8 priority) {
 }
 void FileLoader::update_resources(const ResourceState &other) {
   resource_state_.update_slave(other);
-  VLOG(files) << "Update resources " << resource_state_;
+  VLOG(file_loader) << "Update resources " << resource_state_;
   loop();
 }
 void FileLoader::set_ordered_flag(bool flag) {
@@ -79,10 +79,10 @@ void FileLoader::update_downloaded_part(int64 offset, int64 limit) {
                                       : static_cast<int32>((offset + limit - 1) / parts_manager_.get_part_size()) + 1;
     auto max_parts = static_cast<int32>(ResourceManager::MAX_RESOURCE_LIMIT / parts_manager_.get_part_size());
     auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
-    VLOG(files) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
+    VLOG(file_loader) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
       if (!it.second.second.empty() && !(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
-        VLOG(files) << "Cancel part " << it.second.first.id;
+        VLOG(file_loader) << "Cancel part " << it.second.first.id;
         it.second.second.reset();  // cancel_query(it.second.second);
       }
     }
@@ -194,14 +194,14 @@ Status FileLoader::do_loop() {
       break;
     }
     if (resource_state_.unused() < static_cast<int64>(parts_manager_.get_part_size())) {
-      VLOG(files) << "Got only " << resource_state_.unused() << " resource";
+      VLOG(file_loader) << "Got only " << resource_state_.unused() << " resource";
       break;
     }
     TRY_RESULT(part, parts_manager_.start_part());
     if (part.size == 0) {
       break;
     }
-    VLOG(files) << "Start part " << tag("id", part.id) << tag("size", part.size);
+    VLOG(file_loader) << "Start part " << tag("id", part.id) << tag("size", part.size);
     resource_state_.start_use(static_cast<int64>(part.size));
 
     TRY_RESULT(query_flag, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
@@ -245,7 +245,7 @@ void FileLoader::update_estimated_limit() {
   }
   auto estimated_extra = parts_manager_.get_estimated_extra();
   resource_state_.update_estimated_limit(estimated_extra);
-  VLOG(files) << "Update estimated limit " << estimated_extra;
+  VLOG(file_loader) << "Update estimated limit " << estimated_extra;
   if (!resource_manager_.empty()) {
     keep_fd_flag(narrow_cast<uint64>(resource_state_.active_limit()) >= parts_manager_.get_part_size());
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
@@ -282,7 +282,7 @@ void FileLoader::on_result(NetQueryPtr query) {
       should_restart = true;
     }
     if (should_restart) {
-      VLOG(files) << "Restart part " << tag("id", part.id) << tag("size", part.size);
+      VLOG(file_loader) << "Restart part " << tag("id", part.id) << tag("size", part.size);
       resource_state_.stop_use(static_cast<int64>(part.size));
       parts_manager_.on_part_failed(part.id);
     } else {
@@ -331,7 +331,7 @@ void FileLoader::on_common_query(NetQueryPtr query) {
 
 Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
   TRY_RESULT(size, process_part(part, std::move(query)));
-  VLOG(files) << "Ok part " << tag("id", part.id) << tag("size", part.size);
+  VLOG(file_loader) << "Ok part " << tag("id", part.id) << tag("size", part.size);
   resource_state_.stop_use(static_cast<int64>(part.size));
   auto old_ready_prefix_count = parts_manager_.get_unchecked_ready_prefix_count();
   TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));

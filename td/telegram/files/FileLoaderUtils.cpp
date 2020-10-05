@@ -25,7 +25,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(files) = VERBOSITY_NAME(DEBUG) + 2;
+int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
 
 namespace {
 Result<std::pair<FileFd, string>> try_create_new_file(Result<CSlice> result_name) {

@@ -19,7 +19,7 @@
 
 namespace td {
 
-extern int VERBOSITY_NAME(files);
+extern int VERBOSITY_NAME(file_loader);
 
 Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) TD_WARN_UNUSED_RESULT;
 

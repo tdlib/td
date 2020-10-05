@@ -943,11 +943,11 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     size = stat.size_;
   }
   if (location.mtime_nsec_ == 0) {
-    VLOG(files) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
+    VLOG(file_loader) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
     location.mtime_nsec_ = stat.mtime_nsec_;
   } else if (!are_modification_times_equal(location.mtime_nsec_, stat.mtime_nsec_)) {
-    VLOG(files) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
-                << ", new mtime = " << stat.mtime_nsec_;
+    VLOG(file_loader) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
+                      << ", new mtime = " << stat.mtime_nsec_;
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
   if (skip_file_size_checks) {
