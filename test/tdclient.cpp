@@ -917,9 +917,9 @@ TEST(Client, Multi) {
   ASSERT_EQ(8 * 1000, ok_count.load());
 }
 
-TEST(Client, MultiNew) {
+TEST(Client, Manager) {
   td::vector<td::thread> threads;
-  td::MultiClient client;
+  td::ClientManager client;
   int threads_n = 4;
   int clients_n = 1000;
   for (int i = 0; i < threads_n; i++) {
@@ -937,7 +937,7 @@ TEST(Client, MultiNew) {
   std::set<int32> ids;
   while (ids.size() != static_cast<size_t>(threads_n) * clients_n) {
     auto event = client.receive(10);
-    if (event.client_id != 0 && event.id == 3) {
+    if (event.client_id != 0 && event.request_id == 3) {
       ids.insert(event.client_id);
     }
   }

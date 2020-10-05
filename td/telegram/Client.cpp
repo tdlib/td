@@ -45,10 +45,11 @@ class MultiTd : public Actor {
     set_tag(old_tag);
   }
 
-  void send(MultiClient::ClientId client_id, MultiClient::RequestId request_id, MultiClient::Function function) {
+  void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
+            td_api::object_ptr<td_api::Function> &&request) {
     auto &td = tds_[client_id];
     CHECK(!td.empty());
-    send_closure(td, &Td::request, request_id, std::move(function));
+    send_closure(td, &Td::request, request_id, std::move(request));
   }
 
   void close(int32 td_id) {
@@ -64,7 +65,7 @@ class MultiTd : public Actor {
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
 class TdReceiver {
  public:
-  MultiClient::Response receive(double timeout) {
+  ClientManager::Response receive(double timeout) {
     if (!responses_.empty()) {
       auto result = std::move(responses_.front());
       responses_.pop();
@@ -73,10 +74,10 @@ class TdReceiver {
     return {0, 0, nullptr};
   }
 
-  unique_ptr<TdCallback> create_callback(MultiClient::ClientId client_id) {
+  unique_ptr<TdCallback> create_callback(ClientManager::ClientId client_id) {
     class Callback : public TdCallback {
      public:
-      Callback(MultiClient::ClientId client_id, TdReceiver *impl) : client_id_(client_id), impl_(impl) {
+      Callback(ClientManager::ClientId client_id, TdReceiver *impl) : client_id_(client_id), impl_(impl) {
       }
       void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
         impl_->responses_.push({client_id_, id, std::move(result)});
@@ -93,17 +94,17 @@ class TdReceiver {
       }
 
      private:
-      MultiClient::ClientId client_id_;
+      ClientManager::ClientId client_id_;
       TdReceiver *impl_;
     };
     return td::make_unique<Callback>(client_id, this);
   }
 
  private:
-  std::queue<MultiClient::Response> responses_;
+  std::queue<ClientManager::Response> responses_;
 };
 
-class MultiClient::Impl final {
+class ClientManager::Impl final {
  public:
   Impl() {
     options_.net_query_stats = std::make_shared<NetQueryStats>();
@@ -120,11 +121,11 @@ class MultiClient::Impl final {
     return client_id;
   }
 
-  void send(ClientId client_id, RequestId request_id, Function function) {
+  void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
     Request request;
     request.client_id = client_id;
     request.id = request_id;
-    request.function = std::move(function);
+    request.request = std::move(request);
     requests_.push_back(std::move(request));
   }
 
@@ -134,7 +135,7 @@ class MultiClient::Impl final {
       for (auto &request : requests_) {
         auto &td = tds_[request.client_id];
         CHECK(!td.empty());
-        send_closure_later(td, &Td::request, request.id, std::move(request.function));
+        send_closure_later(td, &Td::request, request.id, std::move(request.request));
       }
       requests_.clear();
     }
@@ -175,9 +176,9 @@ class MultiClient::Impl final {
   struct Request {
     ClientId client_id;
     RequestId id;
-    Function function;
+    td_api::object_ptr<td_api::Function> request;
   };
-  std::vector<Request> requests_;
+  td::vector<Request> requests_;
   unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ClientId client_id_{0};
   Td::Options options_;
@@ -191,7 +192,7 @@ class Client::Impl final {
   }
 
   void send(Request request) {
-    impl_.send(client_id_, request.id, std::move(request.function));
+    impl_.send(client_id_, request.id, std::move(request.request));
   }
 
   Response receive(double timeout) {
@@ -203,8 +204,8 @@ class Client::Impl final {
   }
 
  private:
-  MultiClient::Impl impl_;
-  MultiClient::ClientId client_id_;
+  ClientManager::Impl impl_;
+  ClientManager::ClientId client_id_;
 };
 
 #else
@@ -216,21 +217,22 @@ class TdReceiver {
     output_queue_->init();
   }
 
-  MultiClient::Response receive(double timeout) {
+  ClientManager::Response receive(double timeout) {
     VLOG(td_requests) << "Begin to wait for updates with timeout " << timeout;
     auto is_locked = receive_lock_.exchange(true);
     CHECK(!is_locked);
     auto response = receive_unlocked(timeout);
     is_locked = receive_lock_.exchange(false);
     CHECK(is_locked);
-    VLOG(td_requests) << "End to wait for updates, returning object " << response.id << ' ' << response.object.get();
+    VLOG(td_requests) << "End to wait for updates, returning object " << response.request_id << ' '
+                      << response.object.get();
     return response;
   }
 
-  unique_ptr<TdCallback> create_callback(MultiClient::ClientId client_id) {
+  unique_ptr<TdCallback> create_callback(ClientManager::ClientId client_id) {
     class Callback : public TdCallback {
      public:
-      explicit Callback(MultiClient::ClientId client_id, std::shared_ptr<OutputQueue> output_queue)
+      explicit Callback(ClientManager::ClientId client_id, std::shared_ptr<OutputQueue> output_queue)
           : client_id_(client_id), output_queue_(std::move(output_queue)) {
       }
       void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
@@ -248,19 +250,19 @@ class TdReceiver {
       }
 
      private:
-      MultiClient::ClientId client_id_;
+      ClientManager::ClientId client_id_;
       std::shared_ptr<OutputQueue> output_queue_;
     };
     return td::make_unique<Callback>(client_id, output_queue_);
   }
 
  private:
-  using OutputQueue = MpscPollableQueue<MultiClient::Response>;
+  using OutputQueue = MpscPollableQueue<ClientManager::Response>;
   std::shared_ptr<OutputQueue> output_queue_;
   int output_queue_ready_cnt_{0};
   std::atomic<bool> receive_lock_{false};
 
-  MultiClient::Response receive_unlocked(double timeout) {
+  ClientManager::Response receive_unlocked(double timeout) {
     if (output_queue_ready_cnt_ == 0) {
       output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
     }
@@ -306,9 +308,10 @@ class MultiImpl {
     return id;
   }
 
-  void send(MultiClient::ClientId client_id, MultiClient::RequestId request_id, MultiClient::Function function) {
+  void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
+            td_api::object_ptr<td_api::Function> &&request) {
     auto guard = concurrent_scheduler_->get_send_guard();
-    send_closure(multi_td_, &MultiTd::send, client_id, request_id, std::move(function));
+    send_closure(multi_td_, &MultiTd::send, client_id, request_id, std::move(request));
   }
 
   void close(int32 td_id) {
@@ -367,7 +370,7 @@ class MultiImplPool {
   std::shared_ptr<NetQueryStats> net_query_stats_ = std::make_shared<NetQueryStats>();
 };
 
-class MultiClient::Impl final {
+class ClientManager::Impl final {
  public:
   ClientId create_client() {
     auto impl = pool_.get();
@@ -379,11 +382,11 @@ class MultiClient::Impl final {
     return client_id;
   }
 
-  void send(ClientId client_id, RequestId request_id, Function function) {
+  void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
     auto lock = impls_mutex_.lock_read().move_as_ok();
     auto it = impls_.find(client_id);
     CHECK(it != impls_.end());
-    it->second->send(client_id, request_id, std::move(function));
+    it->second->send(client_id, request_id, std::move(request));
   }
 
   Response receive(double timeout) {
@@ -442,7 +445,7 @@ class Client::Impl final {
     }
 
     Client::Response old_res;
-    old_res.id = res.id;
+    old_res.id = res.request_id;
     old_res.object = std::move(res.object);
     return old_res;
   }
@@ -489,27 +492,27 @@ Client::~Client() = default;
 Client::Client(Client &&other) = default;
 Client &Client::operator=(Client &&other) = default;
 
-MultiClient::MultiClient() : impl_(std::make_unique<Impl>()) {
+ClientManager::ClientManager() : impl_(std::make_unique<Impl>()) {
 }
 
-MultiClient::ClientId MultiClient::create_client() {
+ClientManager::ClientId ClientManager::create_client() {
   return impl_->create_client();
 }
 
-void MultiClient::send(ClientId client_id, RequestId request_id, Function &&function) {
-  impl_->send(client_id, request_id, std::move(function));
+void ClientManager::send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
+  impl_->send(client_id, request_id, std::move(request));
 }
 
-MultiClient::Response MultiClient::receive(double timeout) {
+ClientManager::Response ClientManager::receive(double timeout) {
   return impl_->receive(timeout);
 }
 
-MultiClient::Object MultiClient::execute(Function &&function) {
-  return Td::static_request(std::move(function));
+td_api::object_ptr<td_api::Object> ClientManager::execute(td_api::object_ptr<td_api::Function> &&request) {
+  return Td::static_request(std::move(request));
 }
 
-MultiClient::~MultiClient() = default;
-MultiClient::MultiClient(MultiClient &&other) = default;
-MultiClient &MultiClient::operator=(MultiClient &&other) = default;
+ClientManager::~ClientManager() = default;
+ClientManager::ClientManager(ClientManager &&other) = default;
+ClientManager &ClientManager::operator=(ClientManager &&other) = default;
 
 }  // namespace td

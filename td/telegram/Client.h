@@ -22,7 +22,7 @@ namespace td {
  * The TDLib instance is created for the lifetime of the Client object.
  * Requests to TDLib can be sent using the Client::send method from any thread.
  * New updates and responses to requests can be received using the Client::receive method from any thread,
- * this function shouldn't be called simultaneously from two different threads. Also note that all updates and
+ * this function must not be called simultaneously from two different threads. Also note that all updates and
  * responses to requests should be applied in the same order as they were received, to ensure consistency.
  * Given this information, it's advisable to call this function from a dedicated thread.
  * Some service TDLib requests can be executed synchronously from any thread by using the Client::execute method.
@@ -84,7 +84,7 @@ class Client final {
    */
   struct Response {
     /**
-     * TDLib request identifier, which corresponds to the response or 0 for incoming updates from TDLib.
+     * TDLib request identifier, which corresponds to the response, or 0 for incoming updates from TDLib.
      */
     std::uint64_t id;
 
@@ -131,34 +131,121 @@ class Client final {
   std::unique_ptr<Impl> impl_;
 };
 
-// --- EXPERIMENTAL ---
-class MultiClient final {
+/**
+ * The future native C++ interface for interaction with TDLib.
+ *
+ * The TDLib client instance is created using the ClientManager::create_client method, returning a client identifier.
+ * Requests to TDLib can be sent using the ClientManager::send method from any thread.
+ * New updates and responses to requests can be received using the ClientManager::receive method from any thread,
+ * this function must not be called simultaneously from two different threads. Also note that all updates and
+ * responses to requests should be applied in the same order as they were received, to ensure consistency.
+ * Some TDLib requests can be executed synchronously from any thread by using the ClientManager::execute method.
+ *
+ * General pattern of usage:
+ * \code
+ * td::ClientManager manager;
+ * auto client_id = manager.create_client();
+ * // somehow share the manager and the client_id with other threads,
+ * // which will be able to send requests via manager.send(client_id, ...)
+ *
+ * const double WAIT_TIMEOUT = 10.0;  // seconds
+ * while (true) {
+ *   auto response = manager.receive(WAIT_TIMEOUT);
+ *   if (response.object == nullptr) {
+ *     continue;
+ *   }
+ *
+ *   if (response.id == 0) {
+ *     // process response.object as an incoming update of type td_api::Update for the client response.client_id
+ *   } else {
+ *     // process response.object as an answer to a request response.request_id for the client response.client_id
+ *   }
+ * }
+ * \endcode
+ */
+class ClientManager final {
  public:
-  MultiClient();
+  /**
+   * Creates a new TDLib client manager.
+   */
+  ClientManager();
 
+  /**
+   * Opaque TDLib client instance identifier.
+   */
   using ClientId = std::int32_t;
-  using RequestId = std::uint64_t;
-  using Function = td_api::object_ptr<td_api::Function>;
-  using Object = td_api::object_ptr<td_api::Object>;
-  struct Response {
-    ClientId client_id;
-    RequestId id;
-    Object object;
-  };
 
+  /**
+   * Request identifier.
+   * Responses to TDLib requests will have the same request id as the corresponding request.
+   * Updates from TDLib will have request id == 0, incoming requests are thus disallowed to have request id == 0.
+   */
+  using RequestId = std::uint64_t;
+
+  /**
+   * Creates a new TDLib client and returns its opaque identifier.
+   */
   ClientId create_client();
 
-  void send(ClientId client_id, RequestId request_id, Function &&function);
+  /**
+   * Sends request to TDLib. May be called from any thread.
+   * \param[in] client_id TDLib client instance identifier.
+   * \param[in] request_id Request identifier. Must be non-zero.
+   * \param[in] request Request to TDLib.
+   */
+  void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request);
 
+  /**
+   * A response to a request, or an incoming update from TDLib.
+   */
+  struct Response {
+    /**
+     * TDLib client instance identifier, for which the response is received.
+     */
+    ClientId client_id;
+
+    /**
+     * Request identifier, to which the response corresponds, or 0 for incoming updates from TDLib.
+     */
+    RequestId request_id;
+
+    /**
+     * TDLib API object representing a response to a TDLib request or an incoming update.
+     */
+    td_api::object_ptr<td_api::Object> object;
+  };
+
+  /**
+   * Receives incoming updates and request responses from TDLib. May be called from any thread, but must not be
+   * called simultaneously from two different threads.
+   * \param[in] timeout The maximum number of seconds allowed for this function to wait for new data.
+   * \return An incoming update or request response. The object returned in the response may be a nullptr
+   *         if the timeout expires.
+   */
   Response receive(double timeout);
 
-  static Object execute(Function &&function);
+  /**
+   * Synchronously executes TDLib requests. Only a few requests can be executed synchronously.
+   * May be called from any thread.
+   * \param[in] request Request to the TDLib.
+   * \return The request response.
+   */
+  static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> &&request);
 
-  ~MultiClient();
+  /**
+   * Destroys the client manager and all TDLib client instance managed by it.
+   */
+  ~ClientManager();
 
-  MultiClient(MultiClient &&other);
+  /**
+   * Move constructor.
+   */
+  ClientManager(ClientManager &&other);
 
-  MultiClient &operator=(MultiClient &&other);
+  /**
+   * Move assignment operator.
+   */
+  ClientManager &operator=(ClientManager &&other);
 
  private:
   friend class Client;
