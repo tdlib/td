@@ -106,27 +106,27 @@ public final class Client implements Runnable {
     /**
      * Replaces handler for incoming updates from the TDLib.
      *
-     * @param updatesHandler   Handler with onResult method which will be called for every incoming
+     * @param updateHandler    Handler with onResult method which will be called for every incoming
      *                         update from the TDLib.
      * @param exceptionHandler Exception handler with onException method which will be called on
-     *                         exception thrown from updatesHandler, if it is null, defaultExceptionHandler will be invoked.
+     *                         exception thrown from updateHandler, if it is null, defaultExceptionHandler will be invoked.
      */
-    public void setUpdatesHandler(ResultHandler updatesHandler, ExceptionHandler exceptionHandler) {
-        updateHandlers.put(nativeClientId, new Handler(updatesHandler, exceptionHandler));
+    public void setUpdateHandler(ResultHandler updateHandler, ExceptionHandler exceptionHandler) {
+        updateHandlers.put(nativeClientId, new Handler(updateHandler, exceptionHandler));
     }
 
     /**
      * Replaces handler for incoming updates from the TDLib. Sets empty ExceptionHandler.
      *
-     * @param updatesHandler Handler with onResult method which will be called for every incoming
-     *                       update from the TDLib.
+     * @param updateHandler Handler with onResult method which will be called for every incoming
+     *                      update from the TDLib.
      */
-    public void setUpdatesHandler(ResultHandler updatesHandler) {
-        setUpdatesHandler(updatesHandler, null);
+    public void setUpdateHandler(ResultHandler updateHandler) {
+        setUpdateHandler(updateHandler, null);
     }
 
     /**
-     * Replaces default exception handler to be invoked on exceptions thrown from updatesHandler and all other ResultHandler.
+     * Replaces default exception handler to be invoked on exceptions thrown from updateHandler and all other ResultHandler.
      *
      * @param defaultExceptionHandler Default exception handler. If null Exceptions are ignored.
      */
@@ -147,13 +147,13 @@ public final class Client implements Runnable {
     /**
      * Creates new Client.
      *
-     * @param updatesHandler          Handler for incoming updates.
-     * @param updatesExceptionHandler Handler for exceptions thrown from updatesHandler. If it is null, exceptions will be iggnored.
+     * @param updateHandler           Handler for incoming updates.
+     * @param updateExceptionHandler  Handler for exceptions thrown from updateHandler. If it is null, exceptions will be iggnored.
      * @param defaultExceptionHandler Default handler for exceptions thrown from all ResultHandler. If it is null, exceptions will be iggnored.
      * @return created Client
      */
-    public static Client create(ResultHandler updatesHandler, ExceptionHandler updatesExceptionHandler, ExceptionHandler defaultExceptionHandler) {
-        Client client = new Client(updatesHandler, updatesExceptionHandler, defaultExceptionHandler);
+    public static Client create(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
+        Client client = new Client(updateHandler, updateExceptionHandler, defaultExceptionHandler);
         new Thread(client, "TDLib thread").start();
         return client;
     }
@@ -213,9 +213,9 @@ public final class Client implements Runnable {
         }
     }
 
-    private Client(ResultHandler updatesHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
+    private Client(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
         nativeClientId = createNativeClient();
-        updateHandlers.put(nativeClientId, new Handler(updatesHandler, updateExceptionHandler));
+        updateHandlers.put(nativeClientId, new Handler(updateHandler, updateExceptionHandler));
         this.defaultExceptionHandler = defaultExceptionHandler;
     }
 

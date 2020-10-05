@@ -79,9 +79,9 @@ public:
   /// <summary>
   /// Replaces handler for incoming updates from the TDLib.
   /// </summary>
-  /// <param name="updatesHandler">Handler with OnResult method which will be called for every incoming update from the TDLib.</param>
-  void SetUpdatesHandler(ClientResultHandler^ updatesHandler) {
-    handlers[0] = updatesHandler;
+  /// <param name="updateHandler">Handler with OnResult method which will be called for every incoming update from the TDLib.</param>
+  void SetUpdateHandler(ClientResultHandler^ updateHandler) {
+    handlers[0] = updateHandler;
   }
 
   /// <summary>
@@ -107,16 +107,16 @@ public:
   /// <summary>
   /// Creates new Client.
   /// </summary>
-  /// <param name="updatesHandler">Handler for incoming updates.</param>
+  /// <param name="updateHandler">Handler for incoming updates.</param>
   /// <returns>Returns created Client.</returns>
-  static Client^ Create(ClientResultHandler^ updatesHandler) {
-    return REF_NEW Client(updatesHandler);
+  static Client^ Create(ClientResultHandler^ updateHandler) {
+    return REF_NEW Client(updateHandler);
   }
 
 private:
-  Client(ClientResultHandler^ updatesHandler) {
+  Client(ClientResultHandler^ updateHandler) {
     client = new td::Client();
-    handlers[0] = updatesHandler;
+    handlers[0] = updateHandler;
   }
 
   ~Client() {

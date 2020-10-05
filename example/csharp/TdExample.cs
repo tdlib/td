@@ -33,7 +33,7 @@ namespace TdExample
 
         private static Td.Client CreateTdClient()
         {
-            Td.Client result = Td.Client.Create(new UpdatesHandler());
+            Td.Client result = Td.Client.Create(new UpdateHandler());
             new Thread(() =>
             {
                 Thread.CurrentThread.IsBackground = true;
@@ -250,7 +250,7 @@ namespace TdExample
             }
         }
 
-        private class UpdatesHandler : Td.ClientResultHandler
+        private class UpdateHandler : Td.ClientResultHandler
         {
             void Td.ClientResultHandler.OnResult(TdApi.BaseObject @object)
             {
