@@ -100,6 +100,10 @@ class TdReceiver {
     return td::make_unique<Callback>(client_id, this);
   }
 
+  void add_response(ClientManager::ClientId client_id, uint64 id, td_api::object_ptr<td_api::Object> result) {
+    responses_.push({client_id, id, std::move(result)});
+  }
+
  private:
   std::queue<ClientManager::Response> responses_;
 };
@@ -256,6 +260,10 @@ class TdReceiver {
     return td::make_unique<Callback>(client_id, output_queue_);
   }
 
+  void add_response(ClientManager::ClientId client_id, uint64 id, td_api::object_ptr<td_api::Object> result) {
+    output_queue_->writer_put({client_id, id, std::move(result)});
+  }
+
  private:
   using OutputQueue = MpscPollableQueue<ClientManager::Response>;
   std::shared_ptr<OutputQueue> output_queue_;
@@ -385,7 +393,11 @@ class ClientManager::Impl final {
   void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
     auto lock = impls_mutex_.lock_read().move_as_ok();
     auto it = impls_.find(client_id);
-    CHECK(it != impls_.end());
+    if (it == impls_.end()) {
+      receiver_->add_response(client_id, request_id,
+                              td_api::make_object<td_api::error>(400, "Invalid TDLib instance specified"));
+      return;
+    }
     it->second->send(client_id, request_id, std::move(request));
   }
 

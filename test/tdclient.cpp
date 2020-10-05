@@ -922,6 +922,8 @@ TEST(Client, Manager) {
   td::ClientManager client;
   int threads_n = 4;
   int clients_n = 1000;
+  client.send(0, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
+  client.send(-1, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
   for (int i = 0; i < threads_n; i++) {
     threads.emplace_back([&] {
       for (int i = 0; i < clients_n; i++) {
@@ -937,8 +939,13 @@ TEST(Client, Manager) {
   std::set<int32> ids;
   while (ids.size() != static_cast<size_t>(threads_n) * clients_n) {
     auto event = client.receive(10);
-    if (event.client_id != 0 && event.request_id == 3) {
-      ids.insert(event.client_id);
+    if (event.client_id == 0 || event.client_id == -1) {
+      ASSERT_EQ(td_api::error::ID, event.object->get_id());
+      continue;
+    }
+    if (event.request_id == 3) {
+      ASSERT_EQ(td_api::testInt::ID, event.object->get_id());
+      ASSERT_TRUE(ids.insert(event.client_id).second);
     }
   }
 }
