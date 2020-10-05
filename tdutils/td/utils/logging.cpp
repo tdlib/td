@@ -29,16 +29,6 @@
 
 namespace td {
 
-int VERBOSITY_NAME(net_query) = VERBOSITY_NAME(INFO);
-int VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
-int VERBOSITY_NAME(dc) = VERBOSITY_NAME(DEBUG) + 2;
-int VERBOSITY_NAME(files) = VERBOSITY_NAME(DEBUG) + 2;
-int VERBOSITY_NAME(mtproto) = VERBOSITY_NAME(DEBUG) + 7;
-int VERBOSITY_NAME(raw_mtproto) = VERBOSITY_NAME(DEBUG) + 10;
-int VERBOSITY_NAME(fd) = VERBOSITY_NAME(DEBUG) + 9;
-int VERBOSITY_NAME(actor) = VERBOSITY_NAME(DEBUG) + 10;
-int VERBOSITY_NAME(sqlite) = VERBOSITY_NAME(DEBUG) + 10;
-
 LogOptions log_options;
 
 TD_THREAD_LOCAL const char *Logger::tag_ = nullptr;

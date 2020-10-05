@@ -31,6 +31,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(net_query);
+
 class NetQuery;
 using NetQueryPtr = ObjectPool<NetQuery>::OwnerPtr;
 using NetQueryRef = ObjectPool<NetQuery>::WeakPtr;

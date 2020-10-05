@@ -6,6 +6,8 @@
 //
 #include "td/telegram/files/ResourceManager.h"
 
+#include "td/telegram/files/FileLoaderUtils.h"
+
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -159,6 +161,7 @@ void ResourceManager::loop() {
     }
   }
 }
+
 void ResourceManager::add_node(NodeId node_id, int8 priority) {
   if (priority >= 0) {
     auto it = std::find_if(to_xload_.begin(), to_xload_.end(), [&](auto &x) { return x.first <= priority; });
@@ -168,6 +171,7 @@ void ResourceManager::add_node(NodeId node_id, int8 priority) {
     to_xload_.insert(it, std::make_pair(narrow_cast<int8>(-priority), node_id));
   }
 }
+
 bool ResourceManager::remove_node(NodeId node_id) {
   auto it = std::find_if(to_xload_.begin(), to_xload_.end(), [&](auto &x) { return x.second == node_id; });
   if (it != to_xload_.end()) {

@@ -32,6 +32,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(actor);
+
 class ActorInfo;
 
 enum class ActorSendType { Immediate, Later, LaterWeak };

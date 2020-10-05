@@ -19,6 +19,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(files);
+
 Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) TD_WARN_UNUSED_RESULT;
 
 Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) TD_WARN_UNUSED_RESULT;

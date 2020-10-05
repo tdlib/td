@@ -6,6 +6,7 @@
 //
 #include "td/telegram/files/FileLoader.h"
 
+#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -18,7 +19,6 @@
 #include "td/utils/ScopeGuard.h"
 
 #include <tuple>
-#include <utility>
 
 namespace td {
 

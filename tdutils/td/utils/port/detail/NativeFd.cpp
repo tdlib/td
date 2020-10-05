@@ -8,7 +8,6 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/Status.h"
 
 #if TD_PORT_POSIX
 #include <fcntl.h>
@@ -21,6 +20,8 @@
 #endif
 
 namespace td {
+
+int VERBOSITY_NAME(fd) = VERBOSITY_NAME(DEBUG) + 9;
 
 #if TD_FD_DEBUG
 class FdSet {

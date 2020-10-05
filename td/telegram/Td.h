@@ -77,6 +77,7 @@ class WebPagesManager;
 namespace td {
 
 extern int VERBOSITY_NAME(td_init);
+extern int VERBOSITY_NAME(td_requests);
 
 // Td may start closing after explicit "close" or "destroy" query.
 // Or it may start closing by itself, because authorization is lost.

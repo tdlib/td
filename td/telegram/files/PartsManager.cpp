@@ -6,6 +6,8 @@
 //
 #include "td/telegram/files/PartsManager.h"
 
+#include "td/telegram/files/FileLoaderUtils.h"
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -150,12 +152,14 @@ bool PartsManager::unchecked_ready() {
               << ", checked_prefix_size = " << checked_prefix_size_;
   return !unknown_size_flag_ && ready_size_ == size_;
 }
+
 bool PartsManager::may_finish() {
   if (is_streaming_limit_reached()) {
     return true;
   }
   return ready();
 }
+
 bool PartsManager::ready() {
   return unchecked_ready() && (!need_check_ || checked_prefix_size_ == size_);
 }
@@ -213,9 +217,11 @@ int32 PartsManager::get_ready_prefix_count() {
   }
   return res;
 }
+
 int64 PartsManager::get_streaming_offset() const {
   return streaming_offset_;
 }
+
 string PartsManager::get_bitmask() {
   int32 prefix_count = -1;
   if (need_check_) {
@@ -399,6 +405,7 @@ int64 PartsManager::get_size() const {
   CHECK(!unknown_size_flag_);
   return size_;
 }
+
 int64 PartsManager::get_size_or_zero() const {
   return size_;
 }
@@ -511,6 +518,7 @@ void PartsManager::set_checked_prefix_size(int64 size) {
 int64 PartsManager::get_checked_prefix_size() const {
   return checked_prefix_size_;
 }
+
 int64 PartsManager::get_unchecked_ready_prefix_size() {
   update_first_not_ready_part();
   auto count = first_not_ready_part_;

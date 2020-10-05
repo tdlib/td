@@ -26,6 +26,8 @@
 
 namespace td {
 
+int VERBOSITY_NAME(dc) = VERBOSITY_NAME(DEBUG) + 2;
+
 DcAuthManager::DcAuthManager(ActorShared<> parent) {
   parent_ = std::move(parent);
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");

@@ -109,16 +109,6 @@ constexpr int VERBOSITY_NAME(DEBUG) = 4;
 constexpr int VERBOSITY_NAME(NEVER) = 1024;
 
 namespace td {
-// TODO Not part of utils. Should be in some separate file
-extern int VERBOSITY_NAME(mtproto);
-extern int VERBOSITY_NAME(raw_mtproto);
-extern int VERBOSITY_NAME(dc);
-extern int VERBOSITY_NAME(fd);
-extern int VERBOSITY_NAME(net_query);
-extern int VERBOSITY_NAME(td_requests);
-extern int VERBOSITY_NAME(actor);
-extern int VERBOSITY_NAME(files);
-extern int VERBOSITY_NAME(sqlite);
 
 struct LogOptions {
   std::atomic<int> level{VERBOSITY_NAME(DEBUG) + 1};

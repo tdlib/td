@@ -10,6 +10,7 @@
 
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"

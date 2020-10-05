@@ -21,6 +21,9 @@
 #include <tuple>
 
 namespace td {
+
+int VERBOSITY_NAME(raw_mtproto) = VERBOSITY_NAME(DEBUG) + 10;
+
 namespace mtproto {
 
 #pragma pack(push, 4)

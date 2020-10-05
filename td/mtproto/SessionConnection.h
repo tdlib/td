@@ -25,6 +25,9 @@
 #include <utility>
 
 namespace td {
+
+extern int VERBOSITY_NAME(mtproto);
+
 namespace mtproto_api {
 
 class rpc_error;

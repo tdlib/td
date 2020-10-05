@@ -17,6 +17,9 @@
 #include <utility>
 
 namespace td {
+
+extern int VERBOSITY_NAME(raw_mtproto);
+
 namespace mtproto {
 
 class AuthKey;

@@ -27,6 +27,8 @@
 
 namespace td {
 
+int VERBOSITY_NAME(actor) = VERBOSITY_NAME(DEBUG) + 10;
+
 TD_THREAD_LOCAL Scheduler *Scheduler::scheduler_;   // static zero-initialized
 TD_THREAD_LOCAL ActorContext *Scheduler::context_;  // static zero-initialized
 

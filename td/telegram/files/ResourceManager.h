@@ -17,6 +17,7 @@
 #include <utility>
 
 namespace td {
+
 class ResourceManager : public Actor {
  public:
   enum class Mode : int32 { Baseline, Greedy };
@@ -64,4 +65,5 @@ class ResourceManager : public Actor {
   void add_node(NodeId node_id, int8 priority);
   bool remove_node(NodeId node_id);
 };
+
 }  // namespace td

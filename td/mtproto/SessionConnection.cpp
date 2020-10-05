@@ -32,6 +32,9 @@
 #include <type_traits>
 
 namespace td {
+
+int VERBOSITY_NAME(mtproto) = VERBOSITY_NAME(DEBUG) + 7;
+
 namespace mtproto_api {
 
 const int32 msg_container::ID;

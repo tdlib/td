@@ -14,6 +14,7 @@
 #include "td/telegram/ClientActor.h"
 #include "td/telegram/Log.h"
 #include "td/telegram/td_api_json.h"
+#include "td/telegram/Td.h"  // for VERBOSITY_NAME(td_requests)
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -4229,7 +4230,7 @@ class CliClient final : public Actor {
         LOG(ERROR) << r_cpu_stats.error();
       } else {
         auto stats = r_cpu_stats.move_as_ok();
-        LOG(ERROR) << cpu_counter_ << ", total ticks = " << stats.total_ticks_
+        LOG(ERROR) << cpu_counter_.load() << ", total ticks = " << stats.total_ticks_
                    << ", user ticks = " << stats.process_user_ticks_
                    << ", system ticks = " << stats.process_system_ticks_;
       }

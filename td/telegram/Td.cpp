@@ -138,6 +138,9 @@
 
 namespace td {
 
+int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
+int VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
+
 void Td::ResultHandler::set_td(Td *new_td) {
   CHECK(td == nullptr);
   td = new_td;
@@ -4131,8 +4134,6 @@ class Td::UploadFileCallback : public FileManager::UploadCallback {
   void on_upload_error(FileId file_id, Status error) override {
   }
 };
-
-int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
 
 template <class T>
 void Td::complete_pending_preauthentication_requests(const T &func) {

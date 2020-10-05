@@ -15,6 +15,8 @@
 
 namespace td {
 
+int VERBOSITY_NAME(sqlite) = VERBOSITY_NAME(DEBUG) + 10;
+
 namespace {
 int printExplainQueryPlan(StringBuilder &sb, sqlite3_stmt *pStmt) {
   const char *zSql = sqlite3_sql(pStmt);

@@ -20,6 +20,8 @@ struct sqlite3_stmt;
 
 namespace td {
 
+extern int VERBOSITY_NAME(sqlite);
+
 class SqliteStatement {
  public:
   SqliteStatement() = default;

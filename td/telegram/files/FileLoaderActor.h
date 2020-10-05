@@ -14,12 +14,11 @@
 
 namespace td {
 
-class LocalFileLocation;
 class ResourceManager;
 
 class FileLoaderActor : public NetQueryCallback {
  public:
-  virtual void set_resource_manager(ActorShared<ResourceManager>) = 0;
+  virtual void set_resource_manager(ActorShared<ResourceManager> resource_manager) = 0;
   virtual void update_priority(int8 priority) = 0;
   virtual void update_resources(const ResourceState &other) = 0;
 
