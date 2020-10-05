@@ -112,7 +112,7 @@ public final class Client implements Runnable {
      *                         exception thrown from updatesHandler, if it is null, defaultExceptionHandler will be invoked.
      */
     public void setUpdatesHandler(ResultHandler updatesHandler, ExceptionHandler exceptionHandler) {
-        handlers.put(0L, new Handler(updatesHandler, exceptionHandler));
+        updateHandlers.put(nativeClientId, new Handler(updatesHandler, exceptionHandler));
     }
 
     /**
@@ -174,9 +174,10 @@ public final class Client implements Runnable {
             while (!stopFlag) {
                 Thread.yield();
             }
-            while (handlers.size() != 1) {
+            while (!handlers.isEmpty()) {
                 receiveQueries(300.0);
             }
+            updateHandlers.remove(nativeClientId);
             destroyNativeClient(nativeClientId);
         } finally {
             writeLock.unlock();
@@ -190,6 +191,8 @@ public final class Client implements Runnable {
     private volatile boolean stopFlag = false;
     private volatile boolean isClientDestroyed = false;
     private final long nativeClientId;
+
+    private static final ConcurrentHashMap<Long, Handler> updateHandlers = new ConcurrentHashMap<Long, Handler>();
 
     private final ConcurrentHashMap<Long, Handler> handlers = new ConcurrentHashMap<Long, Handler>();
     private final AtomicLong currentQueryId = new AtomicLong();
@@ -212,7 +215,7 @@ public final class Client implements Runnable {
 
     private Client(ResultHandler updatesHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
         nativeClientId = createNativeClient();
-        handlers.put(0L, new Handler(updatesHandler, updateExceptionHandler));
+        updateHandlers.put(nativeClientId, new Handler(updatesHandler, updateExceptionHandler));
         this.defaultExceptionHandler = defaultExceptionHandler;
     }
 
@@ -234,7 +237,7 @@ public final class Client implements Runnable {
         Handler handler;
         if (id == 0) {
             // update handler stays forever
-            handler = handlers.get(id);
+            handler = updateHandlers.get(nativeClientId);
         } else {
             handler = handlers.remove(id);
         }
