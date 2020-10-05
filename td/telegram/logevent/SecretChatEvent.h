@@ -20,7 +20,7 @@
 #include "td/telegram/telegram_api.h"
 
 namespace td {
-namespace logevent {
+namespace log_event {
 
 class SecretChatEvent : public LogEventBase<SecretChatEvent> {
  public:
@@ -296,7 +296,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
+    return sb << "[Logevent InboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
               << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
               << tag("his_in_seq_no", his_in_seq_no) << tag("message", to_string(decrypted_message_layer))
@@ -330,6 +330,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   bool is_rewritable = false;
   // should notify our parent about state of this message (using context and random_id)
   bool is_external = false;
+  bool is_silent = false;
 
   tl_object_ptr<secret_api::DecryptedMessageAction> action;
   uint64 crc = 0;  // DEBUG;
@@ -360,6 +361,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     STORE_FLAG(has_action);
     STORE_FLAG(is_rewritable);
     STORE_FLAG(is_external);
+    STORE_FLAG(is_silent);
     END_STORE_FLAGS();
 
     if (has_action) {
@@ -390,6 +392,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     PARSE_FLAG(has_action);
     PARSE_FLAG(is_rewritable);
     PARSE_FLAG(is_external);
+    PARSE_FLAG(is_silent);
     END_PARSE_FLAGS();
 
     if (has_action) {
@@ -399,7 +402,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent OutboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
+    return sb << "[Logevent OutboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("is_sent", is_sent) << tag("need_notify_user", need_notify_user)
               << tag("is_rewritable", is_rewritable) << tag("is_external", is_external) << tag("message_id", message_id)
               << tag("random_id", random_id) << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
@@ -425,7 +428,7 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CloseSecretChat " << tag("id", logevent_id()) << tag("chat_id", chat_id) << "]";
+    return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id) << "]";
   }
 };
 
@@ -453,7 +456,7 @@ class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CreateSecretChat " << tag("id", logevent_id()) << tag("chat_id", random_id)
+    return sb << "[Logevent CreateSecretChat " << tag("id", log_event_id()) << tag("chat_id", random_id)
               << tag("user_id", user_id) << "]";
   }
 };
@@ -477,10 +480,10 @@ void SecretChatEvent::downcast_call(Type type, F &&f) {
       break;
   }
 }
-}  // namespace logevent
+}  // namespace log_event
 
-inline auto create_storer(logevent::SecretChatEvent &event) {
-  return logevent::detail::StorerImpl<logevent::SecretChatEvent>(event);
+inline auto create_storer(log_event::SecretChatEvent &event) {
+  return log_event::detail::StorerImpl<log_event::SecretChatEvent>(event);
 }
 
 }  // namespace td

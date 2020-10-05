@@ -124,7 +124,7 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
     int err = X509_STORE_CTX_get_error(ctx);
     auto warning = PSTRING() << "verify error:num=" << err << ":" << X509_verify_cert_error_string(err)
-                             << ":depth=" << X509_STORE_CTX_get_error_depth(ctx) << ":" << buf;
+                             << ":depth=" << X509_STORE_CTX_get_error_depth(ctx) << ":" << Slice(buf, std::strlen(buf));
     double now = Time::now();
 
     static std::mutex warning_mutex;
@@ -291,7 +291,7 @@ Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_pee
 
 class SslStreamImpl {
  public:
-  Status init(CSlice host, CSlice cert_file, SslStream::VerifyPeer verify_peer) {
+  Status init(CSlice host, CSlice cert_file, SslStream::VerifyPeer verify_peer, bool check_ip_address_as_host) {
     static bool init_openssl = [] {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
       return OPENSSL_init_ssl(0, nullptr) != 0;
@@ -317,7 +317,7 @@ class SslStreamImpl {
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
     X509_VERIFY_PARAM *param = SSL_get0_param(ssl_handle.get());
     X509_VERIFY_PARAM_set_hostflags(param, 0);
-    if (r_ip_address.is_ok()) {
+    if (r_ip_address.is_ok() && !check_ip_address_as_host) {
       LOG(DEBUG) << "Set verification IP address to " << r_ip_address.ok().get_ip_str();
       X509_VERIFY_PARAM_set1_ip_asc(param, r_ip_address.ok().get_ip_str().c_str());
     } else {
@@ -509,9 +509,10 @@ SslStream::SslStream(SslStream &&) = default;
 SslStream &SslStream::operator=(SslStream &&) = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
+Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer,
+                                    bool use_ip_address_as_host) {
   auto impl = make_unique<detail::SslStreamImpl>();
-  TRY_STATUS(impl->init(host, cert_file, verify_peer));
+  TRY_STATUS(impl->init(host, cert_file, verify_peer, use_ip_address_as_host));
   return SslStream(std::move(impl));
 }
 SslStream::SslStream(unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {

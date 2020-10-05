@@ -32,6 +32,8 @@ class FileLog : public LogInterface {
 
   int64 get_rotate_threshold() const;
 
+  bool get_redirect_stderr() const;
+
   void append(CSlice cslice, int log_level) override;
 
   void rotate() override;

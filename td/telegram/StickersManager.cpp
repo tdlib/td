@@ -260,7 +260,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetArchivedStickerSetsQuery " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetArchivedStickerSetsQuery: " << to_string(ptr);
     td->stickers_manager_->on_get_archived_sticker_sets(is_masks_, offset_sticker_set_id_, std::move(ptr->sets_),
                                                         ptr->count_);
 
@@ -286,7 +286,7 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetFeaturedStickerSetsQuery " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for GetFeaturedStickerSetsQuery: " << to_string(ptr);
     td->stickers_manager_->on_get_featured_sticker_sets(-1, -1, 0, std::move(ptr));
   }
 
@@ -316,7 +316,7 @@ class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetOldFeaturedStickerSetsQuery " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for GetOldFeaturedStickerSetsQuery: " << to_string(ptr);
     td->stickers_manager_->on_get_featured_sticker_sets(offset_, limit_, generation_, std::move(ptr));
   }
 
@@ -690,7 +690,7 @@ class GetStickerSetQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getStickerSet: " << status;
+    LOG(INFO) << "Receive error for GetStickerSetQuery: " << status;
     td->stickers_manager_->on_load_sticker_set_fail(sticker_set_id_, status);
     promise_.set_error(std::move(status));
   }
@@ -1132,8 +1132,10 @@ class StickersManager::UploadStickerFileCallback : public FileManager::UploadCal
 StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
 
-  on_update_recent_stickers_limit(G()->shared_config().get_option_integer("recent_stickers_limit", 200));
-  on_update_favorite_stickers_limit(G()->shared_config().get_option_integer("favorite_stickers_limit", 5));
+  on_update_recent_stickers_limit(
+      narrow_cast<int32>(G()->shared_config().get_option_integer("recent_stickers_limit", 200)));
+  on_update_favorite_stickers_limit(
+      narrow_cast<int32>(G()->shared_config().get_option_integer("favorite_stickers_limit", 5)));
   on_update_dice_emojis();
 }
 
@@ -4254,7 +4256,7 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
 
   if (is_animated) {
     int32 width = for_thumbnail ? 100 : 512;
-    td_->stickers_manager_->create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
+    create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
   }
@@ -5877,12 +5879,14 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
                                                          Promise<Unit> &promise) {
   vector<string> language_codes = td_->language_pack_manager_->get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
-  if (!system_language_code.empty() && system_language_code.find('$') == string::npos) {
-    language_codes.push_back(system_language_code);
+  if (system_language_code.size() >= 2 && system_language_code.find('$') == string::npos &&
+      (system_language_code.size() == 2 || system_language_code[2] == '-')) {
+    language_codes.push_back(system_language_code.substr(0, 2));
   }
   for (auto &input_language_code : input_language_codes) {
-    if (!input_language_code.empty() && input_language_code.find('$') == string::npos) {
-      language_codes.push_back(input_language_code);
+    if (input_language_code.size() >= 2 && input_language_code.find('$') == string::npos &&
+        (input_language_code.size() == 2 || input_language_code[2] == '-')) {
+      language_codes.push_back(input_language_code.substr(0, 2));
     }
   }
   if (!text.empty()) {
@@ -5902,7 +5906,7 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   }
 
   if (language_codes.empty()) {
-    LOG(ERROR) << "List of language codes is empty";
+    LOG(INFO) << "List of language codes is empty";
     language_codes.push_back("en");
   }
   std::sort(language_codes.begin(), language_codes.end());
@@ -5917,6 +5921,7 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   if (it->second.empty()) {
     load_language_codes(std::move(language_codes), std::move(key), std::move(promise));
   } else {
+    LOG(DEBUG) << "Have emoji language codes " << it->second;
     double now = Time::now_cached();
     for (auto &language_code : it->second) {
       double last_difference_time = get_emoji_language_code_last_difference_time(language_code);

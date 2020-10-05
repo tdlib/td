@@ -146,7 +146,7 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
     }
 
     bool ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery " << ptr;
+    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery: " << ptr;
     promise_.set_value(Unit());
   }
 
@@ -1280,7 +1280,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   send_with_promise(std::move(query), std::move(new_promise));
 }
 
-void SecureManager::get_preferred_country_code(string country_code, Promise<td_api::object_ptr<td_api::text>> promise) {
+void SecureManager::get_preferred_country_language(string country_code,
+                                                   Promise<td_api::object_ptr<td_api::text>> promise) {
   refcnt_++;
   for (auto &c : country_code) {
     c = to_upper(c);

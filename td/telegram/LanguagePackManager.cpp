@@ -238,6 +238,51 @@ void LanguagePackManager::tear_down() {
   }
 }
 
+string LanguagePackManager::get_main_language_code() {
+  if (language_pack_.empty() || language_code_.empty()) {
+    return "en";
+  }
+  if (language_code_.size() == 2) {
+    return language_code_;
+  }
+
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+
+  LanguageInfo *info = nullptr;
+  LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> languages_lock(pack->mutex_);
+  if (is_custom_language_code(language_code_)) {
+    auto custom_it = pack->custom_language_pack_infos_.find(language_code_);
+    if (custom_it != pack->custom_language_pack_infos_.end()) {
+      info = &custom_it->second;
+    }
+  } else {
+    for (auto &server_info : pack->server_language_pack_infos_) {
+      if (server_info.first == language_code_) {
+        info = &server_info.second;
+      }
+    }
+  }
+
+  if (info == nullptr) {
+    LOG(WARNING) << "Failed to find information about chosen language " << language_code_
+                 << ", ensure that valid language pack ID is used";
+    if (!is_custom_language_code(language_code_)) {
+      search_language_info(language_code_, Auto());
+    }
+  } else {
+    if (!info->base_language_code_.empty()) {
+      return info->base_language_code_;
+    }
+    if (!info->plural_code_.empty()) {
+      return info->plural_code_;
+    }
+  }
+  return "en";
+}
+
 vector<string> LanguagePackManager::get_used_language_codes() {
   if (language_pack_.empty() || language_code_.empty()) {
     return {};
@@ -264,11 +309,12 @@ vector<string> LanguagePackManager::get_used_language_codes() {
   }
 
   vector<string> result;
-  if (language_code_.size() <= 2) {
+  if (language_code_.size() == 2) {
     result.push_back(language_code_);
   }
   if (info == nullptr) {
-    LOG(ERROR) << "Failed to find information about chosen language " << language_code_;
+    LOG(WARNING) << "Failed to find information about chosen language " << language_code_
+                 << ", ensure that valid language pack ID is used";
     if (!is_custom_language_code(language_code_)) {
       search_language_info(language_code_, Auto());
     }
@@ -319,7 +365,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   if (new_version < 0) {
     Slice version_key = is_base ? Slice("base_language_pack_version") : Slice("language_pack_version");
-    new_version = G()->shared_config().get_option_integer(version_key, -1);
+    new_version = narrow_cast<int32>(G()->shared_config().get_option_integer(version_key, -1));
   }
   if (new_version <= 0) {
     return;

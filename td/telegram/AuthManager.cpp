@@ -144,29 +144,17 @@ void AuthManager::get_state(uint64 query_id) {
 void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   if (state_ == State::WaitPhoneNumber && net_query_id_ == 0) {
     // can ignore previous checks
-    was_check_bot_token_ = false;  // TODO can we remove was_check_bot_token_ after State::Ok is disallowed?
+    was_check_bot_token_ = false;  // TODO can we remove was_check_bot_token_?
   }
-  if (state_ != State::WaitPhoneNumber && state_ != State::Ok) {
-    // TODO do not allow State::Ok
+  if (state_ != State::WaitPhoneNumber) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationBotToken unexpected"));
   }
   if (!send_code_helper_.phone_number().empty() || was_qr_code_request_) {
     return on_query_error(
-        query_id, Status::Error(400, "Cannot set bot token after authentication beginning. You need to log out first"));
+        query_id, Status::Error(400, "Cannot set bot token after authentication began. You need to log out first"));
   }
   if (was_check_bot_token_ && bot_token_ != bot_token) {
     return on_query_error(query_id, Status::Error(8, "Cannot change bot token. You need to log out first"));
-  }
-  if (state_ == State::Ok) {
-    if (!is_bot_) {
-      // fix old bots
-      const int32 AUTH_IS_BOT_FIXED_DATE = 1500940800;
-      if (G()->shared_config().get_option_integer("authorization_date") < AUTH_IS_BOT_FIXED_DATE) {
-        G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
-        is_bot_ = true;
-      }
-    }
-    return send_ok(query_id);
   }
 
   on_new_query(query_id);

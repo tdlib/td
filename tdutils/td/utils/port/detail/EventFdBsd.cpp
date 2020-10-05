@@ -77,7 +77,7 @@ void EventFdBsd::release() {
   }
   size_t size = result.ok();
   if (size != sizeof(value)) {
-    LOG(FATAL) << "EventFdBsd write returned " << value << " instead of " << sizeof(value);
+    LOG(FATAL) << "EventFdBsd write returned " << size << " instead of " << sizeof(value);
   }
 }
 

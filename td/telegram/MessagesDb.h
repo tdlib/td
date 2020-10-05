@@ -26,28 +26,6 @@ namespace td {
 class SqliteConnectionSafe;
 class SqliteDb;
 
-// append only before Size
-enum class SearchMessagesFilter : int32 {
-  Empty,
-  Animation,
-  Audio,
-  Document,
-  Photo,
-  Video,
-  VoiceNote,
-  PhotoAndVideo,
-  Url,
-  ChatPhoto,
-  Call,
-  MissedCall,
-  VideoNote,
-  VoiceAndVideoNote,
-  Mention,
-  UnreadMention,
-  FailedToSend,
-  Size
-};
-
 struct MessagesDbMessagesQuery {
   DialogId dialog_id;
   int32 index_mask{0};
@@ -91,7 +69,7 @@ class MessagesDbSyncInterface {
 
   virtual Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                              int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                             NotificationId notification_id, BufferSlice data) = 0;
+                             NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) = 0;
   virtual Status add_scheduled_message(FullMessageId full_message_id, BufferSlice data) = 0;
 
   virtual Status delete_message(FullMessageId full_message_id) = 0;
@@ -139,7 +117,8 @@ class MessagesDbAsyncInterface {
 
   virtual void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                           NotificationId notification_id, BufferSlice data, Promise<> promise) = 0;
+                           NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
+                           Promise<> promise) = 0;
   virtual void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) = 0;
 
   virtual void delete_message(FullMessageId full_message_id, Promise<> promise) = 0;
@@ -177,26 +156,5 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
 
 std::shared_ptr<MessagesDbAsyncInterface> create_messages_db_async(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db,
                                                                    int32 scheduler_id);
-
-inline constexpr size_t search_messages_filter_size() {
-  return static_cast<int32>(SearchMessagesFilter::Size) - 1;
-}
-
-inline int32 search_messages_filter_index(SearchMessagesFilter filter) {
-  CHECK(filter != SearchMessagesFilter::Empty);
-  return static_cast<int32>(filter) - 1;
-}
-
-inline int32 search_messages_filter_index_mask(SearchMessagesFilter filter) {
-  if (filter == SearchMessagesFilter::Empty) {
-    return 0;
-  }
-  return 1 << search_messages_filter_index(filter);
-}
-
-inline int32 search_calls_filter_index(SearchMessagesFilter filter) {
-  CHECK(filter == SearchMessagesFilter::Call || filter == SearchMessagesFilter::MissedCall);
-  return static_cast<int32>(filter) - static_cast<int32>(SearchMessagesFilter::Call);
-}
 
 }  // namespace td

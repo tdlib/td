@@ -219,7 +219,7 @@ void NetStatsManager::start_up() {
       since_total_ = unix_time;
       G()->td_db()->get_binlog_pmc()->set("net_stats_since", to_string(since_total_));
     } else if (since < authorization_date - 3600) {
-      since_total_ = authorization_date;
+      since_total_ = narrow_cast<int32>(authorization_date);
       G()->td_db()->get_binlog_pmc()->set("net_stats_since", to_string(since_total_));
     } else {
       since_total_ = since;

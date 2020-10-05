@@ -113,8 +113,8 @@ class TQueueImpl : public TQueue {
       auto it = q.events.end();
       --it;
       if (it->second.data.empty()) {
-        if (callback_ != nullptr && it->second.logevent_id != 0) {
-          callback_->pop(it->second.logevent_id);
+        if (callback_ != nullptr && it->second.log_event_id != 0) {
+          callback_->pop(it->second.log_event_id);
         }
         q.events.erase(it);
       }
@@ -123,8 +123,8 @@ class TQueueImpl : public TQueue {
       schedule_queue_gc(queue_id, q, raw_event.expires_at);
     }
 
-    if (raw_event.logevent_id == 0 && callback_ != nullptr) {
-      raw_event.logevent_id = callback_->push(queue_id, raw_event);
+    if (raw_event.log_event_id == 0 && callback_ != nullptr) {
+      raw_event.log_event_id = callback_->push(queue_id, raw_event);
     }
     q.tail_id = event_id.next().move_as_ok();
     q.total_event_length += raw_event.data.size();
@@ -307,7 +307,7 @@ class TQueueImpl : public TQueue {
 
   void pop(Queue &q, QueueId queue_id, std::map<EventId, RawEvent>::iterator &it, EventId tail_id) {
     auto &event = it->second;
-    if (callback_ == nullptr || event.logevent_id == 0) {
+    if (callback_ == nullptr || event.log_event_id == 0) {
       remove_event(q, it);
       return;
     }
@@ -319,7 +319,7 @@ class TQueueImpl : public TQueue {
       }
       ++it;
     } else {
-      callback_->pop(event.logevent_id);
+      callback_->pop(event.log_event_id);
       remove_event(q, it);
     }
   }
@@ -438,16 +438,16 @@ uint64 TQueueBinlog<BinlogT>::push(QueueId queue_id, const RawEvent &event) {
   log_event.data = event.data;
   log_event.extra = event.extra;
   auto magic = BINLOG_EVENT_TYPE + (log_event.extra != 0);
-  if (event.logevent_id == 0) {
+  if (event.log_event_id == 0) {
     return binlog_->add(magic, log_event);
   }
-  binlog_->rewrite(event.logevent_id, magic, log_event);
-  return event.logevent_id;
+  binlog_->rewrite(event.log_event_id, magic, log_event);
+  return event.log_event_id;
 }
 
 template <class BinlogT>
-void TQueueBinlog<BinlogT>::pop(uint64 logevent_id) {
-  binlog_->erase(logevent_id);
+void TQueueBinlog<BinlogT>::pop(uint64 log_event_id) {
+  binlog_->erase(log_event_id);
 }
 
 template <class BinlogT>
@@ -463,7 +463,7 @@ Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q)
   TRY_STATUS(parser.get_status());
   TRY_RESULT(event_id, EventId::from_int32(event.event_id));
   RawEvent raw_event;
-  raw_event.logevent_id = binlog_event.id_;
+  raw_event.log_event_id = binlog_event.id_;
   raw_event.event_id = event_id;
   raw_event.expires_at = event.expires_at;
   raw_event.data = event.data.str();
@@ -483,19 +483,19 @@ template class TQueueBinlog<BinlogInterface>;
 template class TQueueBinlog<Binlog>;
 
 uint64 TQueueMemoryStorage::push(QueueId queue_id, const RawEvent &event) {
-  auto logevent_id = event.logevent_id == 0 ? next_logevent_id_++ : event.logevent_id;
-  events_[logevent_id] = std::make_pair(queue_id, event);
-  return logevent_id;
+  auto log_event_id = event.log_event_id == 0 ? next_log_event_id_++ : event.log_event_id;
+  events_[log_event_id] = std::make_pair(queue_id, event);
+  return log_event_id;
 }
 
-void TQueueMemoryStorage::pop(uint64 logevent_id) {
-  events_.erase(logevent_id);
+void TQueueMemoryStorage::pop(uint64 log_event_id) {
+  events_.erase(log_event_id);
 }
 
 void TQueueMemoryStorage::replay(TQueue &q) const {
   for (auto &e : events_) {
     auto x = e.second;
-    x.second.logevent_id = e.first;
+    x.second.log_event_id = e.first;
     bool is_added = q.do_push(x.first, std::move(x.second));
     CHECK(is_added);
   }

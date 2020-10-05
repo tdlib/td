@@ -240,7 +240,7 @@ void TopDialogManager::update_rating_e_decay() {
   if (!is_active_) {
     return;
   }
-  rating_e_decay_ = G()->shared_config().get_option_integer("rating_e_decay", rating_e_decay_);
+  rating_e_decay_ = narrow_cast<int32>(G()->shared_config().get_option_integer("rating_e_decay", rating_e_decay_));
 }
 
 template <class StorerT>

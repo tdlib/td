@@ -40,6 +40,7 @@ inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::O
 
   if (!is_lite) {
     context_ = Scheduler::context()->this_ptr_.lock();
+    VLOG(actor) << "Set context " << context_.get() << " for " << name;
 #ifdef TD_DEBUG
     name_ = name.str();
 #endif
@@ -77,6 +78,7 @@ inline void ActorInfo::clear() {
   // NB: must be in non migrating state
   // store invalid scheduler id.
   sched_id_.store((1 << 30) - 1, std::memory_order_relaxed);
+  VLOG(actor) << "Clear context " << context_.get() << " for " << get_name();
   context_.reset();
 }
 

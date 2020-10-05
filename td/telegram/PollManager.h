@@ -181,7 +181,7 @@ class PollManager : public Actor {
 
   void on_get_poll_results(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> result);
 
-  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
+  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 log_event_id,
                           Promise<Unit> &&promise);
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
@@ -196,7 +196,7 @@ class PollManager : public Actor {
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
-                    uint64 logevent_id, Promise<Unit> &&promise);
+                    uint64 log_event_id, Promise<Unit> &&promise);
 
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
@@ -211,7 +211,7 @@ class PollManager : public Actor {
     vector<string> options_;
     vector<Promise<Unit>> promises_;
     uint64 generation_ = 0;
-    uint64 logevent_id_ = 0;
+    uint64 log_event_id_ = 0;
     NetQueryRef query_ref_;
   };
   std::unordered_map<PollId, PendingPollAnswer, PollIdHash> pending_answers_;

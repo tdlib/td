@@ -309,7 +309,7 @@ class SetUsername : public Task {
       auto chat = move_tl_object_as<td_api::chat>(res);
       this->send_query(
           make_tl_object<td_api::sendMessage>(
-              chat->id_, 0, nullptr, nullptr,
+              chat->id_, 0, 0, nullptr, nullptr,
               make_tl_object<td_api::inputMessageText>(
                   make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " INIT", Auto()), false, false)),
           [](auto res) {});
@@ -376,7 +376,7 @@ class TestA : public Task {
       auto chat = move_tl_object_as<td_api::chat>(res);
       for (int i = 0; i < 20; i++) {
         this->send_query(make_tl_object<td_api::sendMessage>(
-                             chat->id_, 0, nullptr, nullptr,
+                             chat->id_, 0, 0, nullptr, nullptr,
                              make_tl_object<td_api::inputMessageText>(
                                  make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), Auto()),
                                  false, false)),
@@ -424,7 +424,7 @@ class TestSecretChat : public Task {
       LOG(INFO) << "SEND ENCRYPTED MESSAGES";
       for (int i = 0; i < 20; i++) {
         send_query(make_tl_object<td_api::sendMessage>(
-                       chat_id_, 0, nullptr, nullptr,
+                       chat_id_, 0, 0, nullptr, nullptr,
                        make_tl_object<td_api::inputMessageText>(
                            make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), Auto()), false,
                            false)),
@@ -486,7 +486,7 @@ class TestFileGenerated : public Task {
     file.flush_write().ensure();  // important
     file.close();
     this->send_query(make_tl_object<td_api::sendMessage>(
-                         chat_id_, 0, nullptr, nullptr,
+                         chat_id_, 0, 0, nullptr, nullptr,
                          make_tl_object<td_api::inputMessageDocument>(
                              make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
                              make_tl_object<td_api::inputThumbnail>(
@@ -495,7 +495,7 @@ class TestFileGenerated : public Task {
                      [](auto res) { check_td_error(res); });
 
     this->send_query(
-        make_tl_object<td_api::sendMessage>(chat_id_, 0, nullptr, nullptr,
+        make_tl_object<td_api::sendMessage>(chat_id_, 0, 0, nullptr, nullptr,
                                             make_tl_object<td_api::inputMessageDocument>(
                                                 make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
                                                 nullptr, true, make_tl_object<td_api::formattedText>(tag_, Auto()))),
@@ -601,7 +601,7 @@ class CheckTestC : public Task {
   void one_file() {
     this->send_query(
         make_tl_object<td_api::sendMessage>(
-            chat_id_, 0, nullptr, nullptr,
+            chat_id_, 0, 0, nullptr, nullptr,
             make_tl_object<td_api::inputMessageText>(
                 make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " ONE_FILE", Auto()), false, false)),
         [](auto res) { check_td_error(res); });

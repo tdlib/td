@@ -380,6 +380,10 @@ string hex_encode(Slice data);
 
 string url_encode(Slice data);
 
+size_t url_decode(Slice from, MutableSlice to, bool decode_plus_sign_as_space);
+
+MutableSlice url_decode_inplace(MutableSlice str, bool decode_plus_sign_as_space);
+
 // run-time checked narrowing cast (type conversion):
 
 namespace detail {

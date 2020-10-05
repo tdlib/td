@@ -6,6 +6,7 @@
 //
 #include "td/utils/benchmark.h"
 
+#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
@@ -13,6 +14,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/UInt.h"
 
+#include <openssl/evp.h>
 #include <openssl/sha.h>
 
 #include <array>
@@ -164,14 +166,75 @@ class AesCtrBench : public td::Benchmark {
   }
 };
 
-class AesCbcBench : public td::Benchmark {
+class AesCtrOpenSSLBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
   td::UInt128 iv;
 
   std::string get_description() const override {
-    return PSTRING() << "AES CBC OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+    return PSTRING() << "AES CTR RAW OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+  }
+
+  void start_up() override {
+    for (int i = 0; i < DATA_SIZE; i++) {
+      data[i] = 123;
+    }
+    td::Random::secure_bytes(key.raw, sizeof(key));
+    td::Random::secure_bytes(iv.raw, sizeof(iv));
+  }
+
+  void run(int n) override {
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, key.raw, iv.raw);
+
+    td::MutableSlice data_slice(data, DATA_SIZE);
+    td::AesCtrState state;
+    state.init(as_slice(key), as_slice(iv));
+    for (int i = 0; i < n; i++) {
+      int len = 0;
+      EVP_EncryptUpdate(ctx, data_slice.ubegin(), &len, data_slice.ubegin(), DATA_SIZE);
+      CHECK(len == DATA_SIZE);
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+  }
+};
+
+class AesCbcDecryptBench : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[DATA_SIZE];
+  td::UInt256 key;
+  td::UInt128 iv;
+
+  std::string get_description() const override {
+    return PSTRING() << "AES CBC Decrypt OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
+  }
+
+  void start_up() override {
+    for (int i = 0; i < DATA_SIZE; i++) {
+      data[i] = 123;
+    }
+    td::Random::secure_bytes(as_slice(key));
+    td::Random::secure_bytes(as_slice(iv));
+  }
+
+  void run(int n) override {
+    td::MutableSlice data_slice(data, DATA_SIZE);
+    for (int i = 0; i < n; i++) {
+      td::aes_cbc_decrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+    }
+  }
+};
+
+class AesCbcEncryptBench : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[DATA_SIZE];
+  td::UInt256 key;
+  td::UInt128 iv;
+
+  std::string get_description() const override {
+    return PSTRING() << "AES CBC Encrypt OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() override {
@@ -346,13 +409,16 @@ class Crc64Bench : public td::Benchmark {
 
 int main() {
   td::init_openssl_threads();
+  td::bench(AesCtrBench());
+  td::bench(AesCtrOpenSSLBench());
 
+  td::bench(AesCbcDecryptBench());
+  td::bench(AesCbcEncryptBench());
   td::bench(AesIgeShortBench<true>());
   td::bench(AesIgeShortBench<false>());
   td::bench(AesIgeEncryptBench());
   td::bench(AesIgeDecryptBench());
   td::bench(AesEcbBench());
-  td::bench(AesCtrBench());
 
   td::bench(Pbkdf2Bench());
   td::bench(RandBench());

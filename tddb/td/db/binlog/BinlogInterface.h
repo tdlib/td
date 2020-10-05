@@ -43,22 +43,22 @@ class BinlogInterface {
   }
 
   uint64 add(int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
-    auto logevent_id = next_id();
-    add_raw_event_impl(logevent_id, BinlogEvent::create_raw(logevent_id, type, 0, storer), std::move(promise), {});
-    return logevent_id;
+    auto log_event_id = next_id();
+    add_raw_event_impl(log_event_id, BinlogEvent::create_raw(log_event_id, type, 0, storer), std::move(promise), {});
+    return log_event_id;
   }
 
-  uint64 rewrite(uint64 logevent_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
+  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
     auto seq_no = next_id();
-    add_raw_event_impl(seq_no, BinlogEvent::create_raw(logevent_id, type, BinlogEvent::Flags::Rewrite, storer),
+    add_raw_event_impl(seq_no, BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer),
                        std::move(promise), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 logevent_id, Promise<> promise = Promise<>()) {
+  uint64 erase(uint64 log_event_id, Promise<> promise = Promise<>()) {
     auto seq_no = next_id();
     add_raw_event_impl(seq_no,
-                       BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty,
+                       BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty,
                                                BinlogEvent::Flags::Rewrite, EmptyStorer()),
                        std::move(promise), {});
     return seq_no;

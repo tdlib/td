@@ -72,20 +72,20 @@ class Binlog {
   }
 
   uint64 add(int32 type, const Storer &storer) {
-    auto logevent_id = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, type, 0, storer), {});
-    return logevent_id;
+    auto log_event_id = next_id();
+    add_raw_event(BinlogEvent::create_raw(log_event_id, type, 0, storer), {});
+    return log_event_id;
   }
 
-  uint64 rewrite(uint64 logevent_id, int32 type, const Storer &storer) {
+  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer) {
     auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, type, BinlogEvent::Flags::Rewrite, storer), {});
+    add_raw_event(BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 logevent_id) {
+  uint64 erase(uint64 log_event_id) {
     auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
+    add_raw_event(BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
                                           EmptyStorer()),
                   {});
     return seq_no;

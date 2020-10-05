@@ -48,6 +48,7 @@ struct PhotoSize {
   Dimensions dimensions;
   int32 size = 0;
   FileId file_id;
+  vector<int32> progressive_sizes;
 };
 
 struct AnimationSize : public PhotoSize {

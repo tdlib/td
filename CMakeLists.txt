@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.6.8 LANGUAGES CXX C)
+project(TDLib VERSION 1.6.9 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
@@ -395,10 +395,12 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.cpp
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
+  td/telegram/CountryInfoManager.cpp
   td/telegram/DelayDispatcher.cpp
   td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
   td/telegram/DhCache.cpp
+  td/telegram/DialogAction.cpp
   td/telegram/DialogAdministrator.cpp
   td/telegram/DialogDb.cpp
   td/telegram/DialogFilter.cpp
@@ -438,12 +440,15 @@ set(TDLIB_SOURCE
   td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
   td/telegram/Location.cpp
+  td/telegram/logevent/LogEventHelper.cpp
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageContentType.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageId.cpp
+  td/telegram/MessageReplyInfo.cpp
   td/telegram/MessagesDb.cpp
+  td/telegram/MessageSearchFilter.cpp
   td/telegram/MessagesManager.cpp
   td/telegram/misc.cpp
   td/telegram/net/AuthDataShared.cpp
@@ -549,11 +554,13 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.h
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
+  td/telegram/CountryInfoManager.h
   td/telegram/DelayDispatcher.h
   td/telegram/Dependencies.h
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h
+  td/telegram/DialogAction.h
   td/telegram/DialogAdministrator.h
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h
@@ -614,7 +621,9 @@ set(TDLIB_SOURCE
   td/telegram/MessageCopyOptions.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
+  td/telegram/MessageReplyInfo.h
   td/telegram/MessagesDb.h
+  td/telegram/MessageSearchFilter.h
   td/telegram/MessagesManager.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h
@@ -825,7 +834,6 @@ if (TD_ENABLE_DOTNET)
     td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
-  set(VCPKG_APPLOCAL_LIBRARY_DEPS ON)
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
   target_link_libraries(tddotnet PRIVATE tdclient tdutils)
   target_include_directories(tddotnet PUBLIC

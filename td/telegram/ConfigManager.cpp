@@ -875,7 +875,7 @@ class ConfigRecoverer : public Actor {
 };
 
 ConfigManager::ConfigManager(ActorShared<> parent) : parent_(std::move(parent)) {
-  lazy_request_flood_countrol_.add_limit(20, 1);
+  lazy_request_flood_control_.add_limit(20, 1);
 }
 
 void ConfigManager::start_up() {
@@ -930,7 +930,7 @@ void ConfigManager::request_config() {
     return;
   }
 
-  lazy_request_flood_countrol_.add_event(static_cast<int32>(Timestamp::now().at()));
+  lazy_request_flood_control_.add_event(static_cast<int32>(Timestamp::now().at()));
   request_config_from_dc_impl(DcId::main());
 }
 
@@ -943,7 +943,7 @@ void ConfigManager::lazy_request_config() {
     return;
   }
 
-  expire_time_.relax(Timestamp::at(lazy_request_flood_countrol_.get_wakeup_at()));
+  expire_time_.relax(Timestamp::at(lazy_request_flood_control_.get_wakeup_at()));
   set_timeout_at(expire_time_.at());
 }
 

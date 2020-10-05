@@ -43,6 +43,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   static bool is_custom_language_code(Slice language_code);
 
+  string get_main_language_code();
+
   vector<string> get_used_language_codes();
 
   void on_language_pack_changed();

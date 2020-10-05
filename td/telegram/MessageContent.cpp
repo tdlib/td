@@ -33,7 +33,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessagesDb.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Payments.h"
@@ -1859,7 +1859,7 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageDocument::ID: {
       auto input_message = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      auto file_type = input_message->force_file_ ? FileType::DocumentAsFile : FileType::Document;
+      auto file_type = input_message->disable_content_type_detection_ ? FileType::DocumentAsFile : FileType::Document;
       r_file_id =
           td->file_manager_->get_input_file_id(file_type, input_message->document_, dialog_id, false, is_secret, true);
       input_thumbnail = std::move(input_message->thumbnail_);
@@ -2447,7 +2447,7 @@ static int32 get_message_content_text_index_mask(const MessageContent *content) 
   for (auto &entity : text->entities) {
     if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress ||
         entity.type == MessageEntity::Type::TextUrl) {
-      return search_messages_filter_index_mask(SearchMessagesFilter::Url);
+      return message_search_filter_index_mask(MessageSearchFilter::Url);
     }
   }
   return 0;
@@ -2457,43 +2457,43 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
                                                   bool is_outgoing) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Animation);
+      return message_search_filter_index_mask(MessageSearchFilter::Animation);
     case MessageContentType::Audio: {
       auto message_audio = static_cast<const MessageAudio *>(content);
       auto duration = td->audios_manager_->get_audio_duration(message_audio->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Audio)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Audio)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::Document:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return message_search_filter_index_mask(MessageSearchFilter::Document);
     case MessageContentType::Photo:
-      return search_messages_filter_index_mask(SearchMessagesFilter::Photo) |
-             search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo);
+      return message_search_filter_index_mask(MessageSearchFilter::Photo) |
+             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
     case MessageContentType::Video: {
       auto message_video = static_cast<const MessageVideo *>(content);
       auto duration = td->videos_manager_->get_video_duration(message_video->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Video) |
-                                             search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Video) |
+                                             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::VideoNote: {
       auto message_video_note = static_cast<const MessageVideoNote *>(content);
       auto duration = td->video_notes_manager_->get_video_note_duration(message_video_note->file_id);
-      return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::VideoNote) |
-                                             search_messages_filter_index_mask(SearchMessagesFilter::VoiceAndVideoNote)
-                                       : search_messages_filter_index_mask(SearchMessagesFilter::Document);
+      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::VideoNote) |
+                                             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote)
+                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
     }
     case MessageContentType::VoiceNote:
-      return search_messages_filter_index_mask(SearchMessagesFilter::VoiceNote) |
-             search_messages_filter_index_mask(SearchMessagesFilter::VoiceAndVideoNote);
+      return message_search_filter_index_mask(MessageSearchFilter::VoiceNote) |
+             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote);
     case MessageContentType::ChatChangePhoto:
-      return search_messages_filter_index_mask(SearchMessagesFilter::ChatPhoto);
+      return message_search_filter_index_mask(MessageSearchFilter::ChatPhoto);
     case MessageContentType::Call: {
-      int32 index_mask = search_messages_filter_index_mask(SearchMessagesFilter::Call);
+      int32 index_mask = message_search_filter_index_mask(MessageSearchFilter::Call);
       auto message_call = static_cast<const MessageCall *>(content);
       if (!is_outgoing && (message_call->discard_reason == CallDiscardReason::Declined ||
                            message_call->discard_reason == CallDiscardReason::Missed)) {
-        index_mask |= search_messages_filter_index_mask(SearchMessagesFilter::MissedCall);
+        index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
       }
       return index_mask;
     }
@@ -3355,17 +3355,17 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
 template <class ToT, class FromT>
 static tl_object_ptr<ToT> secret_to_telegram(FromT &from);
 
-// fileLocationUnavailable#7c596b46 volume_id:long local_id:int secret:long = FileLocation;
+// fileLocationUnavailable volume_id:long local_id:int secret:long = FileLocation;
 static auto secret_to_telegram(secret_api::fileLocationUnavailable &file_location) {
   return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
 }
 
-// fileLocation#53d69076 dc_id:int volume_id:long local_id:int secret:long = FileLocation;
+// fileLocation dc_id:int volume_id:long local_id:int secret:long = FileLocation;
 static auto secret_to_telegram(secret_api::fileLocation &file_location) {
   return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
 }
 
-// photoSizeEmpty#e17e23c type:string = PhotoSize;
+// photoSizeEmpty type:string = PhotoSize;
 static auto secret_to_telegram(secret_api::photoSizeEmpty &empty) {
   if (!clean_input_string(empty.type_)) {
     empty.type_.clear();
@@ -3373,7 +3373,7 @@ static auto secret_to_telegram(secret_api::photoSizeEmpty &empty) {
   return make_tl_object<telegram_api::photoSizeEmpty>(empty.type_);
 }
 
-// photoSize#77bfb61b type:string location:FileLocation w:int h:int size:int = PhotoSize;
+// photoSize type:string location:FileLocation w:int h:int size:int = PhotoSize;
 static auto secret_to_telegram(secret_api::photoSize &photo_size) {
   if (!clean_input_string(photo_size.type_)) {
     photo_size.type_.clear();
@@ -3383,7 +3383,7 @@ static auto secret_to_telegram(secret_api::photoSize &photo_size) {
       photo_size.w_, photo_size.h_, photo_size.size_);
 }
 
-// photoCachedSize#e9a734fa type:string location:FileLocation w:int h:int bytes:bytes = PhotoSize;
+// photoCachedSize type:string location:FileLocation w:int h:int bytes:bytes = PhotoSize;
 static auto secret_to_telegram(secret_api::photoCachedSize &photo_size) {
   if (!clean_input_string(photo_size.type_)) {
     photo_size.type_.clear();
@@ -3393,17 +3393,17 @@ static auto secret_to_telegram(secret_api::photoCachedSize &photo_size) {
       photo_size.w_, photo_size.h_, photo_size.bytes_.clone());
 }
 
-// documentAttributeImageSize #6c37c15c w:int h:int = DocumentAttribute;
+// documentAttributeImageSize w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeImageSize &image_size) {
   return make_tl_object<telegram_api::documentAttributeImageSize>(image_size.w_, image_size.h_);
 }
 
-// documentAttributeAnimated #11b58939 = DocumentAttribute;
+// documentAttributeAnimated = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAnimated &animated) {
   return make_tl_object<telegram_api::documentAttributeAnimated>();
 }
 
-// documentAttributeSticker23 #fb0a5727 = DocumentAttribute;
+// documentAttributeSticker23 = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeSticker23 &sticker) {
   return make_tl_object<telegram_api::documentAttributeSticker>(
       0, false /*ignored*/, "", make_tl_object<telegram_api::inputStickerSetEmpty>(), nullptr);
@@ -3420,7 +3420,7 @@ static auto secret_to_telegram(secret_api::inputStickerSetShortName &sticker_set
   return make_tl_object<telegram_api::inputStickerSetShortName>(sticker_set.short_name_);
 }
 
-// documentAttributeSticker #3a556302 alt:string stickerset:InputStickerSet = DocumentAttribute;
+// documentAttributeSticker alt:string stickerset:InputStickerSet = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
   if (!clean_input_string(sticker.alt_)) {
     sticker.alt_.clear();
@@ -3430,13 +3430,13 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
       nullptr);
 }
 
-// documentAttributeVideo #5910cccb duration:int w:int h:int = DocumentAttribute;
+// documentAttributeVideo duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(0, false /*ignored*/, false /*ignored*/, video.duration_,
                                                               video.w_, video.h_);
 }
 
-// documentAttributeFilename #15590068 file_name:string = DocumentAttribute;
+// documentAttributeFilename file_name:string = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) {
   if (!clean_input_string(filename.file_name_)) {
     filename.file_name_.clear();
@@ -3444,7 +3444,7 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
   return make_tl_object<telegram_api::documentAttributeFilename>(filename.file_name_);
 }
 
-// documentAttributeVideo66#ef02ce6 flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
+// documentAttributeVideo66 flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo66 &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
       (video.flags_ & secret_api::documentAttributeVideo66::ROUND_MESSAGE_MASK) != 0
@@ -3479,16 +3479,16 @@ static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, st
                                                               std::move(performer), std::move(waveform));
 }
 
-// documentAttributeAudio23 #51448e5 duration:int = DocumentAttribute;
+// documentAttributeAudio23 duration:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAudio23 &audio) {
   return telegram_documentAttributeAudio(false, audio.duration_, "", "", Auto());
 }
-// documentAttributeAudio45 #ded218e0 duration:int title:string performer:string = DocumentAttribute;
+// documentAttributeAudio45 duration:int title:string performer:string = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAudio45 &audio) {
   return telegram_documentAttributeAudio(false, audio.duration_, audio.title_, audio.performer_, Auto());
 }
 
-// documentAttributeAudio#9852f9c6 flags:# voice:flags.10?true duration:int title:flags.0?string
+// documentAttributeAudio flags:# voice:flags.10?true duration:int title:flags.0?string
 //    performer:flags.1?string waveform:flags.2?bytes = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAudio &audio) {
   return telegram_documentAttributeAudio((audio.flags_ & secret_api::documentAttributeAudio::VOICE_MASK) != 0,
@@ -3506,7 +3506,7 @@ static auto secret_to_telegram(std::vector<tl_object_ptr<secret_api::DocumentAtt
   return res;
 }
 
-// decryptedMessageMediaExternalDocument#fa95b0dd id:long access_hash:long date:int mime_type:string size:int
+// decryptedMessageMediaExternalDocument id:long access_hash:long date:int mime_type:string size:int
 // thumb:PhotoSize dc_id:int attributes:Vector<DocumentAttribute> = DecryptedMessageMedia;
 static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExternalDocument &from) {
   if (!clean_input_string(from.mime_type_)) {
@@ -3764,7 +3764,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl) {
-  if (!td->auth_manager_->is_authorized() && !G()->close_flag() && media != nullptr) {
+  if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media != nullptr) {
     LOG(ERROR) << "Receive without authorization " << to_string(media);
     media = nullptr;
   }

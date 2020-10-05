@@ -135,6 +135,7 @@ class DialogParticipantStatus {
 
   static constexpr uint32 IS_MEMBER = 1 << 27;
 
+  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
   static constexpr uint32 HAS_RANK = 1u << 14;
   // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
@@ -165,9 +166,9 @@ class DialogParticipantStatus {
   DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank);
 
  public:
-  static DialogParticipantStatus Creator(bool is_member, string rank);
+  static DialogParticipantStatus Creator(bool is_member, bool is_anonymous, string rank);
 
-  static DialogParticipantStatus Administrator(string rank, bool can_be_edited, bool can_change_info,
+  static DialogParticipantStatus Administrator(bool is_anonymous, string rank, bool can_be_edited, bool can_change_info,
                                                bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
                                                bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
                                                bool can_promote_members);
@@ -306,6 +307,10 @@ class DialogParticipantStatus {
 
   int32 get_until_date() const {
     return until_date_;
+  }
+
+  bool is_anonymous() const {
+    return (flags_ & IS_ANONYMOUS) != 0;
   }
 
   const string &get_rank() const {

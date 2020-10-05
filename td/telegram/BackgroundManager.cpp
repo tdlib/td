@@ -66,7 +66,8 @@ class GetBackgroundQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for getBackground " << background_id_ << "/" << background_name_ << ": " << status;
+    LOG(INFO) << "Receive error for GetBackgroundQuery for " << background_id_ << "/" << background_name_ << ": "
+              << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -318,22 +319,22 @@ class BackgroundManager::BackgroundLogEvent {
 void BackgroundManager::start_up() {
   for (int i = 0; i < 2; i++) {
     bool for_dark_theme = i != 0;
-    auto logevent_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key(for_dark_theme));
-    if (!logevent_string.empty()) {
-      BackgroundLogEvent logevent;
-      log_event_parse(logevent, logevent_string).ensure();
+    auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key(for_dark_theme));
+    if (!log_event_string.empty()) {
+      BackgroundLogEvent log_event;
+      log_event_parse(log_event, log_event_string).ensure();
 
-      CHECK(logevent.background_.id.is_valid());
-      bool needs_file_id = logevent.background_.type.type != BackgroundType::Type::Fill;
-      if (logevent.background_.file_id.is_valid() != needs_file_id) {
-        LOG(ERROR) << "Failed to load " << logevent.background_.id << " of " << logevent.background_.type;
+      CHECK(log_event.background_.id.is_valid());
+      bool needs_file_id = log_event.background_.type.type != BackgroundType::Type::Fill;
+      if (log_event.background_.file_id.is_valid() != needs_file_id) {
+        LOG(ERROR) << "Failed to load " << log_event.background_.id << " of " << log_event.background_.type;
         G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
         continue;
       }
-      set_background_id_[for_dark_theme] = logevent.background_.id;
-      set_background_type_[for_dark_theme] = logevent.set_type_;
+      set_background_id_[for_dark_theme] = log_event.background_.id;
+      set_background_type_[for_dark_theme] = log_event.set_type_;
 
-      add_background(logevent.background_);
+      add_background(log_event.background_);
     }
 
     send_update_selected_background(for_dark_theme);
@@ -662,8 +663,8 @@ void BackgroundManager::save_background_id(bool for_dark_theme) const {
   if (background_id.is_valid()) {
     const Background *background = get_background(background_id);
     CHECK(background != nullptr);
-    BackgroundLogEvent logevent{*background, set_background_type_[for_dark_theme]};
-    G()->td_db()->get_binlog_pmc()->set(key, log_event_store(logevent).as_slice().str());
+    BackgroundLogEvent log_event{*background, set_background_type_[for_dark_theme]};
+    G()->td_db()->get_binlog_pmc()->set(key, log_event_store(log_event).as_slice().str());
   } else {
     G()->td_db()->get_binlog_pmc()->erase(key);
   }

@@ -31,7 +31,16 @@ struct KeyboardButton {
 
 struct InlineKeyboardButton {
   // append only
-  enum class Type : int32 { Url, Callback, CallbackGame, SwitchInline, SwitchInlineCurrentDialog, Buy, UrlAuth };
+  enum class Type : int32 {
+    Url,
+    Callback,
+    CallbackGame,
+    SwitchInline,
+    SwitchInlineCurrentDialog,
+    Buy,
+    UrlAuth,
+    CallbackWithPassword
+  };
   Type type;
   int32 id = 0;  // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
   string text;

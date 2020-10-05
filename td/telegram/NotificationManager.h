@@ -307,13 +307,13 @@ class NotificationManager : public Actor {
   Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
-                                     string sender_name, int32 date, bool is_from_scheduled, bool contains_mention,
-                                     bool initial_is_silent, bool is_silent, string loc_key, string arg, Photo photo,
-                                     Document document, NotificationId notification_id, uint64 logevent_id,
-                                     Promise<Unit> promise);
+                                     DialogId sender_dialog_id, string sender_name, int32 date, bool is_from_scheduled,
+                                     bool contains_mention, bool initial_is_silent, bool is_silent, string loc_key,
+                                     string arg, Photo photo, Document document, NotificationId notification_id,
+                                     uint64 log_event_id, Promise<Unit> promise);
 
   void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
-                                      string arg, Photo photo, Document document, uint64 logevent_id,
+                                      string arg, Photo photo, Document document, uint64 log_event_id,
                                       Promise<Unit> promise);
 
   void after_get_difference_impl();
@@ -382,12 +382,13 @@ class NotificationManager : public Actor {
   std::unordered_set<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
   std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
 
-  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_logevent_ids_;
-  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_edit_notification_logevent_ids_;
+  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_log_event_ids_;
+  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_edit_notification_log_event_ids_;
   struct TemporaryNotification {
     NotificationGroupId group_id;
     NotificationId notification_id;
     UserId sender_user_id;
+    DialogId sender_dialog_id;
     string sender_name;
     bool is_outgoing;
   };

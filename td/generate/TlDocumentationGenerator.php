@@ -136,6 +136,9 @@ abstract class TlDocumentationGenerator
                     $this->printError('Wrong description begin');
                 }
 
+                if (preg_match('/[^ ]@/', $description)) {
+                    $this->printError("Wrong documentation '@' usage: $description");
+                }
                 $docs = explode('@', $description);
                 array_shift($docs);
                 $info = array();

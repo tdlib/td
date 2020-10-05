@@ -10,7 +10,6 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/PtsManager.h"
-#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
@@ -136,9 +135,6 @@ class UpdatesManager : public Actor {
 
   int32 get_short_update_date() const;
 
-  static tl_object_ptr<td_api::ChatAction> convert_send_message_action(
-      tl_object_ptr<telegram_api::SendMessageAction> action);
-
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                       vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages,
                                       vector<tl_object_ptr<telegram_api::Update>> &&other_updates);
@@ -186,9 +182,12 @@ class UpdatesManager : public Actor {
 
   bool is_acceptable_channel(ChannelId channel_id) const;
 
-  bool is_acceptable_dialog(DialogId dialog_id) const;
+  bool is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const;
 
   bool is_acceptable_message_entities(const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const;
+
+  bool is_acceptable_message_reply_header(
+      const telegram_api::object_ptr<telegram_api::messageReplyHeader> &header) const;
 
   bool is_acceptable_message_forward_header(
       const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const;
@@ -215,13 +214,15 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserName> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserPhone> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, bool /*force_apply*/);
-  void on_update(tl_object_ptr<telegram_api::updateUserBlocked> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdd> update, bool /*force_apply*/);
@@ -243,7 +244,11 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool force_apply);
+  void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, bool force_apply);
   void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, bool /*force_apply*/);
+
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/);

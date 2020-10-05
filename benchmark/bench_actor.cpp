@@ -56,12 +56,12 @@ class RingBench : public td::Benchmark {
             send_closure_later(next_actor, &PassActor::pass, n - 1);
           } else {
             // TODO: it is three times faster than send_event
-            // may be send event could be further optimized?
+            // maybe send event could be further optimized?
             ::td::Scheduler::instance()->hack(static_cast<td::ActorId<Actor>>(next_actor),
                                               td::Event::raw(static_cast<td::uint32>(n - 1)));
           }
         } else if (type == 4) {
-          send_lambda(next_actor, [=, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });
+          send_lambda(next_actor, [n, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });
         }
       }
     }

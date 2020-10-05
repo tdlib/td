@@ -7,11 +7,28 @@
 #include "td/utils/OptionParser.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/PathView.h"
 
-#include <cstring>
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#include "td/utils/port/wstring_convert.h"
+#endif
+#endif
+
 #include <unordered_map>
 
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#include <shellapi.h>
+#endif
+#endif
+
 namespace td {
+
+void OptionParser::set_usage(Slice executable_name, Slice usage) {
+  PathView path_view(executable_name);
+  usage_ = PSTRING() << path_view.file_name() << " " << usage;
+}
 
 void OptionParser::set_description(string description) {
   description_ = std::move(description);
@@ -57,6 +74,23 @@ void OptionParser::add_check(std::function<Status()> check) {
 }
 
 Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_non_option_count) {
+#if TD_PORT_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+  LPWSTR *utf16_argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (utf16_argv == nullptr) {
+    return Status::Error("Failed to parse command line");
+  }
+  vector<string> args_storage(argc);
+  vector<char *> args(argc);
+  for (int i = 0; i < argc; i++) {
+    TRY_RESULT_ASSIGN(args_storage[i], from_wstring(utf16_argv[i]));
+    args[i] = &args_storage[i][0];
+  }
+  LocalFree(utf16_argv);
+  argv = &args[0];
+#endif
+#endif
+
   std::unordered_map<char, const Option *> short_options;
   std::unordered_map<string, const Option *> long_options;
   for (auto &opt : options_) {
@@ -85,7 +119,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 
     if (arg[1] == '-') {
       // long option
-      Slice long_arg(arg + 2, std::strlen(arg + 2));
+      Slice long_arg(arg + 2);
       Slice parameter;
       auto equal_pos = long_arg.find('=');
       bool has_equal = equal_pos != Slice::npos;
@@ -96,22 +130,22 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 
       auto it = long_options.find(long_arg.str());
       if (it == long_options.end()) {
-        return Status::Error(PSLICE() << "Option " << long_arg << " was unrecognized");
+        return Status::Error(PSLICE() << "Option \"" << long_arg << "\" is unrecognized");
       }
 
       auto option = it->second;
       switch (option->type) {
         case Option::Type::NoArg:
           if (has_equal) {
-            return Status::Error(PSLICE() << "Option " << long_arg << " must not have argument");
+            return Status::Error(PSLICE() << "Option \"" << long_arg << "\" must not have an argument");
           }
           break;
         case Option::Type::Arg:
           if (!has_equal) {
             if (++arg_pos == argc) {
-              return Status::Error(PSLICE() << "Option " << long_arg << " must have argument");
+              return Status::Error(PSLICE() << "Option \"" << long_arg << "\" requires an argument");
             }
-            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos]);
           }
           break;
         default:
@@ -125,7 +159,7 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
     for (size_t opt_pos = 1; arg[opt_pos] != '\0'; opt_pos++) {
       auto it = short_options.find(arg[opt_pos]);
       if (it == short_options.end()) {
-        return Status::Error(PSLICE() << "Option " << arg[opt_pos] << " was unrecognized");
+        return Status::Error(PSLICE() << "Option \"" << arg[opt_pos] << "\" is unrecognized");
       }
 
       auto option = it->second;
@@ -137,11 +171,11 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
         case Option::Type::Arg:
           if (arg[opt_pos + 1] == '\0') {
             if (++arg_pos == argc) {
-              return Status::Error(PSLICE() << "Option " << arg[opt_pos] << " must have argument");
+              return Status::Error(PSLICE() << "Option \"" << arg[opt_pos] << "\" requires an argument");
             }
-            parameter = Slice(argv[arg_pos], std::strlen(argv[arg_pos]));
+            parameter = Slice(argv[arg_pos]);
           } else {
-            parameter = Slice(arg + opt_pos + 1, std::strlen(arg + opt_pos + 1));
+            parameter = Slice(arg + opt_pos + 1);
             opt_pos += parameter.size();
           }
           break;
@@ -170,6 +204,9 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
+  if (!o.usage_.empty()) {
+    sb << "Usage: " << o.usage_ << "\n\n";
+  }
   if (!o.description_.empty()) {
     sb << o.description_ << ". ";
   }
@@ -177,9 +214,10 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
 
   size_t max_length = 0;
   for (auto &opt : o.options_) {
-    bool has_short_key = opt.short_key != '\0';
-    bool has_long_key = !opt.long_key.empty();
-    size_t length = (has_short_key ? 2 : 0) + (has_long_key ? 2 + opt.long_key.size() + 2 * has_short_key : 0);
+    size_t length = 2;
+    if (!opt.long_key.empty()) {
+      length += 4 + opt.long_key.size();
+    }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       length += 5;
     }
@@ -195,15 +233,18 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
     size_t length = max_length;
     if (has_short_key) {
       sb << '-' << opt.short_key;
-      length -= 2;
+    } else {
+      sb << "  ";
     }
+    length -= 2;
     if (!opt.long_key.empty()) {
       if (has_short_key) {
         sb << ", ";
-        length -= 2;
+      } else {
+        sb << "  ";
       }
       sb << "--" << opt.long_key;
-      length -= 2 + opt.long_key.size();
+      length -= 4 + opt.long_key.size();
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
       sb << "<arg>";

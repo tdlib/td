@@ -65,6 +65,10 @@ int64 FileLog::get_rotate_threshold() const {
   return rotate_threshold_;
 }
 
+bool FileLog::get_redirect_stderr() const {
+  return redirect_stderr_;
+}
+
 void FileLog::append(CSlice cslice, int log_level) {
   Slice slice = cslice;
   while (!slice.empty()) {

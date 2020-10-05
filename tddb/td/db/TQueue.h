@@ -60,7 +60,7 @@ class TQueue {
   };
 
   struct RawEvent {
-    uint64 logevent_id{0};
+    uint64 log_event_id{0};
     EventId event_id;
     string data;
     int64 extra{0};
@@ -82,7 +82,7 @@ class TQueue {
     virtual ~StorageCallback() = default;
 
     virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
-    virtual void pop(uint64 logevent_id) = 0;
+    virtual void pop(uint64 log_event_id) = 0;
     virtual void close(Promise<> promise) = 0;
   };
 
@@ -125,7 +125,7 @@ template <class BinlogT>
 class TQueueBinlog : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) override;
-  void pop(uint64 logevent_id) override;
+  void pop(uint64 log_event_id) override;
   Status replay(const BinlogEvent &binlog_event, TQueue &q) const TD_WARN_UNUSED_RESULT;
 
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
@@ -141,12 +141,12 @@ class TQueueBinlog : public TQueue::StorageCallback {
 class TQueueMemoryStorage : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) override;
-  void pop(uint64 logevent_id) override;
+  void pop(uint64 log_event_id) override;
   void replay(TQueue &q) const;
   virtual void close(Promise<> promise) override;
 
  private:
-  uint64 next_logevent_id_{1};
+  uint64 next_log_event_id_{1};
   std::map<uint64, std::pair<QueueId, RawEvent>> events_;
 };
 

@@ -54,7 +54,7 @@ class SecureManager : public NetQueryCallback {
   void send_passport_authorization_form(int32 authorization_form_id, std::vector<SecureValueType> types,
                                         Promise<> promise);
 
-  void get_preferred_country_code(string country_code, Promise<td_api::object_ptr<td_api::text>> promise);
+  void get_preferred_country_language(string country_code, Promise<td_api::object_ptr<td_api::text>> promise);
 
  private:
   ActorShared<> parent_;

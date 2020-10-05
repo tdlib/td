@@ -395,6 +395,24 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       auto size = move_tl_object_as<telegram_api::photoStrippedSize>(size_ptr);
       return size->bytes_.as_slice().str();
     }
+    case telegram_api::photoSizeProgressive::ID: {
+      auto size = move_tl_object_as<telegram_api::photoSizeProgressive>(size_ptr);
+
+      if (size->sizes_.empty()) {
+        LOG(ERROR) << "Receive " << to_string(size);
+        return std::move(res);
+      }
+      std::sort(size->sizes_.begin(), size->sizes_.end());
+
+      type = std::move(size->type_);
+      location = std::move(size->location_);
+      res.dimensions = get_dimensions(size->w_, size->h_);
+      res.size = size->sizes_.back();
+      size->sizes_.pop_back();
+      res.progressive_sizes = std::move(size->sizes_);
+
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -551,7 +569,8 @@ static tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_
   return td_api::make_object<td_api::photoSize>(
       photo_size->type ? std::string(1, static_cast<char>(photo_size->type))
                        : std::string(),  // TODO replace string type with integer type
-      file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height);
+      file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height,
+      vector<int32>(photo_size->progressive_sizes));
 }
 
 static vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
@@ -570,7 +589,8 @@ static vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(File
 }
 
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs) {
-  return lhs.type == rhs.type && lhs.dimensions == rhs.dimensions && lhs.size == rhs.size && lhs.file_id == rhs.file_id;
+  return lhs.type == rhs.type && lhs.dimensions == rhs.dimensions && lhs.size == rhs.size &&
+         lhs.file_id == rhs.file_id && lhs.progressive_sizes == rhs.progressive_sizes;
 }
 
 bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs) {
@@ -599,7 +619,8 @@ bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size) {
   return string_builder << "{type = " << photo_size.type << ", dimensions = " << photo_size.dimensions
-                        << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id << "}";
+                        << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id
+                        << ", progressive_sizes = " << photo_size.progressive_sizes << "}";
 }
 
 static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(FileManager *file_manager,
@@ -933,6 +954,15 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
       }
       case telegram_api::photoStrippedSize::ID:
         break;
+      case telegram_api::photoSizeProgressive::ID: {
+        auto size = static_cast<const telegram_api::photoSizeProgressive *>(size_ptr.get());
+        if (size->type_ == "a") {
+          photo_small = copy_location(size->location_);
+        } else if (size->type_ == "c") {
+          photo_big = copy_location(size->location_);
+        }
+        break;
+      }
       default:
         UNREACHABLE();
         break;

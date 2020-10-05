@@ -58,7 +58,7 @@ void scan_db(CancellationToken &token, CallbackT &&callback) {
     if (value.substr(0, 2) == "@@") {
       return true;
     }
-    logevent::WithVersion<TlParser> parser(value);
+    log_event::WithVersion<TlParser> parser(value);
     FileData data;
     data.parse(parser, false);
     if (parser.get_status().is_error()) {

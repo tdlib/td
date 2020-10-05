@@ -114,7 +114,7 @@ class ConfigManager : public NetQueryCallback {
   int ref_cnt_{1};
   Timestamp expire_time_;
 
-  FloodControlStrict lazy_request_flood_countrol_;
+  FloodControlStrict lazy_request_flood_control_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
 

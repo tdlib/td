@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -30,6 +31,22 @@ class OptionParser {
                   std::function<Status(Slice)> callback);
 
  public:
+  template <class T>
+  static std::function<Status(Slice)> parse_integer(T &value) {
+    return [&value](Slice value_str) {
+      TRY_RESULT_ASSIGN(value, to_integer_safe<T>(value_str));
+      return Status::OK();
+    };
+  }
+
+  static std::function<void(Slice)> parse_string(string &value) {
+    return [&value](Slice value_str) {
+      value = value_str.str();
+    };
+  }
+
+  void set_usage(Slice executable_name, Slice usage);
+
   void set_description(string description);
 
   void add_checked_option(char short_key, Slice long_key, Slice description, std::function<Status(Slice)> callback);
@@ -54,6 +71,7 @@ class OptionParser {
  private:
   vector<Option> options_;
   vector<std::function<Status()>> checks_;
+  string usage_;
   string description_;
 };
 

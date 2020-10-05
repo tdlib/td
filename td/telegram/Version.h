@@ -8,7 +8,7 @@
 
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 117;
+constexpr int32 MTPROTO_LAYER = 119;
 
 enum class Version : int32 {
   Initial,  // 0
@@ -39,6 +39,7 @@ enum class Version : int32 {
   AddDiceEmoji,  // 25
   AddAnimationStickers,
   AddDialogPhotoHasAnimation,
+  AddPhotoProgressiveSizes,
   Next
 };
 
@@ -53,6 +54,7 @@ enum class DbVersion : int32 {
   AddFolders,
   AddScheduledMessages,
   StorePinnedDialogsInBinlog,
+  AddMessageThreadSupport,
   Next
 };
 

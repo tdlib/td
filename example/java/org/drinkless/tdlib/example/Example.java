@@ -299,13 +299,13 @@ public final class Example {
         TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{row, row, row});
 
         TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), false, true);
-        client.send(new TdApi.SendMessage(chatId, 0, null, replyMarkup, content), defaultHandler);
+        client.send(new TdApi.SendMessage(chatId, 0, 0, null, replyMarkup, content), defaultHandler);
     }
 
     public static void main(String[] args) throws InterruptedException {
         // disable TDLib log
         Client.execute(new TdApi.SetLogVerbosityLevel(0));
-        if (Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27))) instanceof TdApi.Error) {
+        if (Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false))) instanceof TdApi.Error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
 

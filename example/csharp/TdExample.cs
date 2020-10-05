@@ -209,14 +209,14 @@ namespace TdExample
             TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][] { row, row, row });
 
             TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), false, true);
-            _client.Send(new TdApi.SendMessage(chatId, 0, null, replyMarkup, content), _defaultHandler);
+            _client.Send(new TdApi.SendMessage(chatId, 0, 0, null, replyMarkup, content), _defaultHandler);
         }
 
         static void Main()
         {
             // disable TDLib log
             Td.Client.Execute(new TdApi.SetLogVerbosityLevel(0));
-            if (Td.Client.Execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27))) is TdApi.Error)
+            if (Td.Client.Execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false))) is TdApi.Error)
             {
                 throw new System.IO.IOException("Write access to the current directory is required");
             }

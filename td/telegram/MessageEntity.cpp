@@ -26,6 +26,7 @@ namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
   static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50};
+  static_assert(sizeof(types) / sizeof(types[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
   return types[static_cast<int32>(type)];
 }
 
@@ -3872,10 +3873,10 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
-    if (!from_album && (send_date == 0 || send_date > 1579219200)) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " with content \""
-                 << debug_message_text << "\" -> \"" << message_text << "\" sent at " << send_date << " with entities "
-                 << format::as_array(debug_entities) << " -> " << format::as_array(entities);
+    if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
+                 << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
+                 << "\" with entities " << format::as_array(debug_entities) << " -> " << format::as_array(entities);
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();
@@ -3948,8 +3949,10 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
   }
 
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return !contacts_manager->is_user_bot(dialog_id.get_user_id());
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      return user_id == ContactsManager::get_replies_bot_user_id() || !contacts_manager->is_user_bot(user_id);
+    }
     case DialogType::SecretChat: {
       auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       return !user_id.is_valid() || !contacts_manager->is_user_bot(user_id);

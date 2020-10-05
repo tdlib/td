@@ -112,7 +112,7 @@ void Epoll::run(int timeout_ms) {
       flags = flags | PollFlags::Error();
     }
     if (event->events) {
-      LOG(FATAL) << "Unsupported epoll events: " << event->events;
+      LOG(FATAL) << "Unsupported epoll events: " << static_cast<int32>(event->events);
     }
     //LOG(DEBUG) << "Epoll event " << tag("fd", event->data.fd) << tag("flags", format::as_binary(flags));
     auto pollable_fd = PollableFd::from_list_node(static_cast<ListNode *>(event->data.ptr));

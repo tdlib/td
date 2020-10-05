@@ -18,6 +18,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
@@ -38,7 +39,7 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, MessageId message_id, const tl_object_ptr<td_api::CallbackQueryPayload> &payload,
-            int64 result_id) {
+            tl_object_ptr<telegram_api::InputCheckPasswordSRP> &&password, int64 result_id) {
     result_id_ = result_id;
     dialog_id_ = dialog_id;
     message_id_ = message_id;
@@ -54,6 +55,12 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
         flags = telegram_api::messages_getBotCallbackAnswer::DATA_MASK;
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadData *>(payload.get())->data_);
         break;
+      case td_api::callbackQueryPayloadDataWithPassword::ID:
+        CHECK(password != nullptr);
+        flags = telegram_api::messages_getBotCallbackAnswer::DATA_MASK |
+                telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
+        data = BufferSlice(static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->data_);
+        break;
       case td_api::callbackQueryPayloadGame::ID:
         flags = telegram_api::messages_getBotCallbackAnswer::GAME_MASK;
         break;
@@ -62,7 +69,8 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
     }
 
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data)));
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
+        std::move(password)));
     net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));
   }
@@ -220,7 +228,7 @@ void CallbackQueriesManager::on_new_inline_query(
 }
 
 int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
-                                                  const tl_object_ptr<td_api::CallbackQueryPayload> &payload,
+                                                  tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                                                   Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     promise.set_error(Status::Error(5, "Bot can't send callback queries to other bot"));
@@ -258,10 +266,42 @@ int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
   } while (callback_query_answers_.find(result_id) != callback_query_answers_.end());
   callback_query_answers_[result_id];  // reserve place for result
 
-  td_->create_handler<GetBotCallbackAnswerQuery>(std::move(promise))
-      ->send(dialog_id, full_message_id.get_message_id(), payload, result_id);
+  if (payload->get_id() == td_api::callbackQueryPayloadDataWithPassword::ID) {
+    auto password = static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->password_;
+    send_closure(td_->password_manager_, &PasswordManager::get_input_check_password_srp, std::move(password),
+                 PromiseCreator::lambda(
+                     [this, full_message_id, payload = std::move(payload), result_id, promise = std::move(promise)](
+                         Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
+                       if (result.is_error()) {
+                         return promise.set_error(result.move_as_error());
+                       }
+                       if (G()->close_flag()) {
+                         return promise.set_error(Status::Error(500, "Request aborted"));
+                       }
+
+                       send_get_callback_answer_query(full_message_id, std::move(payload), result.move_as_ok(),
+                                                      result_id, std::move(promise));
+                     }));
+  } else {
+    send_get_callback_answer_query(full_message_id, std::move(payload), nullptr, result_id, std::move(promise));
+  }
 
   return result_id;
+}
+
+void CallbackQueriesManager::send_get_callback_answer_query(
+    FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
+    tl_object_ptr<telegram_api::InputCheckPasswordSRP> &&password, int64 result_id, Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+  if (!td_->messages_manager_->have_message_force(full_message_id, "send_callback_query")) {
+    return promise.set_error(Status::Error(5, "Message not found"));
+  }
+
+  td_->create_handler<GetBotCallbackAnswerQuery>(std::move(promise))
+      ->send(dialog_id, full_message_id.get_message_id(), payload, std::move(password), result_id);
 }
 
 void CallbackQueriesManager::on_get_callback_query_answer(

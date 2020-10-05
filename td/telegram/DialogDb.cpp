@@ -378,10 +378,10 @@ class DialogDbAsync : public DialogDbAsyncInterface {
 
     void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
                     vector<NotificationGroupKey> notification_groups, Promise<> promise) {
-      add_write_query([=, promise = std::move(promise), data = std::move(data),
+      add_write_query([this, dialog_id, folder_id, order, promise = std::move(promise), data = std::move(data),
                        notification_groups = std::move(notification_groups)](Unit) mutable {
-        this->on_write_result(std::move(promise), sync_db_->add_dialog(dialog_id, folder_id, order, std::move(data),
-                                                                       std::move(notification_groups)));
+        on_write_result(std::move(promise), sync_db_->add_dialog(dialog_id, folder_id, order, std::move(data),
+                                                                 std::move(notification_groups)));
       });
     }
 

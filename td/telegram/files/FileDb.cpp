@@ -278,7 +278,7 @@ class FileDb : public FileDbInterface {
     //LOG(DEBUG) << "By id " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
     //LOG(INFO) << attempt_count;
 
-    logevent::WithVersion<TlParser> parser(data_str);
+    log_event::WithVersion<TlParser> parser(data_str);
     parser.set_version(static_cast<int32>(Version::Initial));
     FileData data;
     data.parse(parser, true);
@@ -316,7 +316,7 @@ Status fix_file_remote_location_key_bug(SqliteDb &db) {
     CHECK(TlParser(key).fetch_int() == OLD_KEY_MAGIC);
     auto remote_str = PSTRING() << key.substr(4, 4) << Slice("\0\0\0\0") << key.substr(8);
     FullRemoteFileLocation remote;
-    logevent::WithVersion<TlParser> parser(remote_str);
+    log_event::WithVersion<TlParser> parser(remote_str);
     parser.set_version(static_cast<int32>(Version::Initial));
     parse(remote, parser);
     parser.fetch_end();

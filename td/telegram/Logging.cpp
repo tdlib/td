@@ -62,8 +62,9 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
       if (max_log_file_size <= 0) {
         return Status::Error("Max log file size must be positive");
       }
+      auto redirect_stderr = file_stream->redirect_stderr_;
 
-      TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size));
+      TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size, redirect_stderr));
       std::atomic_thread_fence(std::memory_order_release);  // better than nothing
       log_interface = &ts_log;
       return Status::OK();
@@ -89,7 +90,8 @@ Result<td_api::object_ptr<td_api::LogStream>> Logging::get_current_stream() {
     return td_api::make_object<td_api::logStreamEmpty>();
   }
   if (log_interface == &ts_log) {
-    return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold());
+    return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold(),
+                                                      file_log.get_redirect_stderr());
   }
   return Status::Error("Log stream is unrecognized");
 }

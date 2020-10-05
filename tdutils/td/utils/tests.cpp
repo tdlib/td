@@ -12,6 +12,7 @@
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
+#include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
@@ -20,10 +21,35 @@
 
 namespace td {
 
+string rand_string(int from, int to, size_t len) {
+  string res(len, '\0');
+  for (auto &c : res) {
+    c = static_cast<char>(Random::fast(from, to));
+  }
+  return res;
+}
+
+vector<string> rand_split(Slice str) {
+  vector<string> res;
+  size_t pos = 0;
+  while (pos < str.size()) {
+    size_t len;
+    if (Random::fast(0, 1) == 1) {
+      len = Random::fast(1, 10);
+    } else {
+      len = Random::fast(100, 200);
+    }
+    res.push_back(str.substr(pos, len).str());
+    pos += len;
+  }
+  return res;
+}
+
 struct TestInfo {
   string name;
   string result_hash;  // base64
 };
+
 StringBuilder &operator<<(StringBuilder &sb, const TestInfo &info) {
   // should I use JSON?
   CHECK(!info.name.empty());

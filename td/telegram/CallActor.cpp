@@ -277,6 +277,10 @@ void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_pt
           return "silent_remote";
         case td_api::callProblemDropped::ID:
           return "dropped";
+        case td_api::callProblemDistortedVideo::ID:
+          return "distorted_video";
+        case td_api::callProblemPixelatedVideo::ID:
+          return "pixelated_video";
         default:
           UNREACHABLE();
           return "";
@@ -366,8 +370,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
     if ((call.flags_ & telegram_api::phoneCallWaiting::RECEIVE_DATE_MASK) != 0) {
       call_state_.is_received = true;
       call_state_need_flush_ = true;
-      int32 call_ring_timeout_ms = G()->shared_config().get_option_integer("call_ring_timeout_ms", 90000);
-      set_timeout_in(call_ring_timeout_ms * 0.001);
+      int64 call_ring_timeout_ms = G()->shared_config().get_option_integer("call_ring_timeout_ms", 90000);
+      set_timeout_in(static_cast<double>(call_ring_timeout_ms) * 0.001);
     }
   }
 
@@ -449,8 +453,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
 void CallActor::on_begin_exchanging_key() {
   call_state_.type = CallState::Type::ExchangingKey;
   call_state_need_flush_ = true;
-  int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
-  double timeout = call_receive_timeout_ms * 0.001;
+  int64 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
+  double timeout = static_cast<double>(call_receive_timeout_ms) * 0.001;
   LOG(INFO) << "Set call timeout to " << timeout;
   set_timeout_in(timeout);
 }
@@ -627,8 +631,8 @@ void CallActor::try_send_request_query() {
                                                   call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitRequestResult;
-  int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
-  double timeout = call_receive_timeout_ms * 0.001;
+  int64 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
+  double timeout = static_cast<double>(call_receive_timeout_ms) * 0.001;
   LOG(INFO) << "Set call timeout to " << timeout;
   set_timeout_in(timeout);
   query->total_timeout_limit_ = max(timeout, 10.0);
