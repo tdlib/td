@@ -104,15 +104,6 @@ public final class Client implements Runnable {
     }
 
     /**
-     * Replaces default exception handler to be invoked on exceptions thrown from updateHandler and all other ResultHandler.
-     *
-     * @param defaultExceptionHandler Default exception handler. If null Exceptions are ignored.
-     */
-    public void setDefaultExceptionHandler(Client.ExceptionHandler defaultExceptionHandler) {
-        this.defaultExceptionHandler = defaultExceptionHandler;
-    }
-
-    /**
      * Overridden method from Runnable, do not call it directly.
      */
     @Override
@@ -156,6 +147,7 @@ public final class Client implements Runnable {
                 receiveQueries(300.0);
             }
             updateHandlers.remove(nativeClientId);
+            defaultExceptionHandlers.remove(nativeClientId);
             destroyNativeClient(nativeClientId);
         } finally {
             writeLock.unlock();
@@ -170,12 +162,11 @@ public final class Client implements Runnable {
     private volatile boolean isClientDestroyed = false;
     private final long nativeClientId;
 
+    private static final ConcurrentHashMap<Long, ExceptionHandler> defaultExceptionHandlers = new ConcurrentHashMap<Long, ExceptionHandler>();
     private static final ConcurrentHashMap<Long, Handler> updateHandlers = new ConcurrentHashMap<Long, Handler>();
 
     private final ConcurrentHashMap<Long, Handler> handlers = new ConcurrentHashMap<Long, Handler>();
     private final AtomicLong currentQueryId = new AtomicLong();
-
-    private volatile ExceptionHandler defaultExceptionHandler = null;
 
     private static final int MAX_EVENTS = 1000;
     private final long[] eventIds = new long[MAX_EVENTS];
@@ -194,7 +185,9 @@ public final class Client implements Runnable {
     private Client(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
         nativeClientId = createNativeClient();
         updateHandlers.put(nativeClientId, new Handler(updateHandler, updateExceptionHandler));
-        this.defaultExceptionHandler = defaultExceptionHandler;
+        if (defaultExceptionHandler != null) {
+          defaultExceptionHandlers.put(nativeClientId, defaultExceptionHandler);
+        }
     }
 
     @Override
@@ -235,7 +228,7 @@ public final class Client implements Runnable {
             resultHandler.onResult(object);
         } catch (Throwable cause) {
             if (exceptionHandler == null) {
-                exceptionHandler = defaultExceptionHandler;
+                exceptionHandler = defaultExceptionHandlers.get(nativeClientId);
             }
             if (exceptionHandler != null) {
                 try {
