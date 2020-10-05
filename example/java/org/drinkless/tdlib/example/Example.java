@@ -549,6 +549,14 @@ public final class Example {
                     }
                     break;
                 }
+                case TdApi.UpdateChatIsBlocked.CONSTRUCTOR: {
+                    TdApi.UpdateChatIsBlocked update = (TdApi.UpdateChatIsBlocked) object;
+                    TdApi.Chat chat = chats.get(update.chatId);
+                    synchronized (chat) {
+                        chat.isBlocked = update.isBlocked;
+                    }
+                    break;
+                }
                 case TdApi.UpdateChatHasScheduledMessages.CONSTRUCTOR: {
                     TdApi.UpdateChatHasScheduledMessages update = (TdApi.UpdateChatHasScheduledMessages) object;
                     TdApi.Chat chat = chats.get(update.chatId);
