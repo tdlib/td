@@ -10,10 +10,6 @@
 
 #include "td/utils/Slice.h"
 
-extern "C" int td_json_client_square(int x, const char *str) {
-  return x * x;
-}
-
 void *td_json_client_create() {
   return new td::ClientJson();
 }
@@ -32,4 +28,20 @@ const char *td_json_client_receive(void *client, double timeout) {
 
 const char *td_json_client_execute(void *client, const char *request) {
   return td::ClientJson::execute(td::Slice(request == nullptr ? "" : request));
+}
+
+int td_create_client() {
+  return td::td_json_create_client();
+}
+
+void td_send(int client_id, const char *request) {
+  td::td_json_send(client_id, td::Slice(request == nullptr ? "" : request));
+}
+
+const char *td_receive(double timeout) {
+  return td::td_json_receive(timeout);
+}
+
+const char *td_execute(const char *request) {
+  return td::td_json_execute(td::Slice(request == nullptr ? "" : request));
 }
