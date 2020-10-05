@@ -670,7 +670,7 @@ Changes in 1.3.0 (5 Sep 2018):
   `venue_search_bot_username` containing usernames of bots which can be used in inline mode for animations, photos and
   venues search respectively.
 * Numerous optimizations and bug fixes:
-  - Fixed string encoding for C# binding.
+  - Fixed string encoding for .NET binding.
   - Fixed building TDLib SDK for Universal Windows Platform for ARM with MSVC 2017.
   - Fixed the Swift example project.
   - Fixed the syntax error in the Python example.
