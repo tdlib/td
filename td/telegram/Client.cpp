@@ -53,8 +53,8 @@ class MultiTd : public Actor {
   }
 
   void close(int32 td_id) {
-    auto size = tds_.erase(td_id);
-    CHECK(size == 1);
+    // no check that td_id hasn't been deleted before
+    tds_.erase(td_id);
   }
 
  private:
@@ -151,7 +151,7 @@ class ClientManager::Impl final {
     } else {
       ConcurrentScheduler::emscripten_clear_main_timeout();
     }
-    if (response.client_id != 0 && !response.object) {
+    if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
       auto guard = concurrent_scheduler_->get_main_guard();
       tds_.erase(response.client_id);
     }
@@ -322,9 +322,9 @@ class MultiImpl {
     send_closure(multi_td_, &MultiTd::send, client_id, request_id, std::move(request));
   }
 
-  void close(int32 td_id) {
+  void close(ClientManager::ClientId client_id) {
     auto guard = concurrent_scheduler_->get_send_guard();
-    send_closure(multi_td_, &MultiTd::close, td_id);
+    send_closure(multi_td_, &MultiTd::close, client_id);
   }
 
   ~MultiImpl() {
@@ -402,12 +402,12 @@ class ClientManager::Impl final {
   }
 
   Response receive(double timeout) {
-    auto res = receiver_->receive(timeout);
-    if (res.client_id != 0 && !res.object) {
+    auto response = receiver_->receive(timeout);
+    if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
       auto lock = impls_mutex_.lock_write().move_as_ok();
-      impls_.erase(res.client_id);
+      impls_.erase(response.client_id);
     }
-    return res;
+    return response;
   }
 
   Impl() = default;
@@ -452,10 +452,6 @@ class Client::Impl final {
   Client::Response receive(double timeout) {
     auto res = receiver_->receive(timeout);
 
-    if (res.client_id != 0 && !res.object) {
-      is_closed_ = true;
-    }
-
     Client::Response old_res;
     old_res.id = res.request_id;
     old_res.object = std::move(res.object);
@@ -468,8 +464,11 @@ class Client::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     multi_impl_->close(td_id_);
-    while (!is_closed_) {
-      receive(10);
+    while (true) {
+      auto response = receiver_->receive(10.0);
+      if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
+        break;
+      }
     }
   }
 
@@ -477,7 +476,6 @@ class Client::Impl final {
   std::shared_ptr<MultiImpl> multi_impl_;
   unique_ptr<TdReceiver> receiver_;
 
-  bool is_closed_{false};
   int32 td_id_;
 };
 #endif
