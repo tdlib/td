@@ -28,40 +28,6 @@
 
 namespace td {
 
-class MultiTd : public Actor {
- public:
-  explicit MultiTd(Td::Options options) : options_(std::move(options)) {
-  }
-  void create(int32 td_id, unique_ptr<TdCallback> callback) {
-    auto &td = tds_[td_id];
-    CHECK(td.empty());
-
-    string name = "Td";
-    auto context = std::make_shared<td::ActorContext>();
-    auto old_context = set_context(context);
-    auto old_tag = set_tag(to_string(td_id));
-    td = create_actor<Td>("Td", std::move(callback), options_);
-    set_context(old_context);
-    set_tag(old_tag);
-  }
-
-  void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
-            td_api::object_ptr<td_api::Function> &&request) {
-    auto &td = tds_[client_id];
-    CHECK(!td.empty());
-    send_closure(td, &Td::request, request_id, std::move(request));
-  }
-
-  void close(int32 td_id) {
-    // no check that td_id hasn't been deleted before
-    tds_.erase(td_id);
-  }
-
- private:
-  Td::Options options_;
-  std::unordered_map<int32, ActorOwn<Td>> tds_;
-};
-
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
 class TdReceiver {
  public:
@@ -213,6 +179,40 @@ class Client::Impl final {
 };
 
 #else
+
+class MultiTd : public Actor {
+ public:
+  explicit MultiTd(Td::Options options) : options_(std::move(options)) {
+  }
+  void create(int32 td_id, unique_ptr<TdCallback> callback) {
+    auto &td = tds_[td_id];
+    CHECK(td.empty());
+
+    string name = "Td";
+    auto context = std::make_shared<td::ActorContext>();
+    auto old_context = set_context(context);
+    auto old_tag = set_tag(to_string(td_id));
+    td = create_actor<Td>("Td", std::move(callback), options_);
+    set_context(old_context);
+    set_tag(old_tag);
+  }
+
+  void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
+            td_api::object_ptr<td_api::Function> &&request) {
+    auto &td = tds_[client_id];
+    CHECK(!td.empty());
+    send_closure(td, &Td::request, request_id, std::move(request));
+  }
+
+  void close(int32 td_id) {
+    // no check that td_id hasn't been deleted before
+    tds_.erase(td_id);
+  }
+
+ private:
+  Td::Options options_;
+  std::unordered_map<int32, ActorOwn<Td>> tds_;
+};
 
 class TdReceiver {
  public:
