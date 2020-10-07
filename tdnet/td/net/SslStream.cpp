@@ -545,7 +545,8 @@ SslStream::SslStream(SslStream &&) = default;
 SslStream &SslStream::operator=(SslStream &&) = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
+Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer,
+                                    bool check_ip_address_as_host) {
   return Status::Error("Not supported in emscripten");
 }
 
