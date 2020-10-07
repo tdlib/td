@@ -619,14 +619,14 @@ class TdClient {
     this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
     log.info('got TdModule');
     this.td_functions = {
-      td_create: this.TdModule.cwrap('td_create', 'number', []),
-      td_destroy: this.TdModule.cwrap('td_destroy', null, ['number']),
-      td_send: this.TdModule.cwrap('td_send', null, ['number', 'string']),
-      td_execute: this.TdModule.cwrap('td_execute', 'string', [
+      td_create: this.TdModule.cwrap('td_emscripten_create', 'number', []),
+      td_destroy: this.TdModule.cwrap('td_emscripten_destroy', null, ['number']),
+      td_send: this.TdModule.cwrap('td_emscripten_send', null, ['number', 'string']),
+      td_execute: this.TdModule.cwrap('td_emscripten_execute', 'string', [
         'number',
         'string'
       ]),
-      td_receive: this.TdModule.cwrap('td_receive', 'string', ['number']),
+      td_receive: this.TdModule.cwrap('td_emscripten_receive', 'string', ['number']),
       td_set_verbosity: verbosity => {
         this.td_functions.td_execute(
           0,
@@ -636,7 +636,7 @@ class TdClient {
           })
         );
       },
-      td_get_timeout: this.TdModule.cwrap('td_get_timeout', 'number', [])
+      td_get_timeout: this.TdModule.cwrap('td_emscripten_get_timeout', 'number', [])
     };
     //this.onFS(this.TdModule.FS);
     this.FS = this.TdModule.FS;
