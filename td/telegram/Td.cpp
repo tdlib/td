@@ -3413,7 +3413,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   request_set_.insert(id);
   if (function == nullptr) {
     LOG(ERROR) << "Receive empty request";
-    return send_error_raw(id, 400, "Request is empty");
+    return send_error_impl(id, make_error(400, "Request is empty"));
   }
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
@@ -3457,7 +3457,8 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
             return;
           }
-          return send_error_raw(id, 400, "Initialization parameters are needed: call setTdlibParameters first");
+          return send_error_impl(
+              id, make_error(400, "Initialization parameters are needed: call setTdlibParameters first"));
       }
       break;
     }
@@ -3486,15 +3487,16 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
             return;
           }
-          return send_error_raw(id, 400, "Database encryption key is needed: call checkDatabaseEncryptionKey first");
+          return send_error_impl(
+              id, make_error(400, "Database encryption key is needed: call checkDatabaseEncryptionKey first"));
       }
       return answer_ok_query(id, init(as_db_key(encryption_key)));
     }
     case State::Close:
       if (destroy_flag_) {
-        return send_error_raw(id, 401, "Unauthorized");
+        return send_error_impl(id, make_error(401, "Unauthorized"));
       } else {
-        return send_error_raw(id, 500, "Request aborted");
+        return send_error_impl(id, make_error(500, "Request aborted"));
       }
     case State::Run:
       break;
@@ -3502,7 +3504,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
   if ((auth_manager_ == nullptr || !auth_manager_->is_authorized()) && !is_preauthentication_request(function_id) &&
       !is_preinitialization_request(function_id) && !is_authentication_request(function_id)) {
-    return send_error_raw(id, 401, "Unauthorized");
+    return send_error_impl(id, make_error(401, "Unauthorized"));
   }
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
 }
