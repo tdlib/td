@@ -620,16 +620,13 @@ class TdClient {
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_emscripten_create', 'number', []),
-      td_destroy: this.TdModule.cwrap('td_emscripten_destroy', null, ['number']),
       td_send: this.TdModule.cwrap('td_emscripten_send', null, ['number', 'string']),
       td_execute: this.TdModule.cwrap('td_emscripten_execute', 'string', [
-        'number',
         'string'
       ]),
-      td_receive: this.TdModule.cwrap('td_emscripten_receive', 'string', ['number']),
+      td_receive: this.TdModule.cwrap('td_emscripten_receive', 'string', []),
       td_set_verbosity: verbosity => {
         this.td_functions.td_execute(
-          0,
           JSON.stringify({
             '@type': 'setLogVerbosityLevel',
             new_verbosity_level: verbosity
@@ -849,7 +846,7 @@ class TdClient {
 
   execute(query) {
     try {
-      const res = this.td_functions.td_execute(0, JSON.stringify(query));
+      const res = this.td_functions.td_execute(JSON.stringify(query));
       const response = JSON.parse(res);
       this.callback(response);
     } catch (error) {
@@ -863,7 +860,7 @@ class TdClient {
     }
     try {
       while (true) {
-        const msg = this.td_functions.td_receive(this.client);
+        const msg = this.td_functions.td_receive();
         if (!msg) {
           break;
         }

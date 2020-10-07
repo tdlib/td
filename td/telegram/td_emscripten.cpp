@@ -13,21 +13,22 @@
 
 extern "C" {
 
-EMSCRIPTEN_KEEPALIVE void *td_emscripten_create() {
-  return td_json_client_create();
+EMSCRIPTEN_KEEPALIVE double td_emscripten_create() {
+  return td_create_client();
 }
-EMSCRIPTEN_KEEPALIVE void td_emscripten_send(void *client, const char *query) {
-  td_json_client_send(client, query);
+
+EMSCRIPTEN_KEEPALIVE void td_emscripten_send(double client_id, const char *query) {
+  td_send(static_cast<int>(client_id), query);
 }
-EMSCRIPTEN_KEEPALIVE const char *td_emscripten_receive(void *client) {
-  return td_json_client_receive(client, 0);
+
+EMSCRIPTEN_KEEPALIVE const char *td_emscripten_receive() {
+  return td_receive(0);
 }
-EMSCRIPTEN_KEEPALIVE const char *td_emscripten_execute(void *client, const char *query) {
-  return td_json_client_execute(client, query);
+
+EMSCRIPTEN_KEEPALIVE const char *td_emscripten_execute(const char *query) {
+  return td_execute(query);
 }
-EMSCRIPTEN_KEEPALIVE void td_emscripten_destroy(void *client) {
-  td_json_client_destroy(client);
-}
+
 EMSCRIPTEN_KEEPALIVE double td_emscripten_get_timeout() {
   return td::ConcurrentScheduler::emscripten_get_main_timeout();
 }
