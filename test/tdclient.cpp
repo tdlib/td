@@ -23,6 +23,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
@@ -948,6 +949,123 @@ TEST(Client, Manager) {
       ASSERT_TRUE(ids.insert(event.client_id).second);
     }
   }
+}
+
+TEST(Client, Close) {
+  std::atomic<bool> stop_send{false};
+  std::atomic<bool> can_stop_receive{false};
+  std::atomic<td::int64> send_count{1};
+  std::atomic<td::int64> receive_count{0};
+  td::Client client;
+
+  std::mutex request_ids_mutex;
+  std::set<td::uint64> request_ids;
+  request_ids.insert(1);
+  td::thread send_thread([&] {
+    td::uint64 request_id = 2;
+    while (!stop_send.load()) {
+      {
+        std::unique_lock<std::mutex> guard(request_ids_mutex);
+        request_ids.insert(request_id);
+      }
+      client.send({request_id++, td::make_tl_object<td::td_api::testSquareInt>(3)});
+      send_count++;
+    }
+    can_stop_receive = true;
+  });
+
+  auto max_continue_send = td::Random::fast(0, 1) ? 0 : 1000;
+  td::thread receive_thread([&] {
+    while (true) {
+      auto response = client.receive(100.0);
+      if (stop_send && response.object == nullptr) {
+        return;
+      }
+      if (response.id > 0) {
+        if (!stop_send && response.object->get_id() == td::td_api::error::ID &&
+            static_cast<td::td_api::error &>(*response.object).code_ == 500 &&
+            td::Random::fast(0, max_continue_send) == 0) {
+          stop_send = true;
+        }
+        receive_count++;
+        {
+          std::unique_lock<std::mutex> guard(request_ids_mutex);
+          size_t erase_count = request_ids.erase(response.id);
+          CHECK(erase_count > 0);
+        }
+      }
+      if (can_stop_receive && receive_count == send_count) {
+        break;
+      }
+    }
+  });
+
+  td::usleep_for((td::Random::fast(0, 1) ? 0 : 1000) * (td::Random::fast(0, 1) ? 1 : 50));
+  client.send({1, td::make_tl_object<td::td_api::close>()});
+
+  send_thread.join();
+  receive_thread.join();
+  ASSERT_EQ(send_count.load(), receive_count.load());
+  ASSERT_TRUE(request_ids.empty());
+}
+
+TEST(Client, ManagerClose) {
+  std::atomic<bool> stop_send{false};
+  std::atomic<bool> can_stop_receive{false};
+  std::atomic<td::int64> send_count{1};
+  std::atomic<td::int64> receive_count{0};
+  td::ClientManager client_manager;
+  auto client_id = client_manager.create_client();
+
+  std::mutex request_ids_mutex;
+  std::set<td::uint64> request_ids;
+  request_ids.insert(1);
+  td::thread send_thread([&] {
+    td::uint64 request_id = 2;
+    while (!stop_send.load()) {
+      {
+        std::unique_lock<std::mutex> guard(request_ids_mutex);
+        request_ids.insert(request_id);
+      }
+      client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
+      send_count++;
+    }
+    can_stop_receive = true;
+  });
+
+  auto max_continue_send = td::Random::fast(0, 1) ? 0 : 1000;
+  td::thread receive_thread([&] {
+    while (true) {
+      auto response = client_manager.receive(100.0);
+      if (stop_send && response.object == nullptr) {
+        return;
+      }
+      if (response.request_id > 0) {
+        if (!stop_send && response.object->get_id() == td::td_api::error::ID &&
+            static_cast<td::td_api::error &>(*response.object).code_ == 400 &&
+            td::Random::fast(0, max_continue_send) == 0) {
+          stop_send = true;
+        }
+        receive_count++;
+        {
+          std::unique_lock<std::mutex> guard(request_ids_mutex);
+          size_t erase_count = request_ids.erase(response.request_id);
+          CHECK(erase_count > 0);
+        }
+      }
+      if (can_stop_receive && receive_count == send_count) {
+        break;
+      }
+    }
+  });
+
+  td::usleep_for((td::Random::fast(0, 1) ? 0 : 1000) * (td::Random::fast(0, 1) ? 1 : 50));
+  client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
+
+  send_thread.join();
+  receive_thread.join();
+  ASSERT_EQ(send_count.load(), receive_count.load());
+  ASSERT_TRUE(request_ids.empty());
 }
 #endif
 
