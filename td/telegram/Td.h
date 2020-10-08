@@ -97,7 +97,7 @@ class Td final : public NetQueryCallback {
   ~Td() override;
 
   struct Options {
-    std::shared_ptr<td::NetQueryStats> net_query_stats;
+    std::shared_ptr<NetQueryStats> net_query_stats;
   };
 
   Td(unique_ptr<TdCallback> callback, Options options);
