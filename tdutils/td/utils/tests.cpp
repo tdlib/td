@@ -34,7 +34,7 @@ vector<string> rand_split(Slice str) {
   size_t pos = 0;
   while (pos < str.size()) {
     size_t len;
-    if (Random::fast(0, 1) == 1) {
+    if (Random::fast_bool()) {
       len = Random::fast(1, 10);
     } else {
       len = Random::fast(100, 200);

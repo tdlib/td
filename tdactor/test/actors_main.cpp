@@ -261,7 +261,7 @@ class MainQueryActor final : public Actor {
   void wakeup() override {
     int cnt = 100000;
     while (out_cnt_ < in_cnt_ + 100 && out_cnt_ < cnt) {
-      if (Random::fast(0, 1)) {
+      if (Random::fast_bool()) {
         send_closure(rand_elem(actors_), &QueryActor::query, create_query());
       } else {
         send_closure_later(rand_elem(actors_), &QueryActor::query, create_query());
@@ -306,7 +306,7 @@ class SimpleActor final : public Actor {
       return;
     }
     q_++;
-    p_ = Random::fast(0, 1) ? 1 : 10000;
+    p_ = Random::fast_bool() ? 1 : 10000;
     auto future = Random::fast(0, 3) == 0 ? send_promise<ActorSendType::Immediate>(worker_, &Worker::query, q_, p_)
                                           : send_promise<ActorSendType::Later>(worker_, &Worker::query, q_, p_);
     if (future.is_ready()) {

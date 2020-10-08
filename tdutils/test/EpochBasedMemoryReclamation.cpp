@@ -42,7 +42,7 @@ TEST(EpochBaseMemoryReclamation, stress) {
           locker.retire();
         }
         if (td::Random::fast(0, 5) == 0) {
-          std::string *new_str = new std::string(td::Random::fast(0, 1) == 0 ? "one" : "twotwo");
+          std::string *new_str = new std::string(td::Random::fast_bool() ? "one" : "twotwo");
           if (node.name_.compare_exchange_strong(str, new_str, std::memory_order_acq_rel)) {
             locker.retire(str);
           } else {

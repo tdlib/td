@@ -114,7 +114,7 @@ void SecretChatsManager::cancel_chat(SecretChatId secret_chat_id, Promise<> prom
 
 void SecretChatsManager::send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,
                                       tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise) {
-  // message->message_ = Random::fast(0, 1) ? string(1, static_cast<char>(0x80)) : "a";
+  // message->message_ = Random::fast_bool() ? string(1, static_cast<char>(0x80)) : "a";
   auto actor = get_chat_actor(secret_chat_id.get());
   auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Can't find secret chat"));
   send_closure(actor, &SecretChatActor::send_message, std::move(message), std::move(file), std::move(safe_promise));

@@ -99,8 +99,8 @@ static string make_http_query(string content, bool is_chunked, bool is_gzip, dou
 }
 
 static string rand_http_query(string content) {
-  bool is_chunked = Random::fast(0, 1) == 0;
-  bool is_gzip = Random::fast(0, 1) == 0;
+  bool is_chunked = Random::fast_bool();
+  bool is_gzip = Random::fast_bool();
   return make_http_query(std::move(content), is_chunked, is_gzip);
 }
 

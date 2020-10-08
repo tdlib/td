@@ -786,7 +786,7 @@ class Master : public Actor {
     return false;
   }
   void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) {
-    if (can_fail(query) && Random::fast(0, 1) == 0) {
+    if (can_fail(query) && Random::fast_bool()) {
       LOG(INFO) << "Fail query " << query;
       auto resend_promise =
           PromiseCreator::lambda([id = actor_shared(this, get_link_token()), callback_actor = callback.get(),

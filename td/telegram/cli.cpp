@@ -1108,7 +1108,7 @@ class CliClient final : public Actor {
     std::tie(excluded_chat_ids, filter) = split(filter);
 
     auto rand_bool = [] {
-      return Random::fast(0, 1) == 1;
+      return Random::fast_bool();
     };
 
     return td_api::make_object<td_api::chatFilter>(
@@ -2748,7 +2748,7 @@ class CliClient final : public Actor {
       auto chat = as_chat_id(chat_id);
       send_request(td_api::make_object<td_api::forwardMessages>(
           chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_message_send_options(), op[0] == 'c',
-          Random::fast(0, 1) == 1));
+          Random::fast_bool()));
     } else if (op == "resend") {
       string chat_id;
       string message_ids;
@@ -2772,7 +2772,7 @@ class CliClient final : public Actor {
     } else if (op == "cc" || op == "CreateCall") {
       send_request(td_api::make_object<td_api::createCall>(
           as_user_id(args), td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"}),
-          Random::fast(0, 1) == 1));
+          Random::fast_bool()));
     } else if (op == "ac" || op == "AcceptCall") {
       send_request(td_api::make_object<td_api::acceptCall>(
           as_call_id(args),
@@ -2785,7 +2785,7 @@ class CliClient final : public Actor {
       std::tie(call_id, is_disconnected) = split(args);
 
       send_request(td_api::make_object<td_api::discardCall>(as_call_id(call_id), as_bool(is_disconnected), 0,
-                                                            Random::fast(0, 1) == 1, 0));
+                                                            Random::fast_bool(), 0));
     } else if (op == "scr" || op == "SendCallRating") {
       string call_id;
       string rating;
@@ -3280,8 +3280,7 @@ class CliClient final : public Actor {
 
       td_api::object_ptr<td_api::messageCopyOptions> copy_options;
       if (op == "scopy") {
-        copy_options =
-            td_api::make_object<td_api::messageCopyOptions>(true, Random::fast(0, 1) == 0, as_caption("_as_d"));
+        copy_options = td_api::make_object<td_api::messageCopyOptions>(true, Random::fast_bool(), as_caption("_as_d"));
       }
 
       send_message(chat_id,
@@ -4348,7 +4347,7 @@ class CliClient final : public Actor {
       }
       BufferSlice block(it->part_size);
       FileFd::open(it->source, FileFd::Flags::Read).move_as_ok().pread(block.as_slice(), it->local_size).ensure();
-      if (Random::fast(0, 1) == 0) {
+      if (Random::fast_bool()) {
         auto open_flags = FileFd::Flags::Write | (it->local_size ? 0 : FileFd::Flags::Truncate | FileFd::Flags::Create);
         FileFd::open(it->destination, open_flags).move_as_ok().pwrite(block.as_slice(), it->local_size).ensure();
       } else {

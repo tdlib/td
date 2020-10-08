@@ -861,7 +861,7 @@ TEST(Client, SimpleMulti) {
 
   for (size_t i = 0; i < clients.size(); i++) {
     clients[i].send({i + 2, td::make_tl_object<td::td_api::testSquareInt>(3)});
-    if (Random::fast(0, 1) == 1) {
+    if (Random::fast_bool()) {
       clients[i].send({1, td::make_tl_object<td::td_api::close>()});
     }
   }
@@ -974,7 +974,7 @@ TEST(Client, Close) {
     can_stop_receive = true;
   });
 
-  auto max_continue_send = td::Random::fast(0, 1) ? 0 : 1000;
+  auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
   td::thread receive_thread([&] {
     while (true) {
       auto response = client.receive(100.0);
@@ -1000,7 +1000,7 @@ TEST(Client, Close) {
     }
   });
 
-  td::usleep_for((td::Random::fast(0, 1) ? 0 : 1000) * (td::Random::fast(0, 1) ? 1 : 50));
+  td::usleep_for((td::Random::fast_bool() ? 0 : 1000) * (td::Random::fast_bool() ? 1 : 50));
   client.send({1, td::make_tl_object<td::td_api::close>()});
 
   send_thread.join();
@@ -1033,7 +1033,7 @@ TEST(Client, ManagerClose) {
     can_stop_receive = true;
   });
 
-  auto max_continue_send = td::Random::fast(0, 1) ? 0 : 1000;
+  auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
   td::thread receive_thread([&] {
     while (true) {
       auto response = client_manager.receive(100.0);
@@ -1059,7 +1059,7 @@ TEST(Client, ManagerClose) {
     }
   });
 
-  td::usleep_for((td::Random::fast(0, 1) ? 0 : 1000) * (td::Random::fast(0, 1) ? 1 : 50));
+  td::usleep_for((td::Random::fast_bool() ? 0 : 1000) * (td::Random::fast_bool() ? 1 : 50));
   client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
 
   send_thread.join();
