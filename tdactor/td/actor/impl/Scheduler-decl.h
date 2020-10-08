@@ -13,6 +13,7 @@
 #include "td/utils/Closure.h"
 #include "td/utils/Heap.h"
 #include "td/utils/List.h"
+#include "td/utils/logging.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"

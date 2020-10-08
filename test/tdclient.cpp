@@ -35,6 +35,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <utility>
 

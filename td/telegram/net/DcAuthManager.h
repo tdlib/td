@@ -15,6 +15,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 
 #include <memory>
 
