@@ -6560,18 +6560,8 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   td_api::object_ptr<td_api::messageReplyInfo> reply_info;
   if (is_visible_reply_info) {
-    vector<UserId> recent_replier_user_ids;
-    for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-      if (recent_replier_dialog_id.get_type() == DialogType::User) {
-        recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
-      }
-    }
-    reply_info = td_api::make_object<td_api::messageReplyInfo>(
-        m->reply_info.reply_count,
-        td_->contacts_manager_->get_user_ids_object(recent_replier_user_ids, "get_message_interaction_info_object"),
-        m->reply_info.last_read_inbox_message_id.get(), m->reply_info.last_read_outbox_message_id.get(),
-        m->reply_info.max_message_id.get());
-    CHECK(reply_info->reply_count_ >= 0);
+    reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get());
+    CHECK(reply_info != nullptr);
   }
 
   return td_api::make_object<td_api::messageInteractionInfo>(m->view_count, m->forward_count, std::move(reply_info));

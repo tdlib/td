@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageReplyInfo.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/logging.h"
@@ -121,6 +122,23 @@ void MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
   if (reply_message_id > max_message_id) {
     max_message_id = reply_message_id;
   }
+}
+
+td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(
+    ContactsManager *contacts_manager) const {
+  if (is_empty()) {
+    return nullptr;
+  }
+
+  vector<UserId> recent_replier_user_ids;
+  for (auto recent_replier_dialog_id : recent_replier_dialog_ids) {
+    if (recent_replier_dialog_id.get_type() == DialogType::User) {
+      recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
+    }
+  }
+  return td_api::make_object<td_api::messageReplyInfo>(
+      reply_count, contacts_manager->get_user_ids_object(recent_replier_user_ids, "get_message_reply_info_object"),
+      last_read_inbox_message_id.get(), last_read_outbox_message_id.get(), max_message_id.get());
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {
