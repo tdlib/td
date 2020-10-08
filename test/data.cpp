@@ -6,8 +6,6 @@
 //
 #include "data.h"
 
-namespace td {
-
 static const char thumbnail_arr[] =
     "_9j_4AAQSkZJRgABAQEASABIAAD_2wBDAAICAgICAQICAgIDAgIDAwYEAwMDAwcFBQQGCAcJCAgHCAgJCg0LCQoMCggICw8LDA0ODg8OCQsQERAOEQ"
     "0ODg7_2wBDAQIDAwMDAwcEBAcOCQgJDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg7_wAARCAAyADIDASIA"
@@ -157,5 +155,3 @@ static const char sqlite_sample_db_arr[] =
 
 const char *sqlite_sample_db = sqlite_sample_db_arr;
 const size_t sqlite_sample_db_size = sizeof(sqlite_sample_db_arr) - 1;
-
-}  // namespace td
