@@ -63,18 +63,19 @@ async function initLocalForage() {
 
 async function loadTdlibWasm(onFS, wasmUrl) {
   console.log('loadTdlibWasm');
-  const Module = await import('./prebuilt/release/td_wasm.js');
-  log.info('got td_wasm.js');
+  const td_module = await import('./prebuilt/release/td_wasm.js');
+  const createTdwebModule = td_module.default;
+  log.info('got td_wasm.js', td_module, createTdwebModule);
   let td_wasm = td_wasm_release;
   if (wasmUrl) {
     td_wasm = wasmUrl;
   }
-  const module = Module.default({
+  const module = await createTdwebModule({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
     },
     instantiateWasm: (imports, successCallback) => {
-      log.info('start instantiateWasm', td_wasm);
+      log.info('start instantiateWasm', td_wasm, imports);
       const next = instance => {
         log.info('finish instantiateWasm');
         successCallback(instance);
@@ -86,23 +87,17 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   });
   log.info('Got module', module);
   onFS(module.FS);
-  const TdModule = new Promise((resolve, reject) =>
-    module.then(m => {
-      delete m.then;
-      resolve(m);
-    })
-  );
-
-  return TdModule;
+  return module;
 }
 
 async function loadTdlibAsmjs(onFS) {
   console.log('loadTdlibAsmjs');
-  const Module = await import('./prebuilt/release/td_asmjs.js');
-  console.log('got td_asm.js');
+  const createTdwebModule = (await import('./prebuilt/release/td_asmjs.js'))
+    .default;
+  console.log('got td_asm.js', createTdwebModule);
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
-  const module = Module.default({
+  const module = await createTdwebModule({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
     },
@@ -115,14 +110,7 @@ async function loadTdlibAsmjs(onFS) {
     ENVIROMENT: 'WORKER'
   });
   onFS(module.FS);
-  const TdModule = new Promise((resolve, reject) =>
-    module.then(m => {
-      delete m.then;
-      resolve(m);
-    })
-  );
-
-  return TdModule;
+  return module;
 }
 
 async function loadTdlib(mode, onFS, wasmUrl) {

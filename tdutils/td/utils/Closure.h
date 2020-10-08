@@ -133,6 +133,7 @@ class DelayedClosure {
   do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
     static_assert(std::is_same<FromActorT, FromActorT>::value,
                   "Trying to clone DelayedClosure that contains noncopyable elements");
+    UNREACHABLE();
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>
