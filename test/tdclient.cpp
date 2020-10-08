@@ -955,6 +955,7 @@ TEST(Client, Manager) {
     auto event = client.receive(10);
     if (event.client_id == 0 || event.client_id == -1) {
       ASSERT_EQ(td::td_api::error::ID, event.object->get_id());
+      ASSERT_EQ(400, static_cast<td::td_api::error &>(*event.object).code_);
       continue;
     }
     if (event.request_id == 3) {
@@ -987,12 +988,16 @@ TEST(Client, Close) {
     can_stop_receive = true;
   });
 
-  auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
   td::thread receive_thread([&] {
+    auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
     while (true) {
       auto response = client.receive(100.0);
-      if (stop_send && response.object == nullptr) {
-        return;
+      if (response.object == nullptr) {
+        if (!stop_send) {
+          stop_send = true;
+        } else {
+          return;
+        }
       }
       if (response.id > 0) {
         if (!stop_send && response.object->get_id() == td::td_api::error::ID &&
@@ -1046,19 +1051,22 @@ TEST(Client, ManagerClose) {
     can_stop_receive = true;
   });
 
-  auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
   td::thread receive_thread([&] {
+    auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
+    bool can_stop_send = false;
     while (true) {
       auto response = client_manager.receive(100.0);
-      if (stop_send && response.object == nullptr) {
-        return;
+      if (response.object == nullptr) {
+        if (!stop_send) {
+          can_stop_send = true;
+        } else {
+          return;
+        }
+      }
+      if (can_stop_send && max_continue_send-- <= 0) {
+        stop_send = true;
       }
       if (response.request_id > 0) {
-        if (!stop_send && response.object->get_id() == td::td_api::error::ID &&
-            static_cast<td::td_api::error &>(*response.object).code_ == 400 &&
-            td::Random::fast(0, max_continue_send) == 0) {
-          stop_send = true;
-        }
         receive_count++;
         {
           std::unique_lock<std::mutex> guard(request_ids_mutex);

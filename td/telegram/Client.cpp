@@ -100,13 +100,13 @@ class ClientManager::Impl final {
       auto guard = concurrent_scheduler_->get_main_guard();
       for (size_t i = 0; i < requests_.size(); i++) {
         auto &request = requests_[i];
-        auto it = tds_.find(request.client_id);
-        if (it == tds_.end()) {
+        if (request.client_id <= 0 || request.client_id > client_id_) {
           receiver_->add_response(request.client_id, request.id,
                                   td_api::make_object<td_api::error>(400, "Invalid TDLib instance specified"));
           continue;
         }
-        if (it->second.empty()) {
+        auto it = tds_.find(request.client_id);
+        if (it == tds_.end() || it->second.empty()) {
           receiver_->add_response(request.client_id, request.id,
                                   td_api::make_object<td_api::error>(500, "Request aborted"));
           continue;
@@ -334,6 +334,10 @@ class MultiImpl {
     return id;
   }
 
+  static bool is_valid_client_id(int32 client_id) {
+    return client_id > 0 && client_id < current_id_.load();
+  }
+
   void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
             td_api::object_ptr<td_api::Function> &&request) {
     auto guard = concurrent_scheduler_->get_send_guard();
@@ -360,9 +364,10 @@ class MultiImpl {
   thread scheduler_thread_;
   ActorOwn<MultiTd> multi_td_;
 
+  static std::atomic<int32> current_id_;
+
   static int32 create_id() {
-    static std::atomic<int32> current_id{1};
-    return current_id.fetch_add(1);
+    return current_id_.fetch_add(1);
   }
 
   void create(int32 td_id, unique_ptr<TdCallback> callback) {
@@ -370,6 +375,8 @@ class MultiImpl {
     send_closure(multi_td_, &MultiTd::create, td_id, std::move(callback));
   }
 };
+
+std::atomic<int32> MultiImpl::current_id_{1};
 
 class MultiImplPool {
  public:
@@ -410,13 +417,13 @@ class ClientManager::Impl final {
 
   void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
     auto lock = impls_mutex_.lock_read().move_as_ok();
-    auto it = impls_.find(client_id);
-    if (it == impls_.end()) {
+    if (!MultiImpl::is_valid_client_id(client_id)) {
       receiver_->add_response(client_id, request_id,
                               td_api::make_object<td_api::error>(400, "Invalid TDLib instance specified"));
       return;
     }
-    if (it->second.is_closed) {
+    auto it = impls_.find(client_id);
+    if (it == impls_.end() || it->second.is_closed) {
       receiver_->add_response(client_id, request_id, td_api::make_object<td_api::error>(500, "Request aborted"));
       return;
     }
