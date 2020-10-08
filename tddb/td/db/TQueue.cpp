@@ -368,7 +368,7 @@ class TQueueImpl : public TQueue {
 
   void schedule_queue_gc(QueueId queue_id, Queue &q, int32 gc_at) {
     if (q.gc_at != 0) {
-      bool is_deleted = queue_gc_at_.erase({q.gc_at, queue_id});
+      bool is_deleted = queue_gc_at_.erase({q.gc_at, queue_id}) > 0;
       CHECK(is_deleted);
     }
     q.gc_at = gc_at;

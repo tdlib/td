@@ -224,8 +224,8 @@ class MultiTd : public Actor {
   }
 
   void close(int32 td_id) {
-    size_t erased = tds_.erase(td_id);
-    CHECK(erased > 0);
+    size_t erased_count = tds_.erase(td_id);
+    CHECK(erased_count > 0);
   }
 
  private:

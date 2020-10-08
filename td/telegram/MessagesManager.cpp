@@ -14426,8 +14426,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   auto result = treap_delete_message(v);
 
   if (message_id.is_scheduled_server()) {
-    size_t erased = d->scheduled_message_date.erase(message_id.get_scheduled_server_message_id());
-    CHECK(erased != 0);
+    size_t erased_count = d->scheduled_message_date.erase(message_id.get_scheduled_server_message_id());
+    CHECK(erased_count != 0);
   }
 
   cancel_send_deleted_message(d->dialog_id, result.get(), is_permanently_deleted);
@@ -20909,8 +20909,8 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
 }
 
 void MessagesManager::on_get_dialog_message_by_date_fail(int64 random_id) {
-  auto erased = get_dialog_message_by_date_results_.erase(random_id);
-  CHECK(erased > 0);
+  auto erased_count = get_dialog_message_by_date_results_.erase(random_id);
+  CHECK(erased_count > 0);
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_object(int64 random_id) {

@@ -472,8 +472,8 @@ void FileFd::remove_local_lock(const string &path) {
   if (!path.empty()) {
     VLOG(fd) << "Unlock file \"" << path << '"';
     std::unique_lock<std::mutex> lock(in_process_lock_mutex);
-    auto erased = locked_files.erase(path);
-    CHECK(erased > 0);
+    auto erased_count = locked_files.erase(path);
+    CHECK(erased_count > 0);
   }
 }
 

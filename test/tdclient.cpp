@@ -1009,8 +1009,8 @@ TEST(Client, Close) {
         receive_count++;
         {
           std::unique_lock<std::mutex> guard(request_ids_mutex);
-          size_t erase_count = request_ids.erase(response.id);
-          CHECK(erase_count > 0);
+          size_t erased_count = request_ids.erase(response.id);
+          CHECK(erased_count > 0);
         }
       }
       if (can_stop_receive && receive_count == send_count) {
@@ -1071,8 +1071,8 @@ TEST(Client, ManagerClose) {
         receive_count++;
         {
           std::unique_lock<std::mutex> guard(request_ids_mutex);
-          size_t erase_count = request_ids.erase(response.request_id);
-          CHECK(erase_count > 0);
+          size_t erased_count = request_ids.erase(response.request_id);
+          CHECK(erased_count > 0);
         }
       }
       if (can_stop_receive && receive_count == send_count) {

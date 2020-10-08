@@ -715,7 +715,7 @@ void WebPagesManager::unregister_web_page(WebPageId web_page_id, FullMessageId f
 
   LOG(INFO) << "Unregister " << web_page_id << " from " << full_message_id << " from " << source;
   auto &message_ids = web_page_messages_[web_page_id];
-  auto is_deleted = message_ids.erase(full_message_id);
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
   LOG_CHECK(is_deleted) << source << " " << web_page_id << " " << full_message_id;
 
   if (message_ids.empty()) {
