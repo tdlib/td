@@ -148,6 +148,10 @@ double Random::fast(double min, double max) {
   return min + fast_uint32() * 1.0 / std::numeric_limits<uint32>::max() * (max - min);
 }
 
+bool Random::fast_bool() {
+  return (fast_uint32() & 1) != 0;
+}
+
 Random::Xorshift128plus::Xorshift128plus(uint64 seed) {
   auto next = [&] {
     // splitmix64

@@ -35,6 +35,7 @@ class Random {
   // distribution is not uniform, min and max are included
   static int fast(int min, int max);
   static double fast(double min, double max);
+  static bool fast_bool();
 
   class Fast {
    public:
